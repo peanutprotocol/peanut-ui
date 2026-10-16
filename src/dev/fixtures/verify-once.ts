@@ -193,6 +193,118 @@ const PH_STEPS = [
     },
 ]
 
+const toggle = (key: string, value: string | null = null) => ({ key, kind: 'toggle', required: true, value })
+const MARITAL = ['single', 'married', 'civil_union', 'divorced', 'widowed']
+
+/** A German resident with bank + card: Bridge's EEA answers (citizenship, foreign tax) on top of the card's. */
+const DE_STEPS = (taxElsewhere: string | null = null) => [
+    {
+        id: 'purpose',
+        features: ['card', 'bank'],
+        answered: false,
+        fields: [choice('cardPurpose', CARD_PURPOSES), choice('bankPurpose', BANK_PURPOSES)],
+    },
+    {
+        id: 'work',
+        features: ['card', 'bank'],
+        answered: false,
+        fields: [
+            { key: 'occupation', kind: 'occupation', required: true, options: RAIN_TITLES, value: null },
+            choice('employmentStatus', EMPLOYMENT),
+        ],
+    },
+    {
+        id: 'money',
+        features: ['card'],
+        answered: false,
+        fields: [choice('annualSalary', SALARIES), choice('expectedMonthlyVolume', VOLUMES)],
+    },
+    {
+        id: 'birth',
+        features: ['base', 'bank'],
+        answered: false,
+        fields: [
+            { key: 'countryOfBirth', kind: 'country', required: true, value: 'DE' },
+            { key: 'nationality', kind: 'country', required: true, value: null },
+        ],
+    },
+    address('DE', true),
+    {
+        id: 'phone',
+        features: ['card'],
+        answered: false,
+        fields: [{ key: 'phone', kind: 'phone', required: true, value: null }],
+    },
+    {
+        id: 'tax',
+        features: ['base', 'bank'],
+        answered: false,
+        fields: [
+            { key: 'taxId', kind: 'taxId', required: true, format: null, value: null },
+            toggle('taxElsewhere', taxElsewhere),
+            {
+                key: 'foreignTaxCountry',
+                kind: 'country',
+                required: true,
+                visibleWhen: { key: 'taxElsewhere', equals: 'yes' },
+                value: null,
+            },
+            {
+                key: 'foreignTaxId',
+                kind: 'text',
+                required: true,
+                visibleWhen: { key: 'taxElsewhere', equals: 'yes' },
+                value: null,
+            },
+        ],
+    },
+]
+
+const MANTECA_BIRTH = {
+    id: 'birth',
+    features: ['base', 'local'],
+    answered: false,
+    fields: [{ key: 'countryOfBirth', kind: 'country', required: true, value: 'AR' }, choice('maritalStatus', MARITAL)],
+}
+const DECLARATIONS = {
+    id: 'declarations',
+    features: ['local'],
+    answered: false,
+    fields: [toggle('isPep'), toggle('isFatca'), toggle('isFep')],
+}
+
+/** An Argentine resident with local transfers + card: Manteca's answers (marital status, declarations, CUIT). */
+const AR_STEPS = [
+    { id: 'purpose', features: ['card'], answered: false, fields: [choice('cardPurpose', CARD_PURPOSES)] },
+    {
+        id: 'work',
+        features: ['card', 'local'],
+        answered: false,
+        fields: [{ key: 'occupation', kind: 'occupation', required: true, options: RAIN_TITLES, value: null }],
+    },
+    {
+        id: 'money',
+        features: ['card'],
+        answered: false,
+        fields: [choice('annualSalary', SALARIES), choice('expectedMonthlyVolume', VOLUMES)],
+    },
+    MANTECA_BIRTH,
+    address('AR', true),
+    {
+        id: 'phone',
+        features: ['card', 'local'],
+        answered: false,
+        fields: [{ key: 'phone', kind: 'phone', required: true, value: null }],
+    },
+    DECLARATIONS,
+    {
+        id: 'tax',
+        features: ['base', 'local'],
+        answered: false,
+        fields: [{ key: 'taxId', kind: 'taxId', required: true, format: 'cuit', value: null }],
+    },
+]
+
 const answered = (steps: typeof US_STEPS) => steps.map((step) => ({ ...step, answered: true }))
 
 const questions = (residence: string, steps: unknown[], firstUnanswered: string | null, attemptId = 'vo-attempt') => ({
@@ -242,6 +354,30 @@ const asking = (residence: string, steps: unknown[]) => ({
 })
 
 export const VERIFY_ONCE_FIXTURES: Record<string, Fixture> = {
+    'verify-once-de': {
+        route: '/verify',
+        about: 'Verify-once questions for a German resident with bank + card: Bridge’s EEA answers (citizenship, foreign tax).',
+        responses: asking('DE', DE_STEPS()),
+    },
+    'verify-once-de-tax-elsewhere': {
+        route: '/verify?step=tax',
+        about: 'The EEA tax step with "I also pay tax in another country" on: the country and number appear.',
+        responses: asking('DE', DE_STEPS('yes')),
+    },
+    'verify-once-ar': {
+        route: '/verify',
+        about: 'Verify-once questions for an Argentine resident with local transfers + card: Manteca’s marital status, declarations and CUIT.',
+        responses: asking('AR', AR_STEPS),
+    },
+    'verify-once-add-local': {
+        route: '/verify?feature=local',
+        about: 'Add-later: a verified Argentine resident adds local transfers; Manteca’s missing answers on one screen.',
+        responses: {
+            'GET /users/kyc/questions': questions('AR', [MANTECA_BIRTH, DECLARATIONS], 'birth'),
+            'GET /users/kyc/plan': plan(null, { qr: true, bank: false, local: false, card: true }),
+            'GET /users/kyc/profile': profile('APPROVED'),
+        },
+    },
     'verify-once-us': {
         route: '/verify',
         about: 'Verify-once questions for a US resident with bank + card; open any step with ?step=work|money|birth|address|phone|tax.',

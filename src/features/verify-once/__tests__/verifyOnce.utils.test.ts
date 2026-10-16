@@ -130,6 +130,36 @@ describe('phone and tax completeness', () => {
     })
 })
 
+describe('toggles and conditional fields', () => {
+    const elsewhere = field('taxElsewhere', { kind: 'toggle' })
+    const foreignCountry = field('foreignTaxCountry', {
+        kind: 'country',
+        visibleWhen: { key: 'taxElsewhere', equals: 'yes' },
+    })
+    const foreignNumber = field('foreignTaxId', { visibleWhen: { key: 'taxElsewhere', equals: 'yes' } })
+    const fields = [elsewhere, foreignCountry, foreignNumber]
+
+    it('an untouched toggle reads no', () => {
+        expect(initialValues([elsewhere])).toEqual({ taxElsewhere: 'no' })
+        expect(initialValues([{ ...elsewhere, value: 'yes' }])).toEqual({ taxElsewhere: 'yes' })
+    })
+
+    it('a hidden field is neither required nor sent', () => {
+        const values = { taxElsewhere: 'no', foreignTaxCountry: 'ES', foreignTaxId: 'X1' }
+        expect(stepComplete(fields, { taxElsewhere: 'no' })).toBe(true)
+        expect(stepPayload(fields, values)).toEqual({ taxElsewhere: 'no' })
+    })
+
+    it('a shown field is required and sent', () => {
+        expect(stepComplete(fields, { taxElsewhere: 'yes', foreignTaxCountry: 'ES' })).toBe(false)
+        expect(stepPayload(fields, { taxElsewhere: 'yes', foreignTaxCountry: 'ES', foreignTaxId: ' X1 ' })).toEqual({
+            taxElsewhere: 'yes',
+            foreignTaxCountry: 'ES',
+            foreignTaxId: 'X1',
+        })
+    })
+})
+
 describe('markSaved', () => {
     it('marks the step answered with the saved values, so Back shows them', () => {
         const saved = markSaved(questions(), 'money', { annualSalary: '25k_50k' })

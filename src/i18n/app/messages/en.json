@@ -3408,7 +3408,9 @@
                 "birth": "Where you were born decides which tax rules apply to your account.",
                 "address": "Your home address must match where you live, and it goes on your account details.",
                 "phone": "Your card partner uses your phone number to keep your card secure.",
-                "tax": "Accounts in your country must be linked to your tax number."
+                "tax": "Accounts in your country must be linked to your tax number.",
+                "declarations": "Financial rules in your country ask everyone these questions. If one applies, we may ask for a document later.",
+                "nationality": "Banks in the EU must know every country you’re a citizen of."
             },
             "sentence": {
                 "cardPurpose": "I’ll use my card <nw>for <pill></pill></nw>",
@@ -3421,7 +3423,9 @@
                 "countryOfBirth": "I was born <nw>in <pill></pill></nw>",
                 "bankOccupation": "On the bank’s list, it’s <nw>closest to <pill></pill></nw>",
                 "bankMonthlyPayments": "Each month, my account <nw>moves <pill></pill></nw>",
-                "actingAsIntermediary": "I’ll send money <nw><pill></pill></nw>"
+                "actingAsIntermediary": "I’ll send money <nw><pill></pill></nw>",
+                "nationality": "I’m a citizen <nw>of <pill></pill></nw>",
+                "maritalStatus": "My marital status <nw>is <pill></pill></nw>"
             },
             "pickerTitle": {
                 "cardPurpose": "What you’ll use the card for",
@@ -3434,7 +3438,10 @@
                 "countryOfBirth": "Country of birth",
                 "bankOccupation": "Your job, for the bank account",
                 "bankMonthlyPayments": "What your account moves each month",
-                "actingAsIntermediary": "Who you send money for"
+                "actingAsIntermediary": "Who you send money for",
+                "foreignTaxCountry": "Where else you pay tax",
+                "nationality": "Your citizenship",
+                "maritalStatus": "Marital status"
             },
             "search": {
                 "occupation": "Search jobs",
@@ -3510,15 +3517,24 @@
                 "actingAsIntermediary": {
                     "no": "Only for myself",
                     "yes": "On behalf of others"
+                },
+                "maritalStatus": {
+                    "single": "Single",
+                    "married": "Married",
+                    "civil_union": "In a civil union",
+                    "divorced": "Divorced",
+                    "widowed": "Widowed"
                 }
             },
             "titles": {
                 "address": "Where do you live?",
-                "phone": "What’s your phone number?"
+                "phone": "What’s your phone number?",
+                "declarations": "Do any of these apply to you?"
             },
             "descriptions": {
                 "address": "Your home address, as it appears on a bill or bank statement.",
-                "phone": "Your card partner uses it to keep your card secure. We won’t send you codes."
+                "phone": "Your card partner uses it to keep your card secure. We won’t send you codes.",
+                "declarations": "Most people leave all three off. If one applies, we may ask for a document later."
             },
             "labels": {
                 "street": "Street",
@@ -3528,7 +3544,13 @@
                 "postCode": "Postcode",
                 "country": "Country",
                 "countryLocked": "Your country of residence. You can change it in Profile.",
-                "phone": "Phone number"
+                "phone": "Phone number",
+                "isPep": "I hold a public office",
+                "isFatca": "I’m a US person for tax",
+                "isFep": "I must report to {authority}",
+                "taxElsewhere": "I also pay tax in another country",
+                "foreignTaxCountry": "Country",
+                "foreignTaxId": "Tax number there"
             },
             "tax": {
                 "title": {
@@ -3623,12 +3645,14 @@
             "addLater": {
                 "title": {
                     "bank": "For your bank account",
-                    "card": "For your card"
+                    "card": "For your card",
+                    "local": "For local transfers"
                 },
                 "doneTitle": "You’re all set",
                 "doneDescription": {
                     "bank": "We’re setting up your bank account. It usually takes a few minutes, and we’ll let you know when it’s ready.",
-                    "card": "We’re setting up your card. It usually takes a few minutes, and we’ll let you know when it’s ready."
+                    "card": "We’re setting up your card. It usually takes a few minutes, and we’ll let you know when it’s ready.",
+                    "local": "We’re setting up your local transfers. It usually takes a few minutes, and we’ll let you know when they’re ready."
                 },
                 "doneCta": "Done"
             },
@@ -3636,6 +3660,11 @@
                 "title": "We couldn’t load this",
                 "description": "Check your connection and try again. Your answers so far are saved.",
                 "retry": "Try again"
+            },
+            "toggleNotes": {
+                "isPep": "Or a close relative or partner does.",
+                "isFatca": "A US citizen or US tax resident.",
+                "isFep": "Required in some jobs, like notaries and accountants."
             }
         }
     },

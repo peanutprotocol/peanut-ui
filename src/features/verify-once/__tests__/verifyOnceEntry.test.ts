@@ -54,17 +54,34 @@ describe('verifyOnceRoute', () => {
         mockStatus.mockResolvedValue('APPROVED')
         await expect(verifyOnceRoute(plan(), 'bank')).resolves.toBe('/verify?feature=bank')
         await expect(verifyOnceRoute(plan(), 'card')).resolves.toBeNull()
+        await expect(verifyOnceRoute(plan(), 'local')).resolves.toBe('/verify?feature=local')
+        await expect(
+            verifyOnceRoute(plan({ features: { qr: true, bank: false, local: true, card: true } }), 'local')
+        ).resolves.toBeNull()
         await expect(verifyOnceRoute(plan(), null)).resolves.toBeNull()
     })
 })
 
 describe('entryFeature', () => {
-    it('maps Bridge entry points to the bank feature and leaves Manteca on today’s flow', () => {
+    it('maps Bridge corridors and EU or NA intent to the bank feature', () => {
         expect(entryFeature({ intent: 'NA' })).toBe('bank')
         expect(entryFeature({ intent: 'EU' })).toBe('bank')
-        expect(entryFeature({ corridor: 'ACH_US' })).toBe('bank')
-        expect(entryFeature({ intent: 'LATAM' })).toBeNull()
-        expect(entryFeature({ intent: 'NA', targetCountry: 'AR' })).toBeNull()
+        for (const corridor of ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX', 'BANK_TRANSFER_CO'] as const) {
+            expect(entryFeature({ corridor })).toBe('bank')
+        }
+    })
+
+    it('maps Manteca corridors, LATAM intent, and Argentina or Brazil to the local feature', () => {
+        for (const corridor of ['PIX_BR', 'BANK_TRANSFER_AR'] as const) {
+            expect(entryFeature({ corridor })).toBe('local')
+        }
+        expect(entryFeature({ intent: 'LATAM' })).toBe('local')
+        expect(entryFeature({ intent: 'NA', targetCountry: 'AR' })).toBe('local')
+        expect(entryFeature({ intent: 'EU', targetCountry: 'BR' })).toBe('local')
+    })
+
+    it('leaves unsupported destinations unmapped', () => {
+        expect(entryFeature({ targetCountry: 'US' })).toBeNull()
         expect(entryFeature({})).toBeNull()
     })
 })

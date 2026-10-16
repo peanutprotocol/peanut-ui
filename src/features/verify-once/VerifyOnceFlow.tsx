@@ -10,7 +10,7 @@ import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { getKycQuestions } from '@/app/actions/kyc-verify-once'
+import { getKycQuestions, skipProofOfAddress } from '@/app/actions/kyc-verify-once'
 import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-workflow'
 import type { SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type {
@@ -282,6 +282,7 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
                 accessToken={identity.session?.token ?? null}
                 documentConfig={identity.session?.sdkConfig}
                 sessionKey={identity.session?.attemptId}
+                preselection="preferred"
                 onClose={identity.close}
                 onComplete={() => {
                     identity.close()
@@ -304,7 +305,11 @@ function ProofOfAddressStep({ residenceName, onDone }: { residenceName: string; 
                 uploading={flow.isLoading}
                 error={flow.error}
                 onUpload={() => void flow.handleStartAction('supplement:bridge')}
-                onSkip={onDone}
+                onSkip={() => {
+                    // Best effort: a failed save only means the suggestion can come back next visit.
+                    void skipProofOfAddress()
+                    onDone()
+                }}
             />
             <SumsubKycWrapper
                 visible={flow.showWrapper}

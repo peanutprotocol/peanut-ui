@@ -1540,7 +1540,8 @@
             },
             "why": {
                 "work": "Los bancos y emisores de tarjetas tienen que saber a qué te dedicás.",
-                "address": "Tu domicilio tiene que coincidir con donde vivís y aparece en los datos de tu cuenta."
+                "address": "Tu domicilio tiene que coincidir con donde vivís y aparece en los datos de tu cuenta.",
+                "nationality": "Los bancos de la UE tienen que conocer cada país del que tenés ciudadanía."
             },
             "search": {
                 "typeToSearch": "Escribí para buscar entre los {count} trabajos.",
@@ -1548,7 +1549,8 @@
                 "keepTyping": "Seguí escribiendo para acotar la búsqueda."
             },
             "titles": {
-                "address": "¿Dónde vivís?"
+                "address": "¿Dónde vivís?",
+                "declarations": "¿Alguna de estas opciones aplica a vos?"
             },
             "labels": {
                 "countryLocked": "Tu país de residencia. Podés cambiarlo en Perfil."
@@ -1584,7 +1586,8 @@
                 "description": "Revisá tu conexión e intentá de nuevo. Tus respuestas hasta ahora están guardadas."
             },
             "pickerTitle": {
-                "actingAsIntermediary": "En nombre de quién enviás dinero"
+                "actingAsIntermediary": "En nombre de quién enviás dinero",
+                "foreignTaxCountry": "Dónde más pagás impuestos"
             }
         }
     },

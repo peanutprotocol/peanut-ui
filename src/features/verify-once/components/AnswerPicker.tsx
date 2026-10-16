@@ -97,11 +97,16 @@ export function AnswerPicker({
     value,
     onChange,
     invalid,
+    variant = 'pill',
+    id,
 }: {
     field: VerifyOnceField
     value: string
     onChange: (value: string) => void
     invalid?: boolean
+    /** 'pill' sits inside a sentence; 'field' is a full-width labelled control in a form. */
+    variant?: 'pill' | 'field'
+    id?: string
 }) {
     const t = useTranslations('kyc.verifyOnce')
     const locale = useLocale()
@@ -139,23 +144,44 @@ export function AnswerPicker({
     return (
         <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
             <DrawerTrigger asChild>
-                <Button
-                    variant="secondary"
-                    size="compact"
-                    shadowSize="2"
-                    aria-label={`${title}: ${shown}`}
-                    aria-haspopup="dialog"
-                    aria-invalid={invalid || undefined}
-                    data-testid={`verify-pick-${field.key}`}
-                    className="inline-flex w-fit max-w-[calc(100vw_-_8.5rem)] min-w-0 align-middle"
-                    icon={<Leading field={field} value={value} size="xs" />}
-                    iconContainerClassName="size-6"
-                >
-                    <span className="block min-w-0 truncate" title={shown}>
-                        {shown}
-                    </span>
-                    <Icon name="chevron-down" size={20} className="shrink-0" />
-                </Button>
+                {variant === 'field' ? (
+                    <button
+                        type="button"
+                        id={id}
+                        aria-haspopup="dialog"
+                        aria-invalid={invalid || undefined}
+                        data-testid={`verify-pick-${field.key}`}
+                        className="input flex h-12 w-full items-center gap-2 px-4 text-left"
+                    >
+                        {value && <Leading field={field} value={value} size="xs" />}
+                        <span
+                            className={
+                                value ? 'min-w-0 flex-1 truncate' : 'min-w-0 flex-1 truncate text-foreground-secondary'
+                            }
+                        >
+                            {shown}
+                        </span>
+                        <Icon name="chevron-down" size={20} className="shrink-0" />
+                    </button>
+                ) : (
+                    <Button
+                        variant="secondary"
+                        size="compact"
+                        shadowSize="2"
+                        aria-label={`${title}: ${shown}`}
+                        aria-haspopup="dialog"
+                        aria-invalid={invalid || undefined}
+                        data-testid={`verify-pick-${field.key}`}
+                        className="inline-flex w-fit max-w-[calc(100vw_-_8.5rem)] min-w-0 align-middle"
+                        icon={<Leading field={field} value={value} size="xs" />}
+                        iconContainerClassName="size-6"
+                    >
+                        <span className="block min-w-0 truncate" title={shown}>
+                            {shown}
+                        </span>
+                        <Icon name="chevron-down" size={20} className="shrink-0" />
+                    </Button>
+                )}
             </DrawerTrigger>
             <DrawerContent>
                 {/* A search keeps one height while results filter, so the sheet does not jump. */}

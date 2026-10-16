@@ -7,7 +7,7 @@ import { AddFeatureFlow } from '@/features/verify-once/AddFeatureFlow'
 import { VerifyOnceFlow } from '@/features/verify-once/VerifyOnceFlow'
 
 function VerifyPage() {
-    const [feature] = useQueryState('feature', parseAsStringEnum(['bank', 'card'] as const))
+    const [feature] = useQueryState('feature', parseAsStringEnum(['bank', 'card', 'local'] as const))
     const exit = useSafeBack('/home')
     return feature ? <AddFeatureFlow feature={feature} onExit={exit} /> : <VerifyOnceFlow />
 }

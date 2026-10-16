@@ -6,15 +6,20 @@ import Image from 'next/image'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Field } from '@/components/0_Bruddle/Field'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import type { VerifyOnceAnswers, VerifyOnceField } from '@/app/actions/types/kyc-verify-once.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { countryForPhone } from '../callingCodes'
-import { fieldErrorKey, formatTaxId, looksLikeItin } from '../verifyOnce.utils'
+import { fieldErrorKey, formatTaxId, isVisible, looksLikeItin } from '../verifyOnce.utils'
 import { AnswerPicker } from './AnswerPicker'
 
 const SENTENCE_KINDS = new Set(['choice', 'occupation', 'country'])
-export const isSentenceField = (field: VerifyOnceField) => SENTENCE_KINDS.has(field.kind) && !field.locked
+// A conditional field belongs with the form control it depends on, not in the heading sentences.
+export const isSentenceField = (field: VerifyOnceField) =>
+    SENTENCE_KINDS.has(field.kind) && !field.locked && !field.visibleWhen
 
 const ADDRESS_AUTOCOMPLETE: Record<string, string> = {
     street: 'address-line1',
@@ -282,7 +287,61 @@ function TypedFields({
                     itin ? undefined : t(`tax.help.${taxFormat ?? 'other'}` as never)
                 )}
             {itin && !errorText('taxId') && <FieldError>{t('errors.itinNotAccepted')}</FieldError>}
-            {fields.filter((f) => !known.has(f.key)).map((f) => fieldFor(f, (field) => input(field)))}
+            {groupToggles(fields.filter((f) => !known.has(f.key) && isVisible(f, values))).map((group) =>
+                Array.isArray(group) ? (
+                    <ListGroup key={group[0].key}>
+                        {group.map((f) => {
+                            const title = t(`labels.${f.key}` as 'labels.isFep', {
+                                authority: residence === 'BR' ? 'COAF' : 'UIF',
+                            })
+                            return (
+                                <ListItem
+                                    key={f.key}
+                                    title={title}
+                                    body={
+                                        t.has(`toggleNotes.${f.key}` as never)
+                                            ? t(`toggleNotes.${f.key}` as never)
+                                            : undefined
+                                    }
+                                    bodyWrap
+                                    trailing={
+                                        <Toggle
+                                            checked={values[f.key] === 'yes'}
+                                            onChange={(on) => onChange(f.key, on ? 'yes' : 'no')}
+                                            aria-label={title}
+                                            data-testid={`verify-toggle-${f.key}`}
+                                        />
+                                    }
+                                />
+                            )
+                        })}
+                    </ListGroup>
+                ) : group.kind === 'country' ? (
+                    fieldFor(group, (f) => (
+                        <AnswerPicker
+                            variant="field"
+                            id={`${idPrefix}-${f.key}`}
+                            field={f}
+                            value={values[f.key] ?? ''}
+                            invalid={!!errorText(f.key)}
+                            onChange={(value) => onChange(f.key, value)}
+                        />
+                    ))
+                ) : (
+                    fieldFor(group, (field) => input(field))
+                )
+            )}
         </div>
     )
+}
+
+/** Consecutive toggles share one list; every other field stands alone. */
+function groupToggles(fields: VerifyOnceField[]): Array<VerifyOnceField | VerifyOnceField[]> {
+    const out: Array<VerifyOnceField | VerifyOnceField[]> = []
+    for (const field of fields) {
+        const last = out[out.length - 1]
+        if (field.kind === 'toggle' && Array.isArray(last)) last.push(field)
+        else out.push(field.kind === 'toggle' ? [field] : field)
+    }
+    return out
 }

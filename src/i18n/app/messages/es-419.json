@@ -3408,7 +3408,9 @@
                 "birth": "Tu país de nacimiento define qué normas fiscales aplican a tu cuenta.",
                 "address": "Tu domicilio debe coincidir con donde vives y aparece en los datos de tu cuenta.",
                 "phone": "El socio de tu tarjeta usa tu número de teléfono para mantener tu tarjeta segura.",
-                "tax": "Las cuentas en tu país deben estar vinculadas a tu número fiscal."
+                "tax": "Las cuentas en tu país deben estar vinculadas a tu número fiscal.",
+                "declarations": "Las normas financieras de tu país piden estas preguntas a todos. Si alguna aplica, podríamos pedirte un documento más adelante.",
+                "nationality": "Los bancos de la UE deben conocer cada país del que tienes ciudadanía."
             },
             "sentence": {
                 "cardPurpose": "Usaré mi tarjeta <nw>para <pill></pill></nw>",
@@ -3421,7 +3423,9 @@
                 "countryOfBirth": "Nací <nw>en <pill></pill></nw>",
                 "bankOccupation": "En la lista del banco, se parece <nw>más a <pill></pill></nw>",
                 "bankMonthlyPayments": "Cada mes, mi cuenta <nw>mueve <pill></pill></nw>",
-                "actingAsIntermediary": "Enviaré dinero <nw><pill></pill></nw>"
+                "actingAsIntermediary": "Enviaré dinero <nw><pill></pill></nw>",
+                "nationality": "Tengo ciudadanía <nw>de <pill></pill></nw>",
+                "maritalStatus": "Mi estado civil <nw>es <pill></pill></nw>"
             },
             "pickerTitle": {
                 "cardPurpose": "Para qué usarás la tarjeta",
@@ -3434,7 +3438,10 @@
                 "countryOfBirth": "País de nacimiento",
                 "bankOccupation": "Tu trabajo, para la cuenta bancaria",
                 "bankMonthlyPayments": "Lo que moverá tu cuenta cada mes",
-                "actingAsIntermediary": "En nombre de quién envías dinero"
+                "actingAsIntermediary": "En nombre de quién envías dinero",
+                "foreignTaxCountry": "Dónde más pagas impuestos",
+                "nationality": "Tu ciudadanía",
+                "maritalStatus": "Estado civil"
             },
             "search": {
                 "occupation": "Buscar trabajos",
@@ -3510,15 +3517,24 @@
                 "actingAsIntermediary": {
                     "no": "Solo para mí",
                     "yes": "En nombre de otras personas"
+                },
+                "maritalStatus": {
+                    "single": "Soltero/a",
+                    "married": "Casado/a",
+                    "civil_union": "En unión civil",
+                    "divorced": "Divorciado/a",
+                    "widowed": "Viudo/a"
                 }
             },
             "titles": {
                 "address": "¿Dónde vives?",
-                "phone": "¿Cuál es tu número de teléfono?"
+                "phone": "¿Cuál es tu número de teléfono?",
+                "declarations": "¿Alguna de estas opciones aplica a ti?"
             },
             "descriptions": {
                 "address": "Tu domicilio, como aparece en una factura o estado de cuenta.",
-                "phone": "El socio de tu tarjeta lo usa para mantener tu tarjeta segura. No te enviaremos códigos."
+                "phone": "El socio de tu tarjeta lo usa para mantener tu tarjeta segura. No te enviaremos códigos.",
+                "declarations": "La mayoría las deja desactivadas. Si alguna aplica, podríamos pedirte un documento más adelante."
             },
             "labels": {
                 "street": "Calle",
@@ -3528,7 +3544,13 @@
                 "postCode": "Código postal",
                 "country": "País",
                 "countryLocked": "Tu país de residencia. Puedes cambiarlo en Perfil.",
-                "phone": "Número de teléfono"
+                "phone": "Número de teléfono",
+                "isPep": "Ocupo un cargo público",
+                "isFatca": "Soy contribuyente de EE. UU.",
+                "isFep": "Soy sujeto obligado ante {authority}",
+                "taxElsewhere": "También pago impuestos en otro país",
+                "foreignTaxCountry": "País",
+                "foreignTaxId": "Número fiscal en ese país"
             },
             "tax": {
                 "title": {
@@ -3623,12 +3645,14 @@
             "addLater": {
                 "title": {
                     "bank": "Para tu cuenta bancaria",
-                    "card": "Para tu tarjeta"
+                    "card": "Para tu tarjeta",
+                    "local": "Para transferencias locales"
                 },
                 "doneTitle": "Todo listo",
                 "doneDescription": {
                     "bank": "Estamos configurando tu cuenta bancaria. Suele tardar unos minutos y te avisaremos cuando esté lista.",
-                    "card": "Estamos configurando tu tarjeta. Suele tardar unos minutos y te avisaremos cuando esté lista."
+                    "card": "Estamos configurando tu tarjeta. Suele tardar unos minutos y te avisaremos cuando esté lista.",
+                    "local": "Estamos configurando tus transferencias locales. Suele tardar unos minutos y te avisaremos cuando estén listas."
                 },
                 "doneCta": "Listo"
             },
@@ -3636,6 +3660,11 @@
                 "title": "No pudimos cargar esto",
                 "description": "Revisa tu conexión e inténtalo de nuevo. Tus respuestas hasta ahora están guardadas.",
                 "retry": "Intentar de nuevo"
+            },
+            "toggleNotes": {
+                "isPep": "O lo ocupa un familiar cercano o mi pareja.",
+                "isFatca": "Ciudadano o residente fiscal de EE. UU.",
+                "isFep": "Aplica a algunas profesiones, como escribanos y contadores."
             }
         }
     },

@@ -2,7 +2,12 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { VerifyOnceQuestions } from '@/app/actions/types/kyc-verify-once.types'
-import { getKycQuestions, saveKycAnswers, startVerifyOnceIdentity } from '@/app/actions/kyc-verify-once'
+import {
+    getKycQuestions,
+    saveKycAnswers,
+    skipProofOfAddress,
+    startVerifyOnceIdentity,
+} from '@/app/actions/kyc-verify-once'
 import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-workflow'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { VerifyOnceFlow } from '../VerifyOnceFlow'
@@ -17,6 +22,7 @@ jest.mock('@/app/actions/kyc-verify-once', () => ({
     getKycQuestions: jest.fn(),
     saveKycAnswers: jest.fn(),
     startVerifyOnceIdentity: jest.fn(),
+    skipProofOfAddress: jest.fn(async () => true),
 }))
 jest.mock('@/app/actions/kyc-workflow', () => ({
     findKycDocumentPlan: jest.fn(),
@@ -302,6 +308,7 @@ describe('VerifyOnceFlow', () => {
         fireEvent.click(await screen.findByTestId('verify-poa-upload'))
         expect(mockStartAction).toHaveBeenCalledWith('supplement:bridge')
         fireEvent.click(screen.getByTestId('verify-poa-skip'))
+        expect(skipProofOfAddress).toHaveBeenCalledTimes(1)
         expect(await screen.findByText('You’re verified!')).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
     })

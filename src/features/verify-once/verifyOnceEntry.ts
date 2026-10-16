@@ -8,10 +8,7 @@ import { isVerifyOnceEnabled } from './verifyOnceFlag'
 
 const NEEDS_TODAYS_FIX = new Set(['ACTION_REQUIRED', 'REJECTED', 'FAILED'])
 
-/**
- * The feature an entry point unlocks, for the add-later screen. Bridge bank
- * accounts only in this slice: local transfers (Manteca) keep today's flow.
- */
+/** The feature an entry point unlocks, for the add-later screen: Bridge bank accounts or Manteca local transfers. */
 export function entryFeature({
     intent,
     corridor,
@@ -21,8 +18,12 @@ export function entryFeature({
     corridor?: DepositCorridor
     targetCountry?: string
 }): VerifyOnceFeature | null {
-    if (targetCountry) return null
-    if (corridor) return DEPOSIT_RAILS[corridor]?.provider === 'bridge' ? 'bank' : null
+    if (targetCountry === 'AR' || targetCountry === 'BR') return 'local'
+    if (corridor) {
+        const provider = DEPOSIT_RAILS[corridor]?.provider
+        return provider === 'manteca' ? 'local' : provider === 'bridge' ? 'bank' : null
+    }
+    if (intent === 'LATAM') return 'local'
     return intent === 'EU' || intent === 'NA' ? 'bank' : null
 }
 

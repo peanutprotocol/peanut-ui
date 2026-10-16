@@ -19,6 +19,15 @@ const call = (path: string, init?: RequestInit) =>
 
 const json = (response: Response) => response.json().catch(() => null)
 
+export async function skipProofOfAddress(): Promise<boolean> {
+    try {
+        const response = await call('/users/kyc/proof-of-address/skip', { method: 'POST', body: '{}' })
+        return response.ok
+    } catch {
+        return false
+    }
+}
+
 export async function getKycQuestions(feature?: VerifyOnceFeature): Promise<VerifyOnceQuestions> {
     const response = await call(`/users/kyc/questions${featureQuery(feature)}`)
     const body = response.ok ? await json(response) : null

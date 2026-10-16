@@ -2,6 +2,7 @@ import {
     getKycQuestions,
     saveKycAnswers,
     saveVerifyOnceFeatures,
+    skipProofOfAddress,
     startVerifyOnceIdentity,
 } from '@/app/actions/kyc-verify-once'
 import { serverFetch } from '@/utils/api-fetch'
@@ -153,5 +154,32 @@ describe('saveVerifyOnceFeatures', () => {
         await expect(saveVerifyOnceFeatures(features)).resolves.toEqual({ kind: 'failed' })
         mockFetch.mockRejectedValue(new Error('offline'))
         await expect(saveVerifyOnceFeatures(features)).resolves.toEqual({ kind: 'failed' })
+    })
+})
+
+describe('skipProofOfAddress', () => {
+    it('POSTs the skip request with the verify-once header and private no-store fetch options', async () => {
+        mockFetch.mockResolvedValue(reply(204, null))
+        await expect(skipProofOfAddress()).resolves.toBe(true)
+        expect(mockFetch).toHaveBeenCalledWith(
+            '/users/kyc/proof-of-address/skip',
+            expect.objectContaining({
+                method: 'POST',
+                body: '{}',
+                headers: { 'x-kyc-verify-once': '1' },
+                cache: 'no-store',
+                redactTelemetry: true,
+            })
+        )
+    })
+
+    it('returns false for an unsuccessful response', async () => {
+        mockFetch.mockResolvedValue(reply(500, null))
+        await expect(skipProofOfAddress()).resolves.toBe(false)
+    })
+
+    it('returns false for a rejected request', async () => {
+        mockFetch.mockRejectedValue(new Error('offline'))
+        await expect(skipProofOfAddress()).resolves.toBe(false)
     })
 })

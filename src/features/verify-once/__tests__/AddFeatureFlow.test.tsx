@@ -205,6 +205,101 @@ describe('AddFeatureQuestions: a Bridge high-risk bank account', () => {
     })
 })
 
+describe('AddFeatureQuestions: local transfers (Manteca)', () => {
+    it('asks marital status and the three declarations, sending no for each untouched toggle', async () => {
+        mockQuestions.mockResolvedValue({
+            available: true,
+            attemptId: null,
+            residence: 'BR',
+            steps: [
+                {
+                    id: 'birth',
+                    features: ['local'],
+                    answered: false,
+                    fields: [
+                        {
+                            key: 'maritalStatus',
+                            kind: 'choice',
+                            required: true,
+                            options: ['single', 'married'],
+                            value: 'married',
+                        },
+                    ],
+                },
+                {
+                    id: 'declarations',
+                    features: ['local'],
+                    answered: false,
+                    fields: ['isPep', 'isFatca', 'isFep'].map((key) => ({
+                        key,
+                        kind: 'toggle' as const,
+                        required: true,
+                        value: null,
+                    })),
+                },
+            ],
+            firstUnanswered: 'birth',
+            progress: { done: 1, total: 3 },
+        })
+        mockSave.mockResolvedValue({ kind: 'saved', next: null })
+        const onDone = jest.fn()
+        renderWithIntl(<AddFeatureQuestions feature="local" onBack={jest.fn()} onDone={onDone} />)
+        expect(await screen.findByText('For local transfers')).toBeInTheDocument()
+        expect(screen.getByTestId('verify-pick-maritalStatus')).toHaveTextContent('Married')
+        expect(screen.getByText('I must report to COAF')).toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('verify-toggle-isPep'))
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        await waitFor(() => expect(onDone).toHaveBeenCalled())
+        expect(mockSave).toHaveBeenCalledWith('declarations', { isPep: 'yes', isFatca: 'no', isFep: 'no' }, 'local')
+        expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, local: true })
+    })
+})
+
+describe('AddFeatureQuestions: the EEA foreign tax question', () => {
+    it('shows the country and number only once the toggle is on, and requires them then', async () => {
+        mockQuestions.mockResolvedValue({
+            available: true,
+            attemptId: null,
+            residence: 'DE',
+            steps: [
+                {
+                    id: 'tax',
+                    features: ['bank'],
+                    answered: false,
+                    fields: [
+                        { key: 'taxElsewhere', kind: 'toggle', required: true, value: null },
+                        {
+                            key: 'foreignTaxCountry',
+                            kind: 'country',
+                            required: true,
+                            visibleWhen: { key: 'taxElsewhere', equals: 'yes' },
+                            value: 'ES',
+                        },
+                        {
+                            key: 'foreignTaxId',
+                            kind: 'text',
+                            required: true,
+                            visibleWhen: { key: 'taxElsewhere', equals: 'yes' },
+                            value: null,
+                        },
+                    ],
+                },
+            ],
+            firstUnanswered: 'tax',
+            progress: { done: 1, total: 2 },
+        })
+        renderWithIntl(<AddFeatureQuestions feature="bank" onBack={jest.fn()} onDone={jest.fn()} />)
+        await screen.findByTestId('verify-toggle-taxElsewhere')
+        expect(screen.queryByTestId('verify-input-foreignTaxId')).not.toBeInTheDocument()
+        expect(screen.getByTestId('verify-continue')).toBeEnabled()
+        fireEvent.click(screen.getByTestId('verify-toggle-taxElsewhere'))
+        expect(screen.getByTestId('verify-pick-foreignTaxCountry')).toBeInTheDocument()
+        expect(screen.getByTestId('verify-continue')).toBeDisabled()
+        fireEvent.change(screen.getByTestId('verify-input-foreignTaxId'), { target: { value: 'X1234' } })
+        expect(screen.getByTestId('verify-continue')).toBeEnabled()
+    })
+})
+
 describe('AddFeatureQuestions: the API asks for a step again', () => {
     const answered = () => {
         const all = cardQuestions()

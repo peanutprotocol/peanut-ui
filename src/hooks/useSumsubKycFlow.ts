@@ -632,7 +632,7 @@ export const useSumsubKycFlow = ({
                         entryFeature({
                             intent: overrideIntent ?? regionIntent,
                             corridor,
-                            targetCountry: rawTargetCountry,
+                            targetCountry: normalizedTargetCountry,
                         })
                     )
                     if (verifyOncePath) {

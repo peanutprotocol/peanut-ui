@@ -27,19 +27,28 @@ export function stepProgress(questions: VerifyOnceQuestions, step: VerifyOnceSte
     return { current: Math.max(index, 0) + 2, total }
 }
 
-/** The server's saved values; an empty phone starts with the residence's calling code. */
+/** The server's saved values; an empty phone starts with the residence's calling code, an unset toggle reads no. */
 export const initialValues = (fields: VerifyOnceField[], residence: string | null = null): VerifyOnceAnswers =>
     Object.fromEntries(
         fields.map((f) => {
-            const code = f.kind === 'phone' && !f.value ? callingCodeFor(residence) : null
-            return [f.key, f.value ?? (code ? `+${code} ` : '')]
+            if (f.value) return [f.key, f.value]
+            if (f.kind === 'toggle') return [f.key, 'no']
+            const code = f.kind === 'phone' ? callingCodeFor(residence) : null
+            return [f.key, code ? `+${code} ` : '']
         })
     )
 
-/** What a step sends: trimmed, locked fields as the server gave them, empty optional fields left out. */
+/** A field shows, and counts, only while the field it depends on has the value it names. */
+export const isVisible = (field: VerifyOnceField, values: VerifyOnceAnswers) =>
+    !field.visibleWhen || values[field.visibleWhen.key] === field.visibleWhen.equals
+
+export const visibleFields = (fields: VerifyOnceField[], values: VerifyOnceAnswers) =>
+    fields.filter((f) => isVisible(f, values))
+
+/** What a step sends: trimmed, locked fields as the server gave them, empty optional and hidden fields left out. */
 export function stepPayload(fields: VerifyOnceField[], values: VerifyOnceAnswers): VerifyOnceAnswers {
     const out: VerifyOnceAnswers = {}
-    for (const field of fields) {
+    for (const field of visibleFields(fields, values)) {
         const raw = field.locked ? (field.value ?? '') : (values[field.key] ?? '')
         const value = field.kind === 'phone' ? raw.replace(/[\s()-]/g, '') : raw.trim()
         if (value) out[field.key] = value
@@ -47,9 +56,9 @@ export function stepPayload(fields: VerifyOnceField[], values: VerifyOnceAnswers
     return out
 }
 
-/** Continue waits for every required answer; the server still checks each one. */
+/** Continue waits for every required answer it can see; the server still checks each one. */
 export const stepComplete = (fields: VerifyOnceField[], values: VerifyOnceAnswers) =>
-    fields.every((f) => {
+    visibleFields(fields, values).every((f) => {
         const value = values[f.key]?.trim() ?? ''
         if (f.kind === 'phone' && value && !isE164(value)) return false
         if (f.kind === 'taxId' && looksLikeItin(f.format, value)) return false
