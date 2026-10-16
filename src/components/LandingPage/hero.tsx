@@ -188,7 +188,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     360px) where en/es take 2, which pushes the CTA under the fold. Buy the 38-76px
                     back from this gap rather than from the artwork, so every locale keeps the same
                     hero on normal screens. Width-scoped too, or it would fire on 1366x657 laptops. */}
-                <h2 className="font-roboto-flex-extrabold mt-16 text-center text-headingSmall font-extraBlack text-foreground-primary md:mt-12 md:text-headingMedium [@media(max-height:660px)_and_(max-width:767px)]:mt-4">
+                <h2 className="font-roboto-flex-extrabold mt-16 text-center text-[2.375rem] font-extraBlack text-foreground-primary md:mt-12 md:text-heading [@media(max-height:660px)_and_(max-width:767px)]:mt-4">
                     {strings.heroTapScan}
                 </h2>
                 <span

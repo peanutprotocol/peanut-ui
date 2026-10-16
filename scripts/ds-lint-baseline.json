@@ -20,12 +20,12 @@
     "rawDuration": 1,
     "retypedCardLiteral": 12,
     "hoverNoActiveFiles": 17,
-    "arbitraryFontSize": 14,
+    "arbitraryFontSize": 15,
     "rawErrorText": 14,
     "handRolledCloseGlyphFiles": 7,
     "bareListLeading": 17,
     "rawHexMarketing": 0,
-    "arbitraryFontSizeMarketing": 12,
+    "arbitraryFontSizeMarketing": 13,
     "knerdOutsideTitle": 4,
     "_meta": [
         {
@@ -126,6 +126,11 @@
             "date": "2026-10-15",
             "metrics": ["knerdOutsideTitle 3 -> 4"],
             "reason": "knerdOutsideTitle 3 -> 4 on the run-2 integration merge: the one real debt (sendInSeconds hand-rolled font-knerd closing fold) is gone — routed through Title per the knerd-closing-fold ruling; the +2 are the new /dev/ds marketing doc pages naming the class in prose (landing tier description, closing-fold preview comment), text the scanner reads as data, not rendered classes"
+        },
+        {
+            "date": "2026-10-16",
+            "metrics": ["arbitraryFontSize 14 -> 15", "arbitraryFontSizeMarketing 12 -> 13"],
+            "reason": "home hero TAP. SCAN. ANYWHERE. back on its shipped 38px mobile size (text-[2.375rem]): hero text sizes are the standing exception (ruled 2026-09-17) and Konrad's 15 Oct review asked to keep hero title sizes as shipped; run 1 had moved it onto headingSmall/headingMedium"
         }
     ]
 }
