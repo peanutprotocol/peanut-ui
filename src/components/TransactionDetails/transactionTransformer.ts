@@ -21,6 +21,7 @@ import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/re
 import { TRANSACTION_NAME_KEYS, reaperFailKey, type TransactionNameKey } from './transaction-name-keys'
 import { parseWireAmount, senderNoteText } from './transaction-details.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
+import { formatBankAmount } from '@/utils/currency'
 
 /** Sender account types that are not a payer's bank account. */
 const NON_BANK_SENDER_TYPES: ReadonlySet<string> = new Set(['peanut-wallet', 'evm-address', 'address'])
@@ -458,6 +459,14 @@ export interface TransactionDetails {
         wasReturned?: boolean
         /** Why the bank sent the deposit back; picks the receipt's reason line. */
         returnReasonCode?: DepositReturnReasonCode
+        /** A bank deposit that never reaches the balance — a bank's
+         *  verification micro-deposit, or one under the rail minimum. */
+        depositKind?: 'verification' | 'below_minimum'
+        /** The exact amount the bank sent ("$0.07", "€0.05"), shown instead
+         *  of the converted USD amount on those two kinds. */
+        depositAmountDisplay?: string
+        /** `below_minimum` only: the rail minimum, e.g. "€1". */
+        minimumAmountDisplay?: string
         /** The reference we sent out on a fiat payout — the user's own text
          *  when they typed one, otherwise the default our payment partner
          *  composed. Owner-only: it never reaches a public receipt. */
@@ -629,6 +638,31 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         isPeerActuallyUser = false
     }
 
+    // A bank's account-check micro-deposit (TASK-23245). The user needs the
+    // exact amount to type into the other app, so the row names it plainly
+    // instead of "Bank account". The wire status stays CANCELLED, because the
+    // money goes back to the sender and never reaches the balance.
+    const wireDepositKind = entry.extraData?.depositKind
+    const depositKind =
+        direction === 'bank_deposit' && (wireDepositKind === 'verification' || wireDepositKind === 'below_minimum')
+            ? wireDepositKind
+            : undefined
+    if (depositKind === 'verification') {
+        nameForDetails = 'Verification deposit'
+        nameKey = TRANSACTION_NAME_KEYS.verificationDeposit
+        nameParams = undefined
+        nameDetail = undefined
+    }
+    const depositCurrency = entry.extraData?.depositCurrency?.trim().toUpperCase()
+    const depositAmountDisplay =
+        depositKind && depositCurrency && entry.extraData?.depositAmount
+            ? formatBankAmount(entry.extraData.depositAmount, depositCurrency)
+            : undefined
+    const minimumAmountDisplay =
+        depositKind === 'below_minimum' && depositCurrency && entry.extraData?.minimumAmount
+            ? formatBankAmount(entry.extraData.minimumAmount, depositCurrency)
+            : undefined
+
     // Strategy uiStatus wins (e.g. SEND_LINK BOTH → 'cancelled'); otherwise
     // map raw entry.status via the shared helper.
     if (!strategyOverrodeUiStatus) uiStatus = mapEntryStatusToUiStatus(entry, direction)
@@ -787,12 +821,18 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             fulfillmentType: entry.extraData?.fulfillmentType,
             bridgeTransferId: entry.extraData?.bridgeTransferId,
             senderReference: senderNoteText(entry.extraData?.senderReference),
-            isDepositAccountDeposit: isDepositAccountDeposit || undefined,
+            isDepositAccountDeposit: isDepositAccountDeposit || !!depositKind || undefined,
             // The bank sent the money back after it settled, so the
             // conversion happened even though the row reads as failed.
             wasReturned: returnedStatus === 'RETURNED' || returnedStatus === 'REFUNDED' || undefined,
             returnReasonCode: isDepositReturned ? entry.extraData?.returnReason?.code : undefined,
-            payerName: isDepositAccountDeposit ? entry.senderAccount?.fullName?.trim() || undefined : undefined,
+            payerName:
+                isDepositAccountDeposit || depositKind
+                    ? entry.extraData?.senderName?.trim() || entry.senderAccount?.fullName?.trim() || undefined
+                    : undefined,
+            depositKind,
+            depositAmountDisplay,
+            minimumAmountDisplay,
             paymentReference: entry.extraData?.paymentReference?.trim() || undefined,
             bankInstructionsShared: entry.extraData?.bankInstructionsShared || undefined,
             // Card-payment specifics — populated only for Rain CARD_SPEND /

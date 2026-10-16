@@ -2315,7 +2315,8 @@
             "receivedViaLink": "Recibido por enlace",
             "sentViaLink": "Enviado por enlace",
             "transaction": "Transacción",
-            "failedQrPayment": "Intento de pago QR fallido"
+            "failedQrPayment": "Intento de pago QR fallido",
+            "verificationDeposit": "Depósito de verificación"
         },
         "nameInSentence": {
             "merchant": "comercio",
@@ -2373,6 +2374,8 @@
         "returnedReason": "El banco devolvió este pago.",
         "returnedReasonThirdParty": "Salió de la cuenta de otra persona, y esta cuenta no la acepta.",
         "returnedStatus": "Devuelto",
+        "verificationDepositNote": "Se usa para confirmar tu cuenta. No se suma a tu saldo.",
+        "belowMinimumNote": "Este depósito fue menor al mínimo de {min}, así que no se puede agregar ni devolver.",
         "perkBanner": {
             "title": "¡Ganaste una recompensa!",
             "capped": "Recompensa de ${amount} — ¡se alcanzó el límite de la campaña!",
