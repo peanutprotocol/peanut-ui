@@ -176,6 +176,57 @@ function inferTokenSymbol(chainId: string, tokenAddress: string): RhinoSupported
     return getTokenSymbol(tokenAddress as Address, chainId)?.toUpperCase()
 }
 
+/**
+ * Quote-only fee preview for a withdraw, for the amount screen's estimate.
+ * The same path choice as `calculate` (SDA for USDC/USDT, bridge quote for
+ * the rest) but nothing is provisioned or committed and no charge exists yet.
+ * Pay mode: the fee comes out of what is delivered, as in `calculate`.
+ */
+export async function previewWithdrawFee({
+    sourceChainId,
+    destinationChainId,
+    tokenSymbol,
+    amountUsd,
+    depositor,
+    recipient,
+}: {
+    sourceChainId: string
+    destinationChainId: string
+    tokenSymbol: string
+    amountUsd: string
+    depositor: string
+    recipient: string
+}): Promise<{ feeUsd: number; receiveAmount: string }> {
+    const chainIn = chainIdToRhinoName(sourceChainId)
+    const chainOut = chainIdToRhinoName(destinationChainId)
+    if (!chainIn || !chainOut) {
+        throw new Error(`Unsupported Rhino chain mapping (src=${sourceChainId} dest=${destinationChainId})`)
+    }
+    const symbol = tokenSymbol.toUpperCase()
+    if (SDA_SUPPORTED_TOKENS.has(symbol)) {
+        const quote = await previewSdaTransfer({
+            chainIn,
+            chainOut,
+            token: symbol,
+            amount: amountUsd,
+            mode: 'pay',
+            depositor,
+            recipient,
+        })
+        return { feeUsd: quote.feeUsd, receiveAmount: quote.receiveAmount }
+    }
+    const quote = await getBridgeQuote({
+        amount: amountUsd,
+        tokenIn: 'USDC',
+        tokenOut: symbol,
+        chainOut,
+        recipient,
+        depositor,
+        mode: 'pay',
+    })
+    return { feeUsd: quote.feeUsd, receiveAmount: quoteAmounts(quote).receiveAmount }
+}
+
 export function useCrossChainTransfer(): UseCrossChainTransferReturn {
     const toFriendlyError = useFriendlyError()
     const [transactions, setTransactions] = useState<PreparedTransaction[] | null>(null)

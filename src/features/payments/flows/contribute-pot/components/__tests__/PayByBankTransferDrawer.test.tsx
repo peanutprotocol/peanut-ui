@@ -98,6 +98,35 @@ describe('PayByBankTransferDrawer', () => {
         expect(screen.queryByText('Estimate')).not.toBeInTheDocument()
     })
 
+    // The reference is what matches the transfer to the request, so the payer
+    // reads it on the row, whichever amount text the row shows.
+    it('adds the payment reference to the exact amount', () => {
+        renderRow({ rail: { ...eurExact, reference: 'demo-req' }, remainingUsd: 108 })
+
+        expect(screen.getByText('€100 · Reference demo-req')).toBeInTheDocument()
+    })
+
+    it('adds the payment reference to an estimate', () => {
+        renderRow({ rail: { ...eurEstimate, reference: 'demo-req' }, remainingUsd: 100 })
+
+        expect(screen.getByText('≈ €92 · Reference demo-req')).toBeInTheDocument()
+    })
+
+    it('adds the payment reference to the generic text', () => {
+        renderRow({
+            rail: {
+                kind: 'bank',
+                railId: 'bridge.sepa_eu',
+                reference: 'demo-req',
+                payerAmount: { amount: null, currency: 'EUR', isEstimate: true },
+            },
+        })
+
+        expect(
+            screen.getByText("Send from your bank to the requester's account. · Reference demo-req")
+        ).toBeInTheDocument()
+    })
+
     it('reads no bank details until the payer opens the drawer, then asks for the rail currency', () => {
         renderRow({ rail: eurExact })
         expect(mockUseInstructions).toHaveBeenLastCalledWith('req-1', false, 'EUR')

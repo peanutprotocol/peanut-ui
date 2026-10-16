@@ -68,6 +68,12 @@ export function RequestBankTransferCard({
 
     const currency = instructions.depositAccount.currency.toUpperCase()
     const corridor = corridorFromRailId(instructions.depositAccount.railId)
+    // A Bre-B account is credited on the provider's own deposit message, and a
+    // bank form has one reference field. Share text that adds the request's
+    // reference beside it tells the payer two things to type into one box, so
+    // such an account gets no request share text until the provider confirms
+    // a combined reference.
+    const shareable = canShare && !instructions.depositAccount.instructions?.depositMessage
     const drawerTitle = corridor
         ? t('bankTransfer.payInCurrency', { currency, rail: railName(corridor) })
         : tDeposit('title')
@@ -94,7 +100,7 @@ export function RequestBankTransferCard({
                     </DrawerHeader>
                     <div className="flex flex-col gap-6">
                         <RequestBankInstructions instructions={instructions} />
-                        {canShare && <RequestShareActions instructions={instructions} currency={currency} />}
+                        {shareable && <RequestShareActions instructions={instructions} currency={currency} />}
                     </div>
                 </DrawerContent>
             </Drawer>

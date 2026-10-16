@@ -91,4 +91,34 @@ describe('RequestBankTransferCard', () => {
         expect(text).toContain('Payment reference: demo-req')
         expect(text).toContain('Add the reference to every transfer.')
     })
+
+    // A Bre-B account is credited on the provider's own deposit message. A bank
+    // form has one reference field, so the request's reference must not be
+    // shared beside it; the details still show the provider's message.
+    it('offers no share text on an account that carries its own deposit message', async () => {
+        mockHook.mockReturnValue({
+            instructions: {
+                ...INSTRUCTIONS,
+                depositAccount: {
+                    ...INSTRUCTIONS.depositAccount,
+                    country: 'COL',
+                    currency: 'COP',
+                    railId: 'bridge.bank_transfer_co',
+                    instructions: {
+                        accountHolderName: 'Ana Silva',
+                        breBKey: '@ANA123',
+                        depositMessage: 'PEANUT-4F2A',
+                        paymentRails: ['bre_b'],
+                    },
+                },
+            },
+            isLoading: false,
+            isUnavailable: false,
+        })
+        render(<RequestBankTransferCard requestId="req-1" canShare />, { wrapper })
+        fireEvent.click(screen.getByRole('button', { name: /Bank details/ }))
+        expect(await screen.findByText('PEANUT-4F2A')).toBeInTheDocument()
+        expect(screen.queryByText('Copy all details')).not.toBeInTheDocument()
+        expect(screen.queryByText('Share')).not.toBeInTheDocument()
+    })
 })
