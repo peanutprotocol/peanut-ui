@@ -99,6 +99,20 @@ regex fallback; a missing parser or evaluator failure remains an error.
   methodology change in the baseline `_meta`. Do not regenerate other metrics
   as a side effect of modifying this scanner.
 
+## Marketing ratchet metrics (2026-10-15)
+
+`rawHexMarketing`, `arbitraryFontSizeMarketing` and `knerdOutsideTitle` are
+regex value matchers in `ds-lint-rules.cjs`, not scanner semantics. The
+marketing surfaces (the `LEGACY_ALLOW` list in `ds-lint-counts.mjs`) stay out
+of the app-wide hex and text-size metrics; the two marketing metrics count raw
+hex literals and arbitrary `text-[<digit>…]` sizes inside those same surfaces,
+so the exemption no longer leaves the drift uncounted. `knerdOutsideTitle`
+counts `font-knerd-*` classes app-wide outside
+`src/components/0_Bruddle/Title.tsx`, the one component that renders the Knerd
+face. Baselines are the counts at introduction (raw-hex-marketing ruling,
+2026-10-14); the fix branches drive the counts down and the integrator
+re-baselines after merging them.
+
 The migration from `954861de9` changes only
 `src/app/(mobile-ui)/dev/_components/DevSegmented.tsx`, from 1 to 0. Its `size`
 ternary has `font-bold` in the small branch and `text-label-m` in the other branch;

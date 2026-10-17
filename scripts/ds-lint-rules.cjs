@@ -264,6 +264,20 @@ function hasHandRolledCloseGlyph(text) {
     return text.includes('<button') && /name=["']cancel["']/.test(text)
 }
 
+// raw hex colors. 8 digits before 6 before 3 so #RRGGBBAA counts once, not as
+// #RRGGBB plus a stray pair. shared by the app-wide rawHex metric and the
+// marketing ratchet (raw-hex-marketing ruling, 2026-10-14) — marketing keeps
+// its LEGACY_ALLOW exemption from the app metric, so rawHexMarketing counts
+// the same drift inside those surfaces instead.
+const HEX_RE = /#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g
+
+// the Knerd display face renders through 0_Bruddle/Title.tsx alone
+// (knerd-closing-fold ruling, 2026-10-14) — a font-knerd-* class anywhere else
+// is drift. the lookbehind keeps the next/font variable declarations
+// ('--font-knerd-outline') and var(--font-knerd-*) references out; variant
+// prefixes (md:font-knerd-filled) still match.
+const FONT_KNERD_RE = /(?<![a-zA-Z0-9-])font-knerd(?:-[a-z]+)*\b/g
+
 // a bare Icon or Image in a ListItem leading slot. the slot holds one IconBubble,
 // a flag (CorridorFlag) or a logo helper (DisplayIcon) — design.md, "ListItem
 // leading is one element". a concept (bank, crypto, card…) is its CONCEPT_ICONS
@@ -287,4 +301,6 @@ module.exports = {
     RAW_ERROR_TEXT_RE,
     hasHandRolledCloseGlyph,
     BARE_LIST_LEADING_RE,
+    HEX_RE,
+    FONT_KNERD_RE,
 }

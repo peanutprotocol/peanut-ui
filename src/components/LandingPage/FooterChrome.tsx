@@ -71,7 +71,7 @@ export const FooterChrome = ({
 
     return (
         // Nav is on its own row because translated labels have different widths.
-        <footer className="bg-black px-8 py-8 md:px-20">
+        <footer className="bg-black px-6 py-8 md:px-20">
             <div className="mb-6 flex justify-center md:hidden">
                 <HandSigns i18n={i18n} />
             </div>
@@ -90,7 +90,7 @@ export const FooterChrome = ({
                             Squirrel Labs
                         </a>
                     </p>
-                    <p className="text-body-xs text-white/70">{i18n.footerLegalEntity}</p>
+                    <p className="text-body-xs text-foreground-inverse-secondary">{i18n.footerLegalEntity}</p>
                 </section>
 
                 <div className="hidden md:block">

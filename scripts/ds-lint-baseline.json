@@ -3,27 +3,30 @@
     "rawHexFiles": 3,
     "inlineStyle": 22,
     "stockTextSize": 0,
-    "dsTextScale": 1178,
+    "dsTextScale": 1421,
     "legacyTextScale": 0,
     "nonDsClassesInViews": 6,
     "useSearchParamsFiles": 35,
-    "nuqsFiles": 44,
+    "nuqsFiles": 47,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
     "classNameSitesInPages": 117,
-    "fontWeightOnTypeToken": 29,
-    "offScaleSpacing": 89,
+    "fontWeightOnTypeToken": 26,
+    "offScaleSpacing": 81,
     "iconOffScale": 44,
     "offScaleRadius": 16,
     "rawDuration": 1,
     "retypedCardLiteral": 13,
-    "hoverNoActiveFiles": 21,
-    "arbitraryFontSize": 20,
+    "hoverNoActiveFiles": 17,
+    "arbitraryFontSize": 15,
     "rawErrorText": 14,
     "handRolledCloseGlyphFiles": 7,
     "bareListLeading": 17,
+    "rawHexMarketing": 0,
+    "arbitraryFontSizeMarketing": 13,
+    "knerdOutsideTitle": 3,
     "_meta": [
         {
             "date": "2026-09-01",
@@ -109,6 +112,35 @@
             "date": "2026-09-25",
             "metrics": ["offScaleSpacing 87 -> 89"],
             "reason": "one product accordion (TASK-23071): flush Accordion.Content inside a bordered item carries -mx-px -mb-px so the country list's own card borders sit on the item border instead of reading as a card inside a card. border-overlay geometry, the same category as the tabs chip weld, not box rhythm. 2 sites in 0_Bruddle/Accordion.tsx."
+        },
+        {
+            "date": "2026-10-15",
+            "metrics": [
+                "rawHexMarketing new at 4",
+                "arbitraryFontSizeMarketing new at 18",
+                "knerdOutsideTitle new at 3"
+            ],
+            "reason": "marketing ratchet (raw-hex-marketing ruling 2026-10-14): three new metrics over the marketing surfaces, introduced at their current counts. the parallel fix branches lower the real counts; the integrator re-baselines after merging them."
+        },
+        {
+            "date": "2026-10-15",
+            "metrics": ["knerdOutsideTitle 3 -> 4"],
+            "reason": "knerdOutsideTitle 3 -> 4 on the run-2 integration merge: the one real debt (sendInSeconds hand-rolled font-knerd closing fold) is gone — routed through Title per the knerd-closing-fold ruling; the +2 are the new /dev/ds marketing doc pages naming the class in prose (landing tier description, closing-fold preview comment), text the scanner reads as data, not rendered classes"
+        },
+        {
+            "date": "2026-10-16",
+            "metrics": ["arbitraryFontSize 14 -> 15", "arbitraryFontSizeMarketing 12 -> 13"],
+            "reason": "home hero TAP. SCAN. ANYWHERE. back on its shipped 38px mobile size (text-[2.375rem]): hero text sizes are the standing exception (ruled 2026-09-17) and Konrad's 15 Oct review asked to keep hero title sizes as shipped; run 1 had moved it onto headingSmall/headingMedium"
+        },
+        {
+            "date": "2026-10-16",
+            "metrics": ["knerdOutsideTitle 4 -> 3"],
+            "reason": "round-2 knerd merge: the closing-fold preview page no longer names font-knerd outside Title now that the fold renders the canonical Title lockup; real count fell, ratchet follows it down"
+        },
+        {
+            "date": "2026-10-16",
+            "metrics": ["retypedCardLiteral 12 -> 13"],
+            "reason": "merge from dev: dev already carries 13 (TokenSelector SelectorTrigger, 8b5121d25)"
         }
     ]
 }

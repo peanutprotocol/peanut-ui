@@ -679,7 +679,7 @@ export const SURFACES: Record<string, Surface> = {
         render: () => (
             <div className="p-4">
                 <FAQsPanel
-                    heading="Frequently asked questions"
+                    heading="FAQ."
                     questions={[
                         { id: 'q1', question: 'How long does a transfer take?', answer: 'Usually a few minutes.' },
                         { id: 'q2', question: 'What does it cost?', answer: 'No fee on Peanut to Peanut.' },

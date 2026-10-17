@@ -48,7 +48,7 @@ export function PartnerLockup({
         >
             <Image src={flag} alt={flagAlt} width={177} height={126} className="w-36 md:w-48" />
 
-            <span className="mt-4 flex h-9 items-center justify-center md:mt-5 md:h-13">
+            <span className="mt-4 flex h-9 items-center justify-center md:mt-6 md:h-13">
                 <Image src={logo} alt={logoAlt} width={150} height={38} className={logoClassName} />
             </span>
 
