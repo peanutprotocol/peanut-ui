@@ -223,13 +223,17 @@ function CardInformationSurface({
     failed?: boolean
 }) {
     const t = useTranslations('card')
-    const tKyc = useTranslations('kyc')
     return (
         <AppPageSurface>
             <ApplicationStatusScreen
                 variant="requires-info"
-                informationActions={actions.map((key) => ({ key, label: t(key), onClick: noop }))}
-                uploadError={failed ? tKyc('errorStartActionFailed') : undefined}
+                informationActions={actions.map((key) => ({
+                    key,
+                    kind: key === 'provideTaxId' ? 'taxId' : 'birthDate',
+                    label: t(key),
+                    onClick: noop,
+                }))}
+                uploadError={failed ? t('informationStartFailed') : undefined}
                 onContactSupport={noop}
                 onPrev={noop}
             />

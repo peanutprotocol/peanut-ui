@@ -208,13 +208,15 @@ export const CardPage: FC = () => {
                         onContactSupport={() => setIsSupportModalOpen(true)}
                         onUploadProofOfAddress={onUploadProofOfAddress}
                         onUploadIdentity={onUploadIdentity}
-                        informationActions={informationActions.map((action) => ({
-                            key: action.key,
-                            label: t(
-                                action.levelKey === 'tax_identification_number' ? 'provideTaxId' : 'provideBirthDate'
-                            ),
-                            onClick: () => void startInformationAction(action.key),
-                        }))}
+                        informationActions={informationActions.map((action) => {
+                            const kind = action.levelKey === 'tax_identification_number' ? 'taxId' : 'birthDate'
+                            return {
+                                key: action.key,
+                                kind,
+                                label: t(kind === 'taxId' ? 'provideTaxId' : 'provideBirthDate'),
+                                onClick: () => void startInformationAction(action.key),
+                            }
+                        })}
                         uploadError={informationError ?? poaError ?? identityUploadError ?? undefined}
                         onPrev={onBack}
                     />

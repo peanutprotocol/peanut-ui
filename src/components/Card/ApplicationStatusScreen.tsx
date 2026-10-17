@@ -38,7 +38,7 @@ interface Props {
      *  this opens Rain's card-member portal to re-upload — the primary CTA so
      *  users fix it themselves instead of hitting the contact-support dead end. */
     onUploadIdentity?: () => void
-    informationActions?: Array<{ key: string; label: string; onClick: () => void }>
+    informationActions?: Array<{ key: string; kind: InformationKind; label: string; onClick: () => void }>
     /** Inline failure from starting the upload (a silent primary CTA on a
      *  stuck-application screen reads as broken). */
     uploadError?: string
@@ -62,6 +62,23 @@ const COPY_KEYS = {
         body: 'status.pendingResidenceBlockedBody',
     },
 } as const satisfies Record<Variant, { title: string; body: string }>
+
+export type InformationKind = 'taxId' | 'birthDate'
+type SelfServeKind = 'proofOfAddress' | 'identity' | InformationKind
+
+interface SelfServeAction {
+    kind: SelfServeKind
+    label: string
+    onClick: () => void
+}
+
+/** A self-serve step on the screen replaces the support line with what to do. */
+const REQUIRES_INFO_BODY_KEYS = {
+    proofOfAddress: 'status.requiresInfoProofOfAddressBody',
+    identity: 'status.requiresInfoIdentityBody',
+    taxId: 'status.requiresInfoTaxIdBody',
+    birthDate: 'status.requiresInfoBirthDateBody',
+} as const satisfies Record<SelfServeKind, string>
 
 /** Variants where support is the only path forward — these render the CTA. */
 const SUPPORT_VARIANTS: ReadonlySet<Variant> = new Set(['requires-info', 'requires-support', 'rejected'])
@@ -93,6 +110,23 @@ const ApplicationStatusScreen: FC<Props> = ({
     const copyKeys = COPY_KEYS[variant]
     const reasonKey = reasonCodeKey(reasonCode)
     const reasonText = reasonKey ? tIdentity(reasonKey) : reasonMessage
+    // One fix at a time: if the rail ever carries several, the next shows once this one is done.
+    let selfServeAction: SelfServeAction | undefined
+    if (SUPPORT_VARIANTS.has(variant)) {
+        if (onUploadProofOfAddress) {
+            selfServeAction = {
+                kind: 'proofOfAddress',
+                label: t('uploadProofOfAddress'),
+                onClick: onUploadProofOfAddress,
+            }
+        } else if (onUploadIdentity) {
+            selfServeAction = { kind: 'identity', label: t('uploadIdentityDocuments'), onClick: onUploadIdentity }
+        } else if (variant === 'requires-info') {
+            selfServeAction = informationActions[0]
+        }
+    }
+    const bodyKey =
+        variant === 'requires-info' && selfServeAction ? REQUIRES_INFO_BODY_KEYS[selfServeAction.kind] : copyKeys.body
     return (
         <PageStack>
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
@@ -108,7 +142,7 @@ const ApplicationStatusScreen: FC<Props> = ({
                 <div className="flex flex-col gap-3">
                     <h1 className="text-heading-s text-foreground-primary">{t(copyKeys.title)}</h1>
                     {reasonText && <p className="text-foreground-secondary">{reasonText}</p>}
-                    <p className="text-foreground-secondary">{t(copyKeys.body)}</p>
+                    <p className="text-foreground-secondary">{t(bodyKey)}</p>
                 </div>
                 {variant === 'geo-blocked' && (
                     <LinkButton href={PROHIBITED_ACTIVITIES_POLICY_URL} external>
@@ -118,32 +152,11 @@ const ApplicationStatusScreen: FC<Props> = ({
                 {variant === 'pending-residence-blocked' && (
                     <LinkButton href={RESIDENCE_CHANGE_URL}>{t('status.pendingResidenceBlockedCta')}</LinkButton>
                 )}
-                {SUPPORT_VARIANTS.has(variant) && onUploadProofOfAddress && (
-                    <div className="flex w-full flex-col gap-2">
-                        <Button variant="primary" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>
-                            {t('uploadProofOfAddress')}
-                        </Button>
-                    </div>
+                {selfServeAction && (
+                    <Button variant="primary" className="w-full" onClick={selfServeAction.onClick}>
+                        {selfServeAction.label}
+                    </Button>
                 )}
-                {SUPPORT_VARIANTS.has(variant) && onUploadIdentity && (
-                    <div className="flex w-full flex-col gap-2">
-                        <Button variant="primary" shadowSize="4" className="w-full" onClick={onUploadIdentity}>
-                            {t('uploadIdentityDocuments')}
-                        </Button>
-                    </div>
-                )}
-                {variant === 'requires-info' &&
-                    informationActions.map((action) => (
-                        <Button
-                            key={action.key}
-                            variant="primary"
-                            shadowSize="4"
-                            className="w-full"
-                            onClick={action.onClick}
-                        >
-                            {action.label}
-                        </Button>
-                    ))}
                 {SUPPORT_VARIANTS.has(variant) && uploadError && (
                     <p role="alert" className="text-body-s text-foreground-error">
                         {uploadError}
