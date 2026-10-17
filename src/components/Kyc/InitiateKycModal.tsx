@@ -20,6 +20,7 @@ import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestr
 import { useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import type { ProviderId } from '@/types/provider.types'
+import { BankUnlockIntroGate } from './BankUnlockIntroGate'
 
 type InitiateKycVariant =
     | 'default'
@@ -32,6 +33,8 @@ type InitiateKycVariant =
     | 'bank-unavailable'
 
 interface InitiateKycModalProps {
+    /** Home's first bank unlock reuses the retired signup introduction. */
+    showBankIntro?: boolean
     cooldownActive?: boolean
     visible: boolean
     onClose: () => void
@@ -85,7 +88,26 @@ interface InitiateKycModalProps {
 // Three states are decided HERE and outrank whatever variant the caller asked
 // for: the verification outage, a region-restricted rejection, and a residence
 // no bank provider onboards.
-export const InitiateKycModal = ({
+export const InitiateKycModal = (props: InitiateKycModalProps) => {
+    const content = <InitiateKycContent {...props} />
+    if (!props.showBankIntro) return content
+    return (
+        <BankUnlockIntroGate
+            visible={props.visible}
+            enabled={
+                !props.cooldownActive &&
+                !props.error &&
+                !props.isLoading &&
+                (!props.variant || props.variant === 'default')
+            }
+            onClose={props.onClose}
+        >
+            {content}
+        </BankUnlockIntroGate>
+    )
+}
+
+const InitiateKycContent = ({
     visible,
     cooldownActive,
     onClose,
