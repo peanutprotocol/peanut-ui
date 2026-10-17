@@ -284,3 +284,21 @@ describe('ApplicationStatusScreen — requires-info body follows the self-serve 
         expect(screen.getByText(status.requiresInfoBody)).toBeInTheDocument()
     })
 })
+
+describe('ApplicationStatusScreen — one primary self-serve action', () => {
+    it('keeps only the first action primary when the screen offers several', () => {
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                onUploadProofOfAddress={jest.fn()}
+                onUploadIdentity={jest.fn()}
+                informationActions={[{ key: 'taxId', kind: 'taxId', label: en.card.provideTaxId, onClick: jest.fn() }]}
+                onContactSupport={jest.fn()}
+            />
+        )
+        const button = (name: string) => screen.getByRole('button', { name })
+        expect(button(en.card.uploadProofOfAddress)).toHaveClass('btn-primary')
+        expect(button(en.card.uploadIdentityDocuments)).toHaveClass('btn-secondary')
+        expect(button(en.card.provideTaxId)).toHaveClass('btn-secondary')
+    })
+})

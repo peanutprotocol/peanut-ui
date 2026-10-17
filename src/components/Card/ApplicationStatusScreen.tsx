@@ -117,6 +117,20 @@ const ApplicationStatusScreen: FC<Props> = ({
                   !!onUploadIdentity
               )
             : copyKeys.body
+    const selfServeActions: Array<{ key: string; label: string; onClick: () => void }> = []
+    if (SUPPORT_VARIANTS.has(variant)) {
+        if (onUploadProofOfAddress) {
+            selfServeActions.push({
+                key: 'proof-of-address',
+                label: t('uploadProofOfAddress'),
+                onClick: onUploadProofOfAddress,
+            })
+        }
+        if (onUploadIdentity) {
+            selfServeActions.push({ key: 'identity', label: t('uploadIdentityDocuments'), onClick: onUploadIdentity })
+        }
+        if (variant === 'requires-info') selfServeActions.push(...informationActions)
+    }
     return (
         <PageStack>
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
@@ -142,32 +156,16 @@ const ApplicationStatusScreen: FC<Props> = ({
                 {variant === 'pending-residence-blocked' && (
                     <LinkButton href={RESIDENCE_CHANGE_URL}>{t('status.pendingResidenceBlockedCta')}</LinkButton>
                 )}
-                {SUPPORT_VARIANTS.has(variant) && onUploadProofOfAddress && (
-                    <div className="flex w-full flex-col gap-2">
-                        <Button variant="primary" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>
-                            {t('uploadProofOfAddress')}
-                        </Button>
-                    </div>
-                )}
-                {SUPPORT_VARIANTS.has(variant) && onUploadIdentity && (
-                    <div className="flex w-full flex-col gap-2">
-                        <Button variant="primary" shadowSize="4" className="w-full" onClick={onUploadIdentity}>
-                            {t('uploadIdentityDocuments')}
-                        </Button>
-                    </div>
-                )}
-                {variant === 'requires-info' &&
-                    informationActions.map((action) => (
-                        <Button
-                            key={action.key}
-                            variant="primary"
-                            shadowSize="4"
-                            className="w-full"
-                            onClick={action.onClick}
-                        >
-                            {action.label}
-                        </Button>
-                    ))}
+                {selfServeActions.map((action, index) => (
+                    <Button
+                        key={action.key}
+                        variant={index === 0 ? 'primary' : 'secondary'}
+                        className="w-full"
+                        onClick={action.onClick}
+                    >
+                        {action.label}
+                    </Button>
+                ))}
                 {SUPPORT_VARIANTS.has(variant) && uploadError && (
                     <p role="alert" className="text-body-s text-foreground-error">
                         {uploadError}
