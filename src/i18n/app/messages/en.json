@@ -2317,7 +2317,8 @@
             "receivedViaLink": "Received via link",
             "sentViaLink": "Sent via link",
             "transaction": "Transaction",
-            "failedQrPayment": "Failed QR payment attempt"
+            "failedQrPayment": "Failed QR payment attempt",
+            "verificationDeposit": "Verification deposit"
         },
         "nameInSentence": {
             "merchant": "merchant",
@@ -2375,6 +2376,8 @@
         "returnedReason": "The bank sent this payment back.",
         "returnedReasonThirdParty": "It came from someone else's account, which this account does not accept.",
         "returnedStatus": "Returned",
+        "verificationDepositNote": "Used to confirm your account. Not added to your balance.",
+        "belowMinimumNote": "This deposit was below the {min} minimum, so it can't be added or returned.",
         "perkBanner": {
             "title": "You earned a reward!",
             "capped": "${amount} reward — campaign limit reached!",
