@@ -51,6 +51,7 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
                     />
                     <Card shadowSize="4" className="relative z-10 items-center gap-4 p-6 text-center md:p-10">
                         <Button
+                            size="large"
                             href={href}
                             plainAnchor={plainAnchor}
                             variant="primary"
@@ -67,7 +68,13 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
 
     return (
         <div className={`mx-auto ${PROSE_WIDTH} px-6 py-8 md:px-4 md:py-12`}>
-            <Button href={href} plainAnchor={plainAnchor} variant="primary" className={`mx-auto w-fit ${CTA_MOTION}`}>
+            <Button
+                size="large"
+                href={href}
+                plainAnchor={plainAnchor}
+                variant="primary"
+                className={`mx-auto w-fit ${CTA_MOTION}`}
+            >
                 {text}
             </Button>
         </div>

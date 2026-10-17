@@ -1,6 +1,6 @@
 'use client'
 import type { ReactNode } from 'react'
-import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
+import { Button, type ButtonSize, type ButtonVariant } from '@/components/0_Bruddle/Button'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useAppModal } from '@/components/Migration/AppModalProvider'
 import type { MigrationSurface } from '@/constants/migration.consts'
@@ -14,12 +14,14 @@ export function LandingAppLink({
     href,
     surface,
     variant = 'secondary',
+    size,
     className,
     children,
 }: {
     href: string
     surface: MigrationSurface
     variant?: ButtonVariant
+    size?: ButtonSize
     className?: string
     children: ReactNode
 }) {
@@ -30,6 +32,7 @@ export function LandingAppLink({
             prefetch={false}
             href={migrationOn ? '/app' : href}
             variant={variant}
+            size={size}
             className={className}
             onClick={(event) => {
                 if (interceptAppCta(surface)) event.preventDefault()

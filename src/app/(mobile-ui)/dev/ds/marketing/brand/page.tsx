@@ -69,7 +69,7 @@ export default function MarketingBrandPage() {
             >
                 <div className="rounded-sm bg-background-page p-4">
                     <div className="flex flex-wrap items-center gap-4">
-                        <Button variant="primary" className="w-fit">
+                        <Button size="large" variant="primary" className="w-fit">
                             Get the app
                         </Button>
                         <div className="rounded-sm border-2 border-border-default bg-background-default p-4 shadow-4">

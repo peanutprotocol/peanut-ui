@@ -11,6 +11,7 @@ export function SendInSecondsCTA({ strings }: { strings: LandingStrings }) {
             <LandingAppLink
                 href="/send"
                 surface={MIGRATION_SURFACES.LANDING_APP_FOLD}
+                size="large"
                 className={`w-fit ${CTA_MOTION}`}
             >
                 {strings.sendNow}

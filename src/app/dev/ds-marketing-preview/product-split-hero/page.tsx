@@ -20,7 +20,7 @@ export default function ProductSplitHeroPreview() {
                 pitch="One product, one promise, one fold"
                 lead="Copy column left, product art right. A sub-LP leads with the one star feature it sells — the key visual stays on the main LP."
                 cta={
-                    <Button variant="secondary" className={`w-fit ${CTA_MOTION}`}>
+                    <Button size="large" variant="secondary" className={`w-fit ${CTA_MOTION}`}>
                         Get started
                     </Button>
                 }

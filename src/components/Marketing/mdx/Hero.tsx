@@ -55,7 +55,12 @@ export function Hero({ title, subtitle, cta, ctaHref, locale = DEFAULT_LOCALE, s
                     )}
                     {cta && ctaHref && (
                         <div className="mt-8">
-                            <Button variant="secondary" href={ctaHref} className={`mx-auto w-fit ${CTA_MOTION}`}>
+                            <Button
+                                size="large"
+                                variant="secondary"
+                                href={ctaHref}
+                                className={`mx-auto w-fit ${CTA_MOTION}`}
+                            >
                                 {cta}
                             </Button>
                         </div>

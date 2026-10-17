@@ -2,8 +2,9 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { CTA_MOTION } from '@/components/Marketing/constants'
 
 // The on-band CTA (cta-on-band-variant E + cta-hierarchy A, ruled 2026-10-14):
-// on the pink and yellow bands the CTA is Button variant=secondary, default size, no
-// visual overrides — the white bg and press-to-pink come from the variant, not
+// on the pink and yellow bands the CTA is Button variant=secondary size=large (ruled
+// 2026-10-17, konrad: the default 44/12 geometry is drawn for fill-width buttons and
+// reads cramped when the pill hugs its label), no visual overrides — the white bg and press-to-pink come from the variant, not
 // from per-site hacks (the mdx Hero's bg-white override dies in the fix
 // branch). On cream, the one primary pink pill. Labels are sentence case
 // (cta-casing B). bg-gray-950 is the shipped black band (/shhhhh §4/§7).
@@ -22,7 +23,7 @@ export default function CtaBandsPreview() {
                 <section key={band.name} className={`px-4 py-16 text-center ${band.className}`}>
                     <p className="font-roboto-flex-extrabold text-heading-s uppercase">{band.name}</p>
                     <div className="mx-auto mt-6 w-fit">
-                        <Button variant={band.variant} className={`w-fit ${CTA_MOTION}`}>
+                        <Button size="large" variant={band.variant} className={`w-fit ${CTA_MOTION}`}>
                             Get the app
                         </Button>
                     </div>
@@ -31,7 +32,7 @@ export default function CtaBandsPreview() {
             <section className="px-4 py-16 text-center text-foreground-primary">
                 <p className="font-roboto-flex-extrabold text-heading-s uppercase">Cream — the page ground</p>
                 <div className="mx-auto mt-6 w-fit">
-                    <Button variant="primary" className={`w-fit ${CTA_MOTION}`}>
+                    <Button size="large" variant="primary" className={`w-fit ${CTA_MOTION}`}>
                         Get the app
                     </Button>
                 </div>

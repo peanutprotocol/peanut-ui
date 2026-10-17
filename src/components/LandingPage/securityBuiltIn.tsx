@@ -113,6 +113,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                 )}
                                 {feature.id === 3 && (
                                     <Button
+                                        size="large"
                                         prefetch={false}
                                         href="/support"
                                         variant="secondary"

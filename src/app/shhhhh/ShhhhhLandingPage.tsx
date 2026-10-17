@@ -122,6 +122,7 @@ export default function ShhhhhLandingPage() {
                 lead={t('hero.lead')}
                 cta={
                     <Button
+                        size="large"
                         variant="secondary"
                         onClick={handleCTA}
                         loading={busy}
@@ -270,6 +271,7 @@ export default function ShhhhhLandingPage() {
                         closer, while the hero stays secondary because its background
                         is that same fill. */}
                     <Button
+                        size="large"
                         className={`mx-auto mt-10 w-fit ${CTA_MOTION}`}
                         variant="primary"
                         onClick={handleCTA}

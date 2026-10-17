@@ -117,10 +117,15 @@ export function Careers() {
                                 the cover letter. Tell us what you&apos;d do in your first month.
                             </p>
                             <div className="flex flex-col items-center gap-4">
-                                <Button href={NOTION_JOB_BOARD_URL} external className={`w-fit ${CTA_MOTION}`}>
+                                <Button
+                                    size="large"
+                                    href={NOTION_JOB_BOARD_URL}
+                                    external
+                                    className={`w-fit ${CTA_MOTION}`}
+                                >
                                     Apply on Notion
                                 </Button>
-                                <Button variant="secondary" href="/lp" className={`w-fit ${CTA_MOTION}`}>
+                                <Button size="large" variant="secondary" href="/lp" className={`w-fit ${CTA_MOTION}`}>
                                     See what we&apos;ve built
                                 </Button>
                             </div>

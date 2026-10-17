@@ -3,7 +3,7 @@ import { useNativePlatform } from '@/utils/native-platform'
 import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
-import type { ButtonVariant } from '@/components/0_Bruddle/Button'
+import type { ButtonSize, ButtonVariant } from '@/components/0_Bruddle/Button'
 import { useAppModal } from '@/components/Migration/AppModalProvider'
 import { type MigrationSurface } from '@/constants/migration.consts'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
@@ -17,10 +17,13 @@ import { onStoreAnchorClick, storeAnchorHref, storeForDevice, storeIcon } from '
 export default function DownloadAppLink({
     surface,
     variant,
+    size,
     className,
 }: {
     surface: MigrationSurface
     variant?: ButtonVariant
+    /** marketing CTAs pass 'large' (design.md marketing); the sticky bar keeps the default */
+    size?: ButtonSize
     className?: string
 }) {
     const native = useNativePlatform()
@@ -48,6 +51,7 @@ export default function DownloadAppLink({
                 else if (interceptAppCta(surface)) event.preventDefault()
             }}
             variant={variant}
+            size={size}
             icon={storeIcon(store)}
             className={className}
         >

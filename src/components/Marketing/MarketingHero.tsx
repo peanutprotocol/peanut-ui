@@ -59,7 +59,12 @@ export function MarketingHero({
                     <p className="mt-6 text-heading-m text-foreground-primary md:text-5xl">{subtitle}</p>
                     {ctaText && (
                         <div className="mt-8">
-                            <Button variant="secondary" href={ctaHref} className={`mx-auto w-fit ${CTA_MOTION}`}>
+                            <Button
+                                size="large"
+                                variant="secondary"
+                                href={ctaHref}
+                                className={`mx-auto w-fit ${CTA_MOTION}`}
+                            >
                                 {ctaText}
                             </Button>
                         </div>

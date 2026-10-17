@@ -119,6 +119,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
         return (
             <div className={getButtonContainerClasses(variant)} style={getCtaStyle(buttonVisible)}>
                 <Button
+                    size="large"
                     variant="secondary"
                     icon={cta.icon}
                     href={cta.href}

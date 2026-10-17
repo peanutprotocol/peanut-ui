@@ -19,6 +19,7 @@ export function CountriesSignUpCta({ label }: { label: string }) {
     return (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <Button
+                size="large"
                 href={migrationOn ? '/app' : '/setup'}
                 external
                 variant="secondary"

@@ -20,7 +20,9 @@ export const PROSE_LINK =
 
 /** The marketing CTA motion layer (ruled 2026-10-16, konrad): a mount entrance
  *  and a hover drop-and-tilt, `.cta-motion` in globals.css. Put it on the DS
- *  Button of every marketing CTA, next to `w-fit` — one class, never a
+ *  Button of every marketing CTA, next to `w-fit` and `size="large"` (ruled
+ *  2026-10-17, konrad — 48px, 24px inset: the medium default's 12px inset is a
+ *  fill-width geometry and reads cramped on a hugging pill) — one class, never a
  *  per-site variant. It changes no geometry, colour or variant, and it stands
  *  down under prefers-reduced-motion. App screens never take it. */
 export const CTA_MOTION = 'cta-motion'

@@ -46,7 +46,13 @@ export function ShhhhhFold() {
                         {/* primary on the black ground: the secondary's black
                             offset shadow vanishes on gray-950, the pink fill
                             reads (as on the /shhhhh closer) */}
-                        <Button prefetch={false} href="/shhhhh" variant="primary" className={`w-fit ${CTA_MOTION}`}>
+                        <Button
+                            size="large"
+                            prefetch={false}
+                            href="/shhhhh"
+                            variant="primary"
+                            className={`w-fit ${CTA_MOTION}`}
+                        >
                             {t('cta')}
                         </Button>
                     </div>

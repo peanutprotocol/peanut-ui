@@ -9,6 +9,7 @@ export function LandingDownloadCta({ subtext }: { subtext?: string }) {
             <DownloadAppLink
                 surface={MIGRATION_SURFACES.LANDING_HERO}
                 variant="secondary"
+                size="large"
                 className={`w-fit ${CTA_MOTION}`}
             />
             {subtext && (

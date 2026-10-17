@@ -17,13 +17,23 @@ export default function CtaMotionPreview() {
         <main className="bg-background-page">
             <section className="bg-background-brand px-4 py-16 text-center text-foreground-primary">
                 <p className="font-roboto-flex-extrabold text-heading-s uppercase">On a band</p>
-                <Button key={`band-${mount}`} variant="secondary" className={`mx-auto mt-6 w-fit ${CTA_MOTION}`}>
+                <Button
+                    size="large"
+                    key={`band-${mount}`}
+                    variant="secondary"
+                    className={`mx-auto mt-6 w-fit ${CTA_MOTION}`}
+                >
                     Get the app
                 </Button>
             </section>
             <section className="px-4 py-16 text-center text-foreground-primary">
                 <p className="font-roboto-flex-extrabold text-heading-s uppercase">On cream</p>
-                <Button key={`cream-${mount}`} variant="primary" className={`mx-auto mt-6 w-fit ${CTA_MOTION}`}>
+                <Button
+                    size="large"
+                    key={`cream-${mount}`}
+                    variant="primary"
+                    className={`mx-auto mt-6 w-fit ${CTA_MOTION}`}
+                >
                     Get the app
                 </Button>
                 <Button

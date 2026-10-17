@@ -66,7 +66,8 @@ export const SECTION_PADDING: PaddingStep[] = [
 
 /** cta-on-band-variant E + cta-hierarchy A + cta-casing B */
 export const CTA_RULES = [
-    'On a coloured band (pink, yellow): Button variant=secondary — the white pill — default size, no visual overrides.',
+    'On a coloured band (pink, yellow): Button variant=secondary size=large — the white pill, 48px tall, 24px inset, 18px label (ruled 2026-10-17, konrad) — no visual overrides.',
+    'Every marketing CTA is size=large: the DS default (44px, 12px inset) is a fill-width geometry and reads cramped once the pill hugs its label.',
     'On cream (the page ground): Button variant=primary — the pink pill.',
     'On a dark ground (the gray-950 black band): Button variant=primary — the black offset shadow does not read on black, the pink fill does.',
     'Labels are sentence case everywhere.',
@@ -77,7 +78,7 @@ export const CTA_MOTION_RULES = [
     'Every marketing CTA is the plain DS Button plus CTA_MOTION (the .cta-motion class) — one class, no per-site variant.',
     'Entrance: on mount the CTA fades in from 4px low and 0.75deg tilted, 500ms on ease-spring.',
     'Hover (real-hover devices only): the CTA drops 6px and tilts 0.75deg, 500ms on ease-spring; the 4px DS press still applies on top.',
-    "Geometry, variant, colour and the press stay the DS Button's: w-fit, default size, no overrides.",
+    "Geometry, variant, colour and the press stay the DS Button's: w-fit, size=large, no overrides.",
     'prefers-reduced-motion: no entrance, no hover move, no parked offset — only the DS press.',
     'App screens never take it; the sticky mobile CTA keeps its own slide-in.',
 ]

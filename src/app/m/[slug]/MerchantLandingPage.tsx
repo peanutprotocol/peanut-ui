@@ -119,6 +119,7 @@ function Hero({ merchant }: { merchant: Merchant }) {
                     <div className="mt-8 flex flex-col items-center gap-6 md:flex-row md:items-center md:gap-6">
                         <div className="relative w-fit">
                             <Button
+                                size="large"
                                 href={buildInviteHref(merchant, 'hero')}
                                 variant="secondary"
                                 className={`w-fit ${CTA_MOTION}`}
@@ -475,6 +476,7 @@ function EndFold({ merchant }: { merchant: Merchant }) {
                 </p>
                 <div className="mt-10 flex justify-center">
                     <Button
+                        size="large"
                         href={buildInviteHref(merchant, 'end_fold')}
                         variant="secondary"
                         className={`w-fit ${CTA_MOTION}`}

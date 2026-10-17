@@ -124,6 +124,7 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
                     <p className="font-roboto-flex text-left text-xl md:pr-24 md:text-2xl">{strings.dropLinkBody}</p>
 
                     <Button
+                        size="large"
                         href="/setup"
                         external
                         variant="secondary"
