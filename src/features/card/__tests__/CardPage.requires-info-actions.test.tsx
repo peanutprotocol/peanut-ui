@@ -4,9 +4,9 @@
  *
  * Rendered through CardPage with the real capability read-model and the real
  * start-action server action; only the network edge (serverFetch) and the
- * Sumsub SDK driver are faked. The new buttons are located structurally
- * (every actionable control that is not a known one) so the tests do not
- * depend on copy the implementation has not written yet.
+ * Sumsub SDK driver are faked. The screen offers one action at a time. The
+ * new buttons are located structurally (every actionable control that is not
+ * a known one) so the tests do not depend on copy.
  */
 import React from 'react'
 import { act, fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react'
@@ -247,71 +247,56 @@ describe('Rain tax-ID and date-of-birth actions on the requires-information card
     it.each([
         ['tax ID first', [taxId, birthDate]],
         ['date of birth first', [birthDate, taxId]],
-    ])('renders one button per action in the order the API returns them (%s)', async (_label, actions) => {
+    ])('offers only the first action the API returns (%s)', async (_label, actions) => {
         setCapabilities({ cardActions: actions })
         mockStartActionSuccess()
         render()
         const buttons = newActionButtons()
-        expect(buttons).toHaveLength(2)
-        const [first, second] = buttons.map((button) => (button.textContent ?? '').trim())
-        expect(first).not.toBe('')
-        expect(second).not.toBe('')
-        expect(first).not.toBe(second)
+        expect(buttons).toHaveLength(1)
 
         fireEvent.click(buttons[0])
         await waitFor(() => expect(openSdkTokens()).toEqual([tokenFor[actions[0].key]]))
         expect(startActionKeys()).toEqual([actions[0].key])
     })
 
-    it('starts the second action from the second button', async () => {
+    it('offers the next action once the first is no longer open', async () => {
         setCapabilities({ cardActions: [taxId, birthDate] })
         mockStartActionSuccess()
-        render()
-        fireEvent.click(newActionButtons()[1])
+        const { rerender } = render()
+        const firstLabel = newActionButtons()[0].textContent
+
+        setCapabilities({ cardActions: [birthDate] })
+        rerender(<CardPage />)
+        const [next] = newActionButtons()
+        expect(next.textContent).not.toBe(firstLabel)
+        fireEvent.click(next)
         await waitFor(() => expect(openSdkTokens()).toEqual([tokenFor[birthDate.key]]))
         expect(startActionKeys()).toEqual([birthDate.key])
     })
 
-    it('keeps the proof-of-address and identity buttons working alongside the new ones', async () => {
+    it('offers only the proof-of-address upload when the rail carries every kind of action', async () => {
         setCapabilities({ cardActions: [proofOfAddress, identityDocument, taxId, birthDate] })
-        mockStartActionSuccess()
-        mockSelfHeal.mockResolvedValue({ data: { token: 'tok_poa' } } as never)
-        render()
-        expect(newActionButtons()).toHaveLength(2)
-        expect(screen.getByText('Upload proof of address')).toBeInTheDocument()
-        expect(screen.getByText('Upload identity documents')).toBeInTheDocument()
-        expect(screen.getByText('Contact support')).toBeInTheDocument()
-
-        fireEvent.click(screen.getByText('Upload identity documents'))
-        expect(mockHostedStart).toHaveBeenCalledTimes(1)
-        expect(startActionKeys()).toEqual([])
-
-        fireEvent.click(screen.getByText('Upload proof of address'))
-        await waitFor(() => expect(mockSelfHeal).toHaveBeenCalledWith('RAIN'))
-        expect(startActionKeys()).toEqual([])
-    })
-
-    it('leaves the proof-of-address and identity buttons unchanged when only those actions exist', async () => {
-        setCapabilities({ cardActions: [proofOfAddress, identityDocument] })
         mockSelfHeal.mockResolvedValue({ data: { token: 'tok_poa' } } as never)
         render()
         expect(newActionButtons()).toHaveLength(0)
-
-        fireEvent.click(screen.getByText('Upload identity documents'))
-        expect(mockHostedStart).toHaveBeenCalledTimes(1)
+        expect(screen.queryByText('Upload identity documents')).not.toBeInTheDocument()
+        expect(screen.getByText('Contact support')).toBeInTheDocument()
 
         fireEvent.click(screen.getByText('Upload proof of address'))
         await waitFor(() => expect(mockSelfHeal).toHaveBeenCalledWith('RAIN'))
         await waitFor(() => expect(openSdkTokens()).toEqual(['tok_poa']))
+        expect(mockHostedStart).not.toHaveBeenCalled()
         expect(startActionKeys()).toEqual([])
     })
 
-    it('does not add the new buttons to a screen that only carries the existing actions', () => {
-        setCapabilities({ cardActions: [proofOfAddress, identityDocument] })
+    it('offers the identity upload ahead of the tax-ID and date-of-birth actions', () => {
+        setCapabilities({ cardActions: [identityDocument, taxId, birthDate] })
         render()
         expect(newActionButtons()).toHaveLength(0)
-        expect(screen.getByText('Upload proof of address')).toBeInTheDocument()
-        expect(screen.getByText('Upload identity documents')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByText('Upload identity documents'))
+        expect(mockHostedStart).toHaveBeenCalledTimes(1)
+        expect(startActionKeys()).toEqual([])
     })
 
     it('hides the Sumsub flow again when the user closes it, leaving the button usable', async () => {
@@ -399,13 +384,13 @@ describe('starting a tax-ID or date-of-birth action fails', () => {
         expect(startActionKeys()).toEqual([taxId.key])
     })
 
-    it('does not start the other action when one of two buttons is tapped twice', async () => {
+    it('does not start the queued action when the offered one is tapped twice', async () => {
         setCapabilities({ cardActions: [taxId, birthDate] })
         mockFetch.mockImplementation(() => new Promise<Response>(() => {}))
         render()
-        const [first] = newActionButtons()
-        fireEvent.click(first)
-        fireEvent.click(first)
+        const [offered] = newActionButtons()
+        fireEvent.click(offered)
+        fireEvent.click(offered)
         expect(startActionKeys()).toEqual([taxId.key])
     })
 })

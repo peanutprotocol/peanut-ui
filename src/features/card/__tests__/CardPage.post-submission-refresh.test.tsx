@@ -215,21 +215,22 @@ describe('CardPage post-submission capability refresh', () => {
     })
 
     it.each([
-        ['tax ID', 0, taxId, birthDate],
-        ['date of birth', 1, birthDate, taxId],
+        ['tax ID', taxId, birthDate],
+        ['date of birth', birthDate, taxId],
     ])(
-        'keeps both actions after a stale first refresh, then removes only the completed %s action on a timer refresh',
-        async (_label, buttonIndex, completed, remaining) => {
-            const staleUser = userWith([taxId, birthDate])
+        'keeps the %s action after a stale first refresh, then offers the next one on a timer refresh',
+        async (_label, completed, remaining) => {
+            mockAuthUser = userWith([completed, remaining])
+            const staleUser = userWith([completed, remaining])
             const freshUser = userWith([remaining])
             mockFetchUserResult.mockResolvedValueOnce(staleUser).mockResolvedValueOnce(freshUser)
             render()
 
-            const initialButtons = actionButtons()
-            const completedLabel = initialButtons[buttonIndex].textContent ?? ''
-            const remainingLabel = initialButtons[buttonIndex === 0 ? 1 : 0].textContent ?? ''
+            const [offered] = actionButtons()
+            expect(actionButtons()).toHaveLength(1)
+            const completedLabel = offered.textContent ?? ''
 
-            fireEvent.click(initialButtons[buttonIndex])
+            fireEvent.click(offered)
             await waitFor(() => expect(screen.getByTestId('sumsub-sdk')).toBeInTheDocument())
 
             await act(async () => {
@@ -239,16 +240,15 @@ describe('CardPage post-submission capability refresh', () => {
 
             expect(mockFetchUserResult).toHaveBeenCalledTimes(1)
             expect(screen.getByRole('button', { name: completedLabel })).toBeEnabled()
-            expect(screen.getByRole('button', { name: remainingLabel })).toBeEnabled()
 
             await act(async () => {
                 jest.advanceTimersByTime(4000)
                 await flushPromises()
             })
 
-            await waitFor(() => expect(actionButtons()).toHaveLength(1))
-            expect(screen.queryByRole('button', { name: completedLabel })).not.toBeInTheDocument()
-            expect(screen.getByRole('button', { name: remainingLabel })).toBeEnabled()
+            await waitFor(() => expect(screen.queryByRole('button', { name: completedLabel })).not.toBeInTheDocument())
+            expect(actionButtons()).toHaveLength(1)
+            expect(actionButtons()[0]).toBeEnabled()
             expect(mockFetchUserResult).toHaveBeenCalledTimes(2)
             expect(mockAuthUser.capabilities?.nextActions).toEqual([remaining])
             expect(mockAuthUser.capabilities?.nextActions).not.toContainEqual(completed)

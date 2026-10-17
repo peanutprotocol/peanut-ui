@@ -234,7 +234,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },
     '82-i-card-information-both': {
-        name: 'Card application — tax ID and date of birth requested',
+        name: 'Card application — tax ID first, date of birth next',
         path: 'Card/ApplicationStatusScreen.tsx',
         captureState: ['variant=requires-info', 'actions=tax_identification_number,birth_details'],
         expectSelector: '[data-testid="app-page-surface-content"] button',

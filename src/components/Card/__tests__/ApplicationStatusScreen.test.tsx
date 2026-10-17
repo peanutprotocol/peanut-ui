@@ -232,24 +232,24 @@ describe('ApplicationStatusScreen — card partner review', () => {
     })
 })
 
+const informationAction = (kind: 'taxId' | 'birthDate') => ({
+    key: kind,
+    kind,
+    label: kind === 'taxId' ? en.card.provideTaxId : en.card.provideBirthDate,
+    onClick: jest.fn(),
+})
+
 describe('ApplicationStatusScreen — requires-info body follows the self-serve step', () => {
     const status = en.card.status
-    const action = (kind: 'taxId' | 'birthDate') => ({
-        key: kind,
-        kind,
-        label: kind === 'taxId' ? en.card.provideTaxId : en.card.provideBirthDate,
-        onClick: jest.fn(),
-    })
 
     it.each([
-        [[action('taxId')], status.requiresInfoTaxIdBody],
-        [[action('birthDate')], status.requiresInfoBirthDateBody],
-        [[action('taxId'), action('birthDate')], status.requiresInfoTaxIdAndBirthDateBody],
-    ])('names the requested detail instead of sending the user to support', (actions, body) => {
+        [informationAction('taxId'), status.requiresInfoTaxIdBody],
+        [informationAction('birthDate'), status.requiresInfoBirthDateBody],
+    ])('names the requested detail instead of sending the user to support', (information, body) => {
         render(
             <ApplicationStatusScreen
                 variant="requires-info"
-                informationActions={actions}
+                informationActions={[information]}
                 onContactSupport={jest.fn()}
             />
         )
@@ -258,25 +258,12 @@ describe('ApplicationStatusScreen — requires-info body follows the self-serve 
         expect(screen.getByText(en.common.contactSupport)).toBeInTheDocument()
     })
 
-    it('describes a single upload, and falls back to generic steps for a mix', () => {
-        const { unmount } = render(
-            <ApplicationStatusScreen
-                variant="requires-info"
-                onUploadProofOfAddress={jest.fn()}
-                onContactSupport={jest.fn()}
-            />
-        )
-        expect(screen.getByText(status.requiresInfoProofOfAddressBody)).toBeInTheDocument()
-        unmount()
-        render(
-            <ApplicationStatusScreen
-                variant="requires-info"
-                informationActions={[action('taxId')]}
-                onUploadIdentity={jest.fn()}
-                onContactSupport={jest.fn()}
-            />
-        )
-        expect(screen.getByText(status.requiresInfoStepsBody)).toBeInTheDocument()
+    it.each([
+        [{ onUploadProofOfAddress: jest.fn() }, status.requiresInfoProofOfAddressBody],
+        [{ onUploadIdentity: jest.fn() }, status.requiresInfoIdentityBody],
+    ])('names the requested upload', (upload, body) => {
+        render(<ApplicationStatusScreen variant="requires-info" {...upload} onContactSupport={jest.fn()} />)
+        expect(screen.getByText(body)).toBeInTheDocument()
     })
 
     it('keeps the support line only when there is nothing to do on screen', () => {
@@ -285,20 +272,37 @@ describe('ApplicationStatusScreen — requires-info body follows the self-serve 
     })
 })
 
-describe('ApplicationStatusScreen — one primary self-serve action', () => {
-    it('keeps only the first action primary when the screen offers several', () => {
+describe('ApplicationStatusScreen — one self-serve action at a time', () => {
+    const status = en.card.status
+    const offered = () =>
+        screen.queryAllByRole('button').filter((button) => !/back|contact support/i.test(button.textContent ?? ''))
+
+    it.each([
+        [
+            'proof of address',
+            { onUploadProofOfAddress: jest.fn(), onUploadIdentity: jest.fn() },
+            en.card.uploadProofOfAddress,
+            status.requiresInfoProofOfAddressBody,
+        ],
+        [
+            'identity documents',
+            { onUploadIdentity: jest.fn() },
+            en.card.uploadIdentityDocuments,
+            status.requiresInfoIdentityBody,
+        ],
+        ['the first detail', {}, en.card.provideTaxId, status.requiresInfoTaxIdBody],
+    ])('offers only %s and describes that step', (_label, uploads, button, body) => {
         render(
             <ApplicationStatusScreen
                 variant="requires-info"
-                onUploadProofOfAddress={jest.fn()}
-                onUploadIdentity={jest.fn()}
-                informationActions={[{ key: 'taxId', kind: 'taxId', label: en.card.provideTaxId, onClick: jest.fn() }]}
+                {...uploads}
+                informationActions={[informationAction('taxId'), informationAction('birthDate')]}
                 onContactSupport={jest.fn()}
             />
         )
-        const button = (name: string) => screen.getByRole('button', { name })
-        expect(button(en.card.uploadProofOfAddress)).toHaveClass('btn-primary')
-        expect(button(en.card.uploadIdentityDocuments)).toHaveClass('btn-secondary')
-        expect(button(en.card.provideTaxId)).toHaveClass('btn-secondary')
+        expect(offered().map((node) => node.textContent?.trim())).toEqual([button])
+        expect(screen.getByRole('button', { name: button })).toHaveClass('btn-primary')
+        expect(screen.getByText(body)).toBeInTheDocument()
+        expect(screen.getByText(en.common.contactSupport)).toBeInTheDocument()
     })
 })

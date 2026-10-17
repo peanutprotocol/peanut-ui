@@ -64,20 +64,21 @@ const COPY_KEYS = {
 } as const satisfies Record<Variant, { title: string; body: string }>
 
 export type InformationKind = 'taxId' | 'birthDate'
+type SelfServeKind = 'proofOfAddress' | 'identity' | InformationKind
+
+interface SelfServeAction {
+    kind: SelfServeKind
+    label: string
+    onClick: () => void
+}
 
 /** A self-serve step on the screen replaces the support line with what to do. */
-function requiresInfoBodyKey(kinds: InformationKind[], uploadsProofOfAddress: boolean, uploadsIdentity: boolean) {
-    const hasTaxId = kinds.includes('taxId')
-    const hasBirthDate = kinds.includes('birthDate')
-    const uploads = Number(uploadsProofOfAddress) + Number(uploadsIdentity)
-    if (uploads > 1 || (uploads > 0 && kinds.length > 0)) return 'status.requiresInfoStepsBody'
-    if (hasTaxId && hasBirthDate) return 'status.requiresInfoTaxIdAndBirthDateBody'
-    if (hasTaxId) return 'status.requiresInfoTaxIdBody'
-    if (hasBirthDate) return 'status.requiresInfoBirthDateBody'
-    if (uploadsProofOfAddress) return 'status.requiresInfoProofOfAddressBody'
-    if (uploadsIdentity) return 'status.requiresInfoIdentityBody'
-    return COPY_KEYS['requires-info'].body
-}
+const REQUIRES_INFO_BODY_KEYS = {
+    proofOfAddress: 'status.requiresInfoProofOfAddressBody',
+    identity: 'status.requiresInfoIdentityBody',
+    taxId: 'status.requiresInfoTaxIdBody',
+    birthDate: 'status.requiresInfoBirthDateBody',
+} as const satisfies Record<SelfServeKind, string>
 
 /** Variants where support is the only path forward — these render the CTA. */
 const SUPPORT_VARIANTS: ReadonlySet<Variant> = new Set(['requires-info', 'requires-support', 'rejected'])
@@ -109,28 +110,23 @@ const ApplicationStatusScreen: FC<Props> = ({
     const copyKeys = COPY_KEYS[variant]
     const reasonKey = reasonCodeKey(reasonCode)
     const reasonText = reasonKey ? tIdentity(reasonKey) : reasonMessage
-    const bodyKey =
-        variant === 'requires-info'
-            ? requiresInfoBodyKey(
-                  informationActions.map((action) => action.kind),
-                  !!onUploadProofOfAddress,
-                  !!onUploadIdentity
-              )
-            : copyKeys.body
-    const selfServeActions: Array<{ key: string; label: string; onClick: () => void }> = []
+    // One fix at a time: if the rail ever carries several, the next shows once this one is done.
+    let selfServeAction: SelfServeAction | undefined
     if (SUPPORT_VARIANTS.has(variant)) {
         if (onUploadProofOfAddress) {
-            selfServeActions.push({
-                key: 'proof-of-address',
+            selfServeAction = {
+                kind: 'proofOfAddress',
                 label: t('uploadProofOfAddress'),
                 onClick: onUploadProofOfAddress,
-            })
+            }
+        } else if (onUploadIdentity) {
+            selfServeAction = { kind: 'identity', label: t('uploadIdentityDocuments'), onClick: onUploadIdentity }
+        } else if (variant === 'requires-info') {
+            selfServeAction = informationActions[0]
         }
-        if (onUploadIdentity) {
-            selfServeActions.push({ key: 'identity', label: t('uploadIdentityDocuments'), onClick: onUploadIdentity })
-        }
-        if (variant === 'requires-info') selfServeActions.push(...informationActions)
     }
+    const bodyKey =
+        variant === 'requires-info' && selfServeAction ? REQUIRES_INFO_BODY_KEYS[selfServeAction.kind] : copyKeys.body
     return (
         <PageStack>
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
@@ -156,16 +152,11 @@ const ApplicationStatusScreen: FC<Props> = ({
                 {variant === 'pending-residence-blocked' && (
                     <LinkButton href={RESIDENCE_CHANGE_URL}>{t('status.pendingResidenceBlockedCta')}</LinkButton>
                 )}
-                {selfServeActions.map((action, index) => (
-                    <Button
-                        key={action.key}
-                        variant={index === 0 ? 'primary' : 'secondary'}
-                        className="w-full"
-                        onClick={action.onClick}
-                    >
-                        {action.label}
+                {selfServeAction && (
+                    <Button variant="primary" className="w-full" onClick={selfServeAction.onClick}>
+                        {selfServeAction.label}
                     </Button>
-                ))}
+                )}
                 {SUPPORT_VARIANTS.has(variant) && uploadError && (
                     <p role="alert" className="text-body-s text-foreground-error">
                         {uploadError}
