@@ -382,7 +382,8 @@
             "doneDescription": "Tu cuenta está desactivada y tus datos desaparecerán en un plazo de 30 días. Gracias por abrir Peanut con nosotros — ¡cuidate mucho!",
             "error": "No pudimos eliminar tu cuenta. Intentá de nuevo.",
             "depositInFlight": "Hay un depósito en camino. Esperá a que llegue y retirá tu saldo antes de eliminar tu cuenta.",
-            "depositAccountsUnavailable": "No pudimos cerrar tus cuentas bancarias. Tu cuenta de Peanut sigue activa. Probá más tarde."
+            "depositAccountsUnavailable": "No pudimos cerrar tus cuentas bancarias. Tu cuenta de Peanut sigue activa. Probá más tarde.",
+            "blockedEurcDescription": "Tu cuenta EUR todavía tiene plata o un pago en curso. Completá los pagos pendientes y mové los euros restantes antes de eliminar tu cuenta."
         }
     },
     "limits": {
@@ -1084,10 +1085,7 @@
             "accountDetailsHint": "{country, select, BR {Las claves de teléfono empiezan con +55.} other {Las cuentas de Mercado Pago también sirven.}}"
         },
         "bankForm": {
-            "heading": "Ingresá los datos bancarios",
             "accountOwnerNameFull": "Ingresá nombre y apellido",
-            "state": "Seleccioná el estado",
-            "countryPlaceholder": "Seleccioná el país",
             "accountNumberCo": "El número de cuenta debe tener entre 5 y 20 dígitos",
             "documentType": "Tipo de documento",
             "documentTypeRequired": "El tipo de documento es obligatorio",
@@ -1109,7 +1107,10 @@
             "phoneNumber": "Número de teléfono",
             "phoneNumberRequired": "El número de teléfono es obligatorio",
             "phoneNumberInvalid": "Ingresá un número colombiano, por ejemplo +573001234567",
-            "phoneNumberHelper": "El número registrado en tu banco."
+            "phoneNumberHelper": "El número registrado en tu banco.",
+            "countryPlaceholder": "Seleccioná el país",
+            "heading": "Ingresá los datos bancarios",
+            "state": "Seleccioná el estado"
         },
         "errors": {
             "invalidNumber": "Ingresá un número válido.",
@@ -1958,5 +1959,24 @@
             "rhino": "Lo firmás vos, {brand} hace el puente"
         },
         "cardRelationship": "Tenés una relación directa con Third National bajo los términos de la tarjeta."
+    },
+    "currencyAccounts": {
+        "receiveWarning": "Enviá solo EURC en Base a esta dirección.",
+        "emptyActivity": "Todavía no hay actividad en euros.",
+        "noBankAccounts": "Agregá una cuenta bancaria en euros para retirar.",
+        "actionError": "Algo salió mal. Intentá de nuevo.",
+        "bankInstructionsWarning": "Usá estos datos y la referencia solo para esta transferencia en euros.",
+        "expired": "La transferencia venció. Cancelá y empezá otra.",
+        "badBank": "Elegí otra cuenta bancaria.",
+        "convertedBalanceWarning": "Convertí antes de enviar. El tipo de cambio y las comisiones pueden variar.",
+        "convertedBalanceUnavailable": "El saldo total no está disponible. Intentá de nuevo.",
+        "addError": "No se pudo agregar la cuenta EUR. Intentá de nuevo.",
+        "rateWarning": "El tipo de cambio y las comisiones finales pueden ser distintos de esta estimación.",
+        "inFlight": "Hay otro pago en curso. Intentá de nuevo cuando termine.",
+        "tooPrecise": "Demasiados decimales. Sacá los dígitos de más e intentá de nuevo.",
+        "invalidAmount": "Ingresá un monto válido.",
+        "invalidRecipient": "Ingresá una dirección de billetera válida.",
+        "verificationRequired": "Verificá tu identidad para usar transferencias bancarias en euros.",
+        "needsReviewError": "Esta transferencia necesita revisión. Contactá a soporte."
     }
 }

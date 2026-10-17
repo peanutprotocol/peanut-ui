@@ -24,6 +24,7 @@ import { parseUnits } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import AmountInput from '../../../Global/AmountInput'
+import { CurrencyBalanceNotice } from '@/components/Global/CurrencyBalanceNotice'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -283,6 +284,14 @@ const LinkSendInitialView = () => {
                     onSubmit={handleOnNext}
                     walletBalance={peanutWalletBalance}
                     balanceFillAmount={spendableBalanceDecimal}
+                    balanceSupplement={
+                        !!tokenValue &&
+                        isValidSendAmount(tokenValue) &&
+                        balance !== undefined &&
+                        !isAmountWithinBalance(tokenValue, balance) ? (
+                            <CurrencyBalanceNotice currency="USDC" amount={tokenValue ?? ''} />
+                        ) : undefined
+                    }
                 />
             </Field>
 

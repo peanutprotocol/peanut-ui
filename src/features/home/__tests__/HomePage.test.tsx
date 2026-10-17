@@ -3,9 +3,19 @@
  * checklist until the first payment, the carousel after it. Never both.
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { withNuqsTestingAdapter } from 'nuqs/adapters/testing'
 import type { OnboardingState } from '@/utils/activation-step.utils'
+import { IntlWrapper } from '@/test-utils/intl'
+import { USDC_ACCOUNT, io, ok, pricingRequests, resetIo } from '@/test-utils/balance-io'
 
+jest.mock('@/utils/api-fetch', () => require('@/test-utils/balance-io').apiFetchModule)
+jest.mock('@/app/actions/clients', () => require('@/test-utils/balance-io').clientsModule)
+jest.mock('@/context/authContext', () => require('@/test-utils/balance-io').authModule)
+jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
+
+let mockSpendableBalance: bigint | undefined = 0n
 let mockFlow: {
     isOnboardingComplete: boolean
     isActivated: boolean
@@ -17,7 +27,7 @@ jest.mock('../useHomeFlow', () => ({
     useHomeFlow: () => ({
         isPageLoading: false,
         username: 'demo',
-        spendableBalance: 0n,
+        spendableBalance: mockSpendableBalance,
         isFetchingSpendableBalance: false,
         isSpendableBalanceStale: false,
         isBalanceHidden: false,
@@ -65,7 +75,7 @@ jest.mock('@/hooks/useProviderRejection', () => ({
 }))
 jest.mock('../components/HomeActionDrawers', () => ({ HomeActionDrawers: () => null }))
 jest.mock('../components/HomeModals', () => ({ HomeModals: () => null }))
-jest.mock('../views/BalanceSection', () => ({ BalanceSection: () => null }))
+jest.mock('../components/EurcAccountView', () => ({ EurcAccountView: () => <div>eurc-account-view</div> }))
 jest.mock('../views/HomeTopNav', () => ({ HomeTopNav: () => null }))
 jest.mock('@/components/0_Bruddle/PageContainer', () => ({
     __esModule: true,
@@ -73,6 +83,26 @@ jest.mock('@/components/0_Bruddle/PageContainer', () => ({
 }))
 
 import { HomePage } from '../HomePage'
+
+let client: QueryClient
+const Nuqs = withNuqsTestingAdapter({ searchParams: '' })
+const renderHome = () =>
+    render(
+        <IntlWrapper>
+            <QueryClientProvider client={client}>
+                <Nuqs>
+                    <HomePage />
+                </Nuqs>
+            </QueryClientProvider>
+        </IntlWrapper>
+    )
+
+beforeEach(() => {
+    resetIo()
+    mockSpendableBalance = 0n
+    client = new QueryClient({ defaultOptions: { queries: { retry: false, retryDelay: 0 } } })
+})
+afterEach(() => client.clear())
 
 const FUNDED: OnboardingState = {
     verify: 'done',
@@ -91,7 +121,7 @@ describe('HomePage — never two CTA classes at once', () => {
     it('a due verification task card replaces the checklist', () => {
         mockHasTaskCard = true
         mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED }
-        render(<HomePage />)
+        renderHome()
         expect(screen.getByText('verification-task-card')).toBeInTheDocument()
         expect(screen.queryByText('activation-checklist')).not.toBeInTheDocument()
         expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
@@ -99,14 +129,14 @@ describe('HomePage — never two CTA classes at once', () => {
 
     it('before the first payment: the checklist, no carousel', () => {
         mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED }
-        render(<HomePage />)
+        renderHome()
         expect(screen.getByText('activation-checklist')).toBeInTheDocument()
         expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
     })
 
     it('an expired welcome keeps the checklist in its Home slot', () => {
         mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED, showWelcome: false }
-        render(<HomePage />)
+        renderHome()
         expect(screen.queryByText('welcome-card')).not.toBeInTheDocument()
         expect(screen.getByText('activation-checklist')).toBeInTheDocument()
         expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
@@ -118,7 +148,7 @@ describe('HomePage — never two CTA classes at once', () => {
             isActivated: true,
             onboarding: { ...FUNDED, firstPaymentDone: true, step: 'completed' },
         }
-        render(<HomePage />)
+        renderHome()
         expect(screen.getByText('home-carousel')).toBeInTheDocument()
         expect(screen.queryByText('activation-checklist')).not.toBeInTheDocument()
     })
@@ -130,7 +160,7 @@ describe('HomePage — never two CTA classes at once', () => {
             isActivated: false,
             onboarding: { ...FUNDED, firstPaymentRoute: 'none', step: 'completed' },
         }
-        render(<HomePage />)
+        renderHome()
         expect(screen.getByText('activation-checklist')).toBeInTheDocument()
         expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
     })
@@ -141,14 +171,14 @@ describe('HomePage — never two CTA classes at once', () => {
             isActivated: false,
             onboarding: { ...FUNDED, firstPaymentRoute: 'none', step: 'completed' },
         }
-        render(<HomePage />)
+        renderHome()
         expect(screen.getByText('home-carousel')).toBeInTheDocument()
         expect(screen.queryByText('activation-checklist')).not.toBeInTheDocument()
     })
 
     it('with only the payment row left the checklist stays: it has no hide (TASK-23340)', () => {
         mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED }
-        render(<HomePage />)
+        renderHome()
         expect(screen.getByText('activation-checklist')).toBeInTheDocument()
         expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
     })
@@ -161,7 +191,7 @@ describe('HomePage — never two CTA classes at once', () => {
             onboarding: FUNDED,
             hiddenHomeCtas: new Set([BLOCKED.ctaId]),
         }
-        render(<HomePage />)
+        renderHome()
         expect(screen.getByText('home-carousel')).toBeInTheDocument()
         expect(screen.queryByText('activation-checklist')).not.toBeInTheDocument()
     })
@@ -174,8 +204,37 @@ describe('HomePage — never two CTA classes at once', () => {
             onboarding: FUNDED,
             hiddenHomeCtas: new Set(['blocked-card:verification-issue:an_older_reason']),
         }
-        render(<HomePage />)
+        renderHome()
         expect(screen.getByText('activation-checklist')).toBeInTheDocument()
         expect(screen.queryByText('home-carousel')).not.toBeInTheDocument()
+    })
+})
+
+describe('HomePage balance', () => {
+    beforeEach(() => {
+        mockFlow = { isOnboardingComplete: false, isActivated: false, onboarding: FUNDED }
+    })
+
+    it('shows the home flow’s USD spendable balance above the CTA slot', async () => {
+        mockSpendableBalance = 123_450_000n
+        renderHome()
+        const amount = await screen.findByText('123.45')
+        expect(screen.getByText('$')).toBeInTheDocument()
+        const cta = screen.getByText('activation-checklist')
+        expect(amount.compareDocumentPosition(cta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('keeps a USD-only user on the dollar balance with no EURC tab, Base read or pricing request', async () => {
+        io.accounts.mockImplementation(() => ok({ accounts: [USDC_ACCOUNT], available: [] }))
+        mockSpendableBalance = 42_000_000n
+        renderHome()
+        await waitFor(() => expect(io.accounts).toHaveBeenCalled())
+        await act(async () => new Promise((resolve) => setTimeout(resolve, 50)))
+        expect(screen.getByText('42')).toBeInTheDocument()
+        expect(screen.queryAllByRole('tab')).toEqual([])
+        expect(screen.queryByText('EUR')).not.toBeInTheDocument()
+        expect(screen.queryByText('eurc-account-view')).not.toBeInTheDocument()
+        expect(io.baseRead).not.toHaveBeenCalled()
+        expect(pricingRequests()).toEqual([])
     })
 })

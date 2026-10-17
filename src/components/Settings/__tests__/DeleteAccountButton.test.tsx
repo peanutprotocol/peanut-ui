@@ -30,7 +30,10 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: moc
 jest.mock('@/services/users', () => ({
     usersApi: { requestDeletion: (...a: unknown[]) => mockRequestDeletion(...a) },
     AccountHasBalanceError: class AccountHasBalanceError extends Error {
-        constructor(public readonly balanceUsd: string | null) {
+        constructor(
+            public readonly balanceUsd: string | null,
+            public readonly currency: 'USD' | 'EURC' = 'USD'
+        ) {
             super('ACCOUNT_HAS_BALANCE')
             this.name = 'AccountHasBalanceError'
         }
@@ -66,6 +69,9 @@ jest.mock('@/components/Global/ActionModal', () => ({
             </div>
         ) : null,
 }))
+
+// Event names only: a refusal may carry properties (e.g. its currency).
+const capturedEvents = () => mockCapture.mock.calls.map(([event]) => event)
 
 beforeEach(() => {
     jest.clearAllMocks()
@@ -162,6 +168,30 @@ describe('DeleteAccountButton', () => {
     })
 
     describe('balance gate', () => {
+        it('explains euro funds or pending payments and opens the EURC account', async () => {
+            mockRequestDeletion.mockRejectedValueOnce(new AccountHasBalanceError(null, 'EURC'))
+            render(<DeleteAccountButton />)
+            fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
+            fireEvent.click(screen.getByText('Yes, delete it'))
+            await waitFor(() => expect(screen.getByText(/Your EUR account still has money/)).toBeInTheDocument())
+            expect(screen.queryByText(/You still have \$0/)).not.toBeInTheDocument()
+            expect(mockLogout).not.toHaveBeenCalled()
+            fireEvent.click(screen.getByText('Move money'))
+            expect(mockPush).toHaveBeenCalledWith('/home?currency=EURC')
+        })
+        it('tags the EURC deletion refusal event with currency EURC', async () => {
+            mockRequestDeletion.mockRejectedValueOnce(new AccountHasBalanceError(null, 'EURC'))
+            render(<DeleteAccountButton />)
+            fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
+            fireEvent.click(screen.getByText('Yes, delete it'))
+            await waitFor(() => expect(screen.getByText(/Your EUR account still has money/)).toBeInTheDocument())
+            const refusals = mockCapture.mock.calls.filter(
+                ([event]) => event === ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE
+            )
+            expect(refusals).toEqual([
+                [ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE, expect.objectContaining({ currency: 'EURC' })],
+            ])
+        })
         it('refuses to open the confirm step while the account holds funds', () => {
             mockWallet.spendableBalance = 500_000_000n // $500
             mockWallet.formattedSpendableBalance = '500.00'
@@ -173,7 +203,7 @@ describe('DeleteAccountButton', () => {
             expect(screen.getByText(/You still have \$500\.00/)).toBeInTheDocument()
             expect(screen.queryByText('Leaving already?')).not.toBeInTheDocument()
             expect(mockRequestDeletion).not.toHaveBeenCalled()
-            expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE)
+            expect(capturedEvents()).toContain(ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE)
         })
 
         it('sends the user to the withdraw flow from the blocked step', () => {
@@ -216,7 +246,11 @@ describe('DeleteAccountButton', () => {
             await waitFor(() => expect(screen.getByText('Move money first')).toBeInTheDocument())
             expect(screen.getByText(/You still have \$12\.34/)).toBeInTheDocument()
             expect(mockToastError).not.toHaveBeenCalled()
-            expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE)
+            expect(capturedEvents()).toContain(ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE)
+            expect(mockCapture).not.toHaveBeenCalledWith(
+                ANALYTICS_EVENTS.DELETE_ACCOUNT_BLOCKED_BALANCE,
+                expect.objectContaining({ currency: 'EURC' })
+            )
             expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.DELETE_ACCOUNT_FAILED)
         })
     })

@@ -94,12 +94,13 @@ export const useWallet = () => {
     const {
         data: balanceFromQuery,
         isLoading: isFetchingBalance,
+        isError: isBalanceError,
         refetch: refetchBalance,
     } = useBalance(shouldFetchBalance ? (address as Address) : undefined)
 
     // Rain collateral overview — loaded here so `sendTransactions` can consult
     // the current `spendingPower` when callers opt into collateral top-up.
-    const { overview: rainOverview } = useRainCardOverview()
+    const { overview: rainOverview, error: rainError, refetch: refetchRain } = useRainCardOverview()
 
     // Mutation for sending money with optimistic updates
     const sendMoneyMutation = useSendMoneyMutation({ address: address as Address | undefined })
@@ -246,7 +247,7 @@ export const useWallet = () => {
     // gates on — for flows that take an irreversible step BEFORE the spend (the
     // features/payments flows createCharge first), so an in-transit amount is
     // blocked at input rather than leaving an orphan charge when it fails late.
-    const availableSpendableBalance = useMemo(() => {
+    const rawAvailableSpendableBalance = useMemo(() => {
         if (balance === undefined) return undefined
         return computeAvailableSpendable(balance, rainOverview?.balance?.spendingPower)
     }, [balance, rainOverview?.balance?.spendingPower])
@@ -272,6 +273,16 @@ export const useWallet = () => {
     const isSmartFetchingActive = useIsFetching({ queryKey: ['balance'] }) > 0
     const isRainFetchingActive = useIsFetching({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] }) > 0
     const anyFetching = isSmartFetchingActive || isRainFetchingActive
+    const isSpendableBalanceUnavailable =
+        !demoMode && (isBalanceError || !!rainError || !!rainOverview?.balanceUnavailable)
+    const isLiveSpendableBalanceReady =
+        demoMode || (isAddressReady && isRainReady && !anyFetching && !isSpendableBalanceUnavailable)
+    const liveSpendableBalance = isLiveSpendableBalanceReady ? rawSpendableBalance : undefined
+    const availableSpendableBalance = isLiveSpendableBalanceReady ? rawAvailableSpendableBalance : undefined
+    const refetchSpendableBalance = useCallback(
+        () => Promise.all([refetchBalance(), refetchRain()]),
+        [refetchBalance, refetchRain]
+    )
     // Every in-memory hold is tagged with the user it belongs to: on an account
     // switch the previous user's number must neither paint for the next user nor
     // (via an equal total) suppress their cache write.
@@ -363,6 +374,10 @@ export const useWallet = () => {
         address: isAddressReady ? address : undefined, // populate address only if it is validated and matches the user's wallet address
         balance,
         spendableBalance,
+        liveSpendableBalance,
+        availableSpendableBalance,
+        isSpendableBalanceUnavailable,
+        refetchSpendableBalance,
         spendableBalanceDecimal,
         formattedBalance,
         formattedSpendableBalance,

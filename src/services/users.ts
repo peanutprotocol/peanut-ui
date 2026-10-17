@@ -54,7 +54,10 @@ export type ApiUser = {
  * omitted it.
  */
 export class AccountHasBalanceError extends Error {
-    constructor(public readonly balanceUsd: string | null) {
+    constructor(
+        public readonly balanceUsd: string | null,
+        public readonly currency: 'USD' | 'EURC' = 'USD'
+    ) {
         super('ACCOUNT_HAS_BALANCE')
         this.name = 'AccountHasBalanceError'
     }
@@ -153,7 +156,10 @@ export const usersApi = {
         if (response.ok) return
         const body = await response.json().catch(() => null)
         if (body?.error === 'ACCOUNT_HAS_BALANCE') {
-            throw new AccountHasBalanceError(typeof body.balanceUsd === 'string' ? body.balanceUsd : null)
+            throw new AccountHasBalanceError(
+                typeof body.balanceUsd === 'string' ? body.balanceUsd : null,
+                body.currency === 'EURC' ? 'EURC' : 'USD'
+            )
         }
         throw new ApiError('Failed to request account deletion', {
             status: response.status,
