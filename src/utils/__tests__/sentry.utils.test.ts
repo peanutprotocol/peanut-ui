@@ -31,8 +31,9 @@ jest.mock('../connectivity', () => ({
 }))
 
 // Read timeouts are sampled in production; report every one here so assertions are deterministic.
+// 0.05, not 0: see sentry-timeout-reporting.test.ts (a constant 0 overflows source-map's quicksort).
 beforeEach(() => {
-    jest.spyOn(Math, 'random').mockReturnValue(0)
+    jest.spyOn(Math, 'random').mockReturnValue(0.05)
     resetNonOkReportThrottle()
 })
 
