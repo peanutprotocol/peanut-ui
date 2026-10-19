@@ -124,6 +124,8 @@ const RhinoDepositView = ({
                         }
                         amount={amount}
                         tokenAmount={tokenAmount}
+                        // a wallet or network fee taken from the deposit leaves the charge partly paid
+                        amountNote={t('sendExtraForFees')}
                     />
                 )}
                 <Tabs

@@ -1913,6 +1913,7 @@
             "supportedNetworks": "Redes compatibles",
             "supportedTokens": "Tokens compatibles",
             "supportedTokensInline": "Tokens compatibles:",
+            "sendExtraForFees": "Envía un poco más si tu billetera o la red cobra una comisión.",
             "supportedEvmNetworks": "Redes EVM compatibles",
             "evmNetworks": "redes EVM",
             "selectNetworkType": "Selecciona el tipo de red",
@@ -3842,8 +3843,7 @@
             "sendingTo": "Enviando a {name}",
             "payWhatYouWant": "Cualquier monto",
             "yourChoice": "Tú eliges",
-            "sendExactAmount": "¡Envía el monto exacto!",
-            "networkFeeNote": "Envía un poco más si tu billetera o la red cobra una comisión."
+            "sendExactAmount": "¡Envía el monto exacto!"
         },
         "demoBanner": "Modo demo: estás viendo Peanut con una billetera simulada. Los saldos y las transacciones no son reales.",
         "rainCooldownPill": "Enfriamiento de tarjeta",

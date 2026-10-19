@@ -1913,6 +1913,7 @@
             "supportedNetworks": "Redes compatíveis",
             "supportedTokens": "Tokens compatíveis",
             "supportedTokensInline": "Tokens compatíveis:",
+            "sendExtraForFees": "Envie um pouco a mais se sua carteira ou a rede cobrar uma taxa.",
             "supportedEvmNetworks": "Redes EVM compatíveis",
             "evmNetworks": "redes EVM",
             "selectNetworkType": "Selecione o tipo de rede",
@@ -3842,8 +3843,7 @@
             "sendingTo": "Enviando para {name}",
             "payWhatYouWant": "Qualquer valor",
             "yourChoice": "Você escolhe",
-            "sendExactAmount": "Envie o valor exato!",
-            "networkFeeNote": "Envie um pouco a mais se sua carteira ou a rede cobrar uma taxa."
+            "sendExactAmount": "Envie o valor exato!"
         },
         "demoBanner": "Modo demo — você está testando o Peanut com uma carteira simulada. Saldos e transações não são reais.",
         "rainCooldownPill": "Resfriamento do cartão",

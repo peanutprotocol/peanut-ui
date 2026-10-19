@@ -1023,7 +1023,8 @@
             "warningTitle": "Enviá solo a redes compatibles",
             "bridgingVarianceNote": "Los depósitos se puentean a Arbitrum y pueden variar un poco (±0.1%).",
             "bridgingVarianceNoteEvm": "Los depósitos de USDC en Arbitrum se acreditan por el monto total. Los depósitos desde otras redes o tokens se puentean y pueden variar un poco (±0.1%).",
-            "addressErrorDescription": "No se envió nada. Intentalo de nuevo: si el problema sigue, contactá a soporte."
+            "addressErrorDescription": "No se envió nada. Intentalo de nuevo: si el problema sigue, contactá a soporte.",
+            "sendExtraForFees": "Enviá un poco más si tu billetera o la red cobra una comisión."
         },
         "manteca": {
             "sendOnlyOwnAccountTitle": "Enviá solo desde cuenta propia",
@@ -1695,8 +1696,7 @@
         "userCard": {
             "payWhatYouWant": "Cualquier monto",
             "yourChoice": "Vos elegís",
-            "sendExactAmount": "¡Enviá el monto exacto!",
-            "networkFeeNote": "Enviá un poco más si tu billetera o la red cobra una comisión."
+            "sendExactAmount": "¡Enviá el monto exacto!"
         },
         "iosCopy": {
             "inviteFriendsModal": {

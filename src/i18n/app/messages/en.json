@@ -1913,6 +1913,7 @@
             "supportedNetworks": "Supported networks",
             "supportedTokens": "Supported tokens",
             "supportedTokensInline": "Supported tokens:",
+            "sendExtraForFees": "Send a little more if your wallet or network charges a fee.",
             "supportedEvmNetworks": "Supported EVM networks",
             "evmNetworks": "EVM networks",
             "selectNetworkType": "Select network type",
@@ -3842,8 +3843,7 @@
             "sendingTo": "Sending {name}",
             "payWhatYouWant": "Any amount",
             "yourChoice": "Your choice",
-            "sendExactAmount": "Send the exact amount!",
-            "networkFeeNote": "Send a little more if your wallet or network charges a fee."
+            "sendExactAmount": "Send the exact amount!"
         },
         "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real.",
         "rainCooldownPill": "Card cool-down",
