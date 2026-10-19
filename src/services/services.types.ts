@@ -106,6 +106,8 @@ export interface TRequestResponse {
      */
     paidAt: string | null
     receivedAmount: string | null
+    /** CLOSED once paid in full or closed by the requester; a closed request takes no more payments */
+    status: 'OPEN' | 'CLOSED'
     bankFulfilment?: BankFulfilment
     payerName?: string | null
     bankInstructionsShared: boolean
