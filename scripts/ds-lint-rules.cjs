@@ -292,9 +292,9 @@ const FONT_KNERD_RE = /(?<![a-zA-Z0-9-])font-knerd(?:-[a-z]+)*\b/g
 //    the autofill repaint sets an inset background shadow on :focus, and a
 //    shadow cannot be told apart from a ring without parsing it.
 const FOCUS_COLOR_CLASS_RE =
-    /\bfocus(?:-visible|-within)?(?:\/[\w-]+)?:(?:[\w[\]&=-]+:)*!?(?:ring|outline|border(?:-[xytrblse])?)-(\[[^\]\s]+\]|[a-zA-Z0-9./_-]+)/g
+    /\bfocus(?:-visible|-within)?(?:\/[\w-]+)?:(?:[\w[\]&=-]+:)*!?(?:ring|outline|border(?:-[xytrblse])?)-(\[[^\]\s]+\]|\([^)\s]+\)|[a-zA-Z0-9./_-]+)/g
 const FOCUS_NON_COLOR_RE =
-    /^(?:[0-9.]+|px|none|hidden|solid|dashed|dotted|double|inset|transparent|offset(?:-.*)?|\[-?[0-9.].*|\[length:.*|action-focus(?:\/[0-9]+)?)$/
+    /^(?:[0-9.]+|px|none|hidden|solid|dashed|dotted|double|inset|transparent|offset(?:-.*)?|\[-?[0-9.].*|\[length:.*|\(length:.*|action-focus(?:\/[0-9]+)?|\(--color-action-focus\)|\[var\(--color-action-focus\)\])$/
 
 function countOffFocusColorClasses(text) {
     let n = 0
@@ -303,8 +303,25 @@ function countOffFocusColorClasses(text) {
 }
 
 const FOCUS_CSS_PROP_RE = /^(?:outline|outline-color|border(?:-[a-z]+)*|--tw-ring-color)$/
-// a colour reference: a --color token, hex, or a colour function.
+// a colour reference: a --color token, hex, or a colour function. named
+// colours are counted separately by countNamedCssColors.
 const CSS_COLOR_RE = /var\(--color-([a-z0-9-]+)\)|#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab)\(/g
+
+// a named colour (red, hotpink, currentColor…): any bare word left once
+// functions, hex and the non-colour keywords of outline/border are removed.
+const CSS_NON_COLOR_WORDS = new Set(
+    'none hidden solid dashed dotted double groove ridge inset outset auto thin medium thick transparent inherit initial unset revert important'.split(
+        ' '
+    )
+)
+
+function countNamedCssColors(value) {
+    const words = value
+        .replace(/[a-z-]+\([^()]*(?:\([^()]*\)[^()]*)*\)/gi, ' ')
+        .replace(/#[0-9a-fA-F]{3,8}\b/g, ' ')
+        .match(/(?<![\w-])[a-zA-Z]+(?![\w-])/g)
+    return (words ?? []).filter((w) => !CSS_NON_COLOR_WORDS.has(w.toLowerCase())).length
+}
 
 function countOffFocusColorCss(text) {
     let n = 0
@@ -315,7 +332,9 @@ function countOffFocusColorCss(text) {
         for (const decl of rule[2].split(';')) {
             const i = decl.indexOf(':')
             if (i === -1 || !FOCUS_CSS_PROP_RE.test(decl.slice(0, i).trim())) continue
-            for (const c of decl.slice(i + 1).matchAll(CSS_COLOR_RE)) if (c[1] !== 'action-focus') n++
+            const value = decl.slice(i + 1)
+            for (const c of value.matchAll(CSS_COLOR_RE)) if (c[1] !== 'action-focus') n++
+            n += countNamedCssColors(value)
         }
     }
     return n

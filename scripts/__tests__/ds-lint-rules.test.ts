@@ -1092,6 +1092,8 @@ describe('offFocusColor', () => {
             'md:focus:ring-[#ff00aa]',
             'focus-visible:border-b-foreground-primary',
             'focus:!ring-action-primary',
+            'focus:ring-(--color-action-primary)',
+            'focus-visible:outline-(--brand)',
         ]) {
             expect(countOffFocusColorClasses(`className="${cls}"`)).toBe(1)
         }
@@ -1112,6 +1114,9 @@ describe('offFocusColor', () => {
             'focus:border',
             'focus:border-2',
             'border-error ring-action-primary outline-pink-500',
+            'focus:ring-(--color-action-focus)',
+            'focus:ring-(length:--ring-width)',
+            'focus:ring-[var(--color-action-focus)]',
         ]) {
             expect(countOffFocusColorClasses(`className="${cls}"`)).toBe(0)
         }
@@ -1125,9 +1130,16 @@ describe('offFocusColor', () => {
         expect(countOffFocusColorCss(css)).toBe(2)
     })
 
+    it('flags named css colours on focus', () => {
+        expect(countOffFocusColorCss('.input:focus { border-color: red; }')).toBe(1)
+        expect(countOffFocusColorCss('.input:focus { outline: 2px solid HotPink !important; }')).toBe(1)
+        expect(countOffFocusColorCss('.input:focus-visible { outline: 3px solid currentColor; }')).toBe(1)
+    })
+
     it('leaves action-focus rings and non-focus css alone', () => {
         const css = `/* .x:focus { border-color: var(--color-action-primary) } */
         .input:focus { outline: 3px solid var(--color-action-focus); border-color: transparent; }
+        .btn:focus-visible { outline: none !important; border: 1px solid transparent; outline-offset: 2px; }
         .input:hover { border-color: var(--color-action-primary); }
         input:-webkit-autofill:focus { box-shadow: 0 0 0 1000px var(--color-background-default) inset; }`
         expect(countOffFocusColorCss(css)).toBe(0)

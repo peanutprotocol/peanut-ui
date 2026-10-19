@@ -118,10 +118,11 @@ re-baselines after merging them.
 `offFocusColor` counts focus colours that are not `action-focus` (design.md
 law 8). It reads two shapes. In class strings, a `focus:`, `focus-visible:` or
 `focus-within:` variant (with `group-`/`peer-` forms) on a `ring-*`,
-`outline-*` or `border-*` colour counts; widths, styles, offsets, `none` and
-`transparent` do not. In the stylesheets under `src/styles/`, a rule whose
+`outline-*` or `border-*` colour counts, including the custom-property form
+`ring-(--x)`; widths, styles, offsets, `none` and `transparent` do not. In the stylesheets under `src/styles/`, a rule whose
 selector has `:focus` and sets an `outline*`, `border*` or `--tw-ring-color`
-colour other than `var(--color-action-focus)` counts. `box-shadow` is not read:
+colour other than `var(--color-action-focus)` counts, named colours such as
+`red` or `currentColor` included. `box-shadow` is not read:
 the autofill repaint sets a background shadow on `:focus`. The pink
 pointer-focus border (ui#3041, reverted in ui#3161) was raw CSS in
 `globals.css`, so the tsx scan alone could not see it. Baseline 0.
