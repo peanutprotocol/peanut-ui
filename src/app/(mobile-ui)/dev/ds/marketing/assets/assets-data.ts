@@ -5,6 +5,7 @@ import type { StaticImageData } from 'next/image'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 
 import peanutCardHand from '@/assets/cards/peanut-card-hand.svg'
+import globalCashLocalFeel from '@/assets/illustrations/global-cash-local-feel.png'
 import exclamations from '@/assets/illustrations/exclamations.svg'
 import eyes from '@/assets/illustrations/eyes.svg'
 import gotItHand from '@/assets/illustrations/got-it-hand.svg'
@@ -48,6 +49,16 @@ export interface ArtEntry {
     path: string
     usedIn: string
 }
+
+/** Hero artwork. The Knerd key visual on the landing hero. */
+export const HERO_ART_ENTRIES: ArtEntry[] = [
+    {
+        label: 'global-cash-local-feel',
+        asset: globalCashLocalFeel,
+        path: 'assets/illustrations/global-cash-local-feel.png',
+        usedIn: 'Landing hero (home, /lp) — the key visual',
+    },
+]
 
 /** Doodles. One sparkle: brand yellow with a black outline. */
 export const DOODLE_ENTRIES: ArtEntry[] = [

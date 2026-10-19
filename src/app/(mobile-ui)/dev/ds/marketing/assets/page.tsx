@@ -9,7 +9,7 @@ import { DocHeader } from '../../_components/DocHeader'
 import { DocPage } from '../../_components/DocPage'
 import { DocSection } from '../../_components/DocSection'
 import { COLOR_TOKENS } from '../../foundations/tokens.generated'
-import { DOODLE_ENTRIES, GLOVE_ENTRIES, MASCOT_ENTRIES, type ArtEntry } from './assets-data'
+import { DOODLE_ENTRIES, GLOVE_ENTRIES, HERO_ART_ENTRIES, MASCOT_ENTRIES, type ArtEntry } from './assets-data'
 
 const tokenValue = (name: string) => COLOR_TOKENS.find((t) => t.name === name)?.value ?? '—'
 
@@ -69,6 +69,13 @@ export default function MarketingAssetsPage() {
                         code={`import PeanutMascot from '@/components/Global/PeanutMascot'\n\n<PeanutMascot pose="waving-chill" className="h-32" />`}
                     />
                 </DocSection.Code>
+            </DocSection>
+
+            <DocSection
+                title="Hero artwork"
+                description="The key visual is a Title lockup rendered to an image. Home and /lp only."
+            >
+                <ArtGrid entries={HERO_ART_ENTRIES} />
             </DocSection>
 
             <DocSection title="Doodles" description="Yellow with a black outline, or plain black.">

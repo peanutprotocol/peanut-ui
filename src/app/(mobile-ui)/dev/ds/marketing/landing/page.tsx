@@ -129,7 +129,7 @@ export default function MarketingLandingPage() {
                 <DocSection.Code>
                     <CodeBlock
                         label="section"
-                        code={`import { HUB_WIDTH, PROSE_WIDTH } from '@/components/Marketing/constants'\n\n// band: 64px vertical padding at 390, 96px from md up\n<section className="px-6">\n    <div className={\`mx-auto \${PROSE_WIDTH}\`}>…</div>\n</section>`}
+                        code={`import { HUB_WIDTH, PROSE_WIDTH } from '@/components/Marketing/constants'\n\n<section className="px-6 py-16 md:py-24">\n    <div className={\`mx-auto \${PROSE_WIDTH}\`}>…</div>\n</section>`}
                     />
                 </DocSection.Code>
             </DocSection>

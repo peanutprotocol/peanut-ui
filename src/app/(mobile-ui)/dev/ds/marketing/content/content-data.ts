@@ -20,14 +20,17 @@ export const CONTENT_DEMOS: ContentDemo[] = [
         demo: 'content-hero',
         title: 'Hero',
         rule: 'Every content page opens with the plain pink Hero, blog included. No Knerd, no mascot.',
-        code: `<Hero title="Peanut vs Wise" subtitle="Compare QR payments and transfers" cta="Create an account" ctaHref={inviteHref} />`,
+        code: `<Hero title="Peanut vs Wise" subtitle="Compare QR payments and transfers" cta="Create an account" ctaHref="https://peanut.me/invite?code=SQUIRRELINVITESYOU&utm_medium=content&utm_source=compare&utm_campaign=wise&utm_content=hero" />`,
         heights: { phone: 620, desktop: 700 },
     },
     {
         demo: 'content-faq',
         title: 'FAQ',
         rule: 'The panel owns its heading. Pass title= to <FAQ>; never write an h2 above it.',
-        code: `<FAQ title="Questions about fees">…</FAQ>`,
+        code: `<FAQ title="Questions about fees">
+    <FAQItem question="Is there a fee to receive money?">No. Receiving is free.</FAQItem>
+    <FAQItem question="What does a transfer cost?">See the pricing page for your corridor.</FAQItem>
+</FAQ>`,
         heights: { phone: 640, desktop: 640 },
     },
     {
