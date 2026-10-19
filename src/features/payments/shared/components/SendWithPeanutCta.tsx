@@ -8,8 +8,7 @@
  * - logged in: "send with peanut" + executes payment
  */
 
-import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO, WORDMARK } from '@/assets/brand'
 import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
@@ -109,8 +108,8 @@ export default function SendWithPeanutCta({
     const peanutLogo = useMemo((): React.ReactNode => {
         return (
             <div className="flex items-center gap-1">
-                <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
-                <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
+                <Image src={LOGO} alt="Peanut Logo" className="size-5" />
+                <Image src={WORDMARK} alt="Peanut Logo" className="h-3 w-auto" />
             </div>
         )
     }, [])

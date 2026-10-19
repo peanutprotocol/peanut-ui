@@ -1,4 +1,5 @@
 export * from './badges'
+export * from './brand'
 export * from './cards'
 export * from './chains'
 export * from './exchanges'

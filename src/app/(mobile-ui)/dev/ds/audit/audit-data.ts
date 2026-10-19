@@ -3274,7 +3274,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 1,
         status: 'duplicate',
         source: 'src/components/Global/ConfirmInviteModal/index.tsx',
-        notes: "Now delegates to ActionModal (was rolling its own inside base Modal), but it is still a copy-paste twin of NoMoreJailDrawer: same modalPanelClassName='rounded-none border-0', same contentContainerClassName='isolate', same absolutely-positioned mascot footer with translateY(-80%), same Button + PEANUT_LOGO cta block.",
+        notes: "Now delegates to ActionModal (was rolling its own inside base Modal), but it is still a copy-paste twin of NoMoreJailDrawer: same modalPanelClassName='rounded-none border-0', same contentContainerClassName='isolate', same absolutely-positioned mascot footer with translateY(-80%), same Button + wordmark cta block.",
     },
     {
         name: 'NoMoreJailDrawer',
@@ -4227,7 +4227,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         cat: 'loading',
         catLabel: 'Loading / skeleton / empty',
         layer: 'components',
-        role: 'Branded full-page/section loader: spinning PEANUTMAN logo + optional message.',
+        role: 'Branded full-page/section loader: spinning LOGO mark + optional message.',
         usages: 58,
         status: 'canonical',
         source: 'src/components/Global/Loading/index.tsx:35',
@@ -6001,7 +6001,7 @@ export const AUDIT_CLUSTERS: AuditCluster[] = [
         catLabel: 'Modals / dialogs',
         name: 'MascotModal (= ActionModal + mascot-over-card celebration)',
         from: 2,
-        rec: "ConfirmInviteModal and NoMoreJailDrawer both moved onto ActionModal since June, but they are still copy-paste twins: identical modalPanelClassName 'rounded-none border-0', identical contentContainerClassName 'isolate', identical absolutely-positioned mascot block in the footer slot with the same translateY(-80%) and -z-10, identical Button + PEANUT_LOGO cta. They differ only in mascot asset, copy and cta count. One MascotModal({mascot, title, description, ctas}) removes a file.",
+        rec: "ConfirmInviteModal and NoMoreJailDrawer both moved onto ActionModal since June, but they are still copy-paste twins: identical modalPanelClassName 'rounded-none border-0', identical contentContainerClassName 'isolate', identical absolutely-positioned mascot block in the footer slot with the same translateY(-80%) and -z-10, identical Button + wordmark cta. They differ only in mascot asset, copy and cta count. One MascotModal({mascot, title, description, ctas}) removes a file.",
         collapses: ['ConfirmInviteModal', 'NoMoreJailDrawer'],
     },
     {

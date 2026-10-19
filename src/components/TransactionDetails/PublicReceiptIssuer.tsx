@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
-import PEANUT_LOGO from '@/assets/logos/peanut-logo-dark.svg'
+import { WORDMARK } from '@/assets/brand'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 
 export function PublicReceiptIssuer() {
@@ -11,7 +11,7 @@ export function PublicReceiptIssuer() {
 
     return (
         <div className="flex items-start justify-between gap-4">
-            <Image src={PEANUT_LOGO} alt={tNav('peanutLogoAlt')} className="h-6 w-auto shrink-0" />
+            <Image src={WORDMARK} alt={tNav('peanutLogoAlt')} className="h-6 w-auto shrink-0" />
             <p className="text-right text-body-xs text-foreground-secondary">
                 <span className="text-body-m-semibold text-foreground-primary">{t('officialReceipt.issuedBy')}</span>{' '}
                 <a

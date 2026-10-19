@@ -1,8 +1,6 @@
-export { default as Cloud } from './cloud.svg'
 export { default as Eyes } from './eyes.svg'
 export { default as HandPeace } from './hand-peace.svg'
 export { default as HandThumbsUp } from './hand-thumbs-up.svg'
-export { default as HandThumbsUpV2 } from './hand-thumbs-up-v2.svg'
 export { default as Sparkle } from './sparkle.svg'
 export { default as Star } from './star.svg'
 export { default as LandingCountries } from './landing-countries.svg'
