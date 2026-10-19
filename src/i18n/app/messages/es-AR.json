@@ -740,6 +740,9 @@
             "amountNoteSameCurrency": "Enviá este monto y la solicitud queda pagada.",
             "amountNoteBankConverts": "Ahora no hay un estimado en {currency}. Enviá el monto en {currency} que equivale a este monto en USD. Tu banco fija el tipo de cambio.",
             "chooseCurrency": "Elegí una moneda"
+        },
+        "partialContribution": {
+            "description": "Todavía faltan {remaining}. Envialos a la misma dirección."
         }
     },
     "claim": {
@@ -1694,7 +1697,8 @@
         "userCard": {
             "payWhatYouWant": "Cualquier monto",
             "yourChoice": "Vos elegís",
-            "sendExactAmount": "¡Enviá el monto exacto!"
+            "sendExactAmount": "¡Enviá el monto exacto!",
+            "networkFeeNote": "Enviá un poco más si tu billetera o la red cobra una comisión."
         },
         "iosCopy": {
             "inviteFriendsModal": {

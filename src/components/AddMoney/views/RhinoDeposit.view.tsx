@@ -29,6 +29,8 @@ interface RhinoDepositViewProps {
     onSuccess: (amount: number) => void
     showUserCard?: boolean
     amount?: number
+    /** the exact amount in the token the charge settles in, e.g. "58.51 USDC"; shown on the user card */
+    tokenAmount?: string
     identifier?: string
 }
 
@@ -42,6 +44,7 @@ const RhinoDepositView = ({
     onSuccess,
     showUserCard = false,
     amount,
+    tokenAmount,
     identifier,
 }: RhinoDepositViewProps) => {
     const t = useTranslations('addMoney.crypto')
@@ -120,6 +123,7 @@ const RhinoDepositView = ({
                             isCryptoAddress(identifier ?? '') ? printableAddress(identifier ?? '') : (identifier ?? '')
                         }
                         amount={amount}
+                        tokenAmount={tokenAmount}
                     />
                 )}
                 <Tabs

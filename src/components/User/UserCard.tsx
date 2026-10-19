@@ -25,6 +25,8 @@ interface UserCardProps {
     isVerified?: boolean
     haveSentMoneyToUser?: boolean
     amount?: number
+    /** request_fulfilment: the exact amount in the token the charge settles in, e.g. "58.51 USDC" */
+    tokenAmount?: string
     amountCollected?: number
     isRequestPot?: boolean
     /** A request sent with no amount: the person paying chooses it. */
@@ -46,6 +48,7 @@ const UserCard = ({
     isVerified,
     haveSentMoneyToUser,
     amount,
+    tokenAmount,
     amountCollected,
     isRequestPot,
     isOpenAmount,
@@ -117,6 +120,14 @@ const UserCard = ({
                                             {t('userCard.sendExactAmount')}
                                         </p>
                                     </div>
+                                    {/* the figure to type into the wallet, and why a little more
+                                        may be needed: a charge paid short stays partly paid */}
+                                    {tokenAmount && (
+                                        <p className="text-body-s text-foreground-primary">{tokenAmount}</p>
+                                    )}
+                                    <p className="text-body-s text-foreground-secondary">
+                                        {t('userCard.networkFeeNote')}
+                                    </p>
                                 </div>
                             )}
 

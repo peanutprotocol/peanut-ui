@@ -1327,6 +1327,10 @@
         },
         "requestAsksFor": "{amount} requested",
         "requestAsksForDollars": "{amount} in dollars, fixed when the request was made",
+        "partialContribution": {
+            "title": "{received} of {asked} received",
+            "description": "{remaining} is still needed. Send it to the same address."
+        },
         "requestAlreadyCovered": "This request is already covered. There is nothing left to pay."
     },
     "claim": {
@@ -3832,7 +3836,8 @@
             "sendingTo": "Sending {name}",
             "payWhatYouWant": "Any amount",
             "yourChoice": "Your choice",
-            "sendExactAmount": "Send the exact amount!"
+            "sendExactAmount": "Send the exact amount!",
+            "networkFeeNote": "Send a little more if your wallet or network charges a fee."
         },
         "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real.",
         "rainCooldownPill": "Card cool-down",

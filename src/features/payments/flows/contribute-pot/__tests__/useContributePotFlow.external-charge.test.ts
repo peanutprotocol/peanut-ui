@@ -6,6 +6,7 @@ import { renderHookWithIntl } from '@/test-utils/intl'
 
 const peer = '0x1111111111111111111111111111111111111111'
 const mockCreateCharge = jest.fn()
+const mockFetchCharge = jest.fn()
 const ctx: Record<string, unknown> = {}
 const resetCtx = () =>
     Object.assign(ctx, {
@@ -27,10 +28,12 @@ const resetCtx = () =>
         setIsSuccess: jest.fn(),
         setCurrentView: jest.fn(),
         refetchRequestPot: jest.fn(),
+        setExternalDepositAddress: jest.fn(),
+        setIsExternalWalletPayment: jest.fn(),
     })
 jest.mock('../ContributePotFlowContext', () => ({ useContributePotFlowContext: () => ctx }))
 jest.mock('@/features/payments/shared/hooks/useChargeManager', () => ({
-    useChargeManager: () => ({ createCharge: mockCreateCharge }),
+    useChargeManager: () => ({ createCharge: mockCreateCharge, fetchCharge: mockFetchCharge }),
 }))
 jest.mock('@/features/payments/shared/hooks/usePaymentRecorder', () => ({
     usePaymentRecorder: () => ({ recordPayment: jest.fn() }),
@@ -102,4 +105,45 @@ test('a charge that already took money is not reused', async () => {
     ctx.charge = openCharge({ status: 'COMPLETED' })
     await tapExternalWallet()
     expect(mockCreateCharge).toHaveBeenCalledTimes(1)
+})
+
+// Rhino reports "completed" whatever amount arrived: the charge is read back
+// before the success screen says anything.
+describe('completeExternalWalletPayment', () => {
+    const complete = async () => {
+        const { result } = renderHookWithIntl(() => useContributePotFlow())
+        await act(async () => {
+            await result.current.completeExternalWalletPayment('0xdeposit')
+        })
+    }
+
+    test('reads the charge back, keeps the address and shows the result', async () => {
+        ctx.charge = openCharge({ tokenAmount: '58.51' })
+        const booked = openCharge({
+            tokenAmount: '58.51',
+            status: 'COMPLETED',
+            settledAmount: '33',
+            partialPayment: true,
+        })
+        mockFetchCharge.mockResolvedValue(booked)
+
+        await complete()
+
+        expect(mockFetchCharge).toHaveBeenCalledWith('charge-1')
+        expect(ctx.setCharge).toHaveBeenCalledWith(booked)
+        expect(ctx.setExternalDepositAddress).toHaveBeenCalledWith('0xdeposit')
+        expect(ctx.setIsExternalWalletPayment).toHaveBeenCalledWith(true)
+        expect(ctx.setCurrentView).toHaveBeenCalledWith('STATUS')
+        expect(ctx.refetchRequestPot).toHaveBeenCalled()
+    })
+
+    test('a failed read still shows the result, with the charge in hand', async () => {
+        ctx.charge = openCharge()
+        mockFetchCharge.mockRejectedValue(new Error('offline'))
+
+        await complete()
+
+        expect(ctx.setCharge).not.toHaveBeenCalled()
+        expect(ctx.setCurrentView).toHaveBeenCalledWith('STATUS')
+    })
 })

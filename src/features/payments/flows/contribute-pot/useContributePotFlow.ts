@@ -61,10 +61,12 @@ export function useContributePotFlow() {
         isExternalWalletPayment,
         setIsExternalWalletPayment,
         refetchRequestPot,
+        externalDepositAddress,
+        setExternalDepositAddress,
     } = useContributePotFlowContext()
 
     const { user } = useAuth()
-    const { createCharge, isCreating: isCreatingCharge } = useChargeManager()
+    const { createCharge, fetchCharge, isCreating: isCreatingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
     const {
         isConnected,
@@ -298,6 +300,36 @@ export function useContributePotFlow() {
         ]
     )
 
+    /**
+     * The external-wallet poll saw the deposit bridged. Rhino reports that
+     * whatever amount arrived, so the charge is read back before the success
+     * screen states an amount or a status (TASK-23856).
+     */
+    const completeExternalWalletPayment = useCallback(
+        async (depositAddress: string | undefined) => {
+            if (charge) {
+                try {
+                    setCharge(await fetchCharge(charge.uuid))
+                } catch {
+                    // the charge in hand still names the amount asked: the screen shows it as before
+                }
+            }
+            void refetchRequestPot()
+            setExternalDepositAddress(depositAddress ?? null)
+            setIsExternalWalletPayment(true)
+            setCurrentView('STATUS')
+        },
+        [
+            charge,
+            fetchCharge,
+            setCharge,
+            refetchRequestPot,
+            setExternalDepositAddress,
+            setIsExternalWalletPayment,
+            setCurrentView,
+        ]
+    )
+
     return {
         // state
         amount,
@@ -313,6 +345,7 @@ export function useContributePotFlow() {
         isLoading: isLoading || isCreatingCharge || isRecording,
         isSuccess,
         isExternalWalletPayment,
+        externalDepositAddress,
 
         // derived data
         totalAmount,
@@ -340,5 +373,6 @@ export function useContributePotFlow() {
         setCurrentView,
         setIsExternalWalletPayment,
         refetchRequestPot,
+        completeExternalWalletPayment,
     }
 }

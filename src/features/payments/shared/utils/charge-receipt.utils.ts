@@ -1,4 +1,5 @@
 import { isIntentKind, type IntentKind } from '@/components/TransactionDetails/strategies/registry'
+import { type IconStatusType } from '@/components/Global/Badges/Badge'
 
 /**
  * The history kind under which a charge's receipt resolves.
@@ -31,4 +32,26 @@ export function receiptKindForCharge(charge: {
     if (isIntentKind(charge.intentKind)) return charge.intentKind
     // The API's own default for a kind it has no type for is DIRECT_SEND.
     return RECEIPT_KIND_BY_CHARGE_TYPE[charge.transactionType ?? ''] ?? 'DIRECT_TRANSFER'
+}
+
+const RECEIPT_STATUS_BY_CHARGE_STATUS: Record<string, IconStatusType> = {
+    PENDING: 'pending',
+    AWAITING_USER_ACTION: 'pending',
+    AWAITING_SETTLEMENT: 'processing',
+    PROCESSING: 'processing',
+    COMPLETED: 'completed',
+    FAILED: 'failed',
+    CANCELLED: 'cancelled',
+    REFUNDED: 'refunded',
+}
+
+/**
+ * The receipt status a charge read back from the API states.
+ *
+ * Only for a charge read after its payment: the charge a flow holds from
+ * creation still says PENDING after the money moved. Undefined on an API that
+ * does not send the charge status yet.
+ */
+export function receiptStatusForCharge(charge: { status?: string | null } | null | undefined) {
+    return charge?.status ? RECEIPT_STATUS_BY_CHARGE_STATUS[charge.status] : undefined
 }

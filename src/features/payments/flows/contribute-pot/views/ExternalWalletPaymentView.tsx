@@ -11,7 +11,7 @@ import { useTranslations } from 'next-intl'
 
 const ExternalWalletPaymentView = () => {
     const t = useTranslations('payment')
-    const { charge, setCurrentView, setIsExternalWalletPayment, amount, request } = useContributePotFlow()
+    const { charge, setCurrentView, completeExternalWalletPayment, amount, request } = useContributePotFlow()
     const [chainType, setChainType] = useState<RhinoChainType>('EVM')
     const { address: peanutWalletAddress } = useWallet()
 
@@ -30,10 +30,10 @@ const ExternalWalletPaymentView = () => {
         staleTime: 1000 * 60 * 60 * 24, // 24 hours
     })
 
-    const onSuccess = useCallback((_: number) => {
-        setIsExternalWalletPayment(true)
-        setCurrentView('STATUS')
-    }, [])
+    const depositAddress = depositAddressData?.depositAddress
+    const onSuccess = useCallback(() => {
+        void completeExternalWalletPayment(depositAddress)
+    }, [completeExternalWalletPayment, depositAddress])
 
     return (
         <div className="flex flex-col gap-4">
@@ -52,6 +52,7 @@ const ExternalWalletPaymentView = () => {
                         : request?.recipientAccount.identifier
                 }
                 amount={Number(amount)}
+                tokenAmount={charge ? `${charge.tokenAmount} ${charge.tokenSymbol}` : undefined}
             />
         </div>
     )

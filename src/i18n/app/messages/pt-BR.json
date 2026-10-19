@@ -1327,6 +1327,10 @@
         },
         "requestAsksFor": "Pedido de {amount}",
         "requestAsksForDollars": "{amount} em dólar, fixado quando a solicitação foi criada",
+        "partialContribution": {
+            "title": "{received} de {asked} recebidos",
+            "description": "Ainda faltam {remaining}. Envie para o mesmo endereço."
+        },
         "requestAlreadyCovered": "Esta solicitação já está coberta. Não falta nada a pagar."
     },
     "claim": {
@@ -3832,7 +3836,8 @@
             "sendingTo": "Enviando para {name}",
             "payWhatYouWant": "Qualquer valor",
             "yourChoice": "Você escolhe",
-            "sendExactAmount": "Envie o valor exato!"
+            "sendExactAmount": "Envie o valor exato!",
+            "networkFeeNote": "Envie um pouco a mais se sua carteira ou a rede cobrar uma taxa."
         },
         "demoBanner": "Modo demo — você está testando o Peanut com uma carteira simulada. Saldos e transações não são reais.",
         "rainCooldownPill": "Resfriamento do cartão",

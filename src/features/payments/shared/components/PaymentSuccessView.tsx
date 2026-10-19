@@ -93,6 +93,12 @@ type DirectSuccessViewProps = {
     transactionDetails?: TransactionDetails | null
     /** The provider that moved the money; named in the fine print under the card. */
     providerId?: ProviderId
+    /**
+     * The in-place receipt's status. A flow that read the charge back after
+     * the payment passes what the charge says; the default is for flows whose
+     * own send just confirmed.
+     */
+    receiptStatus?: IconStatusType
 }
 
 const PaymentSuccessView = ({
@@ -116,6 +122,7 @@ const PaymentSuccessView = ({
     usdAmount,
     transactionDetails: transactionDetailsProp,
     providerId,
+    receiptStatus = 'completed',
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const origin = useAppOrigin()
@@ -181,10 +188,10 @@ const PaymentSuccessView = ({
             // `txHash` below.
             id: chargeDetails.uuid,
             txHash: paymentDetails?.payerTransactionHash,
-            status: 'completed' as IconStatusType,
+            status: receiptStatus,
             amount: parseFloat(amountValue),
             createdAt: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
-            completedAt: new Date(),
+            completedAt: receiptStatus === 'completed' ? new Date() : undefined,
             tokenSymbol: chargeDetails.tokenSymbol,
             direction: 'send', // only showing receipt for send txns
             initials: getInitialsFromName(recipientName),
@@ -241,6 +248,7 @@ const PaymentSuccessView = ({
         paymentDetails,
         origin,
         usdAmount,
+        receiptStatus,
         t,
     ])
 

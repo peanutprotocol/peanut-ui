@@ -1327,6 +1327,10 @@
         },
         "requestAsksFor": "Se piden {amount}",
         "requestAsksForDollars": "{amount} en dólares, fijado al crear la solicitud",
+        "partialContribution": {
+            "title": "{received} de {asked} recibidos",
+            "description": "Todavía faltan {remaining}. Envíalos a la misma dirección."
+        },
         "requestAlreadyCovered": "Esta solicitud ya está cubierta. No queda nada por pagar."
     },
     "claim": {
@@ -3832,7 +3836,8 @@
             "sendingTo": "Enviando a {name}",
             "payWhatYouWant": "Cualquier monto",
             "yourChoice": "Tú eliges",
-            "sendExactAmount": "¡Envía el monto exacto!"
+            "sendExactAmount": "¡Envía el monto exacto!",
+            "networkFeeNote": "Envía un poco más si tu billetera o la red cobra una comisión."
         },
         "demoBanner": "Modo demo: estás viendo Peanut con una billetera simulada. Los saldos y las transacciones no son reales.",
         "rainCooldownPill": "Enfriamiento de tarjeta",

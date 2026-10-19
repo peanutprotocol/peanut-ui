@@ -687,6 +687,23 @@ export function useSemanticRequestFlow() {
         removeChargeIdFromUrl()
     }, [setCurrentView, setCharge, resetRoute, removeChargeIdFromUrl])
 
+    /**
+     * The external-wallet poll saw the deposit bridged. Rhino reports that
+     * whatever amount arrived, so the charge is read back before the success
+     * screen states an amount or a status (TASK-23856).
+     */
+    const completeExternalWalletPayment = useCallback(async () => {
+        if (charge) {
+            try {
+                setCharge(await fetchCharge(charge.uuid))
+            } catch {
+                // the charge in hand still names the amount asked: the screen shows it as before
+            }
+        }
+        setIsExternalWalletPayment(true)
+        setCurrentView('STATUS')
+    }, [charge, fetchCharge, setCharge, setIsExternalWalletPayment, setCurrentView])
+
     return {
         // state
         amount,
@@ -752,5 +769,6 @@ export function useSemanticRequestFlow() {
         resetSemanticRequestFlow,
         setCurrentView,
         setIsExternalWalletPayment,
+        completeExternalWalletPayment,
     }
 }

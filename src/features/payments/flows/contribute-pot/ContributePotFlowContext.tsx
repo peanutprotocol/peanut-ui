@@ -102,6 +102,9 @@ interface ContributePotFlowContextValue {
     setTxHash: (hash: Hash | null) => void
     isExternalWalletPayment: boolean
     setIsExternalWalletPayment: (isExternalWalletPayment: boolean) => void
+    /** The deposit address the external-wallet payer sent to; a short payment's rest goes there too. */
+    externalDepositAddress: string | null
+    setExternalDepositAddress: (address: string | null) => void
 
     // ui state
     error: ContributePotError
@@ -161,6 +164,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
     const [payment, setPayment] = useState<PaymentCreationResponse | null>(null)
     const [txHash, setTxHash] = useState<Hash | null>(null)
     const [isExternalWalletPayment, setIsExternalWalletPayment] = useState(false)
+    const [externalDepositAddress, setExternalDepositAddress] = useState<string | null>(null)
 
     // ui state
     const [error, setError] = useState<ContributePotError>({ showError: false, errorMessage: '' })
@@ -223,6 +227,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
         setIsLoading(false)
         setIsSuccess(false)
         setIsExternalWalletPayment(false)
+        setExternalDepositAddress(null)
     }, [])
 
     const value = useMemo<ContributePotFlowContextValue>(
@@ -257,6 +262,8 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             resetContributePotFlow,
             isExternalWalletPayment,
             setIsExternalWalletPayment,
+            externalDepositAddress,
+            setExternalDepositAddress,
         }),
         [
             currentView,
@@ -279,6 +286,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             resetContributePotFlow,
             isExternalWalletPayment,
             setIsExternalWalletPayment,
+            externalDepositAddress,
         ]
     )
 
