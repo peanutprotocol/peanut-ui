@@ -14,6 +14,8 @@ import { isAndroidNative, isIOSNative } from '../capacitor'
 import { clipboardHasStrings, clipboardHasProbableWebUrl } from '../clipboard-detect'
 import { saveToCookie } from '../cookie-url.utils'
 import { SIGNUP_ATTRIBUTION_COOKIE } from '../signup-attribution'
+import { readInviteCode, stashInvite } from '../invite-stash'
+import { EInviteType } from '@/services/services.types'
 
 const getReferrer = jest.fn()
 
@@ -210,7 +212,7 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
     })
 
     it('drops the plain utm fields after the attribution token and before referral identities', () => {
-        saveToCookie('inviteCode', 'alice')
+        stashInvite('alice', EInviteType.DIRECT)
         saveToCookie('campaignTag', 'nita')
         const payload = buildDeferredPayload('/' + 'x'.repeat(MAX_PLAY_REFERRER_LENGTH))
 
@@ -255,7 +257,7 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
 
     it('preserves the inviter when a maximum-size attribution cannot fit the Play referrer', () => {
         const maxTag = 'x'.repeat(128)
-        saveToCookie('inviteCode', 'alice')
+        stashInvite('alice', EInviteType.DIRECT)
         saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
             schemaVersion: '1',
             journeyId: '33333333-3333-4333-8333-333333333333',
@@ -371,7 +373,7 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
 
     it('round-trips a full payload including an encoded dest with query', () => {
         window.history.replaceState({}, '', '/es-419/some-page')
-        saveToCookie('inviteCode', 'abc123')
+        stashInvite('abc123', EInviteType.DIRECT)
         saveToCookie('campaignTag', 'offramp')
 
         const payload = buildDeferredPayload('/claim/XYZ?t=1')
@@ -426,8 +428,8 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         })
     })
 
-    it('invite argument overrides the cookie (claim CTA knows the code pre-cookie)', () => {
-        saveToCookie('inviteCode', 'cookiecode')
+    it('invite argument overrides the stash (claim CTA knows the code before anything is stashed)', () => {
+        stashInvite('cookiecode', EInviteType.DIRECT)
         expect(parseDeferredPayload(buildDeferredPayload('/home', 'sendercode'))).toEqual({
             invite: 'sendercode',
             dest: '/home',
@@ -488,15 +490,16 @@ describe('parseDeferredPayload rejection', () => {
 })
 
 describe('applyDeferredPayload', () => {
-    it('writes a SESSION inviteCode cookie and a 30-day campaign list', () => {
+    it('stashes the invite outside cookies and writes a 30-day campaign list', () => {
         applyDeferredPayload({ invite: 'abc', campaign: 'off' })
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'abc')
+        expect(readInviteCode()).toBe('abc')
+        expect(mockSaveToCookie).not.toHaveBeenCalledWith('inviteCode', expect.anything())
         expect(mockSaveToCookie).toHaveBeenCalledWith('campaignTag', 'off', 30)
     })
 
     it('normalizes invite separately while preserving campaign spelling after outer trim', () => {
         applyDeferredPayload({ invite: ' @Alice ', campaign: ' OFFRAMP ' })
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'alice')
+        expect(readInviteCode()).toBe('alice')
         expect(mockSaveToCookie).toHaveBeenCalledWith('campaignTag', 'OFFRAMP', 30)
     })
 
@@ -538,14 +541,14 @@ describe('applyDeferredPayload', () => {
 })
 
 describe('restoreDeferredContext', () => {
-    it('restores cookies, locale and dest from the android referrer, once', async () => {
+    it('restores the invite, campaign, locale and dest from the android referrer, once', async () => {
         mockIsAndroidNative.mockReturnValue(true)
         getReferrer.mockResolvedValue({
             referrer: 'pnutdl=1&lang=es-419&invite=abc&badge_campaign=off&dest=%2Fclaim%2FXYZ',
         })
 
         await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/claim/XYZ', locale: 'es-419' })
-        expect(document.cookie).toContain('inviteCode=')
+        expect(readInviteCode()).toBe('abc')
         expect(document.cookie).toContain('campaignTag=')
         expect(localStorage.getItem(APP_LOCALE_KEY)).toBe('es-419')
 
@@ -645,7 +648,7 @@ describe('restoreDeferredContext', () => {
         clipboardWrite.mockResolvedValue(undefined)
 
         await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'test')
+        expect(readInviteCode()).toBe('test')
         expect(clipboardWrite).toHaveBeenCalled()
     })
 })

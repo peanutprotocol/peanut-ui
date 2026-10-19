@@ -126,6 +126,8 @@ export interface Translations {
 
     // Landing page — send-in-seconds section (closing CTA)
     landingClosingHeadline: string
+    /** The opening 1-3 headline words, set as the Knerd lockup. Must open the headline exactly. */
+    landingClosingAccent: string
     landingClosingSubline: string
 
     // Landing page — hero

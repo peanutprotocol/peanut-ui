@@ -1,7 +1,8 @@
 // Runtime locale resolution, mirroring the auth-token.ts pattern:
-// web: cookie (+ localStorage mirror); capacitor: native Preferences with the
-// device language as default. Every raw tag passes through resolveLocale so
-// an unsupported value can never leak out.
+// web: cookie (+ localStorage mirror); capacitor: the device language (which
+// includes the per-app language in iOS/Android settings) unless the user picked
+// one in-app since it last changed. Every raw tag passes through resolveLocale
+// so an unsupported value can never leak out.
 
 import Cookies from 'js-cookie'
 import posthog from 'posthog-js'
@@ -12,6 +13,8 @@ import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { resolveLocale, resolveLocaleOrNull, type AppLocale } from './config'
 
 const LOCALE_KEY = 'app-locale'
+// Native only: the raw device language tag an in-app pick was made under.
+const PICKED_UNDER_KEY = 'app-locale-device'
 
 let resolution: Promise<AppLocale> | null = null
 let current: AppLocale | null = null
@@ -58,12 +61,19 @@ function navigatorLocale(): AppLocale {
  * splash-gated startup path, so the locale resolver and the analytics emit
  * share one round-trip instead of each making their own.
  */
-let deviceTag: Promise<string | null> | null = null
 export function rawDeviceTag(): Promise<string | null> {
-    if (!deviceTag) deviceTag = readDeviceTag()
-    return deviceTag
+    return deviceLanguage().then(({ tag }) => tag)
 }
-async function readDeviceTag(): Promise<string | null> {
+
+/** `fromBridge` is false when the tag is the navigator fallback, not the OS answer. */
+type DeviceLanguage = { tag: string; fromBridge: true } | { tag: string | null; fromBridge: false }
+
+let startupDeviceLanguage: Promise<DeviceLanguage> | null = null
+function deviceLanguage(): Promise<DeviceLanguage> {
+    if (!startupDeviceLanguage) startupDeviceLanguage = readDeviceLanguage()
+    return startupDeviceLanguage
+}
+async function readDeviceLanguage(): Promise<DeviceLanguage> {
     if (isCapacitor()) {
         let timeout: ReturnType<typeof setTimeout> | undefined
         try {
@@ -73,14 +83,14 @@ async function readDeviceTag(): Promise<string | null> {
                     timeout = setTimeout(() => resolve(null), 1500)
                 }),
             ])
-            if (value) return value
+            if (value) return { tag: value, fromBridge: true }
         } catch {
             // older binary / plugin missing — fall through to navigator
         } finally {
             clearTimeout(timeout)
         }
     }
-    return typeof navigator !== 'undefined' ? navigator.language : null
+    return { tag: typeof navigator !== 'undefined' ? navigator.language : null, fromBridge: false }
 }
 
 // Device context for the localization OKR (Fit metric): device_language is the
@@ -172,20 +182,65 @@ export function currentDeviceIdentity(): DeviceIdentity | null {
 }
 
 async function resolveStartupLocale(): Promise<AppLocale> {
-    if (isCapacitor()) {
-        try {
-            const { Preferences } = await import('@capacitor/preferences')
-            const { value } = await Preferences.get({ key: LOCALE_KEY })
-            if (value) return resolveLocale(value)
-        } catch {
-            // plugin unavailable — fall through to device language
-        }
-        // shares the memoized bridge call with the analytics emit
-        return resolveLocale(await rawDeviceTag())
-    }
+    if (isCapacitor()) return resolveNativeLocale()
     const stored = Cookies.get(LOCALE_KEY) ?? readStoredValue(LOCALE_KEY)
     if (stored) return resolveLocale(stored)
     return navigatorLocale()
+}
+
+/**
+ * An in-app pick holds until the device moves to a different supported
+ * language — a new phone language, or the per-app language in iOS/Android
+ * settings. That is the newer choice and the pick is dropped.
+ */
+async function resolveNativeLocale(): Promise<AppLocale> {
+    // shares the memoized bridge call with the analytics emit
+    const device = await deviceLanguage()
+    const deviceLocale = resolveLocale(device.tag)
+    try {
+        const { Preferences } = await import('@capacitor/preferences')
+        const [{ value: picked }, { value: pickedUnder }] = await Promise.all([
+            Preferences.get({ key: LOCALE_KEY }),
+            Preferences.get({ key: PICKED_UNDER_KEY }),
+        ])
+        if (!picked) return deviceLocale
+        const pickedLocale = resolveLocale(picked)
+        // the navigator fallback is no evidence that the device locale moved
+        if (!device.fromBridge) return pickedLocale
+        if (!pickedUnder) {
+            // Unpaired: an older bundle's first-launch write or pick, or a deferred
+            // link. One matching the device is dropped so the device language
+            // applies from now on; any other value was a pick, paired with today's
+            // device language.
+            if (pickedLocale === deviceLocale) tidyNativePick(() => Preferences.remove({ key: LOCALE_KEY }))
+            else tidyNativePick(() => Preferences.set({ key: PICKED_UNDER_KEY, value: device.tag }))
+            return pickedLocale
+        }
+        if (!deviceMovedSince(pickedUnder, device.tag)) return pickedLocale
+        tidyNativePick(() =>
+            Promise.all([Preferences.remove({ key: LOCALE_KEY }), Preferences.remove({ key: PICKED_UNDER_KEY })])
+        )
+        return deviceLocale
+    } catch {
+        // plugin unavailable — the device language
+        return deviceLocale
+    }
+}
+
+/**
+ * Compared on raw tags, not resolveLocale: an unsupported language falls back
+ * to English there, so fr-FR → en-US would read as no move. A move onto an
+ * unsupported language asks for no app language and leaves the pick alone.
+ */
+function deviceMovedSince(pickedUnder: string, deviceTag: string): boolean {
+    const now = resolveLocaleOrNull(deviceTag)
+    return now !== null && now !== resolveLocaleOrNull(pickedUnder)
+}
+
+// Off the splash path, and never over a pick made this session.
+function tidyNativePick(write: () => Promise<unknown>): void {
+    if (explicitlyChosen) return
+    write().catch(() => {})
 }
 
 /**
@@ -200,8 +255,9 @@ export function localeReady(): Promise<AppLocale> {
             .then((resolved) => {
                 // A locale derived from the browser language was never stored, so a
                 // full document load re-derived it and the proxy saw no cookie.
-                // An explicit choice made meanwhile wins.
-                if (!explicitlyChosen) writeLocale(resolved)
+                // An explicit choice made meanwhile wins. Native stores only picks,
+                // or the device language setting would stop applying.
+                if (!explicitlyChosen && !isCapacitor()) writeLocale(resolved)
                 return resolved
             })
             .catch((err) => {
@@ -224,9 +280,7 @@ export function persistLocale(locale: AppLocale): void {
 
 function writeLocale(locale: AppLocale): void {
     if (isCapacitor()) {
-        import('@capacitor/preferences')
-            .then(({ Preferences }) => Preferences.set({ key: LOCALE_KEY, value: locale }))
-            .catch(() => {})
+        void saveNativePick(locale)
         return
     }
     try {
@@ -238,6 +292,24 @@ function writeLocale(locale: AppLocale): void {
     }
     // storage may be unavailable (private mode); cookie is authoritative
     writeStoredValue(LOCALE_KEY, locale)
+}
+
+/**
+ * Pairs the pick with the device language it was made under. Until the pairing
+ * lands (or when the bridge read fails) the pick is unpaired, which startup
+ * pairs with its own bridge read rather than dropping.
+ */
+async function saveNativePick(locale: AppLocale): Promise<void> {
+    try {
+        const { Preferences } = await import('@capacitor/preferences')
+        await Preferences.remove({ key: PICKED_UNDER_KEY })
+        await Preferences.set({ key: LOCALE_KEY, value: locale })
+        // not the startup memo: Android keeps the process alive across a language change
+        const device = await readDeviceLanguage()
+        if (device.fromBridge) await Preferences.set({ key: PICKED_UNDER_KEY, value: device.tag })
+    } catch {
+        // plugin unavailable — the pick lasts this session only
+    }
 }
 
 let markApplied: (() => void) | null = null

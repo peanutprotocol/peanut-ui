@@ -7,6 +7,7 @@ import {
     filterTokenOptions,
     findSelection,
     isFeeFreeRoute,
+    networkRowsForToken,
     pickDefaultNetwork,
     splitNetworkBadges,
     WALLET_CHAIN_ID,
@@ -168,4 +169,27 @@ test('withWalletChain adds the wallet chain only when the record lacks it', () =
     expect(withWalletChain(CHAINS)).toBe(CHAINS)
     const added = withWalletChain({ tron: CHAINS.tron })
     expect(added[WALLET_CHAIN_ID].tokens[0].address).toBe(PEANUT_WALLET_TOKEN)
+})
+
+describe("networkRowsForToken — every network, the token's own first", () => {
+    test('USDC lists Tron, after its own networks and without a network to select', () => {
+        const rows = networkRowsForToken(options(), option('USDC'))
+        expect(rows.map((r) => [r.chainId, !!r.network])).toEqual([
+            [WALLET_CHAIN_ID, true],
+            ['1', true],
+            ['10', true],
+            ['tron', false],
+        ])
+    })
+
+    test('USDT lists Optimism as the one network that does not carry it', () => {
+        const rows = networkRowsForToken(options(), option('USDT'))
+        expect(rows.filter((r) => !r.network).map((r) => r.name)).toEqual(['Optimism'])
+        expect(rows).toHaveLength(4)
+    })
+
+    test('a supported row carries the token on that chain', () => {
+        const eth = networkRowsForToken(options(), option('ETH')).find((r) => r.chainId === '1')!
+        expect(eth.network?.token.address).toBe(ETH)
+    })
 })

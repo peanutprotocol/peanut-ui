@@ -54,16 +54,18 @@ describe('isWithdrawFeeDisproportionate', () => {
 })
 
 describe('getMinWithdrawUsdForChain', () => {
-    test('Ethereum mainnet needs $5, string or numeric chainId', () => {
-        expect(getMinWithdrawUsdForChain('1')).toBe(5)
-        expect(getMinWithdrawUsdForChain(1)).toBe(5)
-        expect(getMinWithdrawUsdForChain('1')).toBe(ETHEREUM_MIN_WITHDRAW_USD)
+    // ethereum and tron carry a 1% buffer over rhino's minimum: the api values
+    // 10 usdc at $9.99, so exactly $10 to tron was rejected at review
+    test('Ethereum mainnet needs $5.05 (Rhino $5 + 1%), string or numeric chainId', () => {
+        expect(getMinWithdrawUsdForChain('1')).toBe(5.05)
+        expect(getMinWithdrawUsdForChain(1)).toBe(5.05)
+        expect(getMinWithdrawUsdForChain('1')).toBeGreaterThan(ETHEREUM_MIN_WITHDRAW_USD)
     })
 
-    test('Tron needs $10 — both the picker slug and the numeric id', () => {
+    test('Tron needs $10.10 (Rhino $10 + 1%) — both the picker slug and the numeric id', () => {
         // the withdraw picker supplies 'tron' (NON_EVM_WITHDRAW_CHAINS slug)
-        expect(getMinWithdrawUsdForChain('tron')).toBe(10)
-        expect(getMinWithdrawUsdForChain('728126428')).toBe(10)
+        expect(getMinWithdrawUsdForChain('tron')).toBe(10.1)
+        expect(getMinWithdrawUsdForChain('728126428')).toBe(10.1)
     })
 
     test('Solana needs $1 — a Peanut floor, above the $0.50 Rhino route minimum', () => {
@@ -87,10 +89,10 @@ describe('getMinWithdrawUsdForChain', () => {
         // Assert against the records the flow actually passes to the guard.
         const tron = NON_EVM_WITHDRAW_CHAINS['tron']
         expect(tron).toBeDefined()
-        expect(getMinWithdrawUsdForChain(tron.chainId)).toBe(10)
+        expect(getMinWithdrawUsdForChain(tron.chainId)).toBe(10.1)
 
         expect((chainDetails as Record<string, unknown>)['1']).toBeDefined()
-        expect(getMinWithdrawUsdForChain('1')).toBe(ETHEREUM_MIN_WITHDRAW_USD)
+        expect(getMinWithdrawUsdForChain('1')).toBe(5.05)
     })
 })
 

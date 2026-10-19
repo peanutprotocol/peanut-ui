@@ -839,23 +839,6 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Crypto withdrawal: select the token, network and address before entering an amount.',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
     },
-    // TASK-23392: pick a charged route (e.g. USDT on Ethereum), continue, type
-    // an amount — the amount screen shows the estimate from this preview quote.
-    'withdraw-crypto-fee-estimate': {
-        route: '/withdraw/crypto',
-        about: 'Crypto withdrawal with a quoted network fee: the amount screen shows the estimate.',
-        responses: {
-            'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] },
-            'POST /rhino/sda-transfer/preview': {
-                payAmount: '25',
-                payAmountUsd: 25,
-                receiveAmount: '22.6',
-                receiveAmountUsd: 22.6,
-                feeUsd: 2.4,
-                fees: { gasUsd: 2.4, sourceGasUsd: 0, platformUsd: 0, percentageUsd: 0 },
-            },
-        },
-    },
     // Crypto address book beside the saved bank accounts. The three entries hit
     // the three last-used pill tones against the shots' frozen clock
     // (2026-08-15): <7d recent, 7-30d aging, 30+d stale.

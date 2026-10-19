@@ -169,9 +169,17 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const formattedAmount = formatBankAmount(Math.abs(usdAmount), 'USD')
     const formattedTotalAmountCollected = formatBankAmount(transaction.totalAmountCollected, 'USD')
 
+    // a deposit that never reaches the balance shows the exact amount the bank
+    // sent, unsigned (TASK-23245)
+    const depositKind = transaction.extraDataForDrawer?.depositKind
+    const depositAmountDisplay = transaction.extraDataForDrawer?.depositAmountDisplay
+    const isVerificationDeposit = depositKind === 'verification'
+
     let displayAmount = `${sign}${formattedAmount}`
 
-    if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
+    if (depositKind && depositAmountDisplay) {
+        displayAmount = depositAmountDisplay
+    } else if (transaction.isRequestPotLink && Number(transaction.amount) > 0) {
         displayAmount = `${formattedTotalAmountCollected} / ${formattedAmount}`
     } else if (transaction.isRequestPotLink && Number(transaction.amount) === 0) {
         displayAmount = formattedTotalAmountCollected
@@ -192,7 +200,16 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // that reads as converted but isn't.
     const hasValidCurrencyAmount =
         !!transaction.currency?.amount && Number.isFinite(Number(transaction.currency.amount))
-    if (transaction.currency && ccyCode && ccyCode !== 'USD' && !isStableCoin(ccyCode) && hasValidCurrencyAmount) {
+    if (depositKind) {
+        // the bank's own amount is already the headline, so no second line
+        currencyDisplayAmount = undefined
+    } else if (
+        transaction.currency &&
+        ccyCode &&
+        ccyCode !== 'USD' &&
+        !isStableCoin(ccyCode) &&
+        hasValidCurrencyAmount
+    ) {
         const formattedCurrencyAmount = formatNumberForDisplay(transaction.currency.amount, { maxDecimals: 2 })
         currencyDisplayAmount = `≈ ${ccyCode} ${formattedCurrencyAmount}`
     } else if (
@@ -235,7 +252,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const isCommittedCardSpend =
         isCardPaymentEntry(transaction) && !transaction.extraDataForDrawer?.cardPayment?.isRefund
     const isPendingAmount = !!status && PENDING_AMOUNT_STATUSES.has(status) && !isOpenRequest && !isCommittedCardSpend
-    const isStruckAmount = !!status && STRUCK_AMOUNT_STATUSES.has(status) && !isFailedCardRefund
+    // a verification deposit is cancelled on the wire, but the user still has
+    // to read its amount, so it is never struck through
+    const isStruckAmount =
+        !!status && STRUCK_AMOUNT_STATUSES.has(status) && !isFailedCardRefund && !isVerificationDeposit
     const showStatusChip =
         !!status &&
         status !== 'completed' &&
@@ -321,9 +341,16 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 ? t('type.setup')
                                 : isPerkRewardEntry
                                   ? t('type.reward')
-                                  : t(transaction.actionLabelKey ?? getActionLabelKey(type, status))}
+                                  : isVerificationDeposit && transaction.extraDataForDrawer?.payerName
+                                    ? transaction.extraDataForDrawer.payerName
+                                    : t(transaction.actionLabelKey ?? getActionLabelKey(type, status))}
                         </span>
-                        {showStatusChip && status && <Badge type="icon" status={status} />}
+                        {isVerificationDeposit ? (
+                            // the money went back to the sender: design.md "Returned", grey neutral
+                            <Badge status="neutral" customText={t('returnedStatus')} />
+                        ) : (
+                            showStatusChip && status && <Badge type="icon" status={status} />
+                        )}
                         {isAdjustedCardSpend && <span>{t('adjustedSuffix')}</span>}
                     </div>
                 }

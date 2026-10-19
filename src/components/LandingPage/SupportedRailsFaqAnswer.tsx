@@ -22,7 +22,7 @@ export function SupportedRailsFaqAnswer({
     rails: FiatRailListing[]
 }) {
     return (
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-6">
             <div>
                 <p className="mb-2">
                     {t(strings.crypto, {
@@ -47,7 +47,7 @@ export function SupportedRailsFaqAnswer({
             </div>
             <div>
                 <p className="mb-2">{strings.banks}</p>
-                <ul className="flex flex-col gap-1.5">
+                <ul className="flex flex-col gap-2">
                     {rails.map((rail) => (
                         <li key={rail.corridor} className="flex items-baseline gap-2">
                             <span>{rail.flag}</span>

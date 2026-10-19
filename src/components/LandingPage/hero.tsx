@@ -13,6 +13,7 @@ import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import type { LandingStrings } from './landingStrings'
 import type { LandingContentHrefs } from './landingContentHrefs'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
+import { CTA_MOTION } from '@/components/Marketing/constants'
 
 /**
  * Peanut mascot that positions itself so only 6% of its height (the feet)
@@ -96,41 +97,39 @@ type HeroProps = {
 }
 
 /*
- * CSS custom properties consumed by `.cta-motion` in globals.css, replacing the
- * framer-motion animate/whileHover pair. Same values, but the transform runs on
- * the compositor instead of a main-thread rAF loop.
+ * The CTA fades out while the footer is on screen (the sticky bar takes over).
+ * The holder parks the CTA_MOTION button off its rest position through the
+ * --cta-* custom properties `.cta-motion` reads, so it slides as it fades.
  */
-const getCtaStyle = (variant: 'primary' | 'secondary', buttonVisible?: boolean): CSSProperties =>
+const getCtaStyle = (buttonVisible?: boolean): CSSProperties =>
     ({
         '--cta-x': buttonVisible ? '0px' : '20px',
         '--cta-y': buttonVisible ? '0px' : '20px',
         '--cta-r': buttonVisible ? '0deg' : '1deg',
-        '--cta-hover-x': variant === 'primary' ? '0px' : '3px',
         opacity: buttonVisible ? 1 : 0,
         pointerEvents: buttonVisible ? 'auto' : 'none',
     }) as CSSProperties
 
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
-    `relative z-20 mt-8 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
+    `relative z-20 mt-8 flex flex-col items-center justify-center transition-opacity duration-slow ${variant === 'primary' ? 'mx-auto' : 'right-[calc(50%-120px)]'}`
 
 export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strings, contentHrefs }: HeroProps) {
     const migrationOn = useMigrationFlag()
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
-            <div
-                className={`${getButtonContainerClasses(variant)} cta-motion`}
-                style={getCtaStyle(variant, buttonVisible)}
-            >
-                <a
+            <div className={getButtonContainerClasses(variant)} style={getCtaStyle(buttonVisible)}>
+                <Button
+                    size="large"
+                    variant="secondary"
+                    icon={cta.icon}
                     href={cta.href}
-                    target={cta.isExternal ? '_blank' : undefined}
-                    rel={cta.isExternal ? 'noopener noreferrer' : undefined}
+                    plainAnchor
+                    external={cta.isExternal}
                     onClick={cta.onClick}
+                    className={`w-fit ${CTA_MOTION}`}
                 >
-                    <Button shadowSize="4" icon={cta.icon} className="bg-white px-6 hover:bg-white/90 md:px-8">
-                        {cta.label}
-                    </Button>
-                </a>
+                    {cta.label}
+                </Button>
                 {cta.subtext && (
                     <span className="mt-2 block text-center text-body-s text-foreground-primary italic md:text-body-m">
                         {cta.subtext}
@@ -141,10 +140,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
     }
 
     const renderCustomCta = () => (
-        <div
-            className={`${getButtonContainerClasses('primary')} cta-motion`}
-            style={getCtaStyle('primary', buttonVisible)}
-        >
+        <div className={getButtonContainerClasses('primary')} style={getCtaStyle(buttonVisible)}>
             {customCta}
         </div>
     )
@@ -152,7 +148,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
     return (
         <section
             id="hero"
-            className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-background-brand px-4 pt-4 pb-12 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
+            className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-background-brand px-6 pt-4 pb-12 md:px-4 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
         >
             <CloudsCss clouds={heroClouds} className="md:hidden" />
             <CloudsCss className="hidden md:block" />
@@ -162,7 +158,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     src={GlobalCashLocalFeel}
                     preload
                     sizes="(min-width: 768px) 50vw, 100vw"
-                    className="z-0 mx-auto h-auto max-h-[calc(100svh-23rem)] w-full max-w-[1000px] object-contain md:w-[50%]"
+                    className="z-0 mx-auto h-auto max-h-[calc(100svh-23rem)] w-full max-w-7xl object-contain md:w-[50%]"
                     alt="Global Cash Local Feel"
                 />
 
@@ -188,7 +184,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     360px) where en/es take 2, which pushes the CTA under the fold. Buy the 38-76px
                     back from this gap rather than from the artwork, so every locale keeps the same
                     hero on normal screens. Width-scoped too, or it would fire on 1366x657 laptops. */}
-                <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-foreground-primary md:mt-12 md:text-heading [@media(max-height:660px)_and_(max-width:767px)]:mt-4">
+                <h2 className="font-roboto-flex-extrabold mt-16 text-center text-[2.375rem] font-extraBlack text-foreground-primary md:mt-12 md:text-heading [@media(max-height:660px)_and_(max-width:767px)]:mt-4">
                     {strings.heroTapScan}
                 </h2>
                 <span
@@ -208,7 +204,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     </Link>
                     .
                 </span>
-                <span className="mt-2 block text-center text-body-s text-foreground-primary/70 md:text-body-m">
+                <span className="mt-2 block text-center text-body-s text-foreground-over-color-secondary md:text-body-m">
                     {strings.heroNoLocalId}
                 </span>
                 {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}

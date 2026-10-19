@@ -221,6 +221,36 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         captureState: ['variant=requires-info', 'reasonCode=card_needs_review'],
         expectSelector: '[data-testid="app-page-surface-content"] h1',
     },
+    '82-g-card-tax-id': {
+        name: 'Card application — tax ID requested',
+        path: 'Card/ApplicationStatusScreen.tsx',
+        captureState: ['variant=requires-info', 'actions=tax_identification_number'],
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '82-h-card-birth-date': {
+        name: 'Card application — date of birth requested',
+        path: 'Card/ApplicationStatusScreen.tsx',
+        captureState: ['variant=requires-info', 'actions=birth_details'],
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '82-i-card-information-both': {
+        name: 'Card application — tax ID first, date of birth next',
+        path: 'Card/ApplicationStatusScreen.tsx',
+        captureState: ['variant=requires-info', 'actions=tax_identification_number,birth_details'],
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '82-j-card-information-error': {
+        name: 'Card application — information action failed to start',
+        path: 'Card/ApplicationStatusScreen.tsx',
+        captureState: ['variant=requires-info', 'actions=tax_identification_number', 'uploadError=retryable'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
+    },
+    '92-f-withdraw-amount-error': {
+        name: 'Bank withdrawal — amount below minimum',
+        path: 'features/withdraw/views/WithdrawAmountView.tsx',
+        captureState: ['amount=0.01', 'error=minimum', 'continueDisabled=true'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
+    },
     '83-f-choice-residence-restricted': {
         name: 'Setup payment plan — restricted residence',
         path: 'Setup/Views/PaymentPlan.tsx',

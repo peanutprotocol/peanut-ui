@@ -1301,7 +1301,8 @@
             "invalidPaymentUrlTitle": "Este link de pagamento não funciona",
             "invalidPaymentUrlDescription": "O link está incompleto ou digitado errado. Peça para quem enviou compartilhar de novo.",
             "requestNotFoundTitle": "Cobrança não encontrada",
-            "requestNotFoundDescription": "Esta cobrança não existe ou foi removida. Peça um novo link para quem enviou."
+            "requestNotFoundDescription": "Esta cobrança não existe ou foi removida. Peça um novo link para quem enviou.",
+            "requestClosedTitle": "Esta cobrança está encerrada"
         },
         "requestCurrencyNote": "Esta solicitação pede {amount}. Com Peanut, cripto ou transferência bancária em dólar você paga o valor em dólar, que foi fixado quando a solicitação foi criada.",
         "requestCurrencyNotePartPaid": "Esta solicitação pede {amount} e faltam {remaining} a pagar. Com Peanut, cripto ou transferência bancária em dólar você paga o valor em dólar, que foi fixado quando a solicitação foi criada.",
@@ -1620,7 +1621,11 @@
             "manualReviewTitle": "Precisamos fazer uma análise manual",
             "manualReviewBody": "Precisamos analisar seu envio manualmente. Normalmente leva 1-2 dias e avisamos quando estiver pronto.",
             "requiresInfoTitle": "Precisamos de mais informações",
-            "requiresInfoBody": "Nosso time vai te ajudar a terminar seu pedido de cartão — fale com o suporte para continuar.",
+            "requiresInfoBody": "O time da Peanut vai te ajudar a terminar seu pedido de cartão. Fale com o suporte para continuar.",
+            "requiresInfoTaxIdBody": "Informe sua identificação fiscal para terminar seu pedido de cartão.",
+            "requiresInfoBirthDateBody": "Informe sua data de nascimento para terminar seu pedido de cartão.",
+            "requiresInfoProofOfAddressBody": "Envie um comprovante de endereço para terminar seu pedido de cartão.",
+            "requiresInfoIdentityBody": "Envie seus documentos de identidade para terminar seu pedido de cartão.",
             "requiresSupportTitle": "Algo deu errado do nosso lado",
             "requiresSupportBody": "Tivemos um problema ao processar seu pedido de cartão. Nosso time precisa dar uma olhada — fale com o suporte que a gente resolve.",
             "rejectedTitle": "Não conseguimos emitir um cartão",
@@ -1805,6 +1810,9 @@
         },
         "uploadProofOfAddress": "Enviar comprovante de endereço",
         "uploadIdentityDocuments": "Enviar documentos de identidade",
+        "provideTaxId": "Informar identificação fiscal",
+        "provideBirthDate": "Informar data de nascimento",
+        "informationStartFailed": "Não conseguimos abrir o formulário. Tente novamente.",
         "fixSignature": {
             "navTitle": "Reparar a assinatura do cartão",
             "intro": "Esta ferramenta repara um problema no estado da carteira que impede o seu cartão de se recarregar automaticamente. Leva até duas confirmações rápidas com a passkey.",
@@ -2038,7 +2046,6 @@
             "chainAlt": "rede",
             "to": "Para",
             "networkFee": "Taxa de rede",
-            "estimatedNetworkFee": "Taxa de rede estimada",
             "networkFeeInfo": "Entregar nesta rede é gratuito — a Peanut cobre. Algumas redes, como Ethereum, Tron e Solana, cobram uma taxa descontada do valor recebido.",
             "networkFeeChargedInfo": "Cada rede cobra um valor diferente para entregar. Esta cobra, e a taxa sai do valor recebido. Outras, como Arbitrum, são gratuitas.",
             "youPay": "Total",
@@ -2316,7 +2323,8 @@
             "receivedViaLink": "Recebido via link",
             "sentViaLink": "Enviado via link",
             "transaction": "Transação",
-            "failedQrPayment": "Tentativa de pagamento com QR falhou"
+            "failedQrPayment": "Tentativa de pagamento com QR falhou",
+            "verificationDeposit": "Depósito de verificação"
         },
         "nameInSentence": {
             "merchant": "estabelecimento",
@@ -2374,6 +2382,8 @@
         "returnedReason": "O banco devolveu este pagamento.",
         "returnedReasonThirdParty": "Veio da conta de outra pessoa, e esta conta não aceita isso.",
         "returnedStatus": "Devolvido",
+        "verificationDepositNote": "Usado para confirmar sua conta. Não é adicionado ao seu saldo.",
+        "belowMinimumNote": "Este depósito ficou abaixo do mínimo de {min}, então não pode ser adicionado nem devolvido.",
         "perkBanner": {
             "title": "Você ganhou uma recompensa!",
             "capped": "Recompensa de ${amount} — limite da campanha atingido!",
@@ -3451,7 +3461,8 @@
             "noFee": "Sem taxa",
             "networkFee": "Taxa de rede",
             "noTokensFoundTitle": "Nenhum token encontrado",
-            "lockedHint": "Por enquanto, só USDC na Arbitrum"
+            "lockedHint": "Por enquanto, só USDC na Arbitrum",
+            "tokenNotOnNetwork": "Sem {symbol} nesta rede"
         },
         "qrScanner": {
             "scanToPay": "Escaneie para pagar",
@@ -3991,7 +4002,7 @@
             "noMonthlyFee": "SEM MENSALIDADE"
         },
         "faq": {
-            "title": "Perguntas.",
+            "title": "FAQ.",
             "q1": {
                 "question": "O que é o Peanut Card?",
                 "answer": "Peanut Card é um cartão Visa virtual para usar seu saldo Peanut online e com carteiras digitais compatíveis."

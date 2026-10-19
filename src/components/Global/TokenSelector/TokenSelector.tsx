@@ -7,9 +7,10 @@
  *
  * SHAPE (TASK-23392, Hugo-approved version H): two select-look triggers,
  * "Token" then "Network", each opening a drawer. Token comes first; the
- * network drawer lists only the networks that carry the selected token, and
- * picking a token the current network does not carry moves to its default
- * network. The rules live in TokenSelector.utils.ts.
+ * network drawer lists every network, the ones that do not carry the selected
+ * token last and disabled (agreed in Sprint 165 QA: hiding them read as "Tron
+ * is not supported"), and picking a token the current network does not carry
+ * moves to its default network. The rules live in TokenSelector.utils.ts.
  */
 
 import { useTranslations } from 'next-intl'
@@ -38,6 +39,7 @@ import {
     filterTokenOptions,
     findSelection,
     isFeeFreeRoute,
+    networkRowsForToken,
     pickDefaultNetwork,
     splitNetworkBadges,
     WALLET_CHAIN_ID,
@@ -169,13 +171,16 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
         const visible = filterTokenOptions(options, searchValue)
         return (
             <>
-                <DrawerTitle>{t('tokenSelector.tokenLabel')}</DrawerTitle>
-                <SearchInput
-                    value={searchValue}
-                    onChange={setSearchValue}
-                    onClear={() => setSearchValue('')}
-                    placeholder={t('tokenSelector.searchTokenPlaceholder')}
-                />
+                {/* title and search stay pinned while the list scrolls under them */}
+                <div className="sticky top-0 z-10 flex flex-col gap-4 bg-white pb-4">
+                    <DrawerTitle>{t('tokenSelector.tokenLabel')}</DrawerTitle>
+                    <SearchInput
+                        value={searchValue}
+                        onChange={setSearchValue}
+                        onClear={() => setSearchValue('')}
+                        placeholder={t('tokenSelector.searchTokenPlaceholder')}
+                    />
+                </div>
                 {visible.length > 0 ? (
                     <ListGroup role="listbox" aria-label={t('tokenSelector.tokenLabel')}>
                         {visible.map((option) => {
@@ -217,31 +222,41 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
     }
 
     const networkDrawer = () => {
-        const networks = shown?.option.networks ?? []
-        const visible = filterNetworks(networks, searchValue)
+        const rows = networkRowsForToken(options, shown?.option)
+        const visible = filterNetworks(rows, searchValue)
+        const symbol = shown?.option.symbol ?? ''
         return (
             <>
-                <DrawerTitle>{t('tokenSelector.networkLabel')}</DrawerTitle>
-                {networks.length >= NETWORK_SEARCH_MIN && (
-                    <SearchInput
-                        value={searchValue}
-                        onChange={setSearchValue}
-                        onClear={() => setSearchValue('')}
-                        placeholder={t('tokenSelector.searchNetworkPlaceholder')}
-                    />
-                )}
+                {/* title and search stay pinned while the list scrolls under them */}
+                <div className="sticky top-0 z-10 flex flex-col gap-4 bg-white pb-4">
+                    <DrawerTitle>{t('tokenSelector.networkLabel')}</DrawerTitle>
+                    {rows.length >= NETWORK_SEARCH_MIN && (
+                        <SearchInput
+                            value={searchValue}
+                            onChange={setSearchValue}
+                            onClear={() => setSearchValue('')}
+                            placeholder={t('tokenSelector.searchNetworkPlaceholder')}
+                        />
+                    )}
+                </div>
                 {visible.length > 0 ? (
                     <ListGroup role="listbox" aria-label={t('tokenSelector.networkLabel')}>
-                        {visible.map((network) => (
+                        {visible.map(({ chainId, name, iconUrl, network }) => (
                             <SelectorOptionRow
-                                key={network.chainId}
-                                title={network.name}
-                                iconUrl={network.iconUrl}
-                                isSelected={network.chainId === shown?.network.chainId}
-                                onClick={() => handleNetworkSelect(network)}
+                                key={chainId}
+                                title={name}
+                                iconUrl={iconUrl}
+                                isSelected={chainId === shown?.network.chainId}
+                                disabled={!network}
+                                onClick={() => network && handleNetworkSelect(network)}
                                 body={
                                     <div className="flex pt-1">
-                                        {network.isFree ? (
+                                        {!network ? (
+                                            <Badge
+                                                status="neutral"
+                                                customText={t('tokenSelector.tokenNotOnNetwork', { symbol })}
+                                            />
+                                        ) : network.isFree ? (
                                             // `custom`: "No fee" is a benefit, not a status — the
                                             // accent pill of the approved design (TASK-23392)
                                             <Badge status="custom" customText={t('tokenSelector.noFee')} />
@@ -291,9 +306,9 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
             {/* a drag/Escape/outside-click dismiss runs the same close path as a row tap */}
             <Drawer open={openDrawer !== null} onOpenChange={(isOpen) => !isOpen && close()}>
                 <DrawerContent className="py-4">
-                    <div className="flex flex-col gap-4">
-                        {drawerKind === 'token' ? tokenDrawer() : networkDrawer()}
-                    </div>
+                    {/* no gap here: the pinned header's pb-4 is the 16px above the list,
+                     * so rows scrolling under it stay covered */}
+                    <div className="flex flex-col">{drawerKind === 'token' ? tokenDrawer() : networkDrawer()}</div>
                 </DrawerContent>
             </Drawer>
         </div>

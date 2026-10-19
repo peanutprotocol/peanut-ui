@@ -74,7 +74,7 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
     style,
     blurAll = false,
     hideVisa = false,
-    shadowColor = '#000',
+    shadowColor = 'var(--color-shadow-primary)',
     onReady,
 }) => (
     // The drop-shadow is an offset sibling, NOT a CSS box-shadow: html-to-image
@@ -91,7 +91,7 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
             data-decorative-clip
             className={`relative h-full w-full overflow-hidden rounded-3xl border-[4px] border-black ${className ?? ''}`}
             style={{
-                background: '#FF90E8',
+                background: 'var(--color-background-brand)',
                 ...style,
             }}
         >

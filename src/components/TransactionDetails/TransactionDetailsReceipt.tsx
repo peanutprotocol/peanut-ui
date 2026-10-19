@@ -93,12 +93,18 @@ export const TransactionDetailsReceipt = ({
     // pot used to lead with its goal here and with its collected total there,
     // so a $100 pot that collected $40 printed two different headlines.
     const headline = receiptHeadlineAmount(transaction, safeAmount, getTransactionSign(transaction))
-    const amountDisplay = headline.isCollectedTotal
-        ? t('amountCollected', { amount: formattedTotalAmountCollected })
-        : formatBankAmount(Math.abs(headline.amount), 'USD')
+    // a deposit that never reaches the balance leads with the exact amount the
+    // bank sent, unsigned (TASK-23245)
+    const depositKind = transaction.extraDataForDrawer?.depositKind
+    const depositAmountDisplay = depositKind ? transaction.extraDataForDrawer?.depositAmountDisplay : undefined
+    const amountDisplay =
+        depositAmountDisplay ??
+        (headline.isCollectedTotal
+            ? t('amountCollected', { amount: formattedTotalAmountCollected })
+            : formatBankAmount(Math.abs(headline.amount), 'USD'))
 
     // '-' out, '+' in. Pots show a collected total, never a sign.
-    const headSign = headline.sign
+    const headSign = depositKind ? '' : headline.sign
 
     // Why a deposit went back: the one reason line under the Returned badge
     // (design.md status words). A reason code the API recognised gets our own
@@ -111,6 +117,13 @@ export const TransactionDetailsReceipt = ({
             : transaction.extraDataForDrawer?.returnReasonCode === 'third_party'
               ? t('returnedReasonThirdParty')
               : t('returnedReason')
+    const minimumAmountDisplay = transaction.extraDataForDrawer?.minimumAmountDisplay
+    const statusNote =
+        depositKind === 'verification'
+            ? t('verificationDepositNote')
+            : depositKind === 'below_minimum' && minimumAmountDisplay
+              ? t('belowMinimumNote', { min: minimumAmountDisplay })
+              : returnReasonLine
 
     // QR + Share + Cancel block: pending, has a link, and either the sender of
     // a send-link OR the recipient of a request. Both gates route through the
@@ -190,7 +203,8 @@ export const TransactionDetailsReceipt = ({
                 showFullName={transaction.showFullName}
                 fullName={transaction.fullName}
                 countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
-                statusNote={returnReasonLine}
+                statusNote={statusNote}
+                isVerificationDeposit={depositKind === 'verification'}
             />
 
             {/* Perk eligibility banner */}

@@ -156,6 +156,10 @@ export const ANALYTICS_EVENTS = {
     INVITE_CODE_VALIDATED: 'invite_code_validated',
     INVITE_ACCEPTED: 'invite_accepted',
     INVITE_ACCEPT_FAILED: 'invite_accept_failed',
+    // One per registration (every outcome, `none` included) and per later
+    // retry that found an invite. `status: none` after a restored invite link
+    // is the iOS stash loss of Oct 2026 — it used to leave no trace at all.
+    INVITE_ATTRIBUTION_SETTLED: 'invite_attribution_settled',
 
     // ── Points / Rewards ──
     POINTS_PAGE_VIEWED: 'points_page_viewed',

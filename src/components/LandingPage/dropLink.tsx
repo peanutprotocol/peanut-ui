@@ -6,17 +6,18 @@ import iphoneDropALink from '@/assets/iphone-ss/iphone-drop-a-link.webp'
 import iphoneDropALinkMobile from '@/assets/iphone-ss/iphone-drop-a-link-mobile.webp'
 import { WHATSAPP_ICON, IMESSAGE_ICON, FBMessenger_ICON, TELEGRAM_ICON } from '@/assets/icons'
 import type { LandingStrings } from './landingStrings'
+import { CTA_MOTION } from '@/components/Marketing/constants'
 
 export function DropLink({ strings }: { strings: LandingStrings }) {
     const reduceMotion = useReducedMotion()
     return (
         <section
             id="drop-link"
-            className="flex min-h-[500px] items-center justify-center bg-blue-300 px-4 py-16 text-foreground-primary md:min-h-[700px]"
+            className="flex min-h-[500px] items-center justify-center bg-background-marketing-sky px-4 py-16 text-foreground-primary md:min-h-[700px]"
         >
             <div className="flex w-[80rem] flex-col items-center justify-center p-6 md:flex-row">
                 <div className="space-y-8 w-full md:w-2/3">
-                    <h1 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack md:text-left lg:text-headingMedium">
+                    <h1 className="font-roboto-flex-extrabold text-center text-heading font-extraBlack md:text-left md:text-headingMedium">
                         {strings.dropLinkHeading}
                     </h1>
 
@@ -122,14 +123,15 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
 
                     <p className="font-roboto-flex text-left text-xl md:pr-24 md:text-2xl">{strings.dropLinkBody}</p>
 
-                    <a href="/setup" target="_blank" rel="noopener noreferrer">
-                        <Button
-                            shadowSize="4"
-                            className="mt-8 hidden w-58 bg-white px-6 hover:bg-white/90 md:inline-block md:w-72 md:px-10"
-                        >
-                            {strings.signUp}
-                        </Button>
-                    </a>
+                    <Button
+                        size="large"
+                        href="/setup"
+                        external
+                        variant="secondary"
+                        className={`mt-8 hidden w-fit md:flex ${CTA_MOTION}`}
+                    >
+                        {strings.signUp}
+                    </Button>
                 </div>
 
                 <div className="relative w-full md:w-1/3">

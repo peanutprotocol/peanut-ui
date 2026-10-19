@@ -3,7 +3,7 @@ import { useNativePlatform } from '@/utils/native-platform'
 import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
-import type { ButtonVariant } from '@/components/0_Bruddle/Button'
+import type { ButtonSize, ButtonVariant } from '@/components/0_Bruddle/Button'
 import { useAppModal } from '@/components/Migration/AppModalProvider'
 import { type MigrationSurface } from '@/constants/migration.consts'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
@@ -17,13 +17,14 @@ import { onStoreAnchorClick, storeAnchorHref, storeForDevice, storeIcon } from '
 export default function DownloadAppLink({
     surface,
     variant,
+    size,
     className,
-    buttonClassName,
 }: {
     surface: MigrationSurface
     variant?: ButtonVariant
+    /** marketing CTAs pass 'large' (design.md marketing); the sticky bar keeps the default */
+    size?: ButtonSize
     className?: string
-    buttonClassName?: string
 }) {
     const native = useNativePlatform()
     const t = useTranslations('migration')
@@ -36,20 +37,25 @@ export default function DownloadAppLink({
         () => (store ? storeAnchorHref(store, native.isCapacitor, native.isHydrated) : '/app'),
         [store, native.isCapacitor, native.isHydrated]
     )
+    // link-mode Button: one anchor carrying the button look (design.md — never
+    // a Button nested in an <a>). plainAnchor keeps the native full-load /app
+    // fallback for clicks the modal does not take.
     return (
-        <a
+        <Button
             href={href}
+            plainAnchor
             target={store ? '_blank' : undefined}
             rel={store ? 'noopener noreferrer' : undefined}
-            className={className}
             onClick={(event) => {
                 if (store) onStoreAnchorClick(store, surface)
                 else if (interceptAppCta(surface)) event.preventDefault()
             }}
+            variant={variant}
+            size={size}
+            icon={storeIcon(store)}
+            className={className}
         >
-            <Button variant={variant} shadowSize="4" icon={storeIcon(store)} className={buttonClassName}>
-                {t('downloadNow')}
-            </Button>
-        </a>
+            {t('downloadNow')}
+        </Button>
     )
 }

@@ -4,7 +4,7 @@ import type { ScreenId } from './Setup.types'
 export type SetupEntryStep = Extract<ScreenId, 'landing' | 'signup'>
 
 export interface SetupEntryInput {
-    /** An invite code from the store, the cookie or `?code=`. */
+    /** An invite code from the invite stash or `?code=`. */
     hasInviteCode: boolean
     /** The legacy `?step=` param: `signup` opens the form directly, `login` lands on Log In. */
     stepParam: string | null

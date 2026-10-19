@@ -127,3 +127,20 @@ test('creates an own-request charge for payment from an external wallet', async 
     expect(mockSendMoney).not.toHaveBeenCalled()
     expect(mockRecordPayment).not.toHaveBeenCalled()
 })
+
+// ui#3747: a request closed after the page loaded. The API refuses the charge
+// (409 REQUEST_CLOSED) before any money moves; the payer sees the closed copy.
+test('a request closed after load shows the closed message and sends nothing', async () => {
+    mockCreateCharge.mockRejectedValue(
+        Object.assign(new Error('This request is closed'), { status: 409, code: 'REQUEST_CLOSED' })
+    )
+    const { result } = renderHookWithIntl(() => useContributePotFlow())
+
+    await act(async () => {
+        expect(await result.current.executeContribution()).toEqual({ success: false })
+    })
+
+    expect(ctx.setError).toHaveBeenCalledWith({ showError: true, errorMessage: 'This request is closed' })
+    expect(mockSendMoney).not.toHaveBeenCalled()
+    expect(mockRecordPayment).not.toHaveBeenCalled()
+})
