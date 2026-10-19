@@ -60,6 +60,7 @@ export function useContributePotFlow() {
         resetContributePotFlow,
         isExternalWalletPayment,
         setIsExternalWalletPayment,
+        refetchRequestPot,
     } = useContributePotFlowContext()
 
     const { user } = useAuth()
@@ -180,6 +181,22 @@ export function useContributePotFlow() {
                 return { success: false }
             }
 
+            // A second tap on External wallet for the same amount opens the same
+            // deposit address. Each tap used to create a charge with its own live
+            // address, and every one of them could still take money (TASK-23856).
+            // A changed amount gets a new charge: the payer cannot cancel the old
+            // one, because DELETE /charges/:id answers only the requester.
+            if (
+                shouldReturnAfterCreatingCharge &&
+                charge &&
+                charge.requestLink?.uuid === request.uuid &&
+                Number(charge.tokenAmount) === Number(amount) &&
+                (charge.status ?? 'PENDING') === 'PENDING'
+            ) {
+                clearError()
+                return { success: true }
+            }
+
             setIsLoading(true)
             clearError()
 
@@ -234,6 +251,8 @@ export function useContributePotFlow() {
                 setIsSuccess(true)
                 setCurrentView('STATUS')
                 setIsLoading(false)
+                // the contributors and the remainder changed with this payment
+                void refetchRequestPot()
                 return { success: true }
             } catch (err) {
                 // Card re-approval dismissed, or the screen left, before
@@ -261,9 +280,11 @@ export function useContributePotFlow() {
             attachment,
             walletAddress,
             request,
+            charge,
             createCharge,
             sendMoney,
             recordPayment,
+            refetchRequestPot,
             setCharge,
             setTxHash,
             setPayment,
@@ -318,5 +339,6 @@ export function useContributePotFlow() {
         resetContributePotFlow,
         setCurrentView,
         setIsExternalWalletPayment,
+        refetchRequestPot,
     }
 }

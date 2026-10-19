@@ -13,7 +13,8 @@
  * wraps ContributePotPage and provides state to all child views
  */
 
-import { createContext, useContext, useState, useMemo, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { type Address, type Hash } from 'viem'
 import {
     type TRequestResponse,
@@ -22,7 +23,7 @@ import {
 } from '@/services/services.types'
 import { collectedTotal, usdRemainingOf } from './collected'
 import { contributedAmount, isPartialContribution } from '@/utils/request-pot.utils'
-import { useRequestPayAmounts } from '@/components/Request/Pay/useRequestPayAmounts'
+import { REQUEST_POT_QUERY_KEY, useRequestPot } from './useRequestPot'
 
 // view states for contribute pot flow
 export type ContributePotFlowView = 'INITIAL' | 'STATUS' | 'EXTERNAL_WALLET'
@@ -76,6 +77,8 @@ interface ContributePotFlowContextValue {
     // request data (fetched from api)
     request: TRequestResponse | null
     setRequest: (request: TRequestResponse | null) => void
+    /** Read the request and what it still needs again, together. */
+    refetchRequestPot: () => Promise<void>
 
     // derived recipient
     recipient: PotRecipient | null
@@ -128,8 +131,23 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
     // view state
     const [currentView, setCurrentView] = useState<ContributePotFlowView>('INITIAL')
 
-    // request data
-    const [request, setRequest] = useState<TRequestResponse | null>(initialRequest)
+    // request data: one source for the contributors and the remainder
+    const queryClient = useQueryClient()
+    const { request, payAmounts, refetch: refetchRequestPot } = useRequestPot(initialRequest)
+    const setRequest = useCallback(
+        (next: TRequestResponse | null) =>
+            queryClient.setQueryData([...REQUEST_POT_QUERY_KEY, initialRequest.uuid], next ?? undefined),
+        [queryClient, initialRequest.uuid]
+    )
+
+    // Back on the amount screen (from the deposit address or a finished
+    // payment), the request may have changed meanwhile: read it again, with
+    // the remainder, before the next suggestion is made.
+    const previousView = useRef(currentView)
+    useEffect(() => {
+        if (currentView === 'INITIAL' && previousView.current !== 'INITIAL') void refetchRequestPot()
+        previousView.current = currentView
+    }, [currentView, refetchRequestPot])
 
     // amount state
     const [amount, setAmount] = useState<string>('')
@@ -173,7 +191,6 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
      * the payer read "$0 contributed" on a request somebody had already paid by
      * bank — the requester saw the right figure, and only the requester.
      */
-    const { payAmounts } = useRequestPayAmounts(request?.uuid)
     const totalCollected = useMemo(() => collectedTotal(request, usdRemainingOf(payAmounts)), [request, payAmounts])
 
     // derive contributors from charges
@@ -214,6 +231,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             setCurrentView,
             request,
             setRequest,
+            refetchRequestPot,
             recipient,
             amount,
             setAmount,
@@ -243,6 +261,8 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
         [
             currentView,
             request,
+            setRequest,
+            refetchRequestPot,
             recipient,
             amount,
             usdAmount,

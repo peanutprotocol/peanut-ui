@@ -257,15 +257,25 @@ const AmountInput = ({
         [maxAmount, amountCollected, denominations, displaySymbol]
     )
 
-    // Sync default slider suggested amount to the input
+    // The suggestion fills the field only while the field holds nothing of the
+    // payer's: it is empty, or it still shows the last suggestion, and nobody
+    // typed, slid or filled it (isEditingRef). An amount the field mounted with
+    // is the payer's too: a flow passes it back as initialAmount when the view
+    // remounts. The suggestion used to overwrite whatever was there, so a typed
+    // $33.05 became a $58.51 charge once the remainder moved (TASK-23856).
+    const lastSuggestionRef = useRef<string | null>(null)
+    // Keyed on the suggestion alone: the field state it reads must not re-run
+    // it on every keystroke.
     useEffect(() => {
-        if (defaultSliderSuggestedAmount) {
-            const formattedAmount = formatTokenAmount(defaultSliderSuggestedAmount.toString(), 2)
-            if (formattedAmount) {
-                setDisplayValue(formattedAmount)
-                setExactValue(Number(formattedAmount) * 10 ** DECIMAL_SCALE)
-            }
+        if (!defaultSliderSuggestedAmount || isEditingRef.current) return
+        if (hasValue && displayValue !== lastSuggestionRef.current) return
+        const formattedAmount = formatTokenAmount(defaultSliderSuggestedAmount.toString(), 2)
+        if (formattedAmount) {
+            lastSuggestionRef.current = formattedAmount
+            setDisplayValue(formattedAmount)
+            setExactValue(Number(formattedAmount) * 10 ** DECIMAL_SCALE)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [defaultSliderSuggestedAmount])
 
     // What tapping the balance row fills in, or undefined when the row stays
