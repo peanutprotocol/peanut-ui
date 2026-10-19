@@ -6,7 +6,7 @@ import { requestsApi } from '@/services/requests'
 import { type TRequestResponse } from '@/services/services.types'
 import { useRequestPayAmounts } from '@/components/Request/Pay/useRequestPayAmounts'
 
-export const REQUEST_POT_QUERY_KEY = ['request-pot'] as const
+const REQUEST_POT_QUERY_KEY = ['request-pot'] as const
 
 /**
  * The request a pot payer is paying, and what it still needs, read as one.

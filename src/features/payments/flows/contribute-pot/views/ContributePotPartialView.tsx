@@ -17,8 +17,7 @@ import Card from '@/components/Global/Card'
 import CopyField from '@/components/Global/CopyField'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import { useAuth } from '@/context/authContext'
-import { useReturnTo } from '@/hooks/useSafeBack'
+import { useFlowExit } from '@/features/payments/shared/hooks/useFlowExit'
 import { formatBankAmount } from '@/utils/currency'
 import { useTranslations } from 'next-intl'
 
@@ -44,15 +43,9 @@ export function ContributePotPartialView({
 }: ContributePotPartialViewProps) {
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
-    const { user } = useAuth()
     const remaining = Math.max(Number(asked) - Number(received), 0)
-
     // the success screen's exit: back past the flow, never into it again
-    const leaveFlow = useReturnTo(user?.user.userId ? redirectTo : '/setup')
-    const handleDone = () => {
-        leaveFlow()
-        onComplete?.()
-    }
+    const handleDone = useFlowExit(redirectTo, onComplete)
 
     return (
         <PageStack>
@@ -69,7 +62,15 @@ export function ContributePotPartialView({
                             })}
                         </h1>
                         <p className="text-center text-body-s text-foreground-secondary">
-                            {t('partialContribution.description', { remaining: formatBankAmount(remaining, 'USD') })}
+                            {/* no address to point at when the flow lost it (a refresh) */}
+                            {t(
+                                depositAddress
+                                    ? 'partialContribution.description'
+                                    : 'partialContribution.descriptionNoAddress',
+                                {
+                                    remaining: formatBankAmount(remaining, 'USD'),
+                                }
+                            )}
                         </p>
                     </div>
                 </Card>

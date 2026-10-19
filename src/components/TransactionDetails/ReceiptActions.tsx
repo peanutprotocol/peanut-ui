@@ -122,6 +122,11 @@ export function ReceiptActions({
     useEffect(() => {
         setShowCancelConfirm(false)
     }, [cancelInDrawer, transaction.id])
+    // the same for the close confirm: a refetch that ends the need for it, or
+    // another receipt, must not reopen it untapped
+    useEffect(() => {
+        setShowCloseRequestConfirm(false)
+    }, [closeNeedsConfirm, transaction.id])
 
     // Sync child-drawer state to the parent details drawer — it keeps itself
     // open while any of our drawers are up (vaul NestedRoot contract). The

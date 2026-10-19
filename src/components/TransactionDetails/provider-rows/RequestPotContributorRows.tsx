@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
-import Badge from '@/components/Global/Badges/Badge'
+import { PartlyPaidNote } from '@/components/Global/Contributors/PartlyPaidNote'
 import { type ReceiptViewModel } from '@/components/TransactionDetails/useReceiptViewModel'
 import { formatCurrency, printableUserHandle } from '@/utils/general.utils'
 
@@ -14,8 +14,7 @@ import { formatCurrency, printableUserHandle } from '@/utils/general.utils'
  * section.
  *
  * The amount is what the contributor paid. A contribution paid short of its
- * own charge adds the partly-paid badge and the asked amount under it, the
- * badge style the bank-transfer notice uses for the same state.
+ * own charge adds the partly-paid note under it.
  */
 export function RequestPotContributorRows({ vm }: { vm: ReceiptViewModel }) {
     const t = useTranslations('transaction')
@@ -51,14 +50,10 @@ export function RequestPotContributorRows({ vm }: { vm: ReceiptViewModel }) {
                             ${formatCurrency(contributor.amount)}
                         </span>
                         {contributor.isPartial && (
-                            <div className="flex items-center gap-1">
-                                <Badge status="pending" customText={t('contributorPartlyPaid')} />
-                                <span className="text-body-xs text-foreground-secondary">
-                                    {t('contributorAskedAmount', {
-                                        amount: `$${formatCurrency(contributor.askedAmount)}`,
-                                    })}
-                                </span>
-                            </div>
+                            <PartlyPaidNote
+                                askedAmount={contributor.askedAmount}
+                                formatAmount={(amount) => `$${formatCurrency(amount)}`}
+                            />
                         )}
                     </div>
                 </div>
