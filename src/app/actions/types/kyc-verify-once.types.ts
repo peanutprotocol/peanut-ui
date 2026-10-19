@@ -2,7 +2,7 @@
 
 export type VerifyOnceStepId = 'purpose' | 'work' | 'money' | 'birth' | 'address' | 'phone' | 'declarations' | 'tax'
 export type VerifyOnceFeature = 'bank' | 'card' | 'local'
-export type VerifyOnceFieldKind = 'choice' | 'occupation' | 'country' | 'text' | 'phone' | 'taxId' | 'toggle'
+export type VerifyOnceFieldKind = 'choice' | 'occupation' | 'country' | 'place' | 'text' | 'phone' | 'taxId' | 'toggle'
 export type VerifyOnceTaxFormat = 'ssn' | 'cuit' | 'cpf' | 'rut' | 'curp' | 'cc' | null
 
 export interface VerifyOnceField {
@@ -12,6 +12,8 @@ export interface VerifyOnceField {
     options?: string[]
     format?: VerifyOnceTaxFormat
     locked?: boolean
+    /** A `place` field suggests places of the country this field of the step holds. */
+    countryField?: string
     /** Shown, and required, only while another field of the step has this value. */
     visibleWhen?: { key: string; equals: string }
     /** A toggle's value is 'yes' or 'no'. */
@@ -41,6 +43,11 @@ export type SaveAnswersResult =
     | { kind: 'invalid'; errors: Record<string, string> }
     | { kind: 'conflict'; code: string }
     | { kind: 'retry' }
+
+export interface KycPlace {
+    name: string
+    region: string | null
+}
 
 export interface VerifyOnceDocument {
     type: string

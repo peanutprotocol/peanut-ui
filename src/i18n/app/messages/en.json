@@ -2995,6 +2995,7 @@
             "verifyId": "Verify ID",
             "notAvailable": "Not available",
             "verifyAgain": "Verify again with a {country} ID",
+            "verifyAgainPlain": "Verify again",
             "verifyAgainNote": "Starts a new identity check.",
             "uploadNow": "Upload now",
             "later": "Later",
@@ -3404,7 +3405,7 @@
                 "purpose": "Banks and card issuers must know how you’ll use your account. Every regulated financial account asks this.",
                 "work": "Banks and card issuers must know what you do for work.",
                 "money": "Our partners check that your account activity fits your income. A range is enough.",
-                "birth": "Where you were born decides which tax rules apply to your account.",
+                "birth": "Financial rules ask for these personal details, the same as on your ID.",
                 "address": "Your home address must match where you live, and it goes on your account details.",
                 "phone": "Your card partner uses your phone number to keep your card secure.",
                 "tax": "Accounts in your country must be linked to your tax number.",
@@ -3423,7 +3424,8 @@
                 "bankMonthlyPayments": "Each month, my account <nw>moves <pill></pill></nw>",
                 "actingAsIntermediary": "I’ll send money <nw><pill></pill></nw>",
                 "nationality": "I’m a citizen <nw>of <pill></pill></nw>",
-                "maritalStatus": "My marital status <nw>is <pill></pill></nw>"
+                "maritalStatus": "My marital status <nw>is <pill></pill></nw>",
+                "sex": "My sex on my ID <nw>is <pill></pill></nw>"
             },
             "pickerTitle": {
                 "cardPurpose": "What you’ll use the card for",
@@ -3437,7 +3439,8 @@
                 "bankMonthlyPayments": "What your account moves each month",
                 "actingAsIntermediary": "Who you send money for",
                 "nationality": "Your citizenship",
-                "maritalStatus": "Marital status"
+                "maritalStatus": "Marital status",
+                "sex": "Sex"
             },
             "search": {
                 "occupation": "Search jobs",
@@ -3519,6 +3522,11 @@
                     "married": "Married",
                     "divorced": "Divorced",
                     "widowed": "Widowed"
+                },
+                "sex": {
+                    "female": "Female",
+                    "male": "Male",
+                    "other": "Other (X)"
                 }
             },
             "titles": {
@@ -3545,7 +3553,8 @@
                 "isPep": "I hold a public office",
                 "isFatca": "I’m a US person for tax",
                 "isFep": "I must report to the UIF",
-                "usCitizen": "I’m a US citizen"
+                "usCitizen": "I’m a US citizen",
+                "cityOfBirth": "City of birth"
             },
             "tax": {
                 "title": {
@@ -3665,6 +3674,12 @@
             },
             "whenYes": {
                 "usCitizen": "Local transfers aren’t available to US citizens. You can still get paid with a USD account or pay by QR."
+            },
+            "place": {
+                "placeholder": "Start typing the city",
+                "countryFirst": "Choose the country first",
+                "suggestions": "Matching places",
+                "noMatch": "Not in the list. The name as typed works too."
             }
         }
     },
@@ -3742,6 +3757,7 @@
             "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result.",
             "identity_document_missing": "We need an identity document and a selfie to complete your verification.",
             "document_country_unsupported": "Needs an ID issued by {country}",
+            "card_unavailable_for_verification": "Not available with the current verification",
             "local_tax_id_missing": "Needs a tax ID: CPF in Brazil, CUIT or CUIL in Argentina",
             "under_minimum_age": "Only from age 18"
         }

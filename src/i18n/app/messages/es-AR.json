@@ -1590,6 +1590,10 @@
             },
             "whenYes": {
                 "usCitizen": "Las transferencias locales no están disponibles para ciudadanos de EE. UU. Igual podés cobrar con una cuenta en USD o pagar con QR."
+            },
+            "place": {
+                "placeholder": "Empezá a escribir la ciudad",
+                "countryFirst": "Elegí primero el país"
             }
         }
     },

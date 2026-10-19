@@ -170,6 +170,16 @@ describe('KycSetupStatusDrawer', () => {
             expect(onVerifyAgain).toHaveBeenCalledTimes(1)
         })
 
+        it('the card refused for its document says neither the document nor its country', () => {
+            const { onVerifyAgain } = renderDrawer([
+                { key: 'card', state: 'needs-local-id', reason: 'document_country_unsupported' },
+            ])
+            expect(row('card').getByText('Not available with the current verification')).toBeInTheDocument()
+            expect(screen.queryByText(/Brazil|issued|document/i)).not.toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Verify again' }))
+            expect(onVerifyAgain).toHaveBeenCalledTimes(1)
+        })
+
         it('a document that cannot open the feature: Verify ID with another document', () => {
             const { onVerifyAgain } = renderDrawer([
                 { key: 'bank', state: 'verify-again', reason: 'identity_document_insufficient' },

@@ -2995,6 +2995,7 @@
             "verifyId": "Verificar ID",
             "notAvailable": "No disponible",
             "verifyAgain": "Verificar de nuevo con documento de {country}",
+            "verifyAgainPlain": "Verificar de nuevo",
             "verifyAgainNote": "Inicia una nueva verificación de identidad.",
             "uploadNow": "Subir ahora",
             "later": "Más tarde",
@@ -3404,7 +3405,7 @@
                 "purpose": "Los bancos y emisores de tarjetas deben saber cómo usarás tu cuenta. Toda cuenta financiera regulada lo pregunta.",
                 "work": "Los bancos y emisores de tarjetas deben saber a qué te dedicas.",
                 "money": "Nuestros socios revisan que el movimiento de tu cuenta coincida con tus ingresos. Un rango es suficiente.",
-                "birth": "Tu país de nacimiento define qué normas fiscales aplican a tu cuenta.",
+                "birth": "Las normas financieras piden estos datos personales, tal como figuran en tu documento.",
                 "address": "Tu domicilio debe coincidir con donde vives y aparece en los datos de tu cuenta.",
                 "phone": "El socio de tu tarjeta usa tu número de teléfono para mantener tu tarjeta segura.",
                 "tax": "Las cuentas en tu país deben estar vinculadas a tu número fiscal.",
@@ -3423,7 +3424,8 @@
                 "bankMonthlyPayments": "Cada mes, mi cuenta <nw>mueve <pill></pill></nw>",
                 "actingAsIntermediary": "Enviaré dinero <nw><pill></pill></nw>",
                 "nationality": "Tengo ciudadanía <nw>de <pill></pill></nw>",
-                "maritalStatus": "Mi estado civil <nw>es <pill></pill></nw>"
+                "maritalStatus": "Mi estado civil <nw>es <pill></pill></nw>",
+                "sex": "Mi sexo en el documento <nw>es <pill></pill></nw>"
             },
             "pickerTitle": {
                 "cardPurpose": "Para qué usarás la tarjeta",
@@ -3437,7 +3439,8 @@
                 "bankMonthlyPayments": "Lo que moverá tu cuenta cada mes",
                 "actingAsIntermediary": "En nombre de quién envías dinero",
                 "nationality": "Tu ciudadanía",
-                "maritalStatus": "Estado civil"
+                "maritalStatus": "Estado civil",
+                "sex": "Sexo"
             },
             "search": {
                 "occupation": "Buscar trabajos",
@@ -3519,6 +3522,11 @@
                     "married": "Casado/a",
                     "divorced": "Divorciado/a",
                     "widowed": "Viudo/a"
+                },
+                "sex": {
+                    "female": "Femenino",
+                    "male": "Masculino",
+                    "other": "Otro (X)"
                 }
             },
             "titles": {
@@ -3545,7 +3553,8 @@
                 "isPep": "Ocupo un cargo público",
                 "isFatca": "Soy contribuyente de EE. UU.",
                 "isFep": "Soy sujeto obligado ante la UIF",
-                "usCitizen": "Tengo ciudadanía de EE. UU."
+                "usCitizen": "Tengo ciudadanía de EE. UU.",
+                "cityOfBirth": "Ciudad de nacimiento"
             },
             "tax": {
                 "title": {
@@ -3665,6 +3674,12 @@
             },
             "whenYes": {
                 "usCitizen": "Las transferencias locales no están disponibles para ciudadanos de EE. UU. Igual puedes cobrar con una cuenta en USD o pagar con QR."
+            },
+            "place": {
+                "placeholder": "Empieza a escribir la ciudad",
+                "countryFirst": "Elige primero el país",
+                "suggestions": "Lugares que coinciden",
+                "noMatch": "No está en la lista. También sirve el nombre tal como lo escribiste."
             }
         }
     },
@@ -3742,6 +3757,7 @@
             "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no cambiará el resultado.",
             "identity_document_missing": "Necesitamos un documento de identidad y una selfie para completar tu verificación.",
             "document_country_unsupported": "Necesita un documento emitido por {country}",
+            "card_unavailable_for_verification": "No disponible con la verificación actual",
             "local_tax_id_missing": "Necesita un número fiscal: CPF en Brasil, CUIT o CUIL en Argentina",
             "under_minimum_age": "Solo a partir de los 18 años"
         }

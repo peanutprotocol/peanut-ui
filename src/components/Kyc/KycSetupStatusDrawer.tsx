@@ -71,7 +71,7 @@ type PrimaryStep =
     | { kind: 'terms' }
     | { kind: 'document'; step: SetupRowStep }
     | { kind: 'card' }
-    | { kind: 'verify'; localId: boolean }
+    | { kind: 'verify'; localId: boolean; card: boolean }
     | { kind: 'support' }
 
 /**
@@ -85,7 +85,10 @@ function primaryStep(rows: SetupRow[]): PrimaryStep | null {
     if (document?.step) return { kind: 'document', step: document.step }
     if (rows.some((row) => row.state === 'agreements-needed')) return { kind: 'card' }
     const verify = rows.find((row) => row.state === 'needs-local-id' || row.state === 'verify-again')
-    if (verify) return { kind: 'verify', localId: verify.state === 'needs-local-id' }
+    if (verify) {
+        const local = verify.state === 'needs-local-id'
+        return { kind: 'verify', localId: local && verify.key !== 'card', card: local && verify.key === 'card' }
+    }
     if (rows.some((row) => row.state === 'not-available' && row.support)) return { kind: 'support' }
     return null
 }
@@ -126,7 +129,10 @@ export const KycSetupStatusDrawer = ({
         return <IconBubble {...CONCEPT_ICONS[concept]} size="s" />
     }
     // the states whose badge does not say enough get one line under the title
-    const rowBody = ({ state, reason }: SetupRow) => {
+    const rowBody = ({ key: feature, state, reason }: SetupRow) => {
+        // The card's issuer never names the document, so neither do we.
+        if (state === 'needs-local-id' && feature === 'card')
+            return tIdentity('reasons.card_unavailable_for_verification')
         if (state === 'needs-local-id' && country) {
             return tIdentity('reasons.document_country_unsupported', { country })
         }
@@ -159,7 +165,11 @@ export const KycSetupStatusDrawer = ({
                 return { label: t('setup.continueCard'), onClick: openCardPage }
             case 'verify':
                 return {
-                    label: step.localId && country ? t('setup.verifyAgain', { country }) : tRejection('restartTitle'),
+                    label: step.card
+                        ? t('setup.verifyAgainPlain')
+                        : step.localId && country
+                          ? t('setup.verifyAgain', { country })
+                          : tRejection('restartTitle'),
                     onClick: onVerifyAgain,
                     note: t('setup.verifyAgainNote'),
                 }

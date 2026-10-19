@@ -203,6 +203,7 @@ const DE_STEPS = [
         answered: false,
         fields: [
             { key: 'countryOfBirth', kind: 'country', required: true, value: 'DE' },
+            { key: 'cityOfBirth', kind: 'place', required: true, countryField: 'countryOfBirth', value: null },
             { key: 'nationality', kind: 'country', required: true, value: null },
         ],
     },
@@ -225,7 +226,7 @@ const MANTECA_BIRTH = {
     id: 'birth',
     features: ['base', 'local'],
     answered: false,
-    fields: [{ key: 'countryOfBirth', kind: 'country', required: true, value: 'AR' }, choice('maritalStatus', MARITAL)],
+    fields: [choice('maritalStatus', MARITAL)],
 }
 const DECLARATIONS = {
     id: 'declarations',
@@ -273,6 +274,17 @@ const AR_STEPS = [
     },
     DECLARATIONS,
 ]
+
+/** A Brazilian resident with local transfers + card: Manteca's table adds the sex on the ID beside the marital status. */
+const BR_STEPS = AR_STEPS.map((step) => {
+    if (step === MANTECA_BIRTH)
+        return { ...step, fields: [choice('sex', ['female', 'male', 'other']), choice('maritalStatus', MARITAL)] }
+    if (step === DECLARATIONS) return { ...step, fields: [toggle('isPep'), toggle('isFatca')] }
+    if (step.id === 'address') return address('BR', true)
+    if (step.id === 'tax')
+        return { ...step, fields: [{ key: 'taxId', kind: 'taxId', required: true, format: 'cpf', value: null }] }
+    return step
+})
 
 const answered = (steps: typeof US_STEPS) => steps.map((step) => ({ ...step, answered: true }))
 
@@ -326,12 +338,26 @@ export const VERIFY_ONCE_FIXTURES: Record<string, Fixture> = {
     'verify-once-de': {
         route: '/verify',
         about: 'Verify-once questions for a German resident with bank + card: Bridge’s EEA citizenship beside the country of birth.',
-        responses: asking('DE', DE_STEPS),
+        responses: {
+            ...asking('DE', DE_STEPS),
+            'POST /users/kyc/places/search': {
+                places: [
+                    { name: 'Munich', region: 'Bavaria' },
+                    { name: 'Münster', region: 'North Rhine-Westphalia' },
+                    { name: 'Mülheim', region: 'North Rhine-Westphalia' },
+                ],
+            },
+        },
     },
     'verify-once-ar': {
         route: '/verify',
         about: 'Verify-once questions for an Argentine resident with local transfers + card: Manteca’s marital status, declarations and CUIT.',
         responses: asking('AR', AR_STEPS),
+    },
+    'verify-once-br': {
+        route: '/verify?step=birth',
+        about: 'Verify-once questions for a Brazilian resident with local transfers + card: the sex on the ID and the marital status.',
+        responses: asking('BR', BR_STEPS),
     },
     'verify-once-add-local': {
         route: '/verify?feature=local',

@@ -16,6 +16,7 @@ import { localizedCountryName } from '@/utils/country-name.utils'
 import { countryForPhone } from '../callingCodes'
 import { fieldErrorKey, formatTaxId, isVisible, looksLikeItin } from '../verifyOnce.utils'
 import { AnswerPicker } from './AnswerPicker'
+import { PlaceField } from './PlaceField'
 
 const SENTENCE_KINDS = new Set(['choice', 'occupation', 'country'])
 // A conditional field belongs with the form control it depends on, not in the heading sentences.
@@ -334,6 +335,17 @@ function TypedFields({
                             field={f}
                             value={values[f.key] ?? ''}
                             invalid={!!errorText(f.key)}
+                            onChange={(value) => onChange(f.key, value)}
+                        />
+                    ))
+                ) : group.kind === 'place' ? (
+                    fieldFor(group, (f) => (
+                        <PlaceField
+                            id={`${idPrefix}-${f.key}`}
+                            value={values[f.key] ?? ''}
+                            country={(f.countryField && values[f.countryField]) || null}
+                            invalid={!!errorText(f.key)}
+                            describedBy={errorText(f.key) ? `${idPrefix}-${f.key}-error` : undefined}
                             onChange={(value) => onChange(f.key, value)}
                         />
                     ))

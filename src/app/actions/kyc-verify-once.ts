@@ -3,6 +3,7 @@ import { verifyOnceHeaders } from '@/features/verify-once/verifyOnceFlag'
 import { validSession } from './kyc-workflow'
 import type { KycAttemptSession, KycFeatures } from './types/kyc-workflow.types'
 import type {
+    KycPlace,
     SaveAnswersResult,
     VerifyOnceAnswers,
     VerifyOnceDocument,
@@ -25,6 +26,20 @@ export async function skipProofOfAddress(): Promise<boolean> {
         return response.ok
     } catch {
         return false
+    }
+}
+
+/** Places of birth to suggest; an empty list on any failure, since the typed name is accepted as it is. */
+export async function searchKycPlaces(country: string, query: string): Promise<KycPlace[]> {
+    try {
+        const response = await call('/users/kyc/places/search', {
+            method: 'POST',
+            body: JSON.stringify({ country, query }),
+        })
+        const body = response.ok ? await json(response) : null
+        return Array.isArray(body?.places) ? body.places : []
+    } catch {
+        return []
     }
 }
 
