@@ -35,13 +35,21 @@ export default function MarketingAssetsPage() {
                 description="The marketing art inventory: the 10 mascot poses, the doodles, and the gloves — each with its ruled direction and recolour status (rulings of 2026-10-14/15)."
             />
 
+            <DesignNote type="warning">
+                This page is the approved list (ruled 2026-10-19, Konrad). A marketing surface — LP, content page, OG
+                image, email, social card, deck — uses only what is on it. To add an asset, send Konrad the asset file
+                and a screenshot of the whole screen it will sit on, before it is used anywhere; silence is not a yes.
+                Once approved, the PR that first uses it adds a row to assets-data.ts so it shows here. Rule and
+                flowchart: mono design/design.md § assets.
+            </DesignNote>
+
             <DesignNote type="info">
                 Ruled targets: every mascot pose on the brand tokens{' '}
                 <code className="font-mono">action-secondary {tokenValue('action-secondary')}</code> /{' '}
                 <code className="font-mono">action-primary {tokenValue('action-primary')}</code>, regenerated from the
                 recoloured canonical set in mono/assets — recolour at the source, or the next re-export reverts the
-                fixed files. Pink sneakers are canon across the whole set (k6). The recolours land in ds-marketing-art;
-                the chips below show where each file stands today.
+                fixed files. Pink sneakers are canon across the whole set (k6). The recolours shipped with the Marketing
+                group (ui#3731); the chips below show where each file stands today.
             </DesignNote>
 
             {/* Mascot gallery */}
