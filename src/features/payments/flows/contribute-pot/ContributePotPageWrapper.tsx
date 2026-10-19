@@ -91,11 +91,7 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
             <div className="flex min-h-inherit w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col justify-center py-8">
-                    <EmptyState
-                        concept="requestLink"
-                        title={t('errors.requestClosedTitle')}
-                        description={request.paidAt ? t('requestAlreadyCovered') : t('errors.requestClosedDescription')}
-                    />
+                    <EmptyState concept="requestLink" title={t('errors.requestClosedTitle')} />
                 </div>
             </div>
         )

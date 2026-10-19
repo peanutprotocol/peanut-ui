@@ -24,18 +24,13 @@ describe('ContributePotPageWrapper', () => {
         mockGet.mockResolvedValue(request({ status: 'CLOSED' }))
         renderWithIntl(<ContributePotPageWrapper requestId="req-1" />)
         expect(await screen.findByText('This request is closed')).toBeInTheDocument()
-        expect(
-            screen.getByText('The requester closed this request, so it no longer takes payments.')
-        ).toBeInTheDocument()
         expect(screen.queryByTestId('pay-flow')).toBeNull()
     })
 
-    it('says a closed, paid request needs nothing more', async () => {
+    it('blocks payment on a closed, paid request', async () => {
         mockGet.mockResolvedValue(request({ status: 'CLOSED', paidAt: '2026-10-19T00:00:00Z' }))
         renderWithIntl(<ContributePotPageWrapper requestId="req-1" />)
-        expect(
-            await screen.findByText('This request is already covered. There is nothing left to pay.')
-        ).toBeInTheDocument()
+        expect(await screen.findByText('This request is closed')).toBeInTheDocument()
         expect(screen.queryByTestId('pay-flow')).toBeNull()
     })
 })
