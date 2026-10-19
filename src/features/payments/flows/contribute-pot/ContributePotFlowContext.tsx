@@ -84,6 +84,9 @@ interface ContributePotFlowContextValue {
     // amount state
     amount: string
     setAmount: (amount: string) => void
+    /** The suggestion the amount field last offered, as it shows it ("58.51"). */
+    lastSuggestedAmount: string
+    setLastSuggestedAmount: (amount: string) => void
     usdAmount: string
     setUsdAmount: (amount: string) => void
 
@@ -146,6 +149,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
 
     // amount state
     const [amount, setAmount] = useState<string>('')
+    const [lastSuggestedAmount, setLastSuggestedAmount] = useState<string>('')
     const [usdAmount, setUsdAmount] = useState<string>('')
 
     // attachment state
@@ -210,6 +214,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
     const resetContributePotFlow = useCallback(() => {
         setCurrentView('INITIAL')
         setAmount('')
+        setLastSuggestedAmount('')
         setUsdAmount('')
         setAttachment({})
         setCharge(null)
@@ -231,6 +236,8 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             recipient,
             amount,
             setAmount,
+            lastSuggestedAmount,
+            setLastSuggestedAmount,
             usdAmount,
             setUsdAmount,
             attachment,
@@ -262,6 +269,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             refetchRequestPot,
             recipient,
             amount,
+            lastSuggestedAmount,
             usdAmount,
             attachment,
             charge,

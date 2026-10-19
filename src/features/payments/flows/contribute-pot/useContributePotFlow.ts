@@ -35,6 +35,8 @@ export function useContributePotFlow() {
     const {
         amount,
         setAmount,
+        lastSuggestedAmount,
+        setLastSuggestedAmount,
         usdAmount,
         setUsdAmount,
         currentView,
@@ -374,6 +376,7 @@ export function useContributePotFlow() {
     return {
         // state
         amount,
+        lastSuggestedAmount,
         usdAmount,
         currentView,
         request,
@@ -407,6 +410,7 @@ export function useContributePotFlow() {
 
         // actions
         setAmount: handleSetAmount,
+        setLastSuggestedAmount,
         setAttachment,
         clearError,
         executeContribution,

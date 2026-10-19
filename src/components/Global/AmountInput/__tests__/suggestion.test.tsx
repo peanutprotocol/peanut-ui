@@ -49,10 +49,24 @@ test('a typed amount survives a remount that passes it back', () => {
     expect(setAmount).toHaveBeenLastCalledWith('33.05')
 })
 
-test('a cleared field stays empty: clearing is the payer editing it', () => {
+test('a field the payer emptied takes the next suggestion, once', () => {
     const { rerender } = renderWithIntl(field({ suggestion: 99.16 }))
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '33.05' } })
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '' } })
+    expect(value()).toBe('')
 
     rerender(field({ suggestion: 58.51 }))
-    expect(value()).toBe('')
+    expect(value()).toBe('58.51')
+
+    // the payer has edited this field: the suggestion after that stays out
+    rerender(field({ suggestion: 40.65 }))
+    expect(value()).toBe('58.51')
+})
+
+test('a typed "0." is the payer\'s, though it holds no value', () => {
+    const { rerender } = renderWithIntl(field({ suggestion: 99.16 }))
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '0.' } })
+
+    rerender(field({ suggestion: 58.51 }))
+    expect(value()).toBe('0.')
 })
