@@ -14,6 +14,8 @@ import {
     BARE_LIST_LEADING_RE,
     HEX_RE,
     FONT_KNERD_RE,
+    countOffFocusColorClasses,
+    countOffFocusColorCss,
 } from '../ds-lint-rules.cjs'
 
 const countMatches = (text: string, re: RegExp) => (text.match(re) ?? []).length
@@ -1074,5 +1076,60 @@ describe('knerdOutsideTitle (FONT_KNERD_RE)', () => {
     it('leaves the next/font variable plumbing alone', () => {
         expect(countMatches("variable: '--font-knerd-outline'", FONT_KNERD_RE)).toBe(0)
         expect(countMatches("fontFamily: 'var(--font-knerd-filled)'", FONT_KNERD_RE)).toBe(0)
+    })
+})
+
+describe('offFocusColor', () => {
+    it('flags a focus colour that is not action-focus', () => {
+        // the pink pointer-focus border from ui#3041
+        expect(countOffFocusColorClasses('focus:border-action-primary focus:outline-none')).toBe(1)
+        for (const cls of [
+            'focus-visible:ring-action-primary',
+            'focus:border-background-brand',
+            'focus:outline-pink-500',
+            'focus-within:border-border-default',
+            'peer-focus-visible:outline-action-primary',
+            'md:focus:ring-[#ff00aa]',
+            'focus-visible:border-b-foreground-primary',
+            'focus:!ring-action-primary',
+        ]) {
+            expect(countOffFocusColorClasses(`className="${cls}"`)).toBe(1)
+        }
+    })
+
+    it('leaves action-focus and non-colour utilities alone', () => {
+        for (const cls of [
+            'focus-visible:outline-action-focus',
+            'focus-visible:ring-action-focus/50',
+            'focus:ring-2',
+            'focus:outline-none',
+            'focus-visible:outline-[3px]',
+            'focus-visible:outline-solid',
+            'focus-within:outline-offset-4',
+            'focus-visible:outline-offset-[-3px]',
+            'focus:ring-offset-2',
+            'focus:border-transparent',
+            'focus:border',
+            'focus:border-2',
+            'border-error ring-action-primary outline-pink-500',
+        ]) {
+            expect(countOffFocusColorClasses(`className="${cls}"`)).toBe(0)
+        }
+    })
+
+    it('flags off-colour focus declarations in css', () => {
+        const css = `:root[data-input-modality='pointer'] .input:focus {
+            border-color: var(--color-action-primary);
+        }
+        [data-input-container]:focus-within { outline: 2px solid #ff00aa; }`
+        expect(countOffFocusColorCss(css)).toBe(2)
+    })
+
+    it('leaves action-focus rings and non-focus css alone', () => {
+        const css = `/* .x:focus { border-color: var(--color-action-primary) } */
+        .input:focus { outline: 3px solid var(--color-action-focus); border-color: transparent; }
+        .input:hover { border-color: var(--color-action-primary); }
+        input:-webkit-autofill:focus { box-shadow: 0 0 0 1000px var(--color-background-default) inset; }`
+        expect(countOffFocusColorCss(css)).toBe(0)
     })
 })

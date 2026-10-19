@@ -278,6 +278,49 @@ const HEX_RE = /#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g
 // prefixes (md:font-knerd-filled) still match.
 const FONT_KNERD_RE = /(?<![a-zA-Z0-9-])font-knerd(?:-[a-z]+)*\b/g
 
+// keyboard focus is a 3px `action-focus` ring (design.md law 8), so any other
+// colour on a focus state is drift. the pink pointer-focus border (ui#3041,
+// reverted in ui#3161) used a valid token, `action-primary`, which is why no
+// token metric caught it. two shapes:
+// 1) a class: a focus variant (focus:, focus-visible:, focus-within:, also
+//    group-/peer- forms) on a ring-*, outline-* or border-* colour. widths,
+//    styles, offsets, `none` and `transparent` (the input recipe hides its
+//    border under the ring) are not colours.
+// 2) css: a rule whose selector has :focus* setting an outline, border or
+//    --tw-ring-color colour other than action-focus — the shape the pink
+//    border actually shipped in, inside globals.css. box-shadow is left out:
+//    the autofill repaint sets an inset background shadow on :focus, and a
+//    shadow cannot be told apart from a ring without parsing it.
+const FOCUS_COLOR_CLASS_RE =
+    /\bfocus(?:-visible|-within)?(?:\/[\w-]+)?:(?:[\w[\]&=-]+:)*!?(?:ring|outline|border(?:-[xytrblse])?)-(\[[^\]\s]+\]|[a-zA-Z0-9./_-]+)/g
+const FOCUS_NON_COLOR_RE =
+    /^(?:[0-9.]+|px|none|hidden|solid|dashed|dotted|double|inset|transparent|offset(?:-.*)?|\[-?[0-9.].*|\[length:.*|action-focus(?:\/[0-9]+)?)$/
+
+function countOffFocusColorClasses(text) {
+    let n = 0
+    for (const m of text.matchAll(FOCUS_COLOR_CLASS_RE)) if (!FOCUS_NON_COLOR_RE.test(m[1])) n++
+    return n
+}
+
+const FOCUS_CSS_PROP_RE = /^(?:outline|outline-color|border(?:-[a-z]+)*|--tw-ring-color)$/
+// a colour reference: a --color token, hex, or a colour function.
+const CSS_COLOR_RE = /var\(--color-([a-z0-9-]+)\)|#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab)\(/g
+
+function countOffFocusColorCss(text) {
+    let n = 0
+    // innermost rule blocks only; the selector is whatever sits before the brace.
+    const stripped = text.replace(/\/\*[\s\S]*?\*\//g, '')
+    for (const rule of stripped.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        if (!/:focus/.test(rule[1])) continue
+        for (const decl of rule[2].split(';')) {
+            const i = decl.indexOf(':')
+            if (i === -1 || !FOCUS_CSS_PROP_RE.test(decl.slice(0, i).trim())) continue
+            for (const c of decl.slice(i + 1).matchAll(CSS_COLOR_RE)) if (c[1] !== 'action-focus') n++
+        }
+    }
+    return n
+}
+
 // a bare Icon or Image in a ListItem leading slot. the slot holds one IconBubble,
 // a flag (CorridorFlag) or a logo helper (DisplayIcon) — design.md, "ListItem
 // leading is one element". a concept (bank, crypto, card…) is its CONCEPT_ICONS
@@ -303,4 +346,6 @@ module.exports = {
     BARE_LIST_LEADING_RE,
     HEX_RE,
     FONT_KNERD_RE,
+    countOffFocusColorClasses,
+    countOffFocusColorCss,
 }
