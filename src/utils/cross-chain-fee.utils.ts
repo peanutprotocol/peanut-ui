@@ -70,14 +70,22 @@ export const MIN_CRYPTO_WITHDRAW_USD = 0.5
 export const ETHEREUM_MIN_WITHDRAW_USD = 5
 export const SOLANA_MIN_WITHDRAW_USD = 1
 
+// 1% over rhino's own minimum. the api values stablecoins a hair under $1
+// (sda-min-guard reads rhino's payAmountUsd, e.g. 10 usdc = $9.99), so a
+// withdrawal of exactly rhino's minimum passed this check and was rejected at
+// review. may need a revisit in the future if the api side changes.
+const RHINO_MIN_BUFFER = 1.01
+const withRhinoBuffer = (usd: number) => Math.round(usd * RHINO_MIN_BUFFER * 100) / 100
+const TRON_MIN_WITHDRAW_USD = withRhinoBuffer(10)
+
 const CHAIN_MIN_WITHDRAW_USD: Record<string, number> = {
-    '1': ETHEREUM_MIN_WITHDRAW_USD, // Ethereum mainnet
+    '1': withRhinoBuffer(ETHEREUM_MIN_WITHDRAW_USD), // Ethereum mainnet
     solana: SOLANA_MIN_WITHDRAW_USD,
     // Tron: the withdraw picker's NON_EVM_WITHDRAW_CHAINS entry uses the
     // 'tron' slug (chainRegistry.consts.ts), not the numeric chain id — key
     // both so neither representation slips past the $10 floor.
-    tron: 10,
-    '728126428': 10,
+    tron: TRON_MIN_WITHDRAW_USD,
+    '728126428': TRON_MIN_WITHDRAW_USD,
 }
 
 /** Minimum USD amount for a crypto withdrawal to the given destination chain. */

@@ -92,6 +92,14 @@ describe('Claim username', () => {
         expect(mockSetScreenId).not.toHaveBeenCalled()
     })
 
+    it('explains a too-short username instead of only marking the field red', async () => {
+        renderSignup()
+        fireEvent.change(usernameField(), { target: { value: 'abc' } })
+        expect(await screen.findByText('Username must be at least 4 characters long')).toBeInTheDocument()
+        expect(mockApiFetch).not.toHaveBeenCalled()
+        expect(claimButton()).toBeDisabled()
+    })
+
     it('keeps Claim disabled for a taken username', async () => {
         mockApiFetch.mockResolvedValue({ status: 200 })
         renderSignup()
