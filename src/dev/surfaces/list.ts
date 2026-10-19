@@ -211,6 +211,11 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Request pot — payment choices',
         path: 'features/payments/flows/contribute-pot/components/RequestPotActionList.tsx',
     },
+    '81-g-request-pot-partial': {
+        name: 'Request pot — external-wallet deposit arrived short',
+        path: 'features/payments/flows/contribute-pot/views/ContributePotPartialView.tsx',
+        captureState: ['received=33', 'asked=58.51'],
+    },
     '82-f-choice-card-requires-info': {
         name: 'Card application — more information required',
         path: 'Card/ApplicationStatusScreen.tsx',

@@ -77,6 +77,7 @@ import PublicProfile from '@/components/Profile/components/PublicProfile'
 import NotFoundScreen from '@/components/Global/NotFoundScreen'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { RequestPotActionList } from '@/features/payments/flows/contribute-pot/components/RequestPotActionList'
+import { ContributePotPartialView } from '@/features/payments/flows/contribute-pot/views/ContributePotPartialView'
 import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
 import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-pot/components/BankTransferChooserDrawer'
 
@@ -177,6 +178,23 @@ function AppPageSurface({ children }: { children: React.ReactNode }) {
                 {children}
             </div>
         </div>
+    )
+}
+
+// the partial screen of the pay-request-pot-partial-success fixture, without
+// its tap and 15 s deposit poll
+function RequestPotPartialSurface() {
+    const t = useTranslations('payment')
+    return (
+        <AppPageSurface>
+            <ContributePotPartialView
+                headerTitle={t('headers.contribute')}
+                received="33"
+                asked="58.51"
+                depositAddress="0xdec0debad1dec0debad1dec0debad1dec0debad1"
+                onComplete={noop}
+            />
+        </AppPageSurface>
     )
 }
 
@@ -862,6 +880,10 @@ export const SURFACES: Record<string, Surface> = {
                 />
             </div>
         ),
+    },
+    '81-g-request-pot-partial': {
+        ...SURFACE_META['81-g-request-pot-partial'],
+        render: () => <RequestPotPartialSurface />,
     },
     '82-f-choice-card-requires-info': {
         ...SURFACE_META['82-f-choice-card-requires-info'],
