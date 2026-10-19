@@ -2267,6 +2267,7 @@
         "contributors": "Contribuidores ({count})",
         "contributorPartlyPaid": "Pago em parte",
         "contributorAskedAmount": "de {amount}",
+        "requestedInCurrency": "Pedido de {amount}",
         "pendingLinkDeviceNote": "Use o dispositivo onde você criou este link para cancelar ou compartilhar de novo.",
         "type": {
             "send": "Envio",
@@ -2409,6 +2410,12 @@
             "cancelling": "Cancelando",
             "cancelled": "Cancelado",
             "closeRequest": "Fechar cobrança",
+            "closeRequestConfirm": {
+                "title": "Fechar esta cobrança?",
+                "descriptionUnpaid": "{remaining} de {total} não foram pagos. Ninguém poderá pagar depois que você fechar.",
+                "description": "Ninguém poderá pagar esta cobrança depois que você a fechar.",
+                "keepOpen": "Manter aberta"
+            },
             "cancelRequest": "Cancelar cobrança",
             "pay": "Pagar",
             "rejectRequest": "Recusar cobrança",
@@ -3766,7 +3773,8 @@
             "goalAchieved": "Meta alcançada!",
             "belowGoal": "{percentage}% abaixo da meta",
             "contributed": "{amount} contribuído",
-            "remaining": "{amount} restante"
+            "remaining": "{amount} restante",
+            "notPaid": "{amount} não pago"
         },
         "mantecaMaintenance": {
             "title": "Serviço temporariamente indisponível",

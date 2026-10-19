@@ -7,7 +7,10 @@ import { useRouter } from 'next/navigation'
 import { useLocale } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import CancelSendLinkDrawer from '@/components/Global/CancelSendLinkDrawer'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import ShareButton from '@/components/Global/ShareButton'
 import { useToast } from '@/components/0_Bruddle/Toast'
@@ -31,6 +34,7 @@ import { openExternalUrl } from '@/utils/capacitor'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { getReceiptUrl, isTestTransaction } from '@/utils/history.utils'
 import { resolveInAppNavigation } from '@/utils/native-routes'
+import { formatBankAmount } from '@/utils/currency'
 
 type CancelLinkState = 'idle' | 'cancelling' | 'cancelled'
 
@@ -85,6 +89,7 @@ export function ReceiptActions({
     const [showMoreActions, setShowMoreActions] = useState(false)
     const [cancelLinkState, setCancelLinkState] = useState<CancelLinkState>('idle')
     const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+    const [showCloseRequestConfirm, setShowCloseRequestConfirm] = useState(false)
 
     // Every completed kind shares the same thing: the authenticated PDF file.
     // An action/payment URL is not necessarily a public receipt URL, so only
@@ -117,8 +122,8 @@ export function ReceiptActions({
     // closes the more-actions drawer; this effect runs after the child's and
     // would otherwise release the lock the child just took.
     useEffect(() => {
-        setIsModalOpen?.(showCancelLinkDrawer || showMoreActions || cancelConfirmOpen)
-    }, [showCancelLinkDrawer, showMoreActions, cancelConfirmOpen, setIsModalOpen])
+        setIsModalOpen?.(showCancelLinkDrawer || showMoreActions || cancelConfirmOpen || showCloseRequestConfirm)
+    }, [showCancelLinkDrawer, showMoreActions, cancelConfirmOpen, showCloseRequestConfirm, setIsModalOpen])
     // one primary per state: split first, else share (never both visible)
     const sharePrimary = !showSplitCta && canSharePdf
     const isTest = isTestTransaction(transaction.userName)
@@ -146,6 +151,24 @@ export function ReceiptActions({
         const ok = await closeRequest()
         setIsLoading(false)
         if (ok) onClose()
+    }
+
+    // Closing a request that already took money ends it short of its goal, so
+    // it asks first and names what is unpaid. It used to close in one tap,
+    // beside contributor rows that summed to the full goal (TASK-23856).
+    const closeNeedsConfirm = transaction.totalAmountCollected > 0
+    const requestGoal = transaction.isRequestPotLink ? Number(transaction.amount) : 0
+    const unpaidAmount = Math.max(requestGoal - transaction.totalAmountCollected, 0)
+    const closeConfirmDescription =
+        requestGoal > 0 && unpaidAmount > 0
+            ? t('actions.closeRequestConfirm.descriptionUnpaid', {
+                  remaining: formatBankAmount(unpaidAmount, 'USD'),
+                  total: formatBankAmount(requestGoal, 'USD'),
+              })
+            : t('actions.closeRequestConfirm.description')
+    const confirmCloseRequest = () => {
+        setShowCloseRequestConfirm(false)
+        void handleCloseRequest()
     }
 
     const handleRejectRequest = async () => {
@@ -312,13 +335,49 @@ export function ReceiptActions({
                     iconSize={18}
                     loading={isLoading}
                     disabled={isLoading}
-                    onClick={handleCloseRequest}
+                    onClick={closeNeedsConfirm ? () => setShowCloseRequestConfirm(true) : handleCloseRequest}
                     variant="secondary"
                     shadowSize="4"
                     className="flex w-full items-center gap-1"
                 >
-                    {transaction.totalAmountCollected > 0 ? t('actions.closeRequest') : t('actions.cancelRequest')}
+                    {closeNeedsConfirm ? t('actions.closeRequest') : t('actions.cancelRequest')}
                 </Button>
+            )}
+
+            {/* design.md nested drawer confirm: the receipt sits inside the
+                transaction details drawer, where a modal would open behind it */}
+            {isPendingRequester && closeNeedsConfirm && setIsLoading && onClose && (
+                <Drawer
+                    nested={!!setIsModalOpen}
+                    open={showCloseRequestConfirm}
+                    onOpenChange={(isOpen) => {
+                        if (!isOpen) setShowCloseRequestConfirm(false)
+                    }}
+                >
+                    <DrawerContent>
+                        <div className="flex flex-col items-center gap-4 pt-1 pb-6 text-center">
+                            <IconBubble icon="ban" color="red" />
+                            <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                                <DrawerTitle>{t('actions.closeRequestConfirm.title')}</DrawerTitle>
+                                <DrawerDescription>{closeConfirmDescription}</DrawerDescription>
+                            </DrawerHeader>
+                            <Button
+                                shadowSize="4"
+                                className="w-full justify-center"
+                                onClick={confirmCloseRequest}
+                                data-testid="close-request-confirm"
+                            >
+                                {t('actions.closeRequest')}
+                            </Button>
+                            {/* mt-2 on the gap-4 column: 24px above the tertiary */}
+                            <div className="mt-2 flex justify-center">
+                                <LinkButton onClick={() => setShowCloseRequestConfirm(false)}>
+                                    {t('actions.closeRequestConfirm.keepOpen')}
+                                </LinkButton>
+                            </div>
+                        </div>
+                    </DrawerContent>
+                </Drawer>
             )}
 
             {isPendingRequestee && setIsLoading && onClose && (
