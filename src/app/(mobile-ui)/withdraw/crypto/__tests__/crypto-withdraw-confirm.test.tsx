@@ -379,6 +379,7 @@ import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 
 const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
     rtlRender(ui, { wrapper: IntlWrapper, ...options })
@@ -1153,6 +1154,30 @@ describe('crypto withdraw — unmount keeps the flow selection (Chip review PR #
         expect(mockWithdrawFlow.setWithdrawData).toHaveBeenCalledWith(null)
         expect(mockSetTransactionHash).toHaveBeenCalledWith(null)
         expect(mockSetPaymentDetails).toHaveBeenCalledWith(null)
+        expect(mockSetRecipient).toHaveBeenCalledWith({ address: '', name: '' })
+        expect(mockSetIsValidRecipient).toHaveBeenCalledWith(false)
+    })
+
+    test('late wallet readiness keeps the typed recipient; unmount still resets with the latest callback', () => {
+        // resetTokenContextProvider changes identity when the wallet becomes
+        // ready (isConnected false → true) while the page stays mounted.
+        const resetBeforeReady = jest.fn()
+        const resetAfterReady = jest.fn()
+        const page = (reset: jest.Mock) => (
+            <tokenSelectorContext.Provider value={{ resetTokenContextProvider: reset } as never}>
+                <WithdrawCryptoPage />
+            </tokenSelectorContext.Provider>
+        )
+        const view = render(page(resetBeforeReady))
+        view.rerender(page(resetAfterReady))
+
+        expect(mockSetRecipient).not.toHaveBeenCalled()
+        expect(mockSetIsValidRecipient).not.toHaveBeenCalledWith(false)
+        expect(resetBeforeReady).not.toHaveBeenCalled()
+
+        view.unmount()
+        expect(resetAfterReady).toHaveBeenCalledTimes(1)
+        expect(resetBeforeReady).not.toHaveBeenCalled()
         expect(mockSetRecipient).toHaveBeenCalledWith({ address: '', name: '' })
         expect(mockSetIsValidRecipient).toHaveBeenCalledWith(false)
     })
