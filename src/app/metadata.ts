@@ -38,7 +38,7 @@ export function generateMetadata({
         title,
         description,
         metadataBase: new URL(BASE_URL),
-        icons: { icon: '/favicon.ico', apple: '/icons/icon-192x192-maskable.png' },
+        icons: { icon: '/favicon.ico' },
         keywords,
         openGraph: {
             type: 'website',
