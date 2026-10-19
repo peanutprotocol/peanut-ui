@@ -261,6 +261,7 @@
             "protobufjs": "^7.5.5"
         },
         "patchedDependencies": {
+            "@capgo/capacitor-passkey@8.2.2": "patches/@capgo__capacitor-passkey.patch",
             "@capacitor/clipboard": "patches/@capacitor__clipboard.patch",
             "@zerodev/webauthn-key": "patches/@zerodev__webauthn-key.patch"
         }

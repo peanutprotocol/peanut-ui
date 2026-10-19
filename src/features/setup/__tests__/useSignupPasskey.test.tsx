@@ -454,3 +454,14 @@ describe('repeated cancels in the iOS app', () => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 })
+
+it('shows restart guidance, without a retry drawer, when native cleanup is unconfirmed', async () => {
+    mockHandleRegister.mockRejectedValue(
+        Object.assign(new Error('A previous passkey flow is still pending'), { name: 'PasskeyCleanupPendingError' })
+    )
+    renderWithIntl(<Harness />)
+    claim()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Restart the app and try again.')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(mockNext).not.toHaveBeenCalled()
+})

@@ -942,6 +942,7 @@
             "unsupportedDesktop": "This browser couldn’t reach your computer’s passkey service. Restart or update the browser and try again, or log in on your phone.",
             "origin": "Passkeys aren’t available in this app right now. Update Peanut, or contact support if this continues.",
             "loginError": "We couldn’t verify your passkey. Please try again, or contact support if it keeps happening.",
+            "notFound": "This app couldn’t access your passkey.",
             "notCompleted": "Passkey verification wasn’t completed. Try again when ready.",
             "associationUnavailable": "Passkey verification is temporarily unavailable. Wait a few seconds and try again.",
             "deviceLocked": "Unlock the device, then try again.",

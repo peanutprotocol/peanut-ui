@@ -300,10 +300,10 @@ describe('normalizeNativePasskeyError', () => {
         expect(classifyPasskeyError(err).code).toBe('PASSKEY_UNSUPPORTED')
     })
 
-    test('treats the Android no-credential rejection as no passkey on this device, not a failed verification', () => {
+    test('distinguishes a credential inaccessible to this app from cancellation', () => {
         const err = normalizeNativePasskeyError(capacitorRejection('No matching passkey was found.', 'NotFoundError'))
         expect((err as Error).name).toBe('NotFoundError')
-        expect(classifyPasskeyError(err).code).toBe('LOGIN_CANCELED')
+        expect(classifyPasskeyError(err).code).toBe('PASSKEY_NOT_FOUND')
     })
 
     test('leaves an unattributable native failure alone rather than guessing', () => {

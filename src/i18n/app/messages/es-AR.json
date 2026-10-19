@@ -570,6 +570,7 @@
             "unsupportedDesktop": "Este navegador no pudo conectarse al servicio de passkeys de tu computadora. Reiniciá o actualizá el navegador e intentalo de nuevo, o iniciá sesión desde tu teléfono.",
             "origin": "Las passkeys no están disponibles en esta app por el momento. Actualizá Peanut o contactá a soporte si el problema continúa.",
             "loginError": "No pudimos verificar tu passkey. Intentalo de nuevo o contactá a soporte si sigue pasando.",
+            "notFound": "Esta app no pudo acceder a tu passkey.",
             "notCompleted": "No se completó la verificación con passkey. Intentalo de nuevo cuando quieras.",
             "associationUnavailable": "La verificación con passkey no está disponible por el momento. Esperá unos segundos e intentalo de nuevo.",
             "deviceLocked": "Desbloqueá el dispositivo e intentalo de nuevo.",

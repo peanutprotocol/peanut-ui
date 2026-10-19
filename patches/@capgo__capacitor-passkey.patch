@@ -1,0 +1,415 @@
+diff --git a/android/src/main/AndroidManifest.xml b/android/src/main/AndroidManifest.xml
+--- a/android/src/main/AndroidManifest.xml
++++ b/android/src/main/AndroidManifest.xml
+@@ -1,2 +1,5 @@
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android">
++    <queries>
++        <package android:name="com.google.android.gms" />
++    </queries>
+ </manifest>
+diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java b/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java
+--- a/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java
++++ b/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java
+@@ -5,7 +5,7 @@
+
+ public class CapacitorPasskey {
+
+-    public static final String PLUGIN_VERSION = "8.0.0";
++    public static final String PLUGIN_VERSION = "8.2.2-peanut.1";
+
+     public String getPluginVersion() {
+         return PLUGIN_VERSION;
+diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java b/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
+--- a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
++++ b/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
+@@ -2,6 +2,9 @@
+
+ import android.app.Activity;
+ import android.os.Build;
++import android.os.CancellationSignal;
++import android.content.pm.PackageInfo;
++import android.content.pm.PackageManager;
+ import androidx.core.content.ContextCompat;
+ import androidx.credentials.CreateCredentialResponse;
+ import androidx.credentials.CreatePublicKeyCredentialRequest;
+@@ -14,7 +17,9 @@
+ import androidx.credentials.GetPublicKeyCredentialOption;
+ import androidx.credentials.PublicKeyCredential;
+ import androidx.credentials.exceptions.CreateCredentialException;
++import androidx.credentials.exceptions.CreateCredentialCancellationException;
+ import androidx.credentials.exceptions.GetCredentialException;
++import androidx.credentials.exceptions.GetCredentialCancellationException;
+ import androidx.credentials.exceptions.NoCredentialException;
+ import androidx.credentials.exceptions.domerrors.DomError;
+ import androidx.credentials.exceptions.publickeycredential.CreatePublicKeyCredentialDomException;
+@@ -38,6 +43,7 @@
+
+     private final CapacitorPasskey implementation = new CapacitorPasskey();
+     private CredentialManager credentialManager;
++    private final RequestCoordinator<PluginCall> requests = new RequestCoordinator<>();
+
+     @Override
+     public void load() {
+@@ -83,28 +89,36 @@
+                 return;
+             }
+
+-            credentialManager.createCredentialAsync(
+-                activity,
+-                request,
+-                null,
+-                ContextCompat.getMainExecutor(getContext()),
+-                new CredentialManagerCallback<CreateCredentialResponse, CreateCredentialException>() {
+-                    @Override
+-                    public void onResult(CreateCredentialResponse response) {
+-                        if (!(response instanceof CreatePublicKeyCredentialResponse)) {
+-                            rejectDom(call, "UnknownError", "Unexpected native registration response.", null);
+-                            return;
++            final CancellationSignal cancellation = new CancellationSignal();
++            final RequestCoordinator.Attempt<PluginCall> attempt = beginRequest(call, cancellation);
++            if (attempt == null) return;
++            try {
++                credentialManager.createCredentialAsync(
++                    activity,
++                    request,
++                    cancellation,
++                    ContextCompat.getMainExecutor(getContext()),
++                    new CredentialManagerCallback<CreateCredentialResponse, CreateCredentialException>() {
++                        @Override
++                        public void onResult(CreateCredentialResponse response) {
++                            if (!finishRequest(attempt)) return;
++                            if (!(response instanceof CreatePublicKeyCredentialResponse)) {
++                                rejectDom(call, "UnknownError", "Unexpected native registration response.", null);
++                                return;
++                            }
++
++                            resolveJson(call, ((CreatePublicKeyCredentialResponse) response).getRegistrationResponseJson());
+                         }
+
+-                        resolveJson(call, ((CreatePublicKeyCredentialResponse) response).getRegistrationResponseJson());
++                        @Override
++                        public void onError(CreateCredentialException exception) {
++                            if (finishRequest(attempt)) rejectCreateException(call, exception);
++                        }
+                     }
+-
+-                    @Override
+-                    public void onError(CreateCredentialException exception) {
+-                        rejectCreateException(call, exception);
+-                    }
+-                }
+-            );
++                );
++            } catch (Exception exception) {
++                if (finishRequest(attempt)) rejectDom(call, "UnknownError", "Native passkey request failed.", exception);
++            }
+         });
+     }
+
+@@ -142,30 +156,122 @@
+                 return;
+             }
+
+-            credentialManager.getCredentialAsync(
+-                activity,
+-                request,
+-                null,
+-                ContextCompat.getMainExecutor(getContext()),
+-                new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+-                    @Override
+-                    public void onResult(GetCredentialResponse response) {
+-                        Credential credential = response.getCredential();
+-                        if (!(credential instanceof PublicKeyCredential)) {
+-                            rejectDom(call, "UnknownError", "Unexpected native authentication response.", null);
+-                            return;
++            final CancellationSignal cancellation = new CancellationSignal();
++            final RequestCoordinator.Attempt<PluginCall> attempt = beginRequest(call, cancellation);
++            if (attempt == null) return;
++            try {
++                credentialManager.getCredentialAsync(
++                    activity,
++                    request,
++                    cancellation,
++                    ContextCompat.getMainExecutor(getContext()),
++                    new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
++                        @Override
++                        public void onResult(GetCredentialResponse response) {
++                            if (!finishRequest(attempt)) return;
++                            Credential credential = response.getCredential();
++                            if (!(credential instanceof PublicKeyCredential)) {
++                                rejectDom(call, "UnknownError", "Unexpected native authentication response.", null);
++                                return;
++                            }
++
++                            resolveJson(call, ((PublicKeyCredential) credential).getAuthenticationResponseJson());
+                         }
+
+-                        resolveJson(call, ((PublicKeyCredential) credential).getAuthenticationResponseJson());
++                        @Override
++                        public void onError(GetCredentialException exception) {
++                            if (finishRequest(attempt)) rejectGetException(call, exception);
++                        }
+                     }
+-
+-                    @Override
+-                    public void onError(GetCredentialException exception) {
+-                        rejectGetException(call, exception);
+-                    }
++                );
++            } catch (Exception exception) {
++                if (finishRequest(attempt)) rejectDom(call, "UnknownError", "Native passkey request failed.", exception);
++            }
++        });
++    }
++
++    private RequestCoordinator.Attempt<PluginCall> beginRequest(PluginCall call, CancellationSignal cancellation) {
++        // getString alone can coerce or hide a malformed non-string ID. Inspect the raw value.
++        Object rawId = call.getData().opt("requestId");
++        if (rawId != null && (!(rawId instanceof String) || !RequestCoordinator.validId((String) rawId))) {
++            rejectDom(call, "DataError", "Invalid requestId.", null);
++            return null;
++        }
++        try {
++            return requests.begin((String) rawId, call, cancellation::cancel);
++        } catch (IllegalStateException exception) {
++            rejectDom(call, "InvalidStateError", "A passkey request is already pending.", null);
++            return null;
++        }
++    }
++
++    private boolean finishRequest(RequestCoordinator.Attempt<PluginCall> attempt) {
++        if (!requests.complete(attempt)) return false;
++        if (attempt.cancelled) {
++            rejectDom(attempt.value, "AbortError", "Passkey request was cancelled.", null);
++            return false;
++        }
++        return true;
++    }
++
++    @PluginMethod
++    public void cancelRequest(final PluginCall call) {
++        bridge.executeOnMainThread(() -> {
++            Object rawId = call.getData().opt("requestId");
++            if (!(rawId instanceof String) || !RequestCoordinator.validId((String) rawId)) {
++                rejectDom(call, "DataError", "Invalid requestId.", null);
++                return;
++            }
++            try {
++                // True is sent only after the original provider request's terminal callback.
++                if (!requests.cancel((String) rawId, () -> resolveCancellation(call, true))) {
++                    resolveCancellation(call, false);
+                 }
+-            );
++            } catch (IllegalStateException exception) {
++                rejectDom(call, "InvalidStateError", "Too many pending cancellation requests.", null);
++            }
+         });
++    }
++
++    private void resolveCancellation(PluginCall call, boolean cancelled) {
++        JSObject result = new JSObject();
++        result.put("cancelled", cancelled);
++        call.resolve(result);
++    }
++
++    @PluginMethod
++    public void getDiagnostics(final PluginCall call) {
++        // Device/software facts only. Never inspect accounts, credentials or request payloads.
++        JSObject result = new JSObject();
++        result.put("androidSdk", Build.VERSION.SDK_INT);
++        result.put("osVersion", boundedFact(Build.VERSION.RELEASE));
++        result.put("manufacturer", boundedFact(Build.MANUFACTURER));
++        result.put("model", boundedFact(Build.MODEL));
++        result.put("pluginVersion", implementation.getPluginVersion());
++        result.put("appVersion", "unknown");
++        result.put("playServicesVersion", "unknown");
++        result.put("playServicesStatus", "unknown");
++        PackageManager packages = getContext().getPackageManager();
++        try {
++            PackageInfo app = packages.getPackageInfo(getContext().getPackageName(), 0);
++            result.put("appVersion", boundedFact(app.versionName));
++        } catch (Exception ignored) {}
++        try {
++            PackageInfo services = packages.getPackageInfo("com.google.android.gms", 0);
++            result.put("playServicesVersion", boundedFact(services.versionName));
++            if (!packages.getApplicationInfo("com.google.android.gms", 0).enabled) {
++                result.put("playServicesStatus", "disabled");
++            }
++            // Installed/enabled is not provider readiness, network reachability or account usability.
++        } catch (PackageManager.NameNotFoundException ignored) {
++            result.put("playServicesStatus", "missing");
++        } catch (Exception ignored) {}
++        call.resolve(result);
++    }
++
++    private String boundedFact(String value) {
++        if (value == null || value.isBlank()) return "unknown";
++        return value.substring(0, Math.min(value.length(), 80));
+     }
+
+     @PluginMethod
+@@ -219,6 +325,10 @@
+     }
+
+     private void rejectCreateException(PluginCall call, CreateCredentialException exception) {
++        if (exception instanceof CreateCredentialCancellationException) {
++            rejectDom(call, "NotAllowedError", "Passkey registration was cancelled.", exception);
++            return;
++        }
+         if (exception instanceof CreatePublicKeyCredentialDomException) {
+             DomError domError = ((CreatePublicKeyCredentialDomException) exception).getDomError();
+             rejectDom(call, domError.getClass().getSimpleName(), messageFor(exception, "Passkey registration failed."), exception);
+@@ -229,6 +339,10 @@
+     }
+
+     private void rejectGetException(PluginCall call, GetCredentialException exception) {
++        if (exception instanceof GetCredentialCancellationException) {
++            rejectDom(call, "NotAllowedError", "Passkey authentication was cancelled.", exception);
++            return;
++        }
+         if (exception instanceof GetPublicKeyCredentialDomException) {
+             DomError domError = ((GetPublicKeyCredentialDomException) exception).getDomError();
+             rejectDom(call, domError.getClass().getSimpleName(), messageFor(exception, "Passkey authentication failed."), exception);
+@@ -256,6 +370,8 @@
+     private void rejectDom(PluginCall call, String name, String message, Exception exception) {
+         JSObject data = new JSObject();
+         data.put("name", name);
++        // Exception type is diagnostic metadata; never add raw messages or credential data.
++        if (exception != null) data.put("nativeException", exception.getClass().getSimpleName());
+         call.reject(message, name, exception, data);
+     }
+
+diff --git a/android/src/main/java/app/capgo/passkey/RequestCoordinator.java b/android/src/main/java/app/capgo/passkey/RequestCoordinator.java
+new file mode 100644
+--- /dev/null
++++ b/android/src/main/java/app/capgo/passkey/RequestCoordinator.java
+@@ -0,0 +1,61 @@
++package app.capgo.passkey;
++
++import java.util.ArrayList;
++import java.util.List;
++
++/** One Credential Manager operation. All callers must use the Android main thread. */
++final class RequestCoordinator<T> {
++    static final class Attempt<T> {
++        final String id;
++        final T value;
++        final Runnable signalCancellation;
++        final List<Runnable> cancellationWaiters = new ArrayList<>();
++        boolean cancelled;
++        boolean completed;
++
++        Attempt(String id, T value, Runnable signalCancellation) {
++            this.id = id;
++            this.value = value;
++            this.signalCancellation = signalCancellation;
++        }
++    }
++
++    private Attempt<T> active;
++
++    Attempt<T> begin(String id, T value, Runnable signalCancellation) {
++        if (id != null && !validId(id)) throw new IllegalArgumentException("Invalid requestId.");
++        if (active != null) throw new IllegalStateException("A passkey request is already pending.");
++        active = new Attempt<>(id, value, signalCancellation);
++        return active;
++    }
++
++    static boolean validId(String id) {
++        return id != null && id.matches("[A-Za-z0-9_-]{1,64}");
++    }
++
++    boolean cancel(String id, Runnable acknowledge) {
++        Attempt<T> request = active;
++        if (request == null || id == null || !id.equals(request.id)) return false;
++        if (request.cancellationWaiters.size() >= 16) throw new IllegalStateException("Too many pending cancellation requests.");
++        request.cancellationWaiters.add(acknowledge);
++        if (!request.cancelled) {
++            // A provider may call back synchronously from cancel(). Mark and register first.
++            request.cancelled = true;
++            try {
++                request.signalCancellation.run();
++            } catch (RuntimeException ignored) {
++                // Unknown cleanup is still pending. Only a terminal callback releases it.
++            }
++        }
++        return true;
++    }
++
++    boolean complete(Attempt<T> request) {
++        if (active != request || request.completed) return false;
++        request.completed = true;
++        active = null;
++        for (Runnable acknowledge : request.cancellationWaiters) acknowledge.run();
++        request.cancellationWaiters.clear();
++        return true;
++    }
++}
+diff --git a/dist/esm/index.js b/dist/esm/index.js
+--- a/dist/esm/index.js
++++ b/dist/esm/index.js
+@@ -58,7 +58,7 @@
+         return effectiveConfiguration;
+     },
+     async createCredential(options) {
+-        return NativeCapacitorPasskey.createCredential(createNativeRequest(options));
++        return NativeCapacitorPasskey.createCredential(Object.assign(createNativeRequest(options), { requestId: options.requestId }));
+     },
+     async getConfiguration() {
+         if (!configurationPromise) {
+@@ -67,7 +67,13 @@
+         return configurationPromise;
+     },
+     async getCredential(options) {
+-        return NativeCapacitorPasskey.getCredential(createNativeRequest(options));
++        return NativeCapacitorPasskey.getCredential(Object.assign(createNativeRequest(options), { requestId: options.requestId }));
++    },
++    async cancelRequest(options) {
++        return NativeCapacitorPasskey.cancelRequest(options);
++    },
++    async getDiagnostics() {
++        return NativeCapacitorPasskey.getDiagnostics();
+     },
+     async getPluginVersion() {
+         return NativeCapacitorPasskey.getPluginVersion();
+diff --git a/dist/esm/definitions.d.ts b/dist/esm/definitions.d.ts
+--- a/dist/esm/definitions.d.ts
++++ b/dist/esm/definitions.d.ts
+@@ -232,6 +232,8 @@
+  * @since 1.0.0
+  */
+ export interface CreateCredentialOptions {
++    /** Optional Android cancellation identity, 1-64 ASCII letters/digits/_/-. */
++    requestId?: string;
+     /**
+      * JSON-safe registration request.
+      */
+@@ -286,6 +288,8 @@
+  * @since 1.0.0
+  */
+ export interface GetCredentialOptions {
++    /** Optional Android cancellation identity, 1-64 ASCII letters/digits/_/-. */
++    requestId?: string;
+     /**
+      * JSON-safe authentication request.
+      */
+@@ -455,6 +459,19 @@
+  * @since 1.0.0
+  */
+ export interface CapacitorPasskeyPlugin {
++    /** Android only. True requires the original native request's terminal callback. */
++    cancelRequest(options: { requestId: string }): Promise<{ cancelled: boolean }>;
++    /** Android only. Installed Play Services does not establish usable provider readiness. */
++    getDiagnostics(): Promise<{
++        androidSdk: number;
++        osVersion: string;
++        manufacturer: string;
++        model: string;
++        appVersion: string;
++        pluginVersion: string;
++        playServicesVersion: string;
++        playServicesStatus: 'available' | 'missing' | 'disabled' | 'outdated' | 'invalid' | 'unknown';
++    }>;
+     /**
+      * Install a browser-style WebAuthn shim on top of the native plugin.
+      *

@@ -100,6 +100,7 @@ export type PasskeyErrorClassification = { code: PasskeyErrorCode; message: stri
 // Keys are the closed set of classification codes — `PasskeyErrorCode` below —
 // so a new code can't silently fall into the wrong handler branch downstream.
 const PASSKEY_LOGIN_MESSAGES = {
+    PASSKEY_NOT_FOUND: 'This app couldn’t access your passkey.',
     LOGIN_CANCELED: 'Passkey verification wasn’t completed. Try again when ready.',
     PASSKEY_ASSOCIATION_UNAVAILABLE:
         'Passkey verification is temporarily unavailable. Wait a few seconds and try again.',
@@ -125,6 +126,7 @@ export type PasskeyErrorCode = keyof typeof PASSKEY_LOGIN_MESSAGES
  * codes not listed fall back to the English message the error carries.
  */
 const PASSKEY_ERROR_SETUP_KEYS = {
+    PASSKEY_NOT_FOUND: 'passkey.notFound',
     LOGIN_CANCELED: 'passkey.notCompleted',
     PASSKEY_ASSOCIATION_UNAVAILABLE: 'passkey.associationUnavailable',
     PASSKEY_DEVICE_LOCKED: 'passkey.deviceLocked',
@@ -303,9 +305,9 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
         case 'SecurityError':
             code = 'PASSKEY_ORIGIN'
             break
-        // native NoCredentialException: this device holds no Peanut passkey
+        // Native NoCredentialException means this app could not access a matching credential.
         case 'NotFoundError':
-            code = 'LOGIN_CANCELED'
+            code = 'PASSKEY_NOT_FOUND'
             break
         // Chromium: "A request is already pending." — an earlier prompt still owns the authenticator
         case 'OperationError':
@@ -323,6 +325,7 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
             break
         // install known-dead — only an app restart re-runs it, so send the
         // restart copy instead of the transient "wait a moment" one
+        case 'PasskeyCleanupPendingError':
         case 'PasskeyShimFailedError':
             code = 'PASSKEY_STATE'
             break
