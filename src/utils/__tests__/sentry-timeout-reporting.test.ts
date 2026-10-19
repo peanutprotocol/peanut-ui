@@ -26,8 +26,11 @@ const tagsSet = () => Object.fromEntries(lastScope.setTag.mock.calls)
 const fingerprint = () => lastScope.setFingerprint.mock.calls[0]?.[0] as string[]
 
 // Read timeouts are sampled in production; report every one here so assertions are deterministic.
+// 0.05 is under READ_TIMEOUT_SAMPLE_RATE (0.1). Not 0: the spy also feeds source-map's quicksort
+// when Jest maps a stack trace, and a pivot that is always the first element recurses until the
+// stack overflows (publish PR #3736 failed this suite on 2026-10-16).
 beforeEach(() => {
-    jest.spyOn(Math, 'random').mockReturnValue(0)
+    jest.spyOn(Math, 'random').mockReturnValue(0.05)
 })
 
 describe('timeout reporting — one issue, endpoint on a tag', () => {

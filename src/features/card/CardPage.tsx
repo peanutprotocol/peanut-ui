@@ -15,6 +15,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
+import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { useCardFlow } from './useCardFlow'
 
 export const CardPage: FC = () => {
@@ -55,6 +56,12 @@ export const CardPage: FC = () => {
         onUploadProofOfAddress,
         onUploadIdentity,
         identityUploadError,
+        informationActions,
+        informationSession,
+        setInformationSession,
+        informationError,
+        startInformationAction,
+        refreshInformationToken,
         sumsubToken,
         handleSumsubComplete,
         handleSumsubClose,
@@ -206,7 +213,16 @@ export const CardPage: FC = () => {
                         onContactSupport={() => setIsSupportModalOpen(true)}
                         onUploadProofOfAddress={onUploadProofOfAddress}
                         onUploadIdentity={onUploadIdentity}
-                        uploadError={poaError ?? identityUploadError ?? undefined}
+                        informationActions={informationActions.map((action) => {
+                            const kind = action.levelKey === 'tax_identification_number' ? 'taxId' : 'birthDate'
+                            return {
+                                key: action.key,
+                                kind,
+                                label: t(kind === 'taxId' ? 'provideTaxId' : 'provideBirthDate'),
+                                onClick: () => void startInformationAction(action.key),
+                            }
+                        })}
+                        uploadError={informationError ?? poaError ?? identityUploadError ?? undefined}
                         onPrev={onBack}
                     />
                 )
@@ -303,6 +319,19 @@ export const CardPage: FC = () => {
                     if (!response.data?.token) throw new Error(response.error ?? 'Failed to refresh token')
                     return response.data.token
                 }}
+            />
+            <SumsubKycWrapper
+                sessionKey={informationSession?.key}
+                visible={informationSession !== null}
+                accessToken={informationSession?.token ?? null}
+                onClose={() => setInformationSession(null)}
+                onComplete={() => {
+                    markSubmitted()
+                    setInformationSession(null)
+                    invalidateOverview()
+                    void fetchUser()
+                }}
+                onRefreshToken={refreshInformationToken}
             />
             <SumsubKycWrapper
                 visible={sumsubToken !== null}

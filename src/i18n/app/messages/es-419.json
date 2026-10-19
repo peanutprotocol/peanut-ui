@@ -1630,7 +1630,11 @@
             "manualReviewTitle": "Se necesita una revisión manual",
             "manualReviewBody": "Tenemos que revisar tu solicitud manualmente. Normalmente toma 1-2 días y te avisamos cuando esté lista.",
             "requiresInfoTitle": "Necesitamos más información",
-            "requiresInfoBody": "Nuestro equipo te ayudará a terminar tu solicitud de tarjeta — escríbele a soporte para continuar.",
+            "requiresInfoBody": "El equipo de Peanut te ayudará a terminar tu solicitud de tarjeta. Habla con soporte para continuar.",
+            "requiresInfoTaxIdBody": "Proporciona tu identificación fiscal para terminar tu solicitud de tarjeta.",
+            "requiresInfoBirthDateBody": "Proporciona tu fecha de nacimiento para terminar tu solicitud de tarjeta.",
+            "requiresInfoProofOfAddressBody": "Sube un comprobante de domicilio para terminar tu solicitud de tarjeta.",
+            "requiresInfoIdentityBody": "Sube tus documentos de identidad para terminar tu solicitud de tarjeta.",
             "requiresSupportTitle": "Algo salió mal de nuestro lado",
             "requiresSupportBody": "Tuvimos un problema al procesar tu solicitud de tarjeta. Nuestro equipo necesita revisarlo — escríbele a soporte y lo resolvemos.",
             "rejectedTitle": "No pudimos emitir una tarjeta",
@@ -1835,6 +1839,9 @@
         },
         "uploadProofOfAddress": "Subir comprobante de domicilio",
         "uploadIdentityDocuments": "Subir documentos de identidad",
+        "provideTaxId": "Proporcionar identificación fiscal",
+        "provideBirthDate": "Proporcionar fecha de nacimiento",
+        "informationStartFailed": "No pudimos abrir el formulario. Inténtalo de nuevo.",
         "fixSignature": {
             "navTitle": "Reparar la firma de la tarjeta",
             "intro": "Esta herramienta repara un problema de estado de la billetera que bloquea los permisos de tu tarjeta. Requiere hasta dos confirmaciones rápidas con tu passkey.",
@@ -2345,7 +2352,8 @@
             "receivedViaLink": "Recibido por enlace",
             "sentViaLink": "Enviado por enlace",
             "transaction": "Transacción",
-            "failedQrPayment": "Intento de pago QR fallido"
+            "failedQrPayment": "Intento de pago QR fallido",
+            "verificationDeposit": "Depósito de verificación"
         },
         "nameInSentence": {
             "merchant": "comercio",
@@ -2403,6 +2411,8 @@
         "returnedReason": "El banco devolvió este pago.",
         "returnedReasonThirdParty": "Salió de la cuenta de otra persona, y esta cuenta no la acepta.",
         "returnedStatus": "Devuelto",
+        "verificationDepositNote": "Se usa para confirmar tu cuenta. No se suma a tu saldo.",
+        "belowMinimumNote": "Este depósito fue menor al mínimo de {min}, así que no se puede agregar ni devolver.",
         "perkBanner": {
             "title": "¡Ganaste una recompensa!",
             "capped": "Recompensa de ${amount} — ¡se alcanzó el límite de la campaña!",
@@ -4019,7 +4029,7 @@
             "noMonthlyFee": "SIN CUOTA MENSUAL"
         },
         "faq": {
-            "title": "Preguntas.",
+            "title": "FAQ.",
             "q1": {
                 "question": "¿Qué es Peanut Card?",
                 "answer": "Peanut Card es una tarjeta Visa virtual para usar tu saldo de Peanut en línea y con billeteras móviles compatibles."

@@ -297,6 +297,12 @@ export const useWallet = () => {
     // True while the number on screen came from cache and the live sum is still
     // pending — lets the UI mark it as refreshing instead of asserting it.
     const isSpendableBalanceStale = !demoMode && stableForUser === undefined && !isRainReady && !!lastKnownForUser
+    // True once `hasSufficientSpendableBalance` can give a real answer: both live
+    // terms have arrived. The display cache plays no part, so a cached total on
+    // screen never reads as spendable. Not `!isBalanceLoading`: a balance query
+    // that failed with no data stops loading while the balance is still unknown.
+    const isSpendableBalanceReady =
+        isRainReady && availableSpendableBalance !== undefined && (demoMode || isAddressReady)
 
     // formatted balance for display (e.g. "1,234.56"). Smart-account only —
     // use `formattedSpendableBalance` below for user-facing widgets that
@@ -350,5 +356,6 @@ export const useWallet = () => {
         isFetchingBalance: isBalanceLoading,
         isFetchingSpendableBalance: isSpendableBalanceLoading,
         isSpendableBalanceStale,
+        isSpendableBalanceReady,
     }
 }

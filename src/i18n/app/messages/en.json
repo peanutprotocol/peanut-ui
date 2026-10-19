@@ -1630,7 +1630,11 @@
             "manualReviewTitle": "Manual review needed",
             "manualReviewBody": "We need to do a manual review of your submission. This usually takes 1-2 days and we'll let you know when it's ready.",
             "requiresInfoTitle": "We need more information",
-            "requiresInfoBody": "Our team will help you finish your card application — message support to continue.",
+            "requiresInfoBody": "Peanut team will help you finish your card application. Talk to support to continue.",
+            "requiresInfoTaxIdBody": "Provide your tax ID to finish your card application.",
+            "requiresInfoBirthDateBody": "Provide your date of birth to finish your card application.",
+            "requiresInfoProofOfAddressBody": "Upload a proof of address to finish your card application.",
+            "requiresInfoIdentityBody": "Upload your identity documents to finish your card application.",
             "requiresSupportTitle": "Something went wrong on our side",
             "requiresSupportBody": "We hit a snag while processing your card application. Our team needs to take a look — message support and we'll get you sorted.",
             "rejectedTitle": "We couldn't issue a card",
@@ -1835,6 +1839,9 @@
         },
         "uploadProofOfAddress": "Upload proof of address",
         "uploadIdentityDocuments": "Upload identity documents",
+        "provideTaxId": "Provide tax ID",
+        "provideBirthDate": "Provide date of birth",
+        "informationStartFailed": "We couldn't open the form. Please try again.",
         "fixSignature": {
             "navTitle": "Fix card signature",
             "intro": "This tool repairs a wallet state issue that blocks your card permissions. It takes up to two quick passkey confirmations.",
@@ -2345,7 +2352,8 @@
             "receivedViaLink": "Received via link",
             "sentViaLink": "Sent via link",
             "transaction": "Transaction",
-            "failedQrPayment": "Failed QR payment attempt"
+            "failedQrPayment": "Failed QR payment attempt",
+            "verificationDeposit": "Verification deposit"
         },
         "nameInSentence": {
             "merchant": "merchant",
@@ -2403,6 +2411,8 @@
         "returnedReason": "The bank sent this payment back.",
         "returnedReasonThirdParty": "It came from someone else's account, which this account does not accept.",
         "returnedStatus": "Returned",
+        "verificationDepositNote": "Used to confirm your account. Not added to your balance.",
+        "belowMinimumNote": "This deposit was below the {min} minimum, so it can't be added or returned.",
         "perkBanner": {
             "title": "You earned a reward!",
             "capped": "${amount} reward — campaign limit reached!",

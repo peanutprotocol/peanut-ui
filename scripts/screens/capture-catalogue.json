@@ -1039,6 +1039,30 @@
         "source": "Card/ApplicationStatusScreen.tsx"
     },
     {
+        "id": "82-g-card-tax-id",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=82-g-card-tax-id",
+        "source": "Card/ApplicationStatusScreen.tsx"
+    },
+    {
+        "id": "82-h-card-birth-date",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=82-h-card-birth-date",
+        "source": "Card/ApplicationStatusScreen.tsx"
+    },
+    {
+        "id": "82-i-card-information-both",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=82-i-card-information-both",
+        "source": "Card/ApplicationStatusScreen.tsx"
+    },
+    {
+        "id": "82-j-card-information-error",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=82-j-card-information-error",
+        "source": "Card/ApplicationStatusScreen.tsx"
+    },
+    {
         "id": "qr-camera-permission",
         "flow": "Payments",
         "route": "/dev/surfaces?s=54-d-qrbottomdrawer"
@@ -1377,6 +1401,12 @@
         "id": "p74-network-selector-drawer",
         "flow": "Withdraw",
         "route": "/withdraw/crypto"
+    },
+    {
+        "id": "92-f-withdraw-amount-error",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=92-f-withdraw-amount-error",
+        "source": "features/withdraw/views/WithdrawAmountView.tsx"
     },
     {
         "id": "85-f-choice-claim-error",

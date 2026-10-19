@@ -1,5 +1,4 @@
 import Image, { type StaticImageData } from 'next/image'
-import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import handWaving from '@/assets/illustrations/hand-waving.svg'
@@ -11,6 +10,7 @@ import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 import type { LandingContentHrefs } from './landingContentHrefs'
 import { contentHrefsFor } from './landingContentHrefs.server'
+import { CTA_MOTION } from '@/components/Marketing/constants'
 
 interface Feature {
     id: number
@@ -58,7 +58,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
     const features = buildFeatures(i18n, contentHrefsFor(locale))
 
     return (
-        <section id="security" className="bg-background-brand px-4 py-16 text-foreground-primary md:py-40">
+        <section id="security" className="bg-background-brand px-6 py-16 text-foreground-primary md:px-4 md:py-24">
             <div className="mx-auto max-w-7xl">
                 <div className="mb-12 text-center md:mb-16 md:text-left">
                     {/* h2, not h1: this h1 sat directly above the h3 feature
@@ -68,7 +68,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                         preview ask, but "SEGURANÇA." measures 387px at 60px and
                         clips a 320px viewport (TASK-22366) — fell back one
                         display-ramp step */}
-                    <h2 className="font-roboto-flex-extrabold text-left text-headingSmall font-extraBlack md:text-6xl lg:text-heading">
+                    <h2 className="font-roboto-flex-extrabold text-left text-headingSmall font-extraBlack md:text-headingMedium">
                         {i18n.landingSecurityHeading}
                     </h2>
                 </div>
@@ -112,16 +112,15 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                     </p>
                                 )}
                                 {feature.id === 3 && (
-                                    <div className="mt-6">
-                                        <Link prefetch={false} href="/support">
-                                            <Button
-                                                shadowSize="4"
-                                                className="bg-white px-6 text-foreground-primary hover:bg-white/90"
-                                            >
-                                                {i18n.landingTalkToSupport}
-                                            </Button>
-                                        </Link>
-                                    </div>
+                                    <Button
+                                        size="large"
+                                        prefetch={false}
+                                        href="/support"
+                                        variant="secondary"
+                                        className={`mt-6 w-fit ${CTA_MOTION}`}
+                                    >
+                                        {i18n.landingTalkToSupport}
+                                    </Button>
                                 )}
                             </div>
                         </div>

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { LandingStrings } from './landingStrings'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
@@ -70,15 +69,14 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                         <DownloadAppLink
                             surface={MIGRATION_SURFACES.LANDING_HERO}
                             variant="primary"
-                            className="pointer-events-auto block"
-                            buttonClassName="w-full uppercase"
+                            className="pointer-events-auto w-full"
                         />
                     ) : (
-                        <Link prefetch={false} href="/setup" className="pointer-events-auto block">
-                            <Button variant="primary" shadowSize="4" className="w-full">
-                                {strings.signUpNow}
-                            </Button>
-                        </Link>
+                        // full width on purpose: this is the pinned-footer CTA
+                        // (design.md page recipes), not a hugging marketing CTA
+                        <Button prefetch={false} href="/setup" variant="primary" className="pointer-events-auto w-full">
+                            {strings.signUpNow}
+                        </Button>
                     )}
                 </div>
             }

@@ -109,7 +109,7 @@ export const MERCHANTS: Record<string, Merchant> = {
         sub: 'Your first $10 at Stain is on us.',
         body: 'Scan the Mercado Pago QR at the counter — espresso, cold brew, the tiramisu, the avo toast. First ten bucks on us.',
         dealLabel: 'on the house',
-        primaryCta: 'GET PEANUT',
+        primaryCta: 'Get Peanut',
         secondaryLink: { label: 'see the menu →', href: '#menu' },
         marquee: ['FREE COFFEE', 'NO ARS BANK NEEDED', 'PEANUT × STAIN', 'PALERMO HOLLYWOOD', 'CRIPTO DÓLAR RATE'],
         fold2: {
@@ -164,7 +164,7 @@ export const MERCHANTS: Record<string, Merchant> = {
         sub: 'Free $10 on your first payment. Open to everyone.',
         body: 'Pay any Mercado Pago QR in Buenos Aires at the best rate available. No Argentine bank account, no cash hunt, no DNI. Fund with USDC or a bank transfer. Built for nomads, by nomads.',
         dealLabel: 'on us',
-        primaryCta: 'GET PEANUT',
+        primaryCta: 'Get Peanut',
         secondaryLink: { label: 'how it works →', href: '#faq' },
         marquee: [
             'FOR NOMADS BY NOMADS',

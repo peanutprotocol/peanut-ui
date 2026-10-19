@@ -33,11 +33,16 @@ function lineStyle(index: number): CSSProperties | undefined {
     return { transform: `rotate(${tilt}deg) translateX(${shift})` }
 }
 
-/** Break on "\n" to place lines by hand; a plain string wraps as one line. */
+/**
+ * Break on "\n" to place lines by hand; a plain string wraps as one line.
+ * The space after each placed line collapses on screen but keeps the words
+ * apart for a screen reader ("SEND IN SECONDS.", not "SEND INSECONDS.").
+ */
 function Lines({ text }: { text: string }) {
-    return text.split('\n').map((line, i) => (
+    const lines = text.split('\n')
+    return lines.map((line, i) => (
         <span key={i} className="block" style={lineStyle(i)}>
-            {line}
+            {i < lines.length - 1 ? `${line} ` : line}
         </span>
     ))
 }

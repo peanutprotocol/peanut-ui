@@ -12,9 +12,10 @@ import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import type { CardMarkup } from '@/utils/fx.utils'
 import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
-import { Sparkle, Star } from '@/assets/illustrations'
+import { Star } from '@/assets/illustrations'
 import { UTM_MEDIUMS, UTM_SOURCES, withUtm } from '@/utils/utm.utils'
 import type { Merchant, MenuItem } from './merchants'
+import { CTA_MOTION } from '@/components/Marketing/constants'
 
 /** Build a `/invite` URL with the merchant's vanity code + the UTM
  *  attribution. The code (e.g. `STAIN`, `BANOMADS`) is registered in
@@ -34,8 +35,6 @@ function buildInviteHref(merchant: Merchant, content: 'hero' | 'end_fold'): stri
         { code: merchant.inviteCode }
     )
 }
-
-const ctaButtonClassName = '!w-auto bg-white px-6 hover:bg-white/90 md:px-8'
 
 type Currency = 'USD' | 'EUR'
 
@@ -85,7 +84,7 @@ function Hero({ merchant }: { merchant: Merchant }) {
                 className="pointer-events-none absolute right-[4%] bottom-[5%] z-10 w-8 md:right-[8%] md:bottom-[8%] md:w-12"
             />
             <motion.img
-                src={Sparkle.src}
+                src={Star.src}
                 alt=""
                 aria-hidden
                 initial={{ opacity: 0, scale: 0.4 }}
@@ -118,14 +117,17 @@ function Hero({ merchant }: { merchant: Merchant }) {
                     )}
 
                     <div className="mt-8 flex flex-col items-center gap-6 md:flex-row md:items-center md:gap-6">
-                        <div className="relative">
-                            <Link href={buildInviteHref(merchant, 'hero')} className="inline-block">
-                                <Button shadowSize="4" className={ctaButtonClassName}>
-                                    {merchant.primaryCta}
-                                </Button>
-                            </Link>
+                        <div className="relative w-fit">
+                            <Button
+                                size="large"
+                                href={buildInviteHref(merchant, 'hero')}
+                                variant="secondary"
+                                className={`w-fit ${CTA_MOTION}`}
+                            >
+                                {merchant.primaryCta}
+                            </Button>
                             <motion.img
-                                src={Sparkle.src}
+                                src={Star.src}
                                 alt=""
                                 aria-hidden
                                 initial={{ opacity: 0, scale: 0.4, rotate: -30 }}
@@ -448,7 +450,7 @@ function EndFold({ merchant }: { merchant: Merchant }) {
     return (
         <section className="relative overflow-hidden bg-gray-950 px-4 py-32 text-center text-white md:py-40">
             <motion.img
-                src={Sparkle.src}
+                src={Star.src}
                 alt=""
                 aria-hidden
                 initial={{ opacity: 0, scale: 0.4, rotate: -30 }}
@@ -457,7 +459,7 @@ function EndFold({ merchant }: { merchant: Merchant }) {
                 className="pointer-events-none absolute top-[18%] left-[8%] w-10 md:top-[20%] md:left-[15%] md:w-14"
             />
             <motion.img
-                src={Sparkle.src}
+                src={Star.src}
                 alt=""
                 aria-hidden
                 initial={{ opacity: 0, scale: 0.4, rotate: 30 }}
@@ -473,11 +475,14 @@ function EndFold({ merchant }: { merchant: Merchant }) {
                     {merchant.install.sub}
                 </p>
                 <div className="mt-10 flex justify-center">
-                    <Link href={buildInviteHref(merchant, 'end_fold')} className="inline-block">
-                        <Button shadowSize="4" className={ctaButtonClassName}>
-                            INSTALL PEANUT
-                        </Button>
-                    </Link>
+                    <Button
+                        size="large"
+                        href={buildInviteHref(merchant, 'end_fold')}
+                        variant="secondary"
+                        className={`w-fit ${CTA_MOTION}`}
+                    >
+                        Install Peanut
+                    </Button>
                 </div>
                 <Link
                     href="/home"

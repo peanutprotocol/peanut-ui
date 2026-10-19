@@ -29,6 +29,7 @@ export const TRANSACTION_NAME_KEYS = {
     sentViaLink: 'name.sentViaLink',
     transaction: 'name.transaction',
     failedQrPayment: 'name.failedQrPayment',
+    verificationDeposit: 'name.verificationDeposit',
 } as const
 
 /**
@@ -72,6 +73,7 @@ export const SELF_DESCRIBING_NAME_KEYS: ReadonlySet<TransactionNameKey> = new Se
     ...Object.values(REAPER_FAIL_KEYS),
     REAPER_FAIL_FALLBACK_KEY,
     TRANSACTION_NAME_KEYS.failedQrPayment,
+    TRANSACTION_NAME_KEYS.verificationDeposit,
     TRANSACTION_NAME_KEYS.cardPayment,
     TRANSACTION_NAME_KEYS.refundFrom,
     TRANSACTION_NAME_KEYS.cardRefund,

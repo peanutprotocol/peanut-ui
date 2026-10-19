@@ -18,11 +18,11 @@ export function ContextualLinks({ links, label, separator = ' · ', className }:
 
     return (
         <p className={twMerge('font-roboto-flex text-center text-sm md:text-base', className)}>
-            {label && <span className="mr-2 opacity-70">{label}</span>}
+            {label && <span className="mr-2 text-foreground-over-color-secondary">{label}</span>}
             {links.map((link, i) => (
                 <span key={link.href}>
                     {i > 0 && (
-                        <span aria-hidden className="mx-1 opacity-50">
+                        <span aria-hidden className="mx-1 text-foreground-over-color-secondary">
                             {separator}
                         </span>
                     )}
