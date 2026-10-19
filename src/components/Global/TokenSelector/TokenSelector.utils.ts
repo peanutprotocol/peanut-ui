@@ -139,6 +139,39 @@ export function sortNetworks(networks: NetworkOption[]): NetworkOption[] {
     )
 }
 
+/** a row in the network drawer; `network` is undefined when the token is not on this chain */
+export interface NetworkRow {
+    chainId: string
+    name: string
+    iconUrl: string
+    network?: NetworkOption
+}
+
+/**
+ * Every network the selector offers, for the network drawer: the token's own
+ * networks first (in their order), then the networks that do not carry it, so
+ * a missing network (Tron for USDC) reads as "not for this token", not "not
+ * supported at all". Support comes from the token/chain list alone, never
+ * from price data.
+ */
+export function networkRowsForToken(options: TokenOption[], option: TokenOption | undefined): NetworkRow[] {
+    const rows: NetworkRow[] = (option?.networks ?? []).map((n) => ({
+        chainId: n.chainId,
+        name: n.name,
+        iconUrl: n.iconUrl,
+        network: n,
+    }))
+    const seen = new Set(rows.map((r) => r.chainId))
+    for (const other of options) {
+        for (const n of other.networks) {
+            if (seen.has(n.chainId)) continue
+            seen.add(n.chainId)
+            rows.push({ chainId: n.chainId, name: n.name, iconUrl: n.iconUrl })
+        }
+    }
+    return rows
+}
+
 /** the network pills under a token row: the first two, then a count of the rest */
 export function splitNetworkBadges(networks: NetworkOption[]): { shown: NetworkOption[]; rest: number } {
     return { shown: networks.slice(0, 2), rest: Math.max(0, networks.length - 2) }
@@ -199,7 +232,7 @@ export function filterTokenOptions(options: TokenOption[], query: string): Token
     return options.filter((o) => o.symbol.toLowerCase().includes(q) || o.name.toLowerCase().includes(q))
 }
 
-export function filterNetworks(networks: NetworkOption[], query: string): NetworkOption[] {
+export function filterNetworks<T extends { name: string }>(networks: T[], query: string): T[] {
     const q = query.trim().toLowerCase()
     if (!q) return networks
     return networks.filter((n) => n.name.toLowerCase().includes(q))
