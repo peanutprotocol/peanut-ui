@@ -71,3 +71,28 @@ describe('UserCard open-amount request', () => {
         expect(screen.getByText('Your choice')).toBeInTheDocument()
     })
 })
+
+// TASK-23856: "Send the exact amount!" gave no figure in the token, and no
+// word that a wallet fee makes the deposit arrive short.
+describe('UserCard exact-amount note on a deposit', () => {
+    it('names the token amount and the fee rule', () => {
+        renderWithIntl(
+            <UserCard
+                type="request_fulfilment"
+                username="ana"
+                recipientType="USERNAME"
+                amount={58.51}
+                tokenAmount="58.51 USDC"
+            />
+        )
+
+        expect(screen.getByText('Send the exact amount!')).toBeInTheDocument()
+        expect(screen.getByText('58.51 USDC')).toBeInTheDocument()
+        expect(screen.getByText('Send a little more if your wallet or network charges a fee.')).toBeInTheDocument()
+    })
+
+    it('keeps the fee rule without a token amount', () => {
+        renderWithIntl(<UserCard type="request_fulfilment" username="ana" recipientType="USERNAME" amount={10} />)
+        expect(screen.getByText('Send a little more if your wallet or network charges a fee.')).toBeInTheDocument()
+    })
+})

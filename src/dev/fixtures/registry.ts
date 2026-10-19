@@ -323,7 +323,7 @@ const SHORT_CHARGE = POT_CHARGE(
     'fixture-pot-charge-short',
     '58.51',
     '33',
-    POT_PAYMENT('fixture-pot-charge-short', '33000000', '0x225a963b2f4c1d0e9f8a7b6c5d4e3f2a1b0c9d8e', null)
+    POT_PAYMENT('fixture-pot-charge-short', '33000000', '0x00000000000000000000000000000000000b0b0b', null)
 )
 
 const PARTIAL_POT_ENTRY = {
