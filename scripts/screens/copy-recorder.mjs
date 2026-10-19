@@ -35,11 +35,30 @@ export function installCopyRecorder() {
     Object.defineProperty(window, '__screenCaptureResolvedCopy', { value: resolved, configurable: true })
 }
 
-/** Browser function: the resolved messages plus every piece of text a person can see or hear on the page. */
+/**
+ * Browser function: the resolved messages plus the text inside the captured viewport. A state is one
+ * viewport screenshot, so copy below the fold or in a closed drawer must not count as shown.
+ */
 export function collectCopyEvidence() {
     const resolved = window.__screenCaptureResolvedCopy
-    const parts = [document.title, document.body?.innerText ?? '']
+    const inViewport = (rect) =>
+        rect.width > 0 &&
+        rect.height > 0 &&
+        rect.bottom > 0 &&
+        rect.right > 0 &&
+        rect.top < innerHeight &&
+        rect.left < innerWidth
+    const visible = (element) => element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })
+    const parts = []
+    const range = document.createRange()
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (!node.nodeValue?.trim() || !node.parentElement || !visible(node.parentElement)) continue
+        range.selectNodeContents(node)
+        if ([...range.getClientRects()].some(inViewport)) parts.push(node.nodeValue)
+    }
     for (const element of document.querySelectorAll('[placeholder],[aria-label],[title],[alt],input,textarea')) {
+        if (!visible(element) || !inViewport(element.getBoundingClientRect())) continue
         for (const attribute of ['placeholder', 'aria-label', 'title', 'alt']) {
             const value = element.getAttribute(attribute)
             if (value) parts.push(value)
