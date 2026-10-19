@@ -1,6 +1,8 @@
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { supportedPeanutChains, peanutTokenDetails } from '@/constants/token-registry.consts'
 import { CHAIN_REGISTRY } from '@/constants/chainRegistry.consts'
+import { nativeCurrencyAddresses } from '@/constants/general.consts'
+import { TOKEN_LOGOS } from '@/constants/rhino.consts'
 import ARBITRUM_ICON from '@/assets/chains/arbitrum.svg'
 import MANTLE_ICON from '@/assets/chains/mantle.svg'
 
@@ -26,11 +28,27 @@ const CHAIN_ICON_OVERRIDES: Record<string, string> = {
     '5000': MANTLE_ICON,
 }
 
-// Same ipfs.io problem for the native-token logos on those chains.
-const TOKEN_LOGO_OVERRIDES: Record<string, string> = {
-    '8453:ETH': 'https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/svg/color/eth.svg',
-    '43114:AVAX': 'https://coin-images.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png',
-    '5000:MNT': MANTLE_ICON,
+/*
+ * One logo per native token, whatever chain carries it. The catalog gives
+ * native ETH the CHAIN's logo on several chains (Arbitrum's arbiscan SVG,
+ * Optimism's OP logo, Scroll's), so the token-first selector — which shows a
+ * token with the logo of its first network, Arbitrum — drew ETH as Arbitrum.
+ * Others ship SVGs next/image refuses (BNB, POL/MATIC, mainnet ETH) or
+ * dotless ipfs.io URLs the native WebView cannot load (Base ETH, AVAX, MNT).
+ */
+const NATIVE_TOKEN_LOGOS: Record<string, string> = {
+    ETH: TOKEN_LOGOS.ETH,
+    BNB: 'https://assets.coingecko.com/coins/images/12591/thumb/binance-coin-logo.png?1696512401',
+    MATIC: 'https://assets.coingecko.com/coins/images/14073/thumb/matic.png?1696513797',
+    POL: 'https://assets.coingecko.com/coins/images/14073/thumb/matic.png?1696513797',
+    AVAX: 'https://coin-images.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png',
+    MNT: MANTLE_ICON,
+}
+
+/** the canonical logo for a native token, else the catalog's own logo */
+export function tokenLogo(address: string, symbol: string, catalogLogo: string): string {
+    const isNative = nativeCurrencyAddresses.includes(address.toLowerCase())
+    return (isNative && NATIVE_TOKEN_LOGOS[symbol.toUpperCase()]) || catalogLogo
 }
 
 // TASK-21667: chain-details.json ships mostly SVG icon URLs, and next/image
@@ -70,7 +88,7 @@ export async function getSupportedChainsAndTokens(): Promise<Record<string, Chai
                 decimals: token.decimals,
                 name: token.name,
                 symbol: token.symbol,
-                logoURI: TOKEN_LOGO_OVERRIDES[`${chainTokens.chainId}:${token.symbol.toUpperCase()}`] ?? token.logoURI,
+                logoURI: tokenLogo(token.address, token.symbol, token.logoURI),
             })
         }
     }
