@@ -123,7 +123,7 @@ law 8). It reads two shapes. In class strings, a `focus:`, `focus-visible:` or
 selector has `:focus` and sets an `outline*`, `border*` or `--tw-ring-color`
 colour other than `var(--color-action-focus)` counts, named colours such as
 `red` or `currentColor` and non-token variables such as `var(--brand)`
-included; a variable named for a width, offset, style, radius or size is not
+included; a variable named for a width, offset, radius or size is not
 a colour. `box-shadow` is not read:
 the autofill repaint sets a background shadow on `:focus`. The pink
 pointer-focus border (ui#3041, reverted in ui#3161) was raw CSS in

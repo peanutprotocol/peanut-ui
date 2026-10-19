@@ -306,8 +306,9 @@ const FOCUS_CSS_PROP_RE = /^(?:outline|outline-color|border(?:-[a-z]+)*|--tw-rin
 // a colour reference: any var() (a non-token variable can hold any colour),
 // hex, or a colour function. named colours are counted by countNamedCssColors.
 const CSS_COLOR_RE = /var\(--([a-zA-Z0-9_-]+)|#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab)\(/g
-// a var() that names a width, offset, style, radius or size is not a colour.
-const CSS_NON_COLOR_VAR_RE = /width|offset|style|radius|size/
+// a var() that names a width, offset, radius or size is not a colour. a
+// "style" var can hold a whole outline shorthand, colour included, so it counts.
+const CSS_NON_COLOR_VAR_RE = /width|offset|radius|size/
 
 // a named colour (red, hotpink, currentColor…): any bare word left once
 // functions, hex and the non-colour keywords of outline/border are removed.

@@ -1138,6 +1138,7 @@ describe('offFocusColor', () => {
 
     it('flags non-token css variables on focus', () => {
         expect(countOffFocusColorCss('.input:focus { border-color: var(--brand-color); }')).toBe(1)
+        expect(countOffFocusColorCss('.input:focus-visible { outline: var(--focus-style); }')).toBe(1)
         expect(countOffFocusColorCss('.input:focus { outline: 3px solid var(--color-action-focus); }')).toBe(0)
         expect(
             countOffFocusColorCss('.input:focus { outline: var(--ring-width) solid var(--color-action-focus); }')
