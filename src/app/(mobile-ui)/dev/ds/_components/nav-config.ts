@@ -509,32 +509,28 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'Brand',
             icon: Stamp,
             href: '/dev/ds/marketing/brand',
-            description:
-                'The brand as shipped: palette, corner + border rules, body weight, the display ramp, the Knerd rule, and brand-book errata',
+            description: 'Grounds, buttons and panels, body and display type, Knerd — the classes to copy',
             status: 'production',
         },
         {
             label: 'Assets',
             icon: Images,
             href: '/dev/ds/marketing/assets',
-            description:
-                'The approved brand art: mascot pose gallery, doodle and glove inventory with their art direction, and where-used notes',
+            description: 'The art you may use: mascot poses, doodles, gloves. Not here = not approved',
             status: 'production',
         },
         {
             label: 'Landing',
             icon: AppWindow,
             href: '/dev/ds/marketing/landing',
-            description:
-                'The LP recipes at true 390/1440 viewports: the three heroes with placement rules, FAQ and closing folds, the on-band CTA, containers and section rhythm',
+            description: 'Pick a hero, build the CTA, keep the containers. Real components at 390 and 1440',
             status: 'production',
         },
         {
             label: 'Content',
             icon: FileText,
             href: '/dev/ds/marketing/content',
-            description:
-                'Content-page visual rules at true 390/1440 viewports: plain pink hero, single-heading FAQ, plain-token tables, the 24px gutter + 640 prose measure, and the page header',
+            description: 'Hero, FAQ, tables, gutter, page header — one rule each, with the mdx to copy',
             status: 'production',
         },
     ],

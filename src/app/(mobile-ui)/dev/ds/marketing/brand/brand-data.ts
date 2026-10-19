@@ -17,31 +17,31 @@ export const MARKETING_PALETTE: PaletteEntry[] = [
         label: 'Cream',
         token: 'background-page',
         swatchClass: 'bg-background-page',
-        role: 'The page ground. Every marketing page sits on cream, never white (the brand book shows white).',
+        role: 'Page ground. Never white.',
     },
     {
         label: 'Pink',
         token: 'background-brand',
         swatchClass: 'bg-background-brand',
-        role: 'Brand ground for pink section bands (bg-background-brand) and the primary action (action-primary).',
+        role: 'Section bands. The primary button is action-primary, the same colour.',
     },
     {
         label: 'Yellow',
         token: 'action-secondary',
         swatchClass: 'bg-action-secondary',
-        role: 'Icon and mascot body colour; the secondary action and the home-only marquee.',
+        role: 'Marquee (home only), Steps band, mascot body, doodles.',
     },
     {
         label: 'Black',
         token: 'border-default',
         swatchClass: 'bg-border-default',
-        role: 'Near-black for text and borders. Pure #000 survives only on button borders and shadows — see the border split below.',
+        role: 'Text, card borders, the card fold. Pure #000 only on button borders and shadows.',
     },
     {
         label: 'Lavender',
         token: 'background-marketing-sky',
         swatchClass: 'bg-background-marketing-sky',
-        role: 'Marketing band ground. The lavender bands use this token; no raw hex and no app token (background-setup-hero is the sign-up hero, not a band).',
+        role: 'Sky bands (no-fees, QR, drop-link, exchange widget). Marketing only, never the app token.',
     },
 ]
 
@@ -50,16 +50,14 @@ export interface RampStep {
     /** font size / line height, px */
     sizePx: number
     leadingPx: number
-    /** text-<ramp> plus an explicit !leading override (see the page note) */
+    /** text-<ramp> plus an explicit !leading override so the specimen renders the number it labels */
     className: string
     sample: string
 }
 
 /**
- * The display ramp (weight 1000). The @theme tokens and the globals.css
- * compound rules carry this leading; the demo pins it with !leading-N as well so
- * the specimen always renders the number it labels. The leading numbers are
- * spacing steps: 26 = 104px, 16 = 64px, 11.5 = 46px, 9 = 36px.
+ * The display ramp (weight 1000). The leading numbers are spacing steps:
+ * 26 = 104px, 16 = 64px, 11.5 = 46px, 9 = 36px.
  */
 export const DISPLAY_RAMP: RampStep[] = [
     { label: 'headingLarge', sizePx: 112, leadingPx: 104, className: 'text-headingLarge !leading-26', sample: 'SEND' },
@@ -84,53 +82,26 @@ export interface ErrataEntry {
     /** where the brand book says it */
     pdfRef: string
     bookSays: string
-    ratified: string
+    siteDoes: string
 }
 
-/**
- * Errata against public/press/assets/Peanut_Brand_Guidelines.pdf. The live
- * site is the brand — the book gets this list, not a redesign.
- */
+/** Errata against public/press/assets/Peanut_Brand_Guidelines.pdf. The site wins. */
 export const BRAND_BOOK_ERRATA: ErrataEntry[] = [
+    { pdfRef: 'p.28', bookSays: 'Square corners', siteDoes: 'Pill buttons, 2px-radius cards' },
+    {
+        pdfRef: 'p.28',
+        bookSays: '~2px pure-black borders everywhere',
+        siteDoes: '1px #000 on buttons, 2px #161616 on cards',
+    },
+    { pdfRef: 'pp.2–28', bookSays: 'White pages', siteDoes: 'Cream #faf4f0' },
+    { pdfRef: 'p.18', bookSays: 'Body Regular 400', siteDoes: 'Body Medium 500' },
+    { pdfRef: 'pp.13–14, 25', bookSays: 'Lavender only behind the logo', siteDoes: 'Lavender is a band ground' },
+    { pdfRef: 'pp.10–12', bookSays: 'White sneakers', siteDoes: 'Pink sneakers' },
+    { pdfRef: 'pp.10, 30', bookSays: 'Walking mascot leads the key visual', siteDoes: 'Waving-chill pose on the hero' },
+    { pdfRef: 'p.30', bookSays: 'Nav bar', siteDoes: 'Back circle + locale switcher strip' },
     {
         pdfRef: 'p.1 vs p.31',
-        bookSays: 'Cover reads "VERSION 1.2 / NOVEMBER 2024"; the back page reads "Version 1 – 30.10.2024"',
-        ratified: 'The cover label v1.2 is canonical; the back-page label is stale',
-    },
-    {
-        pdfRef: 'p.28',
-        bookSays: 'Square corners on buttons, panels and inputs',
-        ratified: 'Pill buttons (rounded-full); panels and tiles at rounded-sm = 2px',
-    },
-    {
-        pdfRef: 'p.28',
-        bookSays: 'Uniform ~2px pure-black borders',
-        ratified:
-            'The shipped split: 1px #000000 on buttons (border-button), 2px #161616 elsewhere (border-2 border-default)',
-    },
-    {
-        pdfRef: 'p.18',
-        bookSays: 'Body copy in Roboto Flex Regular (400)',
-        ratified: 'Marketing body weight is 500 (font-medium)',
-    },
-    {
-        pdfRef: 'pp.2–28',
-        bookSays: 'White content surfaces throughout',
-        ratified: 'Cream #faf4f0 (background-page) is the page ground',
-    },
-    {
-        pdfRef: 'pp.13–14, 25',
-        bookSays: 'Lavender is secondary only — a logo background, never a page ground',
-        ratified: 'Lavender #90a8ed is a named marketing band ground with usage rules',
-    },
-    {
-        pdfRef: 'pp.10–12',
-        bookSays: 'Mascot in yellow, black and white only, with white sneakers',
-        ratified: 'Pink sneakers are canon, consistent across all 10 Lotties',
-    },
-    {
-        pdfRef: 'pp.10, 30',
-        bookSays: 'The key visual leads with the walking mascot',
-        ratified: 'The shipped animated waving-chill pose stays on the landing hero',
+        bookSays: '"Version 1 – 30.10.2024" on the back page',
+        siteDoes: 'Cover label v1.2 is the version',
     },
 ]
