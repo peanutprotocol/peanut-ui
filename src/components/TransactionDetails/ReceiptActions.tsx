@@ -90,6 +90,13 @@ export function ReceiptActions({
     const [cancelLinkState, setCancelLinkState] = useState<CancelLinkState>('idle')
     const [showCancelConfirm, setShowCancelConfirm] = useState(false)
     const [showCloseRequestConfirm, setShowCloseRequestConfirm] = useState(false)
+    // Closing a request that already took money ends it short of its goal, so
+    // it asks first and names what is unpaid. It used to close in one tap,
+    // beside contributor rows that summed to the full goal (TASK-23856).
+    const closeNeedsConfirm = transaction.totalAmountCollected > 0
+    // gated like the cancel confirm: a request that stops being open while the
+    // confirm is up must not leave the parent drawer locked
+    const closeRequestConfirmOpen = isPendingRequester && closeNeedsConfirm && showCloseRequestConfirm
 
     // Every completed kind shares the same thing: the authenticated PDF file.
     // An action/payment URL is not necessarily a public receipt URL, so only
@@ -122,8 +129,8 @@ export function ReceiptActions({
     // closes the more-actions drawer; this effect runs after the child's and
     // would otherwise release the lock the child just took.
     useEffect(() => {
-        setIsModalOpen?.(showCancelLinkDrawer || showMoreActions || cancelConfirmOpen || showCloseRequestConfirm)
-    }, [showCancelLinkDrawer, showMoreActions, cancelConfirmOpen, showCloseRequestConfirm, setIsModalOpen])
+        setIsModalOpen?.(showCancelLinkDrawer || showMoreActions || cancelConfirmOpen || closeRequestConfirmOpen)
+    }, [showCancelLinkDrawer, showMoreActions, cancelConfirmOpen, closeRequestConfirmOpen, setIsModalOpen])
     // one primary per state: split first, else share (never both visible)
     const sharePrimary = !showSplitCta && canSharePdf
     const isTest = isTestTransaction(transaction.userName)
@@ -153,10 +160,6 @@ export function ReceiptActions({
         if (ok) onClose()
     }
 
-    // Closing a request that already took money ends it short of its goal, so
-    // it asks first and names what is unpaid. It used to close in one tap,
-    // beside contributor rows that summed to the full goal (TASK-23856).
-    const closeNeedsConfirm = transaction.totalAmountCollected > 0
     const requestGoal = transaction.isRequestPotLink ? Number(transaction.amount) : 0
     const unpaidAmount = Math.max(requestGoal - transaction.totalAmountCollected, 0)
     const closeConfirmDescription =
@@ -349,7 +352,7 @@ export function ReceiptActions({
             {isPendingRequester && closeNeedsConfirm && setIsLoading && onClose && (
                 <Drawer
                     nested={!!setIsModalOpen}
-                    open={showCloseRequestConfirm}
+                    open={closeRequestConfirmOpen}
                     onOpenChange={(isOpen) => {
                         if (!isOpen) setShowCloseRequestConfirm(false)
                     }}
