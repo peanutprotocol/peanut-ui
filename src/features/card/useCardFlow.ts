@@ -172,7 +172,7 @@ export function useCardFlow() {
             invalidateOverview()
         },
     })
-    const startKycAction = kycFlow.handleStartAction
+    const startFlowAction = kycFlow.handleStartAction
 
     // Proof-of-address self-heal — a dedicated, deliberately tiny flow. The
     // multi-phase KYC machinery (useMultiPhaseKycFlow) is bank-onboarding
@@ -354,7 +354,7 @@ export function useCardFlow() {
                 setPendingTerms(null)
                 setPendingCountryConfirmation(null)
                 const reason = 'reason' in res ? res.reason : undefined
-                if (reason === 'requirements_missing') void startKycAction('supplement:rain')
+                if (reason === 'requirements_missing') void startFlowAction('supplement:rain')
                 else if (reason && reasonCodeKey(reason)) setPlanRefusal(reason)
                 else setApplyError(res.message)
                 return
@@ -371,7 +371,7 @@ export function useCardFlow() {
             if (res.status === 'pending') awaitingIssuanceRef.current = true
             invalidateOverview()
         },
-        [invalidateOverview, refetchCardInfo, startKycAction]
+        [invalidateOverview, refetchCardInfo, startFlowAction]
     )
 
     // Card-create-after-apply failure detector (see advanceFromApplyResponse).
