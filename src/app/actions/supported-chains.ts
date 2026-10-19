@@ -1,7 +1,7 @@
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { supportedPeanutChains, peanutTokenDetails } from '@/constants/token-registry.consts'
 import { CHAIN_REGISTRY } from '@/constants/chainRegistry.consts'
-import { nativeCurrencyAddresses } from '@/constants/general.consts'
+import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS } from '@/constants/tokens.consts'
 import { TOKEN_LOGOS } from '@/constants/rhino.consts'
 import ARBITRUM_ICON from '@/assets/chains/arbitrum.svg'
 import MANTLE_ICON from '@/assets/chains/mantle.svg'
@@ -47,7 +47,8 @@ const NATIVE_TOKEN_LOGOS: Record<string, string> = {
 
 /** the canonical logo for a native token, else the catalog's own logo */
 export function tokenLogo(address: string, symbol: string, catalogLogo: string): string {
-    const isNative = nativeCurrencyAddresses.includes(address.toLowerCase())
+    const lower = address.toLowerCase()
+    const isNative = lower === NATIVE_TOKEN_ADDRESS || lower === NATIVE_TOKEN_PROXY_ADDRESS.toLowerCase()
     return (isNative && NATIVE_TOKEN_LOGOS[symbol.toUpperCase()]) || catalogLogo
 }
 
