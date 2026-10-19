@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { USER } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { useAppLocale } from './AppIntlProvider'
+import { DEFAULT_APP_LOCALE } from './config'
 import { currentAppLocale, localeReady } from './locale-store'
 import { syncLocaleToBackend } from './locale-sync'
 
@@ -22,9 +23,10 @@ export function LocaleSync() {
     const { userId } = useAuth()
     const { locale } = useAppLocale()
     const queryClient = useQueryClient()
-    // last locale actually applied, so the startup swap from the english ssr
-    // default does not count as a switch
-    const appliedLocale = useRef<string | null>(null)
+    // last locale actually applied. starts at the english hydration default:
+    // /users/me can load before a saved non-english locale applies, so that
+    // first swap must refetch too
+    const appliedLocale = useRef<string>(DEFAULT_APP_LOCALE)
 
     useEffect(() => {
         if (!userId) return
@@ -37,7 +39,7 @@ export function LocaleSync() {
             syncLocaleToBackend(userId, applied)
             if (locale !== applied) return
             // the api localizes badge copy on /users/me, so refetch it in the new language
-            if (appliedLocale.current && appliedLocale.current !== locale) {
+            if (appliedLocale.current !== locale) {
                 void queryClient.invalidateQueries({ queryKey: [USER] })
             }
             appliedLocale.current = locale
