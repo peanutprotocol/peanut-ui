@@ -1301,7 +1301,9 @@
             "invalidPaymentUrlTitle": "Este link de pagamento não funciona",
             "invalidPaymentUrlDescription": "O link está incompleto ou digitado errado. Peça para quem enviou compartilhar de novo.",
             "requestNotFoundTitle": "Cobrança não encontrada",
-            "requestNotFoundDescription": "Esta cobrança não existe ou foi removida. Peça um novo link para quem enviou."
+            "requestNotFoundDescription": "Esta cobrança não existe ou foi removida. Peça um novo link para quem enviou.",
+            "requestClosedTitle": "Esta cobrança está encerrada",
+            "requestClosedDescription": "Quem criou encerrou esta cobrança, então ela não aceita mais pagamentos."
         },
         "requestCurrencyNote": "Esta solicitação pede {amount}. Com Peanut, cripto ou transferência bancária em dólar você paga o valor em dólar, que foi fixado quando a solicitação foi criada.",
         "requestCurrencyNotePartPaid": "Esta solicitação pede {amount} e faltam {remaining} a pagar. Com Peanut, cripto ou transferência bancária em dólar você paga o valor em dólar, que foi fixado quando a solicitação foi criada.",
@@ -3459,7 +3461,8 @@
             "noFee": "Sem taxa",
             "networkFee": "Taxa de rede",
             "noTokensFoundTitle": "Nenhum token encontrado",
-            "lockedHint": "Por enquanto, só USDC na Arbitrum"
+            "lockedHint": "Por enquanto, só USDC na Arbitrum",
+            "tokenNotOnNetwork": "Sem {symbol} nesta rede"
         },
         "qrScanner": {
             "scanToPay": "Escaneie para pagar",

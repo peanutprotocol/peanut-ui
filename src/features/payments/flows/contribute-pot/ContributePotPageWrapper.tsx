@@ -83,5 +83,23 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
         )
     }
 
+    // a closed request takes no more money: the requester closed it, or it was
+    // paid. Without this the payer still got the amount field and every pay
+    // button, and could pay the remainder of a request the requester had closed.
+    if (request.status === 'CLOSED') {
+        return (
+            <div className="flex min-h-inherit w-full flex-col gap-4">
+                <NavHeader title={t('headers.pay')} onPrev={onBack} />
+                <div className="flex flex-grow flex-col justify-center py-8">
+                    <EmptyState
+                        concept="requestLink"
+                        title={t('errors.requestClosedTitle')}
+                        description={request.paidAt ? t('requestAlreadyCovered') : t('errors.requestClosedDescription')}
+                    />
+                </div>
+            </div>
+        )
+    }
+
     return <ContributePotPage request={request} />
 }
