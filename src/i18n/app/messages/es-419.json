@@ -1302,7 +1302,8 @@
             "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pide a quien lo envió que lo comparta de nuevo.",
             "requestNotFoundTitle": "Solicitud no encontrada",
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió.",
-            "requestClosedTitle": "Esta solicitud está cerrada"
+            "requestClosedTitle": "Esta solicitud está cerrada",
+            "externalPaymentNotConfirmed": "No se pudo confirmar este pago. Si el dinero salió de tu billetera, contacta a soporte."
         },
         "bankTransfer": {
             "title": "Pagar por transferencia bancaria",
@@ -1327,7 +1328,12 @@
         "requestAsksForDollars": "{amount} en dólares, fijado al crear la solicitud",
         "partialContribution": {
             "title": "{received} de {asked} recibidos",
-            "description": "Todavía faltan {remaining}. Envíalos a la misma dirección."
+            "description": "Todavía faltan {remaining}. Envíalos a la misma dirección.",
+            "descriptionNoAddress": "Todavía faltan {remaining}."
+        },
+        "confirmingPayment": {
+            "title": "Confirmando pago",
+            "description": "Todavía estamos confirmando tu pago. Puede tardar unos minutos y aparecerá en Actividad. Si no llega, contacta a soporte."
         },
         "requestAlreadyCovered": "Esta solicitud ya está cubierta. No queda nada por pagar."
     },

@@ -11,7 +11,15 @@ import { useTranslations } from 'next-intl'
 
 const ExternalWalletPaymentView = () => {
     const t = useTranslations('payment')
-    const { charge, setCurrentView, completeExternalWalletPayment, amount, request } = useContributePotFlow()
+    const {
+        charge,
+        setCurrentView,
+        completeExternalWalletPayment,
+        amount,
+        request,
+        // true while the bridged deposit waits for the API to book it
+        isLoading: isConfirmingPayment,
+    } = useContributePotFlow()
     const [chainType, setChainType] = useState<RhinoChainType>('EVM')
     const { address: peanutWalletAddress } = useWallet()
 
@@ -53,6 +61,7 @@ const ExternalWalletPaymentView = () => {
                 }
                 amount={Number(amount)}
                 tokenAmount={charge ? `${charge.tokenAmount} ${charge.tokenSymbol}` : undefined}
+                isConfirming={isConfirmingPayment}
             />
         </div>
     )

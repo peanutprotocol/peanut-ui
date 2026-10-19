@@ -16,7 +16,8 @@ import { PointsAction } from '@/services/services.types'
 import { useTranslations } from 'next-intl'
 import { contributedAmount } from '@/utils/request-pot.utils'
 import { isStableCoin } from '@/utils/general.utils'
-import { receiptStatusForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
+import { isChargeAwaitingBooking, receiptStatusForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
+import { PaymentConfirmingView } from '@/features/payments/shared/components/PaymentConfirmingView'
 
 export function SemanticRequestSuccessView() {
     const t = useTranslations('payment')
@@ -42,14 +43,28 @@ export function SemanticRequestSuccessView() {
     const bookedUsd =
         isExternalWalletPayment && charge && isStableCoin(charge.tokenSymbol) ? contributedAmount(charge) : undefined
     const paidUsd = bookedUsd ?? usdAmount
+    // An external-wallet charge the API had not booked when the read-back gave
+    // up: nothing is sent yet, so nothing is claimed and no points are estimated.
+    const isAwaitingBooking = isExternalWalletPayment && isChargeAwaitingBooking(charge)
 
     // calculate points for the payment (request fulfillment)
     const { pointsData } = usePointsCalculation(
         PointsAction.P2P_REQUEST_PAYMENT,
         paidUsd,
-        !!payment || isExternalWalletPayment, // For external wallet payments, we dont't have payment info on the FE, its handled by webooks on BE
+        // For external wallet payments, we dont't have payment info on the FE, its handled by webooks on BE
+        (!!payment || isExternalWalletPayment) && !isAwaitingBooking,
         payment?.uuid
     )
+
+    if (isAwaitingBooking) {
+        return (
+            <PaymentConfirmingView
+                headerTitle={t('headers.pay')}
+                onComplete={resetSemanticRequestFlow}
+                redirectTo="/home"
+            />
+        )
+    }
 
     return (
         <PaymentSuccessView

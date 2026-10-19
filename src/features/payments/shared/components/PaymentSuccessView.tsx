@@ -38,7 +38,7 @@ import { recordDemoTransaction } from '@/utils/demo-transactions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { useReturnTo } from '@/hooks/useSafeBack'
+import { useFlowExit } from '@/features/payments/shared/hooks/useFlowExit'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
@@ -291,15 +291,8 @@ const PaymentSuccessView = ({
     }, [queryClient])
 
     // Rewinds to the destination past every entry the flow pushed, or replaces
-    // this page with it. A push kept the finished flow under home, so back from
-    // home reopened the request or send just completed (QA-09); a replace
-    // still kept the flow's earlier entries.
-    const leaveFlow = useReturnTo(!!authUser?.user.userId ? redirectTo : '/setup')
-    const handleDone = () => {
-        // navigate before onComplete, which may reset state and unmount this view first
-        leaveFlow()
-        onComplete?.()
-    }
+    // this page with it; a replace still kept the flow's earlier entries.
+    const handleDone = useFlowExit(redirectTo, onComplete)
 
     const getTitle = () => {
         if (isExternalWalletFlow) return t('success.addedExternal')

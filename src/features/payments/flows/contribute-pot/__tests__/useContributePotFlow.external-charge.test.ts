@@ -80,44 +80,75 @@ test('the first tap creates a charge', async () => {
     expect(ctx.setCharge).toHaveBeenCalledWith(expect.objectContaining({ uuid: 'charge-new' }))
 })
 
-test('a repeat tap for the same amount reuses the open charge and its address', async () => {
+// The charge in hand is a snapshot from its creation: it is read again first.
+test('a repeat tap for the same amount reuses the charge while it is still PENDING', async () => {
     ctx.charge = openCharge()
+    const live = openCharge({ status: 'PENDING' })
+    mockFetchCharge.mockResolvedValue(live)
+
     expect(await tapExternalWallet()).toEqual({ success: true })
+
+    expect(mockFetchCharge).toHaveBeenCalledWith('charge-1')
     expect(mockCreateCharge).not.toHaveBeenCalled()
-    expect(ctx.setCharge).not.toHaveBeenCalled()
+    expect(ctx.setCharge).toHaveBeenCalledWith(live)
 })
 
-test('an API that sends no charge status still reuses the charge it just created', async () => {
-    ctx.charge = openCharge({ status: undefined })
-    await tapExternalWallet()
-    expect(mockCreateCharge).not.toHaveBeenCalled()
-})
-
-test('a changed amount creates a new charge', async () => {
+test.each([
+    ['the reaper failed it', { status: 'FAILED' }],
+    ['it already took money', { status: 'COMPLETED' }],
+    ['the API sends no status', { status: undefined }],
+])('a new charge when %s', async (_, live) => {
     ctx.charge = openCharge()
-    ctx.amount = '58.51'
-    ctx.usdAmount = '58.51'
+    mockFetchCharge.mockResolvedValue(openCharge(live))
     await tapExternalWallet()
-    expect(mockCreateCharge).toHaveBeenCalledWith(expect.objectContaining({ tokenAmount: '58.51' }))
+    expect(mockCreateCharge).toHaveBeenCalledTimes(1)
+    expect(ctx.setCharge).toHaveBeenCalledWith(expect.objectContaining({ uuid: 'charge-new' }))
 })
 
-test('a charge that already took money is not reused', async () => {
-    ctx.charge = openCharge({ status: 'COMPLETED' })
+test('a new charge when the read fails', async () => {
+    ctx.charge = openCharge()
+    mockFetchCharge.mockRejectedValue(new Error('offline'))
     await tapExternalWallet()
     expect(mockCreateCharge).toHaveBeenCalledTimes(1)
 })
 
-// Rhino reports "completed" whatever amount arrived: the charge is read back
-// before the success screen says anything.
+test('a new charge when the open one asks more than the request still needs', async () => {
+    ctx.charge = openCharge()
+    ctx.totalCollected = 70 // $29.16 left of $99.16; the open charge asks $33.05
+    mockFetchCharge.mockResolvedValue(openCharge())
+    await tapExternalWallet()
+    expect(mockFetchCharge).not.toHaveBeenCalled()
+    expect(mockCreateCharge).toHaveBeenCalledTimes(1)
+})
+
+test('a changed amount creates a new charge without reading the old one', async () => {
+    ctx.charge = openCharge()
+    ctx.amount = '58.51'
+    ctx.usdAmount = '58.51'
+    await tapExternalWallet()
+    expect(mockFetchCharge).not.toHaveBeenCalled()
+    expect(mockCreateCharge).toHaveBeenCalledWith(expect.objectContaining({ tokenAmount: '58.51' }))
+})
+
+// Rhino says "completed" on BRIDGE_EXECUTED, and the API books the payment a
+// few seconds later: the charge is read until it is final.
 describe('completeExternalWalletPayment', () => {
-    const complete = async () => {
+    beforeEach(() => jest.useFakeTimers())
+    afterEach(() => jest.useRealTimers())
+
+    const complete = async (runFor: number) => {
         const { result } = renderHookWithIntl(() => useContributePotFlow())
+        let done: Promise<void> | undefined
+        act(() => {
+            done = result.current.completeExternalWalletPayment('0xdeposit')
+        })
         await act(async () => {
-            await result.current.completeExternalWalletPayment('0xdeposit')
+            await jest.advanceTimersByTimeAsync(runFor)
+            await done
         })
     }
 
-    test('reads the charge back, keeps the address and shows the result', async () => {
+    test('two PROCESSING reads, then the short payment completes: the partial result shows', async () => {
         ctx.charge = openCharge({ tokenAmount: '58.51' })
         const booked = openCharge({
             tokenAmount: '58.51',
@@ -125,25 +156,73 @@ describe('completeExternalWalletPayment', () => {
             settledAmount: '33',
             partialPayment: true,
         })
-        mockFetchCharge.mockResolvedValue(booked)
+        mockFetchCharge
+            .mockResolvedValueOnce(openCharge({ tokenAmount: '58.51', status: 'PROCESSING', settledAmount: null }))
+            .mockResolvedValueOnce(openCharge({ tokenAmount: '58.51', status: 'PROCESSING', settledAmount: null }))
+            .mockResolvedValueOnce(booked)
 
-        await complete()
+        await complete(6_000)
 
-        expect(mockFetchCharge).toHaveBeenCalledWith('charge-1')
-        expect(ctx.setCharge).toHaveBeenCalledWith(booked)
+        expect(mockFetchCharge).toHaveBeenCalledTimes(3)
+        // the deposit screen stays on its confirming state while the reads run
+        expect(ctx.setIsLoading).toHaveBeenNthCalledWith(1, true)
+        expect(ctx.setIsLoading).toHaveBeenLastCalledWith(false)
+        expect(ctx.setCharge).toHaveBeenLastCalledWith(booked)
         expect(ctx.setExternalDepositAddress).toHaveBeenCalledWith('0xdeposit')
         expect(ctx.setIsExternalWalletPayment).toHaveBeenCalledWith(true)
         expect(ctx.setCurrentView).toHaveBeenCalledWith('STATUS')
         expect(ctx.refetchRequestPot).toHaveBeenCalled()
     })
 
-    test('a failed read still shows the result, with the charge in hand', async () => {
+    test('a failed charge goes back to the amount screen with an error', async () => {
         ctx.charge = openCharge()
-        mockFetchCharge.mockRejectedValue(new Error('offline'))
+        mockFetchCharge.mockResolvedValue(openCharge({ status: 'FAILED' }))
 
-        await complete()
+        await complete(0)
 
+        expect(ctx.setError).toHaveBeenCalledWith({
+            showError: true,
+            errorMessage: 'This payment could not be confirmed. If money left your wallet, contact support.',
+        })
+        expect(ctx.setCurrentView).toHaveBeenCalledWith('INITIAL')
+        expect(ctx.setCurrentView).not.toHaveBeenCalledWith('STATUS')
+        expect(ctx.setIsExternalWalletPayment).not.toHaveBeenCalled()
+    })
+
+    test('leaving the deposit screen mid-read stops it: no navigation, nothing busy', async () => {
+        ctx.charge = openCharge()
+        mockFetchCharge.mockResolvedValue(openCharge({ status: 'PROCESSING' }))
+        const { result, unmount } = renderHookWithIntl(() => useContributePotFlow())
+        let done: Promise<void> | undefined
+        act(() => {
+            done = result.current.completeExternalWalletPayment('0xdeposit')
+        })
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(3_000)
+        })
+
+        unmount()
+        mockFetchCharge.mockResolvedValue(openCharge({ status: 'COMPLETED', settledAmount: '33.05' }))
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(60_000)
+            await done
+        })
+
+        expect(mockFetchCharge.mock.calls.length).toBeLessThanOrEqual(3)
+        expect(ctx.setCurrentView).not.toHaveBeenCalled()
         expect(ctx.setCharge).not.toHaveBeenCalled()
+        expect(ctx.setIsLoading).toHaveBeenLastCalledWith(false)
+    })
+
+    test('a charge still open after a minute shows the result in its confirming form', async () => {
+        ctx.charge = openCharge()
+        const open = openCharge({ status: 'PROCESSING' })
+        mockFetchCharge.mockResolvedValue(open)
+
+        await complete(60_000)
+
+        expect(ctx.setCharge).toHaveBeenLastCalledWith(open)
         expect(ctx.setCurrentView).toHaveBeenCalledWith('STATUS')
+        expect(ctx.setIsLoading).toHaveBeenLastCalledWith(false)
     })
 })

@@ -13,10 +13,11 @@
  * supports route expiry handling - auto-refreshes routes when expired
  */
 
-import { useCallback, useMemo, useEffect, useContext } from 'react'
+import { useCallback, useMemo, useEffect, useContext, useRef } from 'react'
 import { parseUnits, type Address, type Hash } from 'viem'
 import { useSemanticRequestFlowContext } from './SemanticRequestFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
+import { readChargeUntilFinal } from '@/features/payments/shared/utils/charge-receipt.utils'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { isQuoteNearExpiry } from '@/services/rhino-bridge'
@@ -687,22 +688,45 @@ export function useSemanticRequestFlow() {
         removeChargeIdFromUrl()
     }, [setCurrentView, setCharge, resetRoute, removeChargeIdFromUrl])
 
+    // The read-back below belongs to the screen that started it (each screen
+    // calls this hook). Leaving that screen ends it, so a result that comes in
+    // later never moves the payer from wherever they went.
+    const hasLeftScreenRef = useRef(false)
+    useEffect(() => {
+        hasLeftScreenRef.current = false
+        return () => {
+            hasLeftScreenRef.current = true
+        }
+    }, [])
+
     /**
      * The external-wallet poll saw the deposit bridged. Rhino reports that
-     * whatever amount arrived, so the charge is read back before the success
-     * screen states an amount or a status (TASK-23856).
+     * whatever amount arrived, and before the API has booked it, so the charge
+     * is read until it is final before the success screen states an amount or
+     * a status (TASK-23856). Meanwhile `isLoading` keeps the deposit screen on
+     * its confirming state. A failed or cancelled charge goes back to the
+     * amount screen with an error; one still open after a minute shows the
+     * success screen in its confirming form.
      */
     const completeExternalWalletPayment = useCallback(async () => {
         if (charge) {
-            try {
-                setCharge(await fetchCharge(charge.uuid))
-            } catch {
-                // the charge in hand still names the amount asked: the screen shows it as before
+            setIsLoading(true)
+            const { charge: booked, outcome } = await readChargeUntilFinal(() => fetchCharge(charge.uuid), {
+                isCancelled: () => hasLeftScreenRef.current,
+            })
+            setIsLoading(false)
+            // the payer left the deposit screen meanwhile: a late result navigates nowhere
+            if (outcome === 'cancelled') return
+            if (booked) setCharge(booked)
+            if (outcome === 'failed') {
+                setError({ showError: true, errorMessage: t('errors.externalPaymentNotConfirmed') })
+                setCurrentView('INITIAL')
+                return
             }
         }
         setIsExternalWalletPayment(true)
         setCurrentView('STATUS')
-    }, [charge, fetchCharge, setCharge, setIsExternalWalletPayment, setCurrentView])
+    }, [charge, fetchCharge, setCharge, setIsLoading, setError, t, setIsExternalWalletPayment, setCurrentView])
 
     return {
         // state

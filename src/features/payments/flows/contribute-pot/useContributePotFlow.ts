@@ -13,7 +13,7 @@
  * based on existing contributions (e.g. suggests 1/3 for split bills)
  */
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { type Address } from 'viem'
 import { useContributePotFlowContext } from './ContributePotFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
@@ -27,6 +27,7 @@ import { useTranslations } from 'next-intl'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 import { remainingToPay } from './collected'
+import { readChargeUntilFinal } from '@/features/payments/shared/utils/charge-receipt.utils'
 
 export function useContributePotFlow() {
     const t = useTranslations('payment')
@@ -183,24 +184,33 @@ export function useContributePotFlow() {
                 return { success: false }
             }
 
+            setIsLoading(true)
+            clearError()
+
             // A second tap on External wallet for the same amount opens the same
             // deposit address. Each tap used to create a charge with its own live
             // address, and every one of them could still take money (TASK-23856).
-            // A changed amount gets a new charge: the payer cannot cancel the old
-            // one, because DELETE /charges/:id answers only the requester.
+            // The charge in hand is a snapshot from its creation, so it is read
+            // again: only a charge still PENDING is reused, never one the reaper
+            // failed or one that already took money, and only while it does not
+            // ask more than the request still needs. A changed amount, a failed
+            // read, or an API that sends no status gets a new charge. The payer
+            // cannot cancel the old one: DELETE /charges/:id answers only the
+            // requester.
             if (
                 shouldReturnAfterCreatingCharge &&
                 charge &&
                 charge.requestLink?.uuid === request.uuid &&
                 Number(charge.tokenAmount) === Number(amount) &&
-                (charge.status ?? 'PENDING') === 'PENDING'
+                Number(amount) <= remainingAmount
             ) {
-                clearError()
-                return { success: true }
+                const live = await fetchCharge(charge.uuid).catch(() => null)
+                if (live?.status === 'PENDING') {
+                    setCharge(live)
+                    setIsLoading(false)
+                    return { success: true }
+                }
             }
-
-            setIsLoading(true)
-            clearError()
 
             try {
                 // step 1: create charge for this contribution
@@ -283,6 +293,8 @@ export function useContributePotFlow() {
             walletAddress,
             request,
             charge,
+            remainingAmount,
+            fetchCharge,
             createCharge,
             sendMoney,
             recordPayment,
@@ -300,18 +312,44 @@ export function useContributePotFlow() {
         ]
     )
 
+    // The read-back below belongs to the screen that started it (each screen
+    // calls this hook). Leaving that screen ends it, so a result that comes in
+    // later never moves the payer from wherever they went.
+    const hasLeftScreenRef = useRef(false)
+    useEffect(() => {
+        hasLeftScreenRef.current = false
+        return () => {
+            hasLeftScreenRef.current = true
+        }
+    }, [])
+
     /**
      * The external-wallet poll saw the deposit bridged. Rhino reports that
-     * whatever amount arrived, so the charge is read back before the success
-     * screen states an amount or a status (TASK-23856).
+     * whatever amount arrived, and before the API has booked it, so the charge
+     * is read until it is final before the success screen states an amount or
+     * a status (TASK-23856). Meanwhile `isLoading` keeps the deposit screen on
+     * its confirming state.
+     *
+     * - completed: the success screen, or the partial one for a short payment.
+     * - failed or cancelled: back to the amount screen with an error.
+     * - still open after a minute: the success screen in its confirming form,
+     *   which states only what the charge asked.
      */
     const completeExternalWalletPayment = useCallback(
         async (depositAddress: string | undefined) => {
             if (charge) {
-                try {
-                    setCharge(await fetchCharge(charge.uuid))
-                } catch {
-                    // the charge in hand still names the amount asked: the screen shows it as before
+                setIsLoading(true)
+                const { charge: booked, outcome } = await readChargeUntilFinal(() => fetchCharge(charge.uuid), {
+                    isCancelled: () => hasLeftScreenRef.current,
+                })
+                setIsLoading(false)
+                // the payer left the deposit screen meanwhile: a late result navigates nowhere
+                if (outcome === 'cancelled') return
+                if (booked) setCharge(booked)
+                if (outcome === 'failed') {
+                    setError({ showError: true, errorMessage: t('errors.externalPaymentNotConfirmed') })
+                    setCurrentView('INITIAL')
+                    return
                 }
             }
             void refetchRequestPot()
@@ -323,6 +361,9 @@ export function useContributePotFlow() {
             charge,
             fetchCharge,
             setCharge,
+            setIsLoading,
+            setError,
+            t,
             refetchRequestPot,
             setExternalDepositAddress,
             setIsExternalWalletPayment,

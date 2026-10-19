@@ -10,7 +10,14 @@ import { isStableCoin } from '@/utils/general.utils'
 
 const SemanticRequestExternalWalletView = () => {
     const t = useTranslations('payment')
-    const { charge, setCurrentView, completeExternalWalletPayment, amount } = useSemanticRequestFlow()
+    const {
+        charge,
+        setCurrentView,
+        completeExternalWalletPayment,
+        amount,
+        // true while the bridged deposit waits for the API to book it
+        isLoading: isConfirmingPayment,
+    } = useSemanticRequestFlow()
     const [chainType, setChainType] = useState<RhinoChainType>('EVM')
     const { address: peanutWalletAddress } = useWallet()
 
@@ -40,6 +47,7 @@ const SemanticRequestExternalWalletView = () => {
             onSuccess={onSuccess}
             onBack={() => setCurrentView('INITIAL')}
             showUserCard
+            isConfirming={isConfirmingPayment}
             amount={Number(amount)}
             // a dollar stablecoin's amount is the dollar figure on the card; another
             // token's would need its own wording, so it shows none

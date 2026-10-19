@@ -32,6 +32,8 @@ interface RhinoDepositViewProps {
     /** the exact amount in the token the charge settles in, e.g. "58.51 USDC"; shown on the user card */
     tokenAmount?: string
     identifier?: string
+    /** the deposit bridged and the flow is waiting for the API to book it: stay on the processing state */
+    isConfirming?: boolean
 }
 
 const RhinoDepositView = ({
@@ -46,6 +48,7 @@ const RhinoDepositView = ({
     amount,
     tokenAmount,
     identifier,
+    isConfirming = false,
 }: RhinoDepositViewProps) => {
     const t = useTranslations('addMoney.crypto')
     const tAddMoney = useTranslations('addMoney')
@@ -98,10 +101,12 @@ const RhinoDepositView = ({
     // deposit detected and settling — the processing state owns the whole
     // screen; the network toggle and instructions must not invite another
     // deposit while this one confirms
-    if (depositAddressStatus === 'loading') {
+    if (depositAddressStatus === 'loading' || isConfirming) {
         return (
             <PageStack>
-                <NavHeader title={headerTitle} onPrev={onBack} />
+                {/* no way back while the payment is being booked: the flow would
+                    land on the amount screen with its buttons still busy */}
+                <NavHeader title={headerTitle} onPrev={onBack} hideBackBtn={isConfirming} />
                 <ProcessingScreen
                     title={tAddMoney('processingDepositTitle')}
                     description={tAddMoney('processingDepositBody')}
