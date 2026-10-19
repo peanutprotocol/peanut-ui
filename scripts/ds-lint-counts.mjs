@@ -27,6 +27,8 @@ import {
     BARE_LIST_LEADING_RE,
     HEX_RE,
     FONT_KNERD_RE,
+    countOffFocusColorClasses,
+    countOffFocusColorCss,
 } from './ds-lint-rules.cjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -350,6 +352,15 @@ counts.knerdOutsideTitle = files
     .filter((f) => !allowed(f.path) && !f.path.includes('components/0_Bruddle/Title.tsx'))
     .reduce((sum, f) => sum + countMatches(f.text, FONT_KNERD_RE), 0)
 
+// TASK-23368: focus is one colour, action-focus (design.md law 8). class
+// strings in every scanned file, plus the stylesheets under src/styles — the
+// pink pointer-focus border shipped as raw css in globals.css, where the tsx
+// scan cannot see it.
+const cssFiles = [...walk(join(SRC, 'styles'))].filter((p) => p.endsWith('.css')).map((p) => readFileSync(p, 'utf8'))
+counts.offFocusColor =
+    files.filter((f) => !allowed(f.path)).reduce((sum, f) => sum + countOffFocusColorClasses(f.text), 0) +
+    cssFiles.reduce((sum, t) => sum + countOffFocusColorClasses(t) + countOffFocusColorCss(t), 0)
+
 // dsTextScale and nuqsFiles are adoption counts (should go UP) — everything
 // else is debt (must only go DOWN). the ratchet only enforces the debt keys.
 const DEBT_KEYS = [
@@ -379,6 +390,7 @@ const DEBT_KEYS = [
     'rawHexMarketing',
     'arbitraryFontSizeMarketing',
     'knerdOutsideTitle',
+    'offFocusColor',
 ]
 
 const mode = process.argv[2] ?? ''
