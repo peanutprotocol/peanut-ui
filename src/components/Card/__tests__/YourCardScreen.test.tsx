@@ -90,12 +90,13 @@ describe('YourCardScreen — collateral note', () => {
         expect(screen.queryByTestId('card-collateral')).not.toBeInTheDocument()
     })
 
-    it('collateral left from before is still explained: a new card payment cannot use it', () => {
+    it('a card balance left from before is named plainly, with no claim about card payments', () => {
         render(<YourCardScreen overview={overview(10_000)} card={CARD} />)
         expect(screen.getByTestId('card-collateral')).toBeInTheDocument()
-        expect(screen.getByText(/Another \$100\.00 is held as card collateral/)).toBeInTheDocument()
-        expect(screen.getByText(/New card payments cannot use it/)).toBeInTheDocument()
-        expect(screen.queryByText(/available for card payments/i)).not.toBeInTheDocument()
+        expect(
+            screen.getByText('You have $100.00 in your card balance. You can move it to your Peanut wallet.')
+        ).toBeInTheDocument()
+        expect(screen.queryByText(/collateral|cannot use|available for card payments/i)).not.toBeInTheDocument()
     })
 })
 
@@ -173,7 +174,7 @@ describe('YourCardScreen — card debt', () => {
         expect(screen.getByText('$6.31 outstanding on your card')).toBeInTheDocument()
         expect(screen.queryByText(/next deposit|cover the difference automatically/i)).not.toBeInTheDocument()
         // a debt is not collateral
-        expect(screen.queryByText(/held as card collateral/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/in your card balance/)).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
         expect(mockOpenSupport).toHaveBeenCalledWith(true)

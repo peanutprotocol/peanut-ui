@@ -1780,7 +1780,7 @@
             "autoRenewTitle": "Card auto renews soon",
             "autoRenewBody": "Your card will automatically renew in {days, plural, one {# day} other {# days}}, expiration date will change.",
             "dismiss": "Dismiss",
-            "cardFundsCollateral": "Card payments use only the dollars in your Peanut wallet. Another {amount} is held as card collateral. New card payments cannot use it. You can still send it, withdraw it or pay by QR with it.",
+            "cardFundsCollateral": "You have {amount} in your card balance. You can move it to your Peanut wallet.",
             "moveToWallet": "Move card balance to wallet",
             "movingToWallet": "Moving…",
             "moveFailed": "Couldn't finish moving your card balance. Check your balance, then try again.",

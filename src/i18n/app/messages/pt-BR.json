@@ -1780,7 +1780,7 @@
             "autoRenewTitle": "O cartão renova em breve",
             "autoRenewBody": "Seu cartão vai renovar automaticamente em {days, plural, one {# dia} other {# dias}}, a data de validade vai mudar.",
             "dismiss": "Dispensar",
-            "cardFundsCollateral": "Os pagamentos com cartão usam só os dólares da sua carteira Peanut. Outros {amount} estão retidos como colateral do cartão. Novos pagamentos com cartão não podem usá-los. Eles ainda servem para enviar, sacar ou pagar com QR.",
+            "cardFundsCollateral": "Você tem {amount} no saldo do seu cartão. Você pode movê-lo para a sua carteira Peanut.",
             "moveToWallet": "Mover o saldo do cartão para a carteira",
             "movingToWallet": "Movendo…",
             "moveFailed": "Não conseguimos terminar de mover o saldo do cartão. Confira seu saldo e tente de novo.",

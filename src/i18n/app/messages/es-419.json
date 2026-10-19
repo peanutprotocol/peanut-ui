@@ -1780,7 +1780,7 @@
             "autoRenewTitle": "La tarjeta se renueva pronto",
             "autoRenewBody": "Tu tarjeta se renovará automáticamente en {days, plural, one {# día} other {# días}}, la fecha de vencimiento cambiará.",
             "dismiss": "Descartar",
-            "cardFundsCollateral": "Los pagos con tarjeta usan solo los dólares de tu billetera Peanut. Otros {amount} están retenidos como colateral de la tarjeta. Los nuevos pagos con tarjeta no pueden usarlos. Todavía sirven para enviar, retirar o pagar con QR.",
+            "cardFundsCollateral": "El saldo de tu tarjeta es {amount}. Se puede pasar a tu billetera Peanut.",
             "moveToWallet": "Mover el saldo de la tarjeta a la billetera",
             "movingToWallet": "Moviendo…",
             "moveFailed": "No pudimos terminar de mover el saldo de tu tarjeta. Revisa tu saldo y luego intenta de nuevo.",
