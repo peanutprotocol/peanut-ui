@@ -1304,8 +1304,6 @@
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió.",
             "requestClosedTitle": "Esta solicitud está cerrada"
         },
-        "requestCurrencyNote": "Esta solicitud pide {amount}. Con Peanut, cripto o una transferencia bancaria en dólares pagas su monto en dólares, que quedó fijado al crear la solicitud.",
-        "requestCurrencyNotePartPaid": "Esta solicitud pide {amount} y faltan {remaining} por pagar. Con Peanut, cripto o una transferencia bancaria en dólares pagas el monto en dólares, que quedó fijado al crear la solicitud.",
         "bankTransfer": {
             "title": "Pagar por transferencia bancaria",
             "description": "Envía desde tu banco a la cuenta de quien te pide el pago.",

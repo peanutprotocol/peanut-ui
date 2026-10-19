@@ -1304,8 +1304,6 @@
             "requestNotFoundDescription": "This payment request doesn't exist or was removed. Ask the sender for a new link.",
             "requestClosedTitle": "This request is closed"
         },
-        "requestCurrencyNote": "This request asks for {amount}. With Peanut, crypto or a dollar bank transfer you pay its dollar amount, which was fixed when the request was made.",
-        "requestCurrencyNotePartPaid": "This request asks for {amount}, and {remaining} is left to pay. With Peanut, crypto or a dollar bank transfer you pay the dollar amount, which was fixed when the request was made.",
         "bankTransfer": {
             "title": "Pay by bank transfer",
             "description": "Send from your bank to the requester's account.",
