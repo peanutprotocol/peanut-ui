@@ -213,8 +213,10 @@ const SignupStep = () => {
                                 placeholder={suggestionIndex < 0 ? t('signupStep.usernamePlaceholder') : ''}
                                 value={username}
                                 debounceTime={750}
+                                // no `shouldValidate` gate: a short handle still marks the field red, so
+                                // it must also get its "too short" line. The length check runs before the
+                                // availability lookup, so a short handle never reaches the API.
                                 validate={checkUsernameValidity}
-                                shouldValidate={(v) => v.length >= USERNAME_MIN_LENGTH}
                                 onUpdate={handleInputUpdate}
                                 isSetupFlow
                                 isInputChanging={isChanging}
