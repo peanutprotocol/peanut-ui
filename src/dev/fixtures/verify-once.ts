@@ -172,7 +172,6 @@ const PH_STEPS = [
 
 const toggle = (key: string, value: string | null = null) => ({ key, kind: 'toggle', required: true, value })
 const MARITAL = ['single', 'married', 'divorced', 'widowed']
-const LOCAL_EMPLOYMENT = ['employed', 'self_employed', 'student', 'retired', 'unemployed']
 
 /** A German resident with bank + card: Bridge's EEA citizenship on top of the card's answers. */
 const DE_STEPS = [
@@ -235,7 +234,7 @@ const DECLARATIONS = {
     fields: [toggle('isPep'), toggle('isFatca'), toggle('isFep')],
 }
 
-/** An Argentine resident with local transfers + card: Manteca's answers (US-citizen check, employment, marital status, CUIT, declarations last). */
+/** An Argentine resident with local transfers + card: Manteca's answers (US-citizen check, marital status, CUIT, declarations last; no job, which Manteca takes from the CUIT). */
 const AR_STEPS = [
     {
         id: 'purpose',
@@ -245,12 +244,9 @@ const AR_STEPS = [
     },
     {
         id: 'work',
-        features: ['card', 'local'],
+        features: ['card'],
         answered: false,
-        fields: [
-            { key: 'occupation', kind: 'occupation', required: true, options: OCCUPATIONS, value: null },
-            choice('employmentStatus', LOCAL_EMPLOYMENT),
-        ],
+        fields: [{ key: 'occupation', kind: 'occupation', required: true, options: OCCUPATIONS, value: null }],
     },
     {
         id: 'money',
@@ -367,12 +363,6 @@ export const VERIFY_ONCE_FIXTURES: Record<string, Fixture> = {
                 'AR',
                 [
                     { id: 'purpose', features: ['local'], answered: false, fields: [toggle('usCitizen')] },
-                    {
-                        id: 'work',
-                        features: ['local'],
-                        answered: false,
-                        fields: [choice('employmentStatus', LOCAL_EMPLOYMENT)],
-                    },
                     MANTECA_BIRTH,
                     DECLARATIONS,
                 ],
