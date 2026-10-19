@@ -1,10 +1,10 @@
 # Banking illustrations (Lottie)
 
-> **Deprecated: out of brand (Hugo, 2026-10-10). Experimental only; do not use in new screens.** The one file still in use is `mascot-juggle.json`, the `juggling` mascot pose on the points page.
+> **Deprecated: out of brand (Hugo, 2026-10-10). Experimental only; do not use in new screens.** `mascot-juggle.json` is registered as the `juggling` `PeanutMascot` pose; no screen uses it today.
 
 Object animations for banking concepts, drawn to the setup mascot's rules
 (`src/assets/mascot/lottie/`). All are mascot-free except `mascot-juggle.json`, which reuses the
-`waving-hello` rig with new arms. `mascot-juggle.json` is the `juggling` mascot pose on the rewards page.
+`waving-hello` rig with new arms. `mascot-juggle.json` is the `juggling` `PeanutMascot` pose (registered, not on any screen).
 
 - 1050 × 1000 canvas, 30 fps, seamless loops, transparent background, no fonts or images
 - outlines 10.5 / 9 / 7.5, round caps; mascot palette (#FCC814, #E882D0, white, #F2B786, #CC485E, #FFC1CF, #46ACFF)

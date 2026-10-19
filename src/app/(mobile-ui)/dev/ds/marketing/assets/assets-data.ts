@@ -133,7 +133,7 @@ export const DOODLE_ENTRIES: ArtEntry[] = [
         label: 'border-cloud',
         asset: borderCloud,
         path: 'assets/illustrations/border-cloud.svg',
-        usedIn: 'CloudsCss (drifting clouds on the landing sky band)',
+        usedIn: 'CloudsCss drifting clouds: landing hero, sendInSeconds, RegulatedRails, noFees, MarketingHero, mdx Steps, ExchangeWidget, Manteca (desktop)',
     },
 ]
 
