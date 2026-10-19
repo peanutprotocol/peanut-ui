@@ -125,7 +125,7 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
             <JsonLd data={breadcrumbSchema} />
             {faqSchema && <JsonLd data={faqSchema} />}
             {/* The post title opens the page as the content hero band, like every
-                other content page (ruled 2026-10-14). The title is in the content
+                other content page. The title is in the content
                 locale; the Hero marks its own marquee with the route locale. */}
             <div lang={contentLocale}>
                 <Hero title={post.frontmatter.title} locale={locale} />

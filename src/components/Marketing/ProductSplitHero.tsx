@@ -24,7 +24,7 @@ interface ProductSplitHeroProps {
 }
 
 /**
- * The sub-LP hero (ruled 2026-10-14): text left, product art right, on the
+ * The sub-LP hero: text left, product art right, on the
  * brand pink ground. Star-feature and campaign LPs build on this composition;
  * /shhhhh is its first caller and the visual reference.
  */

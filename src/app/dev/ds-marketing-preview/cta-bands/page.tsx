@@ -1,15 +1,14 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { CTA_MOTION } from '@/components/Marketing/constants'
 
-// The on-band CTA (cta-on-band-variant E + cta-hierarchy A, ruled 2026-10-14):
-// on the pink and yellow bands the CTA is Button variant=secondary size=large (ruled
-// 2026-10-17, konrad: the default 44/12 geometry is drawn for fill-width buttons and
-// reads cramped when the pill hugs its label), no visual overrides — the white bg and press-to-pink come from the variant, not
-// from per-site hacks (the mdx Hero's bg-white override dies in the fix
-// branch). On cream, the one primary pink pill. Labels are sentence case
-// (cta-casing B). bg-gray-950 is the shipped black band (/shhhhh §4/§7).
-// The black band takes the pink primary (audit default 2026-10-16): the secondary's
-// black offset shadow is invisible on gray-950, the pink fill is not.
+// The on-band CTA: on the pink and yellow bands the CTA is Button
+// variant=secondary size=large (the default 44/12 geometry is drawn for
+// fill-width buttons and reads cramped when the pill hugs its label), no visual
+// overrides — the white bg and press-to-pink come from the variant, not from
+// per-site hacks. On cream, the one primary pink pill. Labels are sentence case.
+// bg-gray-950 is the shipped black band (/shhhhh §4/§7). The black band takes
+// the pink primary: the secondary's black offset shadow is invisible on
+// gray-950, the pink fill is not.
 const COLOURED_BANDS = [
     { name: 'Pink band', className: 'bg-background-brand text-foreground-primary', variant: 'secondary' },
     { name: 'Yellow band', className: 'bg-action-secondary text-foreground-primary', variant: 'secondary' },

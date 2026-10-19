@@ -99,7 +99,7 @@ regex fallback; a missing parser or evaluator failure remains an error.
   methodology change in the baseline `_meta`. Do not regenerate other metrics
   as a side effect of modifying this scanner.
 
-## Marketing ratchet metrics (2026-10-15)
+## Marketing ratchet metrics
 
 `rawHexMarketing`, `arbitraryFontSizeMarketing` and `knerdOutsideTitle` are
 regex value matchers in `ds-lint-rules.cjs`, not scanner semantics. The
@@ -109,9 +109,8 @@ hex literals and arbitrary `text-[<digit>…]` sizes inside those same surfaces,
 so the exemption no longer leaves the drift uncounted. `knerdOutsideTitle`
 counts `font-knerd-*` classes app-wide outside
 `src/components/0_Bruddle/Title.tsx`, the one component that renders the Knerd
-face. Baselines are the counts at introduction (raw-hex-marketing ruling,
-2026-10-14); the fix branches drive the counts down and the integrator
-re-baselines after merging them.
+face. Baselines are the counts at introduction; fixes drive the counts down and
+the baseline is lowered after they merge.
 
 ## Focus colour metric (2026-10-19, TASK-23368)
 
