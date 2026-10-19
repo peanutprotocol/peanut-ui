@@ -50,21 +50,18 @@ test('translations that change with the English app catalogue are reviewed in En
     assert.deepEqual(pr(['src/i18n/app/messages/en.json', 'public/wallet/google/pt-BR.svg']), ['en', 'pt-BR'])
 })
 
-test('marketing catalogues and locale-named marketing pages add their locale, since sitemap pages are captured', () => {
-    for (const [path, locales] of [
-        ['src/i18n/es-ar.json', ['en', 'es-AR']],
-        ['src/i18n/pt-br.json', ['en', 'pt-BR']],
-        ['src/i18n/es-419.json', ['en', 'es-419', 'es-AR']],
-        ['src/i18n/app/messages/pt-BR.marketing.json', ['en', 'pt-BR']],
-        ['src/app/es-ar/page.tsx', ['en', 'es-AR']],
-        ['src/app/[locale]/(marketing)/help/page.tsx', ['en']],
-        ['src/content', ['en']],
+test('marketing catalogues and marketing pages never add a locale', () => {
+    for (const path of [
+        'src/i18n/es-ar.json',
+        'src/i18n/pt-br.json',
+        'src/i18n/es-419.json',
+        'src/i18n/app/messages/pt-BR.marketing.json',
+        'src/app/es-ar/page.tsx',
+        'src/app/[locale]/(marketing)/help/page.tsx',
+        'src/content',
     ])
-        assert.deepEqual(pr(['src/components/Card.tsx', path]), locales, path)
-    // English marketing copy does not make an app translation fix an English-only review, and vice versa.
+        assert.deepEqual(pr(['src/components/Card.tsx', path]), ['en'], path)
     assert.deepEqual(pr(['src/i18n/en.json', 'src/i18n/app/messages/es-AR.json']), ['en', 'es-AR'])
-    assert.deepEqual(pr(['src/i18n/app/messages/en.json', 'src/i18n/pt-br.json']), ['en', 'pt-BR'])
-    assert.deepEqual(pr(['src/i18n/en.json', 'src/i18n/pt-br.json']), ['en'])
 })
 
 test('es-419 copy also renders in es-AR', () => {

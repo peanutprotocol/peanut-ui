@@ -35,26 +35,22 @@ export function inventory(root, catalogue) {
     }
     return patterns.map((route) => {
         const screens = byRoute.get(route) ?? []
-        const marketing =
-            route.startsWith('/quests') ||
-            route.startsWith('/[locale]') ||
-            ['/', '/careers', '/shhhhh', '/lp', '/es-419', '/es-ar', '/pt-br'].includes(route) ||
-            route.startsWith('/m/')
-        // Sitemap pages are captured on full runs; the rest of the marketing site stays a reviewed exclusion.
-        const reason = marketing
-            ? screens.length
-                ? undefined
-                : 'Marketing page outside this capture: only sitemap pages are captured, and only on full runs'
-            : (ROUTE_EXCLUSIONS.get(route) ??
-              (route === '/add-money/us/bank'
-                  ? 'Legacy standalone bank-details entry with no in-app navigation entry; current bank journeys use /add-money/[country]/bank'
-                  : route.startsWith('/dev')
-                    ? 'Developer tooling, outside the app catalogue'
+        const reason =
+            ROUTE_EXCLUSIONS.get(route) ??
+            (route === '/add-money/us/bank'
+                ? 'Legacy standalone bank-details entry with no in-app navigation entry; current bank journeys use /add-money/[country]/bank'
+                : route.startsWith('/dev') || route === '/shhhhh'
+                  ? 'Developer tooling, outside the app catalogue'
+                  : route.startsWith('/quests') ||
+                      route.startsWith('/[locale]') ||
+                      ['/', '/careers', '/lp', '/es-419', '/es-ar', '/pt-br'].includes(route) ||
+                      route.startsWith('/m/')
+                    ? 'Marketing, editorial or legal website, outside app-owned mobile UI'
                     : route === '/app'
                       ? 'Platform download redirect; destination is outside app-owned UI'
                       : route === '/crisp-proxy'
                         ? 'Third-party support iframe; app-owned support drawer is catalogued separately'
-                        : undefined))
+                        : undefined)
         return {
             route,
             status: reason ? 'excluded' : screens.length ? 'catalogued' : 'missing',

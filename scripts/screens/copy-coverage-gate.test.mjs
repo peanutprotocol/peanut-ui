@@ -281,7 +281,7 @@ test('scoped runs fail when previously shown copy disappears, unless excepted', 
         const result = evaluate(input)
         assert.equal(result.ok, false, name)
         assert.deepEqual(result.lost, expected, name)
-        assert.match(result.reason, /\/chip screens/, name)
+        assert.match(result.reason, /Add a capture state/, name)
         const waived = evaluate({ ...input, exception: EXCEPTION })
         assert.equal(waived.ok, true, `${name}: ${waived.reason}`)
     }
@@ -527,7 +527,7 @@ test('failure reasons tell the author what to run, how many keys, and which file
         const result = evaluate(input)
         assert.equal(result.ok, false, name)
         assert.match(result.reason, /copy-coverage-baseline\.json/, name)
-        assert.match(result.reason, /\/chip screens/, name)
+        assert.match(result.reason, /Add a capture state/, name)
         assert.match(result.reason, count, name)
     }
     const unshown = evaluate(
@@ -538,7 +538,7 @@ test('failure reasons tell the author what to run, how many keys, and which file
         })
     )
     assert.equal(unshown.ok, false)
-    assert.match(unshown.reason, /\/chip screens/)
+    assert.match(unshown.reason, /Add a capture state/)
 })
 
 // nextBaseline: regenerating copy-coverage-baseline.json from a complete English capture

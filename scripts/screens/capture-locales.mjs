@@ -6,16 +6,8 @@ export const ALL_LOCALES_LABEL = 'screens:all-locales'
 const localeBySlug = { 'es-419': 'es-419', 'es-ar': 'es-AR', 'pt-br': 'pt-BR' }
 // es-AR stores only its differences from es-419, so es-419 copy also renders in es-AR.
 const inheritedBy = { 'es-419': ['es-AR'] }
-const translationCatalogue =
-    /^src\/i18n\/(?:app\/messages\/(en|es-419|es-AR|pt-BR)(?:\.marketing)?|(en|es-419|es-ar|pt-br))\.json$/
-// App and marketing copy are separate catalogue families; an English change only covers its own family.
-const catalogue = (path) => {
-    const match = translationCatalogue.exec(path)
-    if (!match) return undefined
-    return match[1] && !path.endsWith('.marketing.json')
-        ? { locale: match[1], family: 'app' }
-        : { locale: match[1] ?? (match[2] === 'en' ? 'en' : localeBySlug[match[2]]), family: 'marketing' }
-}
+// App catalogues only; the marketing catalogues are nonvisual (capture-plan.mjs marketingOnly).
+const translationCatalogue = /^src\/i18n\/app\/messages\/(en|es-419|es-AR|pt-BR)\.json$/
 const sharedLocalization = /^src\/i18n\//
 const namedLocale = /(?:^|\/)(es-419|es-ar|pt-br)(?=[./]|$)/i
 
@@ -40,21 +32,15 @@ export function planCaptureLocales({ event, branch, changedFiles, labels } = {})
     )
         return all('Changed-file evidence is missing or invalid')
     // Features add keys to every catalogue at once and are reviewed in English; only fixes are invisible there.
-    const englishCopyChanged = new Set(
-        changedFiles
-            .map(catalogue)
-            .filter((entry) => entry?.locale === 'en')
-            .map(({ family }) => family)
-    )
+    const englishCopyChanged = changedFiles.some((path) => translationCatalogue.exec(path)?.[1] === 'en')
     const selected = new Set(['en'])
     const alongsideEnglish = new Set()
     for (const path of changedFiles) {
         if (knownNonvisual(path)) continue
-        const entry = catalogue(path)
-        if (entry) {
-            const { locale, family } = entry
+        const locale = translationCatalogue.exec(path)?.[1]
+        if (locale) {
             if (locale === 'en') continue
-            if (englishCopyChanged.has(family)) alongsideEnglish.add(locale)
+            if (englishCopyChanged) alongsideEnglish.add(locale)
             else selected.add(locale)
         } else if (sharedLocalization.test(path)) return all('Shared localization source changed')
         else {

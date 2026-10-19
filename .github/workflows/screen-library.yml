@@ -113,8 +113,7 @@ jobs:
         needs: refs
         if: needs.refs.outputs.mode != 'skip'
         runs-on: ubuntu-24.04
-        # App states plus every sitemap page in one build.
-        timeout-minutes: 120
+        timeout-minutes: 60
         strategy:
             fail-fast: false
             matrix:
@@ -182,8 +181,7 @@ jobs:
             contents: read
             actions: read
         runs-on: ubuntu-24.04
-        # App states plus every sitemap page in one build.
-        timeout-minutes: 120
+        timeout-minutes: 60
         strategy:
             fail-fast: false
             matrix:

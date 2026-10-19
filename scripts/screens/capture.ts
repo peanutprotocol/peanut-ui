@@ -1,4 +1,4 @@
-import { chromium, devices, expect, type Page } from '@playwright/test'
+import { chromium, devices, expect } from '@playwright/test'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { release } from 'node:os'
@@ -27,15 +27,6 @@ import {
 } from './capture-ui.mjs'
 
 import { routePatterns, routePatternFor } from './routes.mjs'
-import {
-    MARKETING_ORDER_BASE,
-    MARKETING_SLICE_CAP,
-    finishPageAnimations,
-    marketingFlow,
-    marketingPaths,
-    marketingScreenId,
-    sliceOffsets,
-} from './capture-marketing.mjs'
 import { inventory } from './inventory.mjs'
 
 async function main() {
@@ -88,7 +79,6 @@ async function main() {
     )
         throw new Error('Running server does not identify the requested build')
     const historical = arg('historical') === 'true'
-    const marketingResults: (Record<string, unknown> & { id: string; route: string })[] = []
     const intlCore = join(source, 'src/i18n/app/IntlCore.tsx')
     const copyRecording =
         existsSync(intlCore) && readFileSync(intlCore, 'utf8').includes(COPY_RECORDER_MARKER)
@@ -176,11 +166,8 @@ async function main() {
             width: profile.width,
             height: profile.height,
             device: profile.device,
-            screens: [...materializeCatalogue(SCREENS, results), ...marketingResults],
-            inventory: inventory(source, [
-                ...SCREENS,
-                ...marketingResults.map(({ id, route }) => ({ id, kind: 'route' as const, route })),
-            ]),
+            screens: materializeCatalogue(SCREENS, results),
+            inventory: inventory(source, SCREENS),
             adapterFiles: [
                 ...(existsSync(join(source, '.screen-capture-adapter.json'))
                     ? JSON.parse(readFileSync(join(source, '.screen-capture-adapter.json'), 'utf8')).changed
@@ -189,290 +176,6 @@ async function main() {
             ],
         }
         return validateCapture(scope ? scopeCapture(capture, scope) : capture)
-    }
-    const preparePage = async (
-        page: Page,
-        { fixture, signedIn, camera }: { fixture: string; signedIn: boolean; camera?: string },
-        unknown: Set<string>,
-        transportFailures: Set<string>
-    ) => {
-        await page.addInitScript('window.__name = (target) => target')
-        await page.addInitScript(installCaptureSafeArea, profile.device)
-        if (copyRecording === 'recorded') await page.addInitScript(installCopyRecorder)
-        await page.clock.setFixedTime(new Date('2026-09-01T12:00:00Z'))
-        await page.addInitScript(
-            ({ locale, signedIn }) => {
-                ;(window as unknown as { __screenCapture: boolean }).__screenCapture = true
-                // A constant draw is independent of unrelated startup call order.
-                Math.random = () => 0.42
-                document.addEventListener(
-                    'play',
-                    (event) => {
-                        const video = event.target
-                        if (video instanceof HTMLVideoElement && !video.srcObject) video.pause()
-                    },
-                    true
-                )
-                sessionStorage.removeItem('showNoMoreJailModal')
-                localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00Z')
-                localStorage.setItem(
-                    'demo-user:user-preferences',
-                    JSON.stringify({ hasSeenBalanceWarning: { value: true, expiry: 4102444800000 } })
-                )
-                sessionStorage.setItem('user_geo_country_code', 'DE')
-                sessionStorage.setItem('user_geo_country_code_timestamp', String(Date.now()))
-                if (signedIn) document.cookie = 'jwt-token=fixture; path=/'
-                document.cookie = `app-locale=${locale}; path=/`
-                document.cookie = `NEXT_LOCALE=${locale}; path=/`
-            },
-            { locale: captureLocale, signedIn }
-        )
-        if (camera)
-            await page.addInitScript((mode) => {
-                // A stationary synthetic camera frame keeps app-owned scanner UI
-                // repeatable without opening a real camera or recording anything.
-                navigator.mediaDevices.getUserMedia = async () => {
-                    if (mode === 'denied') throw new DOMException('Synthetic camera denial', 'NotAllowedError')
-                    const canvas = document.createElement('canvas')
-                    canvas.width = 640
-                    canvas.height = 480
-                    const ctx = canvas.getContext('2d')!
-                    ctx.fillStyle = '#222222'
-                    ctx.fillRect(0, 0, 640, 480)
-                    return canvas.captureStream(1)
-                }
-                navigator.mediaDevices.enumerateDevices = async () => [
-                    {
-                        deviceId: 'synthetic-camera',
-                        groupId: 'synthetic',
-                        kind: 'videoinput',
-                        label: 'Synthetic camera',
-                        toJSON() {
-                            return {}
-                        },
-                    } as MediaDeviceInfo,
-                ]
-            }, camera)
-        await page.route('**/*', async (route) => {
-            try {
-                const request = route.request(),
-                    url = new URL(request.url())
-                if (url.origin === base.origin && url.pathname === '/crisp-proxy')
-                    return route.fulfill({
-                        status: 200,
-                        contentType: 'text/html',
-                        body: '<!doctype html><script>parent.postMessage({type:"CRISP_FAILED"}, location.origin)</script>',
-                    })
-                const media = url.origin === base.origin ? overlayBytes.get(url.pathname) : undefined
-                if (media && request.method() === 'GET') {
-                    const range = request.headers().range
-                    const match = range?.match(/^bytes=(\d+)-(\d*)$/)
-                    if (!match) {
-                        return route.fulfill({
-                            status: 200,
-                            headers: {
-                                'accept-ranges': 'bytes',
-                                'content-length': String(media.length),
-                                'content-type': 'video/quicktime',
-                            },
-                            body: media,
-                        })
-                    }
-                    const start = Number(match[1])
-                    const end = Math.min(match[2] ? Number(match[2]) : media.length - 1, media.length - 1)
-                    if (start > end || start >= media.length)
-                        return route.fulfill({
-                            status: 416,
-                            headers: { 'content-range': `bytes */${media.length}` },
-                        })
-                    return route.fulfill({
-                        status: 206,
-                        headers: {
-                            'accept-ranges': 'bytes',
-                            'content-length': String(end - start + 1),
-                            'content-range': `bytes ${start}-${end}/${media.length}`,
-                            'content-type': 'video/quicktime',
-                        },
-                        body: media.subarray(start, end + 1),
-                    })
-                }
-                // All API transports, including local same-origin test API, use synthetic answers.
-                if (
-                    url.hostname === 'api.peanut.me' ||
-                    url.hostname === 'api.staging.peanut.me' ||
-                    url.pathname.startsWith('/screen-capture-api/')
-                ) {
-                    const path = url.pathname.replace(/^\/screen-capture-api/, '') + url.search
-                    try {
-                        const response = await answer(fixture, path, request.method(), request.postData() ?? undefined)
-                        await route.fulfill({
-                            status: response.status,
-                            contentType: 'application/json',
-                            body: await response.text(),
-                        })
-                    } catch {
-                        unknown.add(`${request.method()} ${url.pathname}`)
-                        await route.fulfill({
-                            status: 501,
-                            contentType: 'application/json',
-                            body: '{"error":"Unmapped synthetic API"}',
-                        })
-                    }
-                    return
-                }
-                if (isRemoteOptimizedImage(url.href, base.origin)) {
-                    // Next's same-origin optimizer otherwise reaches the public internet on behalf of
-                    // remote image URLs. Keep capture independent of third-party CDN latency/failures.
-                    return route.fulfill({
-                        status: 200,
-                        contentType: 'image/svg+xml',
-                        headers: { 'cache-control': 'public, max-age=31536000, immutable' },
-                        body: REMOTE_IMAGE_PLACEHOLDER,
-                    })
-                }
-                if (
-                    url.origin === base.origin &&
-                    /\.(gif|webp)$/.test(
-                        url.pathname === '/_next/image'
-                            ? new URL(url.searchParams.get('url') ?? '/', base).pathname
-                            : url.pathname
-                    )
-                ) {
-                    // Freeze animated image assets at frame zero; CSS animation rules do not stop them.
-                    let bytes = stillImages.get(url.href)
-                    if (!bytes) {
-                        const response = await route.fetch({
-                            url: upstream(url),
-                            maxRedirects: 0,
-                            maxRetries: 2,
-                        })
-                        if (!response.ok()) return route.fulfill({ response })
-                        bytes = await sharp(await response.body(), { animated: false })
-                            .png()
-                            .toBuffer()
-                        stillImages.set(url.href, bytes)
-                    }
-                    return route.fulfill({ status: 200, contentType: 'image/png', body: bytes })
-                }
-                if (url.origin === base.origin) {
-                    const cacheable =
-                        request.method() === 'GET' &&
-                        url.pathname.startsWith('/_next/static/') &&
-                        !request.headers()['range']
-                    const cached = cacheable ? staticResponses.get(url.href) : undefined
-                    if (cached) return route.fulfill(cached)
-                    const response = await route.fetch({ url: upstream(url), maxRedirects: 0, maxRetries: 2 })
-                    if (cacheable && response.ok()) {
-                        const headers = { ...response.headers() }
-                        delete headers['content-encoding']
-                        delete headers['content-length']
-                        delete headers['transfer-encoding']
-                        const entry = { status: response.status(), headers, body: await response.body() }
-                        staticResponses.set(url.href, entry)
-                        return route.fulfill(entry)
-                    }
-                    return route.fulfill({ response })
-                }
-                return route.abort()
-            } catch {
-                if (!page.isClosed()) transportFailures.add(new URL(route.request().url()).pathname)
-                await route.abort().catch(() => undefined)
-            }
-        })
-    }
-    const settlePage = async (page: Page, expectsLoading: boolean, videoFrame?: number) => {
-        // Playwright visibility ignores opacity. Let Headless UI finish
-        // opening dialogs before disabling CSS transitions for capture.
-        await page.waitForFunction(() =>
-            [...document.querySelectorAll('[role="dialog"]')].every((dialog) =>
-                [dialog, ...dialog.querySelectorAll('[data-headlessui-state]')].every((element) => {
-                    if (!element.getBoundingClientRect().width) return true
-                    return Number(getComputedStyle(element).opacity) === 1
-                })
-            )
-        )
-        await page.evaluate(() => document.fonts.ready)
-        await page.evaluate(finishOverlayAnimations)
-        await page.addStyleTag({ content: CAPTURE_STATIC_CSS })
-        await page.locator(FIXTURE_BANNER_CANDIDATE_SELECTOR).evaluateAll(hideFixtureBanners)
-        await page.evaluate(() => document.fonts.ready)
-        if (videoFrame !== undefined) await page.locator('video').first().waitFor({ state: 'attached' })
-        await page.waitForFunction(() =>
-            [...document.querySelectorAll('video')].every((video) => video.srcObject || video.readyState >= 2)
-        )
-        await page.evaluate(async () => {
-            for (const video of document.querySelectorAll('video')) {
-                if (video.srcObject) continue // stationary synthetic camera stream
-                video.pause()
-                const targetTime = Math.min(0.5, video.duration / 2)
-                if (Math.abs(video.currentTime - targetTime) < 0.001) continue
-                await new Promise<void>((resolve, reject) => {
-                    const timeout = setTimeout(() => reject(new Error('Video frame unavailable')), 10000)
-                    const complete = () => {
-                        clearTimeout(timeout)
-                        resolve()
-                    }
-                    if (video.requestVideoFrameCallback) {
-                        const presented: VideoFrameRequestCallback = (_now, metadata) => {
-                            if (Math.abs(metadata.mediaTime - targetTime) < 0.04) complete()
-                            else video.requestVideoFrameCallback(presented)
-                        }
-                        video.requestVideoFrameCallback(presented)
-                    } else video.addEventListener('seeked', complete, { once: true })
-                    video.currentTime = targetTime
-                })
-                video.pause()
-            }
-        })
-        await page.waitForFunction(
-            (expectsLoading: boolean) => {
-                const visible = (e: Element) => {
-                    const r = e.getBoundingClientRect()
-                    return (
-                        r.width > 0 &&
-                        r.height > 0 &&
-                        r.bottom > 0 &&
-                        r.top < innerHeight &&
-                        r.right > 0 &&
-                        r.left < innerWidth
-                    )
-                }
-                return (
-                    (expectsLoading || ![...document.querySelectorAll('.animate-spin,.animate-pulse')].some(visible)) &&
-                    [...document.images].filter(visible).every((i) => i.complete && i.naturalWidth > 0) &&
-                    document.body.innerText.trim().length > 15
-                )
-            },
-            expectsLoading,
-            { timeout: 15000 }
-        )
-    }
-    const stableScreenshot = async (page: Page, required = 4, interval = 250) => {
-        let previous = await page.screenshot({
-            animations: 'disabled',
-            caret: 'hide',
-            scale: 'css',
-            timeout: 30000,
-        })
-        let stable = false
-        let identical = 0
-        for (let i = 0; i < 40; i++) {
-            await page.waitForTimeout(interval)
-            const next = await page.screenshot({
-                animations: 'disabled',
-                caret: 'hide',
-                scale: 'css',
-                timeout: 30000,
-            })
-            identical = hash(previous) === hash(next) ? identical + 1 : 0
-            if (identical >= required) {
-                stable = true
-                break
-            }
-            previous = next
-        }
-        if (!stable) throw new Error('Screen did not stabilize')
-        return previous
     }
     try {
         for (const screen of SCREENS) {
@@ -534,12 +237,191 @@ async function main() {
             const unknown = new Set<string>()
             const transportFailures = new Set<string>()
             try {
-                await preparePage(
-                    page,
-                    { fixture: screen.fixture, signedIn: true, camera: screen.camera },
-                    unknown,
-                    transportFailures
-                )
+                await page.addInitScript('window.__name = (target) => target')
+                await page.addInitScript(installCaptureSafeArea, profile.device)
+                if (copyRecording === 'recorded') await page.addInitScript(installCopyRecorder)
+                await page.clock.setFixedTime(new Date('2026-09-01T12:00:00Z'))
+                await page.addInitScript((locale) => {
+                    ;(window as unknown as { __screenCapture: boolean }).__screenCapture = true
+                    // A constant draw is independent of unrelated startup call order.
+                    Math.random = () => 0.42
+                    document.addEventListener(
+                        'play',
+                        (event) => {
+                            const video = event.target
+                            if (video instanceof HTMLVideoElement && !video.srcObject) video.pause()
+                        },
+                        true
+                    )
+                    sessionStorage.removeItem('showNoMoreJailModal')
+                    localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00Z')
+                    localStorage.setItem(
+                        'demo-user:user-preferences',
+                        JSON.stringify({ hasSeenBalanceWarning: { value: true, expiry: 4102444800000 } })
+                    )
+                    sessionStorage.setItem('user_geo_country_code', 'DE')
+                    sessionStorage.setItem('user_geo_country_code_timestamp', String(Date.now()))
+                    document.cookie = 'jwt-token=fixture; path=/'
+                    document.cookie = `app-locale=${locale}; path=/`
+                    document.cookie = `NEXT_LOCALE=${locale}; path=/`
+                }, captureLocale)
+                if (screen.camera)
+                    await page.addInitScript((mode) => {
+                        // A stationary synthetic camera frame keeps app-owned scanner UI
+                        // repeatable without opening a real camera or recording anything.
+                        navigator.mediaDevices.getUserMedia = async () => {
+                            if (mode === 'denied') throw new DOMException('Synthetic camera denial', 'NotAllowedError')
+                            const canvas = document.createElement('canvas')
+                            canvas.width = 640
+                            canvas.height = 480
+                            const ctx = canvas.getContext('2d')!
+                            ctx.fillStyle = '#222222'
+                            ctx.fillRect(0, 0, 640, 480)
+                            return canvas.captureStream(1)
+                        }
+                        navigator.mediaDevices.enumerateDevices = async () => [
+                            {
+                                deviceId: 'synthetic-camera',
+                                groupId: 'synthetic',
+                                kind: 'videoinput',
+                                label: 'Synthetic camera',
+                                toJSON() {
+                                    return {}
+                                },
+                            } as MediaDeviceInfo,
+                        ]
+                    }, screen.camera)
+                await page.route('**/*', async (route) => {
+                    try {
+                        const request = route.request(),
+                            url = new URL(request.url())
+                        if (url.origin === base.origin && url.pathname === '/crisp-proxy')
+                            return route.fulfill({
+                                status: 200,
+                                contentType: 'text/html',
+                                body: '<!doctype html><script>parent.postMessage({type:"CRISP_FAILED"}, location.origin)</script>',
+                            })
+                        const media = url.origin === base.origin ? overlayBytes.get(url.pathname) : undefined
+                        if (media && request.method() === 'GET') {
+                            const range = request.headers().range
+                            const match = range?.match(/^bytes=(\d+)-(\d*)$/)
+                            if (!match) {
+                                return route.fulfill({
+                                    status: 200,
+                                    headers: {
+                                        'accept-ranges': 'bytes',
+                                        'content-length': String(media.length),
+                                        'content-type': 'video/quicktime',
+                                    },
+                                    body: media,
+                                })
+                            }
+                            const start = Number(match[1])
+                            const end = Math.min(match[2] ? Number(match[2]) : media.length - 1, media.length - 1)
+                            if (start > end || start >= media.length)
+                                return route.fulfill({
+                                    status: 416,
+                                    headers: { 'content-range': `bytes */${media.length}` },
+                                })
+                            return route.fulfill({
+                                status: 206,
+                                headers: {
+                                    'accept-ranges': 'bytes',
+                                    'content-length': String(end - start + 1),
+                                    'content-range': `bytes ${start}-${end}/${media.length}`,
+                                    'content-type': 'video/quicktime',
+                                },
+                                body: media.subarray(start, end + 1),
+                            })
+                        }
+                        // All API transports, including local same-origin test API, use synthetic answers.
+                        if (
+                            url.hostname === 'api.peanut.me' ||
+                            url.hostname === 'api.staging.peanut.me' ||
+                            url.pathname.startsWith('/screen-capture-api/')
+                        ) {
+                            const path = url.pathname.replace(/^\/screen-capture-api/, '') + url.search
+                            try {
+                                const response = await answer(
+                                    screen.fixture,
+                                    path,
+                                    request.method(),
+                                    request.postData() ?? undefined
+                                )
+                                await route.fulfill({
+                                    status: response.status,
+                                    contentType: 'application/json',
+                                    body: await response.text(),
+                                })
+                            } catch {
+                                unknown.add(`${request.method()} ${url.pathname}`)
+                                await route.fulfill({
+                                    status: 501,
+                                    contentType: 'application/json',
+                                    body: '{"error":"Unmapped synthetic API"}',
+                                })
+                            }
+                            return
+                        }
+                        if (isRemoteOptimizedImage(url.href, base.origin)) {
+                            // Next's same-origin optimizer otherwise reaches the public internet on behalf of
+                            // remote image URLs. Keep capture independent of third-party CDN latency/failures.
+                            return route.fulfill({
+                                status: 200,
+                                contentType: 'image/svg+xml',
+                                headers: { 'cache-control': 'public, max-age=31536000, immutable' },
+                                body: REMOTE_IMAGE_PLACEHOLDER,
+                            })
+                        }
+                        if (
+                            url.origin === base.origin &&
+                            /\.(gif|webp)$/.test(
+                                url.pathname === '/_next/image'
+                                    ? new URL(url.searchParams.get('url') ?? '/', base).pathname
+                                    : url.pathname
+                            )
+                        ) {
+                            // Freeze animated image assets at frame zero; CSS animation rules do not stop them.
+                            let bytes = stillImages.get(url.href)
+                            if (!bytes) {
+                                const response = await route.fetch({
+                                    url: upstream(url),
+                                    maxRedirects: 0,
+                                    maxRetries: 2,
+                                })
+                                if (!response.ok()) return route.fulfill({ response })
+                                bytes = await sharp(await response.body(), { animated: false })
+                                    .png()
+                                    .toBuffer()
+                                stillImages.set(url.href, bytes)
+                            }
+                            return route.fulfill({ status: 200, contentType: 'image/png', body: bytes })
+                        }
+                        if (url.origin === base.origin) {
+                            const cacheable =
+                                request.method() === 'GET' &&
+                                url.pathname.startsWith('/_next/static/') &&
+                                !request.headers()['range']
+                            const cached = cacheable ? staticResponses.get(url.href) : undefined
+                            if (cached) return route.fulfill(cached)
+                            const response = await route.fetch({ url: upstream(url), maxRedirects: 0, maxRetries: 2 })
+                            if (cacheable && response.ok()) {
+                                const headers = { ...response.headers() }
+                                delete headers['content-encoding']
+                                delete headers['content-length']
+                                delete headers['transfer-encoding']
+                                const entry = { status: response.status(), headers, body: await response.body() }
+                                staticResponses.set(url.href, entry)
+                                return route.fulfill(entry)
+                            }
+                            return route.fulfill({ response })
+                        }
+                        return route.abort()
+                    } catch {
+                        if (!page.isClosed()) transportFailures.add(new URL(route.request().url()).pathname)
+                        await route.abort().catch(() => undefined)
+                    }
+                })
                 const url = new URL(screen.route, base)
                 if (!historical) url.searchParams.set('__fixture', screen.fixture)
                 if (screen.sessionStorage)
@@ -594,7 +476,72 @@ async function main() {
                     await page.getByRole('dialog').first().waitFor({ state: 'visible', timeout: 10000 })
                 }
                 if (screen.toBottom) await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
-                await settlePage(page, screen.expectsLoading ?? false, screen.videoFrame)
+                // Playwright visibility ignores opacity. Let Headless UI finish
+                // opening dialogs before disabling CSS transitions for capture.
+                await page.waitForFunction(() =>
+                    [...document.querySelectorAll('[role="dialog"]')].every((dialog) =>
+                        [dialog, ...dialog.querySelectorAll('[data-headlessui-state]')].every((element) => {
+                            if (!element.getBoundingClientRect().width) return true
+                            return Number(getComputedStyle(element).opacity) === 1
+                        })
+                    )
+                )
+                await page.evaluate(() => document.fonts.ready)
+                await page.evaluate(finishOverlayAnimations)
+                await page.addStyleTag({ content: CAPTURE_STATIC_CSS })
+                await page.locator(FIXTURE_BANNER_CANDIDATE_SELECTOR).evaluateAll(hideFixtureBanners)
+                await page.evaluate(() => document.fonts.ready)
+                if (screen.videoFrame !== undefined) await page.locator('video').first().waitFor({ state: 'attached' })
+                await page.waitForFunction(() =>
+                    [...document.querySelectorAll('video')].every((video) => video.srcObject || video.readyState >= 2)
+                )
+                await page.evaluate(async () => {
+                    for (const video of document.querySelectorAll('video')) {
+                        if (video.srcObject) continue // stationary synthetic camera stream
+                        video.pause()
+                        const targetTime = Math.min(0.5, video.duration / 2)
+                        if (Math.abs(video.currentTime - targetTime) < 0.001) continue
+                        await new Promise<void>((resolve, reject) => {
+                            const timeout = setTimeout(() => reject(new Error('Video frame unavailable')), 10000)
+                            const complete = () => {
+                                clearTimeout(timeout)
+                                resolve()
+                            }
+                            if (video.requestVideoFrameCallback) {
+                                const presented: VideoFrameRequestCallback = (_now, metadata) => {
+                                    if (Math.abs(metadata.mediaTime - targetTime) < 0.04) complete()
+                                    else video.requestVideoFrameCallback(presented)
+                                }
+                                video.requestVideoFrameCallback(presented)
+                            } else video.addEventListener('seeked', complete, { once: true })
+                            video.currentTime = targetTime
+                        })
+                        video.pause()
+                    }
+                })
+                await page.waitForFunction(
+                    (expectsLoading: boolean) => {
+                        const visible = (e: Element) => {
+                            const r = e.getBoundingClientRect()
+                            return (
+                                r.width > 0 &&
+                                r.height > 0 &&
+                                r.bottom > 0 &&
+                                r.top < innerHeight &&
+                                r.right > 0 &&
+                                r.left < innerWidth
+                            )
+                        }
+                        return (
+                            (expectsLoading ||
+                                ![...document.querySelectorAll('.animate-spin,.animate-pulse')].some(visible)) &&
+                            [...document.images].filter(visible).every((i) => i.complete && i.naturalWidth > 0) &&
+                            document.body.innerText.trim().length > 15
+                        )
+                    },
+                    screen.expectsLoading ?? false,
+                    { timeout: 15000 }
+                )
                 if (new URL(page.url()).pathname !== url.pathname)
                     throw new Error(`Expected ${url.pathname}, reached ${new URL(page.url()).pathname}`)
                 if (/Not capturable|Unknown surface:|Application error:/.test(await page.locator('body').innerText()))
@@ -602,7 +549,30 @@ async function main() {
                 if (transportFailures.size)
                     throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
                 if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)
-                const previous = await stableScreenshot(page)
+                let previous = await page.screenshot({
+                    animations: 'disabled',
+                    caret: 'hide',
+                    scale: 'css',
+                    timeout: 30000,
+                })
+                let stable = false
+                let identical = 0
+                for (let i = 0; i < 40; i++) {
+                    await page.waitForTimeout(250)
+                    const next = await page.screenshot({
+                        animations: 'disabled',
+                        caret: 'hide',
+                        scale: 'css',
+                        timeout: 30000,
+                    })
+                    identical = hash(previous) === hash(next) ? identical + 1 : 0
+                    if (identical >= 4) {
+                        stable = true
+                        break
+                    }
+                    previous = next
+                }
+                if (!stable) throw new Error('Screen did not stabilize')
                 if (expectedText && !(await page.getByText(expectedText, { exact: false }).first().isVisible()))
                     throw new Error('Expected screen content disappeared before capture')
                 if (screen.expectSelector)
@@ -637,114 +607,6 @@ async function main() {
                 await context.close()
             }
             writeFileSync(join(out, 'capture.json'), JSON.stringify(manifest(), null, 2))
-        }
-        // Sitemap pages are captured only with the whole catalogue; targeted and historical runs skip them.
-        if (!selected.length && !scope && !historical && arg('marketing') !== 'false') {
-            const sitemap = await fetch(new URL('/sitemap.xml', target))
-            if (!sitemap.ok) throw new Error(`Sitemap unavailable (HTTP ${sitemap.status})`)
-            const paths = marketingPaths(await sitemap.text(), captureLocale)
-            if (!paths.length) throw new Error(`The sitemap lists no ${captureLocale} pages`)
-            const started = Date.now()
-            for (const [index, pathname] of paths.entries()) {
-                const order = MARKETING_ORDER_BASE + index * (MARKETING_SLICE_CAP + 1)
-                const flow = marketingFlow(pathname)
-                const context = await browser.newContext(contextOptions)
-                const page = await context.newPage()
-                page.setDefaultTimeout(15000)
-                const unknown = new Set<string>()
-                const transportFailures = new Set<string>()
-                const assertTransport = () => {
-                    if (transportFailures.size)
-                        throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
-                    if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)
-                }
-                try {
-                    await preparePage(page, { fixture: 'guest-invite', signedIn: false }, unknown, transportFailures)
-                    const response = await page.goto(new URL(pathname, base).href, {
-                        waitUntil: 'domcontentloaded',
-                        timeout: 30000,
-                    })
-                    if (!response || response.status() !== 200) throw new Error(`HTTP ${response?.status()}`)
-                    await page.waitForLoadState('networkidle', { timeout: 15000 })
-                    // Walk the page once so lazy images and in-view sections load before any slice is taken.
-                    await page.evaluate(async () => {
-                        for (let top = 0; top < document.documentElement.scrollHeight; top += innerHeight) {
-                            window.scrollTo(0, top)
-                            await new Promise((resolve) => setTimeout(resolve, 60))
-                        }
-                        window.scrollTo(0, 0)
-                    })
-                    await page.waitForLoadState('networkidle', { timeout: 15000 })
-                    await page.evaluate(finishPageAnimations)
-                    await settlePage(page, false)
-                    const reached = new URL(page.url()).pathname.replace(/\/+$/, '') || '/'
-                    if (reached !== pathname) throw new Error(`Expected ${pathname}, reached ${reached}`)
-                    if (/Application error:/.test(await page.locator('body').innerText()))
-                        throw new Error('Application error')
-                    assertTransport()
-                    await stableScreenshot(page)
-                    const copy =
-                        copyRecording === 'recorded'
-                            ? shownCopyKeys(await page.evaluate(collectCopyEvidence))
-                            : undefined
-                    const title = (await page.title()).replace(/\s*[|·–—-]\s*Peanut\b.*$/i, '').trim() || pathname
-                    const { offsets, truncated } = sliceOffsets(
-                        await page.evaluate(() => document.documentElement.scrollHeight),
-                        profile.height
-                    )
-                    const slices = []
-                    for (const top of offsets) {
-                        await page.evaluate((y) => window.scrollTo(0, y), top)
-                        await page.evaluate(finishPageAnimations)
-                        await page.waitForFunction(() =>
-                            [...document.images]
-                                .filter((image) => {
-                                    const box = image.getBoundingClientRect()
-                                    return box.width > 0 && box.bottom > 0 && box.top < innerHeight
-                                })
-                                .every((image) => image.complete && image.naturalWidth > 0)
-                        )
-                        slices.push(storeAsset(assets, await stableScreenshot(page, 1, 120)))
-                    }
-                    assertTransport()
-                    for (const [slice, image] of slices.entries())
-                        marketingResults.push({
-                            id: marketingScreenId(pathname, slice + 1),
-                            name: `${title} (${pathname}) — ${slice + 1} of ${slices.length}${truncated ? ', page cut short' : ''}`,
-                            flow,
-                            kind: 'route',
-                            defaultScreen: slice === 0,
-                            order: order + slice,
-                            status: 'captured',
-                            image,
-                            thumbnail: image,
-                            ...(slice === 0 && copy ? { copy } : {}),
-                            route: pathname,
-                        })
-                    console.log(
-                        `CAPTURED ${pathname} (${slices.length} slices; ${index + 1}/${paths.length}; ${Math.round((Date.now() - started) / 1000)}s)`
-                    )
-                } catch (e) {
-                    const id = marketingScreenId(pathname, 1)
-                    mkdirSync(join(out, 'diagnostics'), { recursive: true })
-                    await page.screenshot({ path: join(out, 'diagnostics', `${id}.png`) }).catch(() => undefined)
-                    const reason = String(e instanceof Error ? e.message : e).slice(0, 950)
-                    marketingResults.push({
-                        id,
-                        name: pathname,
-                        flow,
-                        kind: 'route',
-                        defaultScreen: true,
-                        order,
-                        status: 'failed',
-                        reason,
-                        route: pathname,
-                    })
-                    console.log(`FAILED ${pathname}: ${reason.split('\n')[0]}`)
-                } finally {
-                    await context.close()
-                }
-            }
         }
         const report = manifest()
         writeFileSync(join(out, 'capture.json'), JSON.stringify(report, null, 2))

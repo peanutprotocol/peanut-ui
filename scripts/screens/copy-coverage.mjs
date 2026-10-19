@@ -253,7 +253,7 @@ export function evaluateCopyGate({ event, supported, reports, catalogues, baseli
         }
     return {
         ok: false,
-        reason: `${problems.join(' ')} Add a capture state that shows the copy (comment /chip screens to have Chip draft one), or add the keys to the baseline with “${COPY_EXCEPTION_PREFIX} <reason>” on its own line in the PR description.`,
+        reason: `${problems.join(' ')} Add a capture state that shows the copy, or add the keys to the baseline with “${COPY_EXCEPTION_PREFIX} <reason>” on its own line in the PR description.`,
         ...result,
     }
 }

@@ -37,7 +37,7 @@ export function validateCapture(input) {
         device = profile.device
     }
     assert(
-        Array.isArray(input.screens) && input.screens.length > 0 && input.screens.length <= 6000,
+        Array.isArray(input.screens) && input.screens.length > 0 && input.screens.length <= 2000,
         'Invalid catalogue'
     )
     const seen = new Set()

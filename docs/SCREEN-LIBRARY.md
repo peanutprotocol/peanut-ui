@@ -77,29 +77,13 @@ The trusted publisher adds a copy check to the Screen Library check on PRs:
   a screenshot, needs `Screen Library copy exception: <reason>` on its own line
   in the PR description.
 
-When the check fails, the PR comment lists the missing keys. A team member can
-comment `/chip screens`: Chip drafts the fixture, surface or page-capture
-entries under `src/dev/` that show them and pushes one signed commit as
-`chip-peanut-bot` with `Ordered-By` and `Order` trailers, so the human-authors
-and bot-approval gates apply as for any bot commit. The check then reruns on
-the new head.
+When the check fails, the PR comment lists the missing keys. Register a state
+that opens the drawer, modal or screen showing them, under `src/dev/fixtures/`,
+`src/dev/surfaces/` or `src/dev/screens/`, and the check reruns on the push.
 
 Regenerate the baseline from a complete English capture with
 `pnpm screens:copy-baseline <capture-dir>`. It keeps existing reasons, drops
 shown or deleted keys and only adds new keys with `--add-new`.
-
-## Marketing pages
-
-Full captures also photograph every page in the build's `/sitemap.xml` for the
-capture locale (unprefixed pages belong to English), as a signed-out visitor.
-Each page is shot by scrolling one viewport at a time, so sticky bars appear
-as a visitor sees them; slices are ordinary 393×852 states named
-`mkt-<path>-<n>`, at most 24 per page with the last pinned to the page bottom.
-Unmapped API calls fail the page like any state. Marketing and content changes
-therefore no longer skip capture: they run a full capture, and locale-named
-marketing catalogues or content add their locale. Targeted PR captures,
-viewport baselines and focused collections skip sitemap pages, and pages
-outside the sitemap (share images, `/dev`) stay excluded.
 
 ## Capture decisions and reuse
 

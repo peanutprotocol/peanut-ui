@@ -466,17 +466,10 @@ if (pr) {
               : 'Incomplete capture; unavailable states are listed in the report.'
     }${localeNote}`
     const copyCoverageReport = reports.find(({ copyCoverage }) => copyCoverage)
-    const missingCopy = copyGate
-        ? [...new Set([...copyGate.unshownChanged, ...copyGate.lost, ...copyGate.newGaps])]
-        : []
     const copySection = copyGate
         ? `\n\nScreen Library copy: ${copyGate.ok ? 'pass' : 'fail'} — ${copyGate.reason}${
               copyCoverageReport
                   ? ` [Copy coverage](${publicOrigin}/screen-library/copy.html?path=${encodeURIComponent(copyCoverageReport.path)}): ${copyCoverageReport.copyCoverage.shown}/${copyCoverageReport.copyCoverage.total} keys shown.`
-                  : ''
-          }${
-              missingCopy.length
-                  ? `\n\n<!-- screen-library-copy:${JSON.stringify({ head: expectedHead, keys: missingCopy.slice(0, 200) })} -->`
                   : ''
           }`
         : ''
