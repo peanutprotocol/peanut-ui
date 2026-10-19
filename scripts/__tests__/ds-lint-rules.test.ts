@@ -1136,6 +1136,14 @@ describe('offFocusColor', () => {
         expect(countOffFocusColorCss('.input:focus-visible { outline: 3px solid currentColor; }')).toBe(1)
     })
 
+    it('flags non-token css variables on focus', () => {
+        expect(countOffFocusColorCss('.input:focus { border-color: var(--brand-color); }')).toBe(1)
+        expect(countOffFocusColorCss('.input:focus { outline: 3px solid var(--color-action-focus); }')).toBe(0)
+        expect(
+            countOffFocusColorCss('.input:focus { outline: var(--ring-width) solid var(--color-action-focus); }')
+        ).toBe(0)
+    })
+
     it('leaves action-focus rings and non-focus css alone', () => {
         const css = `/* .x:focus { border-color: var(--color-action-primary) } */
         .input:focus { outline: 3px solid var(--color-action-focus); border-color: transparent; }
