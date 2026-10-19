@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     description:
         'Peanut is a money app for people who cross borders — send and receive money globally, spend with the Peanut Card, cash in and out through local rails.',
     metadataBase: new URL(baseUrl),
-    icons: { icon: '/favicon.ico' },
+    icons: { icon: '/favicon.ico', apple: '/icons/icon-192x192-maskable.png' },
     keywords:
         'peer-to-peer payments, send money instantly, request money, fast global transfers, remittances, digital dollar transfers, Latin America, Argentina, Brazil, P2P payments, crypto payments, stablecoin, digital dollars',
     // Canonicals belong to leaf pages: a root canonical here would be inherited
