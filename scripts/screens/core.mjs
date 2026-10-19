@@ -5,6 +5,7 @@ import { PNG } from 'pngjs'
 import pixelmatch from 'pixelmatch'
 import { captureProfile } from './capture-profiles.mjs'
 import { canonicalScope, scopeCapture } from './capture-scope.mjs'
+import { COPY_SHOWN_LIMIT, isCopyKey } from './copy-coverage.mjs'
 
 export const hash = (data) => createHash('sha256').update(data).digest('hex')
 const sha = /^[a-f0-9]{40}$/
@@ -36,7 +37,7 @@ export function validateCapture(input) {
         device = profile.device
     }
     assert(
-        Array.isArray(input.screens) && input.screens.length > 0 && input.screens.length <= 2000,
+        Array.isArray(input.screens) && input.screens.length > 0 && input.screens.length <= 6000,
         'Invalid catalogue'
     )
     const seen = new Set()
@@ -62,6 +63,15 @@ export function validateCapture(input) {
             )
             out.image = s.image
             out.thumbnail = s.thumbnail
+            if (s.copy !== undefined) {
+                assert(
+                    Array.isArray(s.copy) &&
+                        s.copy.length <= COPY_SHOWN_LIMIT &&
+                        s.copy.every((key, index) => isCopyKey(key) && (index === 0 || s.copy[index - 1] < key)),
+                    'Invalid shown-copy keys'
+                )
+                out.copy = [...s.copy]
+            }
         } else out.reason = text(s.reason)
         return out
     })
@@ -87,6 +97,10 @@ export function validateCapture(input) {
         assert(digest.test(entry.before) && digest.test(entry.after), 'Invalid adapter file digest')
         return { path: text(entry.path), before: entry.before, after: entry.after }
     })
+    assert(
+        input.copyRecording === undefined || ['recorded', 'unavailable'].includes(input.copyRecording),
+        'Invalid shown-copy recording status'
+    )
     const scope = input.scope === undefined ? undefined : canonicalScope(input.scope, seen)
     if (scope) assert(scope.screenIds.length === screens.length, 'Scoped catalogue contains omitted states')
     const settled =
@@ -105,6 +119,7 @@ export function validateCapture(input) {
         adapter: text(input.adapter),
         capturedAt: text(input.capturedAt),
         reconstruction: !!input.reconstruction,
+        ...(input.copyRecording ? { copyRecording: input.copyRecording } : {}),
         profile: input.profile,
         width: input.width,
         height: input.height,

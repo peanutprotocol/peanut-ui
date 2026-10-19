@@ -49,6 +49,58 @@ threshold or masking the drawer. Harness changes require both revisions to be
 recaptured with the same capture code; immutable older reports retain their
 original images and comparisons.
 
+## Copy coverage
+
+Every capture build records which app copy each state shows. `prepare.mjs`
+patches `IntlCore` so the message catalogue passes through a recorder the
+harness injects; a message counts as shown in a state only when the state
+resolved it and its literal text (case- and whitespace-insensitive) is on the
+page. Messages made only of placeholders count when resolved. Each captured
+state stores its shown keys; a capture whose `IntlCore` no longer matches the
+patch records `copyRecording: "unavailable"`.
+
+Full English captures publish `copy-coverage.json` next to their report: every
+app copy key, the states that show it, and the keys no state shows. The gallery
+reads it at `/screen-library/copy.html` (latest dev capture by default,
+`?path=<report path>` for any other).
+
+The trusted publisher adds a copy check to the Screen Library check on PRs:
+
+- copy added or changed in the PR must be shown by a captured state, in every
+  captured locale whose catalogue changed;
+- on full captures, every never-shown key must be listed in
+  `scripts/screens/copy-coverage-baseline.json`, and entries that are now shown
+  or deleted must be removed from it;
+- on targeted captures, a key shown before but no longer shown by the same
+  states fails;
+- the baseline only shrinks. Adding entries, and accepting changed copy without
+  a screenshot, needs `Screen Library copy exception: <reason>` on its own line
+  in the PR description.
+
+When the check fails, the PR comment lists the missing keys. A team member can
+comment `/chip screens`: Chip drafts the fixture, surface or page-capture
+entries under `src/dev/` that show them and pushes one signed commit as
+`chip-peanut-bot` with `Ordered-By` and `Order` trailers, so the human-authors
+and bot-approval gates apply as for any bot commit. The check then reruns on
+the new head.
+
+Regenerate the baseline from a complete English capture with
+`pnpm screens:copy-baseline <capture-dir>`. It keeps existing reasons, drops
+shown or deleted keys and only adds new keys with `--add-new`.
+
+## Marketing pages
+
+Full captures also photograph every page in the build's `/sitemap.xml` for the
+capture locale (unprefixed pages belong to English), as a signed-out visitor.
+Each page is shot by scrolling one viewport at a time, so sticky bars appear
+as a visitor sees them; slices are ordinary 393×852 states named
+`mkt-<path>-<n>`, at most 24 per page with the last pinned to the page bottom.
+Unmapped API calls fail the page like any state. Marketing and content changes
+therefore no longer skip capture: they run a full capture, and locale-named
+marketing catalogues or content add their locale. Targeted PR captures,
+viewport baselines and focused collections skip sitemap pages, and pages
+outside the sitemap (share images, `/dev`) stay excluded.
+
 ## Capture decisions and reuse
 
 The workflow classifies the immutable changed-file list before installing capture

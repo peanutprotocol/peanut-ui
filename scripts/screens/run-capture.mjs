@@ -13,6 +13,7 @@ const locale = process.argv.find((arg) => arg.startsWith('--locale='))?.slice('-
 const only = process.argv.find((arg) => arg.startsWith('--only='))?.slice('--only='.length) ?? ''
 const scoped = process.argv.includes('--scope=targeted')
 const executable = process.argv.find((arg) => arg.startsWith('--executable='))?.slice('--executable='.length) ?? ''
+const marketing = process.argv.includes('--marketing=false') ? ['--marketing=false'] : []
 const profile = captureProfile(process.argv.find((arg) => arg.startsWith('--profile='))?.slice('--profile='.length))
 if (!['en', 'es-419', 'es-AR', 'pt-BR'].includes(locale)) throw new Error('Unsupported capture locale')
 if (!/^[a-f0-9]{40}$/.test(sha ?? '')) throw new Error('Expected immutable target SHA')
@@ -91,6 +92,7 @@ try {
             ...(only ? [`--only=${only}`] : []),
             ...(scoped ? ['--scope=targeted'] : []),
             ...(executable ? [`--executable=${executable}`] : []),
+            ...marketing,
             `--locale=${locale}`,
             `--profile=${profile.name}`,
             `--source=${source}`,

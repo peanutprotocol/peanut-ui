@@ -76,7 +76,7 @@ jobs:
               working-directory: harness
               env:
                   TARGET_SHA: ${{ needs.revision.outputs.sha }}
-              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --full-catalogue --locale=${{ matrix.locale }} --profile=${{ matrix.profile.name }}
+              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --full-catalogue --marketing=false --locale=${{ matrix.locale }} --profile=${{ matrix.profile.name }}
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always()
               with:

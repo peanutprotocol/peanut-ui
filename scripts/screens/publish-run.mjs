@@ -17,6 +17,14 @@ import { planRevisionCapture } from './capture-impact.mjs'
 import { canonicalScope } from './capture-scope.mjs'
 import { verifyReusedBaseline } from './verify-reused-baseline.mjs'
 import { ALL_LOCALES_LABEL, missingLocales, planCaptureLocales } from './capture-locales.mjs'
+import {
+    copyCoverage,
+    evaluateCopyGate,
+    flattenMessages,
+    localeMessages,
+    parseCopyBaseline,
+    shownInCapture,
+} from './copy-coverage.mjs'
 const LOCALES = {
     en: 'English',
     'es-419': 'Español',
@@ -297,6 +305,7 @@ for (const capturePair of capturePairs) {
         path,
         before,
         after,
+        libraryPath: undefined,
         complete: comparison.scope ? false : reviewableComparison(comparison),
         ...(comparison.scope ? { scope: comparison.scope, scopeComplete: reviewableComparison(comparison) } : {}),
         changedScreens,
@@ -322,6 +331,8 @@ for (const capturePair of capturePairs) {
                     copyFileSync(join(source, 'assets', name), join(destination, 'assets', name))
                 }
         writeFileSync(`${destination}/manifest.json`, JSON.stringify(capture))
+        if (capture === after)
+            reports.at(-1).libraryPath = `${date}/${branch}/${slug}/${capture.commit}/run-${runId}-${attempt}`
         publications.push({
             inputDir: destination,
             reportPath: `${date}/${branch}/${slug}/${capture.commit}/run-${runId}-${attempt}`,
@@ -359,6 +370,72 @@ await mapBounded(publications, ({ inputDir, reportPath, env }) =>
 )
 recordPublished(true)
 
+const gitShow = (revision, path) => {
+    try {
+        return execFileSync('git', ['show', `${revision}:${path}`], {
+            encoding: 'utf8',
+            maxBuffer: 64 * 1024 * 1024,
+            stdio: ['ignore', 'pipe', 'ignore'],
+        })
+    } catch {
+        return null
+    }
+}
+const copyCatalogue = (revision, locale) =>
+    flattenMessages(
+        localeMessages(locale, (name) => JSON.parse(gitShow(revision, `src/i18n/app/messages/${name}.json`) ?? '{}'))
+    )
+const copyBaselineAt = (revision) => {
+    const raw = gitShow(revision, 'scripts/screens/copy-coverage-baseline.json')
+    return raw === null ? null : parseCopyBaseline(JSON.parse(raw))
+}
+// Once the base records copy, a PR cannot opt out by deleting the recorder: its capture then fails closed.
+const copySupported = [expectedBase, expectedHead].some(
+    (revision) => gitShow(revision, 'scripts/screens/copy-recorder.mjs') !== null
+)
+const headBaseline = copySupported ? copyBaselineAt(expectedHead) : null
+// Full English captures publish the never-shown list beside their report; the gallery reads it from there.
+for (const report of reports) {
+    if (report.locale !== 'en' || report.after.scope || report.after.copyRecording !== 'recorded') continue
+    const catalogue = copyCatalogue(expectedHead, 'en')
+    const coverage = copyCoverage(report.after, catalogue)
+    const shown = shownInCapture(report.after)
+    coverage.baseline = headBaseline
+        ? {
+              entries: headBaseline.size,
+              newGaps: coverage.neverShown.filter(({ key }) => !headBaseline.has(key)).map(({ key }) => key),
+              stale: [...headBaseline.keys()].filter((key) => shown.has(key) || !catalogue.has(key)).sort(),
+          }
+        : null
+    report.copyCoverage = coverage
+    for (const reportPath of [report.path, report.libraryPath].filter(Boolean))
+        await storage.put(`reports/${reportPath}/copy-coverage.json`, JSON.stringify(coverage), {
+            allowOverwrite: false,
+            contentType: 'application/json',
+        })
+    console.log(
+        `Copy coverage ${expectedHead.slice(0, 12)}: ${coverage.shown}/${coverage.total} shown; ${coverage.neverShown.length} never shown${coverage.baseline ? `; ${coverage.baseline.newGaps.length} outside the baseline, ${coverage.baseline.stale.length} stale baseline entries` : ''}`
+    )
+}
+
+let copyGate
+if (run.event === 'pull_request' && pr) {
+    copyGate = evaluateCopyGate({
+        event: run.event,
+        supported: copySupported,
+        reports,
+        catalogues: Object.fromEntries(
+            reports.map(({ locale }) => [
+                locale,
+                { before: copyCatalogue(expectedBase, locale), after: copyCatalogue(expectedHead, locale) },
+            ])
+        ),
+        baseline: { before: copyBaselineAt(expectedBase), after: headBaseline },
+        exception: pr.body ?? '',
+    })
+    console.log(`Screen Library copy: ${copyGate.ok ? 'pass' : 'fail'} — ${copyGate.reason}`)
+}
+
 let coverageGate
 if (run.event === 'pull_request' && pr) {
     coverageGate = evaluateZeroDifferenceGate({
@@ -388,11 +465,26 @@ if (pr) {
               ? `Reviewable capture in ${localeScope}; newly registered states are marked in the report.`
               : 'Incomplete capture; unavailable states are listed in the report.'
     }${localeNote}`
+    const copyCoverageReport = reports.find(({ copyCoverage }) => copyCoverage)
+    const missingCopy = copyGate
+        ? [...new Set([...copyGate.unshownChanged, ...copyGate.lost, ...copyGate.newGaps])]
+        : []
+    const copySection = copyGate
+        ? `\n\nScreen Library copy: ${copyGate.ok ? 'pass' : 'fail'} — ${copyGate.reason}${
+              copyCoverageReport
+                  ? ` [Copy coverage](${publicOrigin}/screen-library/copy.html?path=${encodeURIComponent(copyCoverageReport.path)}): ${copyCoverageReport.copyCoverage.shown}/${copyCoverageReport.copyCoverage.total} keys shown.`
+                  : ''
+          }${
+              missingCopy.length
+                  ? `\n\n<!-- screen-library-copy:${JSON.stringify({ head: expectedHead, keys: missingCopy.slice(0, 200) })} -->`
+                  : ''
+          }`
+        : ''
     const body = `${marker}\n${reports
         .map(({ locale, path }) => `[${LOCALES[locale]}](${publicOrigin}/screens/${path}/)`)
         .join(
             ' · '
-        )}\n\n[Open screen library dashboard](${publicOrigin}/screens/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${reports[0].before.commit} → ${reports[0].after.commit}. ${coverageDescription}${coverageGate ? `\n\nScreen Library coverage: ${coverageGate.ok ? 'pass' : 'fail'} — ${coverageGate.reason}` : ''}`
+        )}\n\n[Open screen library dashboard](${publicOrigin}/screens/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${reports[0].before.commit} → ${reports[0].after.commit}. ${coverageDescription}${coverageGate ? `\n\nScreen Library coverage: ${coverageGate.ok ? 'pass' : 'fail'} — ${coverageGate.reason}` : ''}${copySection}`
     const comments = JSON.parse(
         execFileSync(
             'gh',
@@ -414,4 +506,5 @@ if (pr) {
         { input: JSON.stringify({ body }), stdio: ['pipe', 'ignore', 'inherit'] }
     )
 }
-if (coverageGate && !coverageGate.ok) throw new Error(coverageGate.reason)
+const failures = [coverageGate, copyGate].filter((gate) => gate && !gate.ok).map((gate) => gate.reason)
+if (failures.length) throw new Error(failures.join(' '))

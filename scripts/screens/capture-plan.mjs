@@ -17,7 +17,7 @@ export const galleryMaintenanceChange = (path) =>
     )
 export const galleryIndexChange = (path) => /^scripts\/screens\/(?:publication-index|rebuild-index)\.mjs$/.test(path)
 
-/** Marketing site and content: no captured state renders them (capture-marketing.test.mjs proves it). */
+/** Marketing site and content. Visual: full captures photograph every sitemap page. */
 export const marketingOnly = (path) =>
     validPath(path) &&
     /^src\/(?:content(?:\/|$)|app\/(?:\[locale\]\/|(?:es-419|es-ar|pt-br)\/|page\.tsx$|api\/og\/marketing\/)|components\/Marketing\/|i18n\/(?:(?:en|es-419|es-ar|pt-br)\.json|app\/(?:messages\/[^/]+\.marketing\.json|marketing-namespaces\.json|messages\.marketing\.ts|MarketingIntlProvider\.tsx))$)/.test(
@@ -29,7 +29,6 @@ export function knownNonvisual(path) {
     if (!validPath(path)) return false
     if (/(?:^|\/)(?:__tests__|__mocks__|test-utils)\/|\.(?:test|spec)\.[cm]?[jt]sx?$/.test(path)) return true
     if (galleryMaintenanceChange(path)) return true
-    if (marketingOnly(path)) return true
     if (globalSource.test(path)) return false
     if (/(?:^|\/)__fixtures__\//.test(path)) return false
     return /^(?:docs\/|[^/]+\.md$|e2e\/|public\/screen-library\/|\.github\/workflows\/|scripts\/|android\/|ios\/|\.codex\/)/.test(
