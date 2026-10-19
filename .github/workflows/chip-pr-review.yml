@@ -69,7 +69,8 @@ jobs:
             github.event.issue.pull_request &&
             contains(fromJSON('["OWNER","MEMBER","COLLABORATOR","CONTRIBUTOR"]'), github.event.comment.author_association) &&
             (contains(github.event.comment.body, '/chip review') || contains(github.event.comment.body, '@chip-peanut-bot review')
-            || contains(github.event.comment.body, '/chip quiet') || contains(github.event.comment.body, '/chip loud'))
+            || contains(github.event.comment.body, '/chip quiet') || contains(github.event.comment.body, '/chip loud')
+            || contains(github.event.comment.body, '/chip screens'))
         runs-on: ubuntu-latest
         timeout-minutes: 2
         steps:
