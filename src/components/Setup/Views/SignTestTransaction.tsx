@@ -22,7 +22,7 @@ import posthog from 'posthog-js'
 import { setupCountrySignalProperties } from '@/features/setup/country-signals'
 import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { getFromCookie } from '@/utils/general.utils'
+import { readInviteCode } from '@/utils/invite-stash'
 import {
     clearSignupAttribution,
     hasPendingSignupAttribution,
@@ -77,9 +77,6 @@ export function SetupConfirmationView({
         <PageStack className="flex-1">
             <PageStack.Center>
                 {showTitle && <h1 className="text-heading-s">{t('testTransaction.confirmTitle')}</h1>}
-                <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
-                    {t('steps.sign-test-transaction.description')}
-                </p>
                 {error && <Callout priority="error">{error}</Callout>}
             </PageStack.Center>
             <SetupFooter actions={button} secondary={secondary}>
@@ -151,7 +148,7 @@ const SignTestTransaction = ({
             completionCelebratedRef.current = true
             confettiPresets.celebration()
         }
-        const inviteCode = getFromCookie('inviteCode')
+        const inviteCode = readInviteCode()
         // Native Preferences can be the only surviving copy after a WebView
         // process restart, so load the durable context before emitting the
         // terminal event or deleting it.

@@ -23,10 +23,26 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
 }))
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => mockMigration }))
 jest.mock('@/components/Migration/AppModalProvider', () => ({ useAppModal: () => mockIntercept }))
+// link mode renders the anchor itself; keep only what these tests read
 jest.mock('@/components/0_Bruddle/Button', () => ({
-    Button: ({ children, icon }: { children: React.ReactNode; icon?: string }) => (
-        <span data-icon={icon}>{children}</span>
-    ),
+    Button: ({
+        children,
+        icon,
+        href,
+        onClick,
+    }: {
+        children: React.ReactNode
+        icon?: string
+        href?: string
+        onClick?: React.MouseEventHandler<HTMLAnchorElement>
+    }) =>
+        href !== undefined ? (
+            <a href={href} onClick={onClick} data-icon={icon}>
+                {children}
+            </a>
+        ) : (
+            <span data-icon={icon}>{children}</span>
+        ),
 }))
 
 beforeEach(() => {

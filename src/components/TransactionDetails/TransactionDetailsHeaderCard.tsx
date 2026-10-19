@@ -66,6 +66,9 @@ interface TransactionDetailsHeaderCardProps {
     statusNote?: string
     /** Identifies the counterparty beside its name in the title, e.g. a PIX key. */
     nameDetail?: string
+    /** A bank's verification micro-deposit: cancelled on the wire, but the
+     *  amount stays readable and the badge says Returned. */
+    isVerificationDeposit?: boolean
 }
 
 type TransactionTranslator = ReturnType<typeof useTranslations<'transaction'>>
@@ -249,6 +252,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     countryCode,
     statusNote,
     nameDetail,
+    isVerificationDeposit = false,
 }) => {
     const router = useRouter()
     const t = useTranslations('transaction')
@@ -392,7 +396,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         <h1
                             className={twMerge(
                                 'text-heading-m text-foreground-primary',
-                                amountStateClasses(status, isOpenRequest)
+                                !isVerificationDeposit && amountStateClasses(status, isOpenRequest)
                             )}
                         >
                             {sign}
@@ -401,7 +405,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     )}
                 </div>
                 {showBadge &&
-                    (actionLabelKey === 'type.returnedToSender' ? (
+                    (actionLabelKey === 'type.returnedToSender' || isVerificationDeposit ? (
                         // A bank deposit sent back to the payer is a fact with no
                         // success tone, so `neutral`, in the heading's word.
                         <Badge status="neutral" size="medium" customText={t('returnedStatus')} />

@@ -24,6 +24,7 @@ import { useAuth } from '@/context/authContext'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useTranslations } from 'next-intl'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 import { remainingToPay } from './collected'
 
@@ -242,7 +243,12 @@ export function useContributePotFlow() {
                     setIsLoading(false)
                     return { success: false }
                 }
-                const errorMessage = toFriendlyError(err)
+                // the request was closed after this page loaded; the api refuses the
+                // charge before any money moves
+                const errorMessage =
+                    wireErrorCode(err) === API_ERROR_CODES.REQUEST_CLOSED
+                        ? t('errors.requestClosedTitle')
+                        : toFriendlyError(err)
                 setError({ showError: true, errorMessage })
                 setIsLoading(false)
                 return { success: false }

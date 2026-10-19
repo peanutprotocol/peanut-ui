@@ -92,6 +92,14 @@ describe('Claim username', () => {
         expect(mockSetScreenId).not.toHaveBeenCalled()
     })
 
+    it('explains a too-short username instead of only marking the field red', async () => {
+        renderSignup()
+        fireEvent.change(usernameField(), { target: { value: 'abc' } })
+        expect(await screen.findByText('Username must be at least 4 characters long')).toBeInTheDocument()
+        expect(mockApiFetch).not.toHaveBeenCalled()
+        expect(claimButton()).toBeDisabled()
+    })
+
     it('keeps Claim disabled for a taken username', async () => {
         mockApiFetch.mockResolvedValue({ status: 200 })
         renderSignup()
@@ -104,7 +112,7 @@ describe('Claim username', () => {
 
     it('shows the @ prefix, the role placeholder and the legal line under the pinned button, with no inviter UI', () => {
         renderSignup()
-        expect(usernameField()).toHaveAttribute('placeholder', 'Username')
+        expect(usernameField()).toHaveAttribute('placeholder', 'batman')
         expect(screen.getByText('@')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Who invited you?' })).not.toBeInTheDocument()
         expect(screen.queryByText(/Invited by/)).not.toBeInTheDocument()
@@ -152,7 +160,7 @@ describe('Claim username', () => {
             }
             expect(screen.getByText('peanutpirate?')).toBeInTheDocument()
             act(() => jest.advanceTimersByTime(2000))
-            expect(username).toHaveAttribute('placeholder', 'Username')
+            expect(username).toHaveAttribute('placeholder', 'batman')
         } finally {
             jest.useRealTimers()
         }

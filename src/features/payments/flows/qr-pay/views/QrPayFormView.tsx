@@ -165,6 +165,14 @@ export function QrPayFormView() {
                     </Card>
 
                     {/* Under the recipient, so it reads as saving the key, not the amount or fee. */}
+                    {pixKeySave.savedName && (
+                        <p
+                            className="ph-mask ph-no-capture text-body-s break-words text-foreground-secondary"
+                            data-testid="pix-key-saved-as"
+                        >
+                            {t('pixKeySavedAs', { name: pixKeySave.savedName })}
+                        </p>
+                    )}
                     {pixKeySave.isOffered && (
                         <SaveAddressPrompt
                             checked={pixKeySave.checked}

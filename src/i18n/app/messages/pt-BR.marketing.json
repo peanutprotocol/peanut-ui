@@ -16,6 +16,7 @@
         "somethingWentWrong": "Algo deu errado",
         "genericError": "Algo deu errado. Tente de novo ou fale com o suporte.",
         "copiedToClipboard": "Copiado para a área de transferência",
+        "savedToDocuments": "Salvo em Documentos",
         "maybeLater": "Talvez depois",
         "tryAgain": "Tentar de novo",
         "skipForNow": "Pular por enquanto",
@@ -219,7 +220,7 @@
             "noMonthlyFee": "SEM MENSALIDADE"
         },
         "faq": {
-            "title": "Perguntas.",
+            "title": "FAQ.",
             "q1": {
                 "question": "O que é o Peanut Card?",
                 "answer": "Peanut Card é um cartão Visa virtual para usar seu saldo Peanut online e com carteiras digitais compatíveis."

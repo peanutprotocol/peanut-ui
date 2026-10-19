@@ -5,15 +5,17 @@ import { contentHrefsFor } from './landingContentHrefs.server'
 
 const Footer = ({
     showSiteDirectory = true,
+    padForStickyCta = false,
     locale = DEFAULT_LOCALE,
 }: {
     showSiteDirectory?: boolean
+    padForStickyCta?: boolean
     locale?: Locale
 }) => {
     return (
         <>
             <FooterChrome locale={locale} securityDisclosureHref={contentHrefsFor(locale).securityDisclosure} />
-            {showSiteDirectory && <SEOFooter locale={locale} />}
+            {showSiteDirectory && <SEOFooter locale={locale} padForStickyCta={padForStickyCta} />}
         </>
     )
 }

@@ -38,6 +38,7 @@ interface Props {
      *  this opens Rain's card-member portal to re-upload — the primary CTA so
      *  users fix it themselves instead of hitting the contact-support dead end. */
     onUploadIdentity?: () => void
+    informationActions?: Array<{ key: string; kind: InformationKind; label: string; onClick: () => void }>
     /** Inline failure from starting the upload (a silent primary CTA on a
      *  stuck-application screen reads as broken). */
     uploadError?: string
@@ -65,6 +66,23 @@ const COPY_KEYS = {
 /** A collected proof of address on its way to, or with, the card partner: nothing for the user to do. */
 const AWAITING_DOCUMENT_REVIEW: ReadonlySet<string> = new Set(['proof_of_address_received', 'proof_of_address_review'])
 
+export type InformationKind = 'taxId' | 'birthDate'
+type SelfServeKind = 'proofOfAddress' | 'identity' | InformationKind
+
+interface SelfServeAction {
+    kind: SelfServeKind
+    label: string
+    onClick: () => void
+}
+
+/** A self-serve step on the screen replaces the support line with what to do. */
+const REQUIRES_INFO_BODY_KEYS = {
+    proofOfAddress: 'status.requiresInfoProofOfAddressBody',
+    identity: 'status.requiresInfoIdentityBody',
+    taxId: 'status.requiresInfoTaxIdBody',
+    birthDate: 'status.requiresInfoBirthDateBody',
+} as const satisfies Record<SelfServeKind, string>
+
 /** Variants where support is the only path forward — these render the CTA. */
 const SUPPORT_VARIANTS: ReadonlySet<Variant> = new Set(['requires-info', 'requires-support', 'rejected'])
 
@@ -85,6 +103,7 @@ const ApplicationStatusScreen: FC<Props> = ({
     onContactSupport,
     onUploadProofOfAddress,
     onUploadIdentity,
+    informationActions = [],
     uploadError,
     onPrev,
 }) => {
@@ -92,19 +111,32 @@ const ApplicationStatusScreen: FC<Props> = ({
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
     const copyKeys = COPY_KEYS[variant]
-    // requires-info's default body points at support; an upload button or a wait is the way forward instead
+    const reasonKey = reasonCodeKey(reasonCode)
+    const reasonText = reasonKey ? tIdentity(reasonKey) : reasonMessage
+    // One fix at a time: if the rail ever carries several, the next shows once this one is done.
+    let selfServeAction: SelfServeAction | undefined
+    if (SUPPORT_VARIANTS.has(variant)) {
+        if (onUploadProofOfAddress) {
+            selfServeAction = {
+                kind: 'proofOfAddress',
+                label: t('uploadProofOfAddress'),
+                onClick: onUploadProofOfAddress,
+            }
+        } else if (onUploadIdentity) {
+            selfServeAction = { kind: 'identity', label: t('uploadIdentityDocuments'), onClick: onUploadIdentity }
+        } else if (variant === 'requires-info') {
+            selfServeAction = informationActions[0]
+        }
+    }
+    // requires-info's default body points at support; the step on screen, or a wait, is the way forward instead
     const bodyKey =
         variant !== 'requires-info'
             ? copyKeys.body
-            : onUploadProofOfAddress
-              ? 'status.requiresInfoAddressBody'
-              : onUploadIdentity
-                ? 'status.requiresInfoIdentityBody'
-                : reasonCode && AWAITING_DOCUMENT_REVIEW.has(reasonCode)
-                  ? 'status.requiresInfoWaitBody'
-                  : copyKeys.body
-    const reasonKey = reasonCodeKey(reasonCode)
-    const reasonText = reasonKey ? tIdentity(reasonKey) : reasonMessage
+            : selfServeAction
+              ? REQUIRES_INFO_BODY_KEYS[selfServeAction.kind]
+              : reasonCode && AWAITING_DOCUMENT_REVIEW.has(reasonCode)
+                ? 'status.requiresInfoWaitBody'
+                : copyKeys.body
     return (
         <PageStack>
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
@@ -130,21 +162,15 @@ const ApplicationStatusScreen: FC<Props> = ({
                 {variant === 'pending-residence-blocked' && (
                     <LinkButton href={RESIDENCE_CHANGE_URL}>{t('status.pendingResidenceBlockedCta')}</LinkButton>
                 )}
-                {SUPPORT_VARIANTS.has(variant) && onUploadProofOfAddress && (
-                    <div className="flex w-full flex-col gap-2">
-                        <Button variant="primary" shadowSize="4" className="w-full" onClick={onUploadProofOfAddress}>
-                            {t('uploadProofOfAddress')}
-                        </Button>
-                        {uploadError && <p className="text-body-s text-foreground-error">{uploadError}</p>}
-                    </div>
+                {selfServeAction && (
+                    <Button variant="primary" className="w-full" onClick={selfServeAction.onClick}>
+                        {selfServeAction.label}
+                    </Button>
                 )}
-                {SUPPORT_VARIANTS.has(variant) && onUploadIdentity && (
-                    <div className="flex w-full flex-col gap-2">
-                        <Button variant="primary" shadowSize="4" className="w-full" onClick={onUploadIdentity}>
-                            {t('uploadIdentityDocuments')}
-                        </Button>
-                        {uploadError && <p className="text-body-s text-foreground-error">{uploadError}</p>}
-                    </div>
+                {SUPPORT_VARIANTS.has(variant) && uploadError && (
+                    <p role="alert" className="text-body-s text-foreground-error">
+                        {uploadError}
+                    </p>
                 )}
                 {SUPPORT_VARIANTS.has(variant) && onContactSupport && (
                     <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>

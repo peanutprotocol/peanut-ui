@@ -58,8 +58,6 @@ jest.mock('@/context/ClaimBankFlowContext', () => ({
         setVerificationPromptReason: jest.fn(),
         setClaimToExternalWallet: jest.fn(),
         resetFlow: jest.fn(),
-        claimToMercadoPago: false,
-        setClaimToMercadoPago: jest.fn(),
         setRegionalMethodType: jest.fn(),
         hideTokenSelector: false,
         setHideTokenSelector: jest.fn(),

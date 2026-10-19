@@ -11,6 +11,7 @@ import React from 'react'
 import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
@@ -208,37 +209,109 @@ describe('ApplicationStatusScreen — upload error', () => {
     })
 })
 
-describe('ApplicationStatusScreen — requires-info body never contradicts its button', () => {
+describe('ApplicationStatusScreen — card partner review', () => {
+    it('maps card_needs_review to its localized reason key', () => {
+        expect(reasonCodeKey('card_needs_review')).toBe('reasons.card_needs_review')
+    })
+
+    it('uses the mapped review copy instead of different backend prose and keeps support clickable', () => {
+        const onContactSupport = jest.fn()
+        const backendReason = 'Internal partner escalation: please wait for an operator.'
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                reasonCode="card_needs_review"
+                reasonMessage={backendReason}
+                onContactSupport={onContactSupport}
+            />
+        )
+        expect(screen.getByText('Our card partner needs to check a few more details.')).toBeInTheDocument()
+        expect(screen.queryByText(backendReason)).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('Contact support'))
+        expect(onContactSupport).toHaveBeenCalledTimes(1)
+    })
+})
+
+const informationAction = (kind: 'taxId' | 'birthDate') => ({
+    key: kind,
+    kind,
+    label: kind === 'taxId' ? en.card.provideTaxId : en.card.provideBirthDate,
+    onClick: jest.fn(),
+})
+
+describe('ApplicationStatusScreen — requires-info body follows the self-serve step', () => {
+    const status = en.card.status
+
+    it.each([
+        [informationAction('taxId'), status.requiresInfoTaxIdBody],
+        [informationAction('birthDate'), status.requiresInfoBirthDateBody],
+    ])('names the requested detail instead of sending the user to support', (information, body) => {
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                informationActions={[information]}
+                onContactSupport={jest.fn()}
+            />
+        )
+        expect(screen.getByText(body)).toBeInTheDocument()
+        expect(screen.queryByText(status.requiresInfoBody)).not.toBeInTheDocument()
+        expect(screen.getByText(en.common.contactSupport)).toBeInTheDocument()
+    })
+
+    it.each([
+        [{ onUploadProofOfAddress: jest.fn() }, status.requiresInfoProofOfAddressBody],
+        [{ onUploadIdentity: jest.fn() }, status.requiresInfoIdentityBody],
+    ])('names the requested upload', (upload, body) => {
+        render(<ApplicationStatusScreen variant="requires-info" {...upload} onContactSupport={jest.fn()} />)
+        expect(screen.getByText(body)).toBeInTheDocument()
+    })
+
+    it('keeps the support line only when there is nothing to do on screen', () => {
+        render(<ApplicationStatusScreen variant="requires-info" onContactSupport={jest.fn()} />)
+        expect(screen.getByText(status.requiresInfoBody)).toBeInTheDocument()
+    })
+})
+
+describe('ApplicationStatusScreen — one self-serve action at a time', () => {
+    const status = en.card.status
+    const offered = () =>
+        screen.queryAllByRole('button').filter((button) => !/back|contact support/i.test(button.textContent ?? ''))
+
+    it.each([
+        [
+            'proof of address',
+            { onUploadProofOfAddress: jest.fn(), onUploadIdentity: jest.fn() },
+            en.card.uploadProofOfAddress,
+            status.requiresInfoProofOfAddressBody,
+        ],
+        [
+            'identity documents',
+            { onUploadIdentity: jest.fn() },
+            en.card.uploadIdentityDocuments,
+            status.requiresInfoIdentityBody,
+        ],
+        ['the first detail', {}, en.card.provideTaxId, status.requiresInfoTaxIdBody],
+    ])('offers only %s and describes that step', (_label, uploads, button, body) => {
+        render(
+            <ApplicationStatusScreen
+                variant="requires-info"
+                {...uploads}
+                informationActions={[informationAction('taxId'), informationAction('birthDate')]}
+                onContactSupport={jest.fn()}
+            />
+        )
+        expect(offered().map((node) => node.textContent?.trim())).toEqual([button])
+        expect(screen.getByRole('button', { name: button })).toHaveClass('btn-primary')
+        expect(screen.getByText(body)).toBeInTheDocument()
+        expect(screen.getByText(en.common.contactSupport)).toBeInTheDocument()
+    })
+})
+
+describe('ApplicationStatusScreen — a collected proof of address', () => {
     const SUPPORT_BODY = en.card.status.requiresInfoBody
 
-    it('with a proof-of-address upload, the body asks for the upload instead of a support message', () => {
-        render(
-            <ApplicationStatusScreen
-                variant="requires-info"
-                reasonCode="proof_of_address"
-                onContactSupport={jest.fn()}
-                onUploadProofOfAddress={jest.fn()}
-            />
-        )
-        expect(screen.getByText(en.card.status.requiresInfoAddressBody)).toBeInTheDocument()
-        expect(screen.queryByText(SUPPORT_BODY)).not.toBeInTheDocument()
-        expect(en.card.status.requiresInfoAddressBody).not.toMatch(/support/i)
-    })
-
-    it('with an identity re-upload, the body asks for the identity document', () => {
-        render(
-            <ApplicationStatusScreen
-                variant="requires-info"
-                onContactSupport={jest.fn()}
-                onUploadIdentity={jest.fn()}
-            />
-        )
-        expect(screen.getByText(en.card.status.requiresInfoIdentityBody)).toBeInTheDocument()
-        expect(screen.queryByText(SUPPORT_BODY)).not.toBeInTheDocument()
-    })
-
     it.each(['proof_of_address_received', 'proof_of_address_review'])(
-        'while a collected proof of address waits (%s), it says there is nothing to do',
+        'while it waits (%s), the screen says there is nothing to do',
         (reasonCode) => {
             render(
                 <ApplicationStatusScreen variant="requires-info" reasonCode={reasonCode} onContactSupport={jest.fn()} />
@@ -251,17 +324,6 @@ describe('ApplicationStatusScreen — requires-info body never contradicts its b
 
     it('the received state does not claim the partner is reviewing it yet', () => {
         expect(en.identity.reasons.proof_of_address_received).not.toMatch(/review/i)
-    })
-
-    it('with nothing the user can upload, support stays the way forward', () => {
-        render(
-            <ApplicationStatusScreen
-                variant="requires-info"
-                reasonCode="card_needs_review"
-                onContactSupport={jest.fn()}
-            />
-        )
-        expect(screen.getByText(SUPPORT_BODY)).toBeInTheDocument()
     })
 
     it('other variants keep their own body even with an upload button', () => {

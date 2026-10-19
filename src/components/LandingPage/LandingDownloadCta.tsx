@@ -1,13 +1,16 @@
 'use client'
 import DownloadAppLink from '@/components/Migration/DownloadAppLink'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { CTA_MOTION } from '@/components/Marketing/constants'
 
 export function LandingDownloadCta({ subtext }: { subtext?: string }) {
     return (
-        <div className="flex flex-col items-center" data-testid="landing-download-cta">
+        <div className="flex w-full flex-col items-center" data-testid="landing-download-cta">
             <DownloadAppLink
                 surface={MIGRATION_SURFACES.LANDING_HERO}
-                buttonClassName="bg-white px-8 hover:bg-white/90 active:bg-white/90"
+                variant="secondary"
+                size="large"
+                className={`w-fit ${CTA_MOTION}`}
             />
             {subtext && (
                 <span className="mt-2 block text-center text-body-s text-foreground-primary italic md:text-body-m">

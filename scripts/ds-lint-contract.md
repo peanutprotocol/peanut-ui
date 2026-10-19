@@ -99,6 +99,36 @@ regex fallback; a missing parser or evaluator failure remains an error.
   methodology change in the baseline `_meta`. Do not regenerate other metrics
   as a side effect of modifying this scanner.
 
+## Marketing ratchet metrics (2026-10-15)
+
+`rawHexMarketing`, `arbitraryFontSizeMarketing` and `knerdOutsideTitle` are
+regex value matchers in `ds-lint-rules.cjs`, not scanner semantics. The
+marketing surfaces (the `LEGACY_ALLOW` list in `ds-lint-counts.mjs`) stay out
+of the app-wide hex and text-size metrics; the two marketing metrics count raw
+hex literals and arbitrary `text-[<digit>…]` sizes inside those same surfaces,
+so the exemption no longer leaves the drift uncounted. `knerdOutsideTitle`
+counts `font-knerd-*` classes app-wide outside
+`src/components/0_Bruddle/Title.tsx`, the one component that renders the Knerd
+face. Baselines are the counts at introduction (raw-hex-marketing ruling,
+2026-10-14); the fix branches drive the counts down and the integrator
+re-baselines after merging them.
+
+## Focus colour metric (2026-10-19, TASK-23368)
+
+`offFocusColor` counts focus colours that are not `action-focus` (design.md
+law 8). It reads two shapes. In class strings, a `focus:`, `focus-visible:` or
+`focus-within:` variant (with `group-`/`peer-` forms) on a `ring-*`,
+`outline-*` or `border-*` colour counts, including the custom-property form
+`ring-(--x)`; widths, styles, offsets, `none` and `transparent` do not. In the stylesheets under `src/styles/`, a rule whose
+selector has `:focus` and sets an `outline*`, `border*` or `--tw-ring-color`
+colour other than `var(--color-action-focus)` counts, named colours such as
+`red` or `currentColor` and non-token variables such as `var(--brand)`
+included; a variable named for a width, offset, radius or size is not
+a colour. `box-shadow` is not read:
+the autofill repaint sets a background shadow on `:focus`. The pink
+pointer-focus border (ui#3041, reverted in ui#3161) was raw CSS in
+`globals.css`, so the tsx scan alone could not see it. Baseline 0.
+
 The migration from `954861de9` changes only
 `src/app/(mobile-ui)/dev/_components/DevSegmented.tsx`, from 1 to 0. Its `size`
 ternary has `font-bold` in the small branch and `text-label-m` in the other branch;

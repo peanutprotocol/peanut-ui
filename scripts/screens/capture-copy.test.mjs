@@ -40,16 +40,6 @@ test('unknown capture strings remain unchanged', () => {
     assert.equal(localizedCaptureText('pt-BR', source)('Synthetic account'), 'Synthetic account')
 })
 
-test('the network drawer opens by its localized label in every app locale', () => {
-    for (const [locale, label] of Object.entries({
-        en: 'More networks',
-        'es-419': 'Más redes',
-        'es-AR': 'Más redes',
-        'pt-BR': 'Mais redes',
-    }))
-        assert.equal(localizedCaptureText(locale, source)('More networks'), label)
-})
-
 test('the contributors drawer opens by its localized label in every app locale', () => {
     for (const [locale, label] of Object.entries({
         en: 'See all contributors',
@@ -58,6 +48,16 @@ test('the contributors drawer opens by its localized label in every app locale',
         'pt-BR': 'Ver todos os contribuidores',
     }))
         assert.equal(localizedCaptureText(locale, source)('See all contributors'), label)
+})
+
+test('the idle withdrawal balance checkpoint follows the target locale', () => {
+    for (const [locale, label] of Object.entries({
+        en: 'Not enough balance. Add funds to continue.',
+        'es-419': 'Saldo insuficiente. Agrega fondos para continuar.',
+        'es-AR': 'Saldo insuficiente. Agregá fondos para continuar.',
+        'pt-BR': 'Saldo insuficiente. Adicione fundos para continuar.',
+    }))
+        assert.equal(localizedCaptureText(locale, source)('Not enough balance. Add funds to continue.'), label)
 })
 
 test('capture copy is read from the requested source checkout', () => {

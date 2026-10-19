@@ -3,6 +3,7 @@ import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { getAllPosts, getPostBySlug } from '@/lib/blog'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
+import { Hero } from '@/components/Marketing/mdx/Hero'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { Breadcrumb } from '@/components/0_Bruddle/Breadcrumb'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
@@ -123,13 +124,18 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
             <JsonLd data={blogPostSchema} />
             <JsonLd data={breadcrumbSchema} />
             {faqSchema && <JsonLd data={faqSchema} />}
-            {/* No width prop: MarketingShell never merged its className, so blog has
-                always rendered at the shell's own width. Passing max-w-2xl now that
-                the merge works would silently narrow every post. */}
-            <MarketingShell>
-                <header className="mb-8 border-b border-border-default pb-6">
-                    <h1 className="text-heading-m md:text-heading-l">{post.frontmatter.title}</h1>
-                    <p className="mt-2 text-body-l text-foreground-secondary">{post.frontmatter.description}</p>
+            {/* The post title opens the page as the content hero band, like every
+                other content page (ruled 2026-10-14). The title is in the content
+                locale; the Hero marks its own marquee with the route locale. */}
+            <div lang={contentLocale}>
+                <Hero title={post.frontmatter.title} locale={locale} />
+            </div>
+            {/* px-0: the mdx element map already carries the 24px prose inset
+                (mx-auto PROSE_WIDTH px-6 md:px-4), so the shell's own padding
+                would wrap the body in a second gutter (the old 40px column). */}
+            <MarketingShell className="px-0 md:px-0">
+                <header className="mx-6 mb-8 border-b border-border-default pb-6 md:mx-4">
+                    <p className="text-body-l text-foreground-secondary">{post.frontmatter.description}</p>
                     <time dateTime={post.frontmatter.date} className="mt-3 block text-body-s text-foreground-secondary">
                         {formatPostDate(post.frontmatter.date, locale)}
                     </time>
@@ -141,7 +147,7 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
                 <article lang={contentLocale}>{post.content}</article>
                 {/* Foot of the page, not the top: the header already gives the way
                     back — same placement as every ContentPage route. */}
-                <Breadcrumb items={breadcrumbs} label={i18n.breadcrumbLabel} className="pt-8" />
+                <Breadcrumb items={breadcrumbs} label={i18n.breadcrumbLabel} className="px-6 pt-8 md:px-4" />
             </MarketingShell>
         </>
     )

@@ -14,6 +14,7 @@ import { SetupCelebrationView } from '@/components/Setup/Views/Success'
  */
 
 import React from 'react'
+import { useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
@@ -70,6 +71,8 @@ import NoMoreJailDrawer from '@/components/Global/NoMoreJailDrawer'
 import SendLinkActionList from '@/components/Claim/Link/SendLinkActionList'
 import { ClaimErrorView } from '@/components/Claim/Generic/ClaimError.view'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
+import ConfirmWithdrawView from '@/features/withdraw/views/ConfirmWithdrawView'
+import { WithdrawAmountView } from '@/features/withdraw/views/WithdrawAmountView'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import NotFoundScreen from '@/components/Global/NotFoundScreen'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
@@ -86,14 +89,12 @@ import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-
 function SetupScreen({
     screenId,
     children,
-    firstLaunchIntroPreview,
     showProgress = true,
     forceFullScreen = false,
     residenceCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
-    firstLaunchIntroPreview?: 'play' | 'still'
     showProgress?: boolean
     forceFullScreen?: boolean
     residenceCountry?: string
@@ -102,7 +103,6 @@ function SetupScreen({
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
             <SetupScreenBody
                 screenId={screenId}
-                firstLaunchIntroPreview={firstLaunchIntroPreview}
                 showProgress={showProgress}
                 forceFullScreen={forceFullScreen}
                 residenceCountry={residenceCountry}
@@ -115,14 +115,12 @@ function SetupScreen({
 function SetupScreenBody({
     screenId,
     children,
-    firstLaunchIntroPreview,
     showProgress = true,
     forceFullScreen = false,
     residenceCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
-    firstLaunchIntroPreview?: 'play' | 'still'
     showProgress?: boolean
     forceFullScreen?: boolean
     residenceCountry?: string
@@ -141,7 +139,6 @@ function SetupScreenBody({
             fullScreen={forceFullScreen || step.fullScreen}
             showProgress={showProgress}
             layoutType={step.layoutType}
-            firstLaunchIntroPreview={firstLaunchIntroPreview}
             screenId={step.screenId}
             image={step.image}
             {...stepCopy}
@@ -183,6 +180,90 @@ function AppPageSurface({ children }: { children: React.ReactNode }) {
     )
 }
 
+function WithdrawReviewSurface({
+    isProcessing = false,
+    alreadySpent = false,
+}: {
+    isProcessing?: boolean
+    alreadySpent?: boolean
+}) {
+    return (
+        <AppPageSurface>
+            <ConfirmWithdrawView
+                amount="50"
+                token={
+                    {
+                        address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+                        symbol: 'USDC',
+                        decimals: 6,
+                        price: 1,
+                    } as React.ComponentProps<typeof ConfirmWithdrawView>['token']
+                }
+                chain={
+                    { chainId: 'solana', networkName: 'Solana' } as React.ComponentProps<
+                        typeof ConfirmWithdrawView
+                    >['chain']
+                }
+                toAddress="11111111111111111111111111111111"
+                onConfirm={noop}
+                onBack={noop}
+                insufficientBalance
+                isProcessing={isProcessing}
+                alreadySpent={alreadySpent}
+            />
+        </AppPageSurface>
+    )
+}
+
+function CardInformationSurface({
+    actions,
+    failed = false,
+}: {
+    actions: Array<'provideTaxId' | 'provideBirthDate'>
+    failed?: boolean
+}) {
+    const t = useTranslations('card')
+    return (
+        <AppPageSurface>
+            <ApplicationStatusScreen
+                variant="requires-info"
+                informationActions={actions.map((key) => ({
+                    key,
+                    kind: key === 'provideTaxId' ? 'taxId' : 'birthDate',
+                    label: t(key),
+                    onClick: noop,
+                }))}
+                uploadError={failed ? t('informationStartFailed') : undefined}
+                onContactSupport={noop}
+                onPrev={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
+function WithdrawAmountErrorSurface() {
+    const t = useTranslations('withdraw')
+    const tNav = useTranslations('navigation')
+    return (
+        <AppPageSurface>
+            <WithdrawAmountView
+                pageTitle={tNav('withdraw')}
+                heading={t('amountToWithdraw')}
+                initialAmount="0.01"
+                walletBalance="50.00"
+                balanceFillAmount={50}
+                onBalanceFilled={noop}
+                onAmountChange={noop}
+                onBack={noop}
+                onContinue={noop}
+                continueDisabled
+                error={{ showError: true, errorMessage: t('errors.minWithdrawAmount', { amount: 2 }) }}
+                isCryptoWithdraw={false}
+            />
+        </AppPageSurface>
+    )
+}
+
 import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
@@ -205,10 +286,6 @@ export type Surface = SurfaceMeta & {
 }
 
 export const SURFACES: Record<string, Surface> = {
-    '01-b-first-launch-intro': {
-        ...SURFACE_META['01-b-first-launch-intro'],
-        render: () => <SetupScreen screenId="landing" firstLaunchIntroPreview="still" />,
-    },
     '01-a-landing': {
         ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,
@@ -606,7 +683,7 @@ export const SURFACES: Record<string, Surface> = {
         render: () => (
             <div className="p-4">
                 <FAQsPanel
-                    heading="Frequently asked questions"
+                    heading="FAQ."
                     questions={[
                         { id: 'q1', question: 'How long does a transfer take?', answer: 'Usually a few minutes.' },
                         { id: 'q2', question: 'What does it cost?', answer: 'No fee on Peanut to Peanut.' },
@@ -799,6 +876,40 @@ export const SURFACES: Record<string, Surface> = {
             </AppPageSurface>
         ),
     },
+    '82-f-choice-card-needs-review': {
+        ...SURFACE_META['82-f-choice-card-needs-review'],
+        render: () => (
+            <AppPageSurface>
+                <ApplicationStatusScreen
+                    variant="requires-info"
+                    reasonCode="card_needs_review"
+                    onUploadProofOfAddress={noop}
+                    onUploadIdentity={noop}
+                    onContactSupport={noop}
+                />
+            </AppPageSurface>
+        ),
+    },
+    '82-g-card-tax-id': {
+        ...SURFACE_META['82-g-card-tax-id'],
+        render: () => <CardInformationSurface actions={['provideTaxId']} />,
+    },
+    '82-h-card-birth-date': {
+        ...SURFACE_META['82-h-card-birth-date'],
+        render: () => <CardInformationSurface actions={['provideBirthDate']} />,
+    },
+    '82-i-card-information-both': {
+        ...SURFACE_META['82-i-card-information-both'],
+        render: () => <CardInformationSurface actions={['provideTaxId', 'provideBirthDate']} />,
+    },
+    '82-j-card-information-error': {
+        ...SURFACE_META['82-j-card-information-error'],
+        render: () => <CardInformationSurface actions={['provideTaxId']} failed />,
+    },
+    '92-f-withdraw-amount-error': {
+        ...SURFACE_META['92-f-withdraw-amount-error'],
+        render: () => <WithdrawAmountErrorSurface />,
+    },
     '83-f-choice-residence-restricted': {
         ...SURFACE_META['83-f-choice-residence-restricted'],
         render: () => <SetupScreen screenId="payment-plan" residenceCountry="RU" />,
@@ -873,6 +984,18 @@ export const SURFACES: Record<string, Surface> = {
             </div>
         ),
     },
+    '89-f-withdraw-review-insufficient': {
+        ...SURFACE_META['89-f-withdraw-review-insufficient'],
+        render: () => <WithdrawReviewSurface />,
+    },
+    '90-f-withdraw-review-processing': {
+        ...SURFACE_META['90-f-withdraw-review-processing'],
+        render: () => <WithdrawReviewSurface isProcessing />,
+    },
+    '91-f-withdraw-review-spent': {
+        ...SURFACE_META['91-f-withdraw-review-spent'],
+        render: () => <WithdrawReviewSurface alreadySpent />,
+    },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a
         // human) clicks the row; needs a fixture granting card access
@@ -899,10 +1022,6 @@ export const SURFACES: Record<string, Surface> = {
 
 /** The open reworks, one render per option, so a choice can be made by eye. */
 export const OPTION_SURFACES: Record<string, { name: string; render: () => React.ReactNode }> = {
-    'opt-first-launch-play': {
-        name: 'First launch — play five-second handoff',
-        render: () => <SetupScreen screenId="landing" firstLaunchIntroPreview="play" />,
-    },
     'opt-passkey-a': { name: 'PasskeySetupHelpDrawer — A', render: () => <PasskeyHelpA /> },
     'opt-passkey-b': { name: 'PasskeySetupHelpDrawer — B', render: () => <PasskeyHelpB /> },
     'opt-passkey-c': { name: 'PasskeySetupHelpDrawer — C', render: () => <PasskeyHelpC /> },

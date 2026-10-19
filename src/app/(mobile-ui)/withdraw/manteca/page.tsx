@@ -90,6 +90,7 @@ import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
 import { shouldShowAmountError } from '@/features/limits/amount-error-gating'
+import { useAmountErrorScroll } from '@/features/withdraw/useAmountErrorScroll'
 import { useMantecaAmountSeed } from '@/features/withdraw/useMantecaAmountSeed'
 import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
 import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
@@ -264,6 +265,14 @@ function MantecaBankWithdrawFlow() {
         flowType: 'offramp',
         currency: limitsValidation.currency,
     })
+    const amountError = shouldShowAmountError({
+        showError: !!balanceErrorMessage,
+        showsLimitsCard: !!limitsCardProps,
+        limitsBlocking: limitsValidation.isBlocking,
+    })
+        ? balanceErrorMessage
+        : undefined
+    const amountField = useAmountErrorScroll(step === 'amount' ? amountError : undefined)
 
     // Synchronous twin of the balanceErrorMessage effect below (same
     // minimum/ceiling predicates, live balance). Effect-set state lags the
@@ -1083,17 +1092,7 @@ function MantecaBankWithdrawFlow() {
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <div className="text-heading-xs text-foreground-primary">{t('amountToWithdraw')}</div>
                     {/* the balance error yields to the limits card only when that card renders */}
-                    <Field
-                        error={
-                            shouldShowAmountError({
-                                showError: !!balanceErrorMessage,
-                                showsLimitsCard: !!limitsCardProps,
-                                limitsBlocking: limitsValidation.isBlocking,
-                            })
-                                ? balanceErrorMessage
-                                : undefined
-                        }
-                    >
+                    <Field {...amountField} error={amountError}>
                         <AmountInput
                             initialAmount={currencyAmount}
                             setPrimaryAmount={setCurrencyAmount}

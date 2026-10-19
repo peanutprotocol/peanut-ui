@@ -12,6 +12,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { formatUnits } from 'viem'
+import { useArrivalPrompt } from '../useArrivalPrompt'
 
 // lazy load heavy modal components (~20-30KB each) to reduce initial bundle size
 // components are only loaded when user triggers them
@@ -21,6 +22,7 @@ const SetupNotificationsModal = lazy(() => import('@/components/Notifications/Se
 const EarlyUserDrawer = lazy(() => import('@/components/Global/EarlyUserDrawer'))
 const MigrationDownloadModal = lazy(() => import('@/components/Migration/MigrationDownloadModal'))
 const ScanToDownloadModal = lazy(() => import('@/components/Migration/ScanToDownloadModal'))
+const ArrivalDrawer = lazy(() => import('./ArrivalDrawer'))
 
 // guard against malformed env values — NaN would silently disable the
 // warning (threshold compare always false) or break dismissal expiry
@@ -32,16 +34,19 @@ const BALANCE_WARNING_EXPIRY = Number.isNaN(parsedExpiry) ? 1814400 : parsedExpi
 /**
  * home modal orchestration — the priority chain the old home page carried
  * inline. migration download outranks everything, then notifications,
- * post-signup, and balance warning.
+ * post-signup, the arrival prompt, and balance warning.
  */
 export function HomeModals() {
     const { showPermissionModal, oneSignalInitialized } = useNotifications()
-    const { isGetAppModalOpen, setIsGetAppModalOpen } = useModalsContext()
+    const { isGetAppModalOpen, setIsGetAppModalOpen, isQRScannerOpen } = useModalsContext()
     const { balance, isFetchingBalance } = useWallet()
     const { user } = useAuth()
+    const { arrival, checked: arrivalChecked, dismiss: dismissArrival } = useArrivalPrompt()
 
     const [showBalanceWarningDrawer, setShowBalanceWarningDrawer] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
+    // null until the lazy early-user drawer has reported once
+    const [isEarlyUserDrawerVisible, setIsEarlyUserDrawerVisible] = useState<boolean | null>(null)
     // migration download prompt outranks every other home modal (self-gating,
     // only during the native-migration notice window)
     const [showMigrationModal, setShowMigrationModal] = useState(false)
@@ -75,11 +80,26 @@ export function HomeModals() {
             !hasSeenBalanceWarning &&
             !showMigrationModal && // highest priority
             !showPermissionModal &&
-            !isPostSignupActionModalVisible
+            !isPostSignupActionModalVisible &&
+            // the arrival prompt outranks it: wait for its check, then for its dismissal
+            arrivalChecked &&
+            !arrival &&
+            // it cannot be dismissed, so never over the scanner the arrival CTA opens
+            !isQRScannerOpen
         ) {
             setShowBalanceWarningDrawer(true)
         }
-    }, [balance, isFetchingBalance, showMigrationModal, showPermissionModal, isPostSignupActionModalVisible, user])
+    }, [
+        balance,
+        isFetchingBalance,
+        showMigrationModal,
+        showPermissionModal,
+        isPostSignupActionModalVisible,
+        arrivalChecked,
+        arrival,
+        isQRScannerOpen,
+        user,
+    ])
 
     return (
         <>
@@ -114,7 +134,28 @@ export function HomeModals() {
             {!showBalanceWarningDrawer && !showMigrationModal && (
                 <LazyLoadErrorBoundary>
                     <Suspense fallback={null}>
-                        <EarlyUserDrawer />
+                        <EarlyUserDrawer onVisibilityChange={setIsEarlyUserDrawerVisible} />
+                    </Suspense>
+                </LazyLoadErrorBoundary>
+            )}
+
+            {arrival && (
+                <LazyLoadErrorBoundary>
+                    <Suspense fallback={null}>
+                        <ArrivalDrawer
+                            arrival={arrival}
+                            // the early-user drawer goes first: both yield to any open overlay,
+                            // so without a fixed order two opening together would both back off.
+                            // Before it has reported (it loads lazily), the server flag says
+                            // whether it is due; its report is stale while it is unmounted.
+                            blocked={
+                                showMigrationModal ||
+                                showPermissionModal ||
+                                isPostSignupActionModalVisible ||
+                                (!showBalanceWarningDrawer && (isEarlyUserDrawerVisible ?? !!user?.showEarlyUserModal))
+                            }
+                            onDismiss={dismissArrival}
+                        />
                     </Suspense>
                 </LazyLoadErrorBoundary>
             )}
