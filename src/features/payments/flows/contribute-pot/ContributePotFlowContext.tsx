@@ -21,6 +21,7 @@ import {
     type PaymentCreationResponse,
 } from '@/services/services.types'
 import { collectedTotal, usdRemainingOf } from './collected'
+import { contributedAmount, isPartialContribution } from '@/utils/request-pot.utils'
 import { useRequestPayAmounts } from '@/components/Request/Pay/useRequestPayAmounts'
 
 // view states for contribute pot flow
@@ -44,7 +45,12 @@ export interface PotContributor {
     /** The contributor's picked profile avatar; null means the username-letter
      *  fallback, and it stays null for a raw-address contributor. */
     avatarKey?: string | null
+    /** What the contributor paid — can be less than `askedAmount`. */
     amount: string
+    /** What their charge asked for. */
+    askedAmount?: string
+    /** Paid short of `askedAmount`, as the API flags it. */
+    isPartial?: boolean
     createdAt: string
 }
 
@@ -180,7 +186,9 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
                 username: c.fulfillmentPayment?.payerAccount?.user?.username,
                 address: c.fulfillmentPayment?.payerAddress ?? undefined,
                 avatarKey: c.fulfillmentPayment?.payerAccount?.user?.avatarKey ?? null,
-                amount: c.tokenAmount,
+                amount: contributedAmount(c),
+                askedAmount: c.tokenAmount,
+                isPartial: isPartialContribution(c),
                 createdAt: c.createdAt,
             }))
     }, [request?.charges])

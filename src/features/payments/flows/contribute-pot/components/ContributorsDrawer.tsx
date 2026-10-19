@@ -30,6 +30,8 @@ export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
             uuid: c.uuid,
             payments: [],
             amount: c.amount,
+            askedAmount: c.askedAmount,
+            isPartial: c.isPartial,
             username: c.username || c.address,
             fulfillmentPayment: null,
             isUserVerified: false,

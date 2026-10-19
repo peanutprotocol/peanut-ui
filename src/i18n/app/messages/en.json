@@ -2261,6 +2261,8 @@
         "noGoalSet": "No goal set",
         "amountCollected": "${amount} collected",
         "contributors": "Contributors ({count})",
+        "contributorPartlyPaid": "Partly paid",
+        "contributorAskedAmount": "of {amount}",
         "pendingLinkDeviceNote": "Use the device where you created it to cancel or re-share this link.",
         "type": {
             "send": "Send",

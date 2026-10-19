@@ -12,11 +12,17 @@ import { useRouter } from 'next/navigation'
 import { twMerge } from '@/utils/tw'
 import { profileUrl } from '@/utils/native-routes'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import Badge from '@/components/Global/Badges/Badge'
+import { useTranslations } from 'next-intl'
 
 export type Contributor = {
     uuid: string
     payments: Payment[]
+    /** What the contributor paid — can be less than `askedAmount`. */
     amount: string
+    /** What their charge asked for; shown only when `isPartial`. */
+    askedAmount?: string
+    isPartial?: boolean
     username: string | undefined
     fulfillmentPayment: Payment | null
     isUserVerified: boolean
@@ -26,6 +32,7 @@ export type Contributor = {
 }
 
 const ContributorCard = ({ contributor, position }: { contributor: Contributor; position: CardPosition }) => {
+    const t = useTranslations('transaction')
     const colors = getColorForUsername(contributor.username ?? '')
     const isEvmAddress = isAddress(contributor.username ?? '')
 
@@ -71,7 +78,19 @@ const ContributorCard = ({ contributor, position }: { contributor: Contributor; 
                     />
                 </div>
 
-                <p className="font-medium">${formatTokenAmount(Number(contributor.amount))}</p>
+                <div className="flex flex-col items-end gap-1">
+                    <p className="font-medium">${formatTokenAmount(Number(contributor.amount))}</p>
+                    {contributor.isPartial && (
+                        <div className="flex items-center gap-1">
+                            <Badge status="pending" customText={t('contributorPartlyPaid')} />
+                            <span className="text-body-xs text-foreground-secondary">
+                                {t('contributorAskedAmount', {
+                                    amount: `$${formatTokenAmount(Number(contributor.askedAmount))}`,
+                                })}
+                            </span>
+                        </div>
+                    )}
+                </div>
             </div>
         </Card>
     )

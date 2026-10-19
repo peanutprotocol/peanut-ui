@@ -2261,6 +2261,8 @@
         "noGoalSet": "Sin meta definida",
         "amountCollected": "${amount} recaudados",
         "contributors": "Contribuyentes ({count})",
+        "contributorPartlyPaid": "Pagado en parte",
+        "contributorAskedAmount": "de {amount}",
         "pendingLinkDeviceNote": "Usa el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
         "type": {
             "send": "Envío",
