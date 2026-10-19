@@ -6,25 +6,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
-
-export interface EasterEggCountryConfig {
-    image: string
-}
-
-/**
- * Easter egg countries — these places have no banking infrastructure,
- * so we show a fun modal instead of the normal flow.
- */
-export const EASTER_EGG_COUNTRIES: Record<string, EasterEggCountryConfig> = {
-    AQ: { image: '/easter-eggs/antarctica.webp' },
-    BV: { image: '/easter-eggs/bouvet.webp' },
-    CX: { image: '/easter-eggs/christmas.webp' },
-    CC: { image: '/easter-eggs/cocos.webp' },
-    GS: { image: '/easter-eggs/southgeorgia.webp' },
-    HM: { image: '/easter-eggs/heard.webp' },
-    PN: { image: '/easter-eggs/pitcairn.webp' },
-    TK: { image: '/easter-eggs/tokelau.webp' },
-}
+import { EASTER_EGG_COUNTRIES } from './easter-egg-countries.consts'
 
 interface EasterEggDrawerProps {
     visible: boolean
