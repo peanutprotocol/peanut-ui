@@ -27,6 +27,13 @@ describe('ContributePotPageWrapper', () => {
         expect(screen.queryByTestId('pay-flow')).toBeNull()
     })
 
+    it('blocks payment on any status other than OPEN', async () => {
+        mockGet.mockResolvedValue(request({ status: 'EXPIRED' }))
+        renderWithIntl(<ContributePotPageWrapper requestId="req-1" />)
+        expect(await screen.findByText('This request is closed')).toBeInTheDocument()
+        expect(screen.queryByTestId('pay-flow')).toBeNull()
+    })
+
     it('blocks payment on a closed, paid request', async () => {
         mockGet.mockResolvedValue(request({ status: 'CLOSED', paidAt: '2026-10-19T00:00:00Z' }))
         renderWithIntl(<ContributePotPageWrapper requestId="req-1" />)

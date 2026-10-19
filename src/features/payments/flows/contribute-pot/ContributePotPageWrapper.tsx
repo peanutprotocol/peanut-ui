@@ -86,7 +86,8 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
     // a closed request takes no more money: the requester closed it, or it was
     // paid. Without this the payer still got the amount field and every pay
     // button, and could pay the remainder of a request the requester had closed.
-    if (request.status === 'CLOSED') {
+    // anything but OPEN is closed, so an unexpected status never reaches the pay flow.
+    if (request.status !== 'OPEN') {
         return (
             <div className="flex min-h-inherit w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
