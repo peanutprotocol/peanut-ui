@@ -10,12 +10,12 @@ export default function MarketingLandingPage() {
         <DocPage>
             <DocHeader
                 title="Landing"
-                description="The LP recipe book (ruled 2026-10-15, q4): two LP heroes — the key visual on the main LP, the promoted product split on sub-LPs — plus the one content hero, the FAQ fold, the Knerd closing fold, the on-band CTA, the marketing CTA motion, and the landing containers."
+                description="The LP recipe book: two LP heroes — the key visual on the main LP, the promoted product split on sub-LPs — plus the one content hero, the FAQ fold, the Knerd closing fold, the on-band CTA, the marketing CTA motion, and the landing containers."
             />
 
             <DesignNote type="info">
                 Every framed demo renders the real components in an iframe at a TRUE viewport width — toggle Phone 390 /
-                Desktop 1440 on each frame. Tablet is explicitly ignored: the rulings pin phone and desktop, and between
+                Desktop 1440 on each frame. Tablet is explicitly ignored: the rules pin phone and desktop, and between
                 them the bands interpolate.
             </DesignNote>
 
@@ -39,7 +39,7 @@ export default function MarketingLandingPage() {
             {/* FAQ fold */}
             <DocSection
                 title="FAQ fold"
-                description="One FAQ fold (ruled 2026-10-14): Global/FAQs on the cream page ground, the ruled heading pair — headingSmall 42 at 390, headingMedium 80 at 1440 — and the copy is 'FAQ.' everywhere, /shhhhh included."
+                description="One FAQ fold: Global/FAQs on the cream page ground, one heading pair — headingSmall 42 at 390, headingMedium 80 at 1440 — and the copy is 'FAQ.' everywhere, /shhhhh included."
             >
                 <ViewportFrame demo="faq-fold" label="FAQ fold" heights={{ phone: 640, desktop: 720 }} />
             </DocSection>
@@ -47,7 +47,7 @@ export default function MarketingLandingPage() {
             {/* Closing fold */}
             <DocSection
                 title="Closing fold"
-                description="Done RIGHT (ruled 2026-10-14, composition 2026-10-15): the opening 1–3 words stand as a Title lockup, last word on its own line, the rest of the headline sits under it in the display ramp — the hero LP composition. Never Knerd inline in a sentence, never hand-rolled font-knerd layers."
+                description="The opening 1–3 words stand as a Title lockup, last word on its own line, the rest of the headline sits under it in the display ramp — the hero LP composition. Never Knerd inline in a sentence, never hand-rolled font-knerd layers."
             >
                 <ViewportFrame demo="closing-fold" label="Closing fold" heights={{ phone: 480, desktop: 560 }} />
             </DocSection>
@@ -55,7 +55,7 @@ export default function MarketingLandingPage() {
             {/* On-band CTA */}
             <DocSection
                 title="On-band CTA"
-                description="The CTA hierarchy (ruled 2026-10-14): which pill goes on which ground, with no per-site visual overrides."
+                description="The CTA hierarchy: which pill goes on which ground, with no per-site visual overrides."
             >
                 <ul className="space-y-1 text-body-s">
                     {CTA_RULES.map((rule) => (
@@ -68,7 +68,7 @@ export default function MarketingLandingPage() {
             {/* Marketing CTA motion */}
             <DocSection
                 title="Marketing CTA motion"
-                description="The one motion a marketing CTA adds to the DS Button (ruled 2026-10-16, konrad): a mount entrance and a hover drop-and-tilt. Hover the buttons in the frame; Replay entrance remounts them."
+                description="The one motion a marketing CTA adds to the DS Button: a mount entrance and a hover drop-and-tilt. Hover the buttons in the frame; Replay entrance remounts them."
             >
                 <ul className="space-y-1 text-body-s">
                     {CTA_MOTION_RULES.map((rule) => (
@@ -81,7 +81,7 @@ export default function MarketingLandingPage() {
             {/* Containers */}
             <DocSection
                 title="Containers"
-                description="Three containers, always centred (ruled 2026-10-14): 1280 for LP folds, 720 for content hubs, 640 for prose. Bars at quarter scale."
+                description="Three containers, always centred: 1280 for LP folds, 720 for content hubs, 640 for prose. Bars at quarter scale."
             >
                 <div className="space-y-2 rounded-sm border border-border-default bg-background-page p-4">
                     {CONTAINER_SET.map((container) => (
@@ -100,7 +100,7 @@ export default function MarketingLandingPage() {
             {/* Section rhythm */}
             <DocSection
                 title="Section rhythm"
-                description="One section spacing step (ruled 2026-10-14): 64 at 390, 96 at 1440 — band padding never picks other values. Blocks at full scale."
+                description="One section spacing step: 64 at 390, 96 at 1440 — band padding never picks other values. Blocks at full scale."
             >
                 <div className="flex items-end gap-6 rounded-sm border border-border-default bg-background-page p-4">
                     {SECTION_PADDING.map((step) => (

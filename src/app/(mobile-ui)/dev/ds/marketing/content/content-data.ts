@@ -1,5 +1,4 @@
-// The content-page visual rules (drift-audit rulings of 2026-10-14/15). Each
-// entry names a bare demo page under /dev/ds-marketing-preview, rendered in an
+// The content-page visual rules. Each entry names a bare demo page under /dev/ds-marketing-preview, rendered in an
 // iframe at a true 390/1440 viewport. VISUAL rules only — structure rules live
 // in content/_system/guidelines/components.md.
 
@@ -10,7 +9,6 @@ export interface ContentDemo {
     title: string
     rule: string
     heights: Record<PreviewViewport, number>
-    /** a demo that shows a ruled state a fix branch still owes carries the note */
 }
 
 export const CONTENT_DEMOS: ContentDemo[] = [
@@ -41,7 +39,7 @@ export const CONTENT_DEMOS: ContentDemo[] = [
     {
         demo: 'page-header',
         title: 'Page header',
-        rule: 'Every non-landing marketing page carries the strip: cream row, back circle floating over its left edge, locale switcher flush right. Home and /lp keep the bare hero. The brand book’s nav bar is marked outdated.',
+        rule: 'Every non-landing marketing page carries the strip: cream row, back circle floating over its left edge, locale switcher flush right. Home and /lp keep the bare hero. The brand book’s nav bar is errata.',
         heights: { phone: 640, desktop: 700 },
     },
 ]

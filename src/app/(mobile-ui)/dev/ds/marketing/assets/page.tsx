@@ -8,46 +8,32 @@ import { DocHeader } from '../../_components/DocHeader'
 import { DocPage } from '../../_components/DocPage'
 import { DocSection } from '../../_components/DocSection'
 import { COLOR_TOKENS } from '../../foundations/tokens.generated'
-import { DOODLE_ENTRIES, GLOVE_ENTRIES, MASCOT_ENTRIES, type DoodleStatus, type MascotStatus } from './assets-data'
+import { DOODLE_ENTRIES, GLOVE_ENTRIES, MASCOT_ENTRIES } from './assets-data'
 
 const tokenValue = (name: string) => COLOR_TOKENS.find((t) => t.name === name)?.value ?? '—'
-
-// one chip vocabulary for the whole inventory: green = done, yellow = ruled
-// work that a fix branch still owes
-function StatusChip({ status }: { status: MascotStatus | DoodleStatus }) {
-    const done = status === 'on-brand' || status === 'canon'
-    return (
-        <span
-            className={`rounded-full border border-border-default px-2 py-0.5 text-label-m ${
-                done ? 'bg-background-icon-bubble-green text-foreground-inverse' : 'bg-action-secondary'
-            }`}
-        >
-            {status}
-        </span>
-    )
-}
 
 export default function MarketingAssetsPage() {
     return (
         <DocPage>
             <DocHeader
                 title="Assets"
-                description="The marketing art inventory: the 10 mascot poses, the doodles, and the gloves — each with its ruled direction and recolour status (rulings of 2026-10-14/15)."
+                description="The approved brand art: the 10 mascot poses, the doodles, and the gloves — each with its direction, fills and call sites. An asset that is not on this page is not approved."
             />
 
             <DesignNote type="info">
-                Ruled targets: every mascot pose on the brand tokens{' '}
+                Every mascot pose is on the brand tokens{' '}
                 <code className="font-mono">action-secondary {tokenValue('action-secondary')}</code> /{' '}
-                <code className="font-mono">action-primary {tokenValue('action-primary')}</code>, regenerated from the
-                recoloured canonical set in mono/assets — recolour at the source, or the next re-export reverts the
-                fixed files. Pink sneakers are canon across the whole set (k6). The recolours land in ds-marketing-art;
-                the chips below show where each file stands today.
+                <code className="font-mono">action-primary {tokenValue('action-primary')}</code>, generated from the
+                canonical set in mono/assets — recolour at the source, or the next re-export reverts the fixed files.
+                Pink sneakers are canon across the whole set. A new brand asset needs Konrad&apos;s approval before it
+                joins this page: send the asset plus a screenshot of the whole screen it will sit on (design.md §
+                assets).
             </DesignNote>
 
             {/* Mascot gallery */}
             <DocSection
                 title="Mascot poses"
-                description="All 10 canonical Lotties, rendered through PeanutMascot (the juggling comp is out of brand — Hugo, 2026-10-10 — and stays off this page). Fills were re-verified against the shipped comps on this branch."
+                description="All 10 canonical Lotties, rendered through PeanutMascot (the juggling comp is out of brand and stays off this page)."
             >
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                     {MASCOT_ENTRIES.map((entry) => (
@@ -56,7 +42,6 @@ export default function MarketingAssetsPage() {
                                 <PeanutMascot pose={entry.pose} className="h-32" />
                             </div>
                             <p className="font-mono text-label-m">{entry.pose}</p>
-                            <StatusChip status={entry.status} />
                             <p className="font-mono text-body-xs break-all text-foreground-secondary">
                                 {entry.fills.join(' ')}
                             </p>
@@ -69,7 +54,7 @@ export default function MarketingAssetsPage() {
             {/* Doodles */}
             <DocSection
                 title="Doodles"
-                description="Ruled direction (doodle-palette A): one four-point sparkle, brand yellow with a black outline. The near-miss yellows (each row names its own) go in the recolour branch."
+                description="One four-point sparkle, brand yellow with a black outline; the other doodles are black or black and white."
             >
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {DOODLE_ENTRIES.map((entry) => (
@@ -78,7 +63,6 @@ export default function MarketingAssetsPage() {
                                 <Image src={entry.asset} alt="" className="h-10 w-auto" />
                             </div>
                             <p className="font-mono text-label-m">{entry.label}</p>
-                            <StatusChip status={entry.status} />
                             <p className="font-mono text-body-xs text-foreground-secondary">{entry.fills}</p>
                             <p className="text-body-xs text-foreground-secondary">Used in: {entry.usedIn}</p>
                         </Card>
@@ -90,10 +74,7 @@ export default function MarketingAssetsPage() {
             </DocSection>
 
             {/* Gloves */}
-            <DocSection
-                title="Gloves"
-                description="Ruled direction (glove-style A): flat white/black only, no grey shading. The footer hand row currently shows both styles side by side on every page."
-            >
+            <DocSection title="Gloves" description="Flat white/black only, no grey shading.">
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {GLOVE_ENTRIES.map((entry) => (
                         <Card key={entry.label} className="flex h-full flex-col gap-2 p-3">
@@ -101,7 +82,6 @@ export default function MarketingAssetsPage() {
                                 <Image src={entry.asset} alt="" className="h-10 w-auto" />
                             </div>
                             <p className="font-mono text-label-m">{entry.label}</p>
-                            <StatusChip status={entry.status} />
                             <p className="font-mono text-body-xs text-foreground-secondary">{entry.fills}</p>
                             <p className="text-body-xs text-foreground-secondary">Used in: {entry.usedIn}</p>
                         </Card>

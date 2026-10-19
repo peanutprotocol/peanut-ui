@@ -10,7 +10,7 @@ export default function MarketingContentPage() {
         <DocPage>
             <DocHeader
                 title="Content"
-                description="The content-page chrome (rulings of 2026-10-14/15): the plain pink hero on every content page, the single-heading FAQ, the plain-token table, the 24px gutter with the 640 prose measure, and the marketing page header."
+                description="The content-page chrome: the plain pink hero on every content page, the single-heading FAQ, the plain-token table, the 24px gutter with the 640 prose measure, and the marketing page header."
             />
 
             <DesignNote type="warning">
@@ -21,7 +21,7 @@ export default function MarketingContentPage() {
 
             <DesignNote type="info">
                 Every framed demo renders the real components in an iframe at a TRUE viewport width — toggle Phone 390 /
-                Desktop 1440 on each frame. Tablet is explicitly ignored: the rulings pin phone and desktop, and between
+                Desktop 1440 on each frame. Tablet is explicitly ignored: the rules pin phone and desktop, and between
                 them the bands interpolate.
             </DesignNote>
 

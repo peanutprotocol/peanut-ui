@@ -63,11 +63,10 @@
     --color-background-page: #faf4f0;
     --color-background-disabled: #efeff0;
     --color-background-brand: #ff90e8;
-    /* The sign-up hero: blue-300, the colour the hero art is drawn for (Hugo, 2026-10-10). */
+    /* The sign-up hero: blue-300, the colour the hero art is drawn for. */
     --color-background-setup-hero: var(--color-blue-300);
     /* The lavender marketing band ground — the sky fill under the no-fees,
-       qr-pay, drop-link and exchange-widget bands (RULED 2026-10-14 konrad:
-       lavender is a permitted marketing ground). Marketing bands only. */
+       qr-pay, drop-link and exchange-widget bands. Marketing bands only. */
     --color-background-marketing-sky: var(--color-blue-300);
 
     --color-background-icon-bubble-green: #29cc6a;
@@ -1369,10 +1368,10 @@ input::placeholder {
     letter-spacing: -1px;
 }
 
-/* display-ramp leading (RULED 2026-09-17, enforced 2026-10-14):
+/* display-ramp leading:
    .font-roboto-flex-extrabold is unlayered, so its line-height: 100% beats the
    layered text-headingLarge/headingMedium/heading/headingSmall utilities and
-   the ruled 112/104, 80/64, 60/46, 42/36 leading never rendered. These
+   the 112/104, 80/64, 60/46, 42/36 leading never rendered. These
    compound rules re-assert the ramp's leading at the same (unlayered) cascade
    level, scoped to the four display sizes so app-scale pairings
    (text-heading-s, text-body-*) keep the 100% they ship with. The media
@@ -1604,9 +1603,9 @@ input::placeholder {
     animation-delay: var(--aov-delay, 0s);
 }
 
-/* Reduced motion: no rise, no fade — content just shows (design.md law 4,
-   RULED 2026-10-14 K9). The base class hides content until the animation
-   runs, so the guard must restore opacity, not just stop the animation. */
+/* Reduced motion: no rise, no fade — content just shows (design.md law 4).
+   The base class hides content until the animation runs, so the guard must
+   restore opacity, not just stop the animation. */
 @media (prefers-reduced-motion: reduce) {
     .animate-on-view {
         opacity: 1;
@@ -1617,7 +1616,7 @@ input::placeholder {
     }
 }
 
-/* ── Marketing CTA motion layer (ruled 2026-10-16, konrad) ── */
+/* ── Marketing CTA motion layer ── */
 /* The one motion a marketing CTA adds on top of the plain DS Button: a mount
    entrance and a hover drop-and-tilt. Put CTA_MOTION (Marketing/constants.ts)
    on the Button itself; geometry, variant and the 4px press stay the DS

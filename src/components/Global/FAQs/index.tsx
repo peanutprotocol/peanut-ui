@@ -66,8 +66,8 @@ export function FAQsPanel({ heading, questions, learnMoreLabel, inline = false }
             }
         >
             <div className={`mx-auto ${PROSE_WIDTH}`}>
-                {/* the one marketing FAQ heading pair: headingSmall 42 → headingMedium 80
-                    (ruled 2026-10-14). The old inline step-down existed for long localized
+                {/* the one marketing FAQ heading pair: headingSmall 42 → headingMedium 80.
+                    The old inline step-down existed for long localized
                     headings (TASK-22366); the copy is "FAQ." everywhere now, so it fits
                     every column at headingSmall. */}
                 <h2 className="font-roboto-flex-extrabold text-headingSmall font-extraBlack uppercase md:text-headingMedium">

@@ -503,15 +503,14 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             usages: 1,
         },
     ],
-    // the marketing surfaces' chapter of the doc site (drift-audit rulings of
-    // 2026-10-14/15, Konrad): what the live site ships is the ratified brand.
+    // the marketing surfaces' chapter of the doc site: what the live site ships is the brand.
     marketing: [
         {
             label: 'Brand',
             icon: Stamp,
             href: '/dev/ds/marketing/brand',
             description:
-                'The ratified brand reality: palette, corner + border rules, body weight, the display ramp, the Knerd rule, and brand-book errata',
+                'The brand as shipped: palette, corner + border rules, body weight, the display ramp, the Knerd rule, and brand-book errata',
             status: 'production',
         },
         {
@@ -519,7 +518,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             icon: Images,
             href: '/dev/ds/marketing/assets',
             description:
-                'Mascot pose gallery with recolour status, doodle and glove inventory with the ruled art direction, and where-used notes',
+                'The approved brand art: mascot pose gallery, doodle and glove inventory with their art direction, and where-used notes',
             status: 'production',
         },
         {

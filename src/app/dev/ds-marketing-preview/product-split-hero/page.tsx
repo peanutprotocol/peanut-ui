@@ -6,7 +6,7 @@ import { ProductSplitHero } from '@/components/Marketing/ProductSplitHero'
 import { CTA_MOTION } from '@/components/Marketing/constants'
 
 /**
- * The /shhhhh split promoted to THE sub-LP hero (q4, ruled 2026-10-15): copy
+ * The /shhhhh split promoted to THE sub-LP hero: copy
  * column left, product art right, one white secondary CTA on the pink band.
  * This renders the real component with demo copy, so the gallery shows what a
  * star-feature LP gets by calling it.

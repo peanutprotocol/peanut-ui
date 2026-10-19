@@ -4,8 +4,8 @@ import { landingStrings } from '@/components/LandingPage/landingStrings'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE } from '@/i18n/types'
 
-// Bare render of the REAL main-LP hero for the /dev/ds/marketing frames
-// (q4, ruled 2026-10-15): the key visual — Knerd artwork + mascot + doodles on
+// Bare render of the REAL main-LP hero for the /dev/ds/marketing frames: the
+// key visual — Knerd artwork + mascot + doodles on
 // pink — leads home and /lp, nowhere else.
 export default function KeyVisualHeroPreview() {
     const strings = landingStrings(getTranslations(DEFAULT_LOCALE))
