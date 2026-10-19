@@ -627,6 +627,71 @@ describe('mapTransactionDataForDrawer', () => {
         })
     })
 
+    // TASK-23245: deposits that never reach the balance
+    describe('bank verification deposits and deposits under the minimum', () => {
+        const bankSender: Account = { identifier: '', type: 'ach', isUser: false, fullName: 'Schwab Bank' }
+        const bridgeDeposit = (status: EHistoryStatus, extraData: HistoryEntry['extraData']) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount: bankSender,
+                    recipientAccount: aliceUser,
+                    status,
+                    extraData: { kind: 'ONRAMP', provider: 'BRIDGE', usdAmount: '0.07', ...extraData },
+                })
+            ).transactionDetails
+
+        it('names a verification deposit, keeps the exact amount and the sender, and has no sign', () => {
+            const tx = bridgeDeposit(EHistoryStatus.CANCELLED, {
+                depositKind: 'verification',
+                senderName: ' CHARLES SCHWAB ',
+                depositAmount: '0.07',
+                depositCurrency: 'usd',
+            })
+            expect(tx.nameKey).toBe('name.verificationDeposit')
+            expect(tx.userName).toBe('Verification deposit')
+            expect(tx.status).toBe('cancelled')
+            expect(getTransactionSign(tx)).toBe('')
+            expect(tx.extraDataForDrawer?.depositKind).toBe('verification')
+            expect(tx.extraDataForDrawer?.depositAmountDisplay).toBe('$0.07')
+            // the provider's sender name wins over the bank account's
+            expect(tx.extraDataForDrawer?.payerName).toBe('CHARLES SCHWAB')
+            expect(tx.extraDataForDrawer?.isDepositAccountDeposit).toBe(true)
+            expect(tx.extraDataForDrawer?.minimumAmountDisplay).toBeUndefined()
+        })
+
+        it('carries the native amount and the minimum of a deposit under the minimum', () => {
+            const tx = bridgeDeposit(EHistoryStatus.PAYMENT_SUBMITTED, {
+                depositKind: 'below_minimum',
+                depositAmount: '0.05',
+                depositCurrency: 'EUR',
+                minimumAmount: '1',
+            })
+            expect(tx.nameKey).toBe('name.bankAccount')
+            expect(tx.extraDataForDrawer?.depositKind).toBe('below_minimum')
+            expect(tx.extraDataForDrawer?.depositAmountDisplay).toBe('€0.05')
+            expect(tx.extraDataForDrawer?.minimumAmountDisplay).toBe('€1')
+        })
+
+        it('leaves a deposit with no kind exactly as before', () => {
+            const tx = bridgeDeposit(EHistoryStatus.CANCELLED, { depositAmount: '0.07', depositCurrency: 'USD' })
+            expect(tx.nameKey).toBe('name.bankAccount')
+            expect(tx.extraDataForDrawer?.depositKind).toBeUndefined()
+            expect(tx.extraDataForDrawer?.depositAmountDisplay).toBeUndefined()
+            expect(tx.extraDataForDrawer?.payerName).toBe('Schwab Bank')
+        })
+
+        it('ignores a kind it does not know', () => {
+            const tx = bridgeDeposit(EHistoryStatus.CANCELLED, {
+                depositKind: 'something_new' as 'verification',
+                depositAmount: '0.07',
+                depositCurrency: 'USD',
+            })
+            expect(tx.extraDataForDrawer?.depositKind).toBeUndefined()
+            expect(tx.nameKey).toBe('name.bankAccount')
+        })
+    })
+
     describe('refund credit rows (status + sign + flag)', () => {
         const negativeAuth = baseEntry({
             userRole: EHistoryUserRole.SENDER,

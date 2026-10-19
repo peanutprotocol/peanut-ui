@@ -21,12 +21,15 @@ import { DepositShareActions } from './DepositShareActions'
 /**
  * Rules that limit the holder's OWN use of the account. Every other rule is
  * about third-party payers and waits behind the toggle; these decide whether
- * the account works for the user at all, so they stay beside the card.
+ * the account works for the user at all, so they stay beside the card. The
+ * minimum is one of them: a smaller deposit is neither added nor returned
+ * (TASK-23245).
  */
 const GATE_RULE_KEYS: ReadonlySet<DepositRuleKey> = new Set<DepositRuleKey>([
     'ownName',
     'stateRestricted',
     'ownAccountNo',
+    'minimum',
 ])
 
 /**
