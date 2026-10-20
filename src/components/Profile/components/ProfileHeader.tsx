@@ -137,8 +137,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                             className="relative flex h-full min-w-0 items-center rounded-full after:absolute after:inset-x-0 after:-inset-y-0.5 focus-visible:outline-[3px] focus-visible:outline-action-focus"
                         >
                             <span className="sr-only">{tGlobal('copyToClipboard.copyProfileLink')}</span>
-                            {/* ph-mask: the link is peanut.me/<username>, hidden in session replays */}
-                            <span className="ph-mask truncate text-label-l">{profileUrl.replace('https://', '')}</span>
+                            <span className="truncate text-label-l">{profileUrl.replace('https://', '')}</span>
                             {/* Show verification once: in the name row, or here when that row is absent. */}
                             {isVerified && !name && (
                                 <>

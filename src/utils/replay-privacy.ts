@@ -1,85 +1,91 @@
 import type { CapturedNetworkRequest, SessionRecordingOptions } from 'posthog-js'
 import { maskQrReplayRequest, redactQrTelemetryString } from './qr-telemetry-privacy'
-import { redactNativePath } from './native-routes'
-import { apiRouteTemplate } from './performance-analytics'
+
+/*
+ * What a session replay hides, and what it keeps (Hugo, 2026-10-20).
+ *
+ * Hidden: legal names (account holder, KYC name, bank, Pix and QR recipients
+ * or payers, who may not be Peanut users), emails, phone numbers, bank, card,
+ * tax and ID numbers, wallet addresses, amounts and balances, document images,
+ * camera, QR codes, inputs, and network bodies and headers.
+ *
+ * Readable: Peanut usernames and @handles, which are public pay-link handles
+ * (peanut.me/<username>) and already tied to the replay through its distinct
+ * id; page URLs and request paths, which every event already carries in
+ * `$current_url`; and button, label and navigation text.
+ */
 
 const MASK = '*'
 const maskWhole = (value: string) => MASK.repeat(value.length)
+const maskAll = (value: string) => value.replace(/\S/g, MASK)
 
 /**
- * Hides the values a replay must not show, and keeps the words around them.
+ * Hides the values in a text and keeps its words.
  *
  * Every digit becomes `*`, which covers amounts, balances, tax ids (CPF, DNI,
- * CUIL), card numbers, phone numbers and dates. Emails, `@handles`, hex
- * addresses and long unbroken tokens (base58 and bech32 addresses, hashes,
- * IBANs) are masked whole, because their letters identify them as much as their digits. Labels,
- * buttons and navigation stay readable, so a replay still shows where the user
- * went and what they tapped.
+ * CUIL, CUIT), card numbers, phone numbers and dates. Emails, hex addresses
+ * and unbroken tokens of 20+ characters (base58 and bech32 addresses, hashes,
+ * IBANs) are masked whole, because their letters identify them as much as
+ * their digits. Usernames are at most 12 characters, so they stay readable.
  */
 export function maskReplayText(text: string): string {
     return text
-        .replace(/[^\s@]+@[^\s@]+/g, maskWhole)
-        .replace(/@[A-Za-z0-9_.-]+/g, maskWhole)
+        .replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, maskWhole)
         .replace(/0x[0-9a-f]{6,}/gi, maskWhole)
         .replace(/[A-Za-z0-9]{20,}/g, maskWhole)
         .replace(/\d/g, MASK)
 }
 
 /**
- * Text masked whole, words included: `ph-mask` (names and usernames, set on
- * the shared user label) and every data-row value (account holder, bank,
- * address, amount on review and receipt screens). Their labels stay readable.
+ * Areas masked whole, words included: every data-row value (account holder,
+ * bank details, address and amount on review and receipt screens) and
+ * `ph-mask` (legal names on the shared user label, wallet addresses, Pix and
+ * QR payee names). Their labels stay readable.
  */
-const FULLY_MASKED_SELECTOR = '.ph-mask, .ds-data-row-value'
+const SENSITIVE_AREA_SELECTOR = '.ph-mask, .ds-data-row-value'
 
-export function maskReplayTextIn(text: string, element?: HTMLElement): string {
-    return element?.closest(FULLY_MASKED_SELECTOR) ? text.replace(/\S/g, MASK) : maskReplayText(text)
+export function maskReplayTextIn(text: string, element?: Element | null): string {
+    return element?.closest(SENSITIVE_AREA_SELECTOR) ? maskAll(text) : maskReplayText(text)
 }
 
-// Accessible names and tooltips are masked whole: they often name a person
-// ("Avatar for alice", a payer's full name on a receipt avatar), and a replay
-// shows nothing of them on screen, so masking them costs no usefulness.
-const ACCESSIBLE_NAME_ATTRIBUTES = new Set(['aria-label', 'aria-valuetext', 'title', 'alt'])
-// Attributes that carry an input value or ids in a link keep their words.
-// Layout attributes such as `class` and `style` stay untouched: Tailwind class
-// names have digits, and masking them would break how the replay renders.
-const VALUE_ATTRIBUTES = new Set(['aria-valuenow', 'value', 'href'])
+// Attributes that repeat on-screen text (an accessible name, a tooltip, an
+// input value). Layout attributes such as `class` and `style` stay untouched:
+// Tailwind class names have digits, and masking them would break the replay.
+const TEXT_ATTRIBUTES = new Set(['aria-label', 'aria-valuetext', 'aria-valuenow', 'title', 'alt', 'value'])
 
-export function maskReplayAttribute(name: string, value: string, element?: Element): string {
+export function maskReplayAttribute(name: string, value: string, element?: Element | null): string {
     const redacted = redactQrTelemetryString(value)
-    if (ACCESSIBLE_NAME_ATTRIBUTES.has(name)) return redacted.replace(/\S/g, MASK)
-    // A link target names who it points at (/<username>, /request/<id>), and the
-    // replay player never follows it. Only links: a stylesheet's href must stay
-    // loadable for the replay to render.
-    if (name === 'href' && element?.tagName === 'A') return redacted.replace(/\S/g, MASK)
-    if (!VALUE_ATTRIBUTES.has(name)) return redacted
-    return element?.closest(FULLY_MASKED_SELECTOR) ? redacted.replace(/\S/g, MASK) : maskReplayText(redacted)
+    // A link target is a URL like any other; a stylesheet's href must stay
+    // loadable for the replay to render, so only links are rewritten.
+    if (name === 'href') return element?.tagName === 'A' ? maskReplayUrl(redacted) : redacted
+    if (!TEXT_ATTRIBUTES.has(name)) return redacted
+    // A button or nav label stays readable; a label on a sensitive element
+    // (an account holder's row) repeats what that element hides.
+    return maskReplayTextIn(redacted, element)
 }
 
 /**
- * The URL a replay keeps for a request or a page: the route, never an
- * identifier. The recorder sends both through this callback: requests, and
- * the page URL of each replay meta event.
- *
- * Reuses the two existing redactors, one per URL kind. A same-origin URL is a
- * page (`/<username>`, `/request/<username>`): `redactNativePath` keeps known
- * app routes and turns every other segment into `:id`. Any other origin is an
- * API: `apiRouteTemplate` keeps known endpoint shapes with named placeholders
- * (`/users/username/:username`) and folds unknown ones into `/unmatched`.
- * Query values and fragments are dropped by both.
+ * A recorded URL (a request, a link, or the page URL of a replay meta event)
+ * keeps its origin and path, as `$current_url` does on every event. It loses
+ * what a path or URL can hide: userinfo (`https://secret@host`), the query
+ * string, the fragment (claim links carry their secret in `#p=`), and any
+ * segment that looks like a token: 20+ characters with a digit (UUIDs, wallet
+ * addresses, hashes) or 32+ characters of any kind.
  */
 export function maskReplayUrl(url: string): string {
-    const authority = url.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i)?.[0] ?? ''
-    const pageOrigin = typeof window === 'undefined' ? '' : window.location.origin
-    if (!authority || authority === pageOrigin) return redactNativePath(url)
-    // drop userinfo (`https://secret@host`), as redactNativePath does for pages
-    return authority.replace(/\/\/[^/]*@/, '//') + apiRouteTemplate(url.slice(authority.length))
+    const withoutQuery = url.split('#')[0].split('?')[0]
+    const authority = withoutQuery.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i)?.[0] ?? ''
+    const path = withoutQuery
+        .slice(authority.length)
+        .split('/')
+        .map((segment) => ((segment.length >= 20 && /\d/.test(segment)) || segment.length >= 32 ? MASK : segment))
+        .join('/')
+    return authority.replace(/\/\/[^/]*@/, '//') + path
 }
 
 /**
- * Network entries keep their method, status, timing and route, and lose every
- * body, header, query value and identifying path segment: a query or a path
- * can carry an amount, an address, a username or an email.
+ * Network entries keep their method, status, timing and URL path, and lose
+ * every body and header, as well as what `maskReplayUrl` drops.
  */
 export function maskReplayNetworkRequest(request: CapturedNetworkRequest): CapturedNetworkRequest {
     const masked = maskQrReplayRequest(request)
@@ -97,7 +103,7 @@ export function maskReplayNetworkRequest(request: CapturedNetworkRequest): Captu
 export const SESSION_RECORDING_PRIVACY: SessionRecordingOptions = {
     // Typed values: amounts, search terms, bank and tax ids, addresses.
     maskAllInputs: true,
-    // Every text node goes through maskReplayTextIn: values and names whole,
+    // Every text node goes through maskReplayTextIn: sensitive areas whole,
     // other text keeps its words.
     maskTextSelector: '*',
     maskTextFn: (text, element) => maskReplayTextIn(text, element),

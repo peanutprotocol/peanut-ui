@@ -1,12 +1,9 @@
 import { render, screen } from '@testing-library/react'
-import type { ComponentProps } from 'react'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
-import { UserAvatar } from '@/components/Avatar/UserAvatar'
-import { TooltipContent } from '@/components/Tooltip/TooltipContent'
-import { renderWithIntl } from '@/test-utils/intl'
-jest.mock('next/image', () => ({
-    __esModule: true,
-    default: ({ unoptimized, ...rest }: ComponentProps<'img'> & { unoptimized?: boolean }) => <img {...rest} />,
+import { VerifiedUserLabel } from '@/components/UserHeader'
+
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ invitedUsernamesSet: new Set<string>(), user: null }),
 }))
 
 import {
@@ -17,6 +14,11 @@ import {
     maskReplayTextIn,
 } from '../replay-privacy'
 
+const maskText = (text: string, element: Element) =>
+    SESSION_RECORDING_PRIVACY.maskTextFn?.(text, element as HTMLElement)
+const maskAttribute = (name: string, value: string, element?: Element) =>
+    SESSION_RECORDING_PRIVACY.maskAttributeFn?.(name, value, element)
+
 describe('SESSION_RECORDING_PRIVACY', () => {
     it('masks inputs and text, blocks picked images, and records no network bodies or headers', () => {
         expect(SESSION_RECORDING_PRIVACY).toMatchObject({
@@ -26,67 +28,89 @@ describe('SESSION_RECORDING_PRIVACY', () => {
             recordHeaders: false,
         })
         expect(SESSION_RECORDING_PRIVACY.blockSelector).toContain('img[src^="blob:"]')
+        expect(SESSION_RECORDING_PRIVACY.blockSelector).toContain('video')
         expect(SESSION_RECORDING_PRIVACY.blockSelector).toContain('input[type="file"]')
-        expect(SESSION_RECORDING_PRIVACY.maskTextFn?.('Balance $1,234.56')).toBe('Balance $*,***.**')
-        expect(SESSION_RECORDING_PRIVACY.maskAttributeFn?.('aria-label', 'Send 50 USD')).toBe('**** ** ***')
         expect(SESSION_RECORDING_PRIVACY.maskCapturedNetworkRequestFn).toBe(maskReplayNetworkRequest)
     })
 })
 
-describe('maskReplayText', () => {
+// Hugo, 2026-10-20: usernames are public pay-link handles, URLs already ride
+// on every event in $current_url, and labels make a replay readable.
+describe('stays readable', () => {
+    it('a Peanut username and @handle, including on the shared user label', () => {
+        expect(maskReplayText('Pay @alice')).toBe('Pay @alice')
+        render(<VerifiedUserLabel name="alice" username="alice" isVerified={false} />)
+        const label = screen.getByText('alice')
+        expect(label).not.toHaveClass('ph-mask')
+        expect(maskText('alice', label)).toBe('alice')
+    })
+
+    it('a page URL and a request path', () => {
+        const origin = window.location.origin
+        const name = (url: string) =>
+            maskReplayNetworkRequest({ duration: 1, entryType: 'resource', startTime: 0, name: url }).name
+        expect(name(`${origin}/request/alice`)).toBe(`${origin}/request/alice`)
+        expect(name('https://api.peanut.me/users/username/alice')).toBe('https://api.peanut.me/users/username/alice')
+        expect(name('https://api.peanut.me/users/accounts/42')).toBe('https://api.peanut.me/users/accounts/42')
+        expect(maskAttribute('href', '/alice', document.createElement('a'))).toBe('/alice')
+    })
+
+    it('a button label and its accessible name', () => {
+        const button = document.createElement('button')
+        expect(maskText('Add money', button)).toBe('Add money')
+        expect(maskAttribute('aria-label', 'Close', button)).toBe('Close')
+        expect(maskAttribute('title', 'Copy profile link', button)).toBe('Copy profile link')
+    })
+})
+
+describe('stays masked', () => {
+    it("a legal name: an account holder's data-row value, and a full name on the user label", () => {
+        render(<DataRow label="Account owner" value="Alice Example" />)
+        expect(maskText('Alice Example', screen.getByText('Alice Example'))).toBe('***** *******')
+        expect(maskText('Account owner', screen.getByText('Account owner'))).toBe('Account owner')
+
+        render(<VerifiedUserLabel name="Maria Souza" username="maria" isVerified />)
+        const fullName = screen.getByText('Maria Souza')
+        expect(fullName).toHaveClass('ph-mask')
+        expect(maskText('Maria Souza', fullName)).toBe('***** *****')
+    })
+
+    it('an accessible name on a sensitive element', () => {
+        render(<DataRow label="Account owner" value="Alice Example" />)
+        const value = screen.getAllByText('Alice Example')[0]
+        expect(maskAttribute('aria-label', 'Alice Example', value)).toBe('***** *******')
+    })
+
     it.each([
-        ['$1,234.56', '$*,***.**'],
-        ['R$ 50,00', 'R$ **,**'],
-        ['CPF 123.456.789-09', 'CPF ***.***.***-**'],
-        ['DNI 30123456', 'DNI ********'],
-        ['•••• 4242', '•••• ****'],
-        ['0x7a3F9c21bE04d5', '****************'],
-        ['Sent to alice@example.test', 'Sent to ******************'],
-        ['Request from @alice_b', 'Request from ********'],
-        [
-            'To 7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV',
-            'To ' + '*'.repeat('7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV'.length),
-        ],
-        ['bc1qxyzabcdefghjklmnpqrstuvwx', '*'.repeat('bc1qxyzabcdefghjklmnpqrstuvwx'.length)],
-        ['IBAN DE89370400440532013000', 'IBAN ' + '*'.repeat(22)],
-    ])('masks %s', (input, expected) => {
-        expect(maskReplayText(input)).toBe(expected)
+        ['an IBAN', 'IBAN DE89370400440532013000', 'IBAN ' + '*'.repeat(22)],
+        ['an email', 'Sent to alice@example.test', 'Sent to ' + '*'.repeat('alice@example.test'.length)],
+        ['an amount', '$1,234.56', '$*,***.**'],
+        ['a CPF', 'CPF 123.456.789-09', 'CPF ***.***.***-**'],
+        ['a CUIT', 'CUIT 20-12345678-9', 'CUIT **-********-*'],
+        ['a card number', '•••• 4242', '•••• ****'],
+        ['an EVM address', '0x7a3F9c21bE04d5', '*'.repeat(16)],
+        ['a base58 address', '7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV', '*'.repeat(43)],
+    ])('%s', (_name, text, expected) => {
+        expect(maskReplayText(text)).toBe(expected)
     })
 
-    it.each(['Add money', 'Withdraw', 'Home', 'Verify your identity'])('keeps navigation text %s', (label) => {
-        expect(maskReplayText(label)).toBe(label)
+    it('a token, query or fragment in a URL, and userinfo', () => {
+        const name = (url: string) =>
+            maskReplayNetworkRequest({ duration: 1, entryType: 'resource', startTime: 0, name: url }).name
+        expect(
+            name('https://api.peanut.me/charges/3c9d1f2e-8a7b-4c6d-9e0f-1a2b3c4d5e6f/payments?to=0xabc#p=secret')
+        ).toBe('https://api.peanut.me/charges/*/payments')
+        expect(name('https://secret@api.peanut.me/users/me')).toBe('https://api.peanut.me/users/me')
+        expect(maskAttribute('href', '/claim?c=8453#p=SECRET', document.createElement('a'))).toBe('/claim')
+        expect(name('/qr-pay?qrCode=secret')).toBe('[REDACTED QR DATA]')
     })
-})
 
-describe('maskReplayAttribute', () => {
-    it('keeps layout attributes, so the replay still renders', () => {
-        expect(maskReplayAttribute('class', 'p-4 gap-2 text-body-m')).toBe('p-4 gap-2 text-body-m')
-        expect(maskReplayAttribute('style', 'width: 160px')).toBe('width: 160px')
-    })
-
-    it('masks values in text-bearing attributes and still redacts QR data', () => {
-        expect(maskReplayAttribute('value', '1500')).toBe('****')
-        expect(maskReplayAttribute('href', '/request/0x7a3F9c21bE04d5?amount=20')).toBe(
-            '/request/****************?amount=**'
-        )
-        // a link names who it points at; a stylesheet must stay loadable
-        expect(maskReplayAttribute('href', '/alice', document.createElement('a'))).toBe('******')
-        expect(maskReplayAttribute('href', '/_next/static/app.css', document.createElement('link'))).toBe(
-            '/_next/static/app.css'
-        )
-        expect(maskReplayAttribute('data-url', '/qr-pay?qrCode=secret')).toBe('[REDACTED QR DATA]')
-    })
-})
-
-describe('maskReplayNetworkRequest', () => {
-    const timing = { duration: 2, entryType: 'resource', startTime: 1 }
-    const name = (url: string) => maskReplayNetworkRequest({ ...timing, name: url }).name
-
-    it('drops bodies, headers, query values and fragments, and keeps the route', () => {
+    it('network bodies and headers', () => {
+        const timing = { duration: 2, entryType: 'resource', startTime: 1 }
         expect(
             maskReplayNetworkRequest({
                 ...timing,
-                name: 'https://api.peanut.me/users/username/alice?x=1#frag',
+                name: '/users/me',
                 method: 'GET',
                 status: 200,
                 requestBody: '{"amount":"50"}',
@@ -94,95 +118,22 @@ describe('maskReplayNetworkRequest', () => {
                 requestHeaders: { authorization: 'Bearer secret' },
                 responseHeaders: { 'set-cookie': 'secret' },
             })
-        ).toEqual({ ...timing, name: 'https://api.peanut.me/users/username/:username', method: 'GET', status: 200 })
-    })
-
-    it('keeps known API routes and folds unknown ones', () => {
-        expect(name('https://api.peanut.me/users/saved-addresses/42')).toBe(
-            'https://api.peanut.me/users/saved-addresses/:addressId'
-        )
-        expect(name('https://api.peanut.me/charges/3c9d1f2e/payments')).toBe(
-            'https://api.peanut.me/charges/:chargeId/payments'
-        )
-        expect(name('https://api.peanut.me/some/new/alice')).toBe('https://api.peanut.me/unmatched')
-        expect(name('https://secret@api.peanut.me/users/username/alice')).toBe(
-            'https://api.peanut.me/users/username/:username'
-        )
-    })
-
-    it("masks a username in the replay's page URL and keeps app routes", () => {
-        // the recorder sends each meta event's page URL through this callback
-        const origin = window.location.origin
-        expect(name(`${origin}/alice`)).toBe(`${origin}/:id`)
-        expect(name(`${origin}/request/alice?amount=5`)).toBe(`${origin}/request/:id`)
-        expect(name(`${origin}/home`)).toBe(`${origin}/home`)
-        expect(name('/send/alice')).toBe('/send/:id')
-    })
-
-    it('keeps the QR redaction', () => {
-        expect(name('/qr-pay?qrCode=secret')).toBe('[REDACTED QR DATA]')
+        ).toEqual({ ...timing, name: '/users/me', method: 'GET', status: 200 })
     })
 })
 
-describe('maskReplayTextIn', () => {
-    it('hides a data-row value whole, words included, and keeps its label', () => {
-        // The bank withdrawal review shows the account holder, who can be a third party.
-        render(<DataRow label="Account owner" value="Alice Example" />)
-        const value = screen.getByText('Alice Example')
-        const label = screen.getByText('Account owner')
-        expect(maskReplayTextIn('Alice Example', value)).toBe('***** *******')
-        expect(maskReplayTextIn('Account owner', label)).toBe('Account owner')
-    })
-
-    it('hides ph-mask text whole, as the shared user label marks names and usernames', () => {
-        const name = document.createElement('div')
-        name.className = 'ph-mask line-clamp-1'
-        document.body.appendChild(name)
-        expect(maskReplayTextIn('alice', name)).toBe('*****')
-        name.remove()
-    })
-
-    it('keeps the words of ordinary text', () => {
-        const button = document.createElement('button')
-        expect(maskReplayTextIn('Withdraw 50', button)).toBe('Withdraw **')
-        expect(SESSION_RECORDING_PRIVACY.maskTextFn?.('Withdraw 50', button)).toBe('Withdraw **')
-    })
-})
-
-describe('names outside the user label', () => {
-    it("hides an avatar's accessible name, which repeats the username", () => {
-        renderWithIntl(<UserAvatar name="satoshi" avatarKey={null} />)
-        const avatar = screen.getByRole('img', { name: 'Avatar for satoshi' })
-        expect(SESSION_RECORDING_PRIVACY.maskAttributeFn?.('aria-label', 'Avatar for satoshi', avatar)).toBe(
-            '****** *** *******'
+describe('layout attributes', () => {
+    it('keeps class, style and stylesheet hrefs, so the replay still renders', () => {
+        expect(maskReplayAttribute('class', 'p-4 gap-2 text-body-m')).toBe('p-4 gap-2 text-body-m')
+        expect(maskReplayAttribute('style', 'width: 160px')).toBe('width: 160px')
+        expect(maskReplayAttribute('href', '/_next/static/app.css?v=1', document.createElement('link'))).toBe(
+            '/_next/static/app.css?v=1'
         )
+        expect(maskReplayAttribute('data-url', '/qr-pay?qrCode=secret')).toBe('[REDACTED QR DATA]')
     })
 
-    it('hides the invited-user tooltip, which is portaled outside the label', () => {
-        render(
-            <TooltipContent
-                content="You've invited alice"
-                contentClassName="ph-mask"
-                position="top"
-                initialPosition="top"
-                coords={{ top: 0, left: 0, width: 10, height: 10 }}
-                updatePosition={() => {}}
-            />
-        )
-        const text = screen.getByText("You've invited alice")
-        expect(maskReplayTextIn("You've invited alice", text)).toBe('****** ******* *****')
-    })
-
-    it('masks every accessible name whole, as the receipt avatar labels the payer by full name', () => {
-        const avatarButton = document.createElement('button')
-        expect(SESSION_RECORDING_PRIVACY.maskAttributeFn?.('aria-label', 'Alice Example', avatarButton)).toBe(
-            '***** *******'
-        )
-        expect(SESSION_RECORDING_PRIVACY.maskAttributeFn?.('title', 'alice', avatarButton)).toBe('*****')
-    })
-
-    it('masks a contact handle rendered in the send contacts list', () => {
-        render(<span className="ph-mask">@alice</span>)
-        expect(maskReplayTextIn('@alice', screen.getByText('@alice'))).toBe('******')
+    it('masks a value attribute by the same text rules', () => {
+        expect(maskReplayTextIn('1500', document.createElement('span'))).toBe('****')
+        expect(maskReplayAttribute('value', '1500', document.createElement('input'))).toBe('****')
     })
 })

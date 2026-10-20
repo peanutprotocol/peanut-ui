@@ -273,15 +273,10 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             <PageStack.Center>
                 <EmptyState
                     icon="user"
-                    // ph-mask: both name the requested user, hidden in session replays
-                    title={<span className="ph-mask">{t('blocked.guestTitle', { username })}</span>}
-                    description={
-                        <span className="ph-mask">
-                            {t(handoffActive ? 'blocked.guestDescriptionApp' : 'blocked.guestDescription', {
-                                username,
-                            })}
-                        </span>
-                    }
+                    title={t('blocked.guestTitle', { username })}
+                    description={t(handoffActive ? 'blocked.guestDescriptionApp' : 'blocked.guestDescription', {
+                        username,
+                    })}
                     cta={
                         <div className="mt-4 flex w-full flex-col gap-3">
                             <Button variant="primary" className="w-full" onClick={onJoin}>
@@ -329,7 +324,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     ) : (
                         <EmptyState
                             icon="txn-off"
-                            title={<span className="ph-mask">{t('blocked.title', { username })}</span>}
+                            title={t('blocked.title', { username })}
                             description={t('errors.moneyContactsOnly')}
                             cta={
                                 <div className="mt-4 flex w-full flex-col gap-3">
@@ -339,7 +334,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                                         icon="arrow-up-right"
                                         href={sendUrl(username, native.isCapacitor)}
                                     >
-                                        <span className="ph-mask">{t('blocked.sendCta', { username })}</span>
+                                        {t('blocked.sendCta', { username })}
                                     </Button>
                                     <Button variant="secondary" className="w-full" icon="link" href="/request">
                                         {tHome('shareRequestLink')}
