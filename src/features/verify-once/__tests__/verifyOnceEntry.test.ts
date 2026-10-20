@@ -43,9 +43,9 @@ describe('verifyOnceRoute', () => {
         await expect(verifyOnceRoute(plan(), null)).resolves.toBe('/verify')
     })
 
-    it('leaves a rejection or an action to today’s fixes', async () => {
+    it('routes a retry to verify-once and leaves final rejection to today’s fixes', async () => {
         mockStatus.mockResolvedValue('ACTION_REQUIRED')
-        await expect(verifyOnceRoute(plan(), null)).resolves.toBeNull()
+        await expect(verifyOnceRoute(plan(), null)).resolves.toBe('/verify')
         mockStatus.mockResolvedValue('REJECTED')
         await expect(verifyOnceRoute(plan(), 'bank')).resolves.toBeNull()
     })

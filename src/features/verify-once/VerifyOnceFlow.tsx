@@ -10,7 +10,7 @@ import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { getKycQuestions, skipProofOfAddress } from '@/app/actions/kyc-verify-once'
+import { getKycQuestions, saveVerifyOnceFeatures, skipProofOfAddress } from '@/app/actions/kyc-verify-once'
 import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-workflow'
 import type { SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type {
@@ -128,6 +128,7 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
     const [status, setStatus] = useState(initial.status)
     const [submitted, setSubmitted] = useState(false)
     const [idError, setIdError] = useState<string | null>(null)
+    const [documentRequired, setDocumentRequired] = useState(false)
     const identity = useVerifyOnceIdentity()
 
     const questionIds = useMemo(() => questions.steps.map((s) => s.id), [questions.steps])
@@ -147,7 +148,7 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
         defaultStep: entry,
         guards: {
             ...Object.fromEntries(questionIds.map((id) => [id, { ok: asking }])),
-            id: { ok: asking && allAnswered },
+            id: { ok: asking && (allAnswered || documentRequired) },
             review: { ok: reviewing || failed },
             verified: { ok: approved },
             'address-proof': { ok: approved && plan?.proofOfAddress === 'suggested' },
@@ -156,6 +157,7 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
         onExit: exit,
     })
     const step = stepper.step
+    const goToStep = stepper.goTo
 
     const afterSave = async (saved: VerifyOnceStepId, next: VerifyOnceStepId | null, values: VerifyOnceAnswers) => {
         const updated = markSaved(questions, saved, values)
@@ -186,9 +188,9 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
         else if (error === 'identity_submitted' || error === 'feature_not_selected') void reload()
     }
 
-    const startIdentity = async (document: { type: string; issuingCountry: string }) => {
+    const startIdentity = async (document?: { type: string; issuingCountry: string }) => {
         setIdError(null)
-        let attemptId = questions.attemptId ?? plan?.activeAttemptId ?? null
+        let attemptId = identity.attemptIdRef.current ?? questions.attemptId ?? plan?.activeAttemptId ?? null
         if (!attemptId) {
             const fresh = await getKycQuestions().catch(() => null)
             if (fresh) setQuestions(fresh)
@@ -199,13 +201,45 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
             return
         }
         const outcome = await identity.open(attemptId, document)
+        if (outcome.kind === 'opened') setQuestions((current) => ({ ...current, attemptId: outcome.attemptId }))
+        if (outcome.kind === 'document-required') {
+            setDocumentRequired(true)
+            setStatus('NOT_STARTED')
+            setSubmitted(false)
+            void stepper.goTo('id')
+        }
         if (outcome.kind === 'failed') setIdError(t('midpoint.failed'))
         if (outcome.kind === 'questions-missing') {
+            setDocumentRequired(false)
+            setStatus('NOT_STARTED')
+            setSubmitted(false)
             const fresh = await getKycQuestions().catch(() => null)
             if (fresh) setQuestions(fresh)
             const target = outcome.step ?? (fresh && resumeStep(fresh))
             if (target) void stepper.goTo(target)
         }
+    }
+
+    useEffect(() => {
+        const attemptId = identity.session?.attemptId
+        if (attemptId)
+            setQuestions((current) => (current.attemptId === attemptId ? current : { ...current, attemptId }))
+    }, [identity.session?.attemptId])
+
+    useEffect(() => {
+        if (!identity.documentRequired) return
+        setDocumentRequired(true)
+        setStatus('NOT_STARTED')
+        setSubmitted(false)
+        void goToStep('id')
+    }, [identity.documentRequired, goToStep])
+
+    const continueWithoutLocal = async () => {
+        const currentPlan = await findKycDocumentPlan()
+        if (!currentPlan) throw new Error('KYC plan unavailable')
+        const result = await saveVerifyOnceFeatures({ ...currentPlan.features, local: false })
+        if (result.kind === 'failed') throw new Error('KYC preferences not saved')
+        await reload()
     }
 
     // The review result arrives on the websocket; the read-only status poll covers a missed event.
@@ -251,6 +285,7 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
                 onBack={() => void stepper.back()}
                 onSaved={(next, values) => void afterSave(current.id, next, values)}
                 onConflict={onConflict}
+                onContinueWithoutLocal={continueWithoutLocal}
             />
         )
     } else if (step === 'id') {
@@ -267,7 +302,15 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
             />
         )
     } else if (step === 'review') {
-        screen = <ReviewScreen failed={failed} onHome={goHome} />
+        screen = (
+            <ReviewScreen
+                failed={failed}
+                onHome={goHome}
+                onRetry={status === 'ACTION_REQUIRED' ? () => void startIdentity() : undefined}
+                busy={identity.busy}
+                error={idError}
+            />
+        )
     } else if (step === 'verified') {
         screen = <VerifiedScreen onHome={goHome} />
     } else if (step === 'address-proof') {
@@ -286,6 +329,7 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
                 onClose={identity.close}
                 onComplete={() => {
                     identity.close()
+                    setStatus('PENDING')
                     setSubmitted(true)
                     void stepper.goTo('review')
                 }}

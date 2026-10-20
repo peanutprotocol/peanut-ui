@@ -1640,7 +1640,8 @@
             "geoBlockedPolicyLink": "Ver qué regiones están restringidas",
             "pendingResidenceBlockedTitle": "Cambio de residencia pendiente",
             "pendingResidenceBlockedBody": "Tu residencia aprobada sigue activa, pero las solicitudes de tarjeta están pausadas mientras haya un cambio de residencia pendiente. Revisa o cancela ese cambio para continuar.",
-            "pendingResidenceBlockedCta": "Revisar cambio de residencia"
+            "pendingResidenceBlockedCta": "Revisar cambio de residencia",
+            "pendingIdentityBody": "Vamos a configurar tu tarjeta cuando termine la verificación de identidad."
         },
         "cancel": {
             "title": "¿Cancelar la tarjeta?",
@@ -3391,7 +3392,8 @@
             "proofOfAddressCta": "Agregar comprobante de domicilio",
             "later": "Hacerlo más tarde",
             "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contacta a soporte y lo completamos por ti.",
-            "identityDocumentInsufficient": "{feature}: esto requiere un documento de identidad distinto al que usaste para verificarte."
+            "identityDocumentInsufficient": "{feature}: esto requiere un documento de identidad distinto al que usaste para verificarte.",
+            "unavailable": "{feature}: esta función no está disponible con la verificación actual."
         },
         "verifyOnce": {
             "back": "Volver",
@@ -3615,7 +3617,13 @@
                 "featureNotSelected": "Tu cuenta cambió. Estamos cargando las preguntas correctas.",
                 "identitySubmitted": "Ya enviaste tu documento, así que estas respuestas no pueden cambiar ahora.",
                 "unavailable": "Esta verificación no está disponible en este momento.",
-                "usCitizenNotSupported": "Las transferencias locales no están disponibles para ciudadanos de EE. UU. Igual puedes cobrar con una cuenta en USD o pagar con QR."
+                "usCitizenNotSupported": "Las transferencias locales no están disponibles para ciudadanos de EE. UU. Igual puedes cobrar con una cuenta en USD o pagar con QR.",
+                "tooShort": "Agregá el nombre y el número de la calle.",
+                "streetNumberMissing": "Agregá el número de la calle.",
+                "poBoxNotAccepted": "No se puede usar un apartado postal como domicilio.",
+                "invalidBody": "No se pudieron aceptar estas respuestas. Volvé a abrir la verificación para continuar.",
+                "unknownStep": "Este paso ya no está disponible. Volvé a abrir la verificación para continuar.",
+                "rateLimited": "Demasiados intentos. Esperá un minuto y volvé a intentarlo."
             },
             "midpoint": {
                 "title": "Ya hiciste la parte difícil",
@@ -3635,7 +3643,8 @@
             "failed": {
                 "title": "Necesitamos revisar tu documento otra vez",
                 "description": "Tu verificación necesita algo de ti. En el inicio verás qué hacer.",
-                "cta": "Ir al inicio"
+                "cta": "Ir al inicio",
+                "retry": "Intentar de nuevo"
             },
             "verified": {
                 "title": "¡Verificación lista!",
@@ -3667,7 +3676,9 @@
                     "card": "Estamos configurando tu tarjeta. Suele tardar unos minutos y te avisaremos cuando esté lista.",
                     "local": "Estamos configurando tus transferencias locales. Suele tardar unos minutos y te avisaremos cuando estén listas."
                 },
-                "doneCta": "Listo"
+                "doneCta": "Listo",
+                "actionTitle": "Un paso más",
+                "actionDescription": "Completá la verificación adicional para terminar la configuración."
             },
             "loadFailed": {
                 "title": "No pudimos cargar esto",
@@ -3688,7 +3699,8 @@
                 "countryFirst": "Elige primero el país",
                 "suggestions": "Lugares que coinciden",
                 "noMatch": "No está en la lista. También sirve el nombre tal como lo escribiste."
-            }
+            },
+            "continueWithoutLocal": "Continuar sin transferencias bancarias locales"
         }
     },
     "identity": {

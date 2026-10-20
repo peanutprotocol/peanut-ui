@@ -14,14 +14,13 @@ import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import type { VerifyOnceAnswers, VerifyOnceField } from '@/app/actions/types/kyc-verify-once.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { countryForPhone } from '../callingCodes'
-import { fieldErrorKey, formatTaxId, isVisible, looksLikeItin } from '../verifyOnce.utils'
+import { fieldErrorKey, formatTaxId, looksLikeItin } from '../verifyOnce.utils'
 import { AnswerPicker } from './AnswerPicker'
 import { PlaceField } from './PlaceField'
 
 const SENTENCE_KINDS = new Set(['choice', 'occupation', 'country'])
 // A conditional field belongs with the form control it depends on, not in the heading sentences.
-export const isSentenceField = (field: VerifyOnceField) =>
-    SENTENCE_KINDS.has(field.kind) && !field.locked && !field.visibleWhen
+export const isSentenceField = (field: VerifyOnceField) => SENTENCE_KINDS.has(field.kind) && !field.locked
 
 const ADDRESS_AUTOCOMPLETE: Record<string, string> = {
     street: 'address-line1',
@@ -285,7 +284,7 @@ function TypedFields({
                     itin ? undefined : t(`tax.help.${taxFormat ?? 'other'}` as never)
                 )}
             {itin && !errorText('taxId') && <FieldError>{t('errors.itinNotAccepted')}</FieldError>}
-            {groupToggles(fields.filter((f) => !known.has(f.key) && isVisible(f, values))).map((group) =>
+            {groupToggles(fields.filter((f) => !known.has(f.key))).map((group) =>
                 Array.isArray(group) ? (
                     <div key={group[0].key} className="flex flex-col gap-2">
                         <ListGroup>

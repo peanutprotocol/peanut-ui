@@ -24,8 +24,20 @@ const primary = (label: string, onClick: () => void, testId: string, loading = f
     </Button>
 )
 
-/** After the selfie: the review is running. A failed review sends the user to Home, where its fix lives. */
-export function ReviewScreen({ failed, onHome }: { failed: boolean; onHome: () => void }) {
+/** After the selfie: wait for review, or resume a retryable ID check. */
+export function ReviewScreen({
+    failed,
+    onHome,
+    onRetry,
+    busy = false,
+    error,
+}: {
+    failed: boolean
+    onHome: () => void
+    onRetry?: () => void
+    busy?: boolean
+    error?: string | null
+}) {
     const t = useTranslations('kyc.verifyOnce')
     const copy = failed ? 'failed' : 'review'
     return (
@@ -33,7 +45,18 @@ export function ReviewScreen({ failed, onHome }: { failed: boolean; onHome: () =
             pose={failed ? 'sad' : 'thinking'}
             title={t(`${copy}.title`)}
             description={t(`${copy}.description`)}
-            footer={<VerifyFooter actions={primary(t(`${copy}.cta`), onHome, 'verify-review-home')} />}
+            footer={
+                <VerifyFooter
+                    actions={
+                        onRetry
+                            ? primary(t('failed.retry'), onRetry, 'verify-review-retry', busy)
+                            : primary(t(`${copy}.cta`), onHome, 'verify-review-home')
+                    }
+                    secondary={onRetry ? primary(t('failed.cta'), onHome, 'verify-review-home') : undefined}
+                >
+                    {error && <Callout priority="error">{error}</Callout>}
+                </VerifyFooter>
+            }
         />
     )
 }

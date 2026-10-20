@@ -6,6 +6,8 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
 import { getKycQuestions, saveVerifyOnceFeatures, type FeatureIntentsResult } from '@/app/actions/kyc-verify-once'
 import { getKycDocumentPlan } from '@/app/actions/kyc-workflow'
+import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import type { VerifyOnceFeature, VerifyOnceStep } from '@/app/actions/types/kyc-verify-once.types'
 import { QuestionStepScreen } from './components/QuestionStepScreen'
 import { FeatureReadyScreen } from './components/StatusScreens'
@@ -14,13 +16,14 @@ import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
 /** Adds the feature to the saved set once its answers are in; a feature already there is left as is. */
 export async function addKycFeature(feature: VerifyOnceFeature): Promise<FeatureIntentsResult> {
     const plan = await getKycDocumentPlan()
-    if (plan.features[feature]) return { kind: 'saved' }
-    return saveVerifyOnceFeatures({ ...plan.features, [feature]: true })
+    return saveVerifyOnceFeatures({ ...plan.features, [feature]: true }, { ...plan.features, [feature]: false })
 }
 
 type State =
     | { kind: 'loading' }
     | { kind: 'failed' }
+    | { kind: 'refused'; copy: string; feature: string }
+    | { kind: 'action-required'; action: string }
     | { kind: 'asking'; steps: VerifyOnceStep[]; residence: string | null }
 
 /**
@@ -41,6 +44,7 @@ export function AddFeatureQuestions({
     onDone: () => void
 }) {
     const t = useTranslations('kyc.verifyOnce')
+    const tKyc = useTranslations('kyc')
     const [state, setState] = useState<State>({ kind: 'loading' })
     // Called once per finish, whatever the parent re-renders with.
     const onDoneRef = useRef(onDone)
@@ -53,6 +57,7 @@ export function AddFeatureQuestions({
             try {
                 const result = await addKycFeature(feature)
                 if (result.kind === 'saved') onDoneRef.current()
+                else if (result.kind === 'refused' || result.kind === 'action-required') setState(result)
                 // A step asked a second time with nothing new to answer would loop: stop on the failure screen.
                 else if (result.kind === 'questions-missing' && result.step !== afterRequired)
                     await loadRef.current(result.step)
@@ -90,6 +95,29 @@ export function AddFeatureQuestions({
                 <Loading variant="mascot" />
             </div>
         )
+    if (state.kind === 'action-required')
+        return <FeatureAction action={state.action} onBack={onBack} onDone={() => onDoneRef.current()} />
+    if (state.kind === 'refused')
+        return (
+            <VerifyHeroLayout
+                pose="sad"
+                onBack={onBack}
+                title={t(`addLater.title.${feature}`)}
+                description={tKyc(
+                    state.copy as never,
+                    { feature: tKyc(`documents.${state.feature}` as never) } as never
+                )}
+                footer={
+                    <VerifyFooter
+                        actions={
+                            <Button className="w-full" onClick={onBack}>
+                                {t('addLater.doneCta')}
+                            </Button>
+                        }
+                    />
+                }
+            />
+        )
     if (state.kind === 'failed')
         return (
             <VerifyHeroLayout
@@ -123,6 +151,51 @@ export function AddFeatureQuestions({
                 error === 'unavailable' || error === 'existing_verification' ? onBack() : void load()
             }
         />
+    )
+}
+
+function FeatureAction({ action, onBack, onDone }: { action: string; onBack: () => void; onDone: () => void }) {
+    const t = useTranslations('kyc.verifyOnce')
+    const flow = useSumsubKycFlow({ onKycSuccess: onDone })
+    const started = useRef(false)
+    useEffect(() => {
+        if (started.current) return
+        started.current = true
+        void flow.handleStartAction(action)
+    }, [action, flow])
+    return (
+        <>
+            <VerifyHeroLayout
+                pose="thinking"
+                onBack={onBack}
+                title={t('addLater.actionTitle')}
+                description={flow.error ?? t('addLater.actionDescription')}
+                footer={
+                    <VerifyFooter
+                        actions={
+                            <Button
+                                className="w-full"
+                                loading={flow.isLoading}
+                                disabled={flow.isLoading}
+                                onClick={() => void flow.handleStartAction(action)}
+                            >
+                                {t('continue')}
+                            </Button>
+                        }
+                    />
+                }
+            />
+            <SumsubKycWrapper
+                visible={flow.showWrapper}
+                accessToken={flow.accessToken}
+                onClose={flow.handleClose}
+                onComplete={() => {
+                    flow.handleSdkComplete()
+                    onDone()
+                }}
+                onRefreshToken={flow.refreshToken}
+            />
+        </>
     )
 }
 

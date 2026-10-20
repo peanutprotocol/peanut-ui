@@ -130,13 +130,10 @@ describe('phone and tax completeness', () => {
     })
 })
 
-describe('toggles and conditional fields', () => {
+describe('toggles and server-provided fields', () => {
     const elsewhere = field('taxElsewhere', { kind: 'toggle' })
-    const foreignCountry = field('foreignTaxCountry', {
-        kind: 'country',
-        visibleWhen: { key: 'taxElsewhere', equals: 'yes' },
-    })
-    const foreignNumber = field('foreignTaxId', { visibleWhen: { key: 'taxElsewhere', equals: 'yes' } })
+    const foreignCountry = field('foreignTaxCountry', { kind: 'country' })
+    const foreignNumber = field('foreignTaxId')
     const fields = [elsewhere, foreignCountry, foreignNumber]
 
     it('an untouched toggle reads no', () => {
@@ -144,13 +141,13 @@ describe('toggles and conditional fields', () => {
         expect(initialValues([{ ...elsewhere, value: 'yes' }])).toEqual({ taxElsewhere: 'yes' })
     })
 
-    it('a hidden field is neither required nor sent', () => {
+    it('every required field the server sends needs an answer', () => {
         const values = { taxElsewhere: 'no', foreignTaxCountry: 'ES', foreignTaxId: 'X1' }
-        expect(stepComplete(fields, { taxElsewhere: 'no' })).toBe(true)
-        expect(stepPayload(fields, values)).toEqual({ taxElsewhere: 'no' })
+        expect(stepComplete(fields, { taxElsewhere: 'no' })).toBe(false)
+        expect(stepPayload(fields, values)).toEqual(values)
     })
 
-    it('a shown field is required and sent', () => {
+    it('all provided fields are sent', () => {
         expect(stepComplete(fields, { taxElsewhere: 'yes', foreignTaxCountry: 'ES' })).toBe(false)
         expect(stepPayload(fields, { taxElsewhere: 'yes', foreignTaxCountry: 'ES', foreignTaxId: ' X1 ' })).toEqual({
             taxElsewhere: 'yes',

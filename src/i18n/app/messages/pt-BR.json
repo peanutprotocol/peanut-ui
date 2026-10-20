@@ -1640,7 +1640,8 @@
             "geoBlockedPolicyLink": "Veja quais regiões estão restritas",
             "pendingResidenceBlockedTitle": "Mudança de residência pendente",
             "pendingResidenceBlockedBody": "Sua residência aprovada continua ativa, mas as solicitações de cartão ficam pausadas enquanto houver uma mudança de residência pendente. Revise ou cancele essa mudança para continuar.",
-            "pendingResidenceBlockedCta": "Revisar mudança de residência"
+            "pendingResidenceBlockedCta": "Revisar mudança de residência",
+            "pendingIdentityBody": "Vamos configurar seu cartão quando a verificação de identidade terminar."
         },
         "cancel": {
             "title": "Cancelar o cartão?",
@@ -3391,7 +3392,8 @@
             "proofOfAddressCta": "Adicionar comprovante de endereço",
             "later": "Fazer isso depois",
             "uncollectable": "{feature}: não conseguimos terminar de configurar isso pelo app. Fale com o suporte e concluímos para você.",
-            "identityDocumentInsufficient": "{feature}: isso exige um documento de identidade diferente do que você usou na verificação."
+            "identityDocumentInsufficient": "{feature}: isso exige um documento de identidade diferente do que você usou na verificação.",
+            "unavailable": "{feature}: este recurso não está disponível com a verificação atual."
         },
         "verifyOnce": {
             "back": "Voltar",
@@ -3615,7 +3617,13 @@
                 "featureNotSelected": "Sua conta mudou. Estamos carregando as perguntas certas.",
                 "identitySubmitted": "Seu documento já foi enviado, então essas respostas não podem mudar agora.",
                 "unavailable": "Esta verificação não está disponível agora.",
-                "usCitizenNotSupported": "Transferências locais não estão disponíveis para cidadãos dos EUA. Você ainda pode receber com uma conta em USD ou pagar com QR."
+                "usCitizenNotSupported": "Transferências locais não estão disponíveis para cidadãos dos EUA. Você ainda pode receber com uma conta em USD ou pagar com QR.",
+                "tooShort": "Adicione o nome e o número da rua.",
+                "streetNumberMissing": "Adicione o número da rua.",
+                "poBoxNotAccepted": "Uma caixa postal não pode ser usada como endereço residencial.",
+                "invalidBody": "Não foi possível aceitar estas respostas. Abra a verificação novamente para continuar.",
+                "unknownStep": "Esta etapa não está mais disponível. Abra a verificação novamente para continuar.",
+                "rateLimited": "Muitas tentativas. Espere um minuto e tente de novo."
             },
             "midpoint": {
                 "title": "A parte difícil já foi",
@@ -3635,7 +3643,8 @@
             "failed": {
                 "title": "Precisamos ver seu documento de novo",
                 "description": "Sua verificação precisa de algo de você. O início mostra o que fazer.",
-                "cta": "Ir para o início"
+                "cta": "Ir para o início",
+                "retry": "Tentar de novo"
             },
             "verified": {
                 "title": "Verificação concluída!",
@@ -3667,7 +3676,9 @@
                     "card": "Estamos configurando seu cartão. Costuma levar alguns minutos, e vamos avisar quando estiver pronto.",
                     "local": "Estamos configurando suas transferências locais. Costuma levar alguns minutos, e vamos avisar quando estiverem prontas."
                 },
-                "doneCta": "Concluído"
+                "doneCta": "Concluído",
+                "actionTitle": "Mais um passo",
+                "actionDescription": "Conclua a verificação adicional para terminar a configuração."
             },
             "loadFailed": {
                 "title": "Não conseguimos carregar",
@@ -3688,7 +3699,8 @@
                 "countryFirst": "Escolha o país primeiro",
                 "suggestions": "Lugares encontrados",
                 "noMatch": "Não está na lista. O nome como você digitou também vale."
-            }
+            },
+            "continueWithoutLocal": "Continuar sem transferências bancárias locais"
         }
     },
     "identity": {

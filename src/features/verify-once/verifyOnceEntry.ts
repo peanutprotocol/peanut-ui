@@ -6,7 +6,10 @@ import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { isVerifyOnceEnabled } from './verifyOnceFlag'
 
-const NEEDS_TODAYS_FIX = new Set(['ACTION_REQUIRED', 'REJECTED', 'FAILED'])
+const NEEDS_TODAYS_FIX = new Set(['REJECTED', 'FAILED'])
+
+export const verifyOnceFeaturePath = (feature: VerifyOnceFeature) => `/verify?${new URLSearchParams({ feature })}`
+export const verifyOnceDocumentPath = () => `/verify?${new URLSearchParams({ step: 'id' })}`
 
 /** The feature an entry point unlocks, for the add-later screen: Bridge bank accounts or Manteca local transfers. */
 export function entryFeature({
@@ -41,5 +44,5 @@ export async function verifyOnceRoute(
     const status = await getKycDocumentStatus().catch(() => undefined)
     if (status && NEEDS_TODAYS_FIX.has(status)) return null
     if (status !== 'APPROVED') return '/verify'
-    return feature && !plan.features[feature] ? `/verify?feature=${feature}` : null
+    return feature && !plan.features[feature] ? verifyOnceFeaturePath(feature) : null
 }

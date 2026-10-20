@@ -1,5 +1,3 @@
-// Typed by hand from the frozen api#1816 contract until the API types are regenerated.
-
 export type VerifyOnceStepId = 'purpose' | 'work' | 'money' | 'birth' | 'address' | 'phone' | 'declarations' | 'tax'
 export type VerifyOnceFeature = 'bank' | 'card' | 'local'
 export type VerifyOnceFieldKind = 'choice' | 'occupation' | 'country' | 'place' | 'text' | 'phone' | 'taxId' | 'toggle'
@@ -14,8 +12,6 @@ export interface VerifyOnceField {
     locked?: boolean
     /** A `place` field suggests places of the country this field of the step holds. */
     countryField?: string
-    /** Shown, and required, only while another field of the step has this value. */
-    visibleWhen?: { key: string; equals: string }
     /** A toggle's value is 'yes' or 'no'. */
     value: string | null
 }
@@ -43,6 +39,7 @@ export type SaveAnswersResult =
     | { kind: 'invalid'; errors: Record<string, string> }
     | { kind: 'conflict'; code: string }
     | { kind: 'retry' }
+    | { kind: 'blocked'; code: 'invalid_body' | 'unknown_step' | 'rate_limited' | 'unavailable' }
 
 export interface KycPlace {
     name: string

@@ -163,9 +163,10 @@ export const SumsubNativeSdk = ({
                 .withLocale(sumsubLocaleRef.current)
                 .withApplicantConf(emailRef.current ? { email: emailRef.current } : {})
                 .withDebug(process.env.NODE_ENV === 'development')
-            if (documentConfigRef.current) {
+            const documentDefinitions = documentConfigRef.current?.documentDefinitions
+            if (documentDefinitions) {
                 if (typeof builder.withPreferredDocumentDefinitions === 'function') {
-                    builder = builder.withPreferredDocumentDefinitions(documentConfigRef.current.documentDefinitions)
+                    builder = builder.withPreferredDocumentDefinitions(documentDefinitions)
                 } else if (preselectionRef.current !== 'preferred') {
                     throw new Error('Document preselection requires an app update')
                 }

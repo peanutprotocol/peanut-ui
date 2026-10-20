@@ -1268,6 +1268,7 @@ export interface paths {
                     "application/json": {
                         amount: string;
                         chargeId?: string;
+                        idempotencyKey?: string;
                         recipientAddress?: string;
                         source: {
                             currency: "usd" | "eur" | "mxn" | "gbp" | "cop";
@@ -1325,6 +1326,18 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
                             error: string;
                         };
                     };
@@ -2287,6 +2300,130 @@ export interface paths {
                             error: string;
                             /** @enum {boolean} */
                             ok: false;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dev/cheats/bridge-kyc-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        customerId?: string;
+                        customerStatus?: "active" | "not_started" | "incomplete" | "under_review" | "awaiting_questionnaire" | "awaiting_ubo" | "paused" | "offboarded" | "rejected";
+                        endorsements?: {
+                            additionalRequirements?: string[];
+                            complete?: string[];
+                            issues?: string[];
+                            missing?: string[];
+                            name: string;
+                            pending?: string[];
+                            status: "approved" | "incomplete" | "rejected" | "revoked";
+                        }[];
+                        kycStatus: "not_started" | "under_review" | "incomplete" | "approved" | "rejected";
+                        rejectionReasons?: {
+                            developerReason?: string;
+                            reason: string;
+                        }[];
+                        tosAccepted?: boolean;
+                        userId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            customer: unknown;
+                            customerId: string;
+                            kycData: unknown;
+                            linkedCustomerId: boolean;
+                            /** @enum {boolean} */
+                            ok: true;
+                            rails: unknown;
+                            result: unknown;
+                            verification: unknown;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
                         };
                     };
                 };
@@ -3440,6 +3577,119 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/dev/cheats/manteca-user-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        document?: "pep" | "fep";
+                        exchange?: "ARGENTINA" | "BRAZIL" | "CHILE" | "COLOMBIA" | "PANAMA" | "COSTA_RICA" | "GUATEMALA" | "MEXICO" | "PHILIPPINES" | "BOLIVIA";
+                        failedTask?: string;
+                        mantecaUserId?: string;
+                        rejectionReason?: string;
+                        state: "active" | "onboarding" | "inactive" | "rejected" | "documents_requested" | "documents_rejected" | "documents_accepted";
+                        userId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            event: string;
+                            mantecaGeo: string;
+                            mantecaUserId: string;
+                            /** @enum {boolean} */
+                            ok: true;
+                            payload: unknown;
+                            rails: unknown;
+                            result: unknown;
+                            verification: unknown;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dev/cheats/mint-jwt": {
         parameters: {
             query?: never;
@@ -3576,6 +3826,115 @@ export interface paths {
                             error: string;
                             /** @enum {boolean} */
                             ok: false;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dev/cheats/rain-application-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        applicationReason?: string;
+                        applicationStatus: "pending" | "needsVerification" | "needsInformation" | "approved" | "denied" | "locked" | "canceled" | "exempt";
+                        ensureRail?: boolean;
+                        rainUserId?: string;
+                        userId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            ok: true;
+                            payload: unknown;
+                            rail: unknown;
+                            railCreated: boolean;
+                            rainUserId: string;
+                            statusChanged: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
                         };
                     };
                 };
@@ -4653,8 +5012,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Synthesise a Sumsub webhook and run the status-processor
-         * @description Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) — same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub → routing chain without real webhook delivery.
+         * Synthesise a Sumsub webhook and run it through the real handler
+         * @description delivery 'processor' calls processSumsubKycUpdate with the input /sumsub/webhooks builds; delivery 'route' signs the payload and injects it into /sumsub/webhooks, then waits for its audit row. Contract: src/routes/dev/impersonators/README.md.
          */
         post: {
             parameters: {
@@ -4666,16 +5025,27 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** @description payload.applicantActionId */
+                        actionId?: string;
                         /** @description Sumsub applicant id */
                         applicantId: string;
+                        clientComment?: string;
+                        /** @description Event time: epoch ms, or a verbatim Sumsub "YYYY-MM-DD HH:mm:ss.SSS" string */
+                        createdAtMs?: number | string;
+                        delivery?: "processor" | "route";
+                        /** @description payload.externalApplicantActionId */
+                        externalActionId?: string;
                         /** @description Peanut user_id (applicant.externalUserId) */
                         externalUserId: string;
                         levelName?: string;
-                        /** @default GREEN */
+                        moderationComment?: string;
+                        rejectLabels?: string[];
                         reviewAnswer?: "GREEN" | "RED" | "ERROR";
-                        /** @description Sumsub reviewStatus (default: "completed") */
+                        reviewRejectType?: "RETRY" | "FINAL";
+                        /** @description Sumsub reviewStatus (default by webhookType) */
                         reviewStatus?: string;
-                        /** @description e.g. "applicantReviewed" */
+                        waitMs?: number;
+                        /** @description Sumsub event type (default "applicantReviewed") */
                         webhookType?: string;
                     };
                 };
@@ -4688,7 +5058,41 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            ackStatus?: number;
+                            applied?: boolean;
+                            auditError?: string | null;
+                            auditStatus?: string;
+                            delivery?: string;
                             ms: number;
+                            ok: boolean;
+                            payload?: unknown;
+                            settled?: boolean;
+                            webhookEventId?: string;
+                            webhookType?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            ok?: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
                             ok: boolean;
                         };
                     };
@@ -4700,6 +5104,19 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
+                            ok: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            ackStatus: number;
                             error: string;
                             ok: boolean;
                         };
@@ -7436,15 +7853,17 @@ export interface paths {
                     content: {
                         "application/json": {
                             message: string;
-                            rainUserId: string;
+                            rainUserId?: string;
                             /** @enum {string} */
                             status: "pending";
                         } | {
+                            externalActionId?: string;
                             missing: string[];
                             questionnaireComplete: boolean;
                             /** @enum {string} */
                             status: "incomplete";
                             sumsubAccessToken: string;
+                            sumsubLevel?: string;
                         } | {
                             missingDocTypes: string[];
                             /** @enum {string} */
@@ -7467,6 +7886,10 @@ export interface paths {
                             message: string;
                             /** @enum {string} */
                             status: "pending-identity";
+                        } | {
+                            /** @enum {string} */
+                            status: "questions-required";
+                            step: string;
                         } | {
                             message: string;
                             rainUserId?: string;
@@ -9768,6 +10191,7 @@ export interface paths {
                     "application/json": {
                         bankInstructionsShared?: boolean;
                         chainId?: string;
+                        idempotencyKey?: string;
                         recipientAddress: string;
                         reference?: string;
                         requestedAmount?: {
@@ -9783,6 +10207,7 @@ export interface paths {
                     } | {
                         bankInstructionsShared?: boolean;
                         chainId: string;
+                        idempotencyKey?: string;
                         recipientAddress: string;
                         reference?: string;
                         requestedAmount?: {
@@ -9818,6 +10243,18 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
                             error: string;
                         };
                     };
@@ -12270,6 +12707,8 @@ export interface paths {
                     cursor?: string;
                     limit?: number;
                     targetUsername?: string;
+                    from?: string;
+                    to?: string;
                 };
                 header?: never;
                 path?: never;
@@ -12778,6 +13217,20 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "questions_missing";
+                            feature: string;
+                            step: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
                 500: {
                     headers: {
                         [name: string]: unknown;
@@ -12785,6 +13238,145 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/answers/{step}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: {
+                    feature?: "bank" | "card" | "local";
+                };
+                header?: never;
+                path: {
+                    step: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        values: {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            next: ("purpose" | "work" | "money" | "birth" | "address" | "phone" | "tax" | "declarations") | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
                         };
                     };
                 };
@@ -12841,8 +13433,8 @@ export interface paths {
                             levelName: string;
                             sdkConfig: {
                                 /** @enum {boolean} */
-                                autoSelectDocumentDefinitions: true;
-                                documentDefinitions: {
+                                autoSelectDocumentDefinitions?: true;
+                                documentDefinitions?: {
                                     IDENTITY: {
                                         country: string;
                                         idDocType: string;
@@ -12893,7 +13485,12 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": {
+                        document?: {
+                            issuingCountry: string;
+                            type: string;
+                        };
+                    };
                 };
             };
             responses: {
@@ -12910,8 +13507,8 @@ export interface paths {
                             levelName: string;
                             sdkConfig: {
                                 /** @enum {boolean} */
-                                autoSelectDocumentDefinitions: true;
-                                documentDefinitions: {
+                                autoSelectDocumentDefinitions?: true;
+                                documentDefinitions?: {
                                     IDENTITY: {
                                         country: string;
                                         idDocType: string;
@@ -12924,13 +13521,133 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
-                409: {
+                400: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
                             error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": Record<string, never>;
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error?: string;
+                            step?: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/paperwork": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            products: {
+                                available: boolean;
+                                product: "bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "rain.card" | "manteca.local" | "manteca.qr";
+                                provider: "BRIDGE" | "RAIN" | "MANTECA";
+                                reason?: string;
+                                rule?: string;
+                            }[];
+                            requirements: {
+                                collect: "before_identity" | "after_identity" | "when_asked";
+                                item: "residential_address" | "phone" | "tax_id" | "country_of_birth" | "city_of_birth" | "nationality" | "us_citizen" | "account_purpose" | "employment_status" | "occupation" | "source_of_funds" | "expected_monthly_payments" | "acting_as_intermediary" | "card_purpose" | "annual_salary" | "expected_monthly_spend" | "sex" | "marital_status" | "pep" | "fatca" | "fep" | "proof_of_address" | "source_of_funds_document";
+                                kind: "question" | "document";
+                                products: ("bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "rain.card" | "manteca.local" | "manteca.qr")[];
+                                requiredBy: ("BRIDGE" | "RAIN" | "MANTECA")[];
+                                rules: string[];
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/places/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        country: string;
+                        query: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            places: {
+                                name: string;
+                                region: string | null;
+                            }[];
                         };
                     };
                 };
@@ -12975,7 +13692,9 @@ export interface paths {
                                 local: boolean;
                                 qr: boolean;
                             };
+                            flow: "verify-once" | "document-first" | null;
                             policyVersion: string | null;
+                            proofOfAddress: "suggested" | null;
                             routes: {
                                 documents: {
                                     /** @enum {string} */
@@ -12983,7 +13702,7 @@ export interface paths {
                                     countries: string[];
                                     key: string;
                                     requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
-                                    types: string[];
+                                    types: ("PASSPORT" | "ID_CARD" | "DRIVERS" | "RESIDENCE_PERMIT")[];
                                 }[];
                                 id: string;
                             }[];
@@ -13031,6 +13750,15 @@ export interface paths {
                                         local: boolean;
                                         qr: boolean;
                                     };
+                                    flow?: "verify-once" | "document-first";
+                                    identityDocuments?: {
+                                        /** @enum {string} */
+                                        code: "IDENTITY";
+                                        countries: string[];
+                                        key: string;
+                                        requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                        types: ("PASSPORT" | "ID_CARD" | "DRIVERS" | "RESIDENCE_PERMIT")[];
+                                    }[];
                                     levelName?: string;
                                     residenceCountry?: string;
                                     routeId?: string;
@@ -13170,6 +13898,100 @@ export interface paths {
                                 fullName: string | null;
                                 lastName: string | null;
                             };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/proof-of-address/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    feature?: "bank" | "card" | "local";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            attemptId: string | null;
+                            available: boolean;
+                            firstUnanswered: ("purpose" | "work" | "money" | "birth" | "address" | "phone" | "tax" | "declarations") | null;
+                            progress: {
+                                done: number;
+                                total: number;
+                            };
+                            residence: string | null;
+                            steps: {
+                                answered: boolean;
+                                features: string[];
+                                fields: {
+                                    countryField?: string;
+                                    format?: string | null;
+                                    key: string;
+                                    kind: string;
+                                    locked?: boolean;
+                                    options?: string[];
+                                    required: boolean;
+                                    value: string | null;
+                                }[];
+                                id: "purpose" | "work" | "money" | "birth" | "address" | "phone" | "tax" | "declarations";
+                            }[];
                         };
                     };
                 };

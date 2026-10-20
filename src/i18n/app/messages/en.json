@@ -1640,7 +1640,8 @@
             "geoBlockedPolicyLink": "See which regions are restricted",
             "pendingResidenceBlockedTitle": "Residence change pending",
             "pendingResidenceBlockedBody": "Your approved residence is still active, but card applications are paused while a residence change is pending. Review or cancel that change to continue.",
-            "pendingResidenceBlockedCta": "Review residence change"
+            "pendingResidenceBlockedCta": "Review residence change",
+            "pendingIdentityBody": "We’ll set up your card once your ID check is done."
         },
         "cancel": {
             "title": "Cancel card?",
@@ -3391,7 +3392,8 @@
             "proofOfAddressCta": "Add proof of address",
             "later": "Do this later",
             "uncollectable": "{feature}: we can't finish setting this up in the app. Contact support and we'll complete it for you.",
-            "identityDocumentInsufficient": "{feature}: this needs a different ID document than the one you verified with."
+            "identityDocumentInsufficient": "{feature}: this needs a different ID document than the one you verified with.",
+            "unavailable": "{feature}: this feature isn’t available with the current verification."
         },
         "verifyOnce": {
             "back": "Go back",
@@ -3615,7 +3617,13 @@
                 "featureNotSelected": "Your account changed. We’re loading the right questions.",
                 "identitySubmitted": "Your ID is already submitted, so these answers can’t change now.",
                 "unavailable": "This check isn’t available right now.",
-                "usCitizenNotSupported": "Local transfers aren’t available to US citizens. You can still get paid with a USD account or pay by QR."
+                "usCitizenNotSupported": "Local transfers aren’t available to US citizens. You can still get paid with a USD account or pay by QR.",
+                "tooShort": "Add the street name and number.",
+                "streetNumberMissing": "Add the street number.",
+                "poBoxNotAccepted": "A PO box can’t be used as a home address.",
+                "invalidBody": "These answers couldn’t be accepted. Reopen this check to continue.",
+                "unknownStep": "This step is no longer available. Reopen this check to continue.",
+                "rateLimited": "Too many tries. Wait a minute and try again."
             },
             "midpoint": {
                 "title": "That’s the hard part done",
@@ -3635,7 +3643,8 @@
             "failed": {
                 "title": "We need another look at your ID",
                 "description": "Your ID check needs something from you. Home shows what to do next.",
-                "cta": "Go to Home"
+                "cta": "Go to Home",
+                "retry": "Try again"
             },
             "verified": {
                 "title": "You’re verified!",
@@ -3667,7 +3676,9 @@
                     "card": "We’re setting up your card. It usually takes a few minutes, and we’ll let you know when it’s ready.",
                     "local": "We’re setting up your local transfers. It usually takes a few minutes, and we’ll let you know when they’re ready."
                 },
-                "doneCta": "Done"
+                "doneCta": "Done",
+                "actionTitle": "One more step",
+                "actionDescription": "Finish the extra check to set this up."
             },
             "loadFailed": {
                 "title": "We couldn’t load this",
@@ -3688,7 +3699,8 @@
                 "countryFirst": "Choose the country first",
                 "suggestions": "Matching places",
                 "noMatch": "Not in the list. The name as typed works too."
-            }
+            },
+            "continueWithoutLocal": "Continue without local bank transfers"
         }
     },
     "identity": {

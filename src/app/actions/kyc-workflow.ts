@@ -18,7 +18,13 @@ async function read<T>(path: string, options?: RequestInit): Promise<T> {
         cache: 'no-store',
         redactTelemetry: true,
     })
-    if (!response.ok) throw new Error('KYC request failed')
+    if (!response.ok) {
+        const body = await response.json().catch(() => null)
+        throw Object.assign(new Error('KYC request failed'), {
+            code: body?.code ?? body?.error,
+            feature: body?.feature,
+        })
+    }
     return response.json() as Promise<T>
 }
 export async function getKycDocumentPlan(restart = false): Promise<KycDocumentPlan> {
@@ -44,15 +50,14 @@ export async function saveKycFeatures(
     })
     return { plan: await getKycDocumentPlan(restart), features: saved?.features ?? undefined }
 }
-export function validSession(value: KycAttemptSession): KycAttemptSession {
+export function validSession(value: KycAttemptSession, documentRequired = true): KycAttemptSession {
     const identity = value?.sdkConfig?.documentDefinitions?.IDENTITY
     if (
         !value?.attemptId ||
         !value.token ||
         !value.applicantId ||
-        !identity?.country ||
-        !identity.idDocType ||
-        value.sdkConfig.autoSelectDocumentDefinitions !== true
+        (documentRequired &&
+            (!identity?.country || !identity.idDocType || value.sdkConfig.autoSelectDocumentDefinitions !== true))
     )
         throw new Error('Invalid KYC verification session')
     return value
@@ -89,11 +94,11 @@ export async function resumeKycDocumentAttempt(attemptId: string) {
         redactTelemetry: true,
     })
     const body = await response.json().catch(() => null)
-    if (response.ok) return validSession(body)
+    if (response.ok) return validSession(body, false)
     // A crash can leave the saved replacement before its remote reset. Only that explicit response resumes the authorised reset ledger.
     if (response.status === 409 && body?.error === 'replacement_reset_required')
         return validSession(await read<KycAttemptSession>('/users/identity/restart', { method: 'POST', body: '{}' }))
-    throw new Error('KYC request failed')
+    throw Object.assign(new Error('KYC request failed'), { code: body?.code ?? body?.error })
 }
 
 /** Read-only fallback for a missed identity websocket event; never opens or refreshes an applicant. */

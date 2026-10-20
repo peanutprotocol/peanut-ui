@@ -24,7 +24,7 @@ const plan: KycDocumentPlan = {
                 {
                     key: 'identity',
                     code: 'IDENTITY',
-                    types: ['PASSPORT', 'RESIDENCE_PERMIT'],
+                    types: ['PASSPORT', 'RESIDENCE_PERMIT'] as never[],
                     countries: ['PT'],
                     requiredBy: ['SUMSUB'],
                 },
@@ -43,7 +43,7 @@ const olderPlan = {
                 {
                     key: 'address-proof',
                     code: 'PROOF_OF_ADDRESS',
-                    types: ['BANK_STATEMENT'],
+                    types: ['BANK_STATEMENT'] as never[],
                     countries: ['PT'],
                     requiredBy: ['BRIDGE'],
                 },
@@ -166,7 +166,15 @@ it('a verified user’s ticks are sent only on Continue, because saving them enr
 describe('choosing documents while features re-plan', () => {
     const route = (id: string, types: string[], countries: string[]) => ({
         id,
-        documents: [{ key: 'identity', code: 'IDENTITY' as const, types, countries, requiredBy: ['SUMSUB' as const] }],
+        documents: [
+            {
+                key: 'identity',
+                code: 'IDENTITY' as const,
+                types: types as never[],
+                countries,
+                requiredBy: ['SUMSUB' as const],
+            },
+        ],
     })
     const twoRoutes: KycDocumentPlan = {
         ...plan,
@@ -258,7 +266,7 @@ describe('document labels', () => {
     const identity = (countries: string[]) => ({
         key: 'identity',
         code: 'IDENTITY' as const,
-        types: ['PASSPORT'],
+        types: ['PASSPORT'] as never[],
         countries,
         requiredBy: ['SUMSUB' as const],
     })

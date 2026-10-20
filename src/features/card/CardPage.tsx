@@ -47,6 +47,7 @@ export const CardPage: FC = () => {
         planRefusal,
         setPlanRefusal,
         pendingQuestions,
+        pendingApplication,
         setPendingQuestions,
         handleQuestionsDone,
         kycFlow,
@@ -114,6 +115,9 @@ export const CardPage: FC = () => {
         // a frozen app — animations running, nothing tappable.
         if (isIssuing) {
             return <ApplicationStatusScreen variant="pending" onPrev={onBack} />
+        }
+        if (pendingApplication && state === 'add-card') {
+            return <ApplicationStatusScreen variant={pendingApplication} onPrev={onBack} />
         }
         // Terminal regulatory block detected mid-funnel by the BE apply gate —
         // takes precedence over the confirmation/terms overlays (those flows

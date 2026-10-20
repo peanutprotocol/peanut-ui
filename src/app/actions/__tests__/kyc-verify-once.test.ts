@@ -135,6 +135,18 @@ describe('startVerifyOnceIdentity', () => {
 describe('saveVerifyOnceFeatures', () => {
     const features = { qr: true, bank: true, local: false, card: true }
 
+    it('does not report an unchanged feature refusal as the outcome of the newly added bank feature', async () => {
+        mockFetch.mockResolvedValue(
+            reply(200, {
+                features: {
+                    bank: { state: 'setting_up' },
+                    card: { state: 'refused', reason: 'identity_document_insufficient' },
+                },
+            })
+        )
+        await expect(saveVerifyOnceFeatures(features, { ...features, bank: false })).resolves.toEqual({ kind: 'saved' })
+    })
+
     it('PUTs the feature set with the flag header', async () => {
         mockFetch.mockResolvedValue(reply(200, { intents: features }))
         await expect(saveVerifyOnceFeatures(features)).resolves.toEqual({ kind: 'saved' })

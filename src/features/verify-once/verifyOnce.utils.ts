@@ -38,17 +38,10 @@ export const initialValues = (fields: VerifyOnceField[], residence: string | nul
         })
     )
 
-/** A field shows, and counts, only while the field it depends on has the value it names. */
-export const isVisible = (field: VerifyOnceField, values: VerifyOnceAnswers) =>
-    !field.visibleWhen || values[field.visibleWhen.key] === field.visibleWhen.equals
-
-export const visibleFields = (fields: VerifyOnceField[], values: VerifyOnceAnswers) =>
-    fields.filter((f) => isVisible(f, values))
-
-/** What a step sends: trimmed, locked fields as the server gave them, empty optional and hidden fields left out. */
+/** What a step sends: trimmed, locked fields as the server gave them, empty optional fields left out. */
 export function stepPayload(fields: VerifyOnceField[], values: VerifyOnceAnswers): VerifyOnceAnswers {
     const out: VerifyOnceAnswers = {}
-    for (const field of visibleFields(fields, values)) {
+    for (const field of fields) {
         const raw = field.locked ? (field.value ?? '') : (values[field.key] ?? '')
         const value = field.kind === 'phone' ? raw.replace(/[\s()-]/g, '') : raw.trim()
         if (value) out[field.key] = value
@@ -56,9 +49,9 @@ export function stepPayload(fields: VerifyOnceField[], values: VerifyOnceAnswers
     return out
 }
 
-/** Continue waits for every required answer it can see; the server still checks each one. */
+/** Continue waits for every required answer; the server still checks each one. */
 export const stepComplete = (fields: VerifyOnceField[], values: VerifyOnceAnswers) =>
-    visibleFields(fields, values).every((f) => {
+    fields.every((f) => {
         const value = values[f.key]?.trim() ?? ''
         if (f.kind === 'phone' && value && !isE164(value)) return false
         if (f.kind === 'taxId' && looksLikeItin(f.format, value)) return false
@@ -77,6 +70,9 @@ const ERROR_KEYS: Record<string, string> = {
     invalid_phone: 'invalidPhone',
     invalid_country: 'invalidCountry',
     too_long: 'tooLong',
+    too_short: 'tooShort',
+    street_number_missing: 'streetNumberMissing',
+    po_box_not_accepted: 'poBoxNotAccepted',
     invalid_text: 'invalidText',
     us_citizen_not_supported: 'usCitizenNotSupported',
 }
@@ -116,7 +112,7 @@ export const looksLikeItin = (format: VerifyOnceTaxFormat | undefined, value: st
 export type VerifyPhase = 'id' | 'review' | 'verified' | 'address-proof'
 export type VerifyStep = VerifyOnceStepId | VerifyPhase
 
-export const IN_REVIEW_STATUSES = new Set<string>(['IN_REVIEW', 'REVERIFYING'])
+export const IN_REVIEW_STATUSES = new Set<string>(['PENDING', 'IN_REVIEW', 'REVERIFYING'])
 export const FAILED_STATUSES = new Set<string>(['ACTION_REQUIRED', 'REJECTED', 'FAILED'])
 
 /** Where a visit starts: approval and review win over the questions, the first open question over the midpoint. */

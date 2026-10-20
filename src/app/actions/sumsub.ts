@@ -14,6 +14,7 @@ import type { paths } from '@/types/api.generated'
  * and stays untranslated (#2554: keep BE prose as fallback where no code exists).
  */
 export type SumsubActionErrorCode =
+    | 'feature_selection_required'
     // Permanent refusals the backend names in its `error` field. A retry sends
     // the identical request and gets the identical answer, so callers must
     // suppress their retry CTA on these.
@@ -128,6 +129,12 @@ export const initiateSumsubKyc = async (params?: {
         const responseJson = await response.json()
 
         if (!response.ok) {
+            if (response.status === 409 && (responseJson.code ?? responseJson.error) === 'feature_selection_required') {
+                return {
+                    code: 'feature_selection_required',
+                    error: responseJson.userMessage || 'Choose the features to set up',
+                }
+            }
             return {
                 ...backendOrFallback(
                     responseJson,

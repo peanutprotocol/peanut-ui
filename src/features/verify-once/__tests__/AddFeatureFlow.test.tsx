@@ -84,7 +84,7 @@ describe('AddFeatureQuestions', () => {
             ['money', { annualSalary: '25k_50k', expectedMonthlyVolume: 'under_1k' }, 'card'],
             ['phone', { phone: '+14155550132' }, 'card'],
         ])
-        expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, card: true })
+        expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, card: true }, features)
     })
 
     it('stops at the first refused step and shows its error; the feature is not added', async () => {
@@ -110,10 +110,10 @@ describe('AddFeatureQuestions', () => {
         renderWithIntl(<AddFeatureQuestions feature="card" onBack={jest.fn()} onDone={onDone} />)
         await waitFor(() => expect(onDone).toHaveBeenCalled())
         expect(mockSave).not.toHaveBeenCalled()
-        expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, card: true })
+        expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, card: true }, features)
     })
 
-    it('leaves an already saved feature as it is', async () => {
+    it('checks the saved feature outcome again before claiming completion', async () => {
         mockPlan.mockResolvedValue({
             available: true,
             features: { ...features, card: true },
@@ -127,7 +127,7 @@ describe('AddFeatureQuestions', () => {
         const onDone = jest.fn()
         renderWithIntl(<AddFeatureQuestions feature="card" onBack={jest.fn()} onDone={onDone} />)
         await waitFor(() => expect(onDone).toHaveBeenCalled())
-        expect(mockSaveFeatures).not.toHaveBeenCalled()
+        expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, card: true }, features)
     })
 })
 
@@ -247,7 +247,7 @@ describe('AddFeatureQuestions: local transfers (Manteca)', () => {
         fireEvent.click(screen.getByTestId('verify-continue'))
         await waitFor(() => expect(onDone).toHaveBeenCalled())
         expect(mockSave).toHaveBeenCalledWith('declarations', { isPep: 'yes', isFatca: 'no', isFep: 'no' }, 'local')
-        expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, local: true })
+        expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, local: true }, features)
     })
 })
 

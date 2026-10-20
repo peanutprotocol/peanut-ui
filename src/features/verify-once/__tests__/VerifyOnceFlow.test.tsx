@@ -63,7 +63,7 @@ const plan = {
                     key: 'identity',
                     code: 'IDENTITY' as const,
                     requiredBy: ['SUMSUB' as const],
-                    types: ['PASSPORT'],
+                    types: ['PASSPORT'] as never[],
                     countries: ['US'],
                 },
             ],

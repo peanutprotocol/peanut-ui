@@ -122,6 +122,10 @@ export function useCardFlow() {
     const [planRefusal, setPlanRefusal] = useState<string | null>(null)
     // Verify-once: POST /rain/cards answered `questions-required` with the step to ask; the card questions come first.
     const [pendingQuestions, setPendingQuestions] = useState<string | null>(null)
+    const [pendingApplication, setPendingApplication] = useState<'pending-identity' | 'pending' | null>(null)
+    useEffect(() => {
+        setPendingApplication(null)
+    }, [userId])
 
     const state = computeCardState({
         overview,
@@ -300,6 +304,18 @@ export function useCardFlow() {
     // and stays inline.
     const advanceFromApplyResponse = useCallback(
         (res: ApplyForCardResponse) => {
+            if (
+                res.status === 'pending-identity' ||
+                (res.status === 'pending' && !('rainUserId' in res && res.rainUserId))
+            ) {
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                setPendingApplication(res.status)
+                awaitingIssuanceRef.current = false
+                invalidateOverview()
+                return
+            }
+            setPendingApplication(null)
             // Main applicant is missing a doc Rain requires (e.g. SELFIE
             // after liveness was added to the level). Open WebSDK at the
             // MAIN level — Sumsub asks only for the missing step. Same
@@ -612,24 +628,9 @@ export function useCardFlow() {
         // Edge case: the user became "ready" between initial apply and the
         // refresh attempt. Close the modal and continue the non-Sumsub path.
         setSumsubToken(null)
-        if (res.status === 'terms-required' && 'isUsResident' in res) {
-            setPendingTerms({ isUsResident: res.isUsResident })
-        } else if (res.status === 'country-confirmation-required' && 'candidates' in res) {
-            setPendingCountryConfirmation({ candidates: res.candidates })
-        } else if (res.status === 'geo-blocked') {
-            setPendingResidenceBlocked(false)
-            setGeoBlocked(true)
-            void refetchCardInfo()
-        } else if (res.status === 'pending-residence-blocked') {
-            setGeoBlocked(false)
-            setPendingResidenceBlocked(true)
-        } else if (res.status === 'questions-required' && 'step' in res) {
-            setPendingQuestions(res.step)
-        } else {
-            invalidateOverview()
-        }
+        advanceFromApplyResponse(res)
         return ''
-    }, [invalidateOverview, refetchCardInfo])
+    }, [advanceFromApplyResponse])
 
     // Preserve an interrupted Sumsub session for installed Android PWAs that
     // remain reachable until the native migration cutoff.
@@ -679,6 +680,7 @@ export function useCardFlow() {
         planRefusal,
         setPlanRefusal,
         pendingQuestions,
+        pendingApplication,
         setPendingQuestions,
         handleQuestionsDone,
         kycFlow,

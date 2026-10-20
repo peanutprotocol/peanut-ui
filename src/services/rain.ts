@@ -369,9 +369,11 @@ const RAIN_COOLDOWN_PATH = '/rain/cards/withdraw/prepare'
 export type ApplyForCardResponse =
     | {
           status: 'incomplete'
-          missing: string[]
-          questionnaireComplete: boolean
+          missing?: string[]
+          questionnaireComplete?: boolean
           sumsubAccessToken: string
+          sumsubLevel?: string
+          externalActionId?: string
       }
     | {
           status: 'main-kyc-required'
@@ -397,9 +399,10 @@ export type ApplyForCardResponse =
       }
     | {
           status: 'pending'
-          rainUserId: string
-          message: string
+          rainUserId?: string
+          message?: string
       }
+    | { status: 'pending-identity' }
     | {
           // Residence country is on Rain's prohibited-issuance list —
           // terminal. Render the geo-blocked screen; no retry, no support CTA.

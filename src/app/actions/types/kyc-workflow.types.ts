@@ -1,10 +1,8 @@
 import type { paths } from '@/types/api.generated'
 
-// `flow` and `proofOfAddress` are typed here until the API types are regenerated (verify-once, api#1816).
-export type KycDocumentPlan = paths['/users/kyc/plan']['get']['responses'][200]['content']['application/json'] & {
-    flow?: 'verify-once' | 'document-first' | null
-    proofOfAddress?: 'suggested' | null
-}
+type DocumentPlanResponse = paths['/users/kyc/plan']['get']['responses'][200]['content']['application/json']
+export type KycDocumentPlan = Omit<DocumentPlanResponse, 'flow' | 'proofOfAddress'> &
+    Partial<Pick<DocumentPlanResponse, 'flow' | 'proofOfAddress'>>
 export type KycFeatures = KycDocumentPlan['features']
 type AttemptResponse = paths['/users/kyc/attempts']['post']['responses'][200]['content']['application/json']
 export type KycDocumentConfig = AttemptResponse['sdkConfig']
@@ -15,7 +13,6 @@ export type KycDocumentChoice =
 type SavedKycFeatures = NonNullable<
     paths['/users/kyc-intents']['put']['responses'][200]['content']['application/json']['features']
 >
-// Typed here until the API types are regenerated: refusals gain requirement reasons and a step to start.
 export type KycFeatureReport = {
     state: SavedKycFeatures[keyof SavedKycFeatures]['state']
     reason?: string

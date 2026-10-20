@@ -1,6 +1,6 @@
 'use client'
 
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
@@ -16,11 +16,14 @@ import { VerifyFooter, VerifyQuestionLayout } from './VerifyLayout'
 
 const FORM_ERROR_KEYS: Record<AnswerFormError, string> = {
     retry: 'errors.retry',
+    invalid_body: 'errors.invalidBody',
+    unknown_step: 'errors.unknownStep',
+    rate_limited: 'errors.rateLimited',
     feature_not_selected: 'errors.featureNotSelected',
     identity_submitted: 'errors.identitySubmitted',
     unavailable: 'errors.unavailable',
     existing_verification: 'errors.unavailable',
-    conflict: 'errors.retry',
+    conflict: 'errors.unavailable',
 }
 
 function useStepHeading(step: VerifyOnceStep) {
@@ -83,6 +86,7 @@ export function QuestionStepScreen({
     onBack,
     onSaved,
     onConflict,
+    onContinueWithoutLocal,
 }: {
     steps: VerifyOnceStep[]
     residence: string | null
@@ -94,9 +98,25 @@ export function QuestionStepScreen({
     onBack?: () => void
     onSaved: (next: VerifyOnceStepId | null, values: Record<string, string>) => void
     onConflict?: (error: AnswerFormError) => void
+    onContinueWithoutLocal?: () => Promise<void>
 }) {
     const t = useTranslations('kyc.verifyOnce')
     const form = useAnswerForm(steps, feature, residence)
+    const [removingLocal, setRemovingLocal] = useState(false)
+    const removingRef = useRef(false)
+    const removeLocal = async () => {
+        if (removingRef.current || form.saving) return
+        removingRef.current = true
+        setRemovingLocal(true)
+        try {
+            await onContinueWithoutLocal?.()
+        } catch {
+            form.setFormError('retry')
+        } finally {
+            removingRef.current = false
+            setRemovingLocal(false)
+        }
+    }
     const fields = steps.flatMap((s) => s.fields)
     const single = steps.length === 1 ? steps[0] : null
     const heading = useStepHeading(single ?? steps[0])
@@ -107,7 +127,7 @@ export function QuestionStepScreen({
     const complete = stepComplete(fields, form.values)
 
     const submit = async () => {
-        if (!complete) return
+        if (!complete || removingRef.current) return
         const outcome = await form.save()
         if (outcome.ok) onSaved(outcome.next, form.values)
         else if (outcome.error && outcome.error !== 'retry') onConflict?.(outcome.error)
@@ -124,7 +144,7 @@ export function QuestionStepScreen({
                             shadowSize="4"
                             className="w-full"
                             onClick={() => void submit()}
-                            disabled={!complete || form.saving}
+                            disabled={!complete || form.saving || removingLocal}
                             loading={form.saving}
                             data-testid="verify-continue"
                         >
@@ -133,6 +153,17 @@ export function QuestionStepScreen({
                     }
                     secondary={<WhyWeAsk steps={steps.map((s) => s.id)} />}
                 >
+                    {onContinueWithoutLocal && Object.values(form.errors).includes('us_citizen_not_supported') && (
+                        <Button
+                            variant="secondary"
+                            className="w-full"
+                            onClick={() => void removeLocal()}
+                            loading={removingLocal}
+                            disabled={removingLocal || form.saving}
+                        >
+                            {t('continueWithoutLocal')}
+                        </Button>
+                    )}
                     {form.formError && (
                         <Callout priority="error" className="w-full text-left" data-testid="verify-form-error">
                             {t(FORM_ERROR_KEYS[form.formError] as never)}

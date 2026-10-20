@@ -2603,6 +2603,10 @@
                                     "chargeId": {
                                         "type": "string"
                                     },
+                                    "idempotencyKey": {
+                                        "maxLength": 200,
+                                        "type": "string"
+                                    },
                                     "recipientAddress": {
                                         "type": "string"
                                     },
@@ -2823,6 +2827,27 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
                                         "error": {
                                             "type": "string"
                                         }
@@ -4477,6 +4502,366 @@
                                     },
                                     "required": [
                                         "ok",
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/dev/cheats/bridge-kyc-status": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "customerId": {
+                                        "type": "string"
+                                    },
+                                    "customerStatus": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "active"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "not_started"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "incomplete"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "under_review"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "awaiting_questionnaire"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "awaiting_ubo"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "paused"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "offboarded"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "rejected"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "endorsements": {
+                                        "items": {
+                                            "properties": {
+                                                "additionalRequirements": {
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "type": "array"
+                                                },
+                                                "complete": {
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "type": "array"
+                                                },
+                                                "issues": {
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "type": "array"
+                                                },
+                                                "missing": {
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "type": "array"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "pending": {
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "type": "array"
+                                                },
+                                                "status": {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "approved"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "incomplete"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "rejected"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "revoked"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "name",
+                                                "status"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "type": "array"
+                                    },
+                                    "kycStatus": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "not_started"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "under_review"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "incomplete"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "approved"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "rejected"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "rejectionReasons": {
+                                        "items": {
+                                            "properties": {
+                                                "developerReason": {
+                                                    "type": "string"
+                                                },
+                                                "reason": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "reason"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "type": "array"
+                                    },
+                                    "tosAccepted": {
+                                        "type": "boolean"
+                                    },
+                                    "userId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "userId",
+                                    "kycStatus"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "customer": {},
+                                        "customerId": {
+                                            "type": "string"
+                                        },
+                                        "kycData": {},
+                                        "linkedCustomerId": {
+                                            "type": "boolean"
+                                        },
+                                        "ok": {
+                                            "enum": [
+                                                true
+                                            ],
+                                            "type": "boolean"
+                                        },
+                                        "rails": {},
+                                        "result": {},
+                                        "verification": {}
+                                    },
+                                    "required": [
+                                        "ok",
+                                        "customerId",
+                                        "linkedCustomerId",
+                                        "customer",
+                                        "kycData",
+                                        "result",
+                                        "verification",
+                                        "rails"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "ok": {
+                                            "enum": [
+                                                false
+                                            ],
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "ok": {
+                                            "enum": [
+                                                false
+                                            ],
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "ok": {
+                                            "enum": [
+                                                false
+                                            ],
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "ok": {
+                                            "enum": [
+                                                false
+                                            ],
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
                                         "error"
                                     ],
                                     "type": "object"
@@ -6365,6 +6750,315 @@
                 }
             }
         },
+        "/dev/cheats/manteca-user-status": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "document": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "pep"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "fep"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "exchange": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "ARGENTINA"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "BRAZIL"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "CHILE"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "COLOMBIA"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "PANAMA"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "COSTA_RICA"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "GUATEMALA"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "MEXICO"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "PHILIPPINES"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "BOLIVIA"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "failedTask": {
+                                        "type": "string"
+                                    },
+                                    "mantecaUserId": {
+                                        "type": "string"
+                                    },
+                                    "rejectionReason": {
+                                        "type": "string"
+                                    },
+                                    "state": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "active"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "onboarding"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "inactive"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "rejected"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "documents_requested"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "documents_rejected"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "documents_accepted"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "userId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "userId",
+                                    "state"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "event": {
+                                            "type": "string"
+                                        },
+                                        "mantecaGeo": {
+                                            "type": "string"
+                                        },
+                                        "mantecaUserId": {
+                                            "type": "string"
+                                        },
+                                        "ok": {
+                                            "enum": [
+                                                true
+                                            ],
+                                            "type": "boolean"
+                                        },
+                                        "payload": {},
+                                        "rails": {},
+                                        "result": {},
+                                        "verification": {}
+                                    },
+                                    "required": [
+                                        "ok",
+                                        "event",
+                                        "mantecaUserId",
+                                        "mantecaGeo",
+                                        "payload",
+                                        "result",
+                                        "verification",
+                                        "rails"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "ok": {
+                                            "enum": [
+                                                false
+                                            ],
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "ok": {
+                                            "enum": [
+                                                false
+                                            ],
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "ok": {
+                                            "enum": [
+                                                false
+                                            ],
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "ok": {
+                                            "enum": [
+                                                false
+                                            ],
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/dev/cheats/mint-jwt": {
             "post": {
                 "requestBody": {
@@ -6573,6 +7267,236 @@
                                     },
                                     "required": [
                                         "ok",
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/dev/cheats/rain-application-status": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "applicationReason": {
+                                        "type": "string"
+                                    },
+                                    "applicationStatus": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "pending"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "needsVerification"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "needsInformation"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "approved"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "denied"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "locked"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "canceled"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "exempt"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "ensureRail": {
+                                        "type": "boolean"
+                                    },
+                                    "rainUserId": {
+                                        "type": "string"
+                                    },
+                                    "userId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "applicationStatus"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "enum": [
+                                                true
+                                            ],
+                                            "type": "boolean"
+                                        },
+                                        "payload": {},
+                                        "rail": {},
+                                        "railCreated": {
+                                            "type": "boolean"
+                                        },
+                                        "rainUserId": {
+                                            "type": "string"
+                                        },
+                                        "statusChanged": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "ok",
+                                        "rainUserId",
+                                        "railCreated",
+                                        "payload",
+                                        "statusChanged",
+                                        "rail"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "ok": {
+                                            "enum": [
+                                                false
+                                            ],
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "ok": {
+                                            "enum": [
+                                                false
+                                            ],
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "ok": {
+                                            "enum": [
+                                                false
+                                            ],
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "ok": {
+                                            "enum": [
+                                                false
+                                            ],
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
                                         "error"
                                     ],
                                     "type": "object"
@@ -7397,7 +8321,7 @@
         },
         "/dev/poll": {
             "post": {
-                "description": "Triggers runPollingCycle() on demand — used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
+                "description": "Triggers runPollingCycle() on demand \u2014 used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
                 "responses": {
                     "200": {
                         "content": {
@@ -8069,7 +8993,7 @@
         },
         "/dev/submit-to-providers": {
             "post": {
-                "description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user → Manteca, US user → Bridge) end-to-end.",
+                "description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user \u2192 Manteca, US user \u2192 Bridge) end-to-end.",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -8307,14 +9231,52 @@
         },
         "/dev/trigger-sumsub-webhook": {
             "post": {
-                "description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) — same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub → routing chain without real webhook delivery.",
+                "description": "delivery 'processor' calls processSumsubKycUpdate with the input /sumsub/webhooks builds; delivery 'route' signs the payload and injects it into /sumsub/webhooks, then waits for its audit row. Contract: src/routes/dev/impersonators/README.md.",
                 "requestBody": {
                     "content": {
                         "application/json": {
                             "schema": {
                                 "properties": {
+                                    "actionId": {
+                                        "description": "payload.applicantActionId",
+                                        "type": "string"
+                                    },
                                     "applicantId": {
                                         "description": "Sumsub applicant id",
+                                        "type": "string"
+                                    },
+                                    "clientComment": {
+                                        "type": "string"
+                                    },
+                                    "createdAtMs": {
+                                        "anyOf": [
+                                            {
+                                                "type": "number"
+                                            },
+                                            {
+                                                "type": "string"
+                                            }
+                                        ],
+                                        "description": "Event time: epoch ms, or a verbatim Sumsub \"YYYY-MM-DD HH:mm:ss.SSS\" string"
+                                    },
+                                    "delivery": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "processor"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "route"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "externalActionId": {
+                                        "description": "payload.externalApplicantActionId",
                                         "type": "string"
                                     },
                                     "externalUserId": {
@@ -8323,6 +9285,15 @@
                                     },
                                     "levelName": {
                                         "type": "string"
+                                    },
+                                    "moderationComment": {
+                                        "type": "string"
+                                    },
+                                    "rejectLabels": {
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "type": "array"
                                     },
                                     "reviewAnswer": {
                                         "anyOf": [
@@ -8344,15 +9315,35 @@
                                                 ],
                                                 "type": "string"
                                             }
-                                        ],
-                                        "default": "GREEN"
+                                        ]
+                                    },
+                                    "reviewRejectType": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "RETRY"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "FINAL"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
                                     },
                                     "reviewStatus": {
-                                        "description": "Sumsub reviewStatus (default: \"completed\")",
+                                        "description": "Sumsub reviewStatus (default by webhookType)",
                                         "type": "string"
                                     },
+                                    "waitMs": {
+                                        "maximum": 60000,
+                                        "minimum": 0,
+                                        "type": "integer"
+                                    },
                                     "webhookType": {
-                                        "description": "e.g. \"applicantReviewed\"",
+                                        "description": "Sumsub event type (default \"applicantReviewed\")",
                                         "type": "string"
                                     }
                                 },
@@ -8372,8 +9363,86 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "ackStatus": {
+                                            "type": "number"
+                                        },
+                                        "applied": {
+                                            "type": "boolean"
+                                        },
+                                        "auditError": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "auditStatus": {
+                                            "type": "string"
+                                        },
+                                        "delivery": {
+                                            "type": "string"
+                                        },
                                         "ms": {
                                             "type": "number"
+                                        },
+                                        "ok": {
+                                            "type": "boolean"
+                                        },
+                                        "payload": {},
+                                        "settled": {
+                                            "type": "boolean"
+                                        },
+                                        "webhookEventId": {
+                                            "type": "string"
+                                        },
+                                        "webhookType": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "ok",
+                                        "ms"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "ok": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "412": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
                                         },
                                         "ok": {
                                             "type": "boolean"
@@ -8381,7 +9450,7 @@
                                     },
                                     "required": [
                                         "ok",
-                                        "ms"
+                                        "error"
                                     ],
                                     "type": "object"
                                 }
@@ -8410,9 +9479,35 @@
                             }
                         },
                         "description": "Default Response"
+                    },
+                    "502": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ackStatus": {
+                                            "type": "number"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "ok": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "ok",
+                                        "error",
+                                        "ackStatus"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
                     }
                 },
-                "summary": "Synthesise a Sumsub webhook and run the status-processor",
+                "summary": "Synthesise a Sumsub webhook and run it through the real handler",
                 "tags": [
                     "dev"
                 ]
@@ -10264,7 +11359,7 @@
         },
         "/manteca/deposit/{depositId}/status": {
             "get": {
-                "description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only — the webhook/poller remain the authoritative completion trigger.",
+                "description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only \u2014 the webhook/poller remain the authoritative completion trigger.",
                 "parameters": [
                     {
                         "in": "path",
@@ -10451,7 +11546,7 @@
         },
         "/manteca/pix-key/saved": {
             "post": {
-                "description": "Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send → Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.",
+                "description": "Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send \u2192 Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.",
                 "parameters": [
                     {
                         "in": "header",
@@ -12813,13 +13908,15 @@
                                             },
                                             "required": [
                                                 "status",
-                                                "rainUserId",
                                                 "message"
                                             ],
                                             "type": "object"
                                         },
                                         {
                                             "properties": {
+                                                "externalActionId": {
+                                                    "type": "string"
+                                                },
                                                 "missing": {
                                                     "items": {
                                                         "type": "string"
@@ -12836,6 +13933,9 @@
                                                     "type": "string"
                                                 },
                                                 "sumsubAccessToken": {
+                                                    "type": "string"
+                                                },
+                                                "sumsubLevel": {
                                                     "type": "string"
                                                 }
                                             },
@@ -12960,6 +14060,24 @@
                                             "required": [
                                                 "status",
                                                 "message"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "properties": {
+                                                "status": {
+                                                    "enum": [
+                                                        "questions-required"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                "step": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "status",
+                                                "step"
                                             ],
                                             "type": "object"
                                         },
@@ -15944,7 +17062,7 @@
                                             "type": "object"
                                         },
                                         "cardId": {
-                                            "description": "MeaWallet processor card id — the MPP SDK's `cardId`, unrelated to Peanut's card id in the path.",
+                                            "description": "MeaWallet processor card id \u2014 the MPP SDK's `cardId`, unrelated to Peanut's card id in the path.",
                                             "type": "string"
                                         },
                                         "cardSecret": {
@@ -16201,7 +17319,7 @@
                                             "type": "object"
                                         },
                                         "cardId": {
-                                            "description": "MeaWallet processor card id — the MPP SDK's `cardId`, unrelated to Peanut's card id in the path.",
+                                            "description": "MeaWallet processor card id \u2014 the MPP SDK's `cardId`, unrelated to Peanut's card id in the path.",
                                             "type": "string"
                                         },
                                         "cardSecret": {
@@ -16462,6 +17580,10 @@
                                             "chainId": {
                                                 "type": "string"
                                             },
+                                            "idempotencyKey": {
+                                                "maxLength": 200,
+                                                "type": "string"
+                                            },
                                             "recipientAddress": {
                                                 "type": "string"
                                             },
@@ -16517,6 +17639,10 @@
                                                 "type": "boolean"
                                             },
                                             "chainId": {
+                                                "type": "string"
+                                            },
+                                            "idempotencyKey": {
+                                                "maxLength": 200,
                                                 "type": "string"
                                             },
                                             "recipientAddress": {
@@ -16605,6 +17731,27 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
                                         "error": {
                                             "type": "string"
                                         }
@@ -18776,7 +19923,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "description": "Invalid input — malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code.",
+                                    "description": "Invalid input \u2014 malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code.",
                                     "properties": {
                                         "error": {
                                             "type": "string"
@@ -18786,7 +19933,7 @@
                                 }
                             }
                         },
-                        "description": "Invalid input — malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code."
+                        "description": "Invalid input \u2014 malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code."
                     },
                     "401": {
                         "content": {
@@ -19754,7 +20901,7 @@
                                                                 "type": "object"
                                                             },
                                                             "pendingSince": {
-                                                                "description": "ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that.",
+                                                                "description": "ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning \u2014 the FE stops promising a quick setup past that.",
                                                                 "type": "string"
                                                             },
                                                             "provider": {
@@ -22174,6 +23321,22 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    {
+                        "in": "query",
+                        "name": "from",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "to",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 ],
                 "responses": {
@@ -22326,7 +23489,7 @@
                                                 "type": "string"
                                             }
                                         ],
-                                        "description": "Level the token must target. The declared residence decides (AR/BR → LATAM, US/MX → NA, SEPA zone → EU, else ROW); a request for another provider's level is rejected with 400, an EU/ROW request is corrected. Defaults to the level the declared residence needs."
+                                        "description": "Level the token must target. The declared residence decides (AR/BR \u2192 LATAM, US/MX \u2192 NA, SEPA zone \u2192 EU, else ROW); a request for another provider's level is rejected with 400, an EU/ROW request is corrected. Defaults to the level the declared residence needs."
                                     },
                                     "replacement": {
                                         "additionalProperties": false,
@@ -23376,6 +24539,35 @@
                         },
                         "description": "Default Response"
                     },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "enum": [
+                                                "questions_missing"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "feature": {
+                                            "type": "string"
+                                        },
+                                        "step": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "feature",
+                                        "step"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
                     "500": {
                         "content": {
                             "application/json": {
@@ -23388,6 +24580,334 @@
                                     "required": [
                                         "error"
                                     ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/kyc/answers/{step}": {
+            "put": {
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "feature",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "bank"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "card"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "local"
+                                    ],
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "in": "path",
+                        "name": "step",
+                        "required": true,
+                        "schema": {
+                            "maxLength": 32,
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "values": {
+                                        "additionalProperties": {
+                                            "maxLength": 200,
+                                            "type": "string"
+                                        },
+                                        "maxProperties": 16,
+                                        "type": "object"
+                                    }
+                                },
+                                "required": [
+                                    "values"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "next": {
+                                            "anyOf": [
+                                                {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "purpose"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "work"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "money"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "birth"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "address"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "phone"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "tax"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "declarations"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "next"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "errors": {
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            },
+                                            "type": "object"
+                                        },
+                                        "step": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "errors": {
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            },
+                                            "type": "object"
+                                        },
+                                        "step": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "errors": {
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            },
+                                            "type": "object"
+                                        },
+                                        "step": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "422": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "errors": {
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            },
+                                            "type": "object"
+                                        },
+                                        "step": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "502": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "errors": {
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            },
+                                            "type": "object"
+                                        },
+                                        "step": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "errors": {
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            },
+                                            "type": "object"
+                                        },
+                                        "step": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
                                     "type": "object"
                                 }
                             }
@@ -23515,10 +25035,6 @@
                                                     "type": "object"
                                                 }
                                             },
-                                            "required": [
-                                                "documentDefinitions",
-                                                "autoSelectDocumentDefinitions"
-                                            ],
                                             "type": "object"
                                         },
                                         "status": {
@@ -23581,7 +25097,26 @@
                         "application/json": {
                             "schema": {
                                 "additionalProperties": false,
-                                "properties": {},
+                                "properties": {
+                                    "document": {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "issuingCountry": {
+                                                "maxLength": 2,
+                                                "type": "string"
+                                            },
+                                            "type": {
+                                                "maxLength": 32,
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [
+                                            "type",
+                                            "issuingCountry"
+                                        ],
+                                        "type": "object"
+                                    }
+                                },
                                 "type": "object"
                             }
                         }
@@ -23642,10 +25177,6 @@
                                                     "type": "object"
                                                 }
                                             },
-                                            "required": [
-                                                "documentDefinitions",
-                                                "autoSelectDocumentDefinitions"
-                                            ],
                                             "type": "object"
                                         },
                                         "status": {
@@ -23669,7 +25200,7 @@
                         },
                         "description": "Default Response"
                     },
-                    "409": {
+                    "400": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -23680,6 +25211,505 @@
                                     },
                                     "required": [
                                         "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {},
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "step": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/kyc/paperwork": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "products": {
+                                            "items": {
+                                                "properties": {
+                                                    "available": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "product": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "bridge.usd"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "bridge.eur"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "bridge.gbp"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "bridge.mxn"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "rain.card"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "manteca.local"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "manteca.qr"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "provider": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "BRIDGE"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "RAIN"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "MANTECA"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "reason": {
+                                                        "type": "string"
+                                                    },
+                                                    "rule": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "product",
+                                                    "provider",
+                                                    "available"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "requirements": {
+                                            "items": {
+                                                "properties": {
+                                                    "collect": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "before_identity"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "after_identity"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "when_asked"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "item": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "residential_address"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "phone"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "tax_id"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "country_of_birth"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "city_of_birth"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "nationality"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "us_citizen"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "account_purpose"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "employment_status"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "occupation"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "source_of_funds"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "expected_monthly_payments"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "acting_as_intermediary"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "card_purpose"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "annual_salary"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "expected_monthly_spend"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "sex"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "marital_status"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "pep"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "fatca"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "fep"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "proof_of_address"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "source_of_funds_document"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "kind": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "question"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "document"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "products": {
+                                                        "items": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "bridge.usd"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "bridge.eur"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "bridge.gbp"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "bridge.mxn"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "rain.card"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "manteca.local"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "manteca.qr"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "type": "array"
+                                                    },
+                                                    "requiredBy": {
+                                                        "items": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "BRIDGE"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "RAIN"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "MANTECA"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "type": "array"
+                                                    },
+                                                    "rules": {
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "type": "array"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "item",
+                                                    "kind",
+                                                    "collect",
+                                                    "requiredBy",
+                                                    "products",
+                                                    "rules"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "required": [
+                                        "products",
+                                        "requirements"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/kyc/places/search": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "additionalProperties": false,
+                                "properties": {
+                                    "country": {
+                                        "pattern": "^[A-Za-z]{2}$",
+                                        "type": "string"
+                                    },
+                                    "query": {
+                                        "maxLength": 100,
+                                        "minLength": 3,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "country",
+                                    "query"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "places": {
+                                            "items": {
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "region": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "name",
+                                                    "region"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "required": [
+                                        "places"
                                     ],
                                     "type": "object"
                                 }
@@ -23746,9 +25776,41 @@
                                             ],
                                             "type": "object"
                                         },
+                                        "flow": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "verify-once"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "document-first"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
                                         "policyVersion": {
                                             "anyOf": [
                                                 {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "proofOfAddress": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "suggested"
+                                                    ],
                                                     "type": "string"
                                                 },
                                                 {
@@ -23816,8 +25878,32 @@
                                                                 },
                                                                 "types": {
                                                                     "items": {
-                                                                        "pattern": "^[A-Z][A-Z0-9_]{0,63}$",
-                                                                        "type": "string"
+                                                                        "anyOf": [
+                                                                            {
+                                                                                "enum": [
+                                                                                    "PASSPORT"
+                                                                                ],
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "enum": [
+                                                                                    "ID_CARD"
+                                                                                ],
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "enum": [
+                                                                                    "DRIVERS"
+                                                                                ],
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "enum": [
+                                                                                    "RESIDENCE_PERMIT"
+                                                                                ],
+                                                                                "type": "string"
+                                                                            }
+                                                                        ]
                                                                     },
                                                                     "minItems": 1,
                                                                     "type": "array",
@@ -23853,7 +25939,9 @@
                                         "activeAttemptId",
                                         "policyVersion",
                                         "features",
-                                        "routes"
+                                        "routes",
+                                        "flow",
+                                        "proofOfAddress"
                                     ],
                                     "type": "object"
                                 }
@@ -23901,6 +25989,124 @@
                                                                     "bank"
                                                                 ],
                                                                 "type": "object"
+                                                            },
+                                                            "flow": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "enum": [
+                                                                            "verify-once"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "document-first"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "identityDocuments": {
+                                                                "items": {
+                                                                    "additionalProperties": false,
+                                                                    "properties": {
+                                                                        "code": {
+                                                                            "enum": [
+                                                                                "IDENTITY"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        "countries": {
+                                                                            "items": {
+                                                                                "pattern": "^[A-Z]{2}$",
+                                                                                "type": "string"
+                                                                            },
+                                                                            "minItems": 1,
+                                                                            "type": "array",
+                                                                            "uniqueItems": true
+                                                                        },
+                                                                        "key": {
+                                                                            "pattern": "^[A-Za-z0-9._:-]{1,64}$",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "requiredBy": {
+                                                                            "items": {
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "SUMSUB"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "BRIDGE"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "MANTECA"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "RAIN"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            "type": "array",
+                                                                            "uniqueItems": true
+                                                                        },
+                                                                        "types": {
+                                                                            "items": {
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "PASSPORT"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "ID_CARD"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "DRIVERS"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "RESIDENCE_PERMIT"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            "minItems": 1,
+                                                                            "type": "array",
+                                                                            "uniqueItems": true
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "key",
+                                                                        "code",
+                                                                        "types",
+                                                                        "countries",
+                                                                        "requiredBy"
+                                                                    ],
+                                                                    "type": "object"
+                                                                },
+                                                                "maxItems": 1,
+                                                                "minItems": 1,
+                                                                "type": "array"
                                                             },
                                                             "levelName": {
                                                                 "maxLength": 255,
@@ -25013,6 +27219,298 @@
                 }
             }
         },
+        "/users/kyc/proof-of-address/skip": {
+            "post": {
+                "responses": {
+                    "204": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/kyc/questions": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "feature",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "bank"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "card"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "local"
+                                    ],
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "attemptId": {
+                                            "anyOf": [
+                                                {
+                                                    "format": "uuid",
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "available": {
+                                            "type": "boolean"
+                                        },
+                                        "firstUnanswered": {
+                                            "anyOf": [
+                                                {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "purpose"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "work"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "money"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "birth"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "address"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "phone"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "tax"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "declarations"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "progress": {
+                                            "properties": {
+                                                "done": {
+                                                    "type": "integer"
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "done",
+                                                "total"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "residence": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "steps": {
+                                            "items": {
+                                                "properties": {
+                                                    "answered": {
+                                                        "type": "boolean"
+                                                    },
+                                                    "features": {
+                                                        "items": {
+                                                            "type": "string"
+                                                        },
+                                                        "type": "array"
+                                                    },
+                                                    "fields": {
+                                                        "items": {
+                                                            "properties": {
+                                                                "countryField": {
+                                                                    "type": "string"
+                                                                },
+                                                                "format": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "key": {
+                                                                    "type": "string"
+                                                                },
+                                                                "kind": {
+                                                                    "type": "string"
+                                                                },
+                                                                "locked": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "options": {
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "type": "array"
+                                                                },
+                                                                "required": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "value": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "key",
+                                                                "kind",
+                                                                "required",
+                                                                "value"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "type": "array"
+                                                    },
+                                                    "id": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "purpose"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "work"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "money"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "birth"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "address"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "phone"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "tax"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "declarations"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "features",
+                                                    "fields",
+                                                    "answered"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "required": [
+                                        "available",
+                                        "attemptId",
+                                        "residence",
+                                        "steps",
+                                        "firstUnanswered",
+                                        "progress"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/users/kyc/refresh": {
             "post": {
                 "parameters": [
@@ -25522,7 +28020,7 @@
                                                                 "type": "object"
                                                             },
                                                             "pendingSince": {
-                                                                "description": "ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that.",
+                                                                "description": "ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning \u2014 the FE stops promising a quick setup past that.",
                                                                 "type": "string"
                                                             },
                                                             "provider": {

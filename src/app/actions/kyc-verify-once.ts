@@ -1,7 +1,8 @@
+import { savedFeaturesOutcome } from '@/utils/kyc-feature-outcome.utils'
 import { serverFetch } from '@/utils/api-fetch'
 import { verifyOnceHeaders } from '@/features/verify-once/verifyOnceFlag'
 import { validSession } from './kyc-workflow'
-import type { KycAttemptSession, KycFeatures } from './types/kyc-workflow.types'
+import type { KycAttemptSession, KycFeatures, KycFeatureReports } from './types/kyc-workflow.types'
 import type {
     KycPlace,
     SaveAnswersResult,
@@ -70,18 +71,28 @@ export async function saveKycAnswers(
     if (response.ok) return { kind: 'saved', next: body?.next ?? null }
     if (response.status === 422 && body?.errors && typeof body.errors === 'object')
         return { kind: 'invalid', errors: body.errors }
-    if (response.status === 409 && typeof body?.code === 'string') return { kind: 'conflict', code: body.code }
+    const code = body?.code ?? body?.error
+    if (response.status === 409 && typeof code === 'string') return { kind: 'conflict', code }
+    if (response.status === 429) return { kind: 'blocked', code: 'rate_limited' }
+    if (response.status === 400)
+        return {
+            kind: 'blocked',
+            code: (body?.code ?? body?.error) === 'unknown_step' ? 'unknown_step' : 'invalid_body',
+        }
+    if (response.status === 404) return { kind: 'blocked', code: 'unknown_step' }
+    if (response.status >= 400 && response.status < 500) return { kind: 'blocked', code: 'unavailable' }
     return { kind: 'retry' }
 }
 
 export type VerifyOnceTokenResult =
     | { kind: 'session'; session: KycAttemptSession }
+    | { kind: 'document-required' }
     | { kind: 'questions-missing'; step: VerifyOnceStepId | null }
     | { kind: 'failed' }
 
 export async function startVerifyOnceIdentity(
     attemptId: string,
-    document: VerifyOnceDocument
+    document?: VerifyOnceDocument
 ): Promise<VerifyOnceTokenResult> {
     let response: Response
     try {
@@ -93,11 +104,13 @@ export async function startVerifyOnceIdentity(
         return { kind: 'failed' }
     }
     const body = await json(response)
-    if (response.status === 409 && body?.code === 'questions_missing')
+    if (response.status === 409 && (body?.code ?? body?.error) === 'questions_missing')
         return { kind: 'questions-missing', step: body.step ?? null }
+    if (response.status === 409 && (body?.code ?? body?.error) === 'document_required')
+        return { kind: 'document-required' }
     if (!response.ok) return { kind: 'failed' }
     try {
-        return { kind: 'session', session: validSession(body) }
+        return { kind: 'session', session: validSession(body, !!document) }
     } catch {
         return { kind: 'failed' }
     }
@@ -105,20 +118,34 @@ export async function startVerifyOnceIdentity(
 
 export type FeatureIntentsResult =
     | { kind: 'saved' }
+    | { kind: 'action-required'; action: string }
+    | { kind: 'refused'; feature: keyof KycFeatures; copy: string }
     | { kind: 'questions-missing'; step: VerifyOnceStepId | null }
     | { kind: 'failed' }
 
 /** Saves the feature set after add-later; a feature whose answers are still missing is refused with its step. */
-export async function saveVerifyOnceFeatures(features: KycFeatures): Promise<FeatureIntentsResult> {
+export async function saveVerifyOnceFeatures(
+    features: KycFeatures,
+    before: KycFeatures = { qr: false, bank: false, local: false, card: false }
+): Promise<FeatureIntentsResult> {
     let response: Response
     try {
         response = await call('/users/kyc-intents', { method: 'PUT', body: JSON.stringify(features) })
     } catch {
         return { kind: 'failed' }
     }
-    if (response.ok) return { kind: 'saved' }
     const body = await json(response)
-    if (response.status === 409 && body?.code === 'questions_missing')
+    if (response.ok) {
+        const outcome = savedFeaturesOutcome(features, before, body?.features as KycFeatureReports | undefined)
+        if (outcome && 'action' in outcome) return { kind: 'action-required', action: outcome.action }
+        if (outcome && 'copy' in outcome) return { kind: 'refused', ...outcome }
+        const owed = (Object.keys(features) as (keyof KycFeatures)[]).find(
+            (key) => features[key] && body?.features?.[key]?.state === 'action_required'
+        )
+        if (owed) return { kind: 'refused', feature: owed, copy: 'supplement.unavailable' }
+        return { kind: 'saved' }
+    }
+    if (response.status === 409 && (body?.code ?? body?.error) === 'questions_missing')
         return { kind: 'questions-missing', step: body.step ?? null }
     return { kind: 'failed' }
 }

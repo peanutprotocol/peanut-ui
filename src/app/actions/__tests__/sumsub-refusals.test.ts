@@ -372,3 +372,13 @@ describe('startKycAction — a supplement that is no longer needed', () => {
         })
     })
 })
+
+describe('workflow feature-selection conflict', () => {
+    it.each(['code', 'error'])('preserves a 409 selection code from %s beside readable prose', async (field) => {
+        respondWith(409, { [field]: 'feature_selection_required', userMessage: 'Choose the features to set up.' })
+        await expect(initiateSumsubKyc({ regionIntent: 'NA', crossRegion: true })).resolves.toEqual({
+            code: 'feature_selection_required',
+            error: 'Choose the features to set up.',
+        })
+    })
+})

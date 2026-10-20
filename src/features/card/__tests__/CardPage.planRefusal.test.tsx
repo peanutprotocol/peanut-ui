@@ -69,6 +69,19 @@ const renderPage = () =>
 beforeEach(() => jest.clearAllMocks())
 
 describe('CardPage — a card the plan does not send to Rain', () => {
+    it('shows the identity wait after applying, with no new apply action', () => {
+        mockFlow = flow({ pendingApplication: 'pending-identity' })
+        renderPage()
+        expect(screen.getByText('We’ll set up your card once your ID check is done.')).toBeInTheDocument()
+        expect(screen.queryByText(/acquisition:/)).not.toBeInTheDocument()
+    })
+
+    it('keeps a pending application without a provider user on the waiting screen', () => {
+        mockFlow = flow({ pendingApplication: 'pending' })
+        renderPage()
+        expect(screen.queryByText(/acquisition:/)).not.toBeInTheDocument()
+        expect(screen.getByText('Setting up card…')).toBeInTheDocument()
+    })
     it('asks for another document and restarts identity from the status screen', () => {
         mockFlow = flow({ planRefusal: 'identity_document_insufficient' })
         renderPage()

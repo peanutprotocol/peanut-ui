@@ -12,6 +12,7 @@ import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 
 type Variant =
     | 'pending'
+    | 'pending-identity'
     | 'manual-review'
     | 'requires-info'
     | 'requires-support'
@@ -52,6 +53,7 @@ interface Props {
 // reassurance and no support CTA.
 const COPY_KEYS = {
     pending: { title: 'status.pendingTitle', body: 'status.pendingBody' },
+    'pending-identity': { title: 'status.pendingTitle', body: 'status.pendingIdentityBody' },
     'manual-review': { title: 'status.manualReviewTitle', body: 'status.manualReviewBody' },
     'requires-info': { title: 'status.requiresInfoTitle', body: 'status.requiresInfoBody' },
     'requires-support': { title: 'status.requiresSupportTitle', body: 'status.requiresSupportBody' },
@@ -141,7 +143,7 @@ const ApplicationStatusScreen: FC<Props> = ({
         <PageStack>
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
             <div className="my-auto flex flex-col items-center gap-6 text-center">
-                {variant === 'pending' && <Loading />}
+                {(variant === 'pending' || variant === 'pending-identity') && <Loading />}
                 {(variant === 'rejected' || variant === 'requires-support' || variant === 'geo-blocked') && (
                     <PeanutMascot
                         pose="worried"

@@ -1518,7 +1518,7 @@ describe('document-first verification', () => {
                     {
                         key: 'identity',
                         code: 'IDENTITY' as const,
-                        types: ['PASSPORT'],
+                        types: ['PASSPORT'] as never[],
                         countries: ['PT'],
                         requiredBy: ['SUMSUB' as const],
                     },
@@ -1582,7 +1582,7 @@ describe('document-first verification', () => {
                         {
                             key: 'address-proof',
                             code: 'PROOF_OF_ADDRESS',
-                            types: ['BANK_STATEMENT'],
+                            types: ['BANK_STATEMENT'] as never[],
                             countries: ['PT'],
                             requiredBy: ['BRIDGE'],
                         },

@@ -12,6 +12,9 @@ import { initialValues, stepPayload } from './verifyOnce.utils'
 
 export type AnswerFormError =
     | 'retry'
+    | 'invalid_body'
+    | 'unknown_step'
+    | 'rate_limited'
     | 'feature_not_selected'
     | 'identity_submitted'
     | 'unavailable'
@@ -66,6 +69,10 @@ export function useAnswerForm(steps: VerifyOnceStep[], feature?: VerifyOnceFeatu
                         const error = CONFLICTS.has(result.code) ? (result.code as AnswerFormError) : 'conflict'
                         setFormError(error)
                         return { ok: false, error }
+                    }
+                    if (result.kind === 'blocked') {
+                        setFormError(result.code)
+                        return { ok: false }
                     }
                     if (result.kind === 'retry') {
                         setFormError('retry')

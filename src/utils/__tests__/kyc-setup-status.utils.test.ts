@@ -85,10 +85,26 @@ describe('setupRows', () => {
         ])
     })
 
-    describe('the accounts need both the USD and the EUR account', () => {
-        it('one of the two alone is not available', () => {
+    describe('the accounts need every enrolled USD or EUR rail', () => {
+        it('checks every combination of enrolled and enabled bank rails', () => {
+            const bankRails = [ach(), sepa(), bridge('FASTER_PAYMENTS_GB', 'GB', 'GBP'), bridge('SPEI_MX', 'MX', 'MXN')]
+            for (let combination = 0; combination < 81; combination += 1) {
+                let remaining = combination
+                const enrolled = bankRails.flatMap((entry) => {
+                    const state = remaining % 3
+                    remaining = Math.floor(remaining / 3)
+                    return state === 0
+                        ? []
+                        : [{ ...entry, status: state === 1 ? ('pending' as const) : ('enabled' as const) }]
+                })
+                expect(stateOf(capabilities(enrolled), 'bank') === 'available').toBe(
+                    enrolled.length > 0 && enrolled.every((entry) => entry.status === 'enabled')
+                )
+            }
+        })
+        it('waits on an enrolled sibling but accepts EUR alone', () => {
             expect(stateOf(capabilities([ach({ status: 'enabled' }), sepa()]), 'bank')).toBe('setting-up')
-            expect(stateOf(capabilities([sepa({ status: 'enabled' })]), 'bank')).toBe('setting-up')
+            expect(stateOf(capabilities([sepa({ status: 'enabled' })]), 'bank')).toBe('available')
         })
 
         it('an account in another currency never answers for it', () => {

@@ -57,11 +57,6 @@ export interface SetupSubmitted {
 type RailTest = (rail: RailCapability) => boolean
 type Outcome = Omit<SetupRow, 'key'>
 
-const bridgeAccount =
-    (currency: string): RailTest =>
-    (rail) =>
-        rail.provider === 'bridge' && rail.channel === 'bank' && rail.currency === currency
-
 const FEATURE_PROVIDER: Record<KycFeatureKey, ProviderCode> = {
     qr: 'manteca',
     local: 'manteca',
@@ -73,7 +68,7 @@ const FEATURE_PROVIDER: Record<KycFeatureKey, ProviderCode> = {
  * What a feature needs before it reads "Available": per test, one rail with
  * the operation enabled. QR pays through any Manteca rail. Local bank
  * transfers deposit to the Manteca account of the residence. The card pays
- * through Rain. The accounts need both the USD and the EUR Bridge account.
+ * through Rain. The accounts use every enrolled Bridge bank rail.
  */
 function featureNeeds(key: KycFeatureKey, residence: string | null): { operation: RailOperation; rails: RailTest[] } {
     switch (key) {
@@ -87,7 +82,7 @@ function featureNeeds(key: KycFeatureKey, residence: string | null): { operation
         case 'card':
             return { operation: 'pay', rails: [(rail) => rail.provider === 'rain'] }
         case 'bank':
-            return { operation: 'deposit', rails: [bridgeAccount('USD'), bridgeAccount('EUR')] }
+            return { operation: 'deposit', rails: [(rail) => rail.provider === 'bridge' && rail.channel === 'bank'] }
     }
 }
 
@@ -191,13 +186,18 @@ function featureOutcome(
     const needs = featureNeeds(key, residence)
     const works = (rail: RailCapability) => (rail.operations?.[needs.operation] ?? rail.status) === 'enabled'
     // an enabled rail outranks every answer about its provider
-    if (needs.rails.every((serves) => rails.some((rail) => serves(rail) && works(rail)))) return { state: 'available' }
+    const serving = rails.filter((rail) => needs.rails.some((serves) => serves(rail)))
+    if (
+        key === 'bank'
+            ? serving.length > 0 && serving.every(works)
+            : needs.rails.every((serves) => rails.some((rail) => serves(rail) && works(rail)))
+    )
+        return { state: 'available' }
 
     // A provider the plan refused for the document's country was never
     // enrolled, so no rail carries it: the top-level restart action names it.
     const orphan = actions.get(RESTART_IDENTITY_ACTION_KEY)
     const asksForLocalId = orphan?.kind === 'restart-identity' && orphan.purpose === DOCUMENT_COUNTRY_UNSUPPORTED
-    const serving = rails.filter((rail) => needs.rails.some((serves) => serves(rail)))
     const own = serving.filter((rail) => !works(rail))
     // an API without `refused` names no provider: a feature with no rail of its own is the refused one
     const refused = orphan?.refused
