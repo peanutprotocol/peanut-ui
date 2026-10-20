@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useCallback, useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { requestsApi } from '@/services/requests'
 import { type TRequestResponse } from '@/services/services.types'
 import { useRequestPayAmounts } from '@/components/Request/Pay/useRequestPayAmounts'
@@ -19,6 +19,7 @@ const REQUEST_POT_QUERY_KEY = ['request-pot'] as const
  */
 export function useRequestPot(initialRequest: TRequestResponse) {
     const uuid = initialRequest.uuid
+    const queryClient = useQueryClient()
     const requestQuery = useQuery({
         queryKey: [...REQUEST_POT_QUERY_KEY, uuid],
         queryFn: () => requestsApi.get(uuid),
@@ -27,6 +28,15 @@ export function useRequestPot(initialRequest: TRequestResponse) {
         staleTime: 30_000,
         refetchOnWindowFocus: true,
     })
+
+    // `initialData` only seeds an empty cache. A payer who reopens the same pot
+    // within 30 s would get the cached request from the last visit, older than
+    // the read the page wrapper just made, beside a fresh remainder. The
+    // wrapper's read is the newest there is, so it replaces the cache: one
+    // write, no second request.
+    useEffect(() => {
+        queryClient.setQueryData([...REQUEST_POT_QUERY_KEY, initialRequest.uuid], initialRequest)
+    }, [queryClient, initialRequest])
     const { payAmounts, refetch: refetchPayAmounts } = useRequestPayAmounts(uuid)
     const { refetch: refetchRequest } = requestQuery
 

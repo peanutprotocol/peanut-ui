@@ -58,12 +58,14 @@ const left = (amount: string) => ({
     rails: [{ kind: 'peanut_balance', payerAmount: { amount, currency: 'USD' } }],
 })
 
-const renderFlow = () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+const renderFlow = (
+    initialRequest: TRequestResponse = request([], 0),
+    client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+) => {
     const wrapper = ({ children }: { children: ReactNode }) => (
         <IntlWrapper>
             <QueryClientProvider client={client}>
-                <ContributePotFlowProvider initialRequest={request([], 0)}>{children}</ContributePotFlowProvider>
+                <ContributePotFlowProvider initialRequest={initialRequest}>{children}</ContributePotFlowProvider>
             </QueryClientProvider>
         </IntlWrapper>
     )
@@ -107,4 +109,22 @@ test('coming back to the amount screen reads the request again', async () => {
     await waitFor(() => expect(mockGet).toHaveBeenCalledTimes(1))
     await waitFor(() => expect(result.current.contributors).toHaveLength(1))
     expect(mockPayAmounts).toHaveBeenCalledTimes(2)
+})
+
+// Chip on ui#3756: `initialData` only seeds an empty cache. Reopening the same
+// pot within 30 s served the cached request from the last visit, though the
+// page wrapper had just read a newer one.
+test('a revisit shows the contributors the page just read, not the cached ones', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const firstVisit = renderFlow(request([], 0), client)
+    await waitFor(() => expect(firstVisit.result.current.contributors).toHaveLength(0))
+    firstVisit.unmount()
+
+    // Hugo paid meanwhile; the wrapper's read on the second visit has him
+    mockPayAmounts.mockResolvedValue(left('58.51'))
+    const secondVisit = renderFlow(request([hugoCharge], 40.65), client)
+
+    await waitFor(() => expect(secondVisit.result.current.contributors.map((c) => c.amount)).toEqual(['40.65']))
+    // the wrapper's read is fresh: no extra request read on the way
+    expect(mockGet).not.toHaveBeenCalled()
 })
