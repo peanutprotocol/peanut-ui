@@ -54,7 +54,7 @@ Send from balance straight to any third-party bank account, and receive into the
 
 ## Fees
 
-- No per-transaction fee from Peanut. Same-currency moves (USD↔USDC) are free; cross-currency conversions carry a small spread embedded in the displayed rate (locked for QR payments, an estimate for bank transfers). A USD wire withdrawal costs $20, and Ethereum, Tron and Solana withdrawals carry a network fee. No monthly or account fees.
+- No per-transaction fee from Peanut, except a $20 flat fee on a USD wire withdrawal. Same-currency moves (USD↔USDC) are free; cross-currency conversions carry a small spread embedded in the displayed rate (locked for QR payments, an estimate for bank transfers). Ethereum, Tron and Solana withdrawals carry a network fee. No monthly or account fees.
 
 ## Where Peanut works
 

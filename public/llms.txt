@@ -50,7 +50,7 @@ The Peanut Card is a virtual Visa card for spending your Peanut balance wherever
 - Your balance is held in **digital dollars (USDC)** and shown in USD. It doesn't move with local exchange rates until you spend.
 - **Self-custody:** funds sit in your own smart account secured by a biometric passkey (face/fingerprint). Peanut never holds your keys and cannot freeze or move your money. If Peanut went offline, you'd still control your account.
 - **Verification:** required only for bank deposits/withdrawals and local QR payments. A passport or national ID (US driver's license also accepted for US users) — no local ID anywhere. Crypto deposits, crypto withdrawals, and browsing need no verification.
-- **Fees:** Peanut adds no per-transaction fee. Same-currency moves (USD↔USDC) are free; cross-currency conversions carry a small spread already embedded in the rate you see and confirm. A USD wire withdrawal costs $20, and Ethereum, Tron and Solana withdrawals carry a network fee; both are shown before you confirm.
+- **Fees:** Peanut adds no per-transaction fee, except a $20 flat fee on a USD wire withdrawal. Same-currency moves (USD↔USDC) are free; cross-currency conversions carry a small spread already embedded in the rate you see and confirm. Ethereum, Tron and Solana withdrawals carry a network fee. Every fee is shown before you confirm.
 - **Limits:** Latin America has a ~$2,000/month combined limit (raisable with more documents); the US, Europe, and Mexico have no hard limit (very large transactions may be reviewed); crypto has no limits.
 
 ## Where Peanut works
