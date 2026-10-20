@@ -8,9 +8,9 @@
  * - calculates points earned for the contribution
  * - provides reset callback on completion
  *
- * The amount is what the charge booked, not what the payer typed: an
- * external-wallet deposit can arrive short (TASK-23856). A short one shows the
- * partial view with the rest still to send.
+ * The amount is what the charge booked, not what the payer typed (TASK-23856).
+ * A short external-wallet deposit never reaches this screen: the flow keeps
+ * the payer on the deposit card, which states what arrived and what is left.
  */
 
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
@@ -18,23 +18,14 @@ import { useContributePotFlow } from '../useContributePotFlow'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { PointsAction } from '@/services/services.types'
 import { useTranslations } from 'next-intl'
-import { contributedAmount, isPartialContribution } from '@/utils/request-pot.utils'
+import { contributedAmount } from '@/utils/request-pot.utils'
 import { isChargeAwaitingBooking, receiptStatusForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
 import { PaymentConfirmingView } from '@/features/payments/shared/components/PaymentConfirmingView'
-import { ContributePotPartialView } from './ContributePotPartialView'
 
 export function ContributePotSuccessView() {
     const t = useTranslations('payment')
-    const {
-        usdAmount,
-        recipient,
-        attachment,
-        charge,
-        payment,
-        resetContributePotFlow,
-        isExternalWalletPayment,
-        externalDepositAddress,
-    } = useContributePotFlow()
+    const { usdAmount, recipient, attachment, charge, payment, resetContributePotFlow, isExternalWalletPayment } =
+        useContributePotFlow()
 
     const paidAmount = charge ? contributedAmount(charge) : usdAmount
     // An external-wallet charge the API had not booked when the read-back gave
@@ -55,19 +46,6 @@ export function ContributePotSuccessView() {
         return (
             <PaymentConfirmingView
                 headerTitle={t('headers.contribute')}
-                onComplete={resetContributePotFlow}
-                redirectTo="/home"
-            />
-        )
-    }
-
-    if (charge && isPartialContribution(charge)) {
-        return (
-            <ContributePotPartialView
-                headerTitle={t('headers.contribute')}
-                received={paidAmount}
-                asked={charge.tokenAmount}
-                depositAddress={externalDepositAddress}
                 onComplete={resetContributePotFlow}
                 redirectTo="/home"
             />

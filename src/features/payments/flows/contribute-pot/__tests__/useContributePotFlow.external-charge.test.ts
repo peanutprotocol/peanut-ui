@@ -28,7 +28,6 @@ const resetCtx = () =>
         setIsSuccess: jest.fn(),
         setCurrentView: jest.fn(),
         refetchRequestPot: jest.fn(),
-        setExternalDepositAddress: jest.fn(),
         setIsExternalWalletPayment: jest.fn(),
     })
 jest.mock('../ContributePotFlowContext', () => ({ useContributePotFlowContext: () => ctx }))
@@ -140,7 +139,7 @@ describe('completeExternalWalletPayment', () => {
         const { result } = renderHookWithIntl(() => useContributePotFlow())
         let done: Promise<void> | undefined
         act(() => {
-            done = result.current.completeExternalWalletPayment('0xdeposit')
+            done = result.current.completeExternalWalletPayment()
         })
         await act(async () => {
             await jest.advanceTimersByTimeAsync(runFor)
@@ -148,7 +147,7 @@ describe('completeExternalWalletPayment', () => {
         })
     }
 
-    test('two PROCESSING reads, then the short payment completes: the partial result shows', async () => {
+    test('two PROCESSING reads, then the short payment completes: the payer stays on the deposit card', async () => {
         ctx.charge = openCharge({ tokenAmount: '58.51' })
         const booked = openCharge({
             tokenAmount: '58.51',
@@ -168,7 +167,24 @@ describe('completeExternalWalletPayment', () => {
         expect(ctx.setIsLoading).toHaveBeenNthCalledWith(1, true)
         expect(ctx.setIsLoading).toHaveBeenLastCalledWith(false)
         expect(ctx.setCharge).toHaveBeenLastCalledWith(booked)
-        expect(ctx.setExternalDepositAddress).toHaveBeenCalledWith('0xdeposit')
+        expect(ctx.refetchRequestPot).toHaveBeenCalled()
+        // the deposit card reads the short charge and states the rest: no screen change
+        expect(ctx.setCurrentView).not.toHaveBeenCalled()
+    })
+
+    test('a payment that completes in full shows the success screen', async () => {
+        ctx.charge = openCharge({ tokenAmount: '58.51' })
+        const booked = openCharge({
+            tokenAmount: '58.51',
+            status: 'COMPLETED',
+            settledAmount: '58.51',
+            partialPayment: false,
+        })
+        mockFetchCharge.mockResolvedValue(booked)
+
+        await complete(0)
+
+        expect(ctx.setCharge).toHaveBeenLastCalledWith(booked)
         expect(ctx.setIsExternalWalletPayment).toHaveBeenCalledWith(true)
         expect(ctx.setCurrentView).toHaveBeenCalledWith('STATUS')
         expect(ctx.refetchRequestPot).toHaveBeenCalled()
@@ -195,7 +211,7 @@ describe('completeExternalWalletPayment', () => {
         const { result, unmount } = renderHookWithIntl(() => useContributePotFlow())
         let done: Promise<void> | undefined
         act(() => {
-            done = result.current.completeExternalWalletPayment('0xdeposit')
+            done = result.current.completeExternalWalletPayment()
         })
         await act(async () => {
             await jest.advanceTimersByTimeAsync(3_000)

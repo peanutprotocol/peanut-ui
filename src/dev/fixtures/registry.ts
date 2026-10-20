@@ -2695,7 +2695,8 @@ export const FIXTURES: Record<string, Fixture> = {
     'pay-request-pot-partial-success': {
         // The pay screen of a part-paid €88 pot. Tap External wallet: about
         // 15 s later the deposit poll answers completed and the charge reads
-        // back 33 USDC booked of $58.51, so the partial screen shows.
+        // back 33 USDC booked of $58.51, so the deposit card states what
+        // arrived and what is still needed.
         route: '/pay-request?id=demo-request',
         about: 'Paying a part-paid pot from an external wallet when the deposit arrives short (tap External wallet, wait ~15 s).',
         responses: {
@@ -2719,6 +2720,10 @@ export const FIXTURES: Record<string, Fixture> = {
             },
             'GET /rhino/status/0xdec0debad1dec0debad1dec0debad1dec0debad1': { status: 'completed', amount: 33 },
         },
+        // The card then clears the address status to watch for the rest. The
+        // status above always answers completed, so the clear has to fail here
+        // or the card would read the same deposit again every few seconds.
+        fails: ['POST /rhino/reset-status/0xdec0debad1dec0debad1dec0debad1dec0debad1'],
     },
     'request-pay-by-bank': {
         // `demo-request` is the uuid demo-api answers every request read with,

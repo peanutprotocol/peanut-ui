@@ -1328,8 +1328,7 @@
         "requestAsksForDollars": "{amount} em dólar, fixado quando a solicitação foi criada",
         "partialContribution": {
             "title": "{received} de {asked} recebidos",
-            "description": "Ainda faltam {remaining}. Envie para o mesmo endereço.",
-            "descriptionNoAddress": "Ainda faltam {remaining}."
+            "description": "Ainda faltam {remaining}. Envie para o endereço abaixo."
         },
         "confirmingPayment": {
             "title": "Confirmando pagamento",
@@ -2270,8 +2269,6 @@
         "noGoalSet": "Sem meta definida",
         "amountCollected": "${amount} arrecadados",
         "contributors": "Contribuidores ({count})",
-        "contributorPartlyPaid": "Pago em parte",
-        "contributorAskedAmount": "de {amount}",
         "requestedInCurrency": "Pedido de {amount}",
         "pendingLinkDeviceNote": "Use o dispositivo onde você criou este link para cancelar ou compartilhar de novo.",
         "type": {

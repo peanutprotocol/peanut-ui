@@ -18,6 +18,8 @@ import UserCard from '@/components/User/UserCard'
 import { isCryptoAddress, printableAddress } from '@/utils/general.utils'
 import { isBelowRhinoMinDeposit } from '@/utils/withdraw.utils'
 import { useTranslations } from 'next-intl'
+import { useEffect } from 'react'
+import { formatBankAmount } from '@/utils/currency'
 
 interface RhinoDepositViewProps {
     onBack?: () => void
@@ -34,6 +36,15 @@ interface RhinoDepositViewProps {
     identifier?: string
     /** the deposit bridged and the flow is waiting for the API to book it: stay on the processing state */
     isConfirming?: boolean
+    /**
+     * A deposit arrived short of the charge: what the charge booked and what it
+     * asked, in dollars (TASK-23856). The card states it in place of the user
+     * card, offers `onDone` as the exit, and clears the address status so the
+     * poll sees the next transfer to the same address.
+     */
+    shortDeposit?: { received: string; asked: string }
+    /** Exit for a payer who stops after a short deposit; shown as a Done button. */
+    onDone?: () => void
 }
 
 const RhinoDepositView = ({
@@ -49,6 +60,8 @@ const RhinoDepositView = ({
     tokenAmount,
     identifier,
     isConfirming = false,
+    shortDeposit,
+    onDone,
 }: RhinoDepositViewProps) => {
     const t = useTranslations('addMoney.crypto')
     const tAddMoney = useTranslations('addMoney')
@@ -61,6 +74,18 @@ const RhinoDepositView = ({
     } = useCryptoDepositPolling(depositAddressData?.depositAddress, onSuccess)
 
     const amountLimitsTitle = chainType === 'EVM' ? t('evmNetworks') : NETWORK_LABELS[chainType]
+
+    // Rhino reports one deposit per address, and its status stays "completed"
+    // until it is cleared: after a short deposit, the same clear the market-moved
+    // retry uses re-arms the poll for the rest.
+    const shortDepositReceived = shortDeposit?.received
+    useEffect(() => {
+        if (shortDepositReceived === undefined) return
+        resetStatus().catch(() => {
+            // the clear failed: the next transfer still books on the backend,
+            // and the payer finds it in Activity
+        })
+    }, [shortDepositReceived, resetStatus])
 
     /*
      * Fixed-amount flows (request payments pass `amount`) below the chain's SDA
@@ -120,7 +145,28 @@ const RhinoDepositView = ({
             <NavHeader title={headerTitle} onPrev={onBack} />
 
             <PageStack.Center className="items-center gap-4">
-                {showUserCard && (
+                {shortDeposit && (
+                    <Card>
+                        <div className="flex w-full flex-col items-center justify-center gap-2">
+                            <IconBubble icon="alert" size="s" color="yellow" />
+                            <h1 className="text-center text-heading-card text-foreground-primary">
+                                {tPayment('partialContribution.title', {
+                                    received: formatBankAmount(shortDeposit.received, 'USD'),
+                                    asked: formatBankAmount(shortDeposit.asked, 'USD'),
+                                })}
+                            </h1>
+                            <p className="text-center text-body-s text-foreground-secondary">
+                                {tPayment('partialContribution.description', {
+                                    remaining: formatBankAmount(
+                                        Math.max(Number(shortDeposit.asked) - Number(shortDeposit.received), 0),
+                                        'USD'
+                                    ),
+                                })}
+                            </p>
+                        </div>
+                    </Card>
+                )}
+                {showUserCard && !shortDeposit && (
                     <UserCard
                         recipientType={isCryptoAddress(identifier ?? '') ? 'ADDRESS' : 'USERNAME'}
                         type="request_fulfilment"
@@ -220,6 +266,12 @@ const RhinoDepositView = ({
                             </Card>
                         )}
                     </>
+                )}
+
+                {shortDeposit && onDone && (
+                    <Button variant="primary" className="w-full" onClick={onDone}>
+                        {tCommon('done')}
+                    </Button>
                 )}
             </PageStack.Center>
         </PageStack>

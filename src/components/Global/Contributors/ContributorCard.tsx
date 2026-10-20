@@ -12,16 +12,12 @@ import { useRouter } from 'next/navigation'
 import { twMerge } from '@/utils/tw'
 import { profileUrl } from '@/utils/native-routes'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
-import { PartlyPaidNote } from './PartlyPaidNote'
 
 export type Contributor = {
     uuid: string
     payments: Payment[]
-    /** What the contributor paid — can be less than `askedAmount`. */
+    /** What the contributor paid, which can be less than their charge asked. */
     amount: string
-    /** What their charge asked for; shown only when `isPartial`. */
-    askedAmount?: string
-    isPartial?: boolean
     username: string | undefined
     fulfillmentPayment: Payment | null
     isUserVerified: boolean
@@ -76,15 +72,7 @@ const ContributorCard = ({ contributor, position }: { contributor: Contributor; 
                     />
                 </div>
 
-                <div className="flex flex-col items-end gap-1">
-                    <p className="font-medium">${formatTokenAmount(Number(contributor.amount))}</p>
-                    {contributor.isPartial && contributor.askedAmount && (
-                        <PartlyPaidNote
-                            askedAmount={contributor.askedAmount}
-                            formatAmount={(amount) => `$${formatTokenAmount(Number(amount))}`}
-                        />
-                    )}
-                </div>
+                <p className="font-medium">${formatTokenAmount(Number(contributor.amount))}</p>
             </div>
         </Card>
     )

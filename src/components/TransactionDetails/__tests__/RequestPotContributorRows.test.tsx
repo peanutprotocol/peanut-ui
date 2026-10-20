@@ -1,5 +1,6 @@
 // A pot contribution paid short of its own charge (TASK-23856): the row shows
-// what arrived, marked partly paid, with what the charge asked under it.
+// what arrived and nothing about what the charge asked. That figure is the
+// payer's, and the requester's receipt labelled a $33 contribution with it.
 import React from 'react'
 import { screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
@@ -16,8 +17,6 @@ const row = (overrides: Partial<Row>): Row =>
         uuid: 'charge-1',
         payments: [],
         amount: '40.65',
-        askedAmount: '40.65',
-        isPartial: false,
         username: 'hugo',
         fulfillmentPayment: null,
         isUserVerified: true,
@@ -30,21 +29,13 @@ const render = (rows: Row[]) =>
     renderWithIntl(<RequestPotContributorRows vm={{ requestPotContributors: rows } as unknown as ReceiptViewModel} />)
 
 describe('RequestPotContributorRows', () => {
-    it('marks a short contribution with the amount it paid and the amount it asked', () => {
-        render([
-            row({}),
-            row({ uuid: 'charge-2', username: '0xpayer', amount: '33', askedAmount: '58.51', isPartial: true }),
-        ])
+    it('shows what each contributor paid and nothing about what their charge asked', () => {
+        render([row({}), row({ uuid: 'charge-2', username: '0xpayer', amount: '33' })])
 
+        expect(screen.getByText('Contributors (2)')).toBeInTheDocument()
         expect(screen.getByText('$40.65')).toBeInTheDocument()
         expect(screen.getByText('$33.00')).toBeInTheDocument()
-        expect(screen.getByText('Partly paid')).toBeInTheDocument()
-        expect(screen.getByText('of $58.51')).toBeInTheDocument()
-        expect(screen.queryByText('$58.51')).toBeNull()
-    })
-
-    it('shows no badge on a contribution paid in full', () => {
-        render([row({})])
-        expect(screen.queryByText('Partly paid')).toBeNull()
+        expect(screen.queryByText(/58\.51/)).toBeNull()
+        expect(screen.queryByText(/paid/i)).toBeNull()
     })
 })

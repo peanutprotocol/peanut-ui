@@ -6,7 +6,7 @@
  * response, which is why the gate lives here and not in the action list.
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
@@ -35,6 +35,7 @@ jest.mock('@/components/User/UserCard', () => ({
 }))
 
 import RhinoDepositView from '../RhinoDeposit.view'
+import { rhinoApi } from '@/services/rhino'
 
 const DEPOSIT_ADDRESS = '0x1234567890abcdef1234567890abcdef12345678'
 
@@ -44,7 +45,7 @@ const depositAddressData = {
     maxDepositLimitUsd: 5000,
 } as CreateDepositAddressResponse
 
-const renderView = (amount?: number) => {
+const renderView = (amount?: number, extra: Partial<React.ComponentProps<typeof RhinoDepositView>> = {}) => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     return render(
         <IntlWrapper>
@@ -57,11 +58,14 @@ const renderView = (amount?: number) => {
                     isDepositAddressDataLoading={false}
                     onSuccess={jest.fn()}
                     amount={amount}
+                    {...extra}
                 />
             </QueryClientProvider>
         </IntlWrapper>
     )
 }
+
+beforeEach(() => jest.clearAllMocks())
 
 // CopyToClipboard toasts on a failed copy; the view renders it, so it needs the hook.
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
@@ -97,5 +101,38 @@ describe('RhinoDepositView sub-minimum gate', () => {
 
         expect(screen.getByTestId('deposit-qr')).toHaveTextContent(DEPOSIT_ADDRESS)
         expect(screen.queryByText(en.payment.minAmount.title)).not.toBeInTheDocument()
+    })
+})
+
+// TASK-23856: an external-wallet deposit that arrived short of its charge keeps
+// the payer on this card. It states what arrived and what is still needed in
+// place of the user card, keeps the address for the rest, and clears the
+// address status so the poll sees the next transfer.
+describe('RhinoDepositView after a short deposit', () => {
+    const shortDeposit = { received: '33', asked: '58.51' }
+
+    it('states what arrived and what is still needed, keeps the address, and exits on Done', () => {
+        const onDone = jest.fn()
+        renderView(58.51, { showUserCard: true, shortDeposit, onDone })
+
+        expect(screen.getByText('$33 of $58.51 received')).toBeInTheDocument()
+        expect(screen.getByText('$25.51 is still needed. Send it to the address below.')).toBeInTheDocument()
+        expect(screen.queryByTestId('user-card')).not.toBeInTheDocument()
+        expect(screen.getByTestId('deposit-qr')).toHaveTextContent(DEPOSIT_ADDRESS)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+        expect(onDone).toHaveBeenCalledTimes(1)
+    })
+
+    it('clears the address status so the poll sees the next transfer', async () => {
+        renderView(58.51, { shortDeposit })
+        await waitFor(() => expect(rhinoApi.resetDepositAddressStatus).toHaveBeenCalledWith(DEPOSIT_ADDRESS))
+    })
+
+    it('leaves the status alone, and shows no Done, on an ordinary deposit', () => {
+        renderView(58.51, { showUserCard: true })
+        expect(rhinoApi.resetDepositAddressStatus).not.toHaveBeenCalled()
+        expect(screen.getByTestId('user-card')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Done' })).not.toBeInTheDocument()
     })
 })

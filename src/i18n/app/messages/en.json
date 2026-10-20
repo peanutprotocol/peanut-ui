@@ -1328,8 +1328,7 @@
         "requestAsksForDollars": "{amount} in dollars, fixed when the request was made",
         "partialContribution": {
             "title": "{received} of {asked} received",
-            "description": "{remaining} is still needed. Send it to the same address.",
-            "descriptionNoAddress": "{remaining} is still needed."
+            "description": "{remaining} is still needed. Send it to the address below."
         },
         "confirmingPayment": {
             "title": "Confirming payment",
@@ -2270,8 +2269,6 @@
         "noGoalSet": "No goal set",
         "amountCollected": "${amount} collected",
         "contributors": "Contributors ({count})",
-        "contributorPartlyPaid": "Partly paid",
-        "contributorAskedAmount": "of {amount}",
         "requestedInCurrency": "{amount} requested",
         "pendingLinkDeviceNote": "Use the device where you created it to cancel or re-share this link.",
         "type": {

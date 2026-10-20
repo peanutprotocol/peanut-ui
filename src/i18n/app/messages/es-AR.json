@@ -741,7 +741,7 @@
             "chooseCurrency": "Elegí una moneda"
         },
         "partialContribution": {
-            "description": "Todavía faltan {remaining}. Envialos a la misma dirección."
+            "description": "Todavía faltan {remaining}. Envialos a la dirección de abajo."
         },
         "confirmingPayment": {
             "description": "Todavía estamos confirmando tu pago. Puede tardar unos minutos y aparecerá en Actividad. Si no llega, contactá a soporte."

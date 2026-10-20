@@ -623,17 +623,13 @@ describe('General Utilities', () => {
                 },
             ]
             const contributors = getContributorsFromCharge(charges)
-            expect(contributors.map((c) => [c.amount, c.askedAmount, c.isPartial])).toEqual([
-                ['40.65', '40.65', false],
-                ['33', '58.51', true],
-            ])
+            expect(contributors.map((c) => c.amount)).toEqual(['40.65', '33'])
             expect(contributors.reduce((sum, c) => sum + Number(c.amount), 0)).toBeCloseTo(73.65, 2)
         })
 
-        it('keeps the asked amount and no partial flag on an API that sends neither', () => {
+        it('keeps the asked amount on an API that sends no settled figure', () => {
             const [contributor] = getContributorsFromCharge([makeCharge('c1', [makePayment('SUCCESSFUL', 'alice')])])
             expect(contributor.amount).toBe('10')
-            expect(contributor.isPartial).toBe(false)
         })
     })
 

@@ -28,6 +28,7 @@ import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 import { remainingToPay } from './collected'
 import { readChargeUntilFinal } from '@/features/payments/shared/utils/charge-receipt.utils'
+import { isPartialContribution } from '@/utils/request-pot.utils'
 
 export function useContributePotFlow() {
     const t = useTranslations('payment')
@@ -64,8 +65,6 @@ export function useContributePotFlow() {
         isExternalWalletPayment,
         setIsExternalWalletPayment,
         refetchRequestPot,
-        externalDepositAddress,
-        setExternalDepositAddress,
     } = useContributePotFlowContext()
 
     const { user } = useAuth()
@@ -328,50 +327,50 @@ export function useContributePotFlow() {
     /**
      * The external-wallet poll saw the deposit bridged. Rhino reports that
      * whatever amount arrived, and before the API has booked it, so the charge
-     * is read until it is final before the success screen states an amount or
-     * a status (TASK-23856). Meanwhile `isLoading` keeps the deposit screen on
-     * its confirming state.
+     * is read until it is final before any screen states an amount or a status
+     * (TASK-23856). Meanwhile `isLoading` keeps the deposit screen on its
+     * confirming state.
      *
-     * - completed: the success screen, or the partial one for a short payment.
+     * - completed in full: the success screen.
+     * - completed short: the payer stays on the deposit card, which states
+     *   what arrived and watches the address for the rest.
      * - failed or cancelled: back to the amount screen with an error.
      * - still open after a minute: the success screen in its confirming form,
      *   which states only what the charge asked.
      */
-    const completeExternalWalletPayment = useCallback(
-        async (depositAddress: string | undefined) => {
-            if (charge) {
-                setIsLoading(true)
-                const { charge: booked, outcome } = await readChargeUntilFinal(() => fetchCharge(charge.uuid), {
-                    isCancelled: () => hasLeftScreenRef.current,
-                })
-                setIsLoading(false)
-                // the payer left the deposit screen meanwhile: a late result navigates nowhere
-                if (outcome === 'cancelled') return
-                if (booked) setCharge(booked)
-                if (outcome === 'failed') {
-                    setError({ showError: true, errorMessage: t('errors.externalPaymentNotConfirmed') })
-                    setCurrentView('INITIAL')
-                    return
-                }
+    const completeExternalWalletPayment = useCallback(async () => {
+        let shortDeposit = false
+        if (charge) {
+            setIsLoading(true)
+            const { charge: booked, outcome } = await readChargeUntilFinal(() => fetchCharge(charge.uuid), {
+                isCancelled: () => hasLeftScreenRef.current,
+            })
+            setIsLoading(false)
+            // the payer left the deposit screen meanwhile: a late result navigates nowhere
+            if (outcome === 'cancelled') return
+            if (booked) setCharge(booked)
+            if (outcome === 'failed') {
+                setError({ showError: true, errorMessage: t('errors.externalPaymentNotConfirmed') })
+                setCurrentView('INITIAL')
+                return
             }
-            void refetchRequestPot()
-            setExternalDepositAddress(depositAddress ?? null)
-            setIsExternalWalletPayment(true)
-            setCurrentView('STATUS')
-        },
-        [
-            charge,
-            fetchCharge,
-            setCharge,
-            setIsLoading,
-            setError,
-            t,
-            refetchRequestPot,
-            setExternalDepositAddress,
-            setIsExternalWalletPayment,
-            setCurrentView,
-        ]
-    )
+            shortDeposit = booked !== null && isPartialContribution(booked)
+        }
+        void refetchRequestPot()
+        setIsExternalWalletPayment(true)
+        if (shortDeposit) return
+        setCurrentView('STATUS')
+    }, [
+        charge,
+        fetchCharge,
+        setCharge,
+        setIsLoading,
+        setError,
+        t,
+        refetchRequestPot,
+        setIsExternalWalletPayment,
+        setCurrentView,
+    ])
 
     return {
         // state
@@ -389,7 +388,6 @@ export function useContributePotFlow() {
         isLoading: isLoading || isCreatingCharge || isRecording,
         isSuccess,
         isExternalWalletPayment,
-        externalDepositAddress,
 
         // derived data
         totalAmount,

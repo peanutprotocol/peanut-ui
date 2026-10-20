@@ -21,7 +21,7 @@ import {
     type PaymentCreationResponse,
 } from '@/services/services.types'
 import { collectedTotal, usdRemainingOf } from './collected'
-import { contributedAmount, isPartialContribution } from '@/utils/request-pot.utils'
+import { contributedAmount } from '@/utils/request-pot.utils'
 import { useRequestPot } from './useRequestPot'
 
 // view states for contribute pot flow
@@ -45,12 +45,8 @@ export interface PotContributor {
     /** The contributor's picked profile avatar; null means the username-letter
      *  fallback, and it stays null for a raw-address contributor. */
     avatarKey?: string | null
-    /** What the contributor paid — can be less than `askedAmount`. */
+    /** What the contributor paid, which can be less than their charge asked. */
     amount: string
-    /** What their charge asked for. */
-    askedAmount?: string
-    /** Paid short of `askedAmount`, as the API flags it. */
-    isPartial?: boolean
     createdAt: string
 }
 
@@ -103,9 +99,6 @@ interface ContributePotFlowContextValue {
     setTxHash: (hash: Hash | null) => void
     isExternalWalletPayment: boolean
     setIsExternalWalletPayment: (isExternalWalletPayment: boolean) => void
-    /** The deposit address the external-wallet payer sent to; a short payment's rest goes there too. */
-    externalDepositAddress: string | null
-    setExternalDepositAddress: (address: string | null) => void
 
     // ui state
     error: ContributePotError
@@ -160,7 +153,6 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
     const [payment, setPayment] = useState<PaymentCreationResponse | null>(null)
     const [txHash, setTxHash] = useState<Hash | null>(null)
     const [isExternalWalletPayment, setIsExternalWalletPayment] = useState(false)
-    const [externalDepositAddress, setExternalDepositAddress] = useState<string | null>(null)
 
     // ui state
     const [error, setError] = useState<ContributePotError>({ showError: false, errorMessage: '' })
@@ -204,8 +196,6 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
                 address: c.fulfillmentPayment?.payerAddress ?? undefined,
                 avatarKey: c.fulfillmentPayment?.payerAccount?.user?.avatarKey ?? null,
                 amount: contributedAmount(c),
-                askedAmount: c.tokenAmount,
-                isPartial: isPartialContribution(c),
                 createdAt: c.createdAt,
             }))
     }, [request?.charges])
@@ -224,7 +214,6 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
         setIsLoading(false)
         setIsSuccess(false)
         setIsExternalWalletPayment(false)
-        setExternalDepositAddress(null)
     }, [])
 
     const value = useMemo<ContributePotFlowContextValue>(
@@ -260,8 +249,6 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             resetContributePotFlow,
             isExternalWalletPayment,
             setIsExternalWalletPayment,
-            externalDepositAddress,
-            setExternalDepositAddress,
         }),
         [
             currentView,
@@ -284,7 +271,6 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             resetContributePotFlow,
             isExternalWalletPayment,
             setIsExternalWalletPayment,
-            externalDepositAddress,
         ]
     )
 

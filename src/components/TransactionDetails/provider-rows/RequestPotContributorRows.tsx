@@ -3,7 +3,6 @@
 import { useTranslations } from 'next-intl'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
-import { PartlyPaidNote } from '@/components/Global/Contributors/PartlyPaidNote'
 import { type ReceiptViewModel } from '@/components/TransactionDetails/useReceiptViewModel'
 import { formatCurrency, printableUserHandle } from '@/utils/general.utils'
 
@@ -13,8 +12,9 @@ import { formatCurrency, printableUserHandle } from '@/utils/general.utils'
  * Renders inside ReceiptDetailsCard's `divide-y` as one dashed-divided
  * section.
  *
- * The amount is what the contributor paid. A contribution paid short of its
- * own charge adds the partly-paid note under it.
+ * The amount is what the contributor paid, which can be less than their own
+ * charge asked (TASK-23856). What the charge asked is the payer's figure, so
+ * the requester's receipt does not show it.
  */
 export function RequestPotContributorRows({ vm }: { vm: ReceiptViewModel }) {
     const t = useTranslations('transaction')
@@ -45,17 +45,7 @@ export function RequestPotContributorRows({ vm }: { vm: ReceiptViewModel }) {
                             {printableUserHandle(contributor.username ?? '')}
                         </span>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                        <span className="text-label-l text-foreground-primary">
-                            ${formatCurrency(contributor.amount)}
-                        </span>
-                        {contributor.isPartial && (
-                            <PartlyPaidNote
-                                askedAmount={contributor.askedAmount}
-                                formatAmount={(amount) => `$${formatCurrency(amount)}`}
-                            />
-                        )}
-                    </div>
+                    <span className="text-label-l text-foreground-primary">${formatCurrency(contributor.amount)}</span>
                 </div>
             ))}
         </div>

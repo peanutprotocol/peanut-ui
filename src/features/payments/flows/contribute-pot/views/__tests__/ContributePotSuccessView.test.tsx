@@ -1,6 +1,6 @@
 // TASK-23856: an external-wallet payer was told "Sent $58.51" when 33 USDC
-// arrived. The success screen states what the charge booked, and a short
-// payment gets the partial view with the same address for the rest.
+// arrived. The success screen states what the charge booked. A short payment
+// never reaches it: the flow keeps the deposit card (ExternalWalletPaymentView).
 import React from 'react'
 import { screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
@@ -24,14 +24,6 @@ jest.mock('@/features/payments/shared/components/PaymentSuccessView', () => ({
 }))
 jest.mock('@/features/payments/shared/hooks/useFlowExit', () => ({ useFlowExit: () => jest.fn() }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Global/QRCodeWrapper', () => ({
-    __esModule: true,
-    default: ({ url }: { url: string }) => <div data-testid="qr">{url}</div>,
-}))
-jest.mock('@/components/Global/CopyField', () => ({
-    __esModule: true,
-    default: ({ text }: { text: string }) => <div data-testid="copy-field">{text}</div>,
-}))
 
 import { ContributePotSuccessView } from '../ContributePotSuccessView'
 
@@ -53,34 +45,10 @@ const setFlow = (overrides: Record<string, unknown>) =>
         payment: null,
         resetContributePotFlow: jest.fn(),
         isExternalWalletPayment: true,
-        externalDepositAddress: '0xdeposit',
         ...overrides,
     })
 
 beforeEach(() => jest.clearAllMocks())
-
-test('a short deposit shows what arrived, what is still needed, and the same address', () => {
-    setFlow({ charge: charge({ status: 'COMPLETED', settledAmount: '33', partialPayment: true }) })
-    renderWithIntl(<ContributePotSuccessView />)
-
-    expect(screen.getByText('$33 of $58.51 received')).toBeInTheDocument()
-    expect(screen.getByText('$25.51 is still needed. Send it to the same address.')).toBeInTheDocument()
-    expect(screen.getByTestId('copy-field')).toHaveTextContent('0xdeposit')
-    expect(screen.getByRole('button', { name: 'Done' })).toBeInTheDocument()
-    expect(screen.queryByTestId('payment-success')).toBeNull()
-})
-
-test('a short deposit whose address the flow lost does not point at one', () => {
-    setFlow({
-        externalDepositAddress: null,
-        charge: charge({ status: 'COMPLETED', settledAmount: '33', partialPayment: true }),
-    })
-    renderWithIntl(<ContributePotSuccessView />)
-
-    expect(screen.getByText('$25.51 is still needed.')).toBeInTheDocument()
-    expect(screen.queryByText(/same address/)).toBeNull()
-    expect(screen.queryByTestId('copy-field')).toBeNull()
-})
 
 // The read-back gave up while the API had not booked the payment (or the
 // deposit was under the bridge minimum and never will be): nothing is claimed.
