@@ -40,6 +40,7 @@ export const ANALYTICS_EVENTS = {
 
     // ── KYC (Bridge) ──
     KYC_INITIATED: 'kyc_initiated',
+    KYC_TOS_OPENED: 'kyc_tos_opened',
     KYC_TOS_ACCEPTED: 'kyc_tos_accepted',
     KYC_SUBMITTED: 'kyc_submitted',
     KYC_APPROVED: 'kyc_approved',
