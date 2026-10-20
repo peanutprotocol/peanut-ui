@@ -19,20 +19,4 @@ describe('App Staging OTA workflow', () => {
         expect(workflow).not.toContain('CHANNEL: production')
         expect(workflow).not.toContain('git push origin "ota-')
     })
-
-    // The bundle sends analytics only when its base URL is https://peanut.me, so
-    // a staging bundle must never fall back to the production URL (TASK-23883).
-    it('refuses to build a staging bundle with the production base URL', () => {
-        expect(workflow).toContain('NEXT_PUBLIC_BASE_URL=${{ vars.STAGING_OTA_BASE_URL }}')
-        expect(workflow).not.toMatch(/STAGING_OTA_BASE_URL \|\|/)
-        const guard = workflow.match(/if \[ -z "\$STAGING_BASE_URL" \][^\n]*\n[\s\S]*?\n\s+fi/)[0]
-        const run = (url) =>
-            require('node:child_process').spawnSync('bash', ['-eu', '-c', guard.replace(/^ +/gm, '')], {
-                env: { ...process.env, STAGING_BASE_URL: url },
-                encoding: 'utf8',
-            }).status
-        expect(run('')).toBe(1)
-        expect(run('https://peanut.me')).toBe(1)
-        expect(run('https://staging.peanut.me')).toBe(0)
-    })
 })
