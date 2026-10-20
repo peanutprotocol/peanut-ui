@@ -30,9 +30,17 @@ jobs:
             - name: Guard staging ref
               env:
                   SOURCE_REF: ${{ inputs.ref || 'dev' }}
+                  STAGING_BASE_URL: ${{ vars.STAGING_OTA_BASE_URL }}
               run: |
                   if [ "$SOURCE_REF" != "dev" ]; then
                       echo "::error::staging OTAs are published from dev, not $SOURCE_REF" >&2
+                      exit 1
+                  fi
+                  # The bundle decides whether to send analytics from its base URL:
+                  # only https://peanut.me captures. A staging bundle with the
+                  # production URL would send staging traffic to production PostHog.
+                  if [ -z "$STAGING_BASE_URL" ] || [ "$STAGING_BASE_URL" = "https://peanut.me" ]; then
+                      echo "::error::set the Staging-OTA variable STAGING_OTA_BASE_URL to the staging site, not '$STAGING_BASE_URL'" >&2
                       exit 1
                   fi
                   echo "Publishing staging OTA from $SOURCE_REF"
@@ -66,14 +74,16 @@ jobs:
             # environment sets the site, passkey domain and API to staging. Android can
             # use staging.peanut.me passkeys (its assetlinks.json lists the app); the iOS
             # binary allows only webcredentials:peanut.me, so iOS beta testers log in with
-            # a peanut.me passkey. Without the variables it falls back to prod. CAPACITOR_BUILD /
-            # IS_NATIVE_BUILD / GIT_COMMIT_HASH are auto-baked by next.config.native.js.
+            # a peanut.me passkey. Without the other variables it falls back to prod. The
+            # base URL has no fallback (the guard above fails the run): it decides whether
+            # the bundle sends analytics. CAPACITOR_BUILD / IS_NATIVE_BUILD /
+            # GIT_COMMIT_HASH are auto-baked by next.config.native.js.
             # Delimiter is quoted: a secret holding $ or a backtick must land in the
             # file verbatim, not be expanded — or executed — by the shell.
             - name: Bake staging NEXT_PUBLIC_* into the static export
               run: |
                   cat > .env.production.local <<'EOF'
-                  NEXT_PUBLIC_BASE_URL=${{ vars.STAGING_OTA_BASE_URL || 'https://peanut.me' }}
+                  NEXT_PUBLIC_BASE_URL=${{ vars.STAGING_OTA_BASE_URL }}
                   NEXT_PUBLIC_PEANUT_API_URL=${{ vars.STAGING_OTA_PEANUT_API_URL || vars.NEXT_PUBLIC_PEANUT_API_URL }}
                   NEXT_PUBLIC_NATIVE_RP_ID=${{ vars.STAGING_OTA_NATIVE_RP_ID || 'peanut.me' }}
                   NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL=${{ secrets.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL }}
