@@ -1,5 +1,5 @@
 import posthog from 'posthog-js'
-import { identifyAnalyticsUser } from '../posthog-identity'
+import { clearAnalyticsIdentity, identifyAnalyticsUser } from '../posthog-identity'
 
 jest.mock('posthog-js', () => ({
     __esModule: true,
@@ -57,5 +57,17 @@ describe('identifyAnalyticsUser', () => {
         ph.get_distinct_id.mockReturnValue('anon-after-reset')
         identifyAnalyticsUser('user-1', props)
         expect(ph.identify).toHaveBeenCalledWith('user-1', props)
+    })
+
+    it('stores no profile field in the browser, and logout clears what it stores', () => {
+        ph.get_distinct_id.mockReturnValue('anon-123')
+        identifyAnalyticsUser('user-1', { username: 'ana', kycStatus: 'approved' })
+        const stored = Object.values({ ...localStorage }).join(' ')
+        expect(stored).not.toContain('ana')
+        expect(stored).not.toContain('approved')
+        expect(stored).not.toContain('user-1')
+
+        clearAnalyticsIdentity()
+        expect(localStorage.length).toBe(0)
     })
 })

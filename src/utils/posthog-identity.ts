@@ -1,9 +1,21 @@
 import posthog from 'posthog-js'
 
-// The last person properties sent, as `<userId>:<json>`. Persisted because
+// A hash of the last user id and person properties sent. Persisted because
 // posthog-js only remembers its own last $set in memory, so every app open
-// (and every user refetch with a changed field) used to send a fresh $set.
+// used to send a fresh $set. Only the hash is stored: the properties are a
+// profile (username, KYC status, rails), and the next user of the browser
+// must not read them. Cleared on logout.
 const SENT_PERSON_PROPERTIES_KEY = 'posthog-person-properties-sent'
+
+/** FNV-1a: a comparison fingerprint, not a security boundary. */
+function fingerprint(value: string): string {
+    let hash = 0x811c9dc5
+    for (let i = 0; i < value.length; i++) {
+        hash ^= value.charCodeAt(i)
+        hash = Math.imul(hash, 0x01000193)
+    }
+    return (hash >>> 0).toString(36)
+}
 
 function readSent(): string | null {
     try {
@@ -29,7 +41,7 @@ function writeSent(value: string): void {
  * they differ from the last ones sent from this device.
  */
 export function identifyAnalyticsUser(userId: string, properties: Record<string, unknown>): void {
-    const sent = `${userId}:${JSON.stringify(properties)}`
+    const sent = fingerprint(`${userId}:${JSON.stringify(properties)}`)
     if (posthog.get_distinct_id() !== userId) {
         posthog.identify(userId, properties)
     } else if (readSent() !== sent) {
@@ -38,4 +50,11 @@ export function identifyAnalyticsUser(userId: string, properties: Record<string,
         return
     }
     writeSent(sent)
+}
+
+/** Forget what was sent for the signed-in user. Call on logout, next to posthog.reset(). */
+export function clearAnalyticsIdentity(): void {
+    try {
+        localStorage.removeItem(SENT_PERSON_PROPERTIES_KEY)
+    } catch {}
 }

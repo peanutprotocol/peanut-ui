@@ -21,7 +21,7 @@ import { apiFetch } from '@/utils/api-fetch'
 import { useAppLocked } from '@/hooks/useAppLocked'
 import { currentAppLocale, currentDeviceContext, currentDeviceIdentity } from '@/i18n/app/locale-store'
 import { isCapacitor } from '@/utils/capacitor'
-import { identifyAnalyticsUser } from '@/utils/posthog-identity'
+import { clearAnalyticsIdentity, identifyAnalyticsUser } from '@/utils/posthog-identity'
 import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
 import { disableDemoMode, isDemoMode } from '@/utils/demo'
@@ -419,6 +419,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         void resetCrispProxySessions().catch((e) => console.warn('crisp reset failed:', e))
         try {
             posthog.reset()
+            clearAnalyticsIdentity()
             // reset() wipes registered super properties — re-register the
             // locale so logout-window events keep carrying app_locale
             const locale = currentAppLocale()

@@ -157,6 +157,18 @@ describe('logoutUser', () => {
         expect(hasHeldSession()).toBe(false)
     })
 
+    it('forgets the analytics identity fingerprint, so the next user starts clean', async () => {
+        localStorage.setItem('posthog-person-properties-sent', 'abc123')
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(localStorage.getItem('posthog-person-properties-sent')).toBeNull()
+    })
+
     it('releases the latch when the hard navigation never happens', async () => {
         stubLocation(() => {
             throw new Error('navigation blocked')
