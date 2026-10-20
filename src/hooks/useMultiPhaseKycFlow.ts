@@ -72,31 +72,32 @@ export function deriveCapabilityPhaseSignals(
 }
 
 /**
- * Settles a closed Bridge ToS page: asks Bridge whether the terms are signed,
- * and when they are, records the acceptance and polls fetchUser (max 3 × 2s)
- * until the bank rails leave the ToS-required state.
+ * Settles a Bridge ToS page that closed by itself: asks Bridge whether the
+ * terms are signed, and when they are, records the acceptance and polls
+ * fetchUser (max 3 × 2s) until the bank rails leave the ToS-required state.
  *
  * Returns whether the caller should treat the terms as accepted. What a close
  * proves depends on its source:
  *   - `tos_accepted`: Bridge's page reported the signature, so this is always
  *     true. A "no" from the confirm endpoint is webhook lag, and the rails are
  *     still polled.
- *   - `returned`: the user left the page without it reporting anything (the
- *     android system-browser tab closed, or the page moved its frame away).
- *     Only Bridge's answer counts, with one retry for that same lag.
- *   - `manual`: the user backed out, possibly after signing on a page that
- *     never reported it (TASK-23881). Bridge is asked once, without the retry,
- *     so backing out of an unsigned page stays quick.
- * A "no" on the last two returns false before arming the submission window,
- * because nothing was submitted and no rail will change.
+ *   - `returned` (and `completed`): the user left the page without it
+ *     reporting a signature — the android system-browser tab closed, or the
+ *     page moved its frame away (TASK-23881). Only Bridge's answer counts,
+ *     with one retry for that same lag. A "no" returns false before arming
+ *     the submission window, because nothing was submitted.
+ *
+ * A manual exit never comes here: the confirm endpoint reads Bridge's
+ * customer-level flag, which a user who signed the base terms already has, so
+ * it cannot tell whether they signed the terms this page asked for.
  */
 export async function resolveBridgeTosClose(
     fetchUser: () => Promise<IUserProfile | null>,
-    source: IframeCloseSource
+    source: Exclude<IframeCloseSource, 'manual'>
 ): Promise<boolean> {
     const observedAcceptance = source === 'tos_accepted'
     let accepted = !!(await confirmBridgeTos()).data?.accepted
-    if (!accepted && source !== 'manual') {
+    if (!accepted) {
         await new Promise((resolve) => setTimeout(resolve, 2000))
         accepted = !!(await confirmBridgeTos()).data?.accepted
     }
@@ -623,22 +624,22 @@ export const useMultiPhaseKycFlow = ({
         }
     }, [])
 
-    // handle ToS iframe close — Bridge's answer decides, however the page closed
+    // handle ToS iframe close
     const handleTosIframeClose = useCallback(
         async (source: IframeCloseSource = 'manual') => {
             setShowTosIframe(false)
-            // a manual exit stays on the terms step while Bridge is asked
-            if (source !== 'manual') setModalPhase('preparing')
+            // a manual exit stays on the bridge_tos phase (user can try again)
+            if (source === 'manual') return
+
+            // show loading state while confirming + polling
+            setModalPhase('preparing')
             try {
                 if (!(await resolveBridgeTosClose(fetchUser, source))) {
-                    // Not signed: back to the terms step, where the user can try
-                    // again. Only a page that closed by itself needs saying why.
-                    // The copy stays dismissal-shaped because this modal's error
-                    // CTA closes the flow; the home ToS card owns the retry.
+                    // The page closed by itself without a signature. The copy
+                    // stays dismissal-shaped because this modal's error CTA
+                    // closes the flow; the home ToS card owns the retry.
                     setModalPhase('bridge_tos')
-                    if (source !== 'manual') {
-                        setTosError("The terms weren't accepted. You can accept them later from your activity feed.")
-                    }
+                    setTosError("The terms weren't accepted. You can accept them later from your activity feed.")
                     return
                 }
                 const refreshed = await fetchUser()
@@ -655,12 +656,11 @@ export const useMultiPhaseKycFlow = ({
                     setForceShowModal(true)
                 }
             } catch {
-                // A manual exit whose check failed leaves the user on the terms
-                // step, as before. Otherwise don't leave the modal frozen on
-                // 'preparing' — surface the timed-out recovery state now
-                // instead of a ~30s dead modal.
-                if (source === 'manual') setModalPhase('bridge_tos')
-                else setPreparingTimedOut(true)
+                // Don't leave the modal frozen on 'preparing' with no feedback
+                // if the confirm POST / rails poll throws — surface the
+                // timed-out recovery state immediately instead of a ~30s dead
+                // modal. (BridgeTosStep wraps the same call in try/catch.)
+                setPreparingTimedOut(true)
             }
         },
         [fetchUser, completeFlow, regionIntent, requestedCountry]

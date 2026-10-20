@@ -144,35 +144,16 @@ describe('BridgeTosStep', () => {
         expect(mockResolveClose).toHaveBeenCalledWith(expect.anything(), 'tos_accepted')
     })
 
-    it('completes when a user who backed out had already signed (TASK-23881)', async () => {
-        // Bridge's page can accept and then go blank without reporting it; the
-        // exit button must not throw that acceptance away.
-        mockResolveClose.mockResolvedValue(true)
-        const { onComplete, onSkip } = renderStep()
-        await openTos()
-
-        await act(async () => closeIframe?.('manual'))
-        expect(onComplete).toHaveBeenCalled()
-        expect(onSkip).not.toHaveBeenCalled()
-        expect(mockResolveClose).toHaveBeenCalledWith(expect.anything(), 'manual')
-    })
-
-    it('skips the step when a user who backed out had not signed', async () => {
-        mockResolveClose.mockResolvedValue(false)
+    it('skips the step on a manual exit without asking Bridge', async () => {
+        // Bridge's confirm answers with a customer-level flag that a user who
+        // signed the base terms already has, so it cannot vouch for the SEPA
+        // or reminder terms this step may be showing.
         const { onComplete, onSkip } = renderStep()
         await openTos()
 
         await act(async () => closeIframe?.('manual'))
         expect(onSkip).toHaveBeenCalled()
         expect(onComplete).not.toHaveBeenCalled()
-    })
-
-    it('still lets a user who backed out leave when the check fails', async () => {
-        mockResolveClose.mockRejectedValue(new Error('network down'))
-        const { onSkip } = renderStep()
-        await openTos()
-
-        await act(async () => closeIframe?.('manual'))
-        expect(onSkip).toHaveBeenCalled()
+        expect(mockResolveClose).not.toHaveBeenCalled()
     })
 })

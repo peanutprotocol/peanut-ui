@@ -655,9 +655,9 @@ describe('useMultiPhaseKycFlow — submission analytics per attempt', () => {
 })
 
 /**
- * Bridge's ToS page can record the signature and then show a blank frame
- * without ever reporting it (TASK-23881). Every way out of the page asks Bridge,
- * so the exit button can no longer throw a real acceptance away.
+ * Bridge's ToS page can record the signature and then move its own frame away
+ * without reporting it (TASK-23881). The wrapper reports that as `returned`,
+ * and Bridge's answer decides. A manual exit stays on the terms step.
  */
 describe('useMultiPhaseKycFlow — Bridge ToS page close', () => {
     const mockGetTosLink = getBridgeTosLink as jest.MockedFunction<typeof getBridgeTosLink>
@@ -711,27 +711,15 @@ describe('useMultiPhaseKycFlow — Bridge ToS page close', () => {
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_TOS_OPENED)
     })
 
-    it('completes the flow when a user who backed out had already signed', async () => {
+    it('completes the flow when the page moved away after the user signed', async () => {
         mockConfirm.mockResolvedValue({ data: { accepted: true } })
         const { result, onKycSuccess } = await openTerms()
 
-        await close(result, 'manual')
+        await close(result, 'returned')
 
         expect(result.current.showTosIframe).toBe(false)
         expect(onKycSuccess).toHaveBeenCalled()
-        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED, { source: 'manual' })
-    })
-
-    it('leaves a user who backed out without signing on the terms step, with no error', async () => {
-        mockConfirm.mockResolvedValue({ data: { accepted: false } })
-        const { result, onKycSuccess } = await openTerms()
-
-        await close(result, 'manual')
-
-        expect(result.current.modalPhase).toBe('bridge_tos')
-        expect(result.current.tosError).toBeNull()
-        expect(onKycSuccess).not.toHaveBeenCalled()
-        expect(mockConfirm).toHaveBeenCalledTimes(1)
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED, { source: 'returned' })
     })
 
     it('says why when the page closed by itself without a signature', async () => {
@@ -742,6 +730,17 @@ describe('useMultiPhaseKycFlow — Bridge ToS page close', () => {
 
         expect(result.current.modalPhase).toBe('bridge_tos')
         expect(result.current.tosError).toMatch(/weren't accepted/)
+        expect(onKycSuccess).not.toHaveBeenCalled()
+    })
+
+    it('leaves a manual exit on the terms step without asking Bridge', async () => {
+        const { result, onKycSuccess } = await openTerms()
+
+        await close(result, 'manual')
+
+        expect(result.current.showTosIframe).toBe(false)
+        expect(result.current.tosError).toBeNull()
+        expect(mockConfirm).not.toHaveBeenCalled()
         expect(onKycSuccess).not.toHaveBeenCalled()
     })
 })

@@ -3,8 +3,7 @@
  * postMessage only when its link has no redirect; otherwise it moves its own
  * frame away and reports nothing (TASK-23881). And the android flow runs in the
  * system browser, where nothing in-app observes the signature at all. So for
- * every close except an observed `tos_accepted`, Bridge's answer is the only
- * source of truth.
+ * a page that closed by itself, Bridge's answer is the only source of truth.
  */
 import posthog from 'posthog-js'
 import { resolveBridgeTosClose } from '@/hooks/useMultiPhaseKycFlow'
@@ -32,7 +31,7 @@ describe('resolveBridgeTosClose', () => {
     afterEach(() => jest.useRealTimers())
 
     // Drives the helper to completion while its sleeps are faked away.
-    const run = async (source: IframeCloseSource) => {
+    const run = async (source: Exclude<IframeCloseSource, 'manual'>) => {
         const pending = resolveBridgeTosClose(fetchUser, source)
         await jest.runAllTimersAsync()
         return pending
@@ -77,19 +76,5 @@ describe('resolveBridgeTosClose', () => {
         expect(markSubmitted).toHaveBeenCalled()
         expect(fetchUser).toHaveBeenCalled()
         expect(posthog.capture).toHaveBeenCalledWith('kyc_tos_accepted', { source: 'tos_accepted' })
-    })
-
-    it('recovers a user who backed out of a page that never reported their signature', async () => {
-        mockConfirmBridgeTos.mockResolvedValue({ data: { accepted: true } })
-        await expect(run('manual')).resolves.toBe(true)
-        expect(posthog.capture).toHaveBeenCalledWith('kyc_tos_accepted', { source: 'manual' })
-        expect(fetchUser).toHaveBeenCalled()
-    })
-
-    it('asks only once when the user backed out of an unsigned page', async () => {
-        mockConfirmBridgeTos.mockResolvedValue({ data: { accepted: false } })
-        await expect(run('manual')).resolves.toBe(false)
-        expect(mockConfirmBridgeTos).toHaveBeenCalledTimes(1)
-        expect(markSubmitted).not.toHaveBeenCalled()
     })
 })

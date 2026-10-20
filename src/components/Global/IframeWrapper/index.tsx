@@ -172,14 +172,16 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
             // instant the modal is hiding: the acceptance already happened at
             // Bridge, and never confirming it strands a stale task.
             if (!event.source || event.source !== iframeRef.current?.contentWindow) return
+            // one close per frame: a page that also moved its frame away
+            // already reported `returned`
+            if (frameClosedRef.current) return
             const data = event.data
             if (data?.name === 'complete' && data?.metadata?.status === 'completed') {
                 frameClosedRef.current = true
                 onClose('completed')
-            }
-            // @dev note: kinda hacky, but tos modal takes too long to close using websocket, so we use the signedAgreementId to close it
-            // persona fires this event when the user clicks the "accept" button within the iframe
-            if (data?.signedAgreementId) {
+            } else if (data?.signedAgreementId) {
+                // @dev note: kinda hacky, but tos modal takes too long to close using websocket, so we use the signedAgreementId to close it
+                // persona fires this event when the user clicks the "accept" button within the iframe
                 frameClosedRef.current = true
                 onClose('tos_accepted')
             }

@@ -69,24 +69,24 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
         }
     }, [t])
 
-    // Bridge's answer decides, however the page closed
     const handleIframeClose = useCallback(
         async (source: IframeCloseSource = 'manual') => {
             setShowIframe(false)
+            if (source === 'manual') {
+                onSkip()
+                return
+            }
             setIsConfirming(true)
             try {
                 if (await resolveBridgeTosClose(fetchUser, source)) {
                     onComplete()
                     return
                 }
-                // Not signed. A user who backed out skips the step, as before;
-                // one whose page closed by itself lands back on the prompt
-                // instead of being told the step is done.
-                if (source === 'manual') onSkip()
-                else setError(t('bridgeTos.notAcceptedYet'))
+                // The page closed by itself without a signature, so the user
+                // lands back on the prompt instead of being told the step is done.
+                setError(t('bridgeTos.notAcceptedYet'))
             } catch {
-                if (source === 'manual') onSkip()
-                else setError(t('bridgeTos.confirmError'))
+                setError(t('bridgeTos.confirmError'))
             } finally {
                 setIsConfirming(false)
             }

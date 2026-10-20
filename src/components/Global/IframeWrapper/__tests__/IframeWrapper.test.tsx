@@ -77,15 +77,25 @@ function postFrom(source: Window | null, data: unknown) {
 }
 
 describe('IframeWrapper message routing', () => {
-    it("handles its OWN iframe's completion and ToS messages", () => {
+    it("handles its OWN iframe's completion message", () => {
         const onClose = jest.fn()
         render(<IframeWrapper src="https://one.test/flow" visible onClose={onClose} />)
-        const own = findIframe('https://one.test/flow').contentWindow
 
-        postFrom(own, { name: 'complete', metadata: { status: 'completed' } })
+        postFrom(findIframe('https://one.test/flow').contentWindow, {
+            name: 'complete',
+            metadata: { status: 'completed' },
+        })
         expect(onClose).toHaveBeenCalledWith('completed')
+    })
+
+    it("handles its OWN iframe's ToS message, once per frame", () => {
+        const onClose = jest.fn()
+        render(<IframeWrapper src="https://one.test/tos" visible onClose={onClose} />)
+        const own = findIframe('https://one.test/tos').contentWindow
 
         postFrom(own, { signedAgreementId: 'sig-1' })
+        postFrom(own, { signedAgreementId: 'sig-1' })
+        expect(onClose).toHaveBeenCalledTimes(1)
         expect(onClose).toHaveBeenCalledWith('tos_accepted')
     })
 
@@ -158,6 +168,18 @@ describe('IframeWrapper when the page moves its own frame', () => {
         load(iframe)
         expect(onClose).toHaveBeenCalledTimes(1)
         expect(onClose).toHaveBeenCalledWith('tos_accepted')
+    })
+
+    it('ignores a signature message after the move was already reported', () => {
+        const onClose = jest.fn()
+        render(<IframeWrapper src="https://compliance.test/tos" visible onClose={onClose} />)
+        const iframe = findIframe('https://compliance.test/tos')
+
+        load(iframe)
+        load(iframe)
+        postFrom(iframe.contentWindow, { signedAgreementId: 'sig-1' })
+        expect(onClose).toHaveBeenCalledTimes(1)
+        expect(onClose).toHaveBeenCalledWith('returned')
     })
 
     it('counts loads per frame, so a new link starts over', () => {
