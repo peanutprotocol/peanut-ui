@@ -66,6 +66,17 @@ test.each(['PENDING', 'PROCESSING'])('a charge still %s after the read-back show
     expect(mockPoints).toHaveBeenCalledWith(expect.anything(), '58.51', false, undefined, 'ana-id')
 })
 
+// An API from before api#1907 sends no charge status: the payment cannot be
+// told booked, so the screen claims no amount (it used to say "Sent $58.51").
+test('an external-wallet charge without a status shows the confirming screen, not an amount', () => {
+    setFlow({ charge: charge({}) })
+    renderWithIntl(<ContributePotSuccessView />)
+
+    expect(screen.getByText('Confirming payment')).toBeInTheDocument()
+    expect(screen.queryByText(/Sent/)).toBeNull()
+    expect(mockSuccessView).not.toHaveBeenCalled()
+})
+
 test('a full deposit shows the booked amount and the charge status on the receipt', () => {
     setFlow({ charge: charge({ status: 'COMPLETED', settledAmount: '58.51', partialPayment: false }) })
     renderWithIntl(<ContributePotSuccessView />)

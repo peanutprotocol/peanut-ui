@@ -172,6 +172,30 @@ describe('completeExternalWalletPayment', () => {
         expect(ctx.setCurrentView).not.toHaveBeenCalled()
     })
 
+    test('a top-up on a charge that completed short reads until the settled amount moves', async () => {
+        const short = openCharge({
+            tokenAmount: '58.51',
+            status: 'COMPLETED',
+            settledAmount: '33',
+            partialPayment: true,
+        })
+        ctx.charge = short
+        const booked = openCharge({
+            tokenAmount: '58.51',
+            status: 'COMPLETED',
+            settledAmount: '58.51',
+            partialPayment: false,
+        })
+        // Rhino reported the top-up before the API booked it: the first read still says 33
+        mockFetchCharge.mockResolvedValueOnce(short).mockResolvedValueOnce(booked)
+
+        await complete(3_000)
+
+        expect(mockFetchCharge).toHaveBeenCalledTimes(2)
+        expect(ctx.setCharge).toHaveBeenLastCalledWith(booked)
+        expect(ctx.setCurrentView).toHaveBeenCalledWith('STATUS')
+    })
+
     test('a payment that completes in full shows the success screen', async () => {
         ctx.charge = openCharge({ tokenAmount: '58.51' })
         const booked = openCharge({

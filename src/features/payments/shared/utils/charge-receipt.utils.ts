@@ -72,16 +72,23 @@ export type ChargeReadOutcome = 'completed' | 'failed' | 'timeout' | 'unknown' |
  * - `cancelled`: `isCancelled` turned true (the payer left the screen); the
  *   caller must not act on the result.
  *
+ * `settledBefore` is the charge's settled amount before this payment, for a
+ * top-up on a charge that already completed short. Rhino reports the transfer
+ * before the API books it, so a COMPLETED read whose settled amount has not
+ * moved is not final yet: the read goes on until it moves or the deadline
+ * passes.
+ *
  * A failed read is retried until the deadline; `charge` is the last read that
  * succeeded, or null.
  */
-export async function readChargeUntilFinal<T extends { status?: string | null }>(
+export async function readChargeUntilFinal<T extends { status?: string | null; settledAmount?: string | null }>(
     read: () => Promise<T>,
     {
         intervalMs = 3_000,
         timeoutMs = 60_000,
         isCancelled = () => false,
-    }: { intervalMs?: number; timeoutMs?: number; isCancelled?: () => boolean } = {}
+        settledBefore,
+    }: { intervalMs?: number; timeoutMs?: number; isCancelled?: () => boolean; settledBefore?: string | null } = {}
 ): Promise<{ charge: T | null; outcome: ChargeReadOutcome }> {
     const deadline = Date.now() + timeoutMs
     let charge: T | null = null
@@ -94,7 +101,8 @@ export async function readChargeUntilFinal<T extends { status?: string | null }>
         }
         if (isCancelled()) return { charge, outcome: 'cancelled' }
         if (charge && !charge.status) return { charge, outcome: 'unknown' }
-        if (charge?.status === 'COMPLETED') return { charge, outcome: 'completed' }
+        if (charge?.status === 'COMPLETED' && !(settledBefore != null && charge.settledAmount === settledBefore))
+            return { charge, outcome: 'completed' }
         if (charge?.status === 'FAILED' || charge?.status === 'CANCELLED') return { charge, outcome: 'failed' }
         if (Date.now() + intervalMs > deadline) return { charge, outcome: 'timeout' }
         await new Promise((resolve) => setTimeout(resolve, intervalMs))
@@ -102,10 +110,13 @@ export async function readChargeUntilFinal<T extends { status?: string | null }>
 }
 
 /**
- * A charge the API has not booked yet: the external-wallet read-back gave up
- * while it was still PENDING or PROCESSING. A deposit under the bridge minimum
- * never leaves PENDING, so a payer who sent too little lands here too.
+ * A charge the API has not booked yet, or one whose booking cannot be told:
+ * the external-wallet read-back gave up while it was still PENDING or
+ * PROCESSING, or the API sends no charge status at all (a build before
+ * api#1907). A deposit under the bridge minimum never leaves PENDING, so a
+ * payer who sent too little lands here too. The success screen then claims
+ * no amount.
  */
 export function isChargeAwaitingBooking(charge: { status?: string | null } | null | undefined): boolean {
-    return !!charge?.status && !['COMPLETED', 'FAILED', 'CANCELLED'].includes(charge.status)
+    return !['COMPLETED', 'FAILED', 'CANCELLED'].includes(charge?.status ?? '')
 }

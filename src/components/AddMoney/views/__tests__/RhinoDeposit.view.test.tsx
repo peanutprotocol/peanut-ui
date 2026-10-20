@@ -129,6 +129,35 @@ describe('RhinoDepositView after a short deposit', () => {
         await waitFor(() => expect(rhinoApi.resetDepositAddressStatus).toHaveBeenCalledWith(DEPOSIT_ADDRESS))
     })
 
+    // Rhino can report a top-up before the API books it; the read-back then
+    // ends with the card still short, and the next transfer must be seen too.
+    it('clears the status again after each read-back that leaves the card short', async () => {
+        const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        const view = (isConfirming: boolean) => (
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <RhinoDepositView
+                        headerTitle="Pay"
+                        chainType="EVM"
+                        setChainType={jest.fn()}
+                        depositAddressData={depositAddressData}
+                        isDepositAddressDataLoading={false}
+                        onSuccess={jest.fn()}
+                        amount={58.51}
+                        shortDeposit={shortDeposit}
+                        isConfirming={isConfirming}
+                    />
+                </QueryClientProvider>
+            </IntlWrapper>
+        )
+        const { rerender } = render(view(false))
+        await waitFor(() => expect(rhinoApi.resetDepositAddressStatus).toHaveBeenCalledTimes(1))
+
+        rerender(view(true))
+        rerender(view(false))
+        await waitFor(() => expect(rhinoApi.resetDepositAddressStatus).toHaveBeenCalledTimes(2))
+    })
+
     it('leaves the status alone, and shows no Done, on an ordinary deposit', () => {
         renderView(58.51, { showUserCard: true })
         expect(rhinoApi.resetDepositAddressStatus).not.toHaveBeenCalled()

@@ -342,8 +342,13 @@ export function useContributePotFlow() {
         let shortDeposit = false
         if (charge) {
             setIsLoading(true)
+            // A top-up on a charge that already completed short: Rhino reports
+            // the transfer before the API books it, so a COMPLETED read counts
+            // only once the settled amount has moved.
+            const settledBefore = charge.status === 'COMPLETED' ? (charge.settledAmount ?? null) : undefined
             const { charge: booked, outcome } = await readChargeUntilFinal(() => fetchCharge(charge.uuid), {
                 isCancelled: () => hasLeftScreenRef.current,
+                settledBefore,
             })
             setIsLoading(false)
             // the payer left the deposit screen meanwhile: a late result navigates nowhere

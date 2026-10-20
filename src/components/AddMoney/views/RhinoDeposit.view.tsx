@@ -76,16 +76,18 @@ const RhinoDepositView = ({
     const amountLimitsTitle = chainType === 'EVM' ? t('evmNetworks') : NETWORK_LABELS[chainType]
 
     // Rhino reports one deposit per address, and its status stays "completed"
-    // until it is cleared: after a short deposit, the same clear the market-moved
-    // retry uses re-arms the poll for the rest.
+    // until it is cleared. After a short deposit, the same clear the
+    // market-moved retry uses re-arms the poll for the rest, and again after
+    // every read-back that leaves the card short: a top-up Rhino reported
+    // before the API booked it must not leave the next transfer unseen.
     const shortDepositReceived = shortDeposit?.received
     useEffect(() => {
-        if (shortDepositReceived === undefined) return
+        if (shortDepositReceived === undefined || isConfirming) return
         resetStatus().catch(() => {
             // the clear failed: the next transfer still books on the backend,
             // and the payer finds it in Activity
         })
-    }, [shortDepositReceived, resetStatus])
+    }, [shortDepositReceived, isConfirming, resetStatus])
 
     /*
      * Fixed-amount flows (request payments pass `amount`) below the chain's SDA
