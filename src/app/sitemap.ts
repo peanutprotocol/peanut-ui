@@ -12,6 +12,7 @@ import {
     PAYMENT_METHOD_SLUGS,
 } from '@/data/seo'
 import { SUPPORTED_LOCALES } from '@/i18n/config'
+import { CONTENT_TOPICS } from '@/lib/content-topic-types'
 import {
     contentGeneratedAt,
     hasCorridorContent,
@@ -275,6 +276,13 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             priority: 0.7 * basePriority,
             changeFrequency: 'weekly',
         })
+        for (const topic of CONTENT_TOPICS) {
+            pages.push({
+                path: `/${locale}/content/${topic}`,
+                priority: 0.7 * basePriority,
+                changeFrequency: 'weekly',
+            })
+        }
         for (const slug of listContentSlugs('blog')) {
             if (slug === 'index') continue
             if (!hasPageContent('blog', slug, locale)) continue

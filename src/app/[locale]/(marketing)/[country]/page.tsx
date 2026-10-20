@@ -3,7 +3,7 @@ import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { COUNTRIES_SEO, getCountryName } from '@/data/seo'
 import { SUPPORTED_LOCALES, isValidLocale, getBareAlternatesFor } from '@/i18n/config'
-import { getTranslations } from '@/i18n'
+import { getTranslations, t } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import {
     availableContentLocales,
@@ -12,6 +12,8 @@ import {
     type ContentFrontmatter,
 } from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
+import { listCountryGuides } from '@/lib/content-topics'
+import { ContentGuideList } from '@/components/Marketing/ContentGuideList'
 
 interface PageProps {
     params: Promise<{ locale: string; country: string }>
@@ -85,6 +87,11 @@ export default async function CountryHubPage({ params }: PageProps) {
             }
         >
             {content}
+            <ContentGuideList
+                items={listCountryGuides(country, locale)}
+                locale={locale}
+                heading={t(i18n.contentCountryGuides, { country: countryName })}
+            />
         </ContentPage>
     )
 }
