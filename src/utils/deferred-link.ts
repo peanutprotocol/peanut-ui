@@ -37,6 +37,12 @@ import {
 // (utm_source=google-play&utm_medium=organic)
 const MARKER = 'pnutdl'
 const ATTRIBUTION_PARAM = 'at'
+// the web visitor's anonymous PostHog distinct id, so the app can link its own
+// anonymous id to the browser journey that led to the install
+const WEB_ANALYTICS_ID_PARAM = 'wid'
+// posthog-js generates anonymous distinct ids as UUIDs; anything else (a user
+// id, cookieless mode, a tampered payload) never crosses
+const ANALYTICS_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 export const MAX_PLAY_REFERRER_LENGTH = 512
 export const CONSUMED_KEY = 'deferredLinkConsumed'
 
@@ -65,6 +71,8 @@ export interface DeferredPayload {
     campaign?: string
     /** Durable marketing-attribution context from the web journey. */
     attribution?: SignupAttributionContext
+    /** The web visitor's anonymous PostHog distinct id — a random UUID, never a user id. */
+    webDistinctId?: string
     dest?: string
 }
 
@@ -201,6 +209,22 @@ export async function readInstallReferrer(): Promise<string | null> {
 // ---------------------------------------------------------------------------
 
 /**
+ * the browser's anonymous PostHog distinct id, or null. a signed-in visitor's
+ * distinct id is their user id: that never rides (the app links them on login),
+ * so the clipboard and the Play referrer only ever carry a random UUID.
+ */
+function webAnalyticsId(): string | null {
+    try {
+        if (posthog._isIdentified()) return null
+        const id = posthog.get_distinct_id()
+        return typeof id === 'string' && ANALYTICS_ID_PATTERN.test(id) ? id : null
+    } catch {
+        // PostHog not initialised (no key, payment explorer, tests)
+        return null
+    }
+}
+
+/**
  * strips a leading marketing locale segment (/es-419/claim/X → /claim/X).
  * locale-prefixed routes only exist on the web — in the native static export
  * they 404, so they must never survive into a dest. query/hash split off
@@ -289,6 +313,9 @@ export function buildDeferredPayload(dest?: string, invite?: string, store: 'and
     const attribution = readSignupAttribution()
     if (attribution) params.set(ATTRIBUTION_PARAM, serializeAttributionHandoff(attribution))
 
+    const webDistinctId = webAnalyticsId()
+    if (webDistinctId) params.set(WEB_ANALYTICS_ID_PARAM, webDistinctId)
+
     // a page whose url carries the claim secret in the fragment (#p=) must not
     // ride as a default dest: the fragment never rides (by design), so the
     // restored claim page would render unclaimable. the working path is the
@@ -316,6 +343,11 @@ export function buildDeferredPayload(dest?: string, invite?: string, store: 'and
         // A destination can be reopened from the original link. Preserve
         // referral and badge identities before optional marketing evidence.
         params.delete('dest')
+    }
+
+    if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
+        // Analytics-only: the install still works and keeps its campaign.
+        params.delete(WEB_ANALYTICS_ID_PARAM)
     }
 
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
@@ -391,11 +423,13 @@ export function parseDeferredPayload(raw: string): DeferredPayload | null {
     const badgeCampaigns = badgeCampaignIdentitiesFromDeferredSearchParams(params)
     const attribution =
         parseAttributionHandoff(params.get(ATTRIBUTION_PARAM)) ?? parseSignupAttribution(params.get('attribution'))
+    const webDistinctId = pick(WEB_ANALYTICS_ID_PARAM)
     return {
         lang: pick('lang'),
         invite: pick('invite'),
         badgeCampaigns: badgeCampaigns.length > 0 ? badgeCampaigns : undefined,
         attribution: attribution ?? undefined,
+        webDistinctId: webDistinctId && ANALYTICS_ID_PATTERN.test(webDistinctId) ? webDistinctId : undefined,
         dest: pick('dest'),
     }
 }
@@ -554,6 +588,7 @@ async function doRestore(): Promise<RestoredContext | null> {
     // Keep the legacy event shape for old payloads, while making attribution
     // presence observable for the new hand-off contract.
     if (payload.attribution) restoreFields.has_attribution = true
+    if (payload.webDistinctId) restoreFields.has_web_identity = true
     captureRestore(channel, DEFERRED_LINK_OUTCOMES.RESTORED, restoreFields)
 
     // Register only after the privacy-preserving restore event above. The
@@ -562,6 +597,15 @@ async function doRestore(): Promise<RestoredContext | null> {
     if (payload.attribution && typeof posthog.register === 'function') {
         try {
             posthog.register(signupAttributionPosthogProperties(readSignupAttribution()))
+        } catch {}
+    }
+
+    // Link the web visitor to this app install, so PostHog merges the browser
+    // journey into the app person — and into the user when they sign up or
+    // log in here. After the restore event: the event belongs to the app.
+    if (payload.webDistinctId) {
+        try {
+            if (payload.webDistinctId !== posthog.get_distinct_id()) posthog.alias(payload.webDistinctId)
         } catch {}
     }
 
