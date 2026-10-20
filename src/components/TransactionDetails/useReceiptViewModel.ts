@@ -300,6 +300,9 @@ export function useReceiptViewModel(
             !isPendingSentLink &&
             !isPendingRequester &&
             !isPendingRequestee &&
+            // a verification deposit only confirms an account elsewhere: no
+            // PDF, no share and no public link (TASK-23245)
+            transaction.extraDataForDrawer?.depositKind !== 'verification' &&
             // no document affordance where the document cannot be fetched
             hasResolvableReceiptDocument(transaction),
         [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee]

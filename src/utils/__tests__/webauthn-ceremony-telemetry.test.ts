@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 const capture = jest.fn()
 
 jest.mock('posthog-js', () => ({
@@ -101,6 +103,25 @@ describe('webauthn ceremony telemetry', () => {
         })
         expect(ceremonies[0]).not.toHaveProperty('message')
         expect(ceremonies[1]).toMatchObject({ outcome: 'ok' })
+    })
+
+    it('records the platform code of an ambiguous refusal, never the message', async () => {
+        const error = Object.assign(
+            new Error(
+                'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1000.)'
+            ),
+            { name: 'NotAllowedError' }
+        )
+        create.mockRejectedValueOnce(error)
+        await expect(withCeremonyPurpose('registration', () => navigator.credentials.create({}))).rejects.toBe(error)
+        const [ceremony] = events('webauthn_ceremony')
+        expect(ceremony).toMatchObject({
+            outcome: 'error',
+            error_code: 'LOGIN_CANCELED',
+            native_error_code: 'AuthorizationError:1000',
+        })
+        expect(ceremony.native_reason).toBeUndefined()
+        expect(JSON.stringify(ceremony)).not.toContain('operation couldn')
     })
 
     it('counts every ceremony a flow triggered — the 2-vs-3 prompt question', async () => {

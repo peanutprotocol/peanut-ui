@@ -1,4 +1,6 @@
 'use client'
+import { useNativePlatform } from '@/utils/native-platform'
+import { useAppOrigin } from '@/hooks/useAppOrigin'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -25,7 +27,7 @@ import { type TransactionDetails } from './transactionTransformer'
 import { hasReceiptPage, isRequestEntry, isSendLinkEntry, isSplittable } from './transaction-predicates'
 import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
-import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
+import { openExternalUrl } from '@/utils/capacitor'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { getReceiptUrl, isTestTransaction } from '@/utils/history.utils'
 import { resolveInAppNavigation } from '@/utils/native-routes'
@@ -69,6 +71,8 @@ export function ReceiptActions({
     onClose?: () => void
     setIsModalOpen?: (isModalOpen: boolean) => void
 }) {
+    const native = useNativePlatform()
+    const origin = useAppOrigin()
     const t = useAppTranslations('transaction')
     const locale = useLocale()
     const router = useRouter()
@@ -87,7 +91,7 @@ export function ReceiptActions({
     // the dedicated receipt-page kinds offer a link, as a secondary copy row.
     const kind = transaction.extraDataForDrawer?.kind
     const hasPublicReceiptPage = hasReceiptPage(transaction)
-    const receiptPageUrl = hasPublicReceiptPage ? getReceiptUrl(transaction) : undefined
+    const receiptPageUrl = hasPublicReceiptPage ? getReceiptUrl(transaction, origin) : undefined
     const canCopyLink = vm.shouldShowShareReceipt && !!receiptPageUrl
     const canSharePdf = vm.shouldShowShareReceipt && vm.shouldShowDownloadPdf && !!kind
     const canDownloadPdf = vm.shouldShowDownloadPdf && !!kind
@@ -222,7 +226,7 @@ export function ReceiptActions({
             // public-capability kinds keep their pre-existing url download —
             // anchor on web, system browser on native, no bearer, no wait.
             // only private kinds use the authenticated file hook.
-            const downloadViaUrl = hasPublicReceiptPage && !isCapacitor()
+            const downloadViaUrl = hasPublicReceiptPage && !native.isCapacitor
             moreActions.push({
                 icon: 'download',
                 title: t('actions.downloadPdf'),

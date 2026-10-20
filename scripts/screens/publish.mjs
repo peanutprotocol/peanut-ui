@@ -256,6 +256,7 @@ export async function publishReport({
                     ? { profile: `${after.width}x${after.height}` }
                     : {}),
                 complete: report.complete,
+                ...(report.scope ? { scope: report.scope, scopeComplete: report.scopeComplete } : {}),
                 sequence: Number(env.DEV_SEQUENCE ?? 0),
                 attempt: Number(env.RUN_ATTEMPT ?? 0),
                 captureAttempt: Number(env.CAPTURE_ATTEMPT ?? 0),

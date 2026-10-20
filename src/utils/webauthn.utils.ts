@@ -80,6 +80,19 @@ export enum WebAuthnErrorName {
     NotSupported = 'NotSupportedError',
 }
 
+/**
+ * true when an earlier passkey prompt still owns the authenticator: our own
+ * CeremonyConflictError by name, iOS InvalidStateError "another passkey request
+ * is already in progress" and chromium "a request is already pending" by
+ * message. the sdk may wrap it, so one level of `cause` is read too.
+ */
+export function isPasskeyBusyError(error: unknown): boolean {
+    for (let e: unknown = error, depth = 0; e instanceof Error && depth < 2; e = e.cause, depth++) {
+        if (e.name === 'CeremonyConflictError' || /already (in progress|pending)/i.test(e.message)) return true
+    }
+    return false
+}
+
 export type PasskeyErrorClassification = { code: PasskeyErrorCode; message: string }
 
 // Curated copy keyed by code. Never surface raw error.message / server bodies to
@@ -405,6 +418,13 @@ export async function withWebAuthnRetry<T>(
 }
 
 /**
+ * Help-drawer key, not a WebAuthn error name. iOS reports a passkey it refused
+ * to save (iCloud Passwords off) the same way as a dismissed sheet, so repeated
+ * cancels on one signup step open this.
+ */
+export const PASSKEY_NOT_SAVED_HELP = 'PasskeyNotSaved'
+
+/**
  * Platform-specific troubleshooting steps for common issues
  *
  * IMPORTANT: These are suggestions based on community reports, not official fixes
@@ -442,6 +462,7 @@ export const PASSKEY_TROUBLESHOOTING_STEPS = {
             'turnOffVpn',
             'restartDevice',
         ],
+        [PASSKEY_NOT_SAVED_HELP]: ['openAppleAccount', 'turnOnIcloudPasswords', 'setPasscode', 'unlockPasswordManager'],
     },
     web: {
         // generic fallback for desktop/unsupported platforms

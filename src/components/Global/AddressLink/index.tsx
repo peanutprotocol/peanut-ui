@@ -1,7 +1,7 @@
 import { printableAddress, isCryptoAddress } from '@/utils/general.utils'
 import { normalizeEnsName } from '@/utils/ens-name.utils'
 import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
-import { isCapacitor } from '@/utils/capacitor'
+import { useNativePlatform } from '@/utils/native-platform'
 import { recipientPayUrl } from '@/utils/native-routes'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Link from 'next/link'
@@ -21,6 +21,7 @@ interface AddressLinkProps {
 }
 
 const AddressLink = ({ address, className = '', isLink = true, inline = false }: AddressLinkProps) => {
+    const native = useNativePlatform()
     const [displayAddress, setDisplayAddress] = useState<string>(
         isCryptoAddress(address) ? printableAddress(address) : address
     )
@@ -45,7 +46,7 @@ const AddressLink = ({ address, className = '', isLink = true, inline = false }:
     // All identifiers go to the recipient route — /{identifier} on web,
     // /send?recipient= on native (the catch-all is pruned there, and _blank
     // is a dead tap in the WebView).
-    const url = recipientPayUrl(urlAddress)
+    const url = recipientPayUrl(urlAddress, native.isCapacitor)
 
     if (!isLink) {
         return <span className={className}>{displayAddress}</span>
@@ -54,7 +55,7 @@ const AddressLink = ({ address, className = '', isLink = true, inline = false }:
         return (
             <Link
                 href={url}
-                {...(!isCapacitor() && { target: '_blank', rel: 'noopener noreferrer' })}
+                {...(!native.isCapacitor && { target: '_blank', rel: 'noopener noreferrer' })}
                 className={twMerge('cursor-pointer underline', className)}
             >
                 {displayAddress}
@@ -62,7 +63,7 @@ const AddressLink = ({ address, className = '', isLink = true, inline = false }:
         )
     }
     return (
-        <LinkButton href={url} external={!isCapacitor()} className={className}>
+        <LinkButton href={url} external={!native.isCapacitor} className={className}>
             {displayAddress}
         </LinkButton>
     )

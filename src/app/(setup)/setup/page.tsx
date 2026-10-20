@@ -1,5 +1,6 @@
 'use client'
 
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import Loading from '@/components/Global/Loading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import { type ScreenId } from '@/components/Setup/Setup.types'
@@ -122,10 +123,13 @@ function SetupPageContent() {
     const inviteCodeParam = searchParams.get('code')
     const legacyStepParam = searchParams.get('step')
     const searchParamsString = searchParams.toString()
-    const signupEntryFlow = useMemo(() => {
-        const explicitRedirect = new URLSearchParams(searchParamsString).get('redirect_uri')
-        return resolveSignupEntryFlow(explicitRedirect, explicitRedirect === null ? getStoredRedirect() : null)
-    }, [searchParamsString])
+    const signupEntryFlow = useHydrationSnapshot(
+        () => {
+            const explicitRedirect = new URLSearchParams(searchParamsString).get('redirect_uri')
+            return resolveSignupEntryFlow(explicitRedirect, explicitRedirect === null ? getStoredRedirect() : null)
+        },
+        () => resolveSignupEntryFlow(new URLSearchParams(searchParamsString).get('redirect_uri'), null)
+    )
     useEffect(() => setSignupEntryFlow(signupEntryFlow), [setSignupEntryFlow, signupEntryFlow])
     const urlBadgeCampaigns = useMemo(
         () => badgeCampaignsFromSearchParams(new URLSearchParams(searchParamsString)),
@@ -360,9 +364,9 @@ function SetupPageContent() {
             // route a returning user past Landing onto Signup (regression from PR #2346).
             /*
              * ?code= arrives from an /invite deep link (native maps
-             * peanut.me/invite?code=X here — see native-routes.ts). Persist it
-             * as the same session cookie the web InvitesPage writes, so it
-             * survives the multi-step signup and reaches registration.
+             * peanut.me/invite?code=X here — see native-routes.ts). Stash it
+             * like the web InvitesPage does, so it survives the multi-step
+             * signup and reaches registration.
              */
             const codeFromUrl = inviteCodeParam
             if (codeFromUrl && toInviteCode(codeFromUrl)) {

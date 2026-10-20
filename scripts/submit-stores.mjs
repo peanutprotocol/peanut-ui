@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 // Submits a tagged store build that is already on the tester tracks:
 //   ios      TestFlight build → App Store review, released automatically on approval
-//   android  Play `internal` release → `production`
+//   android  Play `internal` release → `production` track; a person still publishes it in the Play Console
 //
 // The release pipeline stops at the tester tracks so people can smoke test the
 // exact binary first (ops/releases.md step 18). This replaces the console clicks
-// that follow. It never uploads a binary; it only moves the one that is there.
+// that follow, except the Play publish. It never uploads a binary; it only moves
+// the one that is there.
 //
 // Usage:
 //   node scripts/submit-stores.mjs ios --version 1.14.0 [--dry-run] [--whats-new <text>]
@@ -27,12 +28,14 @@ const BUNDLE_ID = 'me.peanut.wallet'
 const PACKAGE_NAME = 'me.peanut.wallet'
 const PLAIN_SEMVER = /^\d+\.\d+\.\d+$/
 
-// Shown when nobody typed release notes. Keyed by language prefix of the
-// App Store localization; anything else gets English.
+// Shown when nobody typed release notes: the fixed store text from
+// ops/releases.md "Release notes". Keyed by language prefix of the App Store
+// localization; anything else gets English. Add feature lines below the fixed
+// text only for a big feature release, and remove them again after it ships.
 const DEFAULT_WHATS_NEW = {
-    en: 'Bug fixes and improvements.',
-    es: 'Corrección de errores y mejoras.',
-    pt: 'Correções de erros e melhorias.',
+    en: 'Small fixes under the hood. Paying by QR, sending money and keeping a balance in dollars all work a little better in this version.',
+    es: 'Pequeños ajustes por dentro. Guardar dólares, pagar con QR y enviar dinero funciona un poco mejor en esta versión.',
+    pt: 'Pequenos ajustes nos bastidores. Guardar dólares, pagar com Pix e enviar dinheiro funcionam um pouco melhor nesta versão.',
 }
 
 // App Store versions that can still take a build and be submitted.
@@ -316,14 +319,16 @@ async function submitAndroid({ version, dryRun, whatsNew, rollout }) {
         }
         log(`internal ${version}: versionCode ${versionCodes.join(',')}; production now ${newestLive || 'empty'}`)
         if (dryRun) {
-            log(`would release ${version} to production, ${status}${rollout < 1 ? ` at ${rollout * 100}%` : ''}`)
+            log(
+                `would move ${version} to the Play production track, ${status}${rollout < 1 ? ` at ${rollout * 100}%` : ''}; it then needs a manual publish in the Play Console`
+            )
             await play('DELETE', `/edits/${edit.id}`)
             return
         }
         await play('PUT', `/edits/${edit.id}/tracks/production`, { track: 'production', releases: [release] })
         await play('POST', `/edits/${edit.id}:commit`)
         log(
-            `released ${version} to Play production (${status}${rollout < 1 ? `, ${rollout * 100}%` : ''}); Google reviews it before users get it`
+            `moved ${version} to the Play production track (${status}${rollout < 1 ? `, ${rollout * 100}%` : ''}). Not published yet: publish it by hand in the Play Console; Google reviews it after that`
         )
     } catch (error) {
         // An uncommitted edit blocks nothing, but leaving one is untidy; a failed

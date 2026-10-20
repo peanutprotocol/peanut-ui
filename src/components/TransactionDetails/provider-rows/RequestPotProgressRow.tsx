@@ -16,6 +16,10 @@ export function RequestPotProgressRow({ transaction }: { transaction: Transactio
     const potGoal = transaction.isRequestPotLink ? Number(transaction.amount) : 0
     const potCollected = Number(transaction.totalAmountCollected ?? 0)
     if (!transaction.isRequestPotLink || potGoal <= 0) return null
+    // A settled request has nothing left to pay, even when it closed a few cents
+    // short in USD: a request asked in another currency settles on what was sent.
+    const isSettled = transaction.status === 'completed'
+    const potRemaining = isSettled ? 0 : Math.max(potGoal - potCollected, 0)
 
     return (
         <div className="flex w-full flex-col gap-2 py-3">
@@ -25,7 +29,7 @@ export function RequestPotProgressRow({ transaction }: { transaction: Transactio
                 </span>
                 <span className="text-foreground-secondary">
                     {tGlobal('progressBar.remaining', {
-                        amount: `$${formatCurrency(Math.max(potGoal - potCollected, 0).toString())}`,
+                        amount: `$${formatCurrency(potRemaining.toString())}`,
                     })}
                 </span>
             </div>
@@ -34,7 +38,7 @@ export function RequestPotProgressRow({ transaction }: { transaction: Transactio
                 ProgressBar is off-board for receipts */}
             <progress
                 className="h-1 w-full appearance-none overflow-hidden rounded-full bg-background-disabled [&::-moz-progress-bar]:bg-action-primary [&::-webkit-progress-bar]:bg-background-disabled [&::-webkit-progress-value]:bg-action-primary"
-                value={Math.min(potCollected, potGoal)}
+                value={isSettled ? potGoal : Math.min(potCollected, potGoal)}
                 max={potGoal}
             />
         </div>

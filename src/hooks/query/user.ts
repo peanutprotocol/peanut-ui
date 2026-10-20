@@ -8,6 +8,7 @@ import { apiFetch } from '@/utils/api-fetch'
 import { clearAuthToken, getAuthToken, getClearEpoch, setAuthToken } from '@/utils/auth-token'
 import { isDemoMode } from '@/utils/demo'
 import { DEMO_USER } from '@/constants/demo-data'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 
 // custom error class for backend errors (5xx) that should trigger retry
 export class BackendError extends Error {
@@ -20,6 +21,7 @@ export class BackendError extends Error {
 }
 
 export const useUserQuery = (dependsOn: boolean = true) => {
+    const demoMode = useHydrationSnapshot(isDemoMode, () => false)
     const { deviceType } = useDeviceType()
 
     const fetchUser = async ({ signal }: { signal: AbortSignal }): Promise<IUserProfile | null> => {
@@ -121,6 +123,6 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         // null on first render — prevents the protected-route layout racing a
         // /setup redirect before the query settles. (Was the redux user
         // slice's initialState seed — TASK-21462.)
-        placeholderData: isDemoMode() ? DEMO_USER : undefined,
+        placeholderData: demoMode ? DEMO_USER : undefined,
     })
 }

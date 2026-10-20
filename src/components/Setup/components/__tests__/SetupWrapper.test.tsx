@@ -1,4 +1,6 @@
 /** @jest-environment jsdom */
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * Setup chrome: the back chevron must inherit currentColor (the nav circle button
  * inverts on hover/active, and a hard-coded black stroke vanished into it).

@@ -231,5 +231,21 @@ describe('RequestBankInstructions', () => {
             expect(screen.queryByText(/can pay this/)).not.toBeInTheDocument()
             expect(screen.queryByText(/may be returned/)).not.toBeInTheDocument()
         })
+
+        // A euro transfer from an account in another name can be returned, so
+        // the payer reads the caveat the requester's shared text carries.
+        it('tells a euro payer to pay from an account in their own name', () => {
+            renderInstructions('EUR', 'bridge.sepa_eu')
+
+            expect(
+                screen.getByText(/A euro transfer from an account in another name can be returned/)
+            ).toBeInTheDocument()
+        })
+
+        it('keeps the euro caveat off other corridors', () => {
+            renderInstructions('USD', 'bridge.ach_us')
+
+            expect(screen.queryByText(/A euro transfer from an account in another name/)).not.toBeInTheDocument()
+        })
     })
 })

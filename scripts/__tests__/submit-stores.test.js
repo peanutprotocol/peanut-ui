@@ -123,7 +123,9 @@ describe('submit-stores ios', () => {
         const created = fake.calls.find((c) => c.key === 'POST /v1/appStoreVersions').body.data.attributes
         expect(created).toEqual({ platform: 'IOS', versionString: '1.14.0', releaseType: 'AFTER_APPROVAL' })
         const pt = fake.calls.find((c) => c.key === 'PATCH /v1/appStoreVersionLocalizations/loc-pt').body
-        expect(pt.data.attributes.whatsNew).toBe('Correções de erros e melhorias.')
+        expect(pt.data.attributes.whatsNew).toBe(
+            'Pequenos ajustes nos bastidores. Guardar dólares, pagar com Pix e enviar dinheiro funcionam um pouco melhor nesta versão.'
+        )
         const submit = fake.calls.find((c) => c.key === 'PATCH /v1/reviewSubmissions/sub-1').body
         expect(submit.data.attributes).toEqual({ submitted: true })
     })
@@ -257,6 +259,7 @@ describe('submit-stores android', () => {
         const result = await run(['android', '--version', '1.14.0'], androidEnv(fake.base))
         expect(result.stderr).toBe('')
         expect(result.status).toBe(0)
+        expect(result.stdout).toContain('Not published yet: publish it by hand in the Play Console')
         expect(writes(fake.calls)).toEqual([
             'POST /token',
             `POST ${PLAY}/edits`,
@@ -271,7 +274,12 @@ describe('submit-stores android', () => {
                     name: '1.14.0',
                     versionCodes: ['45'],
                     status: 'completed',
-                    releaseNotes: [{ language: 'en-US', text: 'Bug fixes and improvements.' }],
+                    releaseNotes: [
+                        {
+                            language: 'en-US',
+                            text: 'Small fixes under the hood. Paying by QR, sending money and keeping a balance in dollars all work a little better in this version.',
+                        },
+                    ],
                 },
             ],
         })
@@ -296,7 +304,7 @@ describe('submit-stores android', () => {
         fake = await startServer(androidRoutes({ production: liveProduction }))
         const result = await run(['android', '--version', '1.14.0', '--dry-run'], androidEnv(fake.base))
         expect(result.status).toBe(0)
-        expect(result.stdout).toContain('would release 1.14.0 to production')
+        expect(result.stdout).toContain('would move 1.14.0 to the Play production track')
         expect(writes(fake.calls)).toEqual(['POST /token', `POST ${PLAY}/edits`, `DELETE ${PLAY}/edits/edit-1`])
     })
 

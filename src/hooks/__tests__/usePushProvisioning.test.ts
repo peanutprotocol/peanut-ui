@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { renderHook, act, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { usePushProvisioning } from '@/hooks/usePushProvisioning'

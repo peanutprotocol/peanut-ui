@@ -7,13 +7,16 @@ export type NativePasskeyFailure =
     | 'biometry_required'
     | 'authorization_failed'
 
+function messageOf(error: unknown): string {
+    return typeof error === 'string'
+        ? error
+        : error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
+          ? error.message
+          : ''
+}
+
 export function nativePasskeyFailure(error: unknown): NativePasskeyFailure | undefined {
-    const message =
-        typeof error === 'string'
-            ? error
-            : error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
-              ? error.message
-              : ''
+    const message = messageOf(error)
     // Specific platform reasons precede the plugin's generic NotAllowedError name.
     if (/Unable to verify webcredentials association of .+ with domain /i.test(message))
         return 'association_unavailable'
@@ -35,4 +38,17 @@ export function nativePasskeyFailure(error: unknown): NativePasskeyFailure | und
     )
         return 'canceled'
     return undefined
+}
+
+/**
+ * The platform's own error code, e.g. `AuthorizationError:1001` or `android:16`.
+ * The plugin reports most native refusals as NotAllowedError; this tells them
+ * apart without sending the platform message itself.
+ */
+export function nativeErrorCode(error: unknown): string | undefined {
+    const message = messageOf(error)
+    const apple = /\b(\w+Error) error (-?\d+)\b/.exec(message)
+    if (apple) return `${apple[1]}:${apple[2]}`
+    const android = /^\[(\d+)\]/.exec(message)
+    return android ? `android:${android[1]}` : undefined
 }

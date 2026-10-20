@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 // A failed OneSignal init used to stay failed (the adapter cached the rejection)
 // while every remount re-reported it. Native transient failures now retry on
 // the next online/foreground edge, a bounded number of times; permanent and

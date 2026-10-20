@@ -63,11 +63,11 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
     return (
         <section
             id="regulated-rails"
-            className="relative overflow-hidden bg-background-page py-20 text-foreground-primary"
+            className="relative overflow-hidden bg-background-page py-16 text-foreground-primary md:py-24"
         >
             <CloudsCss clouds={regulatedRailsClouds} />
 
-            <div className="relative max-w-5xl px-10 py-8 md:px-24 md:py-16">
+            <div className="relative mx-auto max-w-7xl px-6 pb-8 md:px-4 md:pb-16">
                 <AnimateOnView className="absolute -top-12 -right-72" delay="0.2s" x="5px" rotate="22deg">
                     <Image src={Star} alt="" width={50} height={50} />
                 </AnimateOnView>
@@ -75,7 +75,7 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
                     <Image src={Star} alt="" width={50} height={50} />
                 </AnimateOnView>
 
-                <h1 className="font-roboto-flex-extrabold text-left text-[3.25rem] !leading-[5rem] font-extraBlack md:text-6xl lg:text-headingMedium">
+                <h1 className="font-roboto-flex-extrabold text-left text-headingSmall font-extraBlack xs:text-heading md:text-headingMedium">
                     {i18n.landingRailsHeading}
                 </h1>
                 <p className="font-roboto-flex mt-6 text-left text-xl md:text-4xl">{i18n.landingRailsBody}</p>
@@ -99,10 +99,13 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
             </div>
 
             <div className="w-full">
-                <p className="mb-4 text-center text-body-s tracking-widest text-foreground-primary uppercase opacity-60">
+                <p className="mb-4 text-center text-body-s text-foreground-secondary uppercase">
                     {i18n.landingWorksWith}
                 </p>
-                <MarqueeWrapper backgroundColor="#FFFFFF" direction="right" className="border-none">
+                {/* The old raw white hex here was a dead class (the prop takes a
+                    Tailwind class), so this strip has always rendered on the
+                    section's cream — keep that look explicitly. */}
+                <MarqueeWrapper backgroundColor="bg-transparent" direction="right" className="border-none">
                     {logos.map((logo) => {
                         const mark = (
                             <Image

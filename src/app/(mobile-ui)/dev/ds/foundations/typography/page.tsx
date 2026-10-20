@@ -50,7 +50,7 @@ export default function TypographyPage() {
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Font Display" code='className="font-display"' />
+                    <CodeBlock label="Font Sans" code='className="font-sans"' />
                 </DocSection.Code>
             </DocSection>
 

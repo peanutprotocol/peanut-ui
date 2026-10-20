@@ -28,7 +28,7 @@ const wrapper = ({ children }: { children: ReactNode }) => {
     )
 }
 
-const renderNotice = () => render(<RequestFulfillmentNotice requestId="req-1" bankPayable={true} />, { wrapper })
+const renderNotice = () => render(<RequestFulfillmentNotice requestId="req-1" />, { wrapper })
 
 beforeEach(() => {
     jest.clearAllMocks()
@@ -172,7 +172,7 @@ describe('RequestFulfillmentNotice', () => {
             invalidate.mock.calls.filter(([filters]) => filters?.queryKey?.[0] === 'transactions').length
         await waitFor(() => expect(transactionRefreshes()).toBe(1))
 
-        rerender(<RequestFulfillmentNotice requestId="req-2" bankPayable={true} />)
+        rerender(<RequestFulfillmentNotice requestId="req-2" />)
         await waitFor(() => expect(getRequest).toHaveBeenCalledWith('req-2'))
         await waitFor(() => expect(transactionRefreshes()).toBe(2))
     })
@@ -231,12 +231,6 @@ describe('RequestFulfillmentNotice', () => {
         renderNotice()
         expect(await screen.findByText('Payment received')).toBeInTheDocument()
         expect(screen.getByText('Paid')).toBeInTheDocument()
-    })
-
-    it('also watches a request that shares no bank details', async () => {
-        render(<RequestFulfillmentNotice requestId="req-1" bankPayable={false} />, { wrapper })
-
-        await waitFor(() => expect(getRequest).toHaveBeenCalledWith('req-1'))
     })
 })
 

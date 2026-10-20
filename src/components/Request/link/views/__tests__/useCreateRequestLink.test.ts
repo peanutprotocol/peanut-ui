@@ -112,6 +112,7 @@ jest.mock('@/utils/general.utils', () => ({
     isNativeCurrency: () => false,
 }))
 jest.mock('@/utils/url.utils', () => ({
+    appBaseUrl: () => 'https://peanut.me',
     payLinkUrl: (path: string) => `https://peanut.me${path}`,
     shareableUrl: (path: string) => `https://peanut.me${path}`,
 }))

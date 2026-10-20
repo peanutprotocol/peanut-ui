@@ -110,9 +110,10 @@ const PlayOverlay = () => (
     </div>
 )
 
-/** Base card styles shared across all card types */
+/** Base card styles shared across all card types. The 4px shadow matches the
+ *  4px press translate — law 7: the press drops the card into its own shadow. */
 const CARD_BASE_CLASSES =
-    'shadow-primary-6 flex w-[280px] flex-shrink-0 flex-col overflow-hidden rounded-sm border-2 border-border-default bg-white transition-all duration-instant hover:brightness-95 active:translate-x-1 active:translate-y-1 active:shadow-none'
+    'shadow-4 flex w-[280px] flex-shrink-0 flex-col overflow-hidden rounded-sm border-2 border-border-default bg-white transition-all duration-instant hover:brightness-95 active:translate-x-1 active:translate-y-1 active:shadow-none'
 
 /** Featured card with media (photo or video) - tallest card type */
 const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {
@@ -342,9 +343,9 @@ const TweetCarousel = ({ strings }: { strings: LandingStrings }) => {
     if (columns.length === 0) return null
 
     return (
-        <section id="testimonials" className="w-full bg-background-brand pt-12 pb-10 md:pt-16 md:pb-14">
-            <div className="mx-auto max-w-7xl px-4 pb-8">
-                <h2 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack text-foreground-primary lg:text-headingMedium">
+        <section id="testimonials" className="w-full bg-background-brand py-16 md:py-24">
+            <div className="mx-auto max-w-7xl px-6 pb-8 md:px-4">
+                <h2 className="font-roboto-flex-extrabold text-center text-heading font-extraBlack text-foreground-primary md:text-headingMedium">
                     {strings.wallOfLove}
                 </h2>
                 <p className="mt-3 text-center text-body-m text-foreground-primary md:text-xl">

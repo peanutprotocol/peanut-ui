@@ -84,4 +84,11 @@ describe('localized copy hygiene', () => {
             locale === DEFAULT_LOCALE ? [] : closingKeys.filter((key) => marketing[locale][key] === marketing.en[key])
         expect({ missing, untranslated }).toEqual({ missing: [], untranslated: [] })
     })
+
+    // The closer sets its opening words as the Knerd lockup; an accent that no
+    // longer opens the headline silently drops the fold to plain display type.
+    it.each(SUPPORTED_LOCALES)('%s closing accent opens the closing headline', (locale) => {
+        const { landingClosingHeadline, landingClosingAccent } = marketing[locale]
+        expect(landingClosingHeadline.startsWith(landingClosingAccent)).toBe(true)
+    })
 })

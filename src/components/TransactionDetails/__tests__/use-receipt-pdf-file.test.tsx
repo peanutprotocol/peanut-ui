@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import React from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'

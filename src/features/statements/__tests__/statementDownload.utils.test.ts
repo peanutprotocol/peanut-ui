@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { downloadFailure, downloadStatement, prepareStatement, saveStatement } from '../statementDownload.utils'
 import { serverFetch } from '@/utils/api-fetch'
 import { isAndroidNativeBridge, isCapacitor } from '@/utils/capacitor'

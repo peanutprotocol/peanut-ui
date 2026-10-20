@@ -85,9 +85,10 @@ export const getFromCookie = (key: string) => {
     }
 }
 
-export const sanitizeRedirectURL = (redirectUrl: string): string | null => {
+export const sanitizeRedirectURL = (redirectUrl: string, browserOrigin?: string | null): string | null => {
+    if (browserOrigin === null) return null
     try {
-        const origin = window.location.origin
+        const origin = browserOrigin ?? window.location.origin
         const u = new URL(redirectUrl, origin)
         if (u.origin !== origin || u.username || u.password) return null
         // A same-origin URL can normalize to //host (e.g. /.//host).

@@ -1,5 +1,6 @@
 import { PEANUTMAN } from '@/assets/mascot'
 import { ANALYTICS_EVENTS, type ReferralSource } from '@/constants/analytics.consts'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import { appBaseUrl } from '@/utils/url.utils'
 import posthog from 'posthog-js'
@@ -21,10 +22,14 @@ export const BADGE_ASSET_FALLBACKS: Readonly<Record<string, string>> = badgeAsse
 export const BADGE_CODES: readonly string[] = Object.keys(BADGE_ASSET_FALLBACKS)
 
 // Mirror the backend catalog boundary during rolling deploys and for legacy DB
-// rows. Badge art is deliberately limited to stable same-origin public assets;
-// arbitrary remote, data, traversal, query, and fragment URLs never reach an
-// image renderer.
-const SAFE_BADGE_ICON_PATH = /^\/badges\/[A-Za-z0-9][A-Za-z0-9._-]*\.(?:svg|png|webp|avif)$/
+// rows. Badge art is limited to same-origin public assets and the API's own
+// badge art route; arbitrary remote, data, traversal, query, and fragment URLs
+// never reach an image renderer. The API form is accepted ahead of the backend
+// route so installed apps need no OTA when it ships.
+const ESCAPED_API_URL = PEANUT_API_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const SAFE_BADGE_ICON_PATH = new RegExp(
+    `^(?:${ESCAPED_API_URL}/badges/art|/badges)/[A-Za-z0-9][A-Za-z0-9._-]*\\.(?:svg|png|webp|avif)$`
+)
 
 /** Prefer safe backend presentation; fall back to legacy art, then generic art. */
 export function getBadgeIcon(code?: string, iconUrl?: string | null): string {
@@ -119,8 +124,12 @@ export function getBadgeDescription(description?: string | null): string | null 
 
 // The sharer's own invite link, so a guest signup credits them.
 // `generateInviteCodeLink` has no null guard — the ternary is load-bearing.
-export function getBadgeShareLink(username: string | null | undefined, source: ReferralSource): string {
-    return username ? generateInviteCodeLink(username, source).inviteLink : appBaseUrl()
+export function getBadgeShareLink(
+    username: string | null | undefined,
+    source: ReferralSource,
+    origin?: string
+): string {
+    return username ? generateInviteCodeLink(username, source, origin).inviteLink : appBaseUrl(origin)
 }
 
 // link_type reports what the share ACTUALLY carried: without a username the

@@ -1,5 +1,8 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import posthog from 'posthog-js'
 import {
+    isPasskeyBusyError,
     capturePasskeySignFailure,
     classifyPasskeyError,
     getPasskeyErrorSetupKey,
@@ -314,5 +317,27 @@ describe('normalizeNativePasskeyError', () => {
             name: 'CeremonyConflictError',
         })
         expect((normalizeNativePasskeyError(guardError) as Error).name).toBe('CeremonyConflictError')
+    })
+})
+
+describe('isPasskeyBusyError', () => {
+    it('matches an open prompt across platforms, wrapped or not', () => {
+        const ios = Object.assign(new Error('Another passkey request is already in progress'), {
+            name: 'InvalidStateError',
+        })
+        expect(isPasskeyBusyError(ios)).toBe(true)
+        expect(isPasskeyBusyError(new Error('A request is already pending.'))).toBe(true)
+        expect(isPasskeyBusyError(new Error('sign failed', { cause: ios }))).toBe(true)
+    })
+
+    it('matches our own CeremonyConflictError by name, whatever its message says', () => {
+        const conflict = Object.assign(new Error('ceremony busy'), { name: 'CeremonyConflictError' })
+        expect(isPasskeyBusyError(conflict)).toBe(true)
+        expect(isPasskeyBusyError(new Error('sign failed', { cause: conflict }))).toBe(true)
+    })
+
+    it('does not match other passkey failures', () => {
+        expect(isPasskeyBusyError(new Error('The operation either timed out or was not allowed'))).toBe(false)
+        expect(isPasskeyBusyError('already in progress')).toBe(false)
     })
 })

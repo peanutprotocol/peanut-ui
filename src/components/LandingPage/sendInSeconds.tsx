@@ -1,12 +1,14 @@
 import Image from 'next/image'
 import exclamations from '@/assets/illustrations/exclamations.svg'
 import Star from '@/assets/illustrations/star.svg'
+import Title from '@/components/0_Bruddle/Title'
 import { CloudsCss } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import { SendInSecondsCTA } from './SendInSecondsCTA'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { landingStrings } from './landingStrings'
+import { PROSE_WIDTH } from '@/components/Marketing/constants'
 
 const sendInSecondsClouds = [
     { top: '15%', width: 320, speed: '40s', direction: 'ltr' as const },
@@ -39,10 +41,27 @@ const starConfigs = [
 export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
     const i18n = getTranslations(locale)
 
+    // The hero composition (Konrad, 15 Oct): the opening 1-3 words stand as a
+    // Knerd lockup with the last word on its own line, and the rest of the
+    // headline sits under it in the display ramp, the way TAP. SCAN. ANYWHERE.
+    // sits under LOCAL FEEL. Punctuation touching the accent stays in the
+    // lockup. If a translation drifts so the accent no longer opens the
+    // headline, the fold renders the plain headline instead of mis-splitting it.
+    const headline = i18n.landingClosingHeadline
+    const accent = i18n.landingClosingAccent
+    const lockupEnd = headline.startsWith(accent)
+        ? accent.length + (headline.slice(accent.length).match(/^\S*/)?.[0].length ?? 0)
+        : -1
+    // below xs (390) the line steps down one more so "COMISIONES." fits the
+    // 272px column at 320. No font-extraBlack: heading-m carries its own
+    // weight, and font-roboto-flex-extrabold already sets 1000.
+    const displayClass =
+        'font-roboto-flex-extrabold block text-heading-m text-balance text-foreground-primary uppercase xs:text-headingSmall md:text-headingMedium'
+
     return (
         <section
             id="send-in-seconds"
-            className="relative overflow-hidden bg-yellow-500 px-4 py-16 text-foreground-primary md:py-32"
+            className="relative overflow-hidden bg-yellow-500 px-6 py-16 text-foreground-primary md:px-4 md:py-24"
         >
             <CloudsCss clouds={sendInSecondsClouds} />
 
@@ -69,14 +88,22 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
             />
 
             {/* Main content */}
-            <div className="relative mx-auto max-w-3xl text-center">
+            <div className={`relative mx-auto ${PROSE_WIDTH} text-center`}>
                 {/* Was an SVG with the words baked in, so it stayed English on every locale.
-                    Solid black KNERD, not the white Title: white letters vanish into the clouds.
-                    Mobile takes the small step: the longest es word, COMISIONES., fits 320px at 42px.
-                    KNERD accents reach 1.03em above the baseline, so leading stays at 1.1 or more
-                    (48px at 42px, 88px at 80px); tighter, the Á of EMPEZÁ lands in the line above. */}
-                <h2 className="mb-6 font-knerd-filled text-headingSmall leading-12 text-balance text-foreground-primary md:mb-10 md:text-headingMedium md:leading-22">
-                    {i18n.landingClosingHeadline}
+                    Each lockup line holds at most two words. The size steps keep the longest
+                    line, SEGUNDOS., inside the column: 42px at 320, 60px from 390, 112px from lg. */}
+                <h2 className="mb-6 flex flex-col items-center md:mb-10">
+                    {lockupEnd === -1 ? (
+                        <span className={displayClass}>{headline}</span>
+                    ) : (
+                        <>
+                            <Title
+                                text={headline.slice(0, lockupEnd).replace(/ (?=\S+$)/, '\n')}
+                                className="text-headingSmall xs:text-heading md:text-headingMedium lg:text-headingLarge"
+                            />
+                            <span className={`mt-4 md:mt-8 ${displayClass}`}>{headline.slice(lockupEnd).trim()}</span>
+                        </>
+                    )}
                 </h2>
 
                 <p className="mb-6 hidden font-roboto text-body-m text-balance md:mb-8 md:block md:text-heading-l">

@@ -3,7 +3,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { classifyPasskeyError } from '@/utils/webauthn.utils'
-import { nativePasskeyFailure, type NativePasskeyFailure } from './native-passkey-errors'
+import { nativeErrorCode, nativePasskeyFailure, type NativePasskeyFailure } from './native-passkey-errors'
 
 /**
  * Counts every WebAuthn ceremony the app actually asks for, and attributes each
@@ -52,6 +52,7 @@ export type CeremonyRecord = {
     outcome: 'ok' | 'error'
     errorName?: string
     errorCode?: string
+    nativeErrorCode?: string
     nativeReason?: NativePasskeyFailure
     allowCredentials?: number
     rpId?: string
@@ -152,6 +153,7 @@ function commit(record: CeremonyRecord): void {
             outcome: record.outcome,
             error_name: record.errorName,
             error_code: record.errorCode,
+            native_error_code: record.nativeErrorCode,
             native_reason: record.nativeReason,
             allow_credentials: record.allowCredentials,
             overlapped: record.overlapped,
@@ -180,6 +182,14 @@ function capture(event: string, properties: Record<string, unknown>): void {
 function safeErrorCode(error: unknown): string | undefined {
     try {
         return classifyPasskeyError(error)?.code
+    } catch {
+        return undefined
+    }
+}
+
+function safeNativeErrorCode(error: unknown): string | undefined {
+    try {
+        return nativeErrorCode(error)
     } catch {
         return undefined
     }
@@ -236,6 +246,7 @@ async function trace<T>(
             outcome: 'error',
             errorName: error instanceof Error ? error.name : 'unknown',
             errorCode: safeErrorCode(error),
+            nativeErrorCode: safeNativeErrorCode(error),
             nativeReason: safeNativeReason(error),
         })
         throw error

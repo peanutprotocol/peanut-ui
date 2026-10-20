@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * Restart-to-apply contract: the downloaded bundle survives a reload, a store-only update is
  * surfaced as such, and a rejected set() never strands the user on the old

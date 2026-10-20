@@ -26,6 +26,7 @@
  * rendered at all. Web is unaffected.
  */
 
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -85,7 +86,10 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
     const [failed, setFailed] = useState(false)
     const backgroundedAt = useRef<number | null>(null)
 
-    const credentialId = userId ? getUserPreferences(userId)?.webAuthnKey?.authenticatorId : undefined
+    const credentialId = useHydrationSnapshot(
+        () => (userId ? getUserPreferences(userId)?.webAuthnKey?.authenticatorId : undefined),
+        () => undefined
+    )
 
     // Close the gate on the first client paint, before anything protected can
     // render, then resolve the storage mode. Runs once — later transitions are

@@ -5,13 +5,14 @@ import { isCapacitor } from '@/utils/capacitor'
  *  current origin so staging stays on staging. In Capacitor the WebView origin is
  *  `https://localhost` (useless outside the app), so use the public BASE_URL there.
  *  Falls back to BASE_URL on SSR. */
-export function appBaseUrl(): string {
+export function appBaseUrl(origin?: string): string {
+    if (origin !== undefined) return origin
     return typeof window !== 'undefined' && !isCapacitor() ? window.location.origin : BASE_URL
 }
 
 /** Absolute URL for sharing. */
-export function shareableUrl(path: `/${string}`): string {
-    return `${appBaseUrl()}${path}`
+export function shareableUrl(path: `/${string}`, origin?: string): string {
+    return `${appBaseUrl(origin)}${path}`
 }
 
 /**
@@ -26,6 +27,6 @@ export function shareableUrl(path: `/${string}`): string {
  *
  * `path` is everything after `/pay` — it must start with a slash.
  */
-export function payLinkUrl(path: `/${string}`): string {
-    return shareableUrl(`/pay${path}`)
+export function payLinkUrl(path: `/${string}`, origin?: string): string {
+    return shareableUrl(`/pay${path}`, origin)
 }

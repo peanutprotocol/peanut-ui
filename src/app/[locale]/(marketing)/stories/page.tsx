@@ -5,7 +5,7 @@ import { getTranslations } from '@/i18n'
 import { notFound } from 'next/navigation'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { Hero } from '@/components/Marketing/mdx/Hero'
-import { PROSE_WIDTH } from '@/components/Marketing/constants'
+import { HUB_WIDTH } from '@/components/Marketing/constants'
 import { ContentLinkRow } from '@/components/Marketing/ContentLinkRow'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { isEnglishFallback } from '@/i18n/englishFallback'
@@ -70,7 +70,7 @@ export default async function StoriesIndexPage({ params }: PageProps) {
             ]}
         >
             <Hero title={i18n.storiesTitle} subtitle={i18n.storiesSubtitle} locale={locale} />
-            <div className={`mx-auto mt-10 mb-8 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
+            <div className={`mx-auto mt-10 mb-8 ${HUB_WIDTH} px-6 md:mt-12 md:px-4`}>
                 {stories.length === 0 ? (
                     <EmptyState icon="docs" title={i18n.noStoriesPublished} />
                 ) : (

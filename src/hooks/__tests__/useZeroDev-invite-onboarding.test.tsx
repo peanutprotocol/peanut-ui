@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { act, renderHook } from '@testing-library/react'
 import { useZeroDev } from '../useZeroDev'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -231,6 +233,11 @@ describe('useZeroDev registration invite boundary', () => {
             expect(mockSaveToCookie).not.toHaveBeenCalledWith('inviteCode', expect.anything(), expect.anything())
             expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ACCEPTED, expect.anything())
             expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, expect.anything())
+            expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ATTRIBUTION_SETTLED, {
+                trigger: 'registration',
+                status: 'campaign_only',
+                invite_type: 'PAYMENT_LINK',
+            })
             expect(mockCaptureException).not.toHaveBeenCalled()
             expect(mockSetWebAuthnKey).toHaveBeenCalledWith({ id: 'new-passkey' })
         }

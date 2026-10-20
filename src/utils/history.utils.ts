@@ -116,6 +116,14 @@ export interface HistoryEntryExtraData {
     // that summarises a request pot's contributors rather than an
     // individual fulfilment.
     isRequestPotRollup?: boolean
+    /** Request-pot rollups only: USD received by bank deposit, as a decimal
+     *  string. Already inside `totalAmountCollected`; sent apart so a rollup
+     *  repeated across history pages adds it once (`mergeRepeatedEntry`). */
+    receivedAmount?: string
+    /** Request rollups only: the requester opted in to payment by bank
+     *  transfer. Written by the API request rollup; the requester's drawer
+     *  gates on it before asking for the bank details. */
+    bankInstructionsShared?: boolean
 
     // Common fields
     link?: string
@@ -155,6 +163,19 @@ export interface HistoryEntryExtraData {
     /** Why a standing-account deposit went back to the payer, once the API
      *  knows. Owner-only. `text` is the provider's wording, for support. */
     returnReason?: { code: DepositReturnReasonCode; text: string | null } | null
+    /** A Bridge deposit that never reaches the balance (TASK-23245):
+     *  `verification` is a bank's account-check micro-deposit the user reads
+     *  and types into the other app; `below_minimum` is under the rail
+     *  minimum. Absent on every normal deposit. */
+    depositKind?: 'verification' | 'below_minimum'
+    /** The sender as the provider reported it, e.g. "CHARLES SCHWAB". */
+    senderName?: string | null
+    /** The exact amount and ISO currency the bank sent, shown instead of the
+     *  converted USD amount on the two deposit kinds above. */
+    depositAmount?: string | null
+    depositCurrency?: string | null
+    /** `below_minimum` only: the rail minimum, in `depositCurrency`. */
+    minimumAmount?: string | null
     /** What the payer wrote on a bank transfer into a deposit account.
      *  Third-party text, so the API sends it to the account owner only. */
     senderReference?: string | null
@@ -288,7 +309,7 @@ export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean
     return FINAL_STATES.includes(transaction.status)
 }
 
-export function getReceiptUrl(transaction: TransactionDetails): string | undefined {
+export function getReceiptUrl(transaction: TransactionDetails, origin?: string): string | undefined {
     const kind = transaction.extraDataForDrawer?.kind
     // Kinds whose receipt URL is the dedicated /receipt page (shareable,
     // OG-augmented). SEND_LINK is the deliberate extra over FIAT_RAIL_KINDS —
@@ -296,7 +317,7 @@ export function getReceiptUrl(transaction: TransactionDetails): string | undefin
     // the txHash branch in useReceiptViewModel, not hasShareableReceipt. All
     // other kinds fall back to the stamped link.
     if (kind && hasReceiptPage(transaction)) {
-        return shareableUrl(`/receipt/${transaction.id}?kind=${kind}`)
+        return shareableUrl(`/receipt/${transaction.id}?kind=${kind}`, origin)
     }
     if (transaction.extraDataForDrawer?.link) {
         return transaction.extraDataForDrawer.link

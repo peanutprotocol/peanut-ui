@@ -1,6 +1,5 @@
 jest.mock('next/font/google', () => ({
     Roboto_Flex: () => ({ variable: '--font-roboto' }),
-    Sniglet: () => ({ variable: '--font-sniglet' }),
 }))
 jest.mock('next/font/local', () => ({
     __esModule: true,

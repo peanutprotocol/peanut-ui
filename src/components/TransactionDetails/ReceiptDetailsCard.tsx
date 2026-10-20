@@ -94,7 +94,12 @@ export function ReceiptDetailsCard({
     const statusDate = receiptStatusDate(transaction)
     const statusDateLabel = (kind: ReceiptStatusDateKind) => {
         if (kind === 'claimed') return t('rows.claimed')
-        if (kind === 'cancelled') return t('rows.cancelled')
+        if (kind === 'cancelled') {
+            // a verification deposit went back to the sender: Returned, not Cancelled
+            return transaction.extraDataForDrawer?.depositKind === 'verification'
+                ? t('returnedStatus')
+                : t('rows.cancelled')
+        }
         // a deposit the bank sent back is Returned everywhere on the receipt,
         // never Refunded (design.md status words)
         if (kind === 'refunded') {

@@ -12,9 +12,28 @@ complete visual baseline; Nutcracker supplies integration evidence for the subse
 of states reachable through real journeys. Native system dialogs remain outside
 the library.
 
+Capture completeness applies to registered states. A PR that changes UI source
+but has zero visual differences in all four locale reports fails the Screen
+Library check, since the changed state may be absent from the catalogue. Add a
+deterministic scenario for that state. For an intentional nonvisual change, put
+`Screen Library exception: <reason>` on its own line in the PR description and
+rerun the check. Missing baseline images for newly registered states are marked
+as New only when the historical component harness is explicitly absent and the
+current capture succeeds. Missing historical route inventory or an unrelated
+capture failure still makes the comparison incomplete. The publisher keeps the
+report links visible when this coverage check fails.
+
 Gallery filters are URL-backed. Source, locale, search, flow, status, and
 all/changed mode are restored from the query string, so copying the browser URL
-shares the exact visible view.
+shares the exact visible view. PR comparison pages also offer **Show all
+variations**, initially on. Turn it off to show canonical page captures only;
+modal, drawer, toggle, special-fixture, and isolated component states stay in
+the all-variations view. This choice is shared as `scope=default`. New reports
+carry explicit `defaultScreen` classification. For immutable older reports,
+default-only mode includes recognized `pNN-*` page IDs except known variant IDs
+and names containing `modal`, `drawer`, `toggle`, or `fixture`; unknown IDs remain
+in all-variations mode. A direct screen anchor reveals its target even if the
+shared URL requested default-only mode.
 
 Opening a page does not cover its closed selectors. The catalogue includes
 separate open checkpoints for token and network drawers, residence countries,
@@ -29,6 +48,46 @@ drawer image resampling and text-edge noise without raising the pixel-difference
 threshold or masking the drawer. Harness changes require both revisions to be
 recaptured with the same capture code; immutable older reports retain their
 original images and comparisons.
+
+## Capture decisions and reuse
+
+The workflow classifies the immutable changed-file list before installing capture
+dependencies or a browser. Known documentation, test-only, unrelated workflow and
+gallery-viewer changes skip app screenshots. Capture code, fixtures, rendering
+configuration, global styles, fonts, assets, translations and the content
+submodule remain visual inputs. Unknown influence requires a full capture.
+
+For a PR with a provable local impact, the planner follows dependencies in both
+revisions and captures every registered state in the affected flows across all
+four locales. The trusted publisher recomputes this selection from the exact
+review revisions. The report declares its scope and remains globally incomplete;
+success in the selected scope does not claim that omitted screens were tested.
+Omitted states do not appear as removals. Missing states/locales still fail, and
+zero visual differences still need the existing explicit exception.
+
+Dev and main visual updates retain full after libraries. The before capture can
+be reused only from a trusted retained run at the exact previous revision, with
+compatible harness, fixtures, renderer, locale, viewport, adapter, origin and
+device and verified image hashes. Reuse preserves the original provenance. If a
+candidate is missing, expired, incomplete or incompatible, the workflow makes at
+most one fresh before capture per locale and records the reason. API failures
+remain visible unknown outcomes. A targeted PR capture cannot become a full
+integration baseline or move the full-library latest pointer.
+
+Harness identity uses tracked capture and stored-font inputs, excluding installed
+tools and generated files. Fixture identity follows the transitive local imports
+of the fixture registry, demo API and residence constants. A fixture dependency
+change invalidates reuse even when the registry itself did not change.
+
+Scoped execution activates only after the trusted dev publisher supports it;
+pre-merge callers retain a full-capture compatibility path. The additional
+viewport baseline schedule is unchanged. Manual captures remain a full-coverage
+escape hatch.
+
+Gallery-only dev updates use the same trusted, environment-bound gallery workflow
+without app captures. Index-only maintenance refreshes indexes without redeploying
+the gallery. Deployment is serialized; a newer docs-only commit does not suppress
+a queued viewer update, while newer gallery inputs prevent a stale deployment.
 
 ## Curated, on-demand collections
 

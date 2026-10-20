@@ -1,3 +1,4 @@
+import { useNativePlatform } from '@/utils/native-platform'
 import OnboardingAnimation from './OnboardingAnimation'
 import { SetupLanguageSwitcher } from './SetupLanguageSwitcher'
 import SetupTitleBlock from './SetupTitleBlock'
@@ -24,6 +25,7 @@ import {
     useLayoutEffect,
     useRef,
     useState,
+    useSyncExternalStore,
 } from 'react'
 import { twMerge } from '@/utils/tw'
 
@@ -74,6 +76,15 @@ const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
 }
 
 const SETUP_HERO_BACKGROUND = 'var(--color-background-setup-hero)'
+
+const landingPanelQuery = '(max-width: 767px)'
+const subscribeLandingPanelViewport = (onChange: () => void) => {
+    const media = window.matchMedia(landingPanelQuery)
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+}
+const mobileLandingPanelViewport = () => window.matchMedia(landingPanelQuery).matches
+const serverLandingPanelViewport = () => false
 
 /** The older Android OS status bar needs the blue token as a hex value. */
 const setupHeroNativeHex = (fullScreen: boolean): string | null => {
@@ -373,6 +384,8 @@ export const SetupWrapper = memo(function SetupWrapper({
     fullScreen: fullScreenProp = false,
     showProgress = true,
 }: SetupWrapperProps) {
+    const nativePlatform = useNativePlatform()
+
     const [fullScreenOverride, setFullScreenOverride] = useState<ScreenId | null>(null)
     const setFullScreenForScreen = useCallback(
         (enabled: boolean) =>
@@ -420,13 +433,16 @@ export const SetupWrapper = memo(function SetupWrapper({
     // migration notice window's download-only landing: drop the fixed-height
     // title block (it left a big gap above the QR) and center the copy on
     // desktop to match the centered store content. legacy landing untouched.
-    const sunsetLanding = screenId === 'landing' && migrationOn && !isCapacitor() && !hasKeepWebBypass
+    const sunsetLanding = screenId === 'landing' && migrationOn && !nativePlatform.isCapacitor && !hasKeepWebBypass
 
-    // Slide the white panel up on first paint for a native bottom-sheet feel.
-    // Mobile + landing only; read synchronously so the offset is correct on mount.
-    const [slideUpPanel] = useState(
-        () => screenId === 'landing' && typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+    // Match the server panel first, then start the mobile landing rise after hydration.
+    const mountedOnLanding = useRef(screenId === 'landing').current
+    const mobilePanel = useSyncExternalStore(
+        subscribeLandingPanelViewport,
+        mobileLandingPanelViewport,
+        serverLandingPanelViewport
     )
+    const slideUpPanel = mountedOnLanding && mobilePanel
     const animatePanelIn = slideUpPanel && screenId === 'landing' && !prefersReducedMotion
 
     return (
@@ -484,7 +500,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                             {/* content section */}
                             <motion.div
                                 initial={animatePanelIn ? { y: '100%' } : false}
-                                animate={{ y: 0 }}
+                                animate={animatePanelIn ? { y: ['100%', 0] } : { y: 0 }}
                                 transition={
                                     prefersReducedMotion
                                         ? { duration: 0 }

@@ -199,7 +199,6 @@ describe('the details screen, collapsed and open', () => {
         // a round amount without cents, and no closing period (QA 2026-09-24)
         'Other people: Under €4,000 per transfer',
         messages.depositAccounts.rules.individualCapFamily.line,
-        'Minimum: €1',
         messages.depositAccounts.fees.converted,
         messages.depositAccounts.corridors.SEPA_EU.arrivalDetail,
     ]
@@ -234,6 +233,8 @@ describe('the details screen, collapsed and open', () => {
         expect(screen.getByRole('button', { name: messages.depositAccounts.details.shareCta })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: messages.depositAccounts.share.copyCta })).toBeInTheDocument()
         for (const line of secondary) expect(screen.queryByText(line)).not.toBeInTheDocument()
+        // the minimum decides whether a deposit lands at all, so it stays beside the card
+        expect(screen.getByText('Minimum: €1')).toBeInTheDocument()
         expect(screen.queryByText(messages.depositAccounts.claim.whoCanPay)).not.toBeInTheDocument()
         // "Bank details" is the screen title only; no section header repeats it over the card
         expect(messages.depositAccounts.title).toBe(messages.depositAccounts.details.sectionTitle)

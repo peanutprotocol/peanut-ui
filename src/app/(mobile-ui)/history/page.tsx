@@ -1,5 +1,6 @@
 'use client'
 
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -11,7 +12,7 @@ import TransactionCard from '@/components/TransactionDetails/TransactionCard'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { getUserPreferences } from '@/utils/general.utils'
+
 import { DateGroup, getDateGroup, getDateGroupKey } from '@/utils/dateGrouping.utils'
 import * as Sentry from '@sentry/nextjs'
 import { isKycStatusItem, type KycHistoryEntry } from '@/components/Kyc/KycStatusItem'
@@ -32,6 +33,7 @@ import { twMerge } from '@/utils/tw'
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { displayableBadges } from '@/constants/badges.consts'
+import { getUserPreferences } from '@/utils/general.utils'
 
 /**
  * the oldest timestamp history is known to be loaded through while more pages
@@ -65,7 +67,10 @@ const HistoryPage = () => {
     const { fetchUser } = useAuth()
     // Synthetic card-unlock row inputs — same cached queries HomeHistory uses.
     const userId = user?.user.userId
-    const hideTxnAmount = useMemo(() => getUserPreferences(userId)?.balanceHidden ?? false, [userId])
+    const hideTxnAmount = useHydrationSnapshot(
+        () => (userId ? (getUserPreferences(userId)?.balanceHidden ?? false) : false),
+        () => false
+    )
 
     const {
         data: historyData,

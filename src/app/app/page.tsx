@@ -2,6 +2,7 @@
 
 // QR destination shared by both stores. Client-side routing also works in the native static export.
 
+import { useNativePlatform } from '@/utils/native-platform'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { notFound, useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
@@ -25,6 +26,8 @@ import { isPwaSunsetOn, storeForDevice, storeIcon, trackStoreClick } from '@/uti
 const FLAG_WAIT_MS = 4000
 
 export default function SmartStoreRedirect() {
+    const nativePlatform = useNativePlatform()
+
     const t = useTranslations('migration')
     const { deviceType } = useDeviceType()
     const router = useRouter()
@@ -43,7 +46,7 @@ export default function SmartStoreRedirect() {
         const dest = parsed ? applyDeferredPayload(parsed).dest : null
         router.replace(dest ?? '/home')
     }, [router])
-    const inNativeApp = mounted && isNativeBridge()
+    const inNativeApp = mounted && nativePlatform.isNativeBridge
 
     // Wait for PostHog before returning 404. The timeout also handles blocked analytics.
     const [flagsSettled, setFlagsSettled] = useState(false)

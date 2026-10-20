@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { fireEvent, render, screen } from '@testing-library/react'
 import { BottomNav } from '../index'
 
