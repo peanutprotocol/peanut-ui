@@ -17,9 +17,13 @@ export type BadgeCampaignClaimOutcome =
     | 'retryable_error'
     | 'legacy_response_unconfirmed'
 
-type CompatibleBadgePresentation = Omit<GeneratedBadgePresentation, 'description' | 'publicDescription' | 'iconUrl'> & {
+type CompatibleBadgePresentation = Omit<
+    GeneratedBadgePresentation,
+    'description' | 'publicDescription' | 'shareLine' | 'iconUrl'
+> & {
     description: string | null
     publicDescription?: string | null
+    shareLine?: string
     iconUrl: string | null
 }
 
@@ -102,6 +106,7 @@ function parseBadgePresentation(value: unknown): BadgePresentation | undefined {
         name?: unknown
         description?: unknown
         publicDescription?: unknown
+        shareLine?: unknown
         iconUrl?: unknown
     }
     if (
@@ -121,6 +126,8 @@ function parseBadgePresentation(value: unknown): BadgePresentation | undefined {
         name: badge.name,
         description: badge.description,
         ...(badge.publicDescription !== undefined ? { publicDescription: badge.publicDescription } : {}),
+        // optional copy: a malformed share line must not reject the claim
+        ...(typeof badge.shareLine === 'string' ? { shareLine: badge.shareLine } : {}),
         iconUrl: badge.iconUrl,
     }
 }
