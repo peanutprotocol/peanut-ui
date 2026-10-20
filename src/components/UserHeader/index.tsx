@@ -106,6 +106,8 @@ export const VerifiedUserLabel = ({
                 <Tooltip
                     id={isInviter ? 'inviter-user' : 'invited-by-user'}
                     content={isInviter ? 'You were invited by this user.' : `You've invited ${name}`}
+                    // portaled to <body>, outside the label's ph-mask: the text repeats the name
+                    contentClassName="ph-mask"
                     position="top"
                 >
                     <Icon name="invite-heart" size={iconSize} />

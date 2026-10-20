@@ -64,8 +64,9 @@ export function UserAvatar({ name, avatarKey, size = 's', className, decorative 
             {...(name && !decorative
                 ? { role: 'img', 'aria-label': t('userAvatarAlt', { username: name }) }
                 : { 'aria-hidden': true })}
+            // ph-mask: the initial and the accessible name come from the username
             className={twMerge(
-                'inline-flex shrink-0 items-center justify-center',
+                'ph-mask inline-flex shrink-0 items-center justify-center',
                 AVATAR_SIZE_CLASSES[size],
                 className
             )}

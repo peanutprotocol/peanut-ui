@@ -39,9 +39,11 @@ export function maskReplayTextIn(text: string, element?: HTMLElement): string {
 // would break how the replay renders.
 const TEXT_ATTRIBUTES = new Set(['aria-label', 'aria-valuetext', 'aria-valuenow', 'title', 'alt', 'value', 'href'])
 
-export function maskReplayAttribute(name: string, value: string): string {
+export function maskReplayAttribute(name: string, value: string, element?: Element): string {
     const redacted = redactQrTelemetryString(value)
-    return TEXT_ATTRIBUTES.has(name) ? maskReplayText(redacted) : redacted
+    if (!TEXT_ATTRIBUTES.has(name)) return redacted
+    // An accessible name on a masked element (an avatar's "username's avatar") repeats the name.
+    return element?.closest(FULLY_MASKED_SELECTOR) ? redacted.replace(/\S/g, MASK) : maskReplayText(redacted)
 }
 
 /**
@@ -73,7 +75,7 @@ export const SESSION_RECORDING_PRIVACY: SessionRecordingOptions = {
     // other text keeps its words.
     maskTextSelector: '*',
     maskTextFn: (text, element) => maskReplayTextIn(text, element),
-    maskAttributeFn: (name, value) => maskReplayAttribute(name, value),
+    maskAttributeFn: (name, value, element) => maskReplayAttribute(name, value, element),
     // Images a user picked or the camera captured (documents, receipts) and
     // the file inputs that hold them.
     blockSelector: 'img[src^="blob:"], video, input[type="file"]',

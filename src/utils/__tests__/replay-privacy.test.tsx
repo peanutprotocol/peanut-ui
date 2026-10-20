@@ -1,5 +1,14 @@
 import { render, screen } from '@testing-library/react'
+import type { ComponentProps } from 'react'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
+import { UserAvatar } from '@/components/Avatar/UserAvatar'
+import { TooltipContent } from '@/components/Tooltip/TooltipContent'
+import { renderWithIntl } from '@/test-utils/intl'
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: ({ unoptimized, ...rest }: ComponentProps<'img'> & { unoptimized?: boolean }) => <img {...rest} />,
+}))
+
 import {
     SESSION_RECORDING_PRIVACY,
     maskReplayAttribute,
@@ -113,5 +122,35 @@ describe('maskReplayTextIn', () => {
         const button = document.createElement('button')
         expect(maskReplayTextIn('Withdraw 50', button)).toBe('Withdraw **')
         expect(SESSION_RECORDING_PRIVACY.maskTextFn?.('Withdraw 50', button)).toBe('Withdraw **')
+    })
+})
+
+describe('names outside the user label', () => {
+    it("hides an avatar's accessible name, which repeats the username", () => {
+        renderWithIntl(<UserAvatar name="satoshi" avatarKey={null} />)
+        const avatar = screen.getByRole('img', { name: 'Avatar for satoshi' })
+        expect(SESSION_RECORDING_PRIVACY.maskAttributeFn?.('aria-label', 'Avatar for satoshi', avatar)).toBe(
+            '****** *** *******'
+        )
+    })
+
+    it('hides the invited-user tooltip, which is portaled outside the label', () => {
+        render(
+            <TooltipContent
+                content="You've invited alice"
+                contentClassName="ph-mask"
+                position="top"
+                initialPosition="top"
+                coords={{ top: 0, left: 0, width: 10, height: 10 }}
+                updatePosition={() => {}}
+            />
+        )
+        const text = screen.getByText("You've invited alice")
+        expect(maskReplayTextIn("You've invited alice", text)).toBe('****** ******* *****')
+    })
+
+    it('keeps an accessible name readable outside masked elements', () => {
+        const button = document.createElement('button')
+        expect(SESSION_RECORDING_PRIVACY.maskAttributeFn?.('aria-label', 'Close', button)).toBe('Close')
     })
 })
