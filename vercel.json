@@ -1,5 +1,5 @@
 {
-    "buildCommand": "pnpm build",
+    "buildCommand": "git -c url.\"https://x-access-token:${SUBMODULE_TOKEN}@github.com/\".insteadOf=https://github.com/ submodule update --init --recursive && pnpm build",
     "rewrites": [
         {
             "source": "/",
