@@ -3908,6 +3908,7 @@
         "xchainPaymentDisabled": "Transferências para outras redes estão limitadas na sua conta. Fale com o suporte para receber ajuda.",
         "rainInsufficientCollateral": "Seu cartão não tem colateral suficiente para este saque.",
         "staleCardApproval": "Seu cartão precisa ser reativado antes de você sacar. Leva só um toque com a passkey.",
+        "mantecaAccountRejected": "Depósitos e saques neste país não estão disponíveis para sua conta. Você pode continuar pagando com QR. O suporte pode ajudar.",
         "bankAccountNotUsable": "Esta conta bancária não pode mais ser usada. Adicione-a novamente.",
         "cardRateLimited": "Muitas solicitações com o cartão. Aguarde um momento e tente novamente.",
         "linkTransactionHashFetch": "Não conseguimos carregar a transação deste link. Atualize a página e tente novamente.",

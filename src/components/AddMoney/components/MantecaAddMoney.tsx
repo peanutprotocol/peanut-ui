@@ -38,6 +38,9 @@ import { residenceCloses } from '@/features/deposit-accounts/residenceGate'
 import { useBankChipFor } from '@/hooks/useBankRows'
 import { ResidenceRequiredScreen } from '@/features/deposit-accounts/components/ResidenceRequiredScreen'
 import { withReturnTo, readReturnTo } from '@/utils/return-to.utils'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
+import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
+import { useModalsContext } from '@/context/ModalsContext'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails' | 'showQR'
@@ -51,6 +54,8 @@ const MantecaAddMoney: FC = () => {
     const queryClient = useQueryClient()
     const locale = useLocale()
     const t = useTranslations('addMoney')
+    const tErrors = useTranslations('errors')
+    const { openSupportWithMessage } = useModalsContext()
     // rewinds to home past every entry the flow pushed; a replace kept the
     // earlier entries, so back from home re-entered the flow
     const leaveToHome = useReturnTo(readReturnTo(searchParams) ?? '/home')
@@ -80,6 +85,7 @@ const MantecaAddMoney: FC = () => {
 
     // Other local UI state (not URL-appropriate - transient or API responses)
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
+    const [rejectedCountry, setRejectedCountry] = useState<string | null>(null)
     // flow-level failures (API/provider) — rendered in the Callout
     const [error, setError] = useState<string | null>(null)
     // client-side minimum-amount validation — rendered as the field's own error
@@ -88,6 +94,7 @@ const MantecaAddMoney: FC = () => {
 
     // path params (web) or query params (native static export)
     const selectedCountryPath = (params.country as string) || searchParams.get('country') || ''
+    const accountRejected = rejectedCountry === selectedCountryPath
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
@@ -145,11 +152,18 @@ const MantecaAddMoney: FC = () => {
         // a non-resident sees the residence screen, not the KYC gate — Manteca
         // would reject the verification anyway
         if (requiresResidenceGate) return
+        if (accountRejected) return
         if (areCapabilitiesLoading) return
         if (isUserMantecaKycApprovedForCountry) return
         if (kycGateDismissed) return
         setShowKycModal(true)
-    }, [requiresResidenceGate, areCapabilitiesLoading, isUserMantecaKycApprovedForCountry, kycGateDismissed])
+    }, [
+        requiresResidenceGate,
+        accountRejected,
+        areCapabilitiesLoading,
+        isUserMantecaKycApprovedForCountry,
+        kycGateDismissed,
+    ])
 
     // validates deposit amount against user's limits
     // currency comes from country config - hook normalizes it internally
@@ -228,6 +242,7 @@ const MantecaAddMoney: FC = () => {
     const handleAmountSubmit = useCallback(async () => {
         if (!selectedCountry?.currency) return
         if (isCreatingDeposit) return
+        if (accountRejected) return
 
         if (!isUserMantecaKycApprovedForCountry) {
             setShowKycModal(true)
@@ -254,6 +269,11 @@ const MantecaAddMoney: FC = () => {
                 currency: selectedCountry.currency,
             })
             if (depositData.error) {
+                if (depositData.code === API_ERROR_CODES.MANTECA_ACCOUNT_REJECTED) {
+                    setShowKycModal(false)
+                    setRejectedCountry(selectedCountryPath)
+                    return
+                }
                 posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
                     method_type: 'manteca',
                     country: selectedCountryPath,
@@ -277,6 +297,11 @@ const MantecaAddMoney: FC = () => {
                 setUrlState({ step: 'depositDetails' })
             }
         } catch (error) {
+            if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_ACCOUNT_REJECTED) {
+                setShowKycModal(false)
+                setRejectedCountry(selectedCountryPath)
+                return
+            }
             console.log(error)
             const errorMessage = error instanceof Error ? error.message : String(error)
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
@@ -293,6 +318,7 @@ const MantecaAddMoney: FC = () => {
         displayedAmount,
         isUserMantecaKycApprovedForCountry,
         isCreatingDeposit,
+        accountRejected,
         setUrlState,
         usdAmount,
         selectedCountryPath,
@@ -309,6 +335,16 @@ const MantecaAddMoney: FC = () => {
     }, [step, depositDetails, setUrlState])
 
     if (!selectedCountry) return null
+
+    if (accountRejected) {
+        return (
+            <MantecaAccountUnavailable
+                title={t('title')}
+                onBack={onBack}
+                onSupport={() => openSupportWithMessage(tErrors('mantecaAccountRejected'))}
+            />
+        )
+    }
 
     // A non-resident cannot open the Manteca top-up, so the rule comes before
     // the amount screen and the KYC drawer — with a back to the hub, and the

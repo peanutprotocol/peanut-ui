@@ -79,6 +79,7 @@ import { PaymentMethodActionList } from '@/features/payments/shared/components/P
 import { RequestPotActionList } from '@/features/payments/flows/contribute-pot/components/RequestPotActionList'
 import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
 import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-pot/components/BankTransferChooserDrawer'
+import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
 
 /**
  * A setup step exactly as /setup renders it — SetupWrapper driven by the step's
@@ -177,6 +178,20 @@ function AppPageSurface({ children }: { children: React.ReactNode }) {
                 {children}
             </div>
         </div>
+    )
+}
+
+function MantecaAccountUnavailableSurface({ action }: { action: 'deposit' | 'withdraw' }) {
+    const tAddMoney = useTranslations('addMoney')
+    const tNav = useTranslations('navigation')
+    return (
+        <AppPageSurface>
+            <MantecaAccountUnavailable
+                title={action === 'deposit' ? tAddMoney('title') : tNav('withdraw')}
+                onBack={noop}
+                onSupport={noop}
+            />
+        </AppPageSurface>
     )
 }
 
@@ -995,6 +1010,14 @@ export const SURFACES: Record<string, Surface> = {
     '91-f-withdraw-review-spent': {
         ...SURFACE_META['91-f-withdraw-review-spent'],
         render: () => <WithdrawReviewSurface alreadySpent />,
+    },
+    '92-f-deposit-account-closed': {
+        ...SURFACE_META['92-f-deposit-account-closed'],
+        render: () => <MantecaAccountUnavailableSurface action="deposit" />,
+    },
+    '93-f-withdraw-account-closed': {
+        ...SURFACE_META['93-f-withdraw-account-closed'],
+        render: () => <MantecaAccountUnavailableSurface action="withdraw" />,
     },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a

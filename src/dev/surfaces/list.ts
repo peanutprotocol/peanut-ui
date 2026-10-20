@@ -291,6 +291,18 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         captureState: ['insufficientBalance=true', 'processing=false', 'alreadySpent=true'],
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },
+    '92-f-deposit-account-closed': {
+        name: 'Manteca deposit — account closed',
+        path: 'Common/MantecaAccountUnavailable.tsx',
+        captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=deposit', 'kyc=false'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
+    },
+    '93-f-withdraw-account-closed': {
+        name: 'Manteca withdrawal — account closed',
+        path: 'Common/MantecaAccountUnavailable.tsx',
+        captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=withdraw', 'kyc=false'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
+    },
     '70-d-activationctas-outbound': {
         name: 'First-payment chooser',
         path: 'Home/FirstPaymentChooser.tsx',

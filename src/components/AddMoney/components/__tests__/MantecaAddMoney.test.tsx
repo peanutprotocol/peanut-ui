@@ -12,6 +12,7 @@
 import React from 'react'
 import { act, render as rtlRender, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+import en from '@/i18n/app/messages/en.json'
 // jest.mock calls are hoisted above this import, so the mocks below apply to it
 import MantecaAddMoney from '../MantecaAddMoney'
 
@@ -103,7 +104,13 @@ jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
     useLimitsValidation: () => ({ isBlocking: false, isWarning: false, currency: 'USD' }),
 }))
 
-jest.mock('@/services/manteca', () => ({ mantecaApi: { deposit: jest.fn() } }))
+const mockDeposit = jest.fn()
+jest.mock('@/services/manteca', () => ({ mantecaApi: { deposit: (...args: unknown[]) => mockDeposit(...args) } }))
+const mockOpenSupportWithMessage = jest.fn()
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ setIsSupportModalOpen: jest.fn(), openSupportWithMessage: mockOpenSupportWithMessage }),
+    useModalsContextOptional: () => null,
+}))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
@@ -164,6 +171,8 @@ beforeEach(() => {
     mockBankChips = {}
     mockRejection = { state: 'happy' }
     Object.values(mockKycFlow).forEach((v) => typeof v === 'function' && (v as jest.Mock).mockClear())
+    mockDeposit.mockReset()
+    mockOpenSupportWithMessage.mockReset()
 })
 
 describe('denomination default', () => {
@@ -286,6 +295,7 @@ describe('identity gate on arrival', () => {
         expect(lastKycModalProps!.regionName).toBe('Argentina')
         // the amount input is underneath, not replaced
         expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
+        expect(mockDeposit).not.toHaveBeenCalled()
     })
 
     test('a verified user sees no gate', () => {
@@ -326,6 +336,79 @@ describe('identity gate on arrival', () => {
         act(() => lastKycModalProps!.onClose())
         rerender(<MantecaAddMoney />)
 
+        expect(lastKycModalProps!.visible).toBe(false)
+    })
+})
+
+describe('Manteca account rejection during deposit', () => {
+    test('shows the account rejection and opens support without entering KYC or creating deposit details', async () => {
+        setCountry('argentina')
+        mockQueryState.amount = '100'
+        mockDeposit.mockRejectedValue(
+            Object.assign(
+                new Error('KYC_REQUIRED: Manteca closed this account for deposits and withdrawals in this country'),
+                {
+                    code: 'MANTECA_ACCOUNT_REJECTED',
+                    status: 403,
+                }
+            )
+        )
+        render(<MantecaAddMoney />)
+
+        await act(() => lastInputStepProps!.onSubmit())
+
+        expect(
+            screen.getByText(/Deposits and withdrawals in this country aren’t available for your account/i)
+        ).toBeInTheDocument()
+        expect(screen.getByText(/You can still pay with QR/i)).toBeInTheDocument()
+        expect(lastKycModalProps!.visible).toBe(false)
+        expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
+        expect(mockDeposit).toHaveBeenCalledTimes(1)
+        expect(screen.queryByTestId('share-details')).not.toBeInTheDocument()
+
+        const support = screen.getByRole('button', { name: /contact support/i })
+        await act(() => support.click())
+        expect(mockOpenSupportWithMessage).toHaveBeenCalled()
+    })
+
+    test('a resolved API error body with code gets the same rejection handling, and capability refresh cannot reopen KYC', async () => {
+        setCountry('argentina')
+        mockQueryState.amount = '100'
+        mockDeposit.mockResolvedValue({
+            error: 'KYC_REQUIRED: Manteca closed this account for deposits and withdrawals in this country',
+            code: 'MANTECA_ACCOUNT_REJECTED',
+        })
+        const view = render(<MantecaAddMoney />)
+
+        await act(() => lastInputStepProps!.onSubmit())
+
+        expect(screen.getByText(en.errors.mantecaAccountRejected)).toBeInTheDocument()
+        expect(lastKycModalProps!.visible).toBe(false)
+        expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
+        expect(mockDeposit).toHaveBeenCalledTimes(1)
+        mockRejection = { state: 'fixable', userMessage: 'Please verify your identity.' }
+        view.rerender(<MantecaAddMoney />)
+        expect(lastKycModalProps!.visible).toBe(false)
+        expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
+        expect(mockDeposit).toHaveBeenCalledTimes(1)
+    })
+
+    test('rejection guidance is scoped to the country that returned it', async () => {
+        setCountry('argentina')
+        mockQueryState.amount = '100'
+        mockDeposit.mockResolvedValue({
+            error: 'Manteca closed this account for deposits and withdrawals in this country',
+            code: 'MANTECA_ACCOUNT_REJECTED',
+        })
+        const view = render(<MantecaAddMoney />)
+        await act(() => lastInputStepProps!.onSubmit())
+        expect(screen.getByText(en.errors.mantecaAccountRejected)).toBeInTheDocument()
+
+        setCountry('brazil')
+        view.rerender(<MantecaAddMoney />)
+
+        expect(screen.queryByText(en.errors.mantecaAccountRejected)).not.toBeInTheDocument()
+        expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
         expect(lastKycModalProps!.visible).toBe(false)
     })
 })
