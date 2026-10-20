@@ -37,6 +37,7 @@ export const API_ERROR_CODES = {
     NO_COLLATERAL_CONTRACT: 'NO_COLLATERAL_CONTRACT',
     CARD_SECRETS_RATE_LIMITED: 'CARD_SECRETS_RATE_LIMITED',
     MANTECA_KYC_REQUIRED: 'MANTECA_KYC_REQUIRED',
+    MANTECA_ACCOUNT_REJECTED: 'MANTECA_ACCOUNT_REJECTED',
     /** The pool-lock sender carried an id the provider refuses. The user is
      *  verified, so a KYC prompt is a dead end: support corrects the id on
      *  file. Deterministic, never retried. */

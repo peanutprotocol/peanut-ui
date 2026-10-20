@@ -939,6 +939,12 @@
         "route": "/history"
     },
     {
+        "id": "92-f-deposit-account-closed",
+        "flow": "Add money",
+        "route": "/dev/surfaces?s=92-f-deposit-account-closed",
+        "source": "Common/MantecaAccountUnavailable.tsx"
+    },
+    {
         "id": "fixture-card-application",
         "flow": "Card",
         "route": "/card"
@@ -1533,6 +1539,12 @@
         "flow": "Withdraw",
         "route": "/dev/surfaces?s=91-f-withdraw-review-spent",
         "source": "features/withdraw/views/ConfirmWithdrawView.tsx"
+    },
+    {
+        "id": "93-f-withdraw-account-closed",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=93-f-withdraw-account-closed",
+        "source": "Common/MantecaAccountUnavailable.tsx"
     },
     {
         "id": "fixture-rewards",

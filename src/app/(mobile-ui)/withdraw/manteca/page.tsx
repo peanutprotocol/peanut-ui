@@ -1,7 +1,8 @@
 'use client'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 
-import { API_ERROR_CODES } from '@/services/api-error'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
+import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
 
 import {
     isSpendRecoveryOutcome,
@@ -239,10 +240,12 @@ function MantecaBankWithdrawFlow() {
     // intent is passed at call time: handleInitiateKyc('LATAM')
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
+    const [rejectedCountry, setRejectedCountry] = useState<string | null>(null)
 
     // Get method and country from URL parameters
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
     const countryPath = countryFromUrl
+    const accountRejected = rejectedCountry !== null && rejectedCountry === countryPath
 
     // Map country path to CountryData for KYC
     const selectedCountry = useMemo(() => {
@@ -362,21 +365,13 @@ function MantecaBankWithdrawFlow() {
         return isValid
     }
 
-    /**
-     * Detect Manteca onboarding-incomplete errors and surface an actionable
-     * message. Returns true if the error was handled (caller should return early).
-     *
-     * This used to redirect into the Manteca hosted onboarding widget — a
-     * KYC-2.0-era dead end (Sumsub owns data collection; `submitToManteca` in
-     * peanut-api-ts owns submission) with 0 triggers in 90 days. The widget
-     * redirect and its `/manteca/initiate-onboarding` backend route are gone.
-     */
-    const handleOnboardingError = useCallback(
-        (error: string): boolean => {
-            // 'manteca kyc' / 'manteca_kyc_required' cover the API's
-            // MANTECA_KYC_REQUIRED responses ("User needs to do manteca KYC
-            // first") — the service layer strips the `code` field, so the text
-            // is all this screen ever sees.
+    const handleMantecaError = useCallback(
+        (error: string, code?: string): boolean => {
+            if (code === API_ERROR_CODES.MANTECA_ACCOUNT_REJECTED) {
+                setShowKycModal(false)
+                setRejectedCountry(countryPath)
+                return true
+            }
             const onboardingErrorPatterns = [
                 'fund origin',
                 'profile incomplete',
@@ -385,13 +380,15 @@ function MantecaBankWithdrawFlow() {
                 'manteca_kyc_required',
             ]
             const normalizedError = error.toLowerCase()
-            const isOnboardingError = onboardingErrorPatterns.some((pattern) => normalizedError.includes(pattern))
+            const isOnboardingError =
+                code === API_ERROR_CODES.MANTECA_KYC_REQUIRED ||
+                onboardingErrorPatterns.some((pattern) => normalizedError.includes(pattern))
             if (!isOnboardingError) return false
 
             setErrorMessage(t('errors.completeAccountSetup'))
             return true
         },
-        [t]
+        [t, countryPath, setErrorMessage]
     )
 
     const isCompleteBankDetails = useMemo<boolean>(() => {
@@ -422,6 +419,7 @@ function MantecaBankWithdrawFlow() {
     }, [usdAmount, balance, t, tErrors, setErrorMessage])
 
     const handlePrepareReview = useCallback(async () => {
+        if (accountRejected) return
         // prevent duplicate requests from rapid clicks
         if (isLockingPrice) return
         if (!validateSubmissionAmount()) {
@@ -476,7 +474,7 @@ function MantecaBankWithdrawFlow() {
             const result = await mantecaApi.initiateWithdraw(initRequest)
 
             if (result.error) {
-                if (handleOnboardingError(result.error)) return
+                if (handleMantecaError(result.error, result.code)) return
                 setErrorMessage(
                     result.code === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE
                         ? tErrors('transferTemporarilyUnavailable')
@@ -504,6 +502,10 @@ function MantecaBankWithdrawFlow() {
                 void stepper.goTo('review')
             }
         } catch (error) {
+            if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_ACCOUNT_REJECTED) {
+                handleMantecaError('', wireErrorCode(error))
+                return
+            }
             void captureNetworkTriagedFailure(error, {
                 tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'lock-rate' },
             })
@@ -526,7 +528,8 @@ function MantecaBankWithdrawFlow() {
         isLockingPrice,
         validateSubmissionAmount,
         destinationConfirmed,
-        handleOnboardingError,
+        handleMantecaError,
+        accountRejected,
         balance,
         balanceErrorMessage,
         limitsValidation.isLoading,
@@ -566,6 +569,7 @@ function MantecaBankWithdrawFlow() {
             }
             const result = await mantecaApi.initiateWithdraw(withdrawInitRequest)
             if (quoteRecoveryCancelledRef.current) return
+            if (result.error && handleMantecaError(result.error, result.code)) return
             if (result.error || !result.data) {
                 // Neutral review/retry state — the payment did not fail. The
                 // review control retries the QUOTE, never the old lock.
@@ -579,6 +583,10 @@ function MantecaBankWithdrawFlow() {
             setErrorMessage('')
             setPriceLock(receiveLock(result.data))
         } catch (error) {
+            if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_ACCOUNT_REJECTED) {
+                handleMantecaError('', wireErrorCode(error))
+                return
+            }
             void captureNetworkTriagedFailure(error, {
                 tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'lock-rate' },
             })
@@ -591,6 +599,7 @@ function MantecaBankWithdrawFlow() {
     }
 
     const handleWithdraw = async () => {
+        if (accountRejected) return
         // A quote refresh (cooldown wait included) owns the flow: re-entering
         // here would sign against the lock that refresh is replacing.
         if (quoteRecoveryInFlightRef.current) return
@@ -823,8 +832,7 @@ function MantecaBankWithdrawFlow() {
                 // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
                 if (handleStaleSession(result.message ?? result.error)) return
 
-                // handle onboarding-incomplete errors by redirecting to complete profile
-                if (handleOnboardingError(result.message ?? result.error)) return
+                if (handleMantecaError(result.message ?? result.error, result.code)) return
 
                 // handle third-party account error with user-friendly message
                 if (result.error === 'TAX_ID_MISMATCH' || result.error === 'CUIT_MISMATCH') {
@@ -864,6 +872,10 @@ function MantecaBankWithdrawFlow() {
             }
             if (error instanceof SpendRecoveryAbortedError) {
                 void stepper.goTo('review')
+                return
+            }
+            if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_ACCOUNT_REJECTED) {
+                handleMantecaError('', wireErrorCode(error))
                 return
             }
             console.error('Manteca withdraw error:', error)
@@ -991,6 +1003,16 @@ function MantecaBankWithdrawFlow() {
             router.replace('/withdraw')
         }
     }, [countryFromUrl, selectedCountry, router])
+
+    if (accountRejected) {
+        return (
+            <MantecaAccountUnavailable
+                title={tNav(isFromSendFlow ? 'send' : 'withdraw')}
+                onBack={onBack}
+                onSupport={() => openSupportWithMessage(tErrors('mantecaAccountRejected'))}
+            />
+        )
+    }
 
     // Rate gate keeps the header mounted so back always works (dev #2843/#1848)
     if (selectedCountry && countryConfig && (isCurrencyLoading || !currencyPrice)) {
@@ -1241,9 +1263,9 @@ function MantecaBankWithdrawFlow() {
                     </Button>
                     {/* The price lock runs from this step, so its failure shows here.
                         An amount error already shows under the input. */}
-                    {errorMessage && !amountError && (
+                    {(errorMessage || sumsubFlow.error) && !amountError && (
                         <Callout priority="error">
-                            <CooldownErrorText message={errorMessage} />
+                            <CooldownErrorText message={(errorMessage || sumsubFlow.error)!} />
                         </Callout>
                     )}
                 </div>
