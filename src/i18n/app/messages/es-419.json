@@ -2631,7 +2631,7 @@
         "iconAlt": "Ícono de {name}",
         "shareAchievement": "Compartir logro",
         "shareText": "¡Gané la insignia {badge} en Peanut!\n\nÚnete a Peanut y empieza a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}",
-        "shareJoin": "Únete a Peanut conmigo 👉 {link}",
+        "shareJoin": "Únete a Peanut conmigo: {link}",
         "toastSingle": "Insignia desbloqueada: {name}",
         "toastMultiple": "{count, plural, one {# insignia desbloqueada} other {# insignias desbloqueadas}}",
         "unlock": {
