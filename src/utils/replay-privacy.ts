@@ -33,33 +33,56 @@ export function maskReplayTextIn(text: string, element?: HTMLElement): string {
     return element?.closest(FULLY_MASKED_SELECTOR) ? text.replace(/\S/g, MASK) : maskReplayText(text)
 }
 
-// Attributes that repeat on-screen text (an accessible name, a tooltip, an
-// input value) or carry ids in a link. Layout attributes such as `class` and
-// `style` stay untouched: Tailwind class names have digits, and masking them
-// would break how the replay renders.
-const TEXT_ATTRIBUTES = new Set(['aria-label', 'aria-valuetext', 'aria-valuenow', 'title', 'alt', 'value', 'href'])
+// Accessible names and tooltips are masked whole: they often name a person
+// ("Avatar for alice", a payer's full name on a receipt avatar), and a replay
+// shows nothing of them on screen, so masking them costs no usefulness.
+const ACCESSIBLE_NAME_ATTRIBUTES = new Set(['aria-label', 'aria-valuetext', 'title', 'alt'])
+// Attributes that carry an input value or ids in a link keep their words.
+// Layout attributes such as `class` and `style` stay untouched: Tailwind class
+// names have digits, and masking them would break how the replay renders.
+const VALUE_ATTRIBUTES = new Set(['aria-valuenow', 'value', 'href'])
 
 export function maskReplayAttribute(name: string, value: string, element?: Element): string {
     const redacted = redactQrTelemetryString(value)
-    if (!TEXT_ATTRIBUTES.has(name)) return redacted
-    // An accessible name on a masked element (an avatar's "username's avatar") repeats the name.
+    if (ACCESSIBLE_NAME_ATTRIBUTES.has(name)) return redacted.replace(/\S/g, MASK)
+    if (!VALUE_ATTRIBUTES.has(name)) return redacted
     return element?.closest(FULLY_MASKED_SELECTOR) ? redacted.replace(/\S/g, MASK) : maskReplayText(redacted)
 }
 
 /**
- * Network entries keep their method, status, timing and path, and lose every
- * body, header and query value: a query can carry an amount, an address or an
- * email, and the path is what makes a request recognisable in a replay.
+ * Masks the identifying segments of a request path and keeps the route words:
+ * a segment with a digit (ids, UUIDs, addresses), a segment longer than 24
+ * characters (base58 addresses, tokens), and the handle after `username`
+ * (`/users/username/<handle>`), which looks like a route word otherwise.
+ */
+export function maskReplayPath(path: string): string {
+    const segments = path.split('/')
+    return segments
+        .map((segment, i) =>
+            segment && (segments[i - 1] === 'username' || /\d/.test(segment) || segment.length > 24) ? MASK : segment
+        )
+        .join('/')
+}
+
+/**
+ * Network entries keep their method, status, timing and route, and lose every
+ * body, header, query value and identifying path segment: a query or a path
+ * can carry an amount, an address, a username or an email, and the route is
+ * what makes a request recognisable in a replay.
  */
 export function maskReplayNetworkRequest(request: CapturedNetworkRequest): CapturedNetworkRequest {
     const masked = maskQrReplayRequest(request)
     if (!masked.name) return masked
     const [beforeHash] = masked.name.split('#')
     const queryStart = beforeHash.indexOf('?')
-    if (queryStart < 0) return { ...masked, name: beforeHash }
+    const target = queryStart < 0 ? beforeHash : beforeHash.slice(0, queryStart)
+    // keep the origin as it is (a port or a host can hold digits), mask the path
+    const originEnd = target.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i)?.[0].length ?? 0
+    const url = target.slice(0, originEnd) + maskReplayPath(target.slice(originEnd))
+    if (queryStart < 0) return { ...masked, name: url }
     const params = new URLSearchParams(beforeHash.slice(queryStart + 1))
     const keys = [...new Set(params.keys())]
-    return { ...masked, name: `${beforeHash.slice(0, queryStart)}?${keys.map((key) => `${key}=`).join('&')}` }
+    return { ...masked, name: `${url}?${keys.map((key) => `${key}=`).join('&')}` }
 }
 
 /**

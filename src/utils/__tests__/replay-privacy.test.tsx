@@ -28,7 +28,7 @@ describe('SESSION_RECORDING_PRIVACY', () => {
         expect(SESSION_RECORDING_PRIVACY.blockSelector).toContain('img[src^="blob:"]')
         expect(SESSION_RECORDING_PRIVACY.blockSelector).toContain('input[type="file"]')
         expect(SESSION_RECORDING_PRIVACY.maskTextFn?.('Balance $1,234.56')).toBe('Balance $*,***.**')
-        expect(SESSION_RECORDING_PRIVACY.maskAttributeFn?.('aria-label', 'Send 50 USD')).toBe('Send ** USD')
+        expect(SESSION_RECORDING_PRIVACY.maskAttributeFn?.('aria-label', 'Send 50 USD')).toBe('**** ** ***')
         expect(SESSION_RECORDING_PRIVACY.maskCapturedNetworkRequestFn).toBe(maskReplayNetworkRequest)
     })
 })
@@ -95,6 +95,16 @@ describe('maskReplayNetworkRequest', () => {
         })
     })
 
+    it('masks identifying path segments and keeps the route words', () => {
+        const name = (url: string) => maskReplayNetworkRequest({ ...timing, name: url }).name
+        expect(name('https://api.peanut.me/users/username/alice')).toBe('https://api.peanut.me/users/username/*')
+        expect(name('https://api.peanut.me/charges/3c9d1f2e-8a7b-4c6d-9e0f-1a2b3c4d5e6f/payments')).toBe(
+            'https://api.peanut.me/charges/*/payments'
+        )
+        expect(name('http://localhost:5050/users/accounts/42?x=1')).toBe('http://localhost:5050/users/accounts/*?x=')
+        expect(name('/relay/flags/')).toBe('/relay/flags/')
+    })
+
     it('keeps the QR redaction', () => {
         expect(maskReplayNetworkRequest({ ...timing, name: '/qr-pay?qrCode=secret' }).name).toBe('[REDACTED QR DATA]')
     })
@@ -149,8 +159,16 @@ describe('names outside the user label', () => {
         expect(maskReplayTextIn("You've invited alice", text)).toBe('****** ******* *****')
     })
 
-    it('keeps an accessible name readable outside masked elements', () => {
-        const button = document.createElement('button')
-        expect(SESSION_RECORDING_PRIVACY.maskAttributeFn?.('aria-label', 'Close', button)).toBe('Close')
+    it('masks every accessible name whole, as the receipt avatar labels the payer by full name', () => {
+        const avatarButton = document.createElement('button')
+        expect(SESSION_RECORDING_PRIVACY.maskAttributeFn?.('aria-label', 'Alice Example', avatarButton)).toBe(
+            '***** *******'
+        )
+        expect(SESSION_RECORDING_PRIVACY.maskAttributeFn?.('title', 'alice', avatarButton)).toBe('*****')
+    })
+
+    it('masks a contact handle rendered in the send contacts list', () => {
+        render(<span className="ph-mask">@alice</span>)
+        expect(maskReplayTextIn('@alice', screen.getByText('@alice'))).toBe('******')
     })
 })

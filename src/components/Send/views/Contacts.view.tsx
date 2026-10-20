@@ -176,7 +176,12 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                         <h2 className="text-body-m-semibold">{t('contacts.exactUsername')}</h2>
                         <ListItem
                             position="solo"
-                            title={t('contacts.usernameFound', { username: exactUsername })}
+                            // ph-mask: the title repeats the typed handle
+                            title={
+                                <span className="ph-mask">
+                                    {t('contacts.usernameFound', { username: exactUsername })}
+                                </span>
+                            }
                             truncate
                             body={t('contacts.continueToSend')}
                             leading={<IconBubble {...CONCEPT_ICONS.peanutUser} size="s" />}
@@ -221,7 +226,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                                         )}
                                                     />
                                                 }
-                                                body={`@${contact.username}`}
+                                                body={<span className="ph-mask">{`@${contact.username}`}</span>}
                                                 leading={
                                                     <UserAvatar
                                                         size="s"
