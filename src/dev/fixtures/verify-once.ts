@@ -183,12 +183,9 @@ const DE_STEPS = [
     },
     {
         id: 'work',
-        features: ['card', 'bank'],
+        features: ['card'],
         answered: false,
-        fields: [
-            { key: 'occupation', kind: 'occupation', required: true, options: OCCUPATIONS, value: null },
-            choice('employmentStatus', EMPLOYMENT),
-        ],
+        fields: [{ key: 'occupation', kind: 'occupation', required: true, options: OCCUPATIONS, value: null }],
     },
     {
         id: 'money',
