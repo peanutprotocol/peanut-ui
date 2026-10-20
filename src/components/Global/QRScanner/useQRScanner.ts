@@ -321,7 +321,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     if (superseded()) return
                     if (!granted) {
                         const data = {
-                            platform: Capacitor.getPlatform(),
+                            os: Capacitor.getPlatform(),
                             permission: 'denied',
                             source: 'native_camera_permission',
                         }

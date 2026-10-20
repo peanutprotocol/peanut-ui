@@ -3,6 +3,7 @@ import { LEGAL_POLICIES } from '@/constants/legal-policies'
 import publicAttributionPaths from '@/constants/signup-attribution-paths.generated.json'
 import { getFromCookie, saveToCookie } from './cookie-url.utils'
 import posthog from 'posthog-js'
+import { posthogProjectKey } from './posthog-setup'
 
 export const SIGNUP_ATTRIBUTION_COOKIE = 'signupAttribution'
 export const SIGNUP_ATTRIBUTION_SCHEMA_VERSION = '1'
@@ -405,7 +406,7 @@ export async function hasPendingSignupAttribution(userId: string): Promise<boole
 export function signupAnalyticsState(): 'enabled' | 'disabled' | 'unknown' {
     // Jest exercises the capture contract without a public build key.
     if (process.env.NODE_ENV === 'test') return 'enabled'
-    if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return 'unknown'
+    if (!posthogProjectKey()) return 'unknown'
     try {
         if (typeof posthog.has_opted_out_capturing !== 'function') return 'unknown'
         return posthog.has_opted_out_capturing() ? 'disabled' : 'enabled'

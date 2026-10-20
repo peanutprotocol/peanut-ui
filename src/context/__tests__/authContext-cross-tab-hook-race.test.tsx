@@ -64,7 +64,14 @@ jest.mock('@/services/pending-invite-attribution', () => ({
 }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { identify: jest.fn(), reset: jest.fn(), register: jest.fn(), capture: jest.fn() },
+    default: {
+        identify: jest.fn(),
+        get_distinct_id: jest.fn(),
+        setPersonProperties: jest.fn(),
+        reset: jest.fn(),
+        register: jest.fn(),
+        capture: jest.fn(),
+    },
 }))
 
 jest.mock('@/services/account-setup', () => ({

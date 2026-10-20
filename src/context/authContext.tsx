@@ -21,6 +21,7 @@ import { apiFetch } from '@/utils/api-fetch'
 import { useAppLocked } from '@/hooks/useAppLocked'
 import { currentAppLocale, currentDeviceContext, currentDeviceIdentity } from '@/i18n/app/locale-store'
 import { isCapacitor } from '@/utils/capacitor'
+import { identifyAnalyticsUser } from '@/utils/posthog-identity'
 import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
 import { disableDemoMode, isDemoMode } from '@/utils/demo'
@@ -132,9 +133,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // server-side identify in peanut-api-ts src/log/identifyUser.ts — keep in sync.
             // `name` duplicates username because PostHog's Persons-page search is
             // hardcoded to email/name/distinct_id — username alone is not searchable.
+            // This effect runs on every user refetch; identifyAnalyticsUser sends
+            // only an id change or changed properties.
             const enabledRails = user.rails?.filter((rail) => rail.status === 'ENABLED') ?? []
             const appLocale = currentAppLocale()
-            posthog.identify(user.user.userId, {
+            identifyAnalyticsUser(user.user.userId, {
                 username: user.user.username,
                 name: user.user.username,
                 userId: user.user.userId,
