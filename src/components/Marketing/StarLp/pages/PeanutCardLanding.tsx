@@ -21,12 +21,11 @@ export function PeanutCardLanding() {
             <StarLpHero
                 title={
                     <>
-                        <DisplayLine>Visa Platinum</DisplayLine>
-                        <DisplayLine>Dollar card</DisplayLine>
+                        <DisplayLine>US Dollar Card</DisplayLine>
                         <KnerdTitle text="In pink" size="hero" className="mt-6 md:mt-8" />
                     </>
                 }
-                subtitle="Add your Peanut Card to Apple Pay or Google Pay where available in your region, then tap."
+                subtitle="Accepted wherever Visa is accepted. Add it to Apple Pay or Google Pay where available in your region, then tap."
                 art={
                     <DropIn fromTilt={-24} tilt={-7} className="mx-auto w-full max-w-sm px-2 md:max-w-md">
                         <PeanutCardHeroLink />
