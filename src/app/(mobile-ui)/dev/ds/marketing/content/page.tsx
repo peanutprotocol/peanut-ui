@@ -1,3 +1,5 @@
+'use client'
+
 import { ViewportFrame } from '@/app/dev/ds-marketing-preview/_components/ViewportFrame'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DesignNote } from '../../_components/DesignNote'
