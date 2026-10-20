@@ -302,6 +302,7 @@ const plan = (
     policyVersion: 'fixture-verify-once',
     flow: 'verify-once',
     proofOfAddress,
+    proofOfAddressIdCountries: ['PH'],
     features,
     routes: [
         {

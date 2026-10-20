@@ -3633,7 +3633,10 @@
                 "cta": "Continuar para a verificação",
                 "privacy": "A Sumsub cuida dos seus documentos com segurança.",
                 "failed": "Não conseguimos iniciar a verificação. Tente de novo.",
-                "unavailable": "Não conseguimos mostrar os documentos agora. Tente mais tarde."
+                "unavailable": "Não conseguimos mostrar os documentos agora. Tente mais tarde.",
+                "proofOfAddress": "Comprovante de endereço",
+                "proofOfAddressBody": "Com um documento de {country}, as contas bancárias também pedem uma conta ou um extrato recente com seu endereço. Você adiciona depois da verificação do documento.",
+                "proofOfAddressPermit": "Com uma permissão de residência de {residence}, não precisa."
             },
             "review": {
                 "title": "Estamos verificando seu documento",

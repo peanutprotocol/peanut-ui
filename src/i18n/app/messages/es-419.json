@@ -3633,7 +3633,10 @@
                 "cta": "Continuar a la verificación",
                 "privacy": "Sumsub maneja tus documentos de forma segura.",
                 "failed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
-                "unavailable": "No podemos mostrar los documentos ahora. Inténtalo más tarde."
+                "unavailable": "No podemos mostrar los documentos ahora. Inténtalo más tarde.",
+                "proofOfAddress": "Comprobante de domicilio",
+                "proofOfAddressBody": "Con un documento de {country}, las cuentas bancarias también piden una factura o un estado de cuenta reciente con tu domicilio. Lo agregas después de la verificación del documento.",
+                "proofOfAddressPermit": "Con un permiso de residencia de {residence} no hace falta."
             },
             "review": {
                 "title": "Estamos revisando tu documento",

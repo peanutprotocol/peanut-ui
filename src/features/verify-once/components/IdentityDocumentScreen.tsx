@@ -165,6 +165,10 @@ export function IdentityDocumentScreen({
     const [picking, setPicking] = useState<'type' | 'country' | null>(null)
     const typeName = (value: string) =>
         tDocuments(DOCUMENT_KEYS[value as keyof typeof DOCUMENT_KEYS] ?? 'otherDocument')
+    const needsProofOfAddress =
+        !!country && country !== residence && (plan?.proofOfAddressIdCountries ?? []).includes(country)
+    const permitAvoidsProof =
+        needsProofOfAddress && !!residence && types.includes('RESIDENCE_PERMIT') && countries.includes(residence)
 
     return (
         <VerifyQuestionLayout
@@ -220,7 +224,20 @@ export function IdentityDocumentScreen({
                         onClick={() => setPicking('country')}
                         data-testid="verify-id-country"
                     />
+                    {needsProofOfAddress && (
+                        <ListItem
+                            title={t('midpoint.proofOfAddress')}
+                            body={t('midpoint.proofOfAddressBody', { country: countryName(country) })}
+                            leading={<IconBubble icon="docs" size="s" color="blue" />}
+                            data-testid="verify-id-proof-of-address"
+                        />
+                    )}
                 </ListGroup>
+            )}
+            {permitAvoidsProof && residence && (
+                <p className="text-body-s text-foreground-secondary">
+                    {t('midpoint.proofOfAddressPermit', { residence: countryName(residence) })}
+                </p>
             )}
             <OptionDrawer
                 open={picking === 'type'}

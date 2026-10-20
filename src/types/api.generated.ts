@@ -13695,6 +13695,7 @@ export interface paths {
                             flow: "verify-once" | "document-first" | null;
                             policyVersion: string | null;
                             proofOfAddress: "suggested" | null;
+                            proofOfAddressIdCountries: string[];
                             routes: {
                                 documents: {
                                     /** @enum {string} */
