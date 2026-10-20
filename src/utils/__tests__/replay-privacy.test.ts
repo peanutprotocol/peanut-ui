@@ -54,7 +54,7 @@ describe('maskReplayAttribute', () => {
 })
 
 describe('maskReplayNetworkRequest', () => {
-    const timing = { initiatorType: 'fetch', startTime: 1, duration: 2 } as const
+    const timing = { duration: 2, entryType: 'resource', startTime: 1 }
 
     it('drops bodies, headers, query values and fragments, and keeps the path', () => {
         expect(
