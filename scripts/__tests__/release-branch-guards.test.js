@@ -515,7 +515,9 @@ function runNativeMainGuard(repo, { workflowSha, mainTip }) {
         }
         ${nativeMainGuardShell()}
     `
-    return spawnSync('bash', ['-eu', '-c', script], {
+    const outputFile = path.join(fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'native-guard-')), 'output')
+    fs.writeFileSync(outputFile, '')
+    const result = spawnSync('bash', ['-eu', '-c', script], {
         cwd: repo.dir,
         env: {
             ...process.env,
@@ -523,9 +525,46 @@ function runNativeMainGuard(repo, { workflowSha, mainTip }) {
             SOURCE_SHA: repo.source,
             MAIN_TIP: mainTip,
             SOURCE_GUARD,
+            GITHUB_OUTPUT: outputFile,
         },
         encoding: 'utf8',
     })
+    return { ...result, outputs: fs.readFileSync(outputFile, 'utf8') }
+}
+
+function stepShell(file, name) {
+    const workflow = fs.readFileSync(path.join(workflowsDir, file), 'utf8')
+    const step = workflow.indexOf(`- name: ${name}`)
+    const runStart = workflow.indexOf('run: |', step)
+    const nextBlock = workflow.slice(runStart).search(/\n {12}- name:|\n {4}[a-z-]+:\n/)
+    return workflow
+        .slice(runStart + 'run: |\n'.length, runStart + nextBlock)
+        .split('\n')
+        .map((line) => line.replace(/^ {18}/, ''))
+        .join('\n')
+}
+
+// The store build gate: a failed OTA is a release only with native-incompatible evidence.
+function runNativeGate({ event = 'workflow_run', conclusion, artifacts = '0' }) {
+    const outputFile = path.join(fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'native-gate-')), 'output')
+    fs.writeFileSync(outputFile, '')
+    const script = `
+        gh() { printf '%s\\n' "$ARTIFACT_COUNT"; }
+        ${stepShell('release-native.yml', 'Decide whether there is a release to build')}
+    `
+    const result = spawnSync('bash', ['-eu', '-c', script], {
+        env: {
+            ...process.env,
+            GITHUB_EVENT_NAME: event,
+            GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
+            GITHUB_OUTPUT: outputFile,
+            OTA_CONCLUSION: conclusion || '',
+            OTA_RUN_ID: '42',
+            ARTIFACT_COUNT: artifacts,
+        },
+        encoding: 'utf8',
+    })
+    return { ...result, outputs: fs.readFileSync(outputFile, 'utf8') }
 }
 
 function runNativeFloor(platform, bridgeStatus) {
@@ -623,6 +662,7 @@ describe('native release source branch', () => {
                 const result = runNativeMainGuard(repo, { workflowSha: repo[tip], mainTip: repo[tip] })
                 expect(result.status).toBe(1)
                 expect(result.stderr).toContain('main advanced between OTA and native workflow start')
+                expect(result.outputs).toBe('superseded=true\n')
             }
         )
 
@@ -630,6 +670,7 @@ describe('native release source branch', () => {
             const result = runNativeMainGuard(repo, { workflowSha: repo.content, mainTip: repo[tip] })
             expect(result.status).toBe(1)
             expect(result.stderr).toContain('main advanced after the OTA handoff')
+            expect(result.outputs).toBe('superseded=true\n')
         })
     })
 
@@ -836,16 +877,34 @@ describe('store builds never half-release', () => {
 
     it('alerts on any failed job, and the OTA workflow skips the planned native handoff', () => {
         const ota = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
-        expect(native).toContain("if: ${{ always() && contains(needs.*.result, 'failure') }}")
-        expect(native).toContain('needs: [resolve, ios, android, publish, tag]')
-        expect(ota).toContain(
-            "if: ${{ always() && contains(needs.*.result, 'failure') && needs.deploy.outputs.native_incompatible != 'true' }}"
+        // A run stopped because a newer main push took over is expected and does not alert.
+        expect(native).toContain(
+            "if: ${{ always() && contains(needs.*.result, 'failure') && needs.resolve.outputs.superseded != 'true' }}"
         )
+        expect(native).toContain('needs: [gate, resolve, ios, android, publish, tag]')
+        expect(ota).toContain(
+            "if: ${{ always() && contains(needs.*.result, 'failure') && needs.deploy.outputs.native_incompatible != 'true' && needs.resolve.outputs.superseded != 'true' }}"
+        )
+        expect(ota).toContain('superseded: ${{ steps.source.outputs.superseded }}')
         for (const workflow of [native, ota]) {
             expect(workflow).toContain(
                 'DISCORD_WEBHOOK: ${{ secrets.RELEASE_ALERT_DISCORD_WEBHOOK || secrets.CONTENT_PIPELINE_DISCORD_WEBHOOK }}'
             )
             expect(workflow).toContain('bash scripts/post-release-alert.sh')
         }
+    })
+})
+
+describe('store build gate', () => {
+    it('builds after a successful OTA and on a manual dispatch', () => {
+        expect(runNativeGate({ conclusion: 'success' }).outputs).toBe('build=true\n')
+        expect(runNativeGate({ event: 'workflow_dispatch' }).outputs).toBe('build=true\n')
+    })
+
+    it('builds after a failed OTA only when it left native-incompatible evidence', () => {
+        expect(runNativeGate({ conclusion: 'failure', artifacts: '1' }).outputs).toBe('build=true\n')
+        const superseded = runNativeGate({ conclusion: 'failure', artifacts: '0' })
+        expect(superseded.status).toBe(0)
+        expect(superseded.outputs).toBe('build=false\n')
     })
 })
