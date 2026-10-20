@@ -1,8 +1,11 @@
+import { render, screen } from '@testing-library/react'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import {
     SESSION_RECORDING_PRIVACY,
     maskReplayAttribute,
     maskReplayNetworkRequest,
     maskReplayText,
+    maskReplayTextIn,
 } from '../replay-privacy'
 
 describe('SESSION_RECORDING_PRIVACY', () => {
@@ -29,6 +32,13 @@ describe('maskReplayText', () => {
         ['DNI 30123456', 'DNI ********'],
         ['•••• 4242', '•••• ****'],
         ['0x7a3F9c21bE04d5', '****************'],
+        ['Sent to alice@example.test', 'Sent to ******************'],
+        [
+            'To 7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV',
+            'To ' + '*'.repeat('7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV'.length),
+        ],
+        ['bc1qxyzabcdefghjklmnpqrstuvwx', '*'.repeat('bc1qxyzabcdefghjklmnpqrstuvwx'.length)],
+        ['IBAN DE89370400440532013000', 'IBAN ' + '*'.repeat(22)],
     ])('masks %s', (input, expected) => {
         expect(maskReplayText(input)).toBe(expected)
     })
@@ -78,5 +88,30 @@ describe('maskReplayNetworkRequest', () => {
 
     it('keeps the QR redaction', () => {
         expect(maskReplayNetworkRequest({ ...timing, name: '/qr-pay?qrCode=secret' }).name).toBe('[REDACTED QR DATA]')
+    })
+})
+
+describe('maskReplayTextIn', () => {
+    it('hides a data-row value whole, words included, and keeps its label', () => {
+        // The bank withdrawal review shows the account holder, who can be a third party.
+        render(<DataRow label="Account owner" value="Alice Example" />)
+        const value = screen.getByText('Alice Example')
+        const label = screen.getByText('Account owner')
+        expect(maskReplayTextIn('Alice Example', value)).toBe('***** *******')
+        expect(maskReplayTextIn('Account owner', label)).toBe('Account owner')
+    })
+
+    it('hides ph-mask text whole, as the shared user label marks names and usernames', () => {
+        const name = document.createElement('div')
+        name.className = 'ph-mask line-clamp-1'
+        document.body.appendChild(name)
+        expect(maskReplayTextIn('alice', name)).toBe('*****')
+        name.remove()
+    })
+
+    it('keeps the words of ordinary text', () => {
+        const button = document.createElement('button')
+        expect(maskReplayTextIn('Withdraw 50', button)).toBe('Withdraw **')
+        expect(SESSION_RECORDING_PRIVACY.maskTextFn?.('Withdraw 50', button)).toBe('Withdraw **')
     })
 })

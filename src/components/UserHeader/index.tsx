@@ -74,10 +74,16 @@ export const VerifiedUserLabel = ({
                 discarded for a raw-address username (the bug behind the
                 type-less crypto-deposit receipt). */}
             {isCryptoAddressComputed && name === username ? (
-                <AddressLink isLink={false} className={twMerge(LABEL_TYPE, className)} address={username} />
+                // ph-mask: a person's name, username or address is hidden in session replays
+                <AddressLink isLink={false} className={twMerge('ph-mask', LABEL_TYPE, className)} address={username} />
             ) : (
                 <div
-                    className={twMerge('line-clamp-1 min-w-0', LABEL_TYPE, className, onNameClick && 'cursor-pointer')}
+                    className={twMerge(
+                        'ph-mask line-clamp-1 min-w-0',
+                        LABEL_TYPE,
+                        className,
+                        onNameClick && 'cursor-pointer'
+                    )}
                     onClick={
                         onNameClick &&
                         ((e) => {
