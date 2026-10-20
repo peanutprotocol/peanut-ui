@@ -3384,7 +3384,8 @@
             "otherDocument": "Documento de apoio",
             "preferencesTitle": "Recursos de pagamento",
             "preferencesDescription": "Escolha os recursos de pagamento que deseja usar. Sua identidade continua verificada.",
-            "preferencesContinue": "Continuar"
+            "preferencesContinue": "Continuar",
+            "temporaryProtection": "Proteção temporária (Ucrânia)"
         },
         "supplement": {
             "proofOfAddressTitle": "Adicione um comprovante de endereço",
@@ -3637,7 +3638,8 @@
                 "proofOfAddress": "Comprovante de endereço",
                 "proofOfAddressWhen": "Adicionado depois da verificação",
                 "proofOfAddressBody": "Para contas bancárias, documentos deste país também pedem uma conta ou um extrato recente com seu endereço.",
-                "proofOfAddressPermit": "Uma permissão de residência do país onde você mora não precisa."
+                "proofOfAddressPermit": "Uma permissão de residência do país onde você mora não precisa.",
+                "temporaryProtectionNote": "O documento que você recebeu como pessoa deslocada da Ucrânia. Um certificado em papel serve; fotografe a página com seus dados."
             },
             "review": {
                 "title": "Estamos verificando seu documento",

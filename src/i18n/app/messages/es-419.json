@@ -3384,7 +3384,8 @@
             "otherDocument": "Documento de respaldo",
             "preferencesTitle": "Funciones de pago",
             "preferencesDescription": "Elige las funciones de pago que quieres usar. Tu identidad sigue verificada.",
-            "preferencesContinue": "Continuar"
+            "preferencesContinue": "Continuar",
+            "temporaryProtection": "Protección temporal (Ucrania)"
         },
         "supplement": {
             "proofOfAddressTitle": "Agrega un comprobante de domicilio",
@@ -3637,7 +3638,8 @@
                 "proofOfAddress": "Comprobante de domicilio",
                 "proofOfAddressWhen": "Se agrega después de la verificación",
                 "proofOfAddressBody": "Para cuentas bancarias, los documentos de este país también piden una factura o un estado de cuenta reciente con tu domicilio.",
-                "proofOfAddressPermit": "Un permiso de residencia del país donde vives no lo necesita."
+                "proofOfAddressPermit": "Un permiso de residencia del país donde vives no lo necesita.",
+                "temporaryProtectionNote": "El documento que recibiste como persona desplazada de Ucrania. Sirve un certificado en papel; fotografía la página con tus datos."
             },
             "review": {
                 "title": "Estamos revisando tu documento",

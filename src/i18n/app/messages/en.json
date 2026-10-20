@@ -3384,7 +3384,8 @@
             "otherDocument": "Supporting document",
             "preferencesTitle": "Payment features",
             "preferencesDescription": "Choose the payment features you’d like to use. Your identity stays verified.",
-            "preferencesContinue": "Continue"
+            "preferencesContinue": "Continue",
+            "temporaryProtection": "Temporary protection (Ukraine)"
         },
         "supplement": {
             "proofOfAddressTitle": "Add a proof of address",
@@ -3637,7 +3638,8 @@
                 "proofOfAddress": "Proof of address",
                 "proofOfAddressWhen": "You’ll add it after the ID check",
                 "proofOfAddressBody": "For bank accounts, IDs from this country also need a recent bill or statement with your address.",
-                "proofOfAddressPermit": "A residence permit from where you live doesn’t need one."
+                "proofOfAddressPermit": "A residence permit from where you live doesn’t need one.",
+                "temporaryProtectionNote": "The document you got as a person displaced from Ukraine. A paper certificate is fine; photograph the page with your details."
             },
             "review": {
                 "title": "We’re checking your ID",

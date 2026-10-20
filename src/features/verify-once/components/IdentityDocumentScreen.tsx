@@ -24,6 +24,7 @@ const DOCUMENT_KEYS = {
     ID_CARD: 'idCard',
     DRIVERS: 'drivers',
     RESIDENCE_PERMIT: 'residencePermit',
+    TEMPORARY_PROTECTION: 'temporaryProtection',
 } as const
 
 function Flag({ country }: { country: string }) {
@@ -155,7 +156,11 @@ export function IdentityDocumentScreen({
             ),
         [document, collator, locale]
     )
-    const types = document?.types ?? []
+    const protection = plan?.temporaryProtection ?? null
+    const types = [...(document?.types ?? []), ...(protection ? ['TEMPORARY_PROTECTION'] : [])]
+    // A temporary protection document comes from where the user lives, and only there.
+    const countriesFor = (value: string) =>
+        value === 'TEMPORARY_PROTECTION' ? (protection?.countries ?? []) : countries
     const [type, setType] = useState(() =>
         types.length === 1 ? types[0] : (types.find((x) => x === 'PASSPORT') ?? '')
     )
@@ -163,6 +168,12 @@ export function IdentityDocumentScreen({
         residence && countries.includes(residence) ? residence : countries.length === 1 ? countries[0] : ''
     )
     const [picking, setPicking] = useState<'type' | 'country' | null>(null)
+    const chooseType = (next: string) => {
+        setType(next)
+        const allowed = countriesFor(next)
+        if (!allowed.includes(country))
+            setCountry(allowed.length === 1 ? allowed[0] : residence && allowed.includes(residence) ? residence : '')
+    }
     const typeName = (value: string) =>
         tDocuments(DOCUMENT_KEYS[value as keyof typeof DOCUMENT_KEYS] ?? 'otherDocument')
     const needsProofOfAddress =
@@ -240,6 +251,11 @@ export function IdentityDocumentScreen({
                     {permitAvoidsProof && ` ${t('midpoint.proofOfAddressPermit')}`}
                 </p>
             )}
+            {type === 'TEMPORARY_PROTECTION' && (
+                <p className="text-body-s text-foreground-secondary" data-testid="verify-id-temporary-protection-note">
+                    {t('midpoint.temporaryProtectionNote')}
+                </p>
+            )}
             <OptionDrawer
                 open={picking === 'type'}
                 onOpenChange={(open) => setPicking(open ? 'type' : null)}
@@ -247,14 +263,14 @@ export function IdentityDocumentScreen({
                 options={types}
                 value={type}
                 label={typeName}
-                onChoose={setType}
+                onChoose={chooseType}
             />
             <OptionDrawer
                 open={picking === 'country'}
                 onOpenChange={(open) => setPicking(open ? 'country' : null)}
                 title={t('midpoint.issuedBy')}
                 searchLabel={t('search.country')}
-                options={countries}
+                options={countriesFor(type)}
                 value={country}
                 label={countryName}
                 leading={(option) => <Flag country={option} />}

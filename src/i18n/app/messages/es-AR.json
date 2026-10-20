@@ -1565,7 +1565,8 @@
                 "failed": "No pudimos iniciar la verificación. Intentá de nuevo.",
                 "unavailable": "No podemos mostrar los documentos ahora. Intentá más tarde.",
                 "proofOfAddressBody": "Para cuentas bancarias, los documentos de este país también piden una factura o un resumen de cuenta reciente con tu domicilio.",
-                "proofOfAddressPermit": "Un permiso de residencia del país donde vivís no lo necesita."
+                "proofOfAddressPermit": "Un permiso de residencia del país donde vivís no lo necesita.",
+                "temporaryProtectionNote": "El documento que recibiste como persona desplazada de Ucrania. Sirve un certificado en papel; sacale una foto a la página con tus datos."
             },
             "failed": {
                 "description": "Tu verificación necesita algo de vos. En el inicio vas a ver qué hacer."

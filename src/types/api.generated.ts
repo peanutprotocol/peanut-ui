@@ -13696,6 +13696,10 @@ export interface paths {
                             policyVersion: string | null;
                             proofOfAddress: "suggested" | null;
                             proofOfAddressIdCountries: string[];
+                            temporaryProtection: {
+                                countries: string[];
+                                until: string;
+                            } | null;
                             routes: {
                                 documents: {
                                     /** @enum {string} */

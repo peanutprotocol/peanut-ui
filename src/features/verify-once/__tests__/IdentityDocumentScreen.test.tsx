@@ -74,3 +74,38 @@ describe('IdentityDocumentScreen: proof of address', () => {
         expect(screen.queryByTestId('verify-id-proof-of-address')).toBeNull()
     })
 })
+
+describe('IdentityDocumentScreen: temporary protection', () => {
+    const withProtection = (countries: string[]) =>
+        ({ ...plan(['PL', 'UA']), temporaryProtection: { countries, until: '2027-03-04' } }) as KycDocumentPlan
+
+    it('offers the document where the user lives and sends it issued by that country', () => {
+        const onContinue = jest.fn()
+        renderWithIntl(
+            <IdentityDocumentScreen
+                plan={withProtection(['PL'])}
+                residence="PL"
+                progress={{ current: 1, total: 2 }}
+                busy={false}
+                error={null}
+                onBack={jest.fn()}
+                onContinue={onContinue}
+            />
+        )
+        fireEvent.click(screen.getByTestId('verify-id-type'))
+        fireEvent.click(screen.getByLabelText('Temporary protection (Ukraine)'))
+
+        expect(screen.getByTestId('verify-id-country')).toHaveTextContent('Poland')
+        expect(screen.getByTestId('verify-id-temporary-protection-note')).toHaveTextContent(
+            'A paper certificate is fine'
+        )
+        fireEvent.click(screen.getByTestId('verify-id-continue'))
+        expect(onContinue).toHaveBeenCalledWith({ type: 'TEMPORARY_PROTECTION', issuingCountry: 'PL' })
+    })
+
+    it('is not offered when the API sends no temporary protection', () => {
+        render(plan(['PL', 'UA']), 'PL')
+        fireEvent.click(screen.getByTestId('verify-id-type'))
+        expect(screen.queryByLabelText('Temporary protection (Ukraine)')).toBeNull()
+    })
+})
