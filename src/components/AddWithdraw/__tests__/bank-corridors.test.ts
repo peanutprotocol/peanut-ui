@@ -378,6 +378,13 @@ describe('which saved account typed bank details name (TASK-23891)', () => {
         expect(findSavedBankAccount([savedIban], IBAN, 'DE89 3704 0044 0532 0130 00', {})).toBe(savedIban)
     })
 
+    it('keeps the letters of an IBAN: two banks with the same digits are two accounts', () => {
+        const IBAN = bankCorridorFor('SEPA')!
+        const nwbk = saved({ id: 'nwbk', type: AccountType.IBAN, identifier: 'gb29nwbk60161331926819' })
+        expect(findSavedBankAccount([nwbk], IBAN, 'GB29 ABCD 6016 1331 9268 19', {})).toBeUndefined()
+        expect(findSavedBankAccount([nwbk], IBAN, 'GB29 NWBK 6016 1331 9268 19', {})).toBe(nwbk)
+    })
+
     it('never takes a saved account of another kind with the same number', () => {
         const usNumberAsGb = saved({ ...savedGb, identifier: '123456789', sortCode: '021000021' })
         expect(findSavedBankAccount([usNumberAsGb], US, '123456789', { routingNumber: '021000021' })).toBeUndefined()

@@ -235,7 +235,8 @@ export function findSavedBankAccount(
     accountNumber: string,
     details: Partial<Record<BankCorridorField['name'], string>>
 ): Account | undefined {
-    const comparable = (value: string | null | undefined) => digits(value ?? '').toLowerCase()
+    // spaces and dashes only: an IBAN's letters are part of the number
+    const comparable = (value: string | null | undefined) => (value ?? '').replace(/[-\s]/g, '').toLowerCase()
     return savedAccounts.find(
         (account) =>
             (account.type as string) === spec.accountType &&

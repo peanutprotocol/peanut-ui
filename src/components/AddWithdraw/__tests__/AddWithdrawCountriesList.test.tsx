@@ -541,7 +541,9 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
         mockUrlAmount = '50'
         mockNuqsParams = { step: 'form', amount: '50' }
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
-        ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: newAccount.id } })
+        ;(addBankAccount as jest.Mock).mockResolvedValue({
+            data: { id: newAccount.id, bridgeAccountId: newAccount.bridgeAccountId },
+        })
         // the refetched user carries the freshly added account
         mockFetchUser.mockResolvedValue(fetchedProfile([newAccount]))
     })
@@ -572,7 +574,7 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
         const savedAccount = { id: 'acct-saved', bridgeAccountId: 'ext-old', identifier: '123456789' }
         const corrected = { ...savedAccount, bridgeAccountId: 'ext-new', routingNumber: '026009593' }
         mockAuthUser = { accounts: [savedAccount] }
-        ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: savedAccount.id } })
+        ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: savedAccount.id, bridgeAccountId: 'ext-new' } })
         mockFetchUser.mockResolvedValue(fetchedProfile([corrected]))
         render(<AddWithdrawCountriesList flow="withdraw" />)
 
@@ -580,6 +582,25 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
 
         expect(result).toEqual({})
         expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(corrected)
+    })
+
+    it('a refetch that still shows the old Bridge account is not trusted: the API answer is the destination', async () => {
+        // a failed /users/me refresh hands back the cached profile, and a lagging one the old row
+        const savedAccount = { id: 'acct-saved', bridgeAccountId: 'ext-old', identifier: '123456789' }
+        mockAuthUser = { accounts: [savedAccount] }
+        ;(addBankAccount as jest.Mock).mockResolvedValue({
+            data: { id: savedAccount.id, bridgeAccountId: 'ext-new', identifier: '123456789', details: {} },
+        })
+        mockFetchUser.mockResolvedValue(fetchedProfile([savedAccount]))
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        const result = await submitForm()
+
+        expect(result).toEqual({})
+        expect(mockSetSelectedBankAccount).toHaveBeenCalledTimes(1)
+        expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(
+            expect.objectContaining({ id: savedAccount.id, bridgeAccountId: 'ext-new' })
+        )
     })
 
     it('entered from the send flow, the method marker rides along with the amount', async () => {
@@ -653,7 +674,7 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
         mockBankFormProps.mockClear()
         mockNuqsParams = { step: 'form' }
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
-        ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: 'acct-new' } })
+        ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: 'acct-new', bridgeAccountId: 'ext-new' } })
         mockFetchUser.mockResolvedValue(fetchedProfile([{ id: 'acct-new', bridgeAccountId: 'ext-new' }]))
     })
 

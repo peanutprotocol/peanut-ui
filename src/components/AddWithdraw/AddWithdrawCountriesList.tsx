@@ -386,8 +386,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         if (cancelled()) return SUBMIT_CANCELLED
 
         // Found by the id the API answered, not by being new: a corrected
-        // routing number or sort code updates the saved account in place.
-        const addedAccount = updatedUser?.accounts.find((acc) => acc.id === result.data?.id)
+        // routing number or sort code updates the saved account in place. It
+        // counts only if it names the Bridge account the API answered with. A
+        // failed or lagging refetch can still show the old one, which pays
+        // the old bank.
+        const addedAccount = updatedUser?.accounts.find(
+            (acc) => acc.id === result.data?.id && acc.bridgeAccountId === result.data?.bridgeAccountId
+        )
 
         if (addedAccount) {
             withdrawFlow?.setSelectedBankAccount(addedAccount)
