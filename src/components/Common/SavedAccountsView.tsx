@@ -161,9 +161,10 @@ export function SavedAccountsMapping({
             {rows.map(({ account, destination, countryCodeForFlag, countryName, path }) => (
                 <ListItem
                     key={account.id}
-                    title={destinationLabel(destination)}
+                    // ph-mask: the label can repeat a bank alias, and the body is the account
+                    title={<span className="ph-mask">{destinationLabel(destination)}</span>}
                     truncate
-                    body={destination.identifier}
+                    body={<span className="ph-mask">{destination.identifier}</span>}
                     position="solo"
                     onClick={() => onItemClick(account, path)}
                     chevron={!onItemEdit}
@@ -173,7 +174,8 @@ export function SavedAccountsMapping({
                                 type="button"
                                 aria-label={t('savedDestinations.editAria', { name: destinationLabel(destination) })}
                                 data-testid="destination-edit"
-                                className="flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-instant hover:bg-background-disabled active:bg-background-disabled"
+                                // ph-mask: the accessible name repeats the account label
+                                className="ph-mask flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-instant hover:bg-background-disabled active:bg-background-disabled"
                                 onClick={(e) => {
                                     e.stopPropagation()
                                     onItemEdit(account)

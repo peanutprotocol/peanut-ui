@@ -1,7 +1,15 @@
 import { render, screen } from '@testing-library/react'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
+import { SavedAccountsMapping } from '@/components/Common/SavedAccountsView'
 import { VerifiedUserLabel } from '@/components/UserHeader'
+import { AccountType, type Account } from '@/interfaces/interfaces'
+import { IntlWrapper } from '@/test-utils/intl'
 
+jest.mock('next/image', () => ({
+    __esModule: true,
+    // eslint-disable-next-line @next/next/no-img-element
+    default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
+}))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ invitedUsernamesSet: new Set<string>(), user: null }),
 }))
@@ -75,6 +83,26 @@ describe('stays masked', () => {
         expect(maskText('Maria Souza', fullName)).toBe('***** *****')
     })
 
+    it("a saved bank account's alias, in its row and in its edit button's accessible name", () => {
+        const alias = {
+            id: 'acc-alias',
+            type: AccountType.MANTECA,
+            identifier: 'casa.perro.sol',
+            details: { countryCode: 'ARG', countryName: 'Argentina' },
+        } as unknown as Account
+        render(<SavedAccountsMapping accounts={[alias]} onItemClick={() => {}} onItemEdit={() => {}} />, {
+            wrapper: IntlWrapper,
+        })
+        // the title ("Argentina · casa.perro.sol") and the body (the alias itself)
+        for (const element of screen.getAllByText((text) => text.includes('casa.perro.sol'))) {
+            expect(maskText(element.textContent ?? '', element)).not.toContain('casa')
+        }
+        const edit = screen.getByTestId('destination-edit')
+        const accessibleName = edit.getAttribute('aria-label') ?? ''
+        expect(accessibleName).toContain('casa.perro.sol')
+        expect(maskAttribute('aria-label', accessibleName, edit)).not.toContain('casa')
+    })
+
     it('an accessible name on a sensitive element', () => {
         render(<DataRow label="Account owner" value="Alice Example" />)
         const value = screen.getAllByText('Alice Example')[0]
@@ -84,10 +112,12 @@ describe('stays masked', () => {
     it.each([
         ['an IBAN', 'IBAN DE89370400440532013000', 'IBAN ' + '*'.repeat(22)],
         ['an email', 'Sent to alice@example.test', 'Sent to ' + '*'.repeat('alice@example.test'.length)],
-        ['an amount', '$1,234.56', '$*,***.**'],
-        ['a CPF', 'CPF 123.456.789-09', 'CPF ***.***.***-**'],
-        ['a CUIT', 'CUIT 20-12345678-9', 'CUIT **-********-*'],
-        ['a card number', '•••• 4242', '•••• ****'],
+        // a digit run becomes *** whatever its length, so the size of an amount does not show
+        ['an amount', '$1,234,567.89', '$***'],
+        ['a small amount', 'Send $8.50', 'Send $***'],
+        ['a CPF', 'CPF 123.456.789-09', 'CPF ***-***'],
+        ['a CUIT', 'CUIT 20-12345678-9', 'CUIT ***-***-***'],
+        ['a card number', '•••• 4242', '•••• ***'],
         ['an EVM address', '0x7a3F9c21bE04d5', '*'.repeat(16)],
         ['a base58 address', '7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV', '*'.repeat(43)],
     ])('%s', (_name, text, expected) => {
@@ -133,7 +163,7 @@ describe('layout attributes', () => {
     })
 
     it('masks a value attribute by the same text rules', () => {
-        expect(maskReplayTextIn('1500', document.createElement('span'))).toBe('****')
-        expect(maskReplayAttribute('value', '1500', document.createElement('input'))).toBe('****')
+        expect(maskReplayTextIn('1500', document.createElement('span'))).toBe('***')
+        expect(maskReplayAttribute('value', '1500', document.createElement('input'))).toBe('***')
     })
 })

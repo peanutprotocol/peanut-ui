@@ -22,8 +22,10 @@ const maskAll = (value: string) => value.replace(/\S/g, MASK)
 /**
  * Hides the values in a text and keeps its words.
  *
- * Every digit becomes `*`, which covers amounts, balances, tax ids (CPF, DNI,
- * CUIL, CUIT), card numbers, phone numbers and dates. Emails, hex addresses
+ * Every run of digits (with its `.` and `,` separators) becomes `***`, which
+ * covers amounts, balances, tax ids (CPF, DNI, CUIL, CUIT), card numbers, phone
+ * numbers and dates, and hides their length, so a masked balance does not
+ * reveal its order of magnitude. Emails, hex addresses
  * and unbroken tokens of 20+ characters (base58 and bech32 addresses, hashes,
  * IBANs) are masked whole, because their letters identify them as much as
  * their digits. Usernames are at most 12 characters, so they stay readable.
@@ -33,7 +35,7 @@ export function maskReplayText(text: string): string {
         .replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, maskWhole)
         .replace(/0x[0-9a-f]{6,}/gi, maskWhole)
         .replace(/[A-Za-z0-9]{20,}/g, maskWhole)
-        .replace(/\d/g, MASK)
+        .replace(/\d(?:[\d.,]*\d)?/g, MASK.repeat(3))
 }
 
 /**
