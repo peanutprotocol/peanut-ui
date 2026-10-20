@@ -37,10 +37,11 @@ jobs:
                       exit 1
                   fi
                   # The bundle decides whether to send analytics from its base URL:
-                  # only https://peanut.me captures. A staging bundle with the
-                  # production URL would send staging traffic to production PostHog.
-                  if [ -z "$STAGING_BASE_URL" ] || [ "$STAGING_BASE_URL" = "https://peanut.me" ]; then
-                      echo "::error::set the Staging-OTA variable STAGING_OTA_BASE_URL to the staging site, not '$STAGING_BASE_URL'" >&2
+                  # only https://peanut.me captures. Require the exact staging origin,
+                  # so no empty, quoted or padded value can bake the production URL
+                  # and send staging traffic to production PostHog.
+                  if [ "$STAGING_BASE_URL" != "https://staging.peanut.me" ]; then
+                      echo "::error::the Staging-OTA variable STAGING_OTA_BASE_URL must be https://staging.peanut.me, not '$STAGING_BASE_URL'" >&2
                       exit 1
                   fi
                   echo "Publishing staging OTA from $SOURCE_REF"
