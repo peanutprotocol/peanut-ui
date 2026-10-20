@@ -215,16 +215,19 @@ export interface StoryStepState {
     complete: () => void
 }
 
-/** The three coloured grounds. Only a seam between two of them gets a marquee. */
+/** The three coloured grounds. A seam with one of them on either side gets a marquee. */
 export type ColouredGround = Extract<BandGround, 'pink' | 'sky' | 'yellow'>
+
+/** Strip colours: the coloured grounds plus white (cream counts as white). */
+export type MarqueeStripGround = ColouredGround | 'white'
 
 export interface StarLpMarqueeProps {
     /** Real product words for this page. Plain strings, or `{ label, href }` for a word that links somewhere real. */
     words: MarqueeItem[]
-    /** The bands above and below the strip, in page order. Both must be coloured. */
-    between: readonly [ColouredGround, ColouredGround]
-    /** Strip colour. Defaults to the coloured ground neither neighbour uses. */
-    ground?: ColouredGround
+    /** The folds above and below the strip, in page order (the footer is black). At least one is coloured. */
+    between: readonly [BandGround, BandGround]
+    /** Strip colour. Defaults to the first of yellow, sky, pink, white that neither neighbour has. */
+    ground?: MarqueeStripGround
 }
 
 /** Pages that carry a scannable QR. Used as `utm_campaign`. */

@@ -63,6 +63,11 @@ const HERO_SEAM: string[] = [
     'No Peanut fee',
 ]
 
+const STORY_SEAM: string[] = ['Scan', 'See the reais', 'Confirm', 'Done']
+// kyc.md: passport instead of CPF, pay only.
+const FAQ_SEAM: string[] = ['Passport and a selfie', 'Verify once', 'No Brazilian bank', 'No CPF']
+const CLOSE_SEAM: string[] = ['Self-custodial', 'Passkey', 'Dollars', 'Rate before you confirm']
+
 export async function QrBrazilLanding() {
     const usdBrl = await fetchUsdBrlRate()
     return (
@@ -96,9 +101,12 @@ export async function QrBrazilLanding() {
                     <QrBrazilPayStory usdBrl={usdBrl} />
                 </div>
             </Band>
+            <StarLpMarquee between={['sky', 'black']} ground="pink" words={STORY_SEAM} />
             <TrustBand text={'No one can block you\nor take your funds.'} />
             <StarLpFaq items={FAQ} />
+            <StarLpMarquee between={['cream', 'pink']} words={FAQ_SEAM} />
             <QrBrazilClose />
+            <StarLpMarquee between={['pink', 'black']} ground="sky" words={CLOSE_SEAM} />
         </>
     )
 }

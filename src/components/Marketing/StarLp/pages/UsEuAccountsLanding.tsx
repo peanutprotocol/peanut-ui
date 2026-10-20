@@ -9,6 +9,7 @@ import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
 import { StarLpFaq } from '@/components/Marketing/StarLp/StarLpFaq'
 import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
+import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
 import { TrustBand } from '@/components/Marketing/StarLp/TrustBand'
 import { Wiggle } from '@/components/Marketing/StarLp/Wiggle'
 import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
@@ -43,6 +44,14 @@ const FAQ: StarLpFaqItem[] = [
         answer: 'Yes, to your own bank account in the US, Europe, Mexico or Colombia. Argentina and Brazil: residents with a CUIT or CPF.',
     },
 ]
+
+// Marquee words: the hero, FAQ and pricing.md (no Peanut fee to open or keep),
+// request-links.md (instant from a Peanut balance, no expiry). Plain words only.
+const HERO_SEAM: string[] = ['US account details', 'Euro IBAN', 'ACH', 'SEPA', 'Dollars arrive as dollars']
+const HOW_SEAM: string[] = ['Employers', 'Business clients', 'Salary', 'Invoices']
+const LINK_SEAM: string[] = ['One link', 'Instant from Peanut', 'Share in any chat', 'Never expires']
+const FAQ_SEAM: string[] = ['No fee to open', 'No fee to keep', 'Withdraw to your bank', 'Passkey sign-in']
+const CLOSE_SEAM: string[] = ['USD', 'EUR', 'Verify in minutes', 'Self-custodial']
 
 const FOOTNOTE = 'Peanut is not a bank. Accounts may not be available where you live.'
 
@@ -82,12 +91,16 @@ export async function UsEuAccountsLanding() {
                 }
             />
 
+            <StarLpMarquee between={['pink', 'cream']} words={HERO_SEAM} />
+
             <Band ground="cream">
                 <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
                     <SectionTitle>How it works</SectionTitle>
                     <UsEuTimeline eurUsd={eurUsd} />
                 </div>
             </Band>
+
+            <StarLpMarquee between={['cream', 'sky']} ground="pink" words={HOW_SEAM} />
 
             {/* Band clips (overflow-hidden) and its column is relative z-10: the clouds span the band width behind the content. */}
             <Band ground="sky">
@@ -110,9 +123,13 @@ export async function UsEuAccountsLanding() {
                 </div>
             </Band>
 
+            <StarLpMarquee between={['sky', 'black']} words={LINK_SEAM} />
+
             <TrustBand text={'No one can block you\nor take your funds.'} />
 
             <StarLpFaq items={FAQ} footnote={FOOTNOTE} />
+
+            <StarLpMarquee between={['cream', 'pink']} ground="sky" words={FAQ_SEAM} />
 
             <CloseFold
                 title={'Open yours\nnow'}
@@ -145,6 +162,8 @@ export async function UsEuAccountsLanding() {
                     </div>
                 }
             />
+
+            <StarLpMarquee between={['pink', 'black']} words={CLOSE_SEAM} />
         </>
     )
 }

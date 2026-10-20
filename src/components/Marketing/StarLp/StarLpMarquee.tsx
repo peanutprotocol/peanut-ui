@@ -5,10 +5,12 @@ import { marqueeStripGround } from './starLpMarquee.utils'
 import type { StarLpMarqueeProps } from './starLp.types'
 
 /**
- * The peanut.me landing marquee, placed on the seam where two coloured bands
- * touch. Put it between the two Bands as a sibling. react-fast-marquee renders
- * nothing until it mounts, so the wrapper paints the strip (colour, 2px rules,
- * the row's measured 60px) on the server and nothing moves when the words arrive.
+ * The peanut.me landing marquee, placed on every seam where a pink, sky or
+ * yellow fold meets another fold (the footer counts as black). Put it between
+ * the two folds as a sibling; on the last seam it is the page's last child.
+ * react-fast-marquee renders nothing until it mounts, so the wrapper paints the
+ * strip (colour, 2px rules, the row's measured 60px) on the server and nothing
+ * moves when the words arrive.
  * Reduced motion stops the scroll and the thumbs-up (globals.css, star LP kit).
  */
 export function StarLpMarquee({ words, between, ground }: StarLpMarqueeProps) {

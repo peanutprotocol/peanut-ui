@@ -1,4 +1,3 @@
-import BorderCloud from '@/assets/illustrations/border-cloud.svg'
 import GotItHand from '@/assets/illustrations/got-it-hand.svg'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { Band } from '@/components/Marketing/StarLp/Band'
@@ -9,6 +8,7 @@ import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
 import { StarLpFaq } from '@/components/Marketing/StarLp/StarLpFaq'
 import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
+import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
 import { TrustBand } from '@/components/Marketing/StarLp/TrustBand'
 import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
 import type { StarLpFaqItem } from '@/components/Marketing/StarLp/starLp.types'
@@ -48,6 +48,16 @@ const FAQ: StarLpFaqItem[] = [
     },
 ]
 
+// Marquee words: request-links.md (channels, contribution methods, speed, fees,
+// no expiry, use cases). Never Pix or Mercado Pago: they cannot fund a request.
+const HERO_SEAM: string[] = ['One link', 'Invoices', 'Emails', 'Chats', 'Printed QR']
+const OLD_REPLY_SEAM: string[] = ['Exchange', 'Wallet', 'Bank transfer', 'Peanut balance']
+const CLIENT_SEAM: string[] = ['Instant from Peanut', 'Minutes from a wallet', 'No escrow', 'Any amount']
+const TIMELINE_SEAM: string[] = ['Free to create', 'Free to pay', 'Never expires', 'Many can chip in']
+const SMALL_PRINT_SEAM: string[] = ['Tips', 'Group gifts', 'Donations', 'Split bills']
+const FAQ_SEAM: string[] = ['Verify once', 'Passkey sign-in', 'Self-custodial', 'Your balance']
+const CLOSE_SEAM: string[] = ['Freelance work', 'Client payments', 'Shared costs', 'Paid in dollars']
+
 const twoColumns = 'grid gap-10 md:grid-cols-2 md:items-center md:gap-12'
 
 export function RequestLinksLanding() {
@@ -70,6 +80,8 @@ export function RequestLinksLanding() {
                 }
             />
 
+            <StarLpMarquee between={['pink', 'cream']} words={HERO_SEAM} />
+
             <Band ground="cream">
                 <div className={twoColumns}>
                     <SectionTitle>
@@ -84,6 +96,8 @@ export function RequestLinksLanding() {
                     </div>
                 </div>
             </Band>
+
+            <StarLpMarquee between={['cream', 'sky']} ground="pink" words={OLD_REPLY_SEAM} />
 
             {/* Link cards scroll here: "what your client sees" is where a request link opens. */}
             <Band ground="sky" id={REQUEST_LINKS_CLIENT_SEES_ID} className="scroll-mt-16">
@@ -103,12 +117,16 @@ export function RequestLinksLanding() {
                 </div>
             </Band>
 
+            <StarLpMarquee between={['sky', 'white']} words={CLIENT_SEAM} />
+
             <Band ground="white">
                 <div className={twoColumns}>
                     <SectionTitle>Follow one payment.</SectionTitle>
                     <RequestLinksTimeline />
                 </div>
             </Band>
+
+            <StarLpMarquee between={['white', 'yellow']} words={TIMELINE_SEAM} />
 
             <Band ground="yellow">
                 <div className={twoColumns}>
@@ -135,26 +153,16 @@ export function RequestLinksLanding() {
                 </div>
             </Band>
 
+            <StarLpMarquee between={['yellow', 'black']} ground="pink" words={SMALL_PRINT_SEAM} />
             <TrustBand text={'No one can block you\nor take your funds.'} />
             <StarLpFaq items={FAQ} />
+            <StarLpMarquee between={['cream', 'pink']} words={FAQ_SEAM} />
 
             {/*
               The closing fold keeps the approved copy and its chat thread, so it is composed
               from CloseFold's parts in CloseFold's order: CloseFold has no slot for the thread.
             */}
-            <Band ground="pink" align="center" className="overflow-visible">
-                {/* Straddles the cream/pink seam at every width, inside the 24 px gutter. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                    src={BorderCloud.src}
-                    width={BorderCloud.width}
-                    height={BorderCloud.height}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    aria-hidden
-                    className="pointer-events-none absolute -top-22 left-0 w-28 md:-top-34 md:left-[8%] md:w-44"
-                />
+            <Band ground="pink" align="center">
                 <h2>
                     <DisplayLine>
                         Next time they ask, <span className="whitespace-nowrap">you&apos;ll have</span>
@@ -180,6 +188,8 @@ export function RequestLinksLanding() {
                     </StarLpCta>
                 </div>
             </Band>
+
+            <StarLpMarquee between={['pink', 'black']} ground="sky" words={CLOSE_SEAM} />
         </>
     )
 }

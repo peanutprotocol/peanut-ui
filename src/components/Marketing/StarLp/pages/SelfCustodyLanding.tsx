@@ -97,6 +97,11 @@ const HERO_SEAM_WORDS: MarqueeItem[] = [
     'Self-custodial',
 ]
 const FACTS_SEAM_WORDS: MarqueeItem[] = ['Onchain', 'Smart account', 'Arbitrum', 'Works with other wallets']
+// security.md: the key is sealed in the Secure Enclave and never sent to Peanut's servers.
+const COMPARE_SEAM_WORDS: MarqueeItem[] = ['Your keys', 'Secure Enclave', 'Never sent to Peanut', 'Audited']
+// security.md: passkeys sync through Apple or Google; ERC-4337 account built on ZeroDev.
+const FAQ_SEAM_WORDS: MarqueeItem[] = ['Synced with Apple or Google', 'No custodian', 'ERC-4337', 'ZeroDev']
+const CLOSE_SEAM_WORDS: MarqueeItem[] = ['Hold dollars', 'Send', 'Request', 'Withdraw']
 
 export function SelfCustodyLanding() {
     return (
@@ -153,9 +158,15 @@ export function SelfCustodyLanding() {
                 </div>
             </Band>
 
+            <StarLpMarquee between={['sky', 'cream']} words={COMPARE_SEAM_WORDS} />
+
             <StarLpFaq items={FAQ} />
 
+            <StarLpMarquee between={['cream', 'pink']} ground="sky" words={FAQ_SEAM_WORDS} />
+
             <SelfCustodyClose />
+
+            <StarLpMarquee between={['pink', 'black']} words={CLOSE_SEAM_WORDS} />
         </>
     )
 }
