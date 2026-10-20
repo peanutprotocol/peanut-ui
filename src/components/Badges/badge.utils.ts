@@ -99,7 +99,7 @@ const BADGE_SHARE_LINES: Readonly<Record<string, string>> = {
 }
 
 // Share text is:
-//   <funny first-person brag>\n\nJoin me on Peanut 👉 <profileUrl>
+//   <funny first-person brag>\n\nJoin me on Peanut: <profileUrl>
 // profileUrl is the sharer's own public profile — it showcases their badges and
 // carries the join CTA.
 export function getBadgeShareText(
@@ -113,7 +113,7 @@ export function getBadgeShareText(
     if (localized && localized.locale !== 'en') return localized.localizedFallback
 
     const brag = (code && BADGE_SHARE_LINES[code]) || `I just unlocked the "${displayName}" badge on Peanut 🥜`
-    return `${brag}\n\nJoin me on Peanut 👉 ${profileUrl}`
+    return `${brag}\n\nJoin me on Peanut: ${profileUrl}`
 }
 
 /** No local copy fallback: descriptions are owned by the backend catalog. */
