@@ -186,7 +186,7 @@ export function IdentityDocumentScreen({
                     }
                     secondary={
                         <p className="flex items-center gap-1 text-body-xs text-foreground-secondary">
-                            <Icon name="lock" size={12} />
+                            <Icon name="lock" size={16} />
                             {t('midpoint.privacy')}
                         </p>
                     }

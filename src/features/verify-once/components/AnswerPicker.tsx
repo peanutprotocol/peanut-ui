@@ -188,11 +188,9 @@ export function AnswerPicker({
                         </div>
                     )}
                     <div className="flex flex-col gap-2">
-                        {popular && (
-                            <p className="text-body-xs font-bold text-foreground-secondary">{t('search.popular')}</p>
-                        )}
+                        {popular && <p className="text-label-m text-foreground-secondary">{t('search.popular')}</p>}
                         {searchable && !popular && words.length > 0 && matches.length > 0 && (
-                            <p className="text-body-xs font-bold text-foreground-secondary">
+                            <p className="text-label-m text-foreground-secondary">
                                 {t('search.matches', { count: matches.length })}
                             </p>
                         )}

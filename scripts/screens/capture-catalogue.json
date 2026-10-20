@@ -141,6 +141,41 @@
         "route": "/dev/surfaces?s=03-c-residence-congrats"
     },
     {
+        "id": "fixture-kyc-setup-all-available",
+        "flow": "Setup and login",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-kyc-setup-bank-document-needed",
+        "flow": "Setup and login",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-kyc-setup-bank-address-review",
+        "flow": "Setup and login",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-kyc-setup-card-agreements-needed",
+        "flow": "Setup and login",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-kyc-setup-bank-terms-needed",
+        "flow": "Setup and login",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-kyc-setup-bank-local-id-refused",
+        "flow": "Setup and login",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-kyc-setup-local-account-refused",
+        "flow": "Setup and login",
+        "route": "/history"
+    },
+    {
         "id": "fixture-profile-accounts-no-residence",
         "flow": "Setup and login",
         "route": "/profile/accounts"
@@ -338,6 +373,66 @@
         "id": "fixture-error-limits",
         "flow": "Home and shared states",
         "route": "/limits/manteca"
+    },
+    {
+        "id": "fixture-verify-once-de",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-verify-once-ar",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-verify-once-br",
+        "flow": "Home and shared states",
+        "route": "/verify?step=birth"
+    },
+    {
+        "id": "fixture-verify-once-add-local",
+        "flow": "Home and shared states",
+        "route": "/verify?feature=local"
+    },
+    {
+        "id": "fixture-verify-once-us",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-verify-once-ph",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-verify-once-save-fails",
+        "flow": "Home and shared states",
+        "route": "/verify?step=tax"
+    },
+    {
+        "id": "fixture-verify-once-midpoint",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-verify-once-review",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-verify-once-verified",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-verify-once-proof-of-address",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-verify-once-add-bank",
+        "flow": "Home and shared states",
+        "route": "/verify?feature=bank"
     },
     {
         "id": "p05-home",
@@ -872,6 +967,11 @@
         "id": "fixture-home-card-info-failed",
         "flow": "Card",
         "route": "/home"
+    },
+    {
+        "id": "fixture-verify-once-add-card",
+        "flow": "Card",
+        "route": "/verify?feature=card"
     },
     {
         "id": "p22-card",
@@ -1447,6 +1547,11 @@
     },
     {
         "id": "fixture-unverified",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-bank-proof-of-address-supplement",
         "flow": "Profile and settings",
         "route": "/profile/accounts"
     },

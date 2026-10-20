@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
+import Card from '@/components/Global/Card'
 import { searchKycPlaces } from '@/app/actions/kyc-verify-once'
 import type { KycPlace } from '@/app/actions/types/kyc-verify-once.types'
 import { twMerge } from '@/utils/tw'
@@ -113,40 +114,42 @@ export function PlaceField({
                 data-testid="verify-input-place"
             />
             {listed && (
-                <ul
-                    id={listId}
-                    role="listbox"
-                    aria-label={t('suggestions')}
-                    className="notranslate mt-1 max-h-60 w-full overflow-y-auto rounded-sm border border-border-default bg-background-default p-1 shadow-4"
-                    // pull-to-refresh listens on `document`; same guard as CountryCombobox
-                    onTouchMove={(event) => event.stopPropagation()}
-                    // keep the input focused while a row is tapped
-                    onMouseDown={(event) => event.preventDefault()}
-                    data-testid="verify-place-list"
-                >
-                    {places.length === 0 && (
-                        <li className="px-3 py-2 text-body-s text-foreground-secondary">{t('noMatch')}</li>
-                    )}
-                    {places.map((place, index) => (
-                        <li
-                            key={`${place.name}-${place.region ?? ''}`}
-                            id={`${listId}-${index}`}
-                            role="option"
-                            aria-selected={index === active}
-                            onClick={() => choose(place)}
-                            onMouseMove={() => setActive(index)}
-                            className={twMerge(
-                                'flex w-full cursor-pointer flex-col rounded-sm px-3 py-2 transition-colors select-none',
-                                index === active && 'bg-background-disabled'
-                            )}
-                        >
-                            <span className="text-label-l">{place.name}</span>
-                            {place.region && (
-                                <span className="text-body-xs text-foreground-secondary">{place.region}</span>
-                            )}
-                        </li>
-                    ))}
-                </ul>
+                <Card className="mt-1 overflow-hidden p-0 shadow-4">
+                    <ul
+                        id={listId}
+                        role="listbox"
+                        aria-label={t('suggestions')}
+                        className="notranslate max-h-60 w-full overflow-y-auto p-1"
+                        // pull-to-refresh listens on `document`; same guard as CountryCombobox
+                        onTouchMove={(event) => event.stopPropagation()}
+                        // keep the input focused while a row is tapped
+                        onMouseDown={(event) => event.preventDefault()}
+                        data-testid="verify-place-list"
+                    >
+                        {places.length === 0 && (
+                            <li className="px-3 py-2 text-body-s text-foreground-secondary">{t('noMatch')}</li>
+                        )}
+                        {places.map((place, index) => (
+                            <li
+                                key={`${place.name}-${place.region ?? ''}`}
+                                id={`${listId}-${index}`}
+                                role="option"
+                                aria-selected={index === active}
+                                onClick={() => choose(place)}
+                                onMouseMove={() => setActive(index)}
+                                className={twMerge(
+                                    'flex w-full cursor-pointer flex-col rounded-sm px-3 py-2 transition-colors select-none',
+                                    index === active && 'bg-background-disabled'
+                                )}
+                            >
+                                <span className="text-label-l">{place.name}</span>
+                                {place.region && (
+                                    <span className="text-body-xs text-foreground-secondary">{place.region}</span>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </Card>
             )}
         </div>
     )

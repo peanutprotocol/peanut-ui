@@ -3576,7 +3576,7 @@
                     "other": "O número fiscal do seu país de residência."
                 },
                 "label": {
-                    "ssn": "Social Security number",
+                    "ssn": "Número do Seguro Social",
                     "cuit": "CUIT ou CUIL",
                     "cpf": "CPF",
                     "rut": "RUT",

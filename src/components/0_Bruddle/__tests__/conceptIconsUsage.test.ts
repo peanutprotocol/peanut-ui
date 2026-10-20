@@ -41,6 +41,10 @@ const EXEMPT = new Map<string, string>([
         'an explainer bullet about a shareable account link, not a send or request link',
     ],
     [
+        'features/verify-once/components/IdentityDocumentScreen.tsx :: globe',
+        'the gray placeholder of an unchosen issuing country, not other countries',
+    ],
+    [
         'features/payments/flows/semantic-request/SemanticRequestPageWrapper.tsx :: link',
         'the gray error state for a broken payment URL (design decision pending)',
     ],

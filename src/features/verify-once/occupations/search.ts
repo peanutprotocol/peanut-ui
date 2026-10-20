@@ -1,4 +1,8 @@
-export const normalizeSearch = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+export const normalizeSearch = (text: string) =>
+    text
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
 
 /**
  * Query words cut to a stem, so a plural or the feminine form finds the
