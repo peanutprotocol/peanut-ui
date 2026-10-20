@@ -3,7 +3,7 @@
     "rawHexFiles": 3,
     "inlineStyle": 22,
     "stockTextSize": 0,
-    "dsTextScale": 1421,
+    "dsTextScale": 1403,
     "legacyTextScale": 0,
     "nonDsClassesInViews": 6,
     "useSearchParamsFiles": 35,
@@ -14,14 +14,14 @@
     "consumedUndefinedTokens": 0,
     "classNameSitesInPages": 117,
     "fontWeightOnTypeToken": 26,
-    "offScaleSpacing": 81,
+    "offScaleSpacing": 82,
     "iconOffScale": 44,
     "offScaleRadius": 16,
     "rawDuration": 1,
     "retypedCardLiteral": 13,
     "hoverNoActiveFiles": 17,
     "arbitraryFontSize": 15,
-    "rawErrorText": 14,
+    "rawErrorText": 13,
     "handRolledCloseGlyphFiles": 7,
     "bareListLeading": 17,
     "rawHexMarketing": 0,
@@ -142,6 +142,11 @@
             "date": "2026-10-16",
             "metrics": ["retypedCardLiteral 12 -> 13"],
             "reason": "merge from dev: dev already carries 13 (TokenSelector SelectorTrigger, 8b5121d25)"
+        },
+        {
+            "date": "2026-10-19",
+            "metrics": ["offScaleSpacing 81 -> 82"],
+            "reason": "/dev/ds/marketing Landing shows the real band padding py-16 md:py-24 in its copyable snippet (design.md § marketing → layout: 64 mobile / 96 desktop); one documented sample, not a new call site"
         }
     ]
 }

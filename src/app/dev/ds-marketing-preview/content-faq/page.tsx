@@ -2,7 +2,7 @@ import { FAQsPanel } from '@/components/Global/FAQs'
 import { PROSE_WIDTH } from '@/components/Marketing/constants'
 import { DEMO_FAQ_ITEMS } from '../_components/preview-data'
 
-// The content-page FAQ (faq-double-heading A, ruled 2026-10-14): the PANEL
+// The content-page FAQ: the PANEL
 // heading is the only heading — authors pass title= to <FAQ> in mdx and never
 // write an h2 above it. Visual twin of what Marketing/mdx/FAQ.tsx renders:
 // the inline panel sits in the prose column and follows the prose rhythm.
