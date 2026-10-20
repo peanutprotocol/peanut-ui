@@ -3635,8 +3635,9 @@
                 "failed": "We couldn’t start the ID check. Try again.",
                 "unavailable": "We can’t show the documents right now. Try again later.",
                 "proofOfAddress": "Proof of address",
-                "proofOfAddressBody": "With an ID from {country}, bank accounts also need a recent bill or statement with your address. You’ll add it after the ID check.",
-                "proofOfAddressPermit": "A residence permit from {residence} doesn’t need one."
+                "proofOfAddressWhen": "You’ll add it after the ID check",
+                "proofOfAddressBody": "For bank accounts, IDs from this country also need a recent bill or statement with your address.",
+                "proofOfAddressPermit": "A residence permit from where you live doesn’t need one."
             },
             "review": {
                 "title": "We’re checking your ID",

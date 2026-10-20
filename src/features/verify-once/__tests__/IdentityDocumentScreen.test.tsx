@@ -50,8 +50,18 @@ describe('IdentityDocumentScreen: proof of address', () => {
         fireEvent.click(screen.getByLabelText('Russia'))
 
         expect(screen.getByTestId('verify-id-proof-of-address')).toHaveTextContent('Proof of address')
-        expect(screen.getByTestId('verify-id-proof-of-address')).toHaveTextContent('With an ID from Russia')
-        expect(screen.getByText('A residence permit from Kazakhstan doesn’t need one.')).toBeInTheDocument()
+        expect(screen.getByTestId('verify-id-proof-of-address')).toHaveTextContent('after the ID check')
+        expect(screen.getByTestId('verify-id-proof-of-address-note')).toHaveTextContent(
+            'IDs from this country also need a recent bill or statement'
+        )
+        expect(screen.getByTestId('verify-id-proof-of-address-note')).toHaveTextContent(
+            'A residence permit from where you live doesn’t need one.'
+        )
+    })
+
+    it('leaves the permit out of the note when no permit from the residence is on offer', () => {
+        render(plan(['RU'], ['RU']), 'KZ')
+        expect(screen.getByTestId('verify-id-proof-of-address-note')).not.toHaveTextContent('residence permit')
     })
 
     it('lists nothing for an ID country the plan does not name', () => {

@@ -227,16 +227,17 @@ export function IdentityDocumentScreen({
                     {needsProofOfAddress && (
                         <ListItem
                             title={t('midpoint.proofOfAddress')}
-                            body={t('midpoint.proofOfAddressBody', { country: countryName(country) })}
+                            body={t('midpoint.proofOfAddressWhen')}
                             leading={<IconBubble icon="docs" size="s" color="blue" />}
                             data-testid="verify-id-proof-of-address"
                         />
                     )}
                 </ListGroup>
             )}
-            {permitAvoidsProof && residence && (
-                <p className="text-body-s text-foreground-secondary">
-                    {t('midpoint.proofOfAddressPermit', { residence: countryName(residence) })}
+            {needsProofOfAddress && (
+                <p className="text-body-s text-foreground-secondary" data-testid="verify-id-proof-of-address-note">
+                    {t('midpoint.proofOfAddressBody')}
+                    {permitAvoidsProof && ` ${t('midpoint.proofOfAddressPermit')}`}
                 </p>
             )}
             <OptionDrawer

@@ -1564,7 +1564,8 @@
                 "description": "Último paso: fotos de tu documento y una selfie rápida. Elegí el documento que vas a usar.",
                 "failed": "No pudimos iniciar la verificación. Intentá de nuevo.",
                 "unavailable": "No podemos mostrar los documentos ahora. Intentá más tarde.",
-                "proofOfAddressBody": "Con un documento de {country}, las cuentas bancarias también piden una factura o un resumen de cuenta reciente con tu domicilio. Lo agregás después de la verificación del documento."
+                "proofOfAddressBody": "Para cuentas bancarias, los documentos de este país también piden una factura o un resumen de cuenta reciente con tu domicilio.",
+                "proofOfAddressPermit": "Un permiso de residencia del país donde vivís no lo necesita."
             },
             "failed": {
                 "description": "Tu verificación necesita algo de vos. En el inicio vas a ver qué hacer."

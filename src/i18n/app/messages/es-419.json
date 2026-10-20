@@ -3635,8 +3635,9 @@
                 "failed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
                 "unavailable": "No podemos mostrar los documentos ahora. Inténtalo más tarde.",
                 "proofOfAddress": "Comprobante de domicilio",
-                "proofOfAddressBody": "Con un documento de {country}, las cuentas bancarias también piden una factura o un estado de cuenta reciente con tu domicilio. Lo agregas después de la verificación del documento.",
-                "proofOfAddressPermit": "Con un permiso de residencia de {residence} no hace falta."
+                "proofOfAddressWhen": "Se agrega después de la verificación",
+                "proofOfAddressBody": "Para cuentas bancarias, los documentos de este país también piden una factura o un estado de cuenta reciente con tu domicilio.",
+                "proofOfAddressPermit": "Un permiso de residencia del país donde vives no lo necesita."
             },
             "review": {
                 "title": "Estamos revisando tu documento",
