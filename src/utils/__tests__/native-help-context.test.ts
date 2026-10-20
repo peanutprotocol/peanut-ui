@@ -47,6 +47,39 @@ describe('native Help Center browser context', () => {
         expect(context.withNativeHelpContext(href)).toBe(href)
     })
 
+    it.each([
+        ['https://peanut.me/en/help/', 'https://peanut.me/en/help'],
+        [
+            'https://peanut.me/pt-br/help/passkeys/?topic=account#recovery',
+            'https://peanut.me/pt-br/help/passkeys?topic=account#recovery',
+        ],
+        ['https://peanut.me/en/privacy/', 'https://peanut.me/en/privacy'],
+        ['https://peanut.me/terms//', 'https://peanut.me/terms'],
+        ['https://staging.peanut.me/es-ar/help/', 'https://staging.peanut.me/es-ar/help'],
+    ])('opens the slashless page for the native export link %s', (href, expected) => {
+        expect(context.withoutTrailingSlash(href)).toBe(expected)
+    })
+
+    it('strips the slash on the configured preview origin', () => {
+        process.env.NEXT_PUBLIC_BASE_URL = 'https://peanut-preview.vercel.app'
+        expect(context.withoutTrailingSlash('https://peanut-preview.vercel.app/en/help/')).toBe(
+            'https://peanut-preview.vercel.app/en/help'
+        )
+    })
+
+    it.each([
+        'https://peanut.me/',
+        'https://peanut.me/en/help',
+        'https://peanut.me/en/help?fromNativeApp=1',
+        'https://provider.example/kyc/',
+        'https://api.peanut.me/attachments/abc/',
+        'https://peanut.me.evil.example/en/help/',
+        'http://peanut.me/en/help/',
+        '/en/help/',
+    ])('leaves %s unchanged', (href) => {
+        expect(context.withoutTrailingSlash(href)).toBe(href)
+    })
+
     it('keeps native context through an article, locale change and document reload in the same tab', () => {
         window.history.replaceState({}, '', '/en/help?fromNativeApp=1')
         expect(context.isNativeHelpContext()).toBe(true)
