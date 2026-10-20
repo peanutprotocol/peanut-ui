@@ -3,7 +3,7 @@ import { LEGAL_POLICIES } from '@/constants/legal-policies'
 import publicAttributionPaths from '@/constants/signup-attribution-paths.generated.json'
 import { getFromCookie, saveToCookie } from './cookie-url.utils'
 import posthog from 'posthog-js'
-import { posthogProjectKey } from './posthog-setup'
+import { isAnalyticsCaptureBuild, posthogProjectKey } from './posthog-setup'
 
 export const SIGNUP_ATTRIBUTION_COOKIE = 'signupAttribution'
 export const SIGNUP_ATTRIBUTION_SCHEMA_VERSION = '1'
@@ -407,6 +407,10 @@ export function signupAnalyticsState(): 'enabled' | 'disabled' | 'unknown' {
     // Jest exercises the capture contract without a public build key.
     if (process.env.NODE_ENV === 'test') return 'enabled'
     if (!posthogProjectKey()) return 'unknown'
+    // A non-production build opts out of capture by environment, not because
+    // the user declined analytics: keep the attribution journey so staging can
+    // QA it. It reaches the staging API only, never PostHog.
+    if (!isAnalyticsCaptureBuild()) return 'enabled'
     try {
         if (typeof posthog.has_opted_out_capturing !== 'function') return 'unknown'
         return posthog.has_opted_out_capturing() ? 'disabled' : 'enabled'

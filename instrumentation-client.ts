@@ -13,7 +13,7 @@ import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejec
 import { isExpectedExceptionChain } from '@/utils/expected-exception'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 import { captureSignupAttribution, signupAttributionPosthogProperties } from '@/utils/signup-attribution'
-import { initialSuperProperties, posthogProjectKey } from '@/utils/posthog-setup'
+import { initialSuperProperties, isAnalyticsCaptureBuild, posthogProjectKey } from '@/utils/posthog-setup'
 
 // Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
 // there is nothing to guard, and PERF_BARE builds exist to carry no instrumentation.
@@ -29,6 +29,7 @@ if (
 // NEXT_PUBLIC_PERF_BARE builds strip all instrumentation to A/B jank against production.
 const PERF_BARE = process.env.NEXT_PUBLIC_PERF_BARE === 'true'
 const POSTHOG_KEY = posthogProjectKey()
+const ANALYTICS_CAPTURE = isAnalyticsCaptureBuild()
 
 if (
     typeof window !== 'undefined' &&
@@ -46,6 +47,10 @@ if (
     // An empty key means this build sends nothing (see posthogProjectKey).
     if (POSTHOG_KEY) {
         posthog.init(POSTHOG_KEY, {
+            // Non-production builds keep the production key for feature flags
+            // (posthog-js still requests /flags when capture is opted out) and
+            // send nothing else: no event, pageview, identify or $set.
+            opt_out_capturing_by_default: !ANALYTICS_CAPTURE,
             // Web posts through the `/relay` Next.js rewrite — the path is intentionally
             // innocuous (`/ingest/` was on uBlock Origin's blocklist as a known PostHog
             // signature, and blocked-client retries flooded the console). The Capacitor
@@ -134,7 +139,7 @@ if (
             },
         })
 
-        whenIdle(() => posthog.startSessionRecording())
+        if (ANALYTICS_CAPTURE) whenIdle(() => posthog.startSessionRecording())
     }
 
     // No-ops unless the document is one PostHog refuses to measure (iOS native,
