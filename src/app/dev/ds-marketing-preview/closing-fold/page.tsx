@@ -3,12 +3,11 @@ import Title from '@/components/0_Bruddle/Title'
 import { CTA_MOTION } from '@/components/Marketing/constants'
 
 /**
- * The closing fold on the hero composition (knerd-closing-fold A, ruled
- * 2026-10-14; composition Konrad 15 Oct): the opening 1–3 words stand as a
+ * The closing fold on the hero composition: the opening 1–3 words stand as a
  * Title lockup on hand-placed lines, the rest of the headline sits under it
  * in the display ramp — the way TAP. SCAN. ANYWHERE. sits under LOCAL FEEL.
  * Never Knerd inline in a sentence, never hand-rolled knerd layers.
- * The CTA follows cta-hierarchy A: white secondary pill on the coloured band.
+ * The CTA follows the CTA hierarchy: white secondary pill on the coloured band.
  */
 export default function ClosingFoldPreview() {
     return (

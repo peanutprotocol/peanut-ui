@@ -1,7 +1,6 @@
 'use client'
 
-import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO, WORDMARK } from '@/assets/brand'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useTranslations } from 'next-intl'
@@ -33,8 +32,8 @@ const CreateAccountButton = ({ onClick }: CreateAccountButtonProps) => {
                     : t.rich('createAccountButton.label', {
                           logo: () => (
                               <div className="flex items-center gap-1">
-                                  <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
-                                  <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
+                                  <Image src={LOGO} alt="Peanut Logo" className="size-5" />
+                                  <Image src={WORDMARK} alt="Peanut Logo" className="h-3 w-auto" />
                               </div>
                           ),
                       })}

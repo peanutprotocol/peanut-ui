@@ -3,7 +3,7 @@
  * and anchored itself on `#sticky-button-target` in the send-in-seconds fold.
  * Both are gone. Marketing CTAs are plain DS Buttons in link mode — one
  * anchor, never a Button nested in a link — carrying the marketing CTA motion
- * layer (`.cta-motion`, ruled 2026-10-16) on the Button itself.
+ * layer (`.cta-motion`) on the Button itself.
  */
 import { readFileSync } from 'fs'
 import { join } from 'path'

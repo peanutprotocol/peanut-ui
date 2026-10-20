@@ -1,6 +1,6 @@
-// The two ruled proof widths for the /dev/ds/marketing demos (drift-audit
-// run 2, 2026-10-15). Phone and desktop are what the rulings pin; tablet is
-// explicitly ignored — between the two widths the bands just interpolate.
+// The two proof widths for the /dev/ds/marketing demos. Phone and desktop are
+// what the rules pin; tablet is explicitly ignored — between the two widths the
+// bands just interpolate.
 export type PreviewViewport = 'phone' | 'desktop'
 
 export const VIEWPORT_WIDTHS: Record<PreviewViewport, number> = {

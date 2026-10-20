@@ -22,7 +22,7 @@ import React from 'react'
 import { VerifiedUserLabel } from '../UserHeader'
 import { useRouter } from 'next/navigation'
 import { twMerge } from '@/utils/tw'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO } from '@/assets/brand'
 import { profileUrl } from '@/utils/native-routes'
 
 import type { TransactionDetails } from './transactionTransformer'
@@ -313,7 +313,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     return (
         <div className="flex flex-col items-center gap-3 text-center">
             {isTest ? (
-                <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-12" />
+                <Image src={LOGO} alt="Peanut Logo" width={64} height={64} className="size-12" />
             ) : (
                 <div
                     className={twMerge(

@@ -1,8 +1,7 @@
 'use client'
 
-import HandThumbsUpV2 from '@/assets/illustrations/hand-thumbs-up-v2.svg'
-import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
-import { PEANUTMAN } from '@/assets/mascot'
+import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
+import { LOGO, WORDMARK } from '@/assets/brand'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import HomeHistory from '@/components/Home/HomeHistory'
@@ -176,8 +175,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             <div>
                 {!isLoggedIn ? (
                     <div className="flex items-center gap-2">
-                        <Image src={PEANUTMAN} alt={t('peanutMascotAlt')} height={24} />
-                        <Image src={PEANUT_LOGO_BLACK} alt={t('peanutLogoTextAlt')} height={12} />
+                        <Image src={LOGO} alt={t('peanutMascotAlt')} height={24} />
+                        <Image src={WORDMARK} alt={t('peanutLogoTextAlt')} height={12} />
                     </div>
                 ) : (
                     <NavHeader onPrev={goBack} hideLabel />
@@ -251,10 +250,10 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     <Card position="solo" className="flex flex-col gap-4 p-4 text-center">
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-center gap-2">
-                                <Image src={HandThumbsUpV2.src} alt={t('joinPeanutAlt')} width={20} height={20} />
+                                <Image src={HandThumbsUp.src} alt={t('joinPeanutAlt')} width={20} height={20} />
                                 <h2 className="text-heading-card text-foreground-primary">{t('joinPeanut')}</h2>
                                 <Image
-                                    src={HandThumbsUpV2.src}
+                                    src={HandThumbsUp.src}
                                     className="scale-x-[-1] transform"
                                     alt={t('joinPeanutAlt')}
                                     width={20}

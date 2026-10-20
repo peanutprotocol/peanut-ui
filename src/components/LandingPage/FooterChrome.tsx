@@ -1,6 +1,6 @@
 import { FooterStoreLinks } from './FooterStoreLinks'
 import GITHUB_WHITE_ICON from '@/assets/icons/github-white.png'
-import PEANUT_LOGO from '@/assets/logos/peanut-logo.svg'
+import { LOGO, WORDMARK } from '@/assets/brand'
 import X_ICON from '@/assets/icons/x-logo.svg'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -82,7 +82,12 @@ export const FooterChrome = ({
                         (see src/app/lp/page.tsx). Localized landings aren't in the
                         proxy matcher, so /{locale} is already auth-proof. */}
                     <Link prefetch={false} href={locale === DEFAULT_LOCALE ? '/lp' : `/${locale}`} className="flex">
-                        <Image src={PEANUT_LOGO} alt="Peanut" width={110} height={40} />
+                        {/* the band is black, so the black wordmark master is tinted white with the
+                            invert filter; the icon is a separate image and keeps its yellow */}
+                        <span className="flex items-center gap-2">
+                            <Image src={LOGO} alt="" aria-hidden className="h-10 w-auto" />
+                            <Image src={WORDMARK} alt="Peanut" className="h-5 w-auto invert" />
+                        </span>
                     </Link>
                     <p className="text-body-xs text-white">
                         {i18n.footerMadeWithLove}{' '}

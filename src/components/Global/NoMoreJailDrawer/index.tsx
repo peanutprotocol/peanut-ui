@@ -4,8 +4,7 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import Image from 'next/image'
-import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO, WORDMARK } from '@/assets/brand'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import PeanutMascot from '@/components/Global/PeanutMascot'
@@ -53,8 +52,8 @@ const NoMoreJailDrawer = ({ onVisibilityChange }: { onVisibilityChange?: (visibl
                     <Button variant="primary" shadowSize="4" className="w-full justify-center gap-2" onClick={onClose}>
                         <div>{t('noMoreJailModal.startUsingCta')}</div>
                         <div className="flex items-center gap-1">
-                            <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
-                            <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
+                            <Image src={LOGO} alt="Peanut Logo" className="size-5" />
+                            <Image src={WORDMARK} alt="Peanut Logo" className="h-3 w-auto" />
                         </div>
                     </Button>
                 </div>

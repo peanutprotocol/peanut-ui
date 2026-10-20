@@ -12,7 +12,7 @@ export const DEMO_FAQ_ITEMS = [
     {
         id: 'heading-pair',
         question: 'Where does the heading size come from?',
-        answer: 'The ruled pair: headingSmall (42) at 390, headingMedium (80) at 1440. Toggle the viewport above to see both.',
+        answer: 'The one heading pair: headingSmall (42) at 390, headingMedium (80) at 1440. Toggle the viewport above to see both.',
     },
     {
         id: 'copy',
