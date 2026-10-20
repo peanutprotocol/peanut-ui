@@ -1,5 +1,7 @@
 import type { CapturedNetworkRequest, SessionRecordingOptions } from 'posthog-js'
 import { maskQrReplayRequest, redactQrTelemetryString } from './qr-telemetry-privacy'
+import { redactNativePath } from './native-routes'
+import { apiRouteTemplate } from './performance-analytics'
 
 const MASK = '*'
 const maskWhole = (value: string) => MASK.repeat(value.length)
@@ -55,39 +57,35 @@ export function maskReplayAttribute(name: string, value: string, element?: Eleme
 }
 
 /**
- * Masks the identifying segments of a request path and keeps the route words:
- * a segment with a digit (ids, UUIDs, addresses), a segment longer than 24
- * characters (base58 addresses, tokens), and the handle after `username`
- * (`/users/username/<handle>`), which looks like a route word otherwise.
+ * The URL a replay keeps for a request or a page: the route, never an
+ * identifier. The recorder sends both through this callback: requests, and
+ * the page URL of each replay meta event.
+ *
+ * Reuses the two existing redactors, one per URL kind. A same-origin URL is a
+ * page (`/<username>`, `/request/<username>`): `redactNativePath` keeps known
+ * app routes and turns every other segment into `:id`. Any other origin is an
+ * API: `apiRouteTemplate` keeps known endpoint shapes with named placeholders
+ * (`/users/username/:username`) and folds unknown ones into `/unmatched`.
+ * Query values and fragments are dropped by both.
  */
-export function maskReplayPath(path: string): string {
-    const segments = path.split('/')
-    return segments
-        .map((segment, i) =>
-            segment && (segments[i - 1] === 'username' || /\d/.test(segment) || segment.length > 24) ? MASK : segment
-        )
-        .join('/')
+export function maskReplayUrl(url: string): string {
+    const authority = url.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i)?.[0] ?? ''
+    const pageOrigin = typeof window === 'undefined' ? '' : window.location.origin
+    if (!authority || authority === pageOrigin) return redactNativePath(url)
+    // drop userinfo (`https://secret@host`), as redactNativePath does for pages
+    return authority.replace(/\/\/[^/]*@/, '//') + apiRouteTemplate(url.slice(authority.length))
 }
 
 /**
  * Network entries keep their method, status, timing and route, and lose every
  * body, header, query value and identifying path segment: a query or a path
- * can carry an amount, an address, a username or an email, and the route is
- * what makes a request recognisable in a replay.
+ * can carry an amount, an address, a username or an email.
  */
 export function maskReplayNetworkRequest(request: CapturedNetworkRequest): CapturedNetworkRequest {
     const masked = maskQrReplayRequest(request)
-    if (!masked.name) return masked
-    const [beforeHash] = masked.name.split('#')
-    const queryStart = beforeHash.indexOf('?')
-    const target = queryStart < 0 ? beforeHash : beforeHash.slice(0, queryStart)
-    // keep the origin as it is (a port or a host can hold digits), mask the path
-    const originEnd = target.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i)?.[0].length ?? 0
-    const url = target.slice(0, originEnd) + maskReplayPath(target.slice(originEnd))
-    if (queryStart < 0) return { ...masked, name: url }
-    const params = new URLSearchParams(beforeHash.slice(queryStart + 1))
-    const keys = [...new Set(params.keys())]
-    return { ...masked, name: `${url}?${keys.map((key) => `${key}=`).join('&')}` }
+    // a QR URL already reads as the QR redaction marker; keep that contract
+    if (!masked.name || masked.name !== request.name) return masked
+    return { ...masked, name: maskReplayUrl(masked.name) }
 }
 
 /**

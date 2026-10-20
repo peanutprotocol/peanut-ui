@@ -80,12 +80,13 @@ describe('maskReplayAttribute', () => {
 
 describe('maskReplayNetworkRequest', () => {
     const timing = { duration: 2, entryType: 'resource', startTime: 1 }
+    const name = (url: string) => maskReplayNetworkRequest({ ...timing, name: url }).name
 
-    it('drops bodies, headers, query values and fragments, and keeps the path', () => {
+    it('drops bodies, headers, query values and fragments, and keeps the route', () => {
         expect(
             maskReplayNetworkRequest({
                 ...timing,
-                name: 'https://api.peanut.me/users/me/history?limit=20&to=0xabc#frag',
+                name: 'https://api.peanut.me/users/username/alice?x=1#frag',
                 method: 'GET',
                 status: 200,
                 requestBody: '{"amount":"50"}',
@@ -93,26 +94,33 @@ describe('maskReplayNetworkRequest', () => {
                 requestHeaders: { authorization: 'Bearer secret' },
                 responseHeaders: { 'set-cookie': 'secret' },
             })
-        ).toEqual({
-            ...timing,
-            name: 'https://api.peanut.me/users/me/history?limit=&to=',
-            method: 'GET',
-            status: 200,
-        })
+        ).toEqual({ ...timing, name: 'https://api.peanut.me/users/username/:username', method: 'GET', status: 200 })
     })
 
-    it('masks identifying path segments and keeps the route words', () => {
-        const name = (url: string) => maskReplayNetworkRequest({ ...timing, name: url }).name
-        expect(name('https://api.peanut.me/users/username/alice')).toBe('https://api.peanut.me/users/username/*')
-        expect(name('https://api.peanut.me/charges/3c9d1f2e-8a7b-4c6d-9e0f-1a2b3c4d5e6f/payments')).toBe(
-            'https://api.peanut.me/charges/*/payments'
+    it('keeps known API routes and folds unknown ones', () => {
+        expect(name('https://api.peanut.me/users/saved-addresses/42')).toBe(
+            'https://api.peanut.me/users/saved-addresses/:addressId'
         )
-        expect(name('http://localhost:5050/users/accounts/42?x=1')).toBe('http://localhost:5050/users/accounts/*?x=')
-        expect(name('/relay/flags/')).toBe('/relay/flags/')
+        expect(name('https://api.peanut.me/charges/3c9d1f2e/payments')).toBe(
+            'https://api.peanut.me/charges/:chargeId/payments'
+        )
+        expect(name('https://api.peanut.me/some/new/alice')).toBe('https://api.peanut.me/unmatched')
+        expect(name('https://secret@api.peanut.me/users/username/alice')).toBe(
+            'https://api.peanut.me/users/username/:username'
+        )
+    })
+
+    it("masks a username in the replay's page URL and keeps app routes", () => {
+        // the recorder sends each meta event's page URL through this callback
+        const origin = window.location.origin
+        expect(name(`${origin}/alice`)).toBe(`${origin}/:id`)
+        expect(name(`${origin}/request/alice?amount=5`)).toBe(`${origin}/request/:id`)
+        expect(name(`${origin}/home`)).toBe(`${origin}/home`)
+        expect(name('/send/alice')).toBe('/send/:id')
     })
 
     it('keeps the QR redaction', () => {
-        expect(maskReplayNetworkRequest({ ...timing, name: '/qr-pay?qrCode=secret' }).name).toBe('[REDACTED QR DATA]')
+        expect(name('/qr-pay?qrCode=secret')).toBe('[REDACTED QR DATA]')
     })
 })
 
