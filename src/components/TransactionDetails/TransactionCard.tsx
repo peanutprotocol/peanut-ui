@@ -35,7 +35,7 @@ import { VerifiedUserLabel } from '../UserHeader'
 import { MerchantLogoIcon } from './MerchantLogoIcon'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO } from '@/assets/brand'
 import InvitesIcon from '../Home/InvitesIcon'
 import { useRouter } from 'next/navigation'
 import { profileUrl } from '@/utils/native-routes'
@@ -298,7 +298,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // txn avatar handles icon/initials/colors — the row's leading slot
     const leading = isTest ? (
         <div className={'relative flex size-7 items-center justify-center rounded-full p-0.5'}>
-            <Image src={PEANUTMAN} alt="Peanut Logo" className="size-8 object-contain" width={30} height={30} />
+            <Image src={LOGO} alt="Peanut Logo" className="size-8 object-contain" width={30} height={30} />
         </div>
     ) : isPerkRewardEntry ? (
         <IconBubble {...CONCEPT_ICONS.rewards} size="s" />
