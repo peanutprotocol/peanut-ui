@@ -29,7 +29,7 @@ const ExchangeRate = ({ accountType }: Omit<IExchangeRate, 'enabled'>) => {
             loading={isFetchingRate}
             label={tCommon('exchangeRate')}
             moreInfoText={t('appliesWhenConverting', { currency })}
-            value={exchangeRate ? `1 USD = ${parseFloat(exchangeRate).toFixed(4)} ${currency}` : '-'}
+            value={exchangeRate ? `1 USD ≈ ${parseFloat(exchangeRate).toFixed(4)} ${currency}` : '-'}
         />
     )
 }

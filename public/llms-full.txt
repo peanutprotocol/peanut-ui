@@ -26,15 +26,15 @@ Put money in a shareable link or QR; the recipient claims it with no account nee
 A collection link for splitting bills, tips, or donations. Multiple contributors, funds arrive instantly to the balance.
 
 ### Add money (deposit)
-- Crypto: USDC or USDT (and ETH on major EVM networks, auto-converted) from any exchange or wallet on Solana, Arbitrum, Base, Tron, Polygon, or Ethereum. No verification. Gas covered.
+- Crypto: USDC or USDT (and ETH on major EVM networks, auto-converted) from any exchange or wallet on Solana, Arbitrum, Base, Tron, Polygon, or Ethereum. No verification. No Peanut deposit fee; the sending wallet may charge its own network fee.
 - Bank: SEPA (EUR), ACH (USD), SPEI (MXN), Faster Payments (GBP), and incoming wires (USD/EUR).
 - All deposits free.
 
 ### Cash out (withdraw)
 - Bank: SEPA, ACH, SPEI, Faster Payments — to your own or any third party.
-- Crypto: to any wallet on any supported network; gas covered.
+- Crypto: to any wallet on any supported network. Ethereum, Tron and Solana withdrawals carry a network fee, shown before you confirm; other networks, including Arbitrum, are free.
 - Argentina: MercadoPago or a local account.
-- All withdrawals free from Peanut.
+- Bank withdrawals have no Peanut fee, except a USD wire ($20 flat, shown before you confirm). ACH is free.
 
 ### Direct bank transfers
 Send from balance straight to any third-party bank account, and receive into the balance, via SEPA/ACH/SPEI/Faster Payments — no link required.
@@ -54,7 +54,7 @@ Send from balance straight to any third-party bank account, and receive into the
 
 ## Fees
 
-- No per-transaction fee from Peanut. Same-currency moves (USD↔USDC) are free; cross-currency conversions carry a small spread embedded in the displayed, locked rate. Gas is always covered. No monthly or account fees.
+- No per-transaction fee from Peanut. Same-currency moves (USD↔USDC) are free; cross-currency conversions carry a small spread embedded in the displayed rate (locked for QR payments, an estimate for bank transfers). A USD wire withdrawal costs $20, and Ethereum, Tron and Solana withdrawals carry a network fee. No monthly or account fees.
 
 ## Where Peanut works
 
