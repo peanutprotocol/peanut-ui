@@ -8,15 +8,16 @@ const maskWhole = (value: string) => MASK.repeat(value.length)
  * Hides the values a replay must not show, and keeps the words around them.
  *
  * Every digit becomes `*`, which covers amounts, balances, tax ids (CPF, DNI,
- * CUIL), card numbers, phone numbers and dates. Emails, hex addresses and long
- * unbroken tokens (base58 and bech32 addresses, hashes, IBANs) are masked
- * whole, because their letters identify them as much as their digits. Labels,
+ * CUIL), card numbers, phone numbers and dates. Emails, `@handles`, hex
+ * addresses and long unbroken tokens (base58 and bech32 addresses, hashes,
+ * IBANs) are masked whole, because their letters identify them as much as their digits. Labels,
  * buttons and navigation stay readable, so a replay still shows where the user
  * went and what they tapped.
  */
 export function maskReplayText(text: string): string {
     return text
         .replace(/[^\s@]+@[^\s@]+/g, maskWhole)
+        .replace(/@[A-Za-z0-9_.-]+/g, maskWhole)
         .replace(/0x[0-9a-f]{6,}/gi, maskWhole)
         .replace(/[A-Za-z0-9]{20,}/g, maskWhole)
         .replace(/\d/g, MASK)
@@ -45,6 +46,10 @@ const VALUE_ATTRIBUTES = new Set(['aria-valuenow', 'value', 'href'])
 export function maskReplayAttribute(name: string, value: string, element?: Element): string {
     const redacted = redactQrTelemetryString(value)
     if (ACCESSIBLE_NAME_ATTRIBUTES.has(name)) return redacted.replace(/\S/g, MASK)
+    // A link target names who it points at (/<username>, /request/<id>), and the
+    // replay player never follows it. Only links: a stylesheet's href must stay
+    // loadable for the replay to render.
+    if (name === 'href' && element?.tagName === 'A') return redacted.replace(/\S/g, MASK)
     if (!VALUE_ATTRIBUTES.has(name)) return redacted
     return element?.closest(FULLY_MASKED_SELECTOR) ? redacted.replace(/\S/g, MASK) : maskReplayText(redacted)
 }

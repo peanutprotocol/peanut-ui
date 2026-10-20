@@ -42,6 +42,7 @@ describe('maskReplayText', () => {
         ['•••• 4242', '•••• ****'],
         ['0x7a3F9c21bE04d5', '****************'],
         ['Sent to alice@example.test', 'Sent to ******************'],
+        ['Request from @alice_b', 'Request from ********'],
         [
             'To 7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV',
             'To ' + '*'.repeat('7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV'.length),
@@ -67,6 +68,11 @@ describe('maskReplayAttribute', () => {
         expect(maskReplayAttribute('value', '1500')).toBe('****')
         expect(maskReplayAttribute('href', '/request/0x7a3F9c21bE04d5?amount=20')).toBe(
             '/request/****************?amount=**'
+        )
+        // a link names who it points at; a stylesheet must stay loadable
+        expect(maskReplayAttribute('href', '/alice', document.createElement('a'))).toBe('******')
+        expect(maskReplayAttribute('href', '/_next/static/app.css', document.createElement('link'))).toBe(
+            '/_next/static/app.css'
         )
         expect(maskReplayAttribute('data-url', '/qr-pay?qrCode=secret')).toBe('[REDACTED QR DATA]')
     })
