@@ -23,6 +23,8 @@ import {
     queuePendingBadgeCampaigns,
 } from '@/components/Invites/badge-campaign-context'
 import {
+    isContentAttributionPath,
+    isLegacyAttributionPath,
     parseSignupAttribution,
     persistSignupAttribution,
     readSignupAttribution,
@@ -74,6 +76,7 @@ type CompactTouch = {
     n?: string
     r?: string
     p?: string
+    u?: string
 }
 
 type CompactAttribution = {
@@ -81,7 +84,7 @@ type CompactAttribution = {
     j: string
     p: SignupAttributionContext['platform']
     f: CompactTouch
-    c?: CompactTouch
+    c?: CompactTouch | 1
     l?: CompactTouch
 }
 
@@ -93,12 +96,15 @@ function compactTouch(touch: SignupAttributionContext['firstTouch']): CompactTou
         ...(touch.utmCampaign ? { c: touch.utmCampaign } : {}),
         ...(touch.utmContent ? { n: touch.utmContent } : {}),
         ...(touch.referrerHost ? { r: touch.referrerHost } : {}),
-        ...(touch.path ? { p: touch.path } : {}),
+        // Old installed apps ignore u and keep the campaign instead of
+        // rejecting a whole journey containing a newly supported public path.
+        ...(touch.path ? (isLegacyAttributionPath(touch.path) ? { p: touch.path } : { u: touch.path }) : {}),
     }
 }
 
 function expandTouch(touch: CompactTouch): SignupAttributionContext['firstTouch'] | null {
     if (!Number.isFinite(touch.t)) return null
+    const path = touch.u ?? touch.p
     return {
         occurredAt: new Date(touch.t).toISOString(),
         ...(touch.s ? { utmSource: touch.s } : {}),
@@ -106,7 +112,7 @@ function expandTouch(touch: CompactTouch): SignupAttributionContext['firstTouch'
         ...(touch.c ? { utmCampaign: touch.c } : {}),
         ...(touch.n ? { utmContent: touch.n } : {}),
         ...(touch.r ? { referrerHost: touch.r } : {}),
-        ...(touch.p ? { path: touch.p } : {}),
+        ...(path ? { path } : {}),
     }
 }
 
@@ -127,9 +133,13 @@ function serializeAttributionHandoff(context: SignupAttributionContext): string 
         j: context.journeyId,
         p: context.platform,
         f: first,
-        ...(context.firstContentTouch &&
-        JSON.stringify(context.firstContentTouch) !== JSON.stringify(context.firstTouch)
-            ? { c: compactTouch(context.firstContentTouch) }
+        ...(context.firstContentTouch
+            ? {
+                  c:
+                      JSON.stringify(context.firstContentTouch) === JSON.stringify(context.firstTouch)
+                          ? (1 as const)
+                          : compactTouch(context.firstContentTouch),
+              }
             : {}),
         ...(context.lastTouch && JSON.stringify(context.lastTouch) !== JSON.stringify(context.firstTouch)
             ? { l: compactTouch(context.lastTouch) }
@@ -145,7 +155,16 @@ function parseAttributionHandoff(value: string | null): SignupAttributionContext
         if (compact.v !== 1 || typeof compact.j !== 'string' || !compact.f) return null
         const firstTouch = expandTouch(compact.f)
         if (!firstTouch) return null
-        const firstContentTouch = compact.c ? expandTouch(compact.c) : null
+        // Older encoders omitted c when it matched f. A validated content
+        // landing can recover that touch without mistaking legal/home visits.
+        const firstContentTouch =
+            compact.c === 1
+                ? firstTouch
+                : compact.c
+                  ? expandTouch(compact.c)
+                  : firstTouch.path && isContentAttributionPath(firstTouch.path)
+                    ? firstTouch
+                    : null
         const lastTouch = compact.l ? expandTouch(compact.l) : null
         const context: SignupAttributionContext = {
             schemaVersion: '1',

@@ -1,16 +1,11 @@
 import { type MetadataRoute } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
 import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
-import {
-    COUNTRIES_SEO,
-    CORRIDORS,
-    RECEIVE_SOURCES,
-    SEND_TO_COUNTRIES,
-    COMPETITORS,
-    EXCHANGES,
-    DEPOSIT_RAILS,
-    PAYMENT_METHOD_SLUGS,
-} from '@/data/seo'
+import { COUNTRIES_SEO, CORRIDORS, RECEIVE_SOURCES, SEND_TO_COUNTRIES } from '@/data/seo/corridors'
+import { COMPETITORS } from '@/data/seo/comparisons'
+import { EXCHANGES } from '@/data/seo/exchanges'
+import { DEPOSIT_RAILS } from '@/data/seo/deposit-rails'
+import { PAYMENT_METHOD_SLUGS } from '@/data/seo/payment-methods'
 import { SUPPORTED_LOCALES } from '@/i18n/config'
 import { CONTENT_TOPICS } from '@/lib/content-topic-types'
 import {
