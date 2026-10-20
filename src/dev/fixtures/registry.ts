@@ -266,6 +266,126 @@ const PENDING_BANK_REQUEST_ENTRY = {
     totalAmountCollected: 0,
 }
 
+// A request pot asked in euros, part paid by two contributors (TASK-23856):
+// €88 = $99.16. Hugo paid $40.65 from his balance. A second payer's $58.51
+// charge received 33 USDC from an external wallet, so it completed short and
+// carries the API's partialPayment flag.
+const POT_PAYMENT = (
+    chargeUuid: string,
+    paidAmountInRequestedToken: string,
+    payer: string,
+    username: string | null
+) => ({
+    uuid: `${chargeUuid}-payment`,
+    chargeUuid,
+    payerTransactionHash: `0x${chargeUuid}`,
+    payerChainId: '42161',
+    paidTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    paidAmountInRequestedToken,
+    payerAddress: payer,
+    fulfillmentTransactionHash: null,
+    status: 'SUCCESSFUL',
+    reason: null,
+    createdAt: '2026-10-19T19:36:10.000Z',
+    verifiedAt: '2026-10-19T19:36:10.000Z',
+    payerAccount: {
+        userId: username ? `fixture-${username}` : null,
+        identifier: username ?? payer,
+        type: username ? 'peanut-wallet' : 'evm-address',
+        user: username ? { username, bridgeKycStatus: 'approved', avatarKey: null } : null,
+    },
+})
+
+const POT_CHARGE = (
+    uuid: string,
+    tokenAmount: string,
+    settledAmount: string,
+    payment: ReturnType<typeof POT_PAYMENT>
+) => ({
+    uuid,
+    createdAt: '2026-10-19T19:34:13.000Z',
+    tokenAmount,
+    tokenDecimals: 6,
+    settledAmount,
+    status: 'COMPLETED',
+    partialPayment: Number(settledAmount) < Number(tokenAmount),
+    payments: [payment],
+    fulfillmentPayment: payment,
+})
+
+const HUGO_CHARGE = POT_CHARGE(
+    'fixture-pot-charge-hugo',
+    '40.65',
+    '40.65',
+    POT_PAYMENT('fixture-pot-charge-hugo', '40650000', '0x00000000000000000000000000000000000a11ce', 'hugo')
+)
+const SHORT_CHARGE = POT_CHARGE(
+    'fixture-pot-charge-short',
+    '58.51',
+    '33',
+    POT_PAYMENT('fixture-pot-charge-short', '33000000', '0x00000000000000000000000000000000000b0b0b', null)
+)
+
+const PARTIAL_POT_ENTRY = {
+    uuid: 'fixture-request-pot-partial',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-10-19T19:36:10.000Z'),
+    createdAt: new Date('2026-10-19T19:32:52.000Z'),
+    completedAt: null,
+    amount: '99.16',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'OPEN',
+    userRole: 'RECIPIENT',
+    recipientAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    memo: 'Dinner',
+    extraData: {
+        provider: 'PEANUT',
+        kind: 'P2P_REQUEST_FULFILL',
+        isRequestPotRollup: true,
+        fulfilledChargeCount: 2,
+        totalChargeCount: 2,
+        requestedAmount: '88',
+        requestCurrency: 'EUR',
+        link: 'https://peanut.me/request/fixture-request-pot-partial',
+    },
+    isRequestLink: true,
+    totalAmountCollected: 73.65,
+    charges: [HUGO_CHARGE, SHORT_CHARGE],
+}
+
+// The same pot after the requester closed it: CLOSED with no `completedAt`,
+// so $25.51 was never paid.
+const CLOSED_SHORT_POT_ENTRY = {
+    ...PARTIAL_POT_ENTRY,
+    uuid: 'fixture-request-pot-closed-short',
+    timestamp: new Date('2026-10-19T19:37:20.000Z'),
+    cancelledAt: new Date('2026-10-19T19:37:20.000Z'),
+    status: 'CLOSED',
+    extraData: { ...PARTIAL_POT_ENTRY.extraData, link: 'https://peanut.me/request/fixture-request-pot-closed-short' },
+}
+
+// The payer side of the same pot, as GET /requests/:uuid answers a payer.
+// Read through `demo-request`, the uuid demo-api answers every request read
+// with; the requester is someone else, so the demo user can pay it.
+const PAYER_POT_REQUEST = {
+    uuid: 'demo-request',
+    status: 'OPEN',
+    tokenAmount: '99.16',
+    currency: 'EUR',
+    requestedAmount: '88',
+    reference: 'Dinner',
+    recipientAccount: {
+        userId: 'fixture-ana',
+        identifier: '0x00000000000000000000000000000000000a11ce',
+        type: 'peanut-wallet',
+        user: { username: 'ana' },
+    },
+    charges: [HUGO_CHARGE],
+    totalCollectedAmount: 40.65,
+}
+
 // Peers who have picked an avatar (TASK-22625). The demo cast has none, so the
 // baseline only ever shows the letter fallback; these restate the three lists a
 // peer appears in. Arrays replace on merge, so each list is given in full.
@@ -1342,6 +1462,22 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             'GET /users/history': { entries: [BANK_PAID_REQUEST_ENTRY], hasMore: false },
             'GET /history/fixture-bank-paid-request': BANK_PAID_REQUEST_ENTRY,
+        },
+    },
+    'history-request-pot-partial': {
+        route: '/history?tx=fixture-request-pot-partial',
+        about: 'A €88 request part paid: one contribution arrived short of its charge. Rows show what each paid; Close request asks first.',
+        responses: {
+            'GET /users/history': { entries: [PARTIAL_POT_ENTRY], hasMore: false },
+            'GET /history/fixture-request-pot-partial': PARTIAL_POT_ENTRY,
+        },
+    },
+    'history-request-pot-closed-short': {
+        route: '/history?tx=fixture-request-pot-closed-short',
+        about: 'The same request closed by the requester with $25.51 unpaid: neutral Closed badge, "not paid".',
+        responses: {
+            'GET /users/history': { entries: [CLOSED_SHORT_POT_ENTRY], hasMore: false },
+            'GET /history/fixture-request-pot-closed-short': CLOSED_SHORT_POT_ENTRY,
         },
     },
     'history-request-bank-details': {
@@ -2555,6 +2691,39 @@ export const FIXTURES: Record<string, Fixture> = {
                 },
             },
         },
+    },
+    'pay-request-pot-partial-success': {
+        // The pay screen of a part-paid €88 pot. Tap External wallet: about
+        // 15 s later the deposit poll answers completed and the charge reads
+        // back 33 USDC booked of $58.51, so the deposit card states what
+        // arrived and what is still needed.
+        route: '/pay-request?id=demo-request',
+        about: 'Paying a part-paid pot from an external wallet when the deposit arrives short (tap External wallet, wait ~15 s).',
+        responses: {
+            'GET /requests/demo-request': PAYER_POT_REQUEST,
+            'GET /requests/demo-request/pay-amounts': {
+                requestCurrency: 'EUR',
+                requestAmount: '88.00',
+                remainingAmount: '51.93',
+                rails: [{ kind: 'peanut_balance', payerAmount: { ...REQUEST_PAY_USD, amount: '58.51' } }],
+            },
+            // demo-api names every new charge at random; the read-back below keys on this one
+            'POST /charges': { data: { id: 'fixture-partial-charge' } },
+            'GET /request-charges/fixture-partial-charge': {
+                tokenAmount: '58.51',
+                currencyAmount: '58.51',
+                transactionType: 'REQUEST',
+                status: 'COMPLETED',
+                settledAmount: '33',
+                partialPayment: true,
+                requestLink: { uuid: 'demo-request' },
+            },
+            'GET /rhino/status/0xdec0debad1dec0debad1dec0debad1dec0debad1': { status: 'completed', amount: 33 },
+        },
+        // The card then clears the address status to watch for the rest. The
+        // status above always answers completed, so the clear has to fail here
+        // or the card would read the same deposit again every few seconds.
+        fails: ['POST /rhino/reset-status/0xdec0debad1dec0debad1dec0debad1dec0debad1'],
     },
     'request-pay-by-bank': {
         // `demo-request` is the uuid demo-api answers every request read with,

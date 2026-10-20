@@ -25,6 +25,7 @@ const DISMISS_KEYS = [
     'doThisLater',
     'goBack',
     'keepCard',
+    'keepOpen',
     'maybeLater',
     'notNow',
     'notNowCta',

@@ -29,7 +29,7 @@ import {
     isRequestEntry,
     isSendLinkEntry,
 } from './transaction-predicates'
-import { receiptHeadlineAmount } from './transaction-details.utils'
+import { receiptHeadlineAmount, requestedInCurrency } from './transaction-details.utils'
 import { useReceiptViewModel } from './useReceiptViewModel'
 import { PublicReceiptIssuer } from './PublicReceiptIssuer'
 
@@ -118,12 +118,15 @@ export const TransactionDetailsReceipt = ({
               ? t('returnedReasonThirdParty')
               : t('returnedReason')
     const minimumAmountDisplay = transaction.extraDataForDrawer?.minimumAmountDisplay
+    // a request asked in euros says so under its dollar headline
+    const requestedAmountDisplay = requestedInCurrency(transaction)
     const statusNote =
         depositKind === 'verification'
             ? t('verificationDepositNote')
             : depositKind === 'below_minimum' && minimumAmountDisplay
               ? t('belowMinimumNote', { min: minimumAmountDisplay })
-              : returnReasonLine
+              : (returnReasonLine ??
+                (requestedAmountDisplay ? t('requestedInCurrency', { amount: requestedAmountDisplay }) : undefined))
 
     // QR + Share + Cancel block: pending, has a link, and either the sender of
     // a send-link OR the recipient of a request. Both gates route through the
