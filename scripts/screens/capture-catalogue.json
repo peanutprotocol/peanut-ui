@@ -804,12 +804,6 @@
         "source": "AddMoney/components/OnrampConfirmationModal.tsx"
     },
     {
-        "id": "81-g-request-pot-partial",
-        "flow": "Add money",
-        "route": "/dev/surfaces?s=81-g-request-pot-partial",
-        "source": "features/payments/flows/contribute-pot/views/ContributePotPartialView.tsx"
-    },
-    {
         "id": "fixture-card-application",
         "flow": "Card",
         "route": "/card"
@@ -961,6 +955,12 @@
         "flow": "Card",
         "route": "/dev/surfaces?s=77-e-limitswarningcard-error",
         "source": "features/limits/components/LimitsWarningCard.tsx"
+    },
+    {
+        "id": "81-g-request-pot-partial",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=81-g-request-pot-partial",
+        "source": "components/AddMoney/views/RhinoDeposit.view.tsx"
     },
     {
         "id": "82-f-choice-card-requires-info",
