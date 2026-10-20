@@ -67,7 +67,23 @@ function isSelectionSource(currency: string, source: FxSource, selection: Exclud
     return source === 'reference'
 }
 
+export interface FxRateQuote {
+    rate: number
+    fromSource: FxSource
+    toSource: FxSource
+    /** Backend `generatedAt`, ISO. */
+    generatedAt: string
+}
+
 function parseFxRateResponse(value: unknown, from: string, to: string): number | null {
+    return parseFxRateQuote(value, from, to)?.rate ?? null
+}
+
+/**
+ * Validates a /fx/rate body against the full contract. Exported for server
+ * readers (the star LPs) that also need the source and timestamp.
+ */
+export function parseFxRateQuote(value: unknown, from: string, to: string): FxRateQuote | null {
     if (!value || typeof value !== 'object') return null
 
     const data = value as Partial<FxRateResponse>
@@ -109,7 +125,8 @@ function parseFxRateResponse(value: unknown, from: string, to: string): number |
     }
 
     const rate = Number(data.rate)
-    return Number.isFinite(rate) && rate >= MIN_DISPLAY_RATE && rate <= MAX_DISPLAY_RATE ? rate : null
+    if (!Number.isFinite(rate) || rate < MIN_DISPLAY_RATE || rate > MAX_DISPLAY_RATE) return null
+    return { rate, fromSource: data.fromSource, toSource: data.toSource, generatedAt: data.generatedAt as string }
 }
 
 /**

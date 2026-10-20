@@ -1,8 +1,14 @@
-import { DropIn } from '@/components/Marketing/StarLp/DropIn'
 import { RequestLinksLinkCard } from './RequestLinksLinkCard'
-import { REQUEST_LINKS_STORY } from './requestLinks.consts'
+import { REQUEST_LINKS_CLIENT_SEES_ID, REQUEST_LINKS_STORY } from './requestLinks.consts'
 
-/** Hero art: the email thread where the client asks and the link answers. The link card drops in. */
+const typingDot = 'size-1.5 rounded-full bg-foreground-primary'
+
+/**
+ * Hero art: the email thread where the client asks and the link answers. On load
+ * (CSS only, so it runs before hydration) three dots type, then the link card
+ * lands; reduced motion paints the card at rest. A tap on the card scrolls to
+ * what the client sees.
+ */
 export function RequestLinksMail() {
     return (
         <div className="shadow-primary-6 mx-auto w-full max-w-[420px] -rotate-1 overflow-hidden rounded-card border-2 border-border-default bg-background-default text-left">
@@ -25,9 +31,19 @@ export function RequestLinksMail() {
                     <span className="text-body-xs text-foreground-secondary">10:15</span>
                 </p>
                 <p className="mt-1 text-body-s">Thanks! Here you go:</p>
-                <DropIn delay={0.5} fromTilt={-8} className="mt-2">
-                    <RequestLinksLinkCard />
-                </DropIn>
+                <div className="relative mt-2">
+                    <span
+                        aria-hidden
+                        className="rl-typing absolute top-0 left-0 items-center gap-1 rounded-card border-2 border-border-default bg-background-default px-3 py-2.5"
+                    >
+                        <span className={typingDot} />
+                        <span className={typingDot} />
+                        <span className={typingDot} />
+                    </span>
+                    <div className="rl-card-land">
+                        <RequestLinksLinkCard to={REQUEST_LINKS_CLIENT_SEES_ID} />
+                    </div>
+                </div>
             </div>
         </div>
     )

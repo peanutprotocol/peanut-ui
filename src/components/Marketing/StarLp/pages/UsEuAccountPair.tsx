@@ -1,21 +1,28 @@
-import { DropIn } from '@/components/Marketing/StarLp/DropIn'
-import { UsEuAccountCard } from './UsEuAccountCard'
+import detailsEur from '@/assets/star-lp/us-eu-details-eur.webp'
+import detailsUsd from '@/assets/star-lp/us-eu-details-usd.webp'
+import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
+import { UsEuAccountCapture } from './UsEuAccountCapture'
+import { UsEuAppLink } from './UsEuAppLink'
 
-/** Hero art: the euro and the US account land on top of each other like two stickers. */
+/**
+ * Hero art: the app's real EUR and USD bank-details screens (fixtures
+ * get-paid-details-eur / -usd, holder set to the page persona, numbers masked),
+ * landing on top of each other like two stickers. The pair leads where the CTA leads: the accounts screen.
+ */
 export function UsEuAccountPair() {
     return (
-        <div className="relative mx-auto h-56 w-full max-w-sm">
-            <DropIn fromTilt={14} tilt={3} delay={0.15} className="absolute inset-x-1 top-0">
-                <UsEuAccountCard flag="eu" label="EUR account" details="IBAN DE•• •••• •••• 0420" tone="sky" />
-            </DropIn>
-            <DropIn fromTilt={-12} tilt={-2} delay={0.45} className="absolute inset-x-1 top-24">
-                <UsEuAccountCard
-                    flag="us"
-                    label="USD account"
-                    details="Routing ••• 069 · Acct •••• 0420"
-                    tone="white"
-                />
-            </DropIn>
-        </div>
+        <UsEuAppLink
+            href={STAR_LP_HREF.accountsGuest}
+            signedInHref={STAR_LP_HREF.accountsSignedIn}
+            className="mx-auto flex w-full max-w-sm flex-col"
+        >
+            <UsEuAccountCapture src={detailsEur} tilt={-3} delay={0.15} className="relative w-[84%]" />
+            <UsEuAccountCapture
+                src={detailsUsd}
+                tilt={2}
+                delay={0.45}
+                className="relative z-10 -mt-3 ml-auto w-[84%]"
+            />
+        </UsEuAppLink>
     )
 }

@@ -1,15 +1,15 @@
 import Image from 'next/image'
 import PixIcon from '@/assets/payment-apps/pix.svg'
 import { twMerge } from '@/utils/tw'
-import { QrBrazilQrCode } from './QrBrazilQrCode'
+import { StarLpQrCode } from '@/components/Marketing/StarLp/StarLpQrCode'
 import type { QrBrazilPixStickerProps } from './qrBrazil.types'
 
 /** The "Pague com Pix" counter sticker a Brazilian shop tapes next to the till. */
-export function QrBrazilPixSticker({ className, priority = false }: QrBrazilPixStickerProps) {
+export function QrBrazilPixSticker({ slot, className, priority = false }: QrBrazilPixStickerProps) {
     return (
         <div
             className={twMerge(
-                'shadow-2 rounded-card border-2 border-border-default bg-background-default p-2 text-center',
+                'shadow-2 rounded-card border-2 border-border-default bg-background-default p-2 text-center transition-shadow duration-150 group-hover:shadow-4 group-active:shadow-none',
                 className
             )}
         >
@@ -17,7 +17,7 @@ export function QrBrazilPixSticker({ className, priority = false }: QrBrazilPixS
             <p lang="pt-BR" className="font-roboto-flex-extrabold mt-1 text-body-xs uppercase">
                 Pague com Pix
             </p>
-            <QrBrazilQrCode className="mx-auto mt-2 w-[86%]" />
+            <StarLpQrCode campaign="qr-brazil" slot={slot} className="mx-auto mt-2 w-[86%]" />
         </div>
     )
 }

@@ -1,4 +1,5 @@
 import HandPeace from '@/assets/illustrations/hand-peace.svg'
+import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { CloseFold } from '@/components/Marketing/StarLp/CloseFold'
 import { DisplayLine } from '@/components/Marketing/StarLp/DisplayLine'
@@ -12,9 +13,11 @@ import { TrustBand } from '@/components/Marketing/StarLp/TrustBand'
 import { Wiggle } from '@/components/Marketing/StarLp/Wiggle'
 import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
 import type { StarLpFaqItem } from '@/components/Marketing/StarLp/starLp.types'
+import { fetchEurUsdRate } from '@/components/Marketing/StarLp/starLpFx'
 import { UsEuAccountPair } from './UsEuAccountPair'
 import { UsEuRequestChat } from './UsEuRequestChat'
 import { UsEuTimeline } from './UsEuTimeline'
+import { US_EU_REQUEST_HREF, US_EU_SKY_CLOUDS } from './usEuAccounts.consts'
 
 // Payer rules, timing and cost from product/quick-ref.md and pricing.md
 // (deposit-account-open, bank-deposits-sepa, bank-deposits-ach).
@@ -47,7 +50,9 @@ const FOOTNOTE = 'Peanut is not a bank. Accounts may not be available where you 
 const HERO_KNERD_FIT = 'md:text-heading lg:text-headingMedium'
 
 /** /us-europe-accounts: get paid from the US and Europe into Peanut's USD and EUR accounts. */
-export function UsEuAccountsLanding() {
+export async function UsEuAccountsLanding() {
+    // Live Bridge EUR→USD rate for the money-in push; null hides the dollar figure.
+    const eurUsd = await fetchEurUsdRate()
     return (
         <>
             <StarLpHero
@@ -67,7 +72,11 @@ export function UsEuAccountsLanding() {
                 subtitle="US account details and a euro IBAN."
                 art={<UsEuAccountPair />}
                 cta={
-                    <StarLpCta href={STAR_LP_HREF.signup} ground="pink">
+                    <StarLpCta
+                        href={STAR_LP_HREF.accountsGuest}
+                        signedInHref={STAR_LP_HREF.accountsSignedIn}
+                        ground="pink"
+                    >
                         Open your accounts
                     </StarLpCta>
                 }
@@ -76,13 +85,27 @@ export function UsEuAccountsLanding() {
             <Band ground="cream">
                 <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
                     <SectionTitle>How it works</SectionTitle>
-                    <UsEuTimeline />
+                    <UsEuTimeline eurUsd={eurUsd} />
                 </div>
             </Band>
 
+            {/* Band clips (overflow-hidden) and its column is relative z-10: the clouds span the band width behind the content. */}
             <Band ground="sky">
+                <CloudsCss
+                    clouds={[...US_EU_SKY_CLOUDS]}
+                    className="pointer-events-none left-1/2 -z-10 w-screen -translate-x-1/2"
+                />
                 <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
-                    <SectionTitle>Paid by someone on Peanut? Send a link.</SectionTitle>
+                    <div className="flex flex-col items-start gap-8">
+                        <SectionTitle>Paid by someone on Peanut? Send a link.</SectionTitle>
+                        <StarLpCta
+                            href={US_EU_REQUEST_HREF.guest}
+                            signedInHref={US_EU_REQUEST_HREF.signedIn}
+                            ground="sky"
+                        >
+                            Get your link
+                        </StarLpCta>
+                    </div>
                     <UsEuRequestChat />
                 </div>
             </Band>
@@ -112,7 +135,11 @@ export function UsEuAccountsLanding() {
                                 />
                             </Wiggle>
                         </PopIn>
-                        <StarLpCta href={STAR_LP_HREF.signup} ground="pink">
+                        <StarLpCta
+                            href={STAR_LP_HREF.accountsGuest}
+                            signedInHref={STAR_LP_HREF.accountsSignedIn}
+                            ground="pink"
+                        >
                             Open your accounts
                         </StarLpCta>
                     </div>

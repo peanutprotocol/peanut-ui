@@ -1,43 +1,42 @@
-import { Icon } from '@/components/Global/Icons/Icon'
+'use client'
+
+import { animate } from 'framer-motion'
+import Image from 'next/image'
+import { useEffect, useRef } from 'react'
+import payCapture from '@/assets/star-lp/request-links-pay.webp'
 import { PhoneFrame } from '@/components/Marketing/StarLp/PhoneFrame'
-import { RequestLinksAvatar } from './RequestLinksAvatar'
-import { REQUEST_LINKS_STORY } from './requestLinks.consts'
+import { STAR_LP_SPRING } from '@/components/Marketing/StarLp/starLp.consts'
+import { RequestLinksAppLink } from './RequestLinksAppLink'
+import { REQUEST_LINKS_CLIENT_SEES_EVENT, REQUEST_LINKS_STORY } from './requestLinks.consts'
 
-const METHODS = [
-    { title: 'Peanut', detail: 'Pay from your balance · instant', ground: 'bg-background-brand' },
-    { title: 'Exchange or wallet', detail: 'Send to the address shown · minutes', ground: 'bg-background-default' },
-] as const
-
-/** Fold 2: the request page the client opens. Bank payers stay off it (request-links.md). */
+/**
+ * Fold 2: the real request page the client opens (fixture request-pay-open-amount,
+ * captured with the persona's name and the story's amount, balance row taken out
+ * because a signed-out client sees none). The whole screen is one link to signup.
+ * When a link card scrolls the visitor here, the phone pops again.
+ */
 export function RequestLinksPayScreen() {
+    const phone = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const pop = () => {
+            if (!phone.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+            animate(phone.current, { scale: [0.94, 1], rotate: [-3, 0] }, STAR_LP_SPRING.pop)
+        }
+        window.addEventListener(REQUEST_LINKS_CLIENT_SEES_EVENT, pop)
+        return () => window.removeEventListener(REQUEST_LINKS_CLIENT_SEES_EVENT, pop)
+    }, [])
+
     return (
-        <PhoneFrame
-            screen="white"
-            className="max-w-[340px]"
-            label={`Request page: ${REQUEST_LINKS_STORY.requester} is requesting ${REQUEST_LINKS_STORY.amount}; pay with Peanut or from an exchange or wallet`}
-        >
-            <div className="flex flex-col items-center gap-1 pt-3 text-body-s text-foreground-secondary">
-                <RequestLinksAvatar size="large" />
-                {REQUEST_LINKS_STORY.requester} is requesting
-            </div>
-            <p className="text-center text-heading-xl">{REQUEST_LINKS_STORY.amount}</p>
-            <p className="rounded border-2 border-border-default bg-background-page px-2 py-2 text-center text-label-l">
-                &ldquo;{REQUEST_LINKS_STORY.note}&rdquo;
-            </p>
-            <p className="mt-2 text-label-l">How do you want to pay?</p>
-            {METHODS.map(({ title, detail, ground }) => (
-                <div
-                    key={title}
-                    className={`shadow-2 flex items-center justify-between gap-2 rounded-card border-2 border-border-default px-3 py-2 ${ground}`}
+        <div ref={phone}>
+            <RequestLinksAppLink sink="md" className="mx-auto w-full max-w-[340px]">
+                <PhoneFrame
+                    className="rl-lift max-w-[340px] [&>.star-lp-phone-screen]:p-0"
+                    label={`Request page: ${REQUEST_LINKS_STORY.username} is requesting ${REQUEST_LINKS_STORY.amount}. Pay with Peanut, a bank transfer or crypto.`}
                 >
-                    <span>
-                        <span className="block text-label-l">{title}</span>
-                        <span className="block text-body-xs">{detail}</span>
-                    </span>
-                    <Icon name="chevron-right" size={16} />
-                </div>
-            ))}
-            <span className="h-2" />
-        </PhoneFrame>
+                    <Image src={payCapture} alt="" sizes="330px" className="h-auto w-full" />
+                </PhoneFrame>
+            </RequestLinksAppLink>
+        </div>
     )
 }

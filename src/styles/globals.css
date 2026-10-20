@@ -1834,6 +1834,131 @@ input::placeholder {
     transform: translateY(12px) scale(0.96);
 }
 
+/* Own entrances: a beat whose child carries .star-lp-own-entrance only fades;
+   the child moves (UsEu timeline push and Pix stamp). Keyframes replay each
+   time the beat turns shown. Transforms and opacity only. */
+.star-lp-beat:has(.star-lp-own-entrance)[data-shown='false'] {
+    transform: none;
+}
+
+/* A push notification drops in from above, then its logo shakes once. */
+.star-lp-beat[data-shown='true'] .star-lp-push-drop {
+    animation: star-lp-push-drop 520ms var(--ease-spring) both;
+}
+
+.star-lp-beat[data-shown='true'] .star-lp-push-ding {
+    animation: star-lp-push-ding 400ms ease-in-out 420ms both;
+}
+
+/* A sticker stamps down onto its resting tilt (-3deg, the tile's rotate-3). */
+.star-lp-beat[data-shown='true'] .star-lp-stamp {
+    animation: star-lp-stamp 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes star-lp-push-drop {
+    from {
+        transform: translateY(-20px) scale(0.96);
+    }
+    60% {
+        transform: translateY(2px) scale(1.01);
+    }
+    to {
+        transform: none;
+    }
+}
+
+@keyframes star-lp-push-ding {
+    0%,
+    100% {
+        rotate: 0deg;
+    }
+    30% {
+        rotate: -8deg;
+    }
+    65% {
+        rotate: 6deg;
+    }
+}
+
+@keyframes star-lp-stamp {
+    from {
+        scale: 1.15;
+        rotate: -8deg;
+    }
+    to {
+        scale: 1;
+        rotate: -3deg;
+    }
+}
+
+/* Typing beat: a beat holding .star-lp-typing-slot keeps its wrapper visible
+   and swaps its own children. Dots show while the beat before it is shown and
+   it is not; then the reply rises and its check pops. */
+.star-lp-beat:has(.star-lp-typing-slot)[data-shown='false'] {
+    opacity: 1;
+    transform: none;
+}
+
+.star-lp-typing {
+    opacity: 0;
+    transition: opacity var(--transition-duration-fast) ease-out;
+}
+
+.star-lp-beat[data-shown='true'] + .star-lp-beat[data-shown='false'] .star-lp-typing {
+    opacity: 1;
+}
+
+.star-lp-typing-reply {
+    transition:
+        opacity var(--transition-duration-slow) var(--ease-spring),
+        transform var(--transition-duration-slow) var(--ease-spring);
+}
+
+.star-lp-beat[data-shown='false'] .star-lp-typing-reply {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+}
+
+/* Dots bounce only while their reply is still hidden: no infinite loop after the story. */
+.star-lp-beat[data-shown='false'] .star-lp-typing-dot {
+    animation: star-lp-typing-dot 900ms ease-in-out infinite;
+}
+
+.star-lp-typing-dot:nth-child(2) {
+    animation-delay: 120ms;
+}
+
+.star-lp-typing-dot:nth-child(3) {
+    animation-delay: 240ms;
+}
+
+.star-lp-beat[data-shown='true'] .star-lp-check-pop {
+    animation: star-lp-check-pop 300ms var(--ease-spring) 200ms both;
+}
+
+@keyframes star-lp-typing-dot {
+    0%,
+    60%,
+    100% {
+        transform: translateY(0);
+    }
+    30% {
+        transform: translateY(-3px);
+    }
+}
+
+@keyframes star-lp-check-pop {
+    0% {
+        transform: scale(0);
+    }
+    60% {
+        transform: scale(1.25);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
 /* Wiggle: a slow sticker rock, and a glove hop every 2.4s. */
 .star-lp-wobble {
     animation: star-lp-wobble 2.4s ease-in-out var(--wiggle-delay, 0s) infinite alternate;
@@ -1875,7 +2000,31 @@ input::placeholder {
     }
 
     .star-lp-wobble,
-    .star-lp-bounce {
+    .star-lp-bounce,
+    .star-lp-beat[data-shown] .star-lp-push-drop,
+    .star-lp-beat[data-shown] .star-lp-push-ding,
+    .star-lp-beat[data-shown] .star-lp-stamp,
+    .star-lp-beat[data-shown] .star-lp-check-pop,
+    .star-lp-beat[data-shown] .star-lp-typing-dot {
+        animation: none;
+    }
+
+    /* The story is complete at rest: no dots, the reply shown. */
+    .star-lp-typing {
+        display: none;
+    }
+
+    .star-lp-typing-reply,
+    .star-lp-beat[data-shown='false'] .star-lp-typing-reply {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+
+    /* StarLpMarquee: the strip stands still and the thumbs-up stops waving. */
+    .star-lp-marquee .rfm-marquee,
+    .star-lp-marquee .rfm-initial-child-container,
+    .star-lp-marquee .animation-thumbsUp {
         animation: none;
     }
 }

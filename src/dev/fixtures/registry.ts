@@ -171,6 +171,74 @@ const PIX_KEY_PAYMENT_ENTRY = {
     extraData: { kind: 'QR_PAY', provider: 'MANTECA', usdAmount: '10' },
 }
 
+// An in-person card tap at a coffee shop, settled in USD (same currency, so
+// no Visa conversion). Shape follows peanut-api-ts transaction-intent/history.ts
+// for CARD_SPEND_CLEAR: the user sends, the merchant receives.
+const CARD_SPEND_ENTRY = {
+    uuid: 'fixture-card-spend',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-10-20T09:12:00.000Z'),
+    amount: '4.5',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    recipientAccount: { identifier: 'Corner Coffee', type: 'merchant', isUser: false },
+    currency: { amount: '4.50', code: 'USD' },
+    extraData: {
+        kind: 'CARD_SPEND_CLEAR',
+        provider: 'RAIN',
+        usdAmount: '4.5',
+        merchantName: 'Corner Coffee',
+        merchantCategory: 'Coffee shop',
+        merchantMcc: '5814',
+        cardAuthAmount: '4.50',
+        cardSettledAmount: '4.50',
+        settlementAdjusted: false,
+    },
+}
+
+// Two earlier taps, so the Activity list behind the receipt holds only card rows.
+const EARLIER_CARD_SPENDS = [
+    { merchant: 'Daily Bread', amount: '7.20', timestamp: '2026-10-19T08:40:00.000Z' },
+    { merchant: 'City Books', amount: '18.00', timestamp: '2026-10-18T16:05:00.000Z' },
+].map(({ merchant, amount, timestamp }, i) => ({
+    ...CARD_SPEND_ENTRY,
+    uuid: `fixture-card-spend-earlier-${i + 1}`,
+    timestamp: new Date(timestamp),
+    amount,
+    recipientAccount: { identifier: merchant, type: 'merchant', isUser: false },
+    currency: { amount, code: 'USD' },
+    extraData: {
+        ...CARD_SPEND_ENTRY.extraData,
+        usdAmount: amount,
+        merchantName: merchant,
+        merchantCategory: null,
+        merchantMcc: null,
+        cardAuthAmount: amount,
+        cardSettledAmount: amount,
+    },
+}))
+
+// A $400 request link paid from an exchange: the payer has no Peanut
+// account, so Activity names the sending address (star LP /request-links).
+const REQUEST_PAID_EXTERNAL_ENTRY = {
+    uuid: 'fixture-request-paid-external',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-10-20T17:34:00.000Z'),
+    amount: '400',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: 'RECIPIENT',
+    senderAccount: { identifier: '0x7a3f9c41d2e8b05a6f13c47e92d0ab58e1f491c2', type: 'evm-address', isUser: false },
+    recipientAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    extraData: { kind: 'P2P_REQUEST_FULFILL', usdAmount: '400' },
+}
+
 // A USD wire withdrawal (TASK-23054): $100 sent, a $20 wire fee withheld.
 const WIRE_WITHDRAWAL_ENTRY = {
     uuid: 'fixture-wire-withdrawal',
@@ -1050,6 +1118,21 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/history',
         about: 'Activity row for a PIX-key payment, named after the key owner.',
         responses: { 'GET /users/history': { entries: [PIX_KEY_PAYMENT_ENTRY], hasMore: false } },
+    },
+    // Activity after a request link is paid from an exchange (star LP /request-links capture).
+    'history-request-paid-external': {
+        route: '/history',
+        about: 'Activity row for a request paid from an external wallet, named by its address.',
+        responses: { 'GET /users/history': { entries: [REQUEST_PAID_EXTERNAL_ENTRY], hasMore: false } },
+    },
+    // Activity after an in-person card tap (star LP /peanut-card capture).
+    'history-card-spend': {
+        route: '/history',
+        about: 'Activity after in-person Peanut Card purchases in USD: card rows only, no badge rows.',
+        responses: {
+            'GET /users/history': { entries: [CARD_SPEND_ENTRY, ...EARLIER_CARD_SPENDS], hasMore: false },
+            'GET /users/me': { user: { badges: [] } },
+        },
     },
     // Named bank accounts beside the named address book: destinationLabel on
     // every row, masked identifier underneath.

@@ -55,6 +55,9 @@ export const STAR_LP_HREF = {
     signup: '/setup',
     cardGuest: `/setup?redirect_uri=${encodeURIComponent('/card')}`,
     cardSignedIn: '/card',
+    /** /us-europe-accounts: the bank-accounts list (held accounts plus every corridor offered). */
+    accountsGuest: `/setup?redirect_uri=${encodeURIComponent('/add-money?method=bank')}`,
+    accountsSignedIn: '/add-money?method=bank',
 } as const
 
 /** Scene springs, ported from peanutsplit motion.ts (stiffness / damping). */

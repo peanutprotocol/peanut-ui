@@ -1,50 +1,54 @@
+import Image from 'next/image'
+import balanceCrop from '@/assets/star-lp/self-custody-tile-balance.webp'
+import ownerCrop from '@/assets/star-lp/self-custody-tile-owner.webp'
+import passkeyCrop from '@/assets/star-lp/self-custody-tile-passkey.webp'
 import { PopIn } from '@/components/Marketing/StarLp/PopIn'
-import { SelfCustodyPasskeyGlyph } from './SelfCustodyPasskeyGlyph'
+import { SelfCustodyApproveCrop } from './SelfCustodyApproveCrop'
 
 const CROP =
-    'grid h-24 content-center gap-1 overflow-hidden rounded-sm border border-border-default bg-background-page p-2 text-body-xs lg:h-28 lg:p-3 lg:text-body-s'
+    'flex h-24 items-center justify-center overflow-hidden rounded-sm border border-border-default p-1.5 lg:h-28'
+const CROP_IMAGE = 'h-auto max-h-full w-auto max-w-full'
+const CROP_SIZES = '(min-width: 1024px) 220px, (min-width: 768px) 300px, 45vw'
 const LABEL = 'mt-3 text-heading-xs text-balance uppercase lg:text-heading-s'
 
-/** Four app crops, each under a one-line fact. They pop in one after another. */
+/**
+ * Four crops of real app screens (see the capture script), each under a
+ * one-line fact. They pop in one after another. The tiles are facts, not
+ * buttons, so none of them reacts to a press.
+ */
 export function SelfCustodyFactTiles() {
     const tiles = [
         {
             id: 'owner',
+            // profile header (fixture `profile`, retouched to the page's own persona)
             crop: (
-                <div className={CROP}>
-                    <span className="text-label-m">Account owner</span>
-                    <span className="text-heading-xs">You</span>
+                <div className={`${CROP} bg-background-page`}>
+                    <Image src={ownerCrop} alt="" sizes={CROP_SIZES} className={CROP_IMAGE} />
                 </div>
             ),
             label: 'Your own account',
         },
         {
             id: 'key',
+            // the app's own passkey explainer, shown during signup
             crop: (
-                <div className={CROP}>
-                    <span className="text-label-m">Passkey created</span>
-                    <span className="text-foreground-secondary">Saved on this iPhone</span>
+                <div className={`${CROP} bg-background-default`}>
+                    <Image src={passkeyCrop} alt="" sizes={CROP_SIZES} className={CROP_IMAGE} />
                 </div>
             ),
             label: 'Your key, not ours',
         },
         {
             id: 'approve',
-            crop: (
-                <div className={`${CROP} justify-items-center text-center`}>
-                    <SelfCustodyPasskeyGlyph className="h-6 w-6" />
-                    <span className="text-label-m">Send $120.00 to Ana?</span>
-                </div>
-            ),
+            crop: <SelfCustodyApproveCrop className={`${CROP} relative bg-background-page`} />,
             label: 'You approve every send',
         },
         {
             id: 'freeze',
+            // home balance (fixture `home`)
             crop: (
-                <div className={CROP}>
-                    <span className="text-label-m">Balance</span>
-                    <span className="text-heading-xs">$1,240.00</span>
-                    <span className="text-label-m text-green-800">Available</span>
+                <div className={`${CROP} bg-background-page`}>
+                    <Image src={balanceCrop} alt="" sizes={CROP_SIZES} className={CROP_IMAGE} />
                 </div>
             ),
             label: "Peanut can't freeze it",
@@ -58,7 +62,7 @@ export function SelfCustodyFactTiles() {
                         delay={i * 0.12}
                         className="h-full rounded-sm border-2 border-border-default bg-background-default p-2 shadow-4 lg:p-3"
                     >
-                        {/* the drawn crop is decoration; the fact label is the readable text */}
+                        {/* the crop is decoration; the fact label is the readable text */}
                         <div aria-hidden>{tile.crop}</div>
                         <p className={LABEL}>{tile.label}</p>
                     </PopIn>

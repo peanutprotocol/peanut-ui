@@ -1,47 +1,97 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
+import { MERCADO_PAGO } from '@/assets/payment-apps'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { PhoneFrame } from '@/components/Marketing/StarLp/PhoneFrame'
+import { QR_AR_PAID_EVENT, QR_AR_PAYING_MS, QR_AR_PRICE_ARS, QR_AR_THEIR_SCREEN_ID } from './qrArgentina.consts'
+import type { QrArgentinaReviewProps } from './qrArgentina.types'
+
+const ARS = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
+const USD = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const RATE = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
 /**
- * The QR pay screen before you pay, with the app's own labels (qrPay.youArePaying,
- * info.exchangeRate, nav "Pay"): pesos first, dollars under them, the rate.
- * Amounts and the shop are illustrative (pricing.md quote of 22 Sep 2026 ≈ 1,565).
+ * The app's QR pay screen before you pay, built from its own parts (the
+ * Mercado Pago method icon, the merchant Card, the dollar line, the
+ * "Exchange rate" row and the Pay button) with the live Manteca rate the
+ * payment executes at. Not a capture: a PNG would freeze the rate.
+ *
+ * Pay moves money nowhere: like the app, it shows its processing beat (the
+ * Button's spinner), then plays the next beat, the shop's screen.
  */
-export function QrArgentinaReview() {
+export function QrArgentinaReview({ usdArs }: QrArgentinaReviewProps) {
+    const price = `ARS ${ARS.format(QR_AR_PRICE_ARS)}`
+    const usd = usdArs ? `USD ${USD.format(QR_AR_PRICE_ARS / usdArs.rate)}` : null
+    const rate = usdArs ? `1 USD = ${RATE.format(usdArs.rate)} ARS` : null
+
+    const [paying, setPaying] = useState(false)
+    const timer = useRef<number | undefined>(undefined)
+    useEffect(() => () => window.clearTimeout(timer.current), [])
+
+    const pay = () => {
+        if (paying) return
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        const showShop = () => {
+            setPaying(false)
+            const target = document.getElementById(QR_AR_THEIR_SCREEN_ID)
+            target?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' })
+            window.dispatchEvent(new Event(QR_AR_PAID_EVENT))
+        }
+        if (reduce) return showShop()
+        setPaying(true)
+        timer.current = window.setTimeout(showShop, QR_AR_PAYING_MS)
+    }
+
     return (
-        <PhoneFrame
-            screen="white"
-            className="max-w-[18.5rem]"
-            label="Payment review: ARS 3,600, about USD 2.30, exchange rate 1 USD = 1,565 ARS, shown before you pay"
-        >
-            <div className="flex flex-col gap-4 px-1 py-2">
-                <p className="text-center text-label-l">Pay</p>
-                <div className="flex items-center gap-3 rounded-card border-2 border-border-default p-3">
-                    <span
-                        aria-hidden
-                        className="grid size-10 shrink-0 place-items-center rounded-full border-2 border-border-default bg-avatar-orange text-body-m-semibold"
-                    >
-                        P
-                    </span>
-                    <span className="min-w-0">
-                        <span className="flex items-center gap-1 text-body-xs">
-                            <Icon name="arrow-up-right" size={16} />
-                            Paying
+        <div className="star-lp-phone mx-auto w-full max-w-[18.5rem] border-4 border-border-default bg-background-default p-2 shadow-4">
+            <div className="star-lp-phone-screen flex flex-col gap-3 bg-background-page px-3 pt-3 pb-4 text-left text-foreground-primary">
+                <p className="sr-only">
+                    {`The Peanut pay screen: paying Panadería La Esquina ${price}${usd ? `, about ${usd}, at ${rate}` : ''}.`}
+                </p>
+                <div aria-hidden className="flex flex-col gap-3">
+                    <p className="text-center text-heading-xs">Pay</p>
+                    <Card className="p-3">
+                        <div className="flex items-center gap-3">
+                            <Image src={MERCADO_PAGO} alt="" width={40} height={40} className="size-10 rounded-full" />
+                            <span className="min-w-0">
+                                <span className="flex items-center gap-1 text-body-xs">
+                                    <Icon name="arrow-up-right" size={14} />
+                                    Paying
+                                </span>
+                                <span className="block text-label-l">Panadería La Esquina</span>
+                            </span>
+                        </div>
+                    </Card>
+                    <Card className="items-center gap-1 p-4">
+                        <span className="flex items-baseline gap-1">
+                            <span className="text-body-m-semibold">ARS</span>
+                            <span className="font-roboto-flex-extrabold text-heading-m">
+                                {ARS.format(QR_AR_PRICE_ARS)}
+                            </span>
                         </span>
-                        <span className="block text-label-l">Panadería La Esquina</span>
-                    </span>
+                        {usd && <span className="text-body-m-semibold">≈ {usd}</span>}
+                    </Card>
+                    {rate && (
+                        <Card className="gap-1 px-3 py-2">
+                            <span className="text-body-xs font-semibold">Exchange rate</span>
+                            <span className="text-body-m-semibold">{rate}</span>
+                        </Card>
+                    )}
                 </div>
-                <div className="text-center">
-                    <span className="font-roboto-flex-extrabold block text-heading-m">ARS 3,600</span>
-                    <span className="mt-1 block text-body-m-semibold">USD 2.30</span>
-                </div>
-                <div className="flex justify-between gap-2 border-t-2 border-dashed border-border-disabled pt-3 text-body-xs">
-                    <span>Exchange rate</span>
-                    <span className="font-extrabold">1 USD = 1,565 ARS</span>
-                </div>
-                <span className="rounded-sm border-2 border-border-default bg-background-brand py-3 text-center text-button-m shadow-4">
+                <Button
+                    variant="primary"
+                    shadowSize="4"
+                    onClick={pay}
+                    loading={paying}
+                    aria-disabled={paying}
+                    aria-label="Pay, then see the shop's screen"
+                >
                     Pay
-                </span>
+                </Button>
             </div>
-        </PhoneFrame>
+        </div>
     )
 }

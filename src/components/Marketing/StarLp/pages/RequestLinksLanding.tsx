@@ -1,6 +1,6 @@
 import BorderCloud from '@/assets/illustrations/border-cloud.svg'
-import Exclamations from '@/assets/illustrations/exclamations.svg'
 import GotItHand from '@/assets/illustrations/got-it-hand.svg'
+import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { DisplayLine } from '@/components/Marketing/StarLp/DisplayLine'
 import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
@@ -12,23 +12,29 @@ import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
 import { TrustBand } from '@/components/Marketing/StarLp/TrustBand'
 import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
 import type { StarLpFaqItem } from '@/components/Marketing/StarLp/starLp.types'
+import { RequestLinksExclamations } from './RequestLinksExclamations'
 import { RequestLinksLinkCard } from './RequestLinksLinkCard'
 import { RequestLinksMail } from './RequestLinksMail'
+import { RequestLinksMotionStyle } from './RequestLinksMotionStyle'
 import { RequestLinksOldReply } from './RequestLinksOldReply'
 import { RequestLinksPaidTick } from './RequestLinksPaidTick'
 import { RequestLinksPayScreen } from './RequestLinksPayScreen'
-import { RequestLinksReceipt } from './RequestLinksReceipt'
+import { RequestLinksReceiptPrint } from './RequestLinksReceiptPrint'
 import { RequestLinksTimeline } from './RequestLinksTimeline'
-import { REQUEST_LINKS_STORY } from './requestLinks.consts'
+import { REQUEST_LINKS_CLIENT_SEES_ID, REQUEST_LINKS_STORY } from './requestLinks.consts'
 
 const CTA_LABEL = 'Create an account'
 
-/** request-links.md: one-side KYC, any channel, Peanut instant, exchange or wallet in minutes. */
+/**
+ * request-links.md: one-side KYC, any channel, Peanut instant, exchange or wallet in minutes.
+ * Mercado Pago and Pix cannot fund a request (excluded_contribution_methods), so the copy
+ * never offers them, though today's pay page still draws a Mercado Pago row.
+ */
 const FAQ: StarLpFaqItem[] = [
     {
         id: 'client-account',
         question: 'Does my client need an account?',
-        answer: 'Not if you’re verified. They pay from an exchange or wallet, with no sign-up.',
+        answer: 'Not if you’re verified. They can pay with crypto from an exchange or wallet, with no sign-up. A bank transfer goes through a Peanut account.',
     },
     {
         id: 'invoice',
@@ -47,6 +53,7 @@ const twoColumns = 'grid gap-10 md:grid-cols-2 md:items-center md:gap-12'
 export function RequestLinksLanding() {
     return (
         <>
+            <RequestLinksMotionStyle />
             <StarLpHero
                 title={
                     <>
@@ -69,15 +76,7 @@ export function RequestLinksLanding() {
                         The old reply took a{' '}
                         <span className="whitespace-nowrap">
                             week.
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                                src={Exclamations.src}
-                                width={Exclamations.width}
-                                height={Exclamations.height}
-                                alt=""
-                                aria-hidden
-                                className="ml-2 inline-block w-7 -translate-y-4 rotate-12 align-top md:-mb-4 md:w-10 md:-translate-y-1"
-                            />
+                            <RequestLinksExclamations />
                         </span>
                     </SectionTitle>
                     <div className="w-full max-w-[520px] md:justify-self-end">
@@ -86,7 +85,16 @@ export function RequestLinksLanding() {
                 </div>
             </Band>
 
-            <Band ground="sky">
+            {/* Link cards scroll here: "what your client sees" is where a request link opens. */}
+            <Band ground="sky" id={REQUEST_LINKS_CLIENT_SEES_ID} className="scroll-mt-16">
+                {/* Band clips (overflow-hidden) and its column is relative z-10: the clouds span the band width behind the content. */}
+                <CloudsCss
+                    clouds={[
+                        { top: '18%', width: 160, speed: '40s', direction: 'ltr' },
+                        { top: '72%', width: 190, speed: '46s', direction: 'rtl' },
+                    ]}
+                    className="pointer-events-none left-1/2 -z-10 w-screen -translate-x-1/2"
+                />
                 <div className={twoColumns}>
                     <SectionTitle>This is what your client sees.</SectionTitle>
                     <PopIn tilt={-1}>
@@ -106,11 +114,9 @@ export function RequestLinksLanding() {
                 <div className={twoColumns}>
                     <SectionTitle>The small print, in large type.</SectionTitle>
                     <div className="relative">
-                        <PopIn tilt={-1}>
-                            <RequestLinksReceipt />
-                        </PopIn>
+                        <RequestLinksReceiptPrint />
                         <PopIn
-                            delay={0.3}
+                            delay={1.1}
                             tilt={-15}
                             className="pointer-events-none absolute -right-4 -bottom-6 w-16 md:right-8 md:w-20"
                         >

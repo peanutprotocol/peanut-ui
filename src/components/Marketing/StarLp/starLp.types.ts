@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { MarqueeItem } from '@/components/Global/MarqueeWrapper/marquee.types'
 
 /** The marketing band grounds the six star LPs use (design.md § grounds). */
 export type BandGround = 'pink' | 'cream' | 'sky' | 'yellow' | 'black' | 'white'
@@ -96,11 +97,11 @@ export interface ChatBubbleProps {
 }
 
 export interface LinkPreviewBubbleProps {
-    /** Line above the amount, e.g. "valentina is requesting". */
+    /** Line above the amount, e.g. "fulano is requesting". */
     caption: string
     /** Knerd amount, e.g. "$250". */
     amount: string
-    /** Link text in the real request-link shape (getRequestLink), e.g. "peanut.me/valentina/…". */
+    /** Link text in the real request-link shape (getRequestLink), e.g. "peanut.me/fulano/…". */
     url: string
     side?: ChatSide
 }
@@ -108,7 +109,10 @@ export interface LinkPreviewBubbleProps {
 export interface StarLpFaqItem {
     id: string
     question: string
+    /** Plain text: the FAQPage JSON-LD answer, and the shown answer unless answerContent is set. */
     answer: string
+    /** Shown instead of `answer`, e.g. the same words with in-text links (FAQsPanel's answerContent). */
+    answerContent?: ReactNode
 }
 
 export interface StarLpFaqProps {
@@ -209,4 +213,62 @@ export interface StoryStepState {
     step: number
     /** Show every beat now. A no-op unless the story is running; call it from onClick, not onPointerDown, so a scroll swipe does not count. */
     complete: () => void
+}
+
+/** The three coloured grounds. Only a seam between two of them gets a marquee. */
+export type ColouredGround = Extract<BandGround, 'pink' | 'sky' | 'yellow'>
+
+export interface StarLpMarqueeProps {
+    /** Real product words for this page. Plain strings, or `{ label, href }` for a word that links somewhere real. */
+    words: MarqueeItem[]
+    /** The bands above and below the strip, in page order. Both must be coloured. */
+    between: readonly [ColouredGround, ColouredGround]
+    /** Strip colour. Defaults to the coloured ground neither neighbour uses. */
+    ground?: ColouredGround
+}
+
+/** Pages that carry a scannable QR. Used as `utm_campaign`. */
+export type StarLpQrCampaign = 'qr-argentina' | 'qr-brazil'
+
+/** Where the QR sits on the page. Used as `utm_content`. */
+export type StarLpQrSlot = 'hero-sticker' | 'close-sticker' | 'ways-in'
+
+export interface StarLpQrCodeProps {
+    campaign: StarLpQrCampaign
+    slot: StarLpQrSlot
+    /** Width classes; the code is square and carries its own white quiet zone. */
+    className?: string
+}
+
+export interface StarLpQrUrlInput {
+    /** Origin of the server that rendered the page, so a LAN or preview scan returns to it. */
+    origin: string
+    /** PWA-sunset flag. On: the native app-entry path. Off: web signup. */
+    migrationOn: boolean
+    campaign: StarLpQrCampaign
+    slot: StarLpQrSlot
+}
+
+/** One example person, used the same way on every page. */
+export interface StarLpPersona {
+    /** Full display name, e.g. "Fulano de Tal". */
+    name: string
+    /** Chat-bubble and greeting form, e.g. "Fulano". */
+    short: string
+    /** Avatar initials. */
+    initials: string
+    /** peanut.me username. Checked unregistered on prod (20 Oct 2026). */
+    username: string
+}
+
+/** A live indicative rate from the backend's /fx/rate. */
+export interface StarLpFxRate {
+    from: string
+    to: string
+    /** Units of `to` per one unit of `from`. */
+    rate: number
+    /** The provider leg behind the rate (Manteca for ARS/BRL, Bridge for EUR). */
+    source: 'bridge' | 'manteca' | 'reference'
+    /** Backend `generatedAt`, ISO. */
+    fetchedAt: string
 }

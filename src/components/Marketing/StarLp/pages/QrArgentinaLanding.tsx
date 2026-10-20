@@ -9,11 +9,14 @@ import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
 import { TrustBand } from '@/components/Marketing/StarLp/TrustBand'
 import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
 import type { StarLpFaqItem } from '@/components/Marketing/StarLp/starLp.types'
+import { fetchUsdArsRate } from '@/components/Marketing/StarLp/starLpFx'
 import { QrArgentinaClose } from './QrArgentinaClose'
 import { QrArgentinaGroupChat } from './QrArgentinaGroupChat'
 import { QrArgentinaHeroArt } from './QrArgentinaHeroArt'
+import { QrArgentinaMotionStyle } from './QrArgentinaMotionStyle'
 import { QrArgentinaReview } from './QrArgentinaReview'
 import { QrArgentinaTheirScreen } from './QrArgentinaTheirScreen'
+import { QR_AR_THEIR_SCREEN_ID } from './qrArgentina.consts'
 
 // Wording from the build brief's claims list (spending.md, kyc.md, the
 // guardrail-13 card line). The passport line is about QR payments only.
@@ -40,10 +43,16 @@ const FAQ: StarLpFaqItem[] = [
     },
 ]
 
-/** /qr-payments/argentina: pay Mercado Pago QRs with a passport (mock r4-qr-argentina-a4, folds 0–5). */
-export function QrArgentinaLanding() {
+/**
+ * /qr-payments/argentina: pay Mercado Pago QRs with a passport (mock r4-qr-argentina-a4, folds 0–5).
+ * No two coloured bands touch (pink, cream, sky, black, cream, black, pink), so no marquee.
+ */
+export async function QrArgentinaLanding() {
+    // Live Manteca USD→ARS, the rate the QR payment executes at; null hides the dollar line.
+    const usdArs = await fetchUsdArsRate()
     return (
         <>
+            <QrArgentinaMotionStyle />
             <StarLpHero
                 title={
                     <>
@@ -66,15 +75,18 @@ export function QrArgentinaLanding() {
                 <div className="grid gap-12 md:grid-cols-2 md:items-center">
                     <SectionTitle>See the pesos before you pay.</SectionTitle>
                     <PopIn tilt={-1}>
-                        <QrArgentinaReview />
+                        <QrArgentinaReview usdArs={usdArs} />
                     </PopIn>
                 </div>
             </Band>
 
-            <Band ground="sky">
+            <Band ground="sky" id={QR_AR_THEIR_SCREEN_ID}>
                 <div className="grid gap-12 md:grid-cols-2 md:items-center">
                     <SectionTitle>
-                        On their screen, it&apos;s a normal <span className="xs:whitespace-nowrap">Mercado Pago</span>{' '}
+                        On their screen, it&apos;s a normal{' '}
+                        <span className="xs:whitespace-nowrap md:whitespace-normal xl:whitespace-nowrap">
+                            Mercado Pago
+                        </span>{' '}
                         payment.
                     </SectionTitle>
                     <QrArgentinaTheirScreen />
