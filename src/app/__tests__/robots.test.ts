@@ -1,7 +1,11 @@
 jest.mock('@/constants/general.consts', () => ({ BASE_URL: 'https://peanut.me' }))
 jest.mock('@/i18n/types', () => ({ SUPPORTED_LOCALES: ['en', 'es-419'] }))
 
-import { GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS, ROBOTS_DISALLOWED_PATHS } from '@/constants/seo-route-policy'
+import {
+    GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS,
+    MARKETING_CRAWL_ALLOW_PATHS,
+    ROBOTS_DISALLOWED_PATHS,
+} from '@/constants/seo-route-policy'
 import robots from '../robots'
 
 type RobotsRule = {
@@ -26,7 +30,11 @@ describe('production robots policy', () => {
     it('lets Google recrawl only the exact indexed app shells needed for deindexing', () => {
         const googlebot = ruleFor('Googlebot')
 
-        expect(googlebot.allow).toEqual(['/api/og', ...GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS])
+        expect(googlebot.allow).toEqual([
+            '/api/og',
+            ...GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS,
+            ...MARKETING_CRAWL_ALLOW_PATHS,
+        ])
         expect(googlebot.disallow).toEqual(ROBOTS_DISALLOWED_PATHS)
     })
 
@@ -43,6 +51,16 @@ describe('production robots policy', () => {
         expect(rule.disallow).toEqual(ROBOTS_DISALLOWED_PATHS)
         expect(rule.crawlDelay).toBe(10)
     })
+
+    it.each(['Googlebot', '*', 'GPTBot', 'AhrefsBot', 'SemrushBot', 'MJ12bot'])(
+        '%s may crawl the marketing pages that share an app prefix',
+        (bot) => {
+            const rule = rules.find((candidate) =>
+                Array.isArray(candidate.userAgent) ? candidate.userAgent.includes(bot) : candidate.userAgent === bot
+            )
+            expect(rule?.allow).toEqual(expect.arrayContaining([...MARKETING_CRAWL_ALLOW_PATHS]))
+        }
+    )
 
     it('keeps Twitterbot unrestricted for shared-link previews', () => {
         expect(ruleFor('Twitterbot')).toMatchObject({ allow: ['/api/og'], disallow: [] })

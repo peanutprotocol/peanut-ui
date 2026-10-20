@@ -1690,6 +1690,196 @@ input::placeholder {
     }
 }
 
+/* ── Star-feature LPs: fold titles (Marketing/StarLp/SectionTitle) ── */
+/* Set solid. The ramp's sub-1 leading (42/36, 80/64) drops the comma of a caps
+   line into the next line's glyphs, and fold h2s are sentences. Two classes and
+   later in the file than the display-ramp rules, so it wins at every width. */
+.font-roboto-flex-extrabold.star-lp-section-title {
+    line-height: 1;
+}
+
+/* ── Star-feature LPs: hero fit (ProductSplitHero align="center") ── */
+/* The primary CTA sits under the hero art, so on short screens the drawn art
+   shrinks (zoom shrinks its layout box, unlike transform) and the hero's
+   padding tightens until the CTA lands in the first screen. Phones: the art
+   is between the copy and the CTA. md+ short landscape: the art spans both
+   rows of the split, so its height sets where the CTA sits. */
+@media (max-width: 767px) and (max-height: 860px) {
+    .psh-art-fit {
+        zoom: 0.85;
+    }
+}
+
+@media (max-width: 767px) and (max-height: 700px) {
+    .psh-art-fit {
+        zoom: 0.72;
+    }
+
+    .psh-fit {
+        padding-top: 4.5rem;
+        padding-bottom: 3.5rem;
+    }
+
+    .psh-fit-grid {
+        gap: 1.5rem;
+    }
+}
+
+@media (max-width: 767px) and (max-height: 680px) {
+    .psh-art-fit {
+        zoom: 0.6;
+    }
+
+    .psh-copy-fit {
+        zoom: 0.9;
+    }
+}
+
+/* md+ short landscape: the copy column alone outgrows the screen, so it
+   shrinks too. Top padding stays clear of the floating back button. */
+@media (min-width: 768px) and (max-height: 560px) {
+    .psh-art-fit {
+        zoom: 0.5;
+    }
+
+    /* 0.85 is the floor: text-body-l (18px) stays at 15px or more. Only the
+       art shrinks further. */
+    .psh-copy-fit {
+        zoom: 0.85;
+    }
+
+    .psh-fit {
+        padding-top: 4rem;
+        padding-bottom: 3rem;
+    }
+
+    .psh-fit-grid {
+        row-gap: 1.25rem;
+    }
+
+    /* The top padding no longer clears the floating back button (40px circle
+       at 16,16), so the lead star moves to the copy's right end. */
+    .psh-star-fit {
+        left: auto;
+        right: 0;
+    }
+}
+
+/* Phone landscape under md (667x375, 640x360): the stacked phone order puts
+   the CTA below the screen, so take the md split instead (copy over CTA on
+   the left, art on the right) and shrink both. The copy stays centred in its
+   column, so per-page phone alignment classes still hold. */
+@media (max-width: 767px) and (max-height: 430px) and (orientation: landscape) {
+    .psh-fit {
+        padding-top: 3.5rem;
+        padding-bottom: 1.5rem;
+    }
+
+    .psh-fit-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 1.5rem;
+        row-gap: 1rem;
+    }
+
+    .psh-copy-fit {
+        grid-column: 1;
+        grid-row: 1;
+        align-self: end;
+        zoom: 0.85;
+    }
+
+    /* Too short for headline, subtitle and CTA at a legible size: the
+       subtitle goes, the headline and CTA stay. */
+    .psh-lead-fit {
+        display: none;
+    }
+
+    .psh-art-fit {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        zoom: 0.45;
+    }
+
+    .psh-cta-fit {
+        grid-column: 1;
+        grid-row: 2;
+        align-self: start;
+    }
+}
+
+/* ── Star-feature LPs: drawn phone geometry (PhoneFrame and the page phones) ── */
+/* A phone drawn in code needs a device-sized corner, and the DS radius scale
+   (xs, sm, card) has none: the same case as --radius-card for the physical
+   card. One pair of classes so every drawn phone shares it. Flagged for DS
+   review: if it earns a token, these become rounded-* utilities. */
+.star-lp-phone {
+    border-radius: 2rem;
+}
+
+.star-lp-phone-screen {
+    border-radius: 1.5rem;
+}
+
+/* ── Star-feature LPs: animation kit (Marketing/StarLp) ── */
+/* Story beats (StorySequence / useStoryStep): a hidden beat keeps its space,
+   so the fold never jumps. Opacity and transform only, on the DS tokens. */
+.star-lp-beat {
+    transition:
+        opacity var(--transition-duration-slow) var(--ease-spring),
+        transform var(--transition-duration-slow) var(--ease-spring);
+}
+
+.star-lp-beat[data-shown='false'] {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+}
+
+/* Wiggle: a slow sticker rock, and a glove hop every 2.4s. */
+.star-lp-wobble {
+    animation: star-lp-wobble 2.4s ease-in-out var(--wiggle-delay, 0s) infinite alternate;
+}
+
+.star-lp-bounce {
+    animation: star-lp-bounce 2.4s var(--ease-spring) var(--wiggle-delay, 0s) infinite;
+}
+
+@keyframes star-lp-wobble {
+    from {
+        transform: rotate(-3deg);
+    }
+    to {
+        transform: rotate(3deg);
+    }
+}
+
+@keyframes star-lp-bounce {
+    0%,
+    40%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    15% {
+        transform: translateY(-8px) rotate(-6deg);
+    }
+    28% {
+        transform: translateY(0) rotate(2deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .star-lp-beat,
+    .star-lp-beat[data-shown='false'] {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+
+    .star-lp-wobble,
+    .star-lp-bounce {
+        animation: none;
+    }
+}
+
 /* ── Marketing content pages ── */
 
 /*
