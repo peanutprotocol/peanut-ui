@@ -1,4 +1,4 @@
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO } from '@/assets/brand'
 import { ANALYTICS_EVENTS, type ReferralSource } from '@/constants/analytics.consts'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { generateInviteCodeLink } from '@/utils/general.utils'
@@ -34,7 +34,7 @@ const SAFE_BADGE_ICON_PATH = new RegExp(
 /** Prefer safe backend presentation; fall back to legacy art, then generic art. */
 export function getBadgeIcon(code?: string, iconUrl?: string | null): string {
     const catalogIcon = iconUrl && SAFE_BADGE_ICON_PATH.test(iconUrl) ? iconUrl : null
-    return catalogIcon || (code && BADGE_ASSET_FALLBACKS[code]) || PEANUTMAN.src
+    return catalogIcon || (code && BADGE_ASSET_FALLBACKS[code]) || LOGO.src
 }
 
 /** Backend names are authoritative; unknown/legacy responses remain readable. */
