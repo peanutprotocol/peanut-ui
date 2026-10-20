@@ -91,7 +91,7 @@ function cleanHost(value: string | null | undefined): string | undefined {
 // API's bounded public families when reading a journey, while browser capture
 // still requires the exact inventory built with the page.
 function isSerializedPublicPath(pathname: string): boolean {
-    if (LEGACY_PUBLIC_PATH_PATTERN.test(pathname)) return true
+    if (isLegacyAttributionPath(pathname)) return true
     const [, locale, ...segments] = pathname.split('/')
     if (!pathname.startsWith('/') || !SUPPORTED_LOCALES.some((supported) => supported === locale)) return false
     if (segments.some((segment) => !PUBLIC_SLUG_PATTERN.test(segment) || IDENTIFIER_SEGMENT_PATTERN.test(segment))) {
@@ -104,6 +104,11 @@ function isSerializedPublicPath(pathname: string): boolean {
         if (family === 'deposit') return /^(?:from|via)-[a-z]/.test(slug)
     }
     return segments.length === 4 && family === 'send-money-from' && segments[2] === 'to'
+}
+
+/** Older native decoders reject the whole journey if their path field is unfamiliar. */
+export function isLegacyAttributionPath(pathname: string): boolean {
+    return LEGACY_PUBLIC_PATH_PATTERN.test(pathname)
 }
 
 function cleanPath(path: string, capture = false): string | undefined {

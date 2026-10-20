@@ -24,6 +24,7 @@ import {
 } from '@/components/Invites/badge-campaign-context'
 import {
     isContentAttributionPath,
+    isLegacyAttributionPath,
     parseSignupAttribution,
     persistSignupAttribution,
     readSignupAttribution,
@@ -75,6 +76,7 @@ type CompactTouch = {
     n?: string
     r?: string
     p?: string
+    u?: string
 }
 
 type CompactAttribution = {
@@ -94,12 +96,15 @@ function compactTouch(touch: SignupAttributionContext['firstTouch']): CompactTou
         ...(touch.utmCampaign ? { c: touch.utmCampaign } : {}),
         ...(touch.utmContent ? { n: touch.utmContent } : {}),
         ...(touch.referrerHost ? { r: touch.referrerHost } : {}),
-        ...(touch.path ? { p: touch.path } : {}),
+        // Old installed apps ignore u and keep the campaign instead of
+        // rejecting a whole journey containing a newly supported public path.
+        ...(touch.path ? (isLegacyAttributionPath(touch.path) ? { p: touch.path } : { u: touch.path }) : {}),
     }
 }
 
 function expandTouch(touch: CompactTouch): SignupAttributionContext['firstTouch'] | null {
     if (!Number.isFinite(touch.t)) return null
+    const path = touch.u ?? touch.p
     return {
         occurredAt: new Date(touch.t).toISOString(),
         ...(touch.s ? { utmSource: touch.s } : {}),
@@ -107,7 +112,7 @@ function expandTouch(touch: CompactTouch): SignupAttributionContext['firstTouch'
         ...(touch.c ? { utmCampaign: touch.c } : {}),
         ...(touch.n ? { utmContent: touch.n } : {}),
         ...(touch.r ? { referrerHost: touch.r } : {}),
-        ...(touch.p ? { path: touch.p } : {}),
+        ...(path ? { path } : {}),
     }
 }
 
