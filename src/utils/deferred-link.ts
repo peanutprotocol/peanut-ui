@@ -23,6 +23,7 @@ import {
     queuePendingBadgeCampaigns,
 } from '@/components/Invites/badge-campaign-context'
 import {
+    isContentAttributionPath,
     parseSignupAttribution,
     persistSignupAttribution,
     readSignupAttribution,
@@ -81,7 +82,7 @@ type CompactAttribution = {
     j: string
     p: SignupAttributionContext['platform']
     f: CompactTouch
-    c?: CompactTouch
+    c?: CompactTouch | 1
     l?: CompactTouch
 }
 
@@ -127,9 +128,13 @@ function serializeAttributionHandoff(context: SignupAttributionContext): string 
         j: context.journeyId,
         p: context.platform,
         f: first,
-        ...(context.firstContentTouch &&
-        JSON.stringify(context.firstContentTouch) !== JSON.stringify(context.firstTouch)
-            ? { c: compactTouch(context.firstContentTouch) }
+        ...(context.firstContentTouch
+            ? {
+                  c:
+                      JSON.stringify(context.firstContentTouch) === JSON.stringify(context.firstTouch)
+                          ? (1 as const)
+                          : compactTouch(context.firstContentTouch),
+              }
             : {}),
         ...(context.lastTouch && JSON.stringify(context.lastTouch) !== JSON.stringify(context.firstTouch)
             ? { l: compactTouch(context.lastTouch) }
@@ -145,7 +150,16 @@ function parseAttributionHandoff(value: string | null): SignupAttributionContext
         if (compact.v !== 1 || typeof compact.j !== 'string' || !compact.f) return null
         const firstTouch = expandTouch(compact.f)
         if (!firstTouch) return null
-        const firstContentTouch = compact.c ? expandTouch(compact.c) : null
+        // Older encoders omitted c when it matched f. A validated content
+        // landing can recover that touch without mistaking legal/home visits.
+        const firstContentTouch =
+            compact.c === 1
+                ? firstTouch
+                : compact.c
+                  ? expandTouch(compact.c)
+                  : firstTouch.path && isContentAttributionPath(firstTouch.path)
+                    ? firstTouch
+                    : null
         const lastTouch = compact.l ? expandTouch(compact.l) : null
         const context: SignupAttributionContext = {
             schemaVersion: '1',

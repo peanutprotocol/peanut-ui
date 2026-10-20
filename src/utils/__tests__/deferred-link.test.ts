@@ -13,7 +13,12 @@ import {
 import { isAndroidNative, isIOSNative } from '../capacitor'
 import { clipboardHasStrings, clipboardHasProbableWebUrl } from '../clipboard-detect'
 import { saveToCookie } from '../cookie-url.utils'
-import { SIGNUP_ATTRIBUTION_COOKIE } from '../signup-attribution'
+import {
+    SIGNUP_ATTRIBUTION_COOKIE,
+    captureSignupAttribution,
+    ensureSignupAttributionForRegistration,
+    readSignupAttribution,
+} from '../signup-attribution'
 import { readInviteCode, stashInvite } from '../invite-stash'
 import { EInviteType } from '@/services/services.types'
 
@@ -80,6 +85,8 @@ const clearCookies = () => {
 }
 
 beforeEach(() => {
+    process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'false'
+    Object.defineProperty(document, 'referrer', { configurable: true, value: '' })
     jest.clearAllMocks()
     mockIsAndroidNative.mockReturnValue(false)
     mockIsIOSNative.mockReturnValue(false)
@@ -89,6 +96,60 @@ beforeEach(() => {
 })
 
 describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
+    it.each([
+        ['android', '/en/deposit/from-coinbase'],
+        ['ios', '/en/deposit/from-coinbase'],
+        ['android', '/en/argentina'],
+        ['ios', '/es-419/send-money-from/united-states/to/brazil'],
+    ] as const)('retains the first content landing through the actual %s store handoff: %s', async (store, path) => {
+        window.history.replaceState({}, '', path)
+        Object.defineProperty(document, 'referrer', { configurable: true, value: 'https://www.google.com/' })
+        const web = captureSignupAttribution({ includeDocumentReferrer: true })!
+        expect(web.firstContentTouch).toEqual(web.firstTouch)
+        const payload = buildDeferredPayload('/home', undefined, store)
+        const handoff =
+            store === 'android'
+                ? new URL(playStoreUrlWithReferrer(payload)).searchParams.get('referrer')!
+                : iosHandoffString(payload)
+        const parsed = parseDeferredPayload(handoff)!
+        expect(parsed.attribution?.firstContentTouch).toEqual(web.firstContentTouch)
+        expect(parsed.attribution?.journeyId).toBe(web.journeyId)
+
+        clearCookies()
+        process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+        window.history.replaceState({}, '', '/setup')
+        applyDeferredPayload(parsed)
+        const registration = await ensureSignupAttributionForRegistration()
+        expect(registration?.firstContentTouch).toEqual(web.firstContentTouch)
+        expect(readSignupAttribution()?.firstTouch).toEqual(web.firstTouch)
+    })
+
+    it.each([
+        ['/en/deposit/from-coinbase', true],
+        ['/en/privacy', false],
+        ['/careers', false],
+        ['/', false],
+    ] as const)(
+        'decodes older deduplicated handoffs without inventing an administrative content touch: %s',
+        (path, content) => {
+            const occurredAt = new Date().toISOString()
+            const token = btoa(
+                JSON.stringify({
+                    v: 1,
+                    j: '33333333-3333-4333-8333-333333333333',
+                    p: 'web',
+                    f: { t: Date.parse(occurredAt), p: path },
+                })
+            )
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '')
+            const parsed = parseDeferredPayload(`pnutdl=1&at=${token}`)
+            expect(parsed?.attribution?.firstTouch.path).toBe(path)
+            expect(parsed?.attribution?.firstContentTouch?.path).toBe(content ? path : undefined)
+        }
+    )
+
     it('tags the Play referrer with plain utm fields, web campaign by default (TASK-23382)', () => {
         const payload = buildDeferredPayload('/home')
         const params = new URLSearchParams(payload)
