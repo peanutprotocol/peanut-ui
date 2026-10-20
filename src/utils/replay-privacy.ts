@@ -17,7 +17,10 @@ import { maskQrReplayRequest, redactQrTelemetryString } from './qr-telemetry-pri
 
 const MASK = '*'
 const maskWhole = (value: string) => MASK.repeat(value.length)
-const maskAll = (value: string) => value.replace(/\S/g, MASK)
+const DIGIT_RUN = /\d(?:[\d.,]*\d)?/g
+// Whole-masking keeps word lengths, so collapse digit runs first: an amount in
+// a data row must not show its size through its length.
+const maskAll = (value: string) => value.replace(DIGIT_RUN, MASK.repeat(3)).replace(/\S/g, MASK)
 
 /**
  * Hides the values in a text and keeps its words.
@@ -35,7 +38,7 @@ export function maskReplayText(text: string): string {
         .replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, maskWhole)
         .replace(/0x[0-9a-f]{6,}/gi, maskWhole)
         .replace(/[A-Za-z0-9]{20,}/g, maskWhole)
-        .replace(/\d(?:[\d.,]*\d)?/g, MASK.repeat(3))
+        .replace(DIGIT_RUN, MASK.repeat(3))
 }
 
 /**

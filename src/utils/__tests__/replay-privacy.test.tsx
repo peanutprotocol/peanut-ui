@@ -103,6 +103,11 @@ describe('stays masked', () => {
         expect(maskAttribute('aria-label', accessibleName, edit)).not.toContain('casa')
     })
 
+    it('the size of an amount in a data row', () => {
+        render(<DataRow label="Amount" value="$8,500,000.00" />)
+        expect(maskText('$8,500,000.00', screen.getByText('$8,500,000.00'))).toBe('****')
+    })
+
     it('an accessible name on a sensitive element', () => {
         render(<DataRow label="Account owner" value="Alice Example" />)
         const value = screen.getAllByText('Alice Example')[0]
