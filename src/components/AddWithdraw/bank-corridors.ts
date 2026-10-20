@@ -3,6 +3,7 @@ import { BRIDGE_ALPHA3_TO_ALPHA2, countryData, type CountryData } from '@/compon
 import { isValidRoutingNumber, isValidSortCode, isValidUKAccountNumber } from '@/utils/bridge-accounts.utils'
 import { getCountryCodeForWithdraw, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
 import { MX_STATES, US_STATES } from '@/constants/stateCodes.consts'
+import { type Account } from '@/interfaces/interfaces'
 
 /**
  * What a bank account looks like in one country, in one place.
@@ -35,6 +36,12 @@ export interface BankCorridorField {
     test?: (value: string) => boolean
     /** What reaches the payload, when it is not the typed value. */
     normalize?: (value: string) => string
+    /**
+     * Where a saved account keeps this detail. The same number at another bank
+     * is another account, so a typed account reuses a saved one only when every
+     * detail it asks for matches (TASK-23891).
+     */
+    savedValue?: (account: Account) => string | null | undefined
 }
 
 export interface BankCorridorSpec {
@@ -173,6 +180,7 @@ const SPECS: Record<string, BankCorridorSpec> = {
                 requiredKey: 'routingNumberRequired',
                 invalidKey: 'routingNumberInvalid',
                 test: isValidRoutingNumber,
+                savedValue: (account) => account.routingNumber,
             },
         ],
     },
@@ -196,6 +204,8 @@ const SPECS: Record<string, BankCorridorSpec> = {
                 invalidKey: 'sortCodeInvalid',
                 test: isValidSortCode,
                 normalize: digits,
+                // a UK row keeps its sort code in the routing number as well
+                savedValue: (account) => account.sortCode ?? account.routingNumber,
             },
         ],
     },
@@ -210,6 +220,31 @@ const SPECS: Record<string, BankCorridorSpec> = {
         needsAddress: false,
         fields: COLOMBIAN_FIELDS,
     },
+}
+
+/**
+ * The saved account the typed details name, if there is one: the same kind of
+ * account, the same number, and the same value for every detail the corridor
+ * asks for. A detail no saved account keeps cannot be compared, so it never
+ * matches, and the API decides. `accountNumber` is the number as the payload
+ * carries it.
+ */
+export function findSavedBankAccount(
+    savedAccounts: readonly Account[],
+    spec: BankCorridorSpec,
+    accountNumber: string,
+    details: Partial<Record<BankCorridorField['name'], string>>
+): Account | undefined {
+    const comparable = (value: string | null | undefined) => digits(value ?? '').toLowerCase()
+    return savedAccounts.find(
+        (account) =>
+            (account.type as string) === spec.accountType &&
+            comparable(account.identifier) === comparable(accountNumber) &&
+            spec.fields.every((field) => {
+                const saved = comparable(field.savedValue?.(account))
+                return saved !== '' && saved === comparable(details[field.name])
+            })
+    )
 }
 
 /** Countries that reach the same corridor under more than one code. */

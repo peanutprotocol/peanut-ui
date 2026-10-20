@@ -371,8 +371,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         // ready: an in-scope bank rail is enabled, so the account can be added
         // directly. Email and name are collected by sumsub — not checked here.
-        const currentAccountIds = new Set((user?.accounts ?? []).map((acc) => acc.id))
-
         const result = await addBankAccount(payload)
         if (cancelled()) return SUBMIT_CANCELLED
         if (result.error) {
@@ -387,10 +385,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         const updatedUser = await fetchUser() // refetch user to get the new bank account
         if (cancelled()) return SUBMIT_CANCELLED
 
-        const newAccount = updatedUser?.accounts.find((acc) => !currentAccountIds.has(acc.id))
+        // Found by the id the API answered, not by being new: a corrected
+        // routing number or sort code updates the saved account in place.
+        const addedAccount = updatedUser?.accounts.find((acc) => acc.id === result.data?.id)
 
-        if (newAccount) {
-            withdrawFlow?.setSelectedBankAccount(newAccount)
+        if (addedAccount) {
+            withdrawFlow?.setSelectedBankAccount(addedAccount)
         } else {
             // fallback to the previous method if we can't find the new account
             // this can happen if the user object is not updated immediately
