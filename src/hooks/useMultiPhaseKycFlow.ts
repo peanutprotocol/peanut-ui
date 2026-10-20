@@ -72,33 +72,38 @@ export function deriveCapabilityPhaseSignals(
 }
 
 /**
- * confirms bridge ToS acceptance (with one retry) then polls fetchUser
- * until bridge rails leave the TOS-required state. max 3 attempts × 2s.
+ * Settles a closed Bridge ToS page: asks Bridge whether the terms are signed,
+ * and when they are, records the acceptance and polls fetchUser (max 3 × 2s)
+ * until the bank rails leave the ToS-required state.
  *
- * Returns Bridge's own verdict on whether the terms are signed. Callers that
- * never saw an acceptance signal (the android system-browser detour, where
- * the only event is "the user came back") need it to tell a real acceptance
- * from an abandoned one.
- *
- * `observedAcceptance` says whether the caller SAW Bridge report a signature
- * (the iframe's `tos_accepted` postMessage). When it did, a "no" from the
- * confirm endpoint is treated as webhook lag: we still arm the submission
- * window and poll the rails, exactly as the web flow always has. Without it
- * (android's `returned`), a "no" after the retry means the user backed out —
- * marking a submission or polling for rails that will never change would arm
- * the 30s grace window for nothing and stall the error by ~6s, so we stop.
+ * Returns whether the caller should treat the terms as accepted. What a close
+ * proves depends on its source:
+ *   - `tos_accepted`: Bridge's page reported the signature, so this is always
+ *     true. A "no" from the confirm endpoint is webhook lag, and the rails are
+ *     still polled.
+ *   - `returned`: the user left the page without it reporting anything (the
+ *     android system-browser tab closed, or the page moved its frame away).
+ *     Only Bridge's answer counts, with one retry for that same lag.
+ *   - `manual`: the user backed out, possibly after signing on a page that
+ *     never reported it (TASK-23881). Bridge is asked once, without the retry,
+ *     so backing out of an unsigned page stays quick.
+ * A "no" on the last two returns false before arming the submission window,
+ * because nothing was submitted and no rail will change.
  */
-export async function confirmBridgeTosAndAwaitRails(
+export async function resolveBridgeTosClose(
     fetchUser: () => Promise<IUserProfile | null>,
-    { observedAcceptance = true }: { observedAcceptance?: boolean } = {}
+    source: IframeCloseSource
 ): Promise<boolean> {
+    const observedAcceptance = source === 'tos_accepted'
     let accepted = !!(await confirmBridgeTos()).data?.accepted
-    if (!accepted) {
+    if (!accepted && source !== 'manual') {
         await new Promise((resolve) => setTimeout(resolve, 2000))
         accepted = !!(await confirmBridgeTos()).data?.accepted
     }
 
     if (!accepted && !observedAcceptance) return false
+
+    posthog.capture(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED, { source })
 
     // Arm the post-submission window only after the ToS POST has actually
     // completed (CodeRabbit feedback on #2131). Doing it before
@@ -118,7 +123,7 @@ export async function confirmBridgeTosAndAwaitRails(
         if (i < 2) await new Promise((resolve) => setTimeout(resolve, 2000))
     }
 
-    return accepted
+    return true
 }
 
 interface UseMultiPhaseKycFlowOptions {
@@ -610,6 +615,7 @@ export const useMultiPhaseKycFlow = ({
 
             setTosLink(response.data.tosLink)
             setShowTosIframe(true)
+            posthog.capture(ANALYTICS_EVENTS.KYC_TOS_OPENED)
         } catch {
             setTosError('Something went wrong. You can accept terms later from your activity feed.')
         } finally {
@@ -617,56 +623,45 @@ export const useMultiPhaseKycFlow = ({
         }
     }, [])
 
-    // handle ToS iframe close
+    // handle ToS iframe close — Bridge's answer decides, however the page closed
     const handleTosIframeClose = useCallback(
-        async (source?: IframeCloseSource) => {
+        async (source: IframeCloseSource = 'manual') => {
             setShowTosIframe(false)
-
-            if (source === 'tos_accepted' || source === 'returned') {
-                if (source === 'tos_accepted') posthog.capture(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED)
-                // show loading state while confirming + polling
-                setModalPhase('preparing')
-                try {
-                    const accepted = await confirmBridgeTosAndAwaitRails(fetchUser, {
-                        observedAcceptance: source === 'tos_accepted',
-                    })
-                    if (source === 'returned') {
-                        // `returned` carries no acceptance claim, so neither the
-                        // analytics event nor the flow's completion can be taken
-                        // on faith — Bridge's answer decides both. The recovery
-                        // copy stays dismissal-shaped because this modal's error
-                        // CTA closes the flow; the home ToS card owns the retry.
-                        if (!accepted) {
-                            setModalPhase('bridge_tos')
-                            setTosError(
-                                "The terms weren't accepted. You can accept them later from your activity feed."
-                            )
-                            return
-                        }
-                        posthog.capture(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED)
+            // a manual exit stays on the terms step while Bridge is asked
+            if (source !== 'manual') setModalPhase('preparing')
+            try {
+                if (!(await resolveBridgeTosClose(fetchUser, source))) {
+                    // Not signed: back to the terms step, where the user can try
+                    // again. Only a page that closed by itself needs saying why.
+                    // The copy stays dismissal-shaped because this modal's error
+                    // CTA closes the flow; the home ToS card owns the retry.
+                    setModalPhase('bridge_tos')
+                    if (source !== 'manual') {
+                        setTosError("The terms weren't accepted. You can accept them later from your activity feed.")
                     }
-                    const refreshed = await fetchUser()
-                    if (
-                        deriveCapabilityPhaseSignals(
-                            refreshed?.capabilities,
-                            lastIntentRef.current ?? regionIntent,
-                            requestedCountry
-                        ).allSettled
-                    )
-                        completeFlow()
-                    else {
-                        setModalPhase('preparing')
-                        setForceShowModal(true)
-                    }
-                } catch {
-                    // Don't leave the modal frozen on 'preparing' with no feedback
-                    // if the confirm POST / rails poll throws — surface the
-                    // timed-out recovery state immediately instead of a ~30s dead
-                    // modal. (BridgeTosStep wraps the same call in try/catch.)
-                    setPreparingTimedOut(true)
+                    return
                 }
+                const refreshed = await fetchUser()
+                if (
+                    deriveCapabilityPhaseSignals(
+                        refreshed?.capabilities,
+                        lastIntentRef.current ?? regionIntent,
+                        requestedCountry
+                    ).allSettled
+                )
+                    completeFlow()
+                else {
+                    setModalPhase('preparing')
+                    setForceShowModal(true)
+                }
+            } catch {
+                // A manual exit whose check failed leaves the user on the terms
+                // step, as before. Otherwise don't leave the modal frozen on
+                // 'preparing' — surface the timed-out recovery state now
+                // instead of a ~30s dead modal.
+                if (source === 'manual') setModalPhase('bridge_tos')
+                else setPreparingTimedOut(true)
             }
-            // if manual close, stay on bridge_tos phase (user can try again)
         },
         [fetchUser, completeFlow, regionIntent, requestedCountry]
     )

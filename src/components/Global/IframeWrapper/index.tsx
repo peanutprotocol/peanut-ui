@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Modal from '../Modal'
 import { Icon, type IconName } from '../Icons/Icon'
@@ -14,8 +14,10 @@ import { isAndroidNativeBridge } from '@/utils/capacitor'
  *   - `manual`       — the user backed out
  *   - `completed`    — the embedded flow reported completion (postMessage)
  *   - `tos_accepted` — Bridge's iframe reported a signed agreement (postMessage)
- *   - `returned`     — the android system-browser tab closed; carries NO
- *                      acceptance claim, the caller must ask the provider
+ *   - `returned`     — the user left the provider's page without it reporting
+ *                      anything: the android system-browser tab closed, or the
+ *                      page moved its own frame to another address. Carries NO
+ *                      acceptance claim; the caller must ask the provider
  */
 export type IframeCloseSource = 'manual' | 'completed' | 'tos_accepted' | 'returned'
 
@@ -33,6 +35,16 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
     const [modalVariant, setModalVariant] = useState<'stop-verification' | 'trouble'>('trouble')
     const [copied, setCopied] = useState(false)
     const iframeRef = useRef<HTMLIFrameElement | null>(null)
+    // Per mounted frame: how many documents it loaded, and whether it already
+    // closed the wrapper. A new frame (another src, or the modal reopening)
+    // starts over.
+    const frameLoadsRef = useRef(0)
+    const frameClosedRef = useRef(false)
+    const attachFrame = useCallback((frame: HTMLIFrameElement | null) => {
+        iframeRef.current = frame
+        frameLoadsRef.current = 0
+        frameClosedRef.current = false
+    }, [])
     const router = useRouter()
     const { setIsSupportModalOpen } = useModalsContext()
 
@@ -162,11 +174,13 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
             if (!event.source || event.source !== iframeRef.current?.contentWindow) return
             const data = event.data
             if (data?.name === 'complete' && data?.metadata?.status === 'completed') {
+                frameClosedRef.current = true
                 onClose('completed')
             }
             // @dev note: kinda hacky, but tos modal takes too long to close using websocket, so we use the signedAgreementId to close it
             // persona fires this event when the user clicks the "accept" button within the iframe
             if (data?.signedAgreementId) {
+                frameClosedRef.current = true
                 onClose('tos_accepted')
             }
         }
@@ -174,6 +188,21 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
         window.addEventListener('message', handleMessage)
         return () => window.removeEventListener('message', handleMessage)
     }, [onClose, visible])
+
+    /*
+     * The provider's page is the frame's first load. A later load means the
+     * page moved its own frame somewhere else: Bridge's ToS page does that
+     * instead of posting `signedAgreementId` when its link carries a
+     * `redirect_uri`, and peanut.me then refuses to render inside the native
+     * app (a blank frame). Nothing in that frame can finish the flow, so close
+     * it and let the caller ask the provider what happened (TASK-23881).
+     */
+    const handleFrameLoad = () => {
+        frameLoadsRef.current += 1
+        if (frameLoadsRef.current < 2 || frameClosedRef.current) return
+        frameClosedRef.current = true
+        onCloseRef.current('returned')
+    }
 
     if (useSystemBrowser) return null
 
@@ -202,8 +231,9 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                 <div className="h-full w-full flex-grow overflow-scroll">
                     <iframe
                         key={src}
-                        ref={iframeRef}
+                        ref={attachFrame}
                         src={src}
+                        onLoad={handleFrameLoad}
                         allow="camera *; microphone *; fullscreen *"
                         className="h-[85%] w-full rounded-sm border-0"
                         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation allow-media-devices"

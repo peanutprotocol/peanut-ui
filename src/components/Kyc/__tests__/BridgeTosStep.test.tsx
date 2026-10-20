@@ -27,11 +27,11 @@ jest.mock('@/context/authContext', () => {
     return { useAuth: auth, useOptionalAuth: auth }
 })
 
-const mockConfirm = jest.fn<Promise<boolean>, [unknown, { observedAcceptance?: boolean }?]>()
+const mockResolveClose = jest.fn<Promise<boolean>, [unknown, IframeCloseSource]>()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
-    confirmBridgeTosAndAwaitRails: (fetchUser: unknown, options?: { observedAcceptance?: boolean }) =>
-        mockConfirm(fetchUser, options),
+    resolveBridgeTosClose: (fetchUser: unknown, source: IframeCloseSource) => mockResolveClose(fetchUser, source),
 }))
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 let closeIframe: ((source?: IframeCloseSource) => void) | undefined
 jest.mock('@/components/Global/IframeWrapper', () => ({
@@ -52,7 +52,7 @@ describe('BridgeTosStep', () => {
     beforeEach(() => {
         closeIframe = undefined
         mockVerifiedResidence = null
-        mockConfirm.mockReset()
+        mockResolveClose.mockReset()
         mockGetBridgeTosLink.mockReset()
         mockGetBridgeTosLink.mockResolvedValue({ data: { tosLink: 'https://compliance.test/tos' } })
     })
@@ -113,19 +113,18 @@ describe('BridgeTosStep', () => {
     })
 
     it('completes when Bridge confirms the terms were signed', async () => {
-        mockConfirm.mockResolvedValue(true)
+        mockResolveClose.mockResolvedValue(true)
         const { onComplete } = renderStep()
         await openTos()
 
         await act(async () => closeIframe?.('returned'))
         expect(onComplete).toHaveBeenCalled()
-        // a return is not an observation — the helper must not treat a
-        // confirm miss as webhook lag on this path
-        expect(mockConfirm).toHaveBeenCalledWith(expect.anything(), { observedAcceptance: false })
+        // the close source is what tells the resolver how much the close proves
+        expect(mockResolveClose).toHaveBeenCalledWith(expect.anything(), 'returned')
     })
 
-    it('keeps the prompt up when the user came back without signing', async () => {
-        mockConfirm.mockResolvedValue(false)
+    it('keeps the prompt up when the page closed by itself without a signature', async () => {
+        mockResolveClose.mockResolvedValue(false)
         const { onComplete, onSkip } = renderStep()
         await openTos()
 
@@ -135,15 +134,45 @@ describe('BridgeTosStep', () => {
         expect(screen.getByText(/haven't been accepted yet/i)).toBeInTheDocument()
     })
 
-    it('trusts an observed acceptance even if the confirm race says otherwise', async () => {
-        // `tos_accepted` comes from Bridge's own postMessage (web iframe), so a
-        // still-propagating confirm must not bounce the user back to the prompt.
-        mockConfirm.mockResolvedValue(false)
+    it("completes on Bridge's own signature report", async () => {
+        mockResolveClose.mockResolvedValue(true)
         const { onComplete } = renderStep()
         await openTos()
 
         await act(async () => closeIframe?.('tos_accepted'))
         expect(onComplete).toHaveBeenCalled()
-        expect(mockConfirm).toHaveBeenCalledWith(expect.anything(), { observedAcceptance: true })
+        expect(mockResolveClose).toHaveBeenCalledWith(expect.anything(), 'tos_accepted')
+    })
+
+    it('completes when a user who backed out had already signed (TASK-23881)', async () => {
+        // Bridge's page can accept and then go blank without reporting it; the
+        // exit button must not throw that acceptance away.
+        mockResolveClose.mockResolvedValue(true)
+        const { onComplete, onSkip } = renderStep()
+        await openTos()
+
+        await act(async () => closeIframe?.('manual'))
+        expect(onComplete).toHaveBeenCalled()
+        expect(onSkip).not.toHaveBeenCalled()
+        expect(mockResolveClose).toHaveBeenCalledWith(expect.anything(), 'manual')
+    })
+
+    it('skips the step when a user who backed out had not signed', async () => {
+        mockResolveClose.mockResolvedValue(false)
+        const { onComplete, onSkip } = renderStep()
+        await openTos()
+
+        await act(async () => closeIframe?.('manual'))
+        expect(onSkip).toHaveBeenCalled()
+        expect(onComplete).not.toHaveBeenCalled()
+    })
+
+    it('still lets a user who backed out leave when the check fails', async () => {
+        mockResolveClose.mockRejectedValue(new Error('network down'))
+        const { onSkip } = renderStep()
+        await openTos()
+
+        await act(async () => closeIframe?.('manual'))
+        expect(onSkip).toHaveBeenCalled()
     })
 })

@@ -10,7 +10,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * confirmed in-app.
  */
 import React from 'react'
-import { render as rtlRender, act } from '@testing-library/react'
+import { render as rtlRender, act, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import IframeWrapper from '../index'
 
@@ -110,6 +110,67 @@ describe('IframeWrapper message routing', () => {
 
         postFrom(null, { name: 'complete', metadata: { status: 'completed' } })
         postFrom(null, { signedAgreementId: 'sig-x' })
+        expect(onClose).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * Bridge's ToS page reports a signature by postMessage only when its link has
+ * no redirect. With one, it moves its own frame to that address and reports
+ * nothing, and in the iOS app the new address refuses to render: a blank frame
+ * the user could not leave except by backing out (TASK-23881). The frame's
+ * second load is the signal that the provider page is gone.
+ */
+describe('IframeWrapper when the page moves its own frame', () => {
+    const load = (iframe: HTMLIFrameElement) => act(() => void fireEvent.load(iframe))
+
+    it("reports 'returned' on the frame's second load, never an acceptance it did not observe", () => {
+        const onClose = jest.fn()
+        render(<IframeWrapper src="https://compliance.test/tos" visible onClose={onClose} />)
+        const iframe = findIframe('https://compliance.test/tos')
+
+        load(iframe)
+        expect(onClose).not.toHaveBeenCalled()
+
+        load(iframe)
+        expect(onClose).toHaveBeenCalledTimes(1)
+        expect(onClose).toHaveBeenCalledWith('returned')
+    })
+
+    it('reports the move once, however many documents the frame loads afterwards', () => {
+        const onClose = jest.fn()
+        render(<IframeWrapper src="https://compliance.test/tos" visible onClose={onClose} />)
+        const iframe = findIframe('https://compliance.test/tos')
+
+        load(iframe)
+        load(iframe)
+        load(iframe)
+        expect(onClose).toHaveBeenCalledTimes(1)
+    })
+
+    it('stays quiet about a move after the page already reported the signature', () => {
+        const onClose = jest.fn()
+        render(<IframeWrapper src="https://compliance.test/tos" visible onClose={onClose} />)
+        const iframe = findIframe('https://compliance.test/tos')
+
+        load(iframe)
+        postFrom(iframe.contentWindow, { signedAgreementId: 'sig-1' })
+        load(iframe)
+        expect(onClose).toHaveBeenCalledTimes(1)
+        expect(onClose).toHaveBeenCalledWith('tos_accepted')
+    })
+
+    it('counts loads per frame, so a new link starts over', () => {
+        const onClose = jest.fn()
+        const { rerender } = render(<IframeWrapper src="https://compliance.test/tos-1" visible onClose={onClose} />)
+        load(findIframe('https://compliance.test/tos-1'))
+
+        rerender(
+            <IntlWrapper>
+                <IframeWrapper src="https://compliance.test/tos-2" visible onClose={onClose} />
+            </IntlWrapper>
+        )
+        load(findIframe('https://compliance.test/tos-2'))
         expect(onClose).not.toHaveBeenCalled()
     })
 })

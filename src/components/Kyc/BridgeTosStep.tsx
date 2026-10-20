@@ -7,9 +7,11 @@ import IframeWrapper, { type IframeCloseSource } from '@/components/Global/Ifram
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { getBridgeTosLink } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
-import { confirmBridgeTosAndAwaitRails } from '@/hooks/useMultiPhaseKycFlow'
+import { resolveBridgeTosClose } from '@/hooks/useMultiPhaseKycFlow'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { BridgeTermsCard } from '@/components/Kyc/BridgeTermsCard'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import posthog from 'posthog-js'
 
 interface BridgeTosStepProps {
     visible: boolean
@@ -59,6 +61,7 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
 
             setTosLink(response.data.tosLink)
             setShowIframe(true)
+            posthog.capture(ANALYTICS_EVENTS.KYC_TOS_OPENED)
         } catch {
             setError(t('bridgeTos.genericError'))
         } finally {
@@ -66,31 +69,26 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
         }
     }, [t])
 
+    // Bridge's answer decides, however the page closed
     const handleIframeClose = useCallback(
-        async (source?: IframeCloseSource) => {
-            if (source === 'tos_accepted' || source === 'returned') {
-                setIsConfirming(true)
-                setShowIframe(false)
-                try {
-                    const accepted = await confirmBridgeTosAndAwaitRails(fetchUser, {
-                        observedAcceptance: source === 'tos_accepted',
-                    })
-                    // `returned` only means the system browser closed, so a user
-                    // who backed out lands back on the prompt instead of being
-                    // told the step is done.
-                    if (source === 'returned' && !accepted) {
-                        setError(t('bridgeTos.notAcceptedYet'))
-                        return
-                    }
+        async (source: IframeCloseSource = 'manual') => {
+            setShowIframe(false)
+            setIsConfirming(true)
+            try {
+                if (await resolveBridgeTosClose(fetchUser, source)) {
                     onComplete()
-                } catch {
-                    setError(t('bridgeTos.confirmError'))
-                } finally {
-                    setIsConfirming(false)
+                    return
                 }
-            } else {
-                setShowIframe(false)
-                onSkip()
+                // Not signed. A user who backed out skips the step, as before;
+                // one whose page closed by itself lands back on the prompt
+                // instead of being told the step is done.
+                if (source === 'manual') onSkip()
+                else setError(t('bridgeTos.notAcceptedYet'))
+            } catch {
+                if (source === 'manual') onSkip()
+                else setError(t('bridgeTos.confirmError'))
+            } finally {
+                setIsConfirming(false)
             }
         },
         [fetchUser, onComplete, onSkip, t]
