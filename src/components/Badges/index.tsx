@@ -36,7 +36,7 @@ export const Badges = () => {
     const catalog = useQuery({
         // the api localizes the catalog, so a language switch must refetch it
         queryKey: [BADGE_CATALOG, locale],
-        queryFn: getBadgeCatalog,
+        queryFn: () => getBadgeCatalog(locale),
         enabled: !!authUser,
         staleTime: 15 * 60 * 1000,
     })

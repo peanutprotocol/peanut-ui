@@ -29,8 +29,8 @@ const catalog: BadgeCatalogEntry[] = [
     },
 ]
 
-const mockGetBadgeCatalog = jest.fn(() => Promise.resolve(catalog))
-jest.mock('@/services/badges', () => ({ getBadgeCatalog: () => mockGetBadgeCatalog() }))
+const mockGetBadgeCatalog = jest.fn((_locale?: string) => Promise.resolve(catalog))
+jest.mock('@/services/badges', () => ({ getBadgeCatalog: (locale: string) => mockGetBadgeCatalog(locale) }))
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
@@ -79,9 +79,13 @@ describe('Badges gallery', () => {
         const { rerender } = render(tree(queryClient, 'en'))
         await screen.findByLabelText(en.badges.collectionLabel)
         expect(mockGetBadgeCatalog).toHaveBeenCalledTimes(1)
+        // each cache key asks for its own language, so a cold-start fetch can
+        // never cache the stored-locale copy under the wrong key
+        expect(mockGetBadgeCatalog).toHaveBeenLastCalledWith('en')
 
         rerender(tree(queryClient, 'es-419'))
 
         await waitFor(() => expect(mockGetBadgeCatalog).toHaveBeenCalledTimes(2))
+        expect(mockGetBadgeCatalog).toHaveBeenLastCalledWith('es-419')
     })
 })
