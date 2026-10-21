@@ -20,6 +20,7 @@ import {
     asksAddressCountry,
     bankCorridorFor,
     corridorAcceptsAddressCountry,
+    findSavedBankAccount,
     fixedAddressCountry,
     isOwnerAddressCountryAccepted,
     usStreetLacksLeadingNumber,
@@ -392,23 +393,27 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
             setIsSubmitting(true)
             try {
-                const existingAccount = savedAccounts.find(
-                    (account) => account.identifier === (data.accountNumber.toLowerCase() || data.clabe.toLowerCase())
-                )
+                if (!corridor) throw new Error(t('unsupportedCountry'))
+                const accountType = corridor.accountType
+                const accountNumber = data[corridor.accountField]
+
+                // uk account numbers may be 6-7 digits, pad to 8 for bridge api
+                const cleanedAccountNumber = isUk
+                    ? accountNumber.replace(/\s/g, '').padStart(8, '0')
+                    : accountNumber.replace(/\s/g, '')
 
                 // The account already exists for the logged-in user: the withdraw
                 // flow selects it and routes to review (handler owns navigation).
+                // A routing number or sort code that differs from the saved one is
+                // a correction, so it goes to the API like a new account.
                 // Without a handler (claim flow) submission proceeds normally —
                 // the old behavior pushed a claim user into the withdraw flow,
                 // which dead-ended on its no-amount guard.
+                const existingAccount = findSavedBankAccount(savedAccounts, corridor, cleanedAccountNumber, data)
                 if (existingAccount && onExistingAccount) {
                     onExistingAccount(existingAccount)
                     return
                 }
-
-                if (!corridor) throw new Error(t('unsupportedCountry'))
-                const accountType = corridor.accountType
-                const accountNumber = data[corridor.accountField]
 
                 // split accountOwnerName into first and last name for all flows
                 // note: bridge api requires both first_name and last_name for individual accounts,
@@ -429,11 +434,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 }
 
                 const iban = data.iban || getValues('iban')
-
-                // uk account numbers may be 6-7 digits, pad to 8 for bridge api
-                const cleanedAccountNumber = isUk
-                    ? accountNumber.replace(/\s/g, '').padStart(8, '0')
-                    : accountNumber.replace(/\s/g, '')
 
                 // SEPA routes by IBAN, so the destination country must come from the
                 // IBAN itself — not the country picked on the previous screen. We
