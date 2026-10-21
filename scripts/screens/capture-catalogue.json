@@ -804,6 +804,11 @@
         "source": "AddMoney/components/OnrampConfirmationModal.tsx"
     },
     {
+        "id": "fixture-history-card-spend",
+        "flow": "Card",
+        "route": "/history"
+    },
+    {
         "id": "fixture-card-application",
         "flow": "Card",
         "route": "/card"
@@ -1017,6 +1022,11 @@
         "id": "fixture-qr-pay-pix-key-cpf",
         "flow": "Payments",
         "route": "/qr-pay?qrCode=00020126330014br.gov.bcb.pix0111123456789095204000053039865802BR5911123456789096009SAO%20PAULO62070503***63047AC2&type=PIX&pixKey=12345678909&t=1"
+    },
+    {
+        "id": "fixture-history-request-paid-external",
+        "flow": "Payments",
+        "route": "/history"
     },
     {
         "id": "fixture-send",
