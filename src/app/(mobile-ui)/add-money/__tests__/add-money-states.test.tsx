@@ -742,7 +742,9 @@ import OnrampBankPage from '../[country]/bank/page'
 import AddMoneyRegionalMethodPage from '../[country]/[regional-method]/page'
 import AddMoneyCountryPage from '../[country]/page'
 import CryptoDepositView from '@/components/AddMoney/views/CryptoDeposit.view'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
+
+const killSwitches = getKillSwitches()
 
 // ---------- helpers ----------
 
@@ -1659,11 +1661,11 @@ describe('GROUP 6: US Bank Page', () => {
 describe('GROUP 7: Manteca Deposit (Regional Method)', () => {
     afterEach(() => {
         // reset the per-currency outage list so its default value can't leak between tests
-        underMaintenanceConfig.disabledMantecaCurrencies = []
+        killSwitches.disabledMantecaCurrencies = []
     })
 
     test('AR + manteca renders MantecaAddMoney when its currency (ARS) is live', () => {
-        underMaintenanceConfig.disabledMantecaCurrencies = ['BRL'] // BRL down, ARS live
+        killSwitches.disabledMantecaCurrencies = ['BRL'] // BRL down, ARS live
         setParams({ country: 'argentina', 'regional-method': 'manteca' })
         renderWithProviders(<AddMoneyRegionalMethodPage />)
 
@@ -1671,7 +1673,7 @@ describe('GROUP 7: Manteca Deposit (Regional Method)', () => {
     })
 
     test('AR + manteca shows the outage screen when ARS is in the disabled list', () => {
-        underMaintenanceConfig.disabledMantecaCurrencies = ['ARS']
+        killSwitches.disabledMantecaCurrencies = ['ARS']
         setParams({ country: 'argentina', 'regional-method': 'manteca' })
         renderWithProviders(<AddMoneyRegionalMethodPage />)
 

@@ -53,7 +53,7 @@ import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
-import maintenanceConfig from '@/config/underMaintenance.config'
+import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import {
     classifyQrInitError,
@@ -214,9 +214,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     }, [qrType])
 
     // Check if this payment provider is under maintenance
+    const { disabledPaymentProviders } = useKillSwitches()
     const isProviderDisabled = useMemo(() => {
-        return paymentProcessor ? maintenanceConfig.disabledPaymentProviders.includes(paymentProcessor) : false
-    }, [paymentProcessor])
+        return paymentProcessor ? disabledPaymentProviders.includes(paymentProcessor) : false
+    }, [paymentProcessor, disabledPaymentProviders])
 
     const gate = useQrPayKycGate()
     const { kycGateState, shouldBlockPay } = gate

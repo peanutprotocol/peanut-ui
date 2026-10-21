@@ -1,4 +1,4 @@
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
 import { CHAIN_REGISTRY } from '@/constants/chainRegistry.consts'
 import type { TokenMeta } from '@/interfaces/chain-meta'
 import { addressFamilyForChainId, isValidAddressForFamily } from '@/lib/validation/addressFamily'
@@ -42,7 +42,7 @@ export function readWithdrawDestination(
     if (!address || !chainId) return null
     // Every destination reaching this contract is on another chain, so the ops
     // kill-switch — which locks withdrawals to USDC on Arbitrum — refuses them all.
-    if (underMaintenanceConfig.disableXchainWithdraw) return null
+    if (getKillSwitches().disableXchainWithdraw) return null
     if (!CHAIN_REGISTRY.some((chain) => chain.id === chainId && chain.withdraw)) return null
     if (!isValidAddressForFamily(address, addressFamilyForChainId(chainId))) return null
     return { address, chainId }

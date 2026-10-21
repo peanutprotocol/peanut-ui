@@ -20,7 +20,9 @@ import { render as rtlRender, screen, fireEvent, within, act, waitFor } from '@t
 import { IntlWrapper } from '@/test-utils/intl'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import AddWithdrawCountriesList from '../AddWithdrawCountriesList'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
+
+const killSwitches = getKillSwitches()
 import { addBankAccount } from '@/app/actions/users'
 
 // the screen is named in the URL (`?step=form`), so every render needs the
@@ -426,15 +428,15 @@ describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
         mockPush.mockClear()
         // a ready gate so a click can navigate — proving the option is not blocked
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
-        originalPixMaintenance = underMaintenanceConfig.pixBrazilOnrampMaintenance
+        originalPixMaintenance = killSwitches.pixBrazilOnrampMaintenance
     })
 
     afterEach(() => {
-        underMaintenanceConfig.pixBrazilOnrampMaintenance = originalPixMaintenance
+        killSwitches.pixBrazilOnrampMaintenance = originalPixMaintenance
     })
 
     it('tags the Pix option "Maintenance" but keeps it clickable (warn-only)', () => {
-        underMaintenanceConfig.pixBrazilOnrampMaintenance = true
+        killSwitches.pixBrazilOnrampMaintenance = true
 
         render(<AddWithdrawCountriesList flow="add" />)
 
@@ -447,7 +449,7 @@ describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
     })
 
     it('shows no maintenance tag when the flag is off, and never tags non-Pix methods', () => {
-        underMaintenanceConfig.pixBrazilOnrampMaintenance = false
+        killSwitches.pixBrazilOnrampMaintenance = false
 
         render(<AddWithdrawCountriesList flow="add" />)
 

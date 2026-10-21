@@ -94,7 +94,7 @@ import { useAmountErrorScroll } from '@/features/withdraw/useAmountErrorScroll'
 import { useMantecaAmountSeed } from '@/features/withdraw/useMantecaAmountSeed'
 import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
 import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/MantecaTransfersMaintenanceView'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
@@ -103,6 +103,7 @@ import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 
 export default function MantecaWithdrawFlow() {
     const searchParams = useSearchParams()
+    const { disabledMantecaCurrencies } = useKillSwitches()
     // Brazil PIX sends go through the Manteca QR-payment endpoint (send to any
     // PIX key), not the offramp/withdraw endpoint. Delegate to the lightweight
     // PIX-key entry, which wraps the key and hands off to /qr-pay. The gate
@@ -117,7 +118,7 @@ export default function MantecaWithdrawFlow() {
     // down. Placed AFTER the Brazil-PIX delegation so PIX-over-QR sends (which
     // ride the QR-payment endpoint, not Manteca offramp) stay open.
     const withdrawCurrency = countryData.find((c) => c.path === searchParams.get('country'))?.currency?.toUpperCase()
-    if (withdrawCurrency && (underMaintenanceConfig.disabledMantecaCurrencies as string[]).includes(withdrawCurrency)) {
+    if (withdrawCurrency && (disabledMantecaCurrencies as string[]).includes(withdrawCurrency)) {
         return <MantecaTransfersMaintenanceView action="withdrawals" />
     }
     return <MantecaBankWithdrawFlow />

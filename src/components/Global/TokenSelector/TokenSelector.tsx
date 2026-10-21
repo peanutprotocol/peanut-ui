@@ -19,7 +19,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import Badge from '@/components/Global/Badges/Badge'
 import { SearchInput } from '@/components/SearchInput'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type IToken } from '@/interfaces/interfaces'
 import { isNativeCurrency } from '@/utils/general.utils'
@@ -71,10 +71,10 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
     onNetworkSelect,
 }) => {
     const t = useTranslations('global')
-    // check if cross-chain is disabled via maintenance config
-    const isXchainWithdrawDisabled = viewType === 'withdraw' && underMaintenanceConfig.disableXchainWithdraw
-    const isXchainSendDisabled =
-        (viewType === 'claim' || viewType === 'req_pay') && underMaintenanceConfig.disableXchainSend
+    // check if cross-chain is disabled by a kill switch
+    const { disableXchainWithdraw, disableXchainSend } = useKillSwitches()
+    const isXchainWithdrawDisabled = viewType === 'withdraw' && disableXchainWithdraw
+    const isXchainSendDisabled = (viewType === 'claim' || viewType === 'req_pay') && disableXchainSend
     // cross-chain off: USDC on the wallet chain (Arbitrum) is the only pair
     const isLocked = isXchainWithdrawDisabled || isXchainSendDisabled
     // withdraw destinations are what Rhino can DELIVER to, not the wagmi

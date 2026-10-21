@@ -359,10 +359,10 @@ jest.mock('@/utils/qr-payment.utils', () => ({
     isArgentinaMantecaQrPayment: jest.fn(() => false),
 }))
 
-jest.mock('@/config/underMaintenance.config', () => ({
-    __esModule: true,
-    default: { disabledPaymentProviders: [] as string[] },
-}))
+jest.mock('@/features/kill-switches/kill-switches-store', () => {
+    const killSwitches = { disabledPaymentProviders: [] as string[] }
+    return { getKillSwitches: () => killSwitches, subscribeKillSwitches: () => () => {} }
+})
 
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContextOptional: () => undefined,
@@ -1248,7 +1248,7 @@ describe('GROUP 2: Payment Form States', () => {
     })
 
     test('Provider maintenance shows maintenance banner and never calls /init', async () => {
-        const maintenanceConfig = require('@/config/underMaintenance.config').default
+        const maintenanceConfig = require('@/features/kill-switches/kill-switches-store').getKillSwitches()
         maintenanceConfig.disabledPaymentProviders = ['MANTECA']
 
         setupMantecaPayment()

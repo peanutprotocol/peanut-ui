@@ -2,14 +2,14 @@ import React, { useState } from 'react'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
 import TokenSelector from '../TokenSelector'
 
-// the shipped config has disableXchainSend ON; pinned OFF here, the lock tests flip it
-jest.mock('@/config/underMaintenance.config', () => ({
-    __esModule: true,
-    default: { disableXchainWithdraw: false, disableXchainSend: false },
-}))
+// the built-in default has disableXchainSend ON; pinned OFF here, the lock tests flip it
+jest.mock('@/features/kill-switches/kill-switches-store', () => {
+    const killSwitches = { disableXchainWithdraw: false, disableXchainSend: false }
+    return { getKillSwitches: () => killSwitches, subscribeKillSwitches: () => () => {} }
+})
 // vaul needs layout apis jsdom lacks; a pass-through renders the drawer only while open
 jest.mock('@/components/Global/Drawer', () => ({
     Drawer: ({ open, children }: { open: boolean; children: React.ReactNode }) => (open ? <div>{children}</div> : null),
@@ -94,8 +94,8 @@ const tokenAddress = () => screen.getByTestId('token-probe').textContent
 
 describe('TokenSelector (TASK-23392)', () => {
     afterEach(() => {
-        ;(underMaintenanceConfig as { disableXchainSend: boolean }).disableXchainSend = false
-        ;(underMaintenanceConfig as { disableXchainWithdraw: boolean }).disableXchainWithdraw = false
+        ;(getKillSwitches() as { disableXchainSend: boolean }).disableXchainSend = false
+        ;(getKillSwitches() as { disableXchainWithdraw: boolean }).disableXchainWithdraw = false
     })
 
     test('two triggers show the selected token and network', () => {
@@ -229,7 +229,7 @@ describe('TokenSelector (TASK-23392)', () => {
     })
 
     test('cross-chain send off: claim is locked to USDC on Arbitrum', () => {
-        ;(underMaintenanceConfig as { disableXchainSend: boolean }).disableXchainSend = true
+        ;(getKillSwitches() as { disableXchainSend: boolean }).disableXchainSend = true
         render(<Harness viewType="claim" initialChainID="1" initialTokenAddress={USDT_ETH} />)
         expect(chain()).toBe('42161')
         expect(tokenAddress()).toBe(USDC_ARB)
@@ -239,7 +239,7 @@ describe('TokenSelector (TASK-23392)', () => {
     })
 
     test('cross-chain withdraw off: withdraw is locked too', () => {
-        ;(underMaintenanceConfig as { disableXchainWithdraw: boolean }).disableXchainWithdraw = true
+        ;(getKillSwitches() as { disableXchainWithdraw: boolean }).disableXchainWithdraw = true
         render(<Harness initialChainID="tron" initialTokenAddress={USDT_TRON} />)
         expect(chain()).toBe('42161')
         expect(tokenTrigger()).toBeDisabled()

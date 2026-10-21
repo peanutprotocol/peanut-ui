@@ -14,7 +14,10 @@
  * hand-off is keyed to its scan and consumed at its one use.
  */
 const mockConfig = { disableXchainWithdraw: false }
-jest.mock('@/config/underMaintenance.config', () => ({ __esModule: true, default: mockConfig }))
+jest.mock('@/features/kill-switches/kill-switches-store', () => ({
+    getKillSwitches: () => mockConfig,
+    subscribeKillSwitches: () => () => {},
+}))
 
 import {
     clearScannedDestination,
