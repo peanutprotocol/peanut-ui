@@ -11,7 +11,8 @@ import { Hero } from '@/components/Marketing/mdx/Hero'
 import ContentLanding, { ContentLinkList, type ContentLandingStrings } from '@/components/Marketing/ContentLanding'
 import { HUB_WIDTH } from '@/components/Marketing/constants'
 import { ContentGuideList } from '@/components/Marketing/ContentGuideList'
-import { CONTENT_TOPICS, getContentTopicCopy } from '@/lib/content-topic-types'
+import { getContentTopicCopy } from '@/lib/content-topic-types'
+import { listContentTopics } from '@/lib/content-topics'
 
 interface PageProps {
     params: Promise<{ locale: string }>
@@ -102,7 +103,7 @@ export default async function ContentHubPage({ params }: PageProps) {
             <ContentGuideList
                 locale={locale}
                 heading={i18n.contentBrowseTopics}
-                items={CONTENT_TOPICS.map((topic) => ({
+                items={listContentTopics(typedLocale).map((topic) => ({
                     ...getContentTopicCopy(i18n, topic),
                     href: `/${locale}/content/${topic}`,
                     lang: locale,

@@ -19,11 +19,7 @@ export const EN_LANDING_CONTENT_HREFS = {
     mercadoPagoQr: '/en/help/mercadopago-qr',
     brazil: '/en/brazil',
     wiseComparison: '/en/compare/peanut-vs-wise',
-    unitedStates: '/en/united-states',
-    spain: '/en/spain',
-    mexico: '/en/mexico',
     paypalComparison: '/en/compare/peanut-vs-paypal',
-    westernUnionComparison: '/en/compare/peanut-vs-western-union',
     securityDisclosure: '/en/help/security-disclosure',
 }
 
