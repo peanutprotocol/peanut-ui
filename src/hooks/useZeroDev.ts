@@ -51,6 +51,7 @@ import {
     signupAnalyticsState,
 } from '@/utils/signup-attribution'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
+import { AccountType } from '@/interfaces/interfaces'
 
 // types
 type UserOpEncodedParams = {
@@ -86,6 +87,9 @@ export const useZeroDev = () => {
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZeroDevFlow()
     const { setWebAuthnKey, getClientForChain, ensureClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
+    // The PEANUT_WALLET account exists only after finalizeAccountSetup succeeds,
+    // so a user without one is still at signup's Confirm & finish.
+    const hasWalletAccount = user?.accounts.some((account) => account.type === AccountType.PEANUT_WALLET) ?? false
     // Future note: could be `${username}.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || 'peanut.me'}` (have to change BE too)
     const _getPasskeyName = (username: string) => `${username}.peanut.wallet`
 
@@ -388,7 +392,10 @@ export const useZeroDev = () => {
                 // exit is logging out and back in, so surface the message AND
                 // force the logout (showing the toast alone left users stuck in a
                 // signed-in-but-broken state).
-                if (isStaleKeyError(error)) {
+                // Before the wallet account exists the key is fresh and there is
+                // no session to drop: a logout only forces another orphan signup.
+                // The finish screen classifies the root error itself (TASK-23931).
+                if (isStaleKeyError(error) && hasWalletAccount) {
                     console.error('Detected stale webAuthnKey error - session is invalid')
                     captureException(error, {
                         tags: { error_type: 'stale_webauthn_key' },
@@ -452,7 +459,7 @@ export const useZeroDev = () => {
                 receipt: userOpReceipt.receipt,
             }
         },
-        [getClientForChain, ensureClientForChain, logoutUser, setLoadingState, user?.user.userId]
+        [getClientForChain, ensureClientForChain, hasWalletAccount, logoutUser, setLoadingState, user?.user.userId]
     )
 
     return {
