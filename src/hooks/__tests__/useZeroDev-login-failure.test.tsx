@@ -23,6 +23,7 @@ const mockEnsureClientForChain = jest.fn()
 let mockUseRealProvider = false
 let mockSavedKey: unknown
 let mockAccounts: Array<{ type: AccountType }> = []
+let mockUserLoaded = true
 
 type PasskeyTestGlobals = typeof globalThis & {
     __passkeyTestIOSNative?: boolean
@@ -32,7 +33,7 @@ const passkeyTestGlobals = globalThis as PasskeyTestGlobals
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
-        user: { user: { userId: 'u1', username: 'alice' }, accounts: mockAccounts },
+        user: mockUserLoaded ? { user: { userId: 'u1', username: 'alice' }, accounts: mockAccounts } : null,
         logoutUser: mockLogoutUser,
         fetchUser: jest.fn(),
         hydrateLoginSession: mockHydrateLoginSession,
@@ -123,6 +124,7 @@ jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 beforeEach(() => {
     jest.clearAllMocks()
     mockAccounts = []
+    mockUserLoaded = true
     passkeyTestGlobals.__passkeyTestIOSNative = false
     delete passkeyTestGlobals.__capgoPasskeyShimInstalled
 })
@@ -604,6 +606,14 @@ describe('useZeroDev handleSendUserOpEncoded — stale credential cleanup', () =
                 expect(zeroDevFlowActions.setIsSendingUserOp).toHaveBeenLastCalledWith(false)
             }
         )
+
+        it('still logs out on AA24 while the user is not loaded yet', async () => {
+            mockUserLoaded = false
+            const error = new Error('UserOperation reverted with reason: AA24 signature error')
+
+            expect(await sendRejectingWith(error)).toMatchObject({ isStaleKeyError: true, cause: error })
+            expect(mockLogoutUser).toHaveBeenCalledTimes(1)
+        })
 
         it.each(['401 unauthorized', 'network request failed'])(
             'preserves the saved credential for %s',

@@ -88,8 +88,11 @@ export const useZeroDev = () => {
     const { setWebAuthnKey, getClientForChain, ensureClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
     // The PEANUT_WALLET account exists only after finalizeAccountSetup succeeds,
-    // so a user without one is still at signup's Confirm & finish.
-    const hasWalletAccount = user?.accounts.some((account) => account.type === AccountType.PEANUT_WALLET) ?? false
+    // so a loaded user without one is still at signup's Confirm & finish. A user
+    // that is not loaded yet is not known to be mid-signup (Confirm & finish
+    // refuses to sign without one).
+    const isAwaitingWalletAccount =
+        !!user && !user.accounts.some((account) => account.type === AccountType.PEANUT_WALLET)
     // Future note: could be `${username}.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || 'peanut.me'}` (have to change BE too)
     const _getPasskeyName = (username: string) => `${username}.peanut.wallet`
 
@@ -395,7 +398,7 @@ export const useZeroDev = () => {
                 // Before the wallet account exists the key is fresh and there is
                 // no session to drop: a logout only forces another orphan signup.
                 // The finish screen classifies the root error itself (TASK-23931).
-                if (isStaleKeyError(error) && hasWalletAccount) {
+                if (isStaleKeyError(error) && !isAwaitingWalletAccount) {
                     console.error('Detected stale webAuthnKey error - session is invalid')
                     captureException(error, {
                         tags: { error_type: 'stale_webauthn_key' },
@@ -459,7 +462,14 @@ export const useZeroDev = () => {
                 receipt: userOpReceipt.receipt,
             }
         },
-        [getClientForChain, ensureClientForChain, hasWalletAccount, logoutUser, setLoadingState, user?.user.userId]
+        [
+            getClientForChain,
+            ensureClientForChain,
+            isAwaitingWalletAccount,
+            logoutUser,
+            setLoadingState,
+            user?.user.userId,
+        ]
     )
 
     return {
