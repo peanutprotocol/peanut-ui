@@ -452,31 +452,35 @@ describe('SignTestTransaction — setup completion', () => {
             renderWithIntl(<SignTestTransaction />)
             fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
             await waitFor(() => expect(screen.getByText(copy, { exact: false })).toBeInTheDocument())
-            expect(
-                screen.queryByText(en.setup.testTransaction.errors.supportNeeded, { exact: false })
-            ).not.toBeInTheDocument()
             const failures = jest
                 .mocked(posthog.capture)
                 .mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED)
             expect(failures).toHaveLength(1)
             return failures[0][1]
         }
+        const expectNoSupportCopy = () =>
+            expect(
+                screen.queryByText(en.setup.testTransaction.errors.supportNeeded, { exact: false })
+            ).not.toBeInTheDocument()
 
         it('shows the passkey copy for a cancel', async () => {
             const cancel = Object.assign(new Error('The operation either timed out or was not allowed.'), {
                 name: 'NotAllowedError',
             })
             const event = await failConfirmWith(cancel, en.setup.passkey.notCompleted)
+            expectNoSupportCopy()
             expect(event).toMatchObject({ error_name: 'NotAllowedError', error_code: 'LOGIN_CANCELED', is_aa24: false })
         })
 
         it('reads the Android shim cancel as a cancel', async () => {
             const event = await failConfirmWith(new Error('User cancelled the selector'), en.setup.passkey.notCompleted)
+            expectNoSupportCopy()
             expect(event).toMatchObject({ error_name: 'NotAllowedError', error_code: 'LOGIN_CANCELED' })
         })
 
         it('shows the timeout copy for a ceremony that never settled', async () => {
             const event = await failConfirmWith(new CeremonyTimeoutError(60_000), en.setup.passkey.tookTooLong)
+            expectNoSupportCopy()
             expect(event).toMatchObject({ error_name: 'CeremonyTimeoutError', error_code: 'CEREMONY_TIMEOUT' })
         })
 
@@ -499,6 +503,7 @@ describe('SignTestTransaction — setup completion', () => {
                 en.setup.testTransaction.errors.passkeyProviderUnsupported
             )
 
+            expectNoSupportCopy()
             expect(event).toEqual({
                 error_name: 'UserOperationSignatureError',
                 error_code: undefined,
@@ -510,6 +515,21 @@ describe('SignTestTransaction — setup completion', () => {
             await waitFor(() => expect(screen.getByRole('button', { name: /confirm/i })).toBeEnabled())
             expect(mockAddAccount).not.toHaveBeenCalled()
             expect(mockLogoutUser).not.toHaveBeenCalled()
+        })
+
+        it('keeps support copy for an unrelated failure whose hex request body contains aa24', async () => {
+            const unrelated = Object.assign(
+                new Error(
+                    'HTTP request failed.\n\nStatus: 500\nRequest body: {"method":"pm_sponsorUserOperation","params":[{"callData":"0x51945447aa24f0"}]}'
+                ),
+                { name: 'HttpRequestError' }
+            )
+
+            const event = await failConfirmWith(unrelated, en.setup.testTransaction.errors.supportNeeded)
+            expect(
+                screen.queryByText(en.setup.testTransaction.errors.passkeyProviderUnsupported, { exact: false })
+            ).not.toBeInTheDocument()
+            expect(event).toMatchObject({ error_name: 'HttpRequestError', error_code: 'LOGIN_ERROR', is_aa24: false })
         })
     })
 })

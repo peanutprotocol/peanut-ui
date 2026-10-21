@@ -21,8 +21,15 @@ export const isStaleClientForUser = (
  * UserOperation signature. A wrong passkey causes it, and so does a correct
  * signature over a clientDataJSON layout the validator cannot read
  * (TASK-23931), so AA24 alone does not prove a stale session.
+ *
+ * AA24 must stand as its own token: viem's error text prints the request
+ * arguments as hex, and a bare substring test matches `aa24` inside them by
+ * chance in a few percent of unrelated failures. No lookbehind, which older
+ * iOS Safari cannot parse.
  */
-export const isAa24Error = (error: unknown): boolean => String(error).toLowerCase().includes('aa24')
+const AA24_CODE = /(?:^|[^0-9a-z])aa24(?:[^0-9a-z]|$)/i
+
+export const isAa24Error = (error: unknown): boolean => AA24_CODE.test(String(error))
 
 /**
  * Recognises a stale-credential failure: either one we threw ourselves (tagged

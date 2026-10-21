@@ -60,4 +60,13 @@ describe('isAa24Error', () => {
         expect(isStaleKeyError(aa24)).toBe(true)
         expect(isStaleKeyError('wapk: unauthorized')).toBe(true)
     })
+
+    it('ignores aa24 inside the hex request arguments of an unrelated failure', () => {
+        const unrelated = new Error(
+            'Paymaster rejected the User Operation.\n\nRequest Arguments:\n  callData: 0x51945447aa24f0\n  signature: 0xaa24\n\nDetails: paymaster balance too low'
+        )
+        expect(isAa24Error(unrelated)).toBe(false)
+        expect(isStaleKeyError(unrelated)).toBe(false)
+        expect(isAa24Error('FailedOp(0, "AA24 signature error")')).toBe(true)
+    })
 })
