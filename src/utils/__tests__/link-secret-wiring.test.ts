@@ -3,6 +3,9 @@
  * 2026 and the next dev -> main release merge dropped it unnoticed. If a merge
  * loses any hook again, this fails.
  */
+// A module, not a global script: its mocks would clash with qr-sdk-wiring.test.ts.
+export {}
+
 const mockInit = jest.fn()
 const mockSentryInit = jest.fn()
 jest.mock('posthog-js', () => ({
