@@ -16,7 +16,7 @@ export interface SumsubStatusEventEvaluation {
  * dump the user out before they could resubmit, so within this window we
  * never auto-close.
  */
-const EARLY_EVENT_GUARD_MS = 3000
+export const EARLY_EVENT_GUARD_MS = 3000
 
 /**
  * Decide what to do when Sumsub fires a status / action-status event. Within

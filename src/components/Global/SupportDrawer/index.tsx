@@ -32,6 +32,17 @@ const DISMISS_THRESHOLD = 100
 /** Backdrop left showing above the panel when the keyboard squeezes it. */
 const TOP_RESERVE = 24
 
+/** The native messenger is invisible to session replay, so a failed open must leave an event. */
+function captureNativeOpenFailed(err: unknown) {
+    const code = (err as { code?: unknown } | null)?.code
+    posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_OPEN_FAILED, {
+        messenger: 'native',
+        error_name: err instanceof Error ? err.name : 'unknown',
+        // Capacitor plugin rejections carry a code such as UNIMPLEMENTED
+        error_code: typeof code === 'string' && code.length <= 64 ? code : null,
+    })
+}
+
 const SupportDrawer = () => {
     const nativePlatform = useNativePlatform()
 
@@ -331,12 +342,16 @@ const SupportDrawer = () => {
                  * their own opening message — but the agent is no longer blind to
                  * what brought them there.
                  */
-                CapacitorCrisp.openMessenger()
-                // The native messenger is invisible to session replay.
-                posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_OPENED, {
-                    messenger: 'native',
-                    has_topic: Boolean(prefill),
-                })
+                // Recorded on the plugin's answer. The flow does not wait for
+                // it: both platforms resolve as soon as the messenger is presented.
+                Promise.resolve(CapacitorCrisp.openMessenger()).then(
+                    () =>
+                        posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_OPENED, {
+                            messenger: 'native',
+                            has_topic: Boolean(prefill),
+                        }),
+                    captureNativeOpenFailed
+                )
                 // The chat is now in front of the user, so the badge has done its
                 // job. There is no isCrispReady on this path — the native messenger
                 // reports nothing back — so clear it here rather than in the web
@@ -350,13 +365,7 @@ const SupportDrawer = () => {
                 // reopening support genuinely re-configures rather than replaying
                 // a rejected promise.
                 console.warn('[SupportDrawer] native crisp open failed:', err)
-                const code = (err as { code?: unknown } | null)?.code
-                posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_OPEN_FAILED, {
-                    messenger: 'native',
-                    error_name: err instanceof Error ? err.name : 'unknown',
-                    // Capacitor plugin rejections carry a code such as UNIMPLEMENTED
-                    error_code: typeof code === 'string' && code.length <= 64 ? code : null,
-                })
+                captureNativeOpenFailed(err)
             })
 
         return () => {
@@ -441,10 +450,14 @@ const SupportDrawer = () => {
                 setIsCrispFailed(false)
             } else if (event.data?.type === 'CRISP_FAILED') {
                 setIsCrispFailed(true)
-                posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_OPEN_FAILED, {
-                    messenger: 'web',
-                    error_name: 'crisp_load_failed',
-                })
+                // A proxy remounted while support is closed reports this too; that
+                // is not a failed open.
+                if (isSupportOpenRef.current) {
+                    posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_OPEN_FAILED, {
+                        messenger: 'web',
+                        error_name: 'crisp_load_failed',
+                    })
+                }
             }
         }
 

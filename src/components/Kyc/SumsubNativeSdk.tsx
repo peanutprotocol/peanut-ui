@@ -154,7 +154,7 @@ export const SumsubNativeSdk = ({
                 .withHandlers({
                     onStatusChanged: (event) => {
                         if (event?.newStatus && SUBMITTED_STATES.has(event.newStatus)) hasSubmitted = true
-                        tracker.statusChanged(event?.newStatus, event?.prevStatus)
+                        tracker.statusChanged({ newStatus: event?.newStatus, prevStatus: event?.prevStatus })
                     },
                     onEvent: (event) => {
                         tracker.step(event?.eventType, event?.payload?.idDocSetType, event?.payload?.isCancelled)

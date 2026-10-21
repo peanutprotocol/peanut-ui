@@ -407,7 +407,8 @@ export const ANALYTICS_EVENTS = {
     //
     // KYC: `sdk` is 'native' | 'web' (the web SDK can also run inside the app).
     // status_changed: prev_status, new_status (SDK status names; web adds
-    // review_answer). step: event_type (StepInitiated | StepCompleted), step
+    // review_answer; snapshot: true marks the status the web SDK reports on
+    // launch, which is the applicant's earlier state). step: event_type (StepInitiated | StepCompleted), step
     // (the SDK's idDocSetType, e.g. IDENTITY, SELFIE), is_cancelled. closed
     // (native only, one per launch result): status, success, error_type.
     KYC_SDK_STATUS_CHANGED: 'kyc_sdk_status_changed',

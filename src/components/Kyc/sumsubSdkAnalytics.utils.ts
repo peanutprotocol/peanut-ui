@@ -30,8 +30,20 @@ export function createSumsubSdkTracker(sdk: SumsubSdkKind) {
         /**
          * `prevStatus` defaults to the last status this tracker saw, because the
          * web SDK does not send one. `reviewAnswer` (GREEN/RED) is web only.
+         * `snapshot` marks the status an SDK reports on launch: the state the
+         * applicant already had, not a change made in this session.
          */
-        statusChanged(newStatus: unknown, prevStatus?: unknown, reviewAnswer?: unknown) {
+        statusChanged({
+            newStatus,
+            prevStatus,
+            reviewAnswer,
+            snapshot = false,
+        }: {
+            newStatus: unknown
+            prevStatus?: unknown
+            reviewAnswer?: unknown
+            snapshot?: boolean
+        }) {
             const next = sdkCode(newStatus)
             if (!next) return
             const answer = sdkCode(reviewAnswer)
@@ -44,6 +56,7 @@ export function createSumsubSdkTracker(sdk: SumsubSdkKind) {
                 prev_status: prev,
                 new_status: next,
                 ...(answer ? { review_answer: answer } : {}),
+                ...(snapshot ? { snapshot: true } : {}),
             })
         },
 

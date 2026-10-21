@@ -823,8 +823,9 @@ describe('SupportDrawer — support chat analytics', () => {
             render(<SupportDrawer />)
         })
 
-        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalled())
-        expect(eventsNamed('support_chat_opened')).toEqual([{ messenger: 'native', has_topic: true }])
+        await waitFor(() =>
+            expect(eventsNamed('support_chat_opened')).toEqual([{ messenger: 'native', has_topic: true }])
+        )
         expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('withdrawal')
     })
 
@@ -846,6 +847,24 @@ describe('SupportDrawer — support chat analytics', () => {
         )
         expect(eventsNamed('support_chat_opened')).toEqual([])
         jest.mocked(console.warn).mockRestore()
+    })
+
+    it('reports an open the plugin rejects later as failed, not opened', async () => {
+        mockIsCapacitor.mockReset().mockReturnValue(true)
+        nativeCrisp.openMessenger.mockRejectedValue(
+            Object.assign(new Error('Not implemented on android'), { code: 'UNIMPLEMENTED' })
+        )
+
+        await act(async () => {
+            render(<SupportDrawer />)
+        })
+
+        await waitFor(() =>
+            expect(eventsNamed('support_chat_open_failed')).toEqual([
+                { messenger: 'native', error_name: 'Error', error_code: 'UNIMPLEMENTED' },
+            ])
+        )
+        expect(eventsNamed('support_chat_opened')).toEqual([])
     })
 
     it('reports the web chat once it is on screen, once per open', async () => {
@@ -871,5 +890,19 @@ describe('SupportDrawer — support chat analytics', () => {
 
         expect(eventsNamed('support_chat_open_failed')).toEqual([{ messenger: 'web', error_name: 'crisp_load_failed' }])
         expect(eventsNamed('support_chat_opened')).toEqual([])
+    })
+
+    it('does not report a failed open when a proxy fails with support closed', async () => {
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+        const view = render(<SupportDrawer />)
+        postCrispMessage('CRISP_READY')
+
+        modalsState.isSupportModalOpen = false
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+        postCrispMessage('CRISP_FAILED')
+
+        expect(eventsNamed('support_chat_open_failed')).toEqual([])
     })
 })

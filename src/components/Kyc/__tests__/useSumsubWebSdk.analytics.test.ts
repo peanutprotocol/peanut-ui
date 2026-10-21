@@ -66,21 +66,27 @@ describe('useSumsubWebSdk analytics', () => {
         ])
     })
 
-    it('reports status changes with the review answer', () => {
+    it('marks the status the SDK reports on launch as a snapshot, then reports real changes', () => {
+        const now = jest.spyOn(Date, 'now').mockReturnValue(1_000_000)
         launchSdk()
 
         act(() => {
-            sdkHandlers['onApplicantStatusChanged']({ reviewStatus: 'pending' })
-            sdkHandlers['idCheck.onApplicantStatusChanged']({ reviewStatus: 'pending' })
+            // a retry opens on the previous attempt's result
             sdkHandlers['onApplicantStatusChanged']({
                 reviewStatus: 'completed',
                 reviewResult: { reviewAnswer: 'RED' },
             })
         })
+        now.mockReturnValue(1_000_000 + 60_000)
+        act(() => {
+            sdkHandlers['onApplicantStatusChanged']({ reviewStatus: 'pending' })
+            sdkHandlers['idCheck.onApplicantStatusChanged']({ reviewStatus: 'pending' })
+        })
+        now.mockRestore()
 
         expect(eventsNamed('kyc_sdk_status_changed')).toEqual([
-            { sdk: 'web', prev_status: null, new_status: 'pending' },
-            { sdk: 'web', prev_status: 'pending', new_status: 'completed', review_answer: 'RED' },
+            { sdk: 'web', prev_status: null, new_status: 'completed', review_answer: 'RED', snapshot: true },
+            { sdk: 'web', prev_status: 'completed', new_status: 'pending' },
         ])
     })
 })

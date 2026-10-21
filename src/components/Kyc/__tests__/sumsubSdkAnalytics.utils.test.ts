@@ -9,7 +9,7 @@ beforeEach(() => capture.mockClear())
 
 describe('createSumsubSdkTracker', () => {
     it('reports a status change with the previous status the SDK gave', () => {
-        createSumsubSdkTracker('native').statusChanged('Pending', 'Incomplete')
+        createSumsubSdkTracker('native').statusChanged({ newStatus: 'Pending', prevStatus: 'Incomplete' })
 
         expect(capture).toHaveBeenCalledWith('kyc_sdk_status_changed', {
             sdk: 'native',
@@ -18,15 +18,16 @@ describe('createSumsubSdkTracker', () => {
         })
     })
 
-    it('fills the previous status from the last one when the SDK sends none (web)', () => {
+    it('fills the previous status from the launch snapshot when the SDK sends none (web)', () => {
         const tracker = createSumsubSdkTracker('web')
-        tracker.statusChanged('init')
-        tracker.statusChanged('completed', undefined, 'GREEN')
+        tracker.statusChanged({ newStatus: 'init', snapshot: true })
+        tracker.statusChanged({ newStatus: 'completed', reviewAnswer: 'GREEN' })
 
         expect(capture).toHaveBeenNthCalledWith(1, 'kyc_sdk_status_changed', {
             sdk: 'web',
             prev_status: null,
             new_status: 'init',
+            snapshot: true,
         })
         expect(capture).toHaveBeenNthCalledWith(2, 'kyc_sdk_status_changed', {
             sdk: 'web',
@@ -38,8 +39,8 @@ describe('createSumsubSdkTracker', () => {
 
     it('drops the same status reported twice in a row (plain and idCheck. twins)', () => {
         const tracker = createSumsubSdkTracker('web')
-        tracker.statusChanged('pending')
-        tracker.statusChanged('pending')
+        tracker.statusChanged({ newStatus: 'pending' })
+        tracker.statusChanged({ newStatus: 'pending' })
 
         expect(capture).toHaveBeenCalledTimes(1)
     })
@@ -73,9 +74,9 @@ describe('createSumsubSdkTracker', () => {
 
     it('never sends a value that is not an SDK code', () => {
         const tracker = createSumsubSdkTracker('native')
-        tracker.statusChanged('Pending', 'Maria Perez, passport 123')
+        tracker.statusChanged({ newStatus: 'Pending', prevStatus: 'Maria Perez, passport 123' })
         tracker.step('StepInitiated', 'john@example.com')
-        tracker.statusChanged({ nested: true })
+        tracker.statusChanged({ newStatus: { nested: true } })
 
         expect(capture).toHaveBeenCalledTimes(2)
         expect(capture).toHaveBeenNthCalledWith(1, 'kyc_sdk_status_changed', {

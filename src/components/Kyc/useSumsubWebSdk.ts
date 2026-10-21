@@ -5,7 +5,11 @@ import { useLocale } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { toSumsubLocale } from '@/i18n/app/sumsub-locale'
-import { evaluateSumsubStatusEvent, type SumsubStatusEventPayload } from './sumsubStatusEvent.utils'
+import {
+    EARLY_EVENT_GUARD_MS,
+    evaluateSumsubStatusEvent,
+    type SumsubStatusEventPayload,
+} from './sumsubStatusEvent.utils'
 import { createSumsubSdkTracker } from './sumsubSdkAnalytics.utils'
 import type { SumsubSdkProps } from './sumsubSdk.types'
 
@@ -228,7 +232,12 @@ export function useSumsubWebSdk({
                     isMultiLevel: !!isMultiLevelRef.current,
                 })
                 if (evaluation.markSubmitted) hasSubmittedRef.current = true
-                tracker.statusChanged(payload?.reviewStatus, undefined, payload?.reviewResult?.reviewAnswer)
+                tracker.statusChanged({
+                    newStatus: payload?.reviewStatus,
+                    reviewAnswer: payload?.reviewResult?.reviewAnswer,
+                    // the same early window evaluateSumsubStatusEvent treats as stale
+                    snapshot: Date.now() - sdkInitTime < EARLY_EVENT_GUARD_MS,
+                })
                 if (evaluation.autoClose) stableOnComplete()
             }
             const handleStep = (eventType: string) => (payload?: { idDocSetType?: unknown }) =>
