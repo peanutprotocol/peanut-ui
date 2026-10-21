@@ -140,6 +140,15 @@ describe('stays masked', () => {
         expect(name('/qr-pay?qrCode=secret')).toBe('[REDACTED QR DATA]')
     })
 
+    it("a claim secret in the replay's page URL", () => {
+        // posthog-js 1.428.4 lazy-recorder rewrites each Meta event's href by
+        // calling maskCapturedNetworkRequestFn({ name: href }) and keeping .name
+        const href = 'https://peanut.me/claim?c=8453&v=2#p=SECRET'
+        expect(SESSION_RECORDING_PRIVACY.maskCapturedNetworkRequestFn?.({ name: href } as never)?.name).toBe(
+            'https://peanut.me/claim'
+        )
+    })
+
     it('network bodies and headers', () => {
         const timing = { duration: 2, entryType: 'resource', startTime: 1 }
         expect(

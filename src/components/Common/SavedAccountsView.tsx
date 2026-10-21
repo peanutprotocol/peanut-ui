@@ -159,51 +159,54 @@ export function SavedAccountsMapping({
                 accounts ("Virtual account"), to flag a round trip. Needs an exact match of
                 accounts.bank_identity to user_deposit_accounts instructions on the API side. */}
             {rows.map(({ account, destination, countryCodeForFlag, countryName, path }) => (
-                <ListItem
-                    key={account.id}
-                    // ph-mask: the label can repeat a bank alias, and the body is the account
-                    title={<span className="ph-mask">{destinationLabel(destination)}</span>}
-                    truncate
-                    body={<span className="ph-mask">{destination.identifier}</span>}
-                    position="solo"
-                    onClick={() => onItemClick(account, path)}
-                    chevron={!onItemEdit}
-                    trailing={
-                        onItemEdit ? (
-                            <button
-                                type="button"
-                                aria-label={t('savedDestinations.editAria', { name: destinationLabel(destination) })}
-                                data-testid="destination-edit"
-                                // ph-mask: the accessible name repeats the account label
-                                className="ph-mask flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-instant hover:bg-background-disabled active:bg-background-disabled"
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    onItemEdit(account)
-                                }}
-                            >
-                                <Icon name="more-horizontal" size={20} />
-                            </button>
-                        ) : undefined
-                    }
-                    leading={
-                        // board leading: plain 32px flag / brand bubble, no corner badge
-                        countryCodeForFlag ? (
-                            <Image
-                                src={getFlagUrl(account.type === AccountType.US ? 'us' : countryCodeForFlag)}
-                                alt={
-                                    countryName
-                                        ? t('savedAccounts.flagAlt', { country: countryName })
-                                        : t('savedAccounts.flagAltGeneric')
-                                }
-                                width={80}
-                                height={80}
-                                className="size-8 min-w-8 rounded-full object-cover"
-                            />
-                        ) : (
-                            <IconBubble {...CONCEPT_ICONS.bank} size="s" />
-                        )
-                    }
-                />
+                // ph-mask: the row names a bank alias and an account, also in the edit
+                // button's accessible name. `contents` keeps the layout and the title's truncation.
+                <div key={account.id} className="ph-mask contents">
+                    <ListItem
+                        title={destinationLabel(destination)}
+                        truncate
+                        body={destination.identifier}
+                        position="solo"
+                        onClick={() => onItemClick(account, path)}
+                        chevron={!onItemEdit}
+                        trailing={
+                            onItemEdit ? (
+                                <button
+                                    type="button"
+                                    aria-label={t('savedDestinations.editAria', {
+                                        name: destinationLabel(destination),
+                                    })}
+                                    data-testid="destination-edit"
+                                    className="flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-instant hover:bg-background-disabled active:bg-background-disabled"
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        onItemEdit(account)
+                                    }}
+                                >
+                                    <Icon name="more-horizontal" size={20} />
+                                </button>
+                            ) : undefined
+                        }
+                        leading={
+                            // board leading: plain 32px flag / brand bubble, no corner badge
+                            countryCodeForFlag ? (
+                                <Image
+                                    src={getFlagUrl(account.type === AccountType.US ? 'us' : countryCodeForFlag)}
+                                    alt={
+                                        countryName
+                                            ? t('savedAccounts.flagAlt', { country: countryName })
+                                            : t('savedAccounts.flagAltGeneric')
+                                    }
+                                    width={80}
+                                    height={80}
+                                    className="size-8 min-w-8 rounded-full object-cover"
+                                />
+                            ) : (
+                                <IconBubble {...CONCEPT_ICONS.bank} size="s" />
+                            )
+                        }
+                    />
+                </div>
             ))}
         </div>
     )

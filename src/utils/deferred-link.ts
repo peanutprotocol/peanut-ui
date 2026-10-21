@@ -37,8 +37,8 @@ import {
 // (utm_source=google-play&utm_medium=organic)
 const MARKER = 'pnutdl'
 const ATTRIBUTION_PARAM = 'at'
-// the web visitor's anonymous PostHog distinct id, so the app can link its own
-// anonymous id to the browser journey that led to the install
+// the web visitor's anonymous PostHog distinct id, so analysis can join the
+// app's events to the browser journey that led to the install
 const WEB_ANALYTICS_ID_PARAM = 'wid'
 // posthog-js generates anonymous distinct ids as UUIDs; anything else (a user
 // id, cookieless mode, a tampered payload) never crosses
@@ -448,9 +448,10 @@ export interface RestoredContext {
 let restoreInFlight: Promise<RestoredContext | null> | null = null
 
 /**
- * Records the outcome of the one-shot restore. Only booleans and the channel
- * leave the device — never the invite code, campaign tag or destination, which
- * would put a user's inviter and intended screen into analytics.
+ * Records the outcome of the one-shot restore. Only booleans, the channel and
+ * the web visitor's random analytics id leave the device — never the invite
+ * code, campaign tag or destination, which would put a user's inviter and
+ * intended screen into analytics.
  *
  * Swallows everything: this runs on the first-launch path, where a telemetry
  * failure must not cost the user their restored context.
@@ -458,7 +459,7 @@ let restoreInFlight: Promise<RestoredContext | null> | null = null
 function captureRestore(
     channel: 'referrer' | 'clipboard' | 'none',
     outcome: DeferredLinkOutcome,
-    fields?: Record<string, boolean>
+    fields?: Record<string, boolean | string>
 ): void {
     try {
         posthog.capture(ANALYTICS_EVENTS.DEFERRED_LINK_RESTORED, { channel, outcome, ...fields })
@@ -579,7 +580,7 @@ async function doRestore(): Promise<RestoredContext | null> {
         const persisted = readSignupAttribution()
         if (persisted) await persistSignupAttribution(persisted)
     }
-    const restoreFields: Record<string, boolean> = {
+    const restoreFields: Record<string, boolean | string> = {
         has_dest: !!restored.dest,
         has_locale: !!restored.locale,
         has_invite: !!payload.invite,
@@ -588,7 +589,11 @@ async function doRestore(): Promise<RestoredContext | null> {
     // Keep the legacy event shape for old payloads, while making attribution
     // presence observable for the new hand-off contract.
     if (payload.attribution) restoreFields.has_attribution = true
-    if (payload.webDistinctId) restoreFields.has_web_identity = true
+    // The web visitor's id rides as a property, never as an alias: the
+    // referrer and the clipboard can carry an id somebody else chose, and an
+    // alias would merge that person into this one. A property only lets
+    // analysis join this install to the web journey.
+    if (payload.webDistinctId) restoreFields.web_distinct_id = payload.webDistinctId
     captureRestore(channel, DEFERRED_LINK_OUTCOMES.RESTORED, restoreFields)
 
     // Register only after the privacy-preserving restore event above. The
@@ -600,12 +605,13 @@ async function doRestore(): Promise<RestoredContext | null> {
         } catch {}
     }
 
-    // Link the web visitor to this app install, so PostHog merges the browser
-    // journey into the app person — and into the user when they sign up or
-    // log in here. After the restore event: the event belongs to the app.
-    if (payload.webDistinctId) {
+    // Every later event of this install carries the web id too, including the
+    // $identify at signup or login, so the join holds after the app person is
+    // created. A $set_once now would be dropped: an anonymous app user has no
+    // person yet (person_profiles: identified_only).
+    if (payload.webDistinctId && typeof posthog.register_once === 'function') {
         try {
-            if (payload.webDistinctId !== posthog.get_distinct_id()) posthog.alias(payload.webDistinctId)
+            posthog.register_once({ web_distinct_id: payload.webDistinctId })
         } catch {}
     }
 
