@@ -113,10 +113,19 @@ it('tells funded users they can unlock the card now', () => {
     render(<CardAcquisitionScreen {...props} funded />, {
         wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=available' }),
     })
-    expect(screen.getByText('availableFundedBody')).toBeInTheDocument()
+    expect(screen.getByText('fundedBody')).toBeInTheDocument()
     expect(screen.queryByText('fundingBody')).not.toBeInTheDocument()
     fireEvent.click(screen.getByText('continue'))
     expect(ctaClicks()).toEqual(['available:continue'])
+})
+
+it('stops asking for $10 once a returning user has it', () => {
+    render(<CardAcquisitionScreen {...props} funded />, {
+        wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=funding' }),
+    })
+    expect(screen.getByText('onboarding.fundedBody')).toBeInTheDocument()
+    expect(screen.queryByText('onboarding.fundingBody')).not.toBeInTheDocument()
+    expect(screen.getByText('continue')).toBeEnabled()
 })
 
 it.each([

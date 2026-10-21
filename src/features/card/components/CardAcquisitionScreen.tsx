@@ -58,7 +58,7 @@ export function CardMilestoneScreen({
                 )}
                 <TitleBlock
                     title={<h1>{t(issued ? 'issuedTitle' : 'availableTitle')}</h1>}
-                    description={<p>{t(issued ? 'issuedBody' : funded ? 'availableFundedBody' : 'fundingBody')}</p>}
+                    description={<p>{t(issued ? 'issuedBody' : funded ? 'fundedBody' : 'fundingBody')}</p>}
                     align={issued ? 'center' : 'start'}
                     size="s"
                 />
@@ -171,7 +171,9 @@ export function CardAcquisitionScreen({
             <PageStack>
                 <NavHeader title={t('onboarding.navTitle')} onPrev={onPrev} />
                 <h1 className="text-heading-s text-foreground-primary">{tAdd('title')}</h1>
-                <p className="text-body-m text-foreground-secondary">{t('onboarding.fundingBody')}</p>
+                <p className="text-body-m text-foreground-secondary">
+                    {t(funded ? 'onboarding.fundedBody' : 'onboarding.fundingBody')}
+                </p>
                 <ListGroup>
                     <ListItem
                         title={tAdd('methods.bankTransfer')}
