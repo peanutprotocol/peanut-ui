@@ -6,21 +6,21 @@ import { ContentGuideList } from '@/components/Marketing/ContentGuideList'
 import { Hero } from '@/components/Marketing/mdx/Hero'
 import { getTranslations } from '@/i18n'
 import { getAlternates, isValidLocale, SUPPORTED_LOCALES } from '@/i18n/config'
-import { CONTENT_TOPICS, getContentTopicCopy } from '@/lib/content-topic-types'
-import { isContentTopic, listContentTopic } from '@/lib/content-topics'
+import { getContentTopicCopy } from '@/lib/content-topic-types'
+import { isContentTopic, listContentTopic, listContentTopics } from '@/lib/content-topics'
 
 interface PageProps {
     params: Promise<{ locale: string; topic: string }>
 }
 
 export function generateStaticParams() {
-    return SUPPORTED_LOCALES.flatMap((locale) => CONTENT_TOPICS.map((topic) => ({ locale, topic })))
+    return SUPPORTED_LOCALES.flatMap((locale) => listContentTopics(locale).map((topic) => ({ locale, topic })))
 }
 export const dynamicParams = false
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { locale, topic } = await params
-    if (!isValidLocale(locale) || !isContentTopic(topic)) return {}
+    if (!isValidLocale(locale) || !isContentTopic(topic) || !listContentTopics(locale).includes(topic)) return {}
     const { title, description } = getContentTopicCopy(getTranslations(locale), topic)
     const canonical = `/${locale}/content/${topic}`
 
@@ -36,6 +36,7 @@ export default async function ContentTopicPage({ params }: PageProps) {
     const i18n = getTranslations(locale)
     const { title, description } = getContentTopicCopy(i18n, topic)
     const items = listContentTopic(topic, locale)
+    if (items.length === 0) notFound()
 
     return (
         <ContentPage

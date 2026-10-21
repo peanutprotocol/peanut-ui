@@ -131,11 +131,8 @@ export interface Translations {
     landingClosingSubline: string
 
     // Landing page — hero
-    landingHeroTapScan: string
-    landingHeroNoLocalId: string
-    landingHeroCityNewYork: string
-    landingHeroCityMadrid: string
-    landingHeroCityMexicoCity: string
+    landingHeroHeadline: string
+    landingHeroSubline: string
 
     // Landing page — zero-fees section
     landingZeroFees: string

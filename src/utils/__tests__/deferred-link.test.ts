@@ -228,10 +228,10 @@ describe('compatibility with installed native decoders', () => {
 
 describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
     it.each([
-        ['android', '/en/deposit/from-coinbase'],
-        ['ios', '/en/deposit/from-coinbase'],
+        ['android', '/en/deposit/from-usd-account'],
+        ['ios', '/en/deposit/from-usd-account'],
         ['android', '/en/argentina'],
-        ['ios', '/es-419/send-money-from/united-states/to/brazil'],
+        ['ios', '/es-419/use-cases/remote-workers'],
     ] as const)('retains the first content landing through the actual %s store handoff: %s', async (store, path) => {
         window.history.replaceState({}, '', path)
         Object.defineProperty(document, 'referrer', { configurable: true, value: 'https://www.google.com/' })

@@ -121,10 +121,10 @@ describe('signup attribution context', () => {
         window.history.replaceState({}, '', '/es-419')
         const first = captureSignupAttribution()
         expect(first?.firstContentTouch).toBeUndefined()
-        window.history.replaceState({}, '', '/es-419/send-money-from/united-states/to/brazil')
+        window.history.replaceState({}, '', '/es-419/use-cases/remote-workers')
         const content = captureSignupAttribution()
         expect(content?.firstTouch).toEqual(first?.firstTouch)
-        expect(content?.firstContentTouch?.path).toBe('/es-419/send-money-from/united-states/to/brazil')
+        expect(content?.firstContentTouch?.path).toBe('/es-419/use-cases/remote-workers')
     })
 
     it('records a real locale fallback article even though its canonical URL uses another locale', () => {
@@ -214,13 +214,13 @@ describe('signup attribution context', () => {
     })
 
     it('carries a deposit article through deferred native restore and a lost cookie', async () => {
-        window.history.replaceState({}, '', '/en/deposit/from-coinbase')
+        window.history.replaceState({}, '', '/en/deposit/from-usd-account')
         const web = captureSignupAttribution()
         process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
         window.history.replaceState({}, '', '/setup')
         const deferred = restoreSignupAttribution(parseSignupAttribution(serializeSignupAttribution(web))!)
         const registration = await ensureSignupAttributionForRegistration()
-        expect(registration?.firstContentTouch?.path).toBe('/en/deposit/from-coinbase')
+        expect(registration?.firstContentTouch?.path).toBe('/en/deposit/from-usd-account')
         expect(registration?.journeyId).toBe(web?.journeyId)
         expect(registration?.captureMethod).toBe('deferred_link')
 
