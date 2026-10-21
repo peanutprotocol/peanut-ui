@@ -8,6 +8,7 @@ import { useCardFlow } from '../useCardFlow'
 
 const mockCapture = jest.fn()
 let mockFunded = true
+let mockBalance: bigint | undefined = 10_000_000n
 let mockState = 'add-card'
 let mockOverview: Record<string, unknown> | undefined
 let mockOverviewLoading = false
@@ -59,7 +60,7 @@ jest.mock('@/app/actions/sumsub', () => ({
     initiateSelfHealResubmission: jest.fn(),
 }))
 jest.mock('@/hooks/wallet/useWallet', () => ({
-    useWallet: () => ({ hasSufficientSpendableBalance: () => mockFunded }),
+    useWallet: () => ({ balance: mockBalance, hasSufficientSpendableBalance: () => mockFunded }),
 }))
 
 jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({
@@ -456,5 +457,20 @@ describe('useCardFlow — state viewed analytics', () => {
                 },
             ],
         ])
+    })
+})
+
+describe('useCardFlow — balance known', () => {
+    beforeEach(() => {
+        mockBalance = 10_000_000n
+    })
+
+    it('treats the balance as known only once a value was read', () => {
+        mockBalance = undefined
+        const { result, rerender } = renderHook(() => useCardFlow())
+        expect(result.current.isBalanceKnown).toBe(false)
+        mockBalance = 0n
+        rerender()
+        expect(result.current.isBalanceKnown).toBe(true)
     })
 })

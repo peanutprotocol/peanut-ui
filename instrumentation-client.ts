@@ -20,7 +20,7 @@ import { isExpectedExceptionChain } from '@/utils/expected-exception'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 import { captureSignupAttribution, signupAttributionPosthogProperties } from '@/utils/signup-attribution'
 import { initialSuperProperties, isAnalyticsCaptureBuild, posthogProjectKey } from '@/utils/posthog-setup'
-import { sampleAutocapture, trackAutocaptureSampleRate } from '@/utils/autocapture-sampling'
+import { AUTOCAPTURE_SETTINGS, sampleAutocapture, trackAutocaptureSampleRate } from '@/utils/posthog-autocapture'
 
 // Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
 // there is nothing to guard, and PERF_BARE builds exist to carry no instrumentation.
@@ -113,16 +113,9 @@ if (
                 // Sampling runs last, so every kept event is already redacted.
                 return sampleAutocapture(redactLinkSecrets(redactQrTelemetry(event)))
             },
-            // Clicks on buttons and links only. Full autocapture was 35% of billed
-            // event volume (off since 2026-09-10, TASK-22516); this narrow set is
-            // about 0.3-0.5M events a month. No input, change or submit events, so
-            // no field values. `ph-no-capture` elements are still skipped. The
-            // project's server-side autocapture opt-out overrides this setting,
-            // and the `autocapture-sample-rate` flag cuts volume without a release.
-            autocapture: {
-                dom_event_allowlist: ['click'],
-                element_allowlist: ['button', 'a'],
-            },
+            // Button and link clicks, with element text and attributes masked.
+            // The `autocapture-sample-rate` flag cuts volume without a release.
+            ...AUTOCAPTURE_SETTINGS,
             /*
              * Session recording is ON everywhere, native included, as a deliberate
              * trial from 1.0.48.

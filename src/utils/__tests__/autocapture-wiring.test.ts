@@ -83,9 +83,11 @@ afterEach(() => {
     jest.restoreAllMocks()
 })
 
-it('captures clicks on buttons and links only', async () => {
+it('captures clicks on buttons and links only, with element text and attributes masked', async () => {
     const { config } = await loadConfig()
     expect(config.autocapture).toEqual({ dom_event_allowlist: ['click'], element_allowlist: ['button', 'a'] })
+    expect(config.mask_all_text).toBe(true)
+    expect(config.mask_all_element_attributes).toBe(true)
 })
 
 it('keeps every $autocapture event, redacted, when the flag has no payload', async () => {

@@ -32,9 +32,10 @@ export function useCardFlow() {
     const queryClient = useQueryClient()
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
-    const { hasSufficientSpendableBalance, isFetchingBalance } = useWallet()
+    const { balance, hasSufficientSpendableBalance } = useWallet()
     const isCardFunded = hasSufficientSpendableBalance(10)
-    const isBalanceKnown = !isFetchingBalance
+    // A failed first read also ends loading with no balance: only a value read counts.
+    const isBalanceKnown = balance !== undefined
     const [fundingRequired, setFundingRequired] = useState(false)
     useEffect(() => {
         if (isCardFunded) setFundingRequired(false)

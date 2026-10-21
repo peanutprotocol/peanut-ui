@@ -1,4 +1,27 @@
-import type { CaptureResult, PostHog } from 'posthog-js'
+import type { CaptureResult, PostHog, PostHogConfig } from 'posthog-js'
+
+/*
+ * Click autocapture on buttons and links only: about 0.3-0.5M events a month,
+ * against 35% of the bill when every element and event type was captured
+ * (off since 2026-09-10, TASK-22516). No input, change or submit events, so
+ * no field values.
+ *
+ * Element text and attributes are masked. A button or link can show a balance,
+ * an amount or another person's name, as text or in its aria-label, and none
+ * of that may reach PostHog. An event keeps the tag, classes, position, the
+ * link target and the page URL. To name a control, give it a code in
+ * `data-ph-capture-attribute-<name>`; `ph-no-capture` drops its clicks.
+ *
+ * The project's server-side autocapture opt-out overrides these settings.
+ */
+export const AUTOCAPTURE_SETTINGS = {
+    autocapture: {
+        dom_event_allowlist: ['click'],
+        element_allowlist: ['button', 'a'],
+    },
+    mask_all_text: true,
+    mask_all_element_attributes: true,
+} satisfies Partial<PostHogConfig>
 
 /*
  * Ops can cut `$autocapture` volume without a release: the JSON payload of this
