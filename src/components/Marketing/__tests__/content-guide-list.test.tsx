@@ -1,7 +1,7 @@
 import { renderWithIntl } from '@/test-utils/intl'
 import { ContentGuideList } from '../ContentGuideList'
 import { CONTENT_TOPICS, getContentTopicCopy } from '@/lib/content-topic-types'
-import { listContentTopic } from '@/lib/content-topics'
+import { listContentTopic, type ContentGuide } from '@/lib/content-topics'
 import { getTranslations } from '@/i18n'
 import type { Locale } from '@/i18n/types'
 
@@ -29,11 +29,17 @@ describe('topic guide links', () => {
         )
     })
 
-    it('renders the Coinbase guide and preserves the planned Venmo description', () => {
-        const items = [...listContentTopic('deposit', 'en'), ...listContentTopic('pay', 'en')]
+    it('renders a retained USD guide and preserves an explicitly planned description', () => {
+        const plannedGuide: ContentGuide = {
+            href: '/en/pay-with/fixture-method',
+            title: 'Fixture Method (Planned)',
+            description: 'Fixture Method support in Peanut is planned.',
+            lang: 'en',
+        }
+        const items = [...listContentTopic('deposit', 'en'), plannedGuide]
         const { container } = renderWithIntl(<ContentGuideList items={items} locale="en" />)
-        expect(container.querySelector('a[href="/en/deposit/from-coinbase"]')).toHaveTextContent('Coinbase')
-        expect(container.querySelector('a[href="/en/pay-with/venmo"]')).toHaveTextContent(
+        expect(container.querySelector('a[href="/en/deposit/from-usd-account"]')).toHaveTextContent('USD')
+        expect(container.querySelector('a[href="/en/pay-with/fixture-method"]')).toHaveTextContent(
             'support in Peanut is planned'
         )
     })

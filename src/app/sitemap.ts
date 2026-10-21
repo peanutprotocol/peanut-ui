@@ -7,7 +7,7 @@ import { EXCHANGES } from '@/data/seo/exchanges'
 import { DEPOSIT_RAILS } from '@/data/seo/deposit-rails'
 import { PAYMENT_METHOD_SLUGS } from '@/data/seo/payment-methods'
 import { SUPPORTED_LOCALES } from '@/i18n/config'
-import { CONTENT_TOPICS } from '@/lib/content-topic-types'
+import { listContentTopics } from '@/lib/content-topics'
 import {
     contentGeneratedAt,
     hasCorridorContent,
@@ -271,7 +271,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             priority: 0.7 * basePriority,
             changeFrequency: 'weekly',
         })
-        for (const topic of CONTENT_TOPICS) {
+        for (const topic of listContentTopics(locale)) {
             pages.push({
                 path: `/${locale}/content/${topic}`,
                 priority: 0.7 * basePriority,

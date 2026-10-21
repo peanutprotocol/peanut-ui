@@ -2,6 +2,20 @@ import { render } from '@testing-library/react'
 import { resolveContentHref } from '@/lib/content'
 import { SEOFooter } from '../SEOFooter'
 
+// Keep translation and regional-owner behavior independent of featured slots.
+// The real manifest still supplies the income entry point tested below.
+jest.mock('@/content/generated/footer-manifest.json', () => {
+    const actual = jest.requireActual('@/content/generated/footer-manifest.json')
+    return {
+        ...actual,
+        compare: [{ slug: 'wise', name: 'Wise', href: '/en/compare/peanut-vs-wise' }],
+        articles: [
+            ...actual.articles,
+            { slug: 'verification', name: 'Verification Guide', href: '/en/help/verification' },
+        ],
+    }
+})
+
 describe('SEOFooter locale ownership', () => {
     it('does not emit fallback-only es-ar links', () => {
         const { container } = render(<SEOFooter locale="es-ar" />)
@@ -26,7 +40,7 @@ describe('SEOFooter locale ownership', () => {
             link.getAttribute('href')
         )
 
-        expect(hrefs).toContain('/es-ar/send-money-to/argentina')
+        expect(hrefs).toContain('/es-419/use-cases/remote-workers')
         expect(hrefs).toContain('/es-ar/compare/peanut-vs-wise')
     })
 })
@@ -47,18 +61,23 @@ describe('SEOFooter labels', () => {
         expect(texts).not.toContain('Send Money to Family')
     })
 
-    it('names the send-money countries in the page language', () => {
-        const texts = linkTexts(render(<SEOFooter locale="es-419" />).container)
-        expect(texts).toEqual(expect.arrayContaining(['Enviar a Brasil', 'Enviar desde Alemania']))
-        expect(texts).not.toContain('Enviar a Brazil')
-        expect(linkTexts(render(<SEOFooter locale="en" />).container)).toContain('Send from US')
-    })
-
-    it('gives pt-BR send-from links the article the country takes', () => {
-        const texts = linkTexts(render(<SEOFooter locale="pt-br" />).container)
-        expect(texts).toEqual(
-            expect.arrayContaining(['Enviar da França', 'Enviar dos Estados Unidos', 'Enviar de Portugal'])
+    it.each([
+        ['en', 'Get paid from abroad'],
+        ['es-419', 'Cobra del exterior'],
+        ['es-ar', 'Cobrá del exterior'],
+        ['pt-br', 'Receba do exterior'],
+    ] as const)('keeps the income entry point for %s', (locale, label) => {
+        const actualManifest = jest.requireActual('@/content/generated/footer-manifest.json')
+        expect(actualManifest.articles).toContainEqual(
+            expect.objectContaining({
+                slug: 'remote-workers',
+                href: '/en/use-cases/remote-workers',
+            })
         )
-        expect(texts).not.toContain('Enviar de França')
+        const { container } = render(<SEOFooter locale={locale} />)
+        const link = [...container.querySelectorAll<HTMLAnchorElement>('a[href]')].find((entry) =>
+            entry.href.endsWith('/use-cases/remote-workers')
+        )
+        expect(link?.textContent).toBe(label)
     })
 })

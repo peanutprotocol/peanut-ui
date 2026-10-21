@@ -1,5 +1,1445 @@
 [
     {
+        "source": "/en/deposit/from-belo",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/from-belo",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/from-belo",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/from-belo",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/from-belo",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/from-belo",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/from-belo",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/from-belo",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/from-binance",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/from-binance",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/from-binance",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/from-binance",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/from-binance",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/from-binance",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/from-binance",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/from-binance",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/from-bitso",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/from-bitso",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/from-bitso",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/from-bitso",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/from-bitso",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/from-bitso",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/from-bitso",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/from-bitso",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/from-buenbit",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/from-buenbit",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/from-buenbit",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/from-buenbit",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/from-buenbit",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/from-buenbit",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/from-buenbit",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/from-buenbit",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/from-bybit",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/from-bybit",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/from-bybit",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/from-bybit",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/from-bybit",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/from-bybit",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/from-bybit",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/from-bybit",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/from-coinbase",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/from-coinbase",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/from-coinbase",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/from-coinbase",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/from-coinbase",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/from-coinbase",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/from-coinbase",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/from-coinbase",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/from-crypto-com",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/from-crypto-com",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/from-crypto-com",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/from-crypto-com",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/from-crypto-com",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/from-crypto-com",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/from-crypto-com",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/from-crypto-com",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/from-kraken",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/from-kraken",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/from-kraken",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/from-kraken",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/from-kraken",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/from-kraken",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/from-kraken",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/from-kraken",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/from-kucoin",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/from-kucoin",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/from-kucoin",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/from-kucoin",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/from-kucoin",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/from-kucoin",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/from-kucoin",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/from-kucoin",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/from-lemon",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/from-lemon",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/from-lemon",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/from-lemon",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/from-lemon",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/from-lemon",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/from-lemon",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/from-lemon",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/from-metamask",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/from-metamask",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/from-metamask",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/from-metamask",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/from-metamask",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/from-metamask",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/from-metamask",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/from-metamask",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/from-okx",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/from-okx",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/from-okx",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/from-okx",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/from-okx",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/from-okx",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/from-okx",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/from-okx",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/from-phantom",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/from-phantom",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/from-phantom",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/from-phantom",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/from-phantom",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/from-phantom",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/from-phantom",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/from-phantom",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/from-revolut-exchange",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/from-revolut-exchange",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/from-revolut-exchange",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/from-revolut-exchange",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/from-revolut-exchange",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/from-revolut-exchange",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/from-revolut-exchange",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/from-revolut-exchange",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/from-ripio",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/from-ripio",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/from-ripio",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/from-ripio",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/from-ripio",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/from-ripio",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/from-ripio",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/from-ripio",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/via-arbitrum",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/via-arbitrum",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/via-arbitrum",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/via-arbitrum",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/via-arbitrum",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/via-arbitrum",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/via-arbitrum",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/via-arbitrum",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/via-base",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/via-base",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/via-base",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/via-base",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/via-base",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/via-base",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/via-base",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/via-base",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/via-ethereum",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/via-ethereum",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/via-ethereum",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/via-ethereum",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/via-ethereum",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/via-ethereum",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/via-ethereum",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/via-ethereum",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/via-polygon",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/via-polygon",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/via-polygon",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/via-polygon",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/via-polygon",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/via-polygon",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/via-polygon",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/via-polygon",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/via-solana",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/via-solana",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/via-solana",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/via-solana",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/via-solana",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/via-solana",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/via-solana",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/via-solana",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/deposit/via-tron",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/deposit/via-tron",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/deposit/via-tron",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/deposit/via-tron",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/deposit/via-tron",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/deposit/via-tron",
+        "destination": "/es-419/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/deposit/via-tron",
+        "destination": "/pt-br/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/deposit/via-tron",
+        "destination": "/en/help/deposit-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/pay-with/fps",
+        "destination": "/en/withdraw/faster-payments",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/pay-with/fps",
+        "destination": "/es-419/withdraw/faster-payments",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/pay-with/fps",
+        "destination": "/es-419/withdraw/faster-payments",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/pay-with/fps",
+        "destination": "/pt-br/withdraw/faster-payments",
+        "permanent": true
+    },
+    {
+        "source": "/es/pay-with/fps",
+        "destination": "/es-419/withdraw/faster-payments",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/pay-with/fps",
+        "destination": "/es-419/withdraw/faster-payments",
+        "permanent": true
+    },
+    {
+        "source": "/pt/pay-with/fps",
+        "destination": "/pt-br/withdraw/faster-payments",
+        "permanent": true
+    },
+    {
+        "source": "/pay-with/fps",
+        "destination": "/en/withdraw/faster-payments",
+        "permanent": true
+    },
+    {
+        "source": "/en/receive-money-from/france",
+        "destination": "/en/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/receive-money-from/france",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/receive-money-from/france",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/receive-money-from/france",
+        "destination": "/pt-br/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es/receive-money-from/france",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/receive-money-from/france",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt/receive-money-from/france",
+        "destination": "/pt-br/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/receive-money-from/france",
+        "destination": "/en/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/en/receive-money-from/germany",
+        "destination": "/en/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/receive-money-from/germany",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/receive-money-from/germany",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/receive-money-from/germany",
+        "destination": "/pt-br/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es/receive-money-from/germany",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/receive-money-from/germany",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt/receive-money-from/germany",
+        "destination": "/pt-br/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/receive-money-from/germany",
+        "destination": "/en/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/en/receive-money-from/italy",
+        "destination": "/en/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/receive-money-from/italy",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/receive-money-from/italy",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/receive-money-from/italy",
+        "destination": "/pt-br/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es/receive-money-from/italy",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/receive-money-from/italy",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt/receive-money-from/italy",
+        "destination": "/pt-br/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/receive-money-from/italy",
+        "destination": "/en/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/en/receive-money-from/netherlands",
+        "destination": "/en/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/receive-money-from/netherlands",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/receive-money-from/netherlands",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/receive-money-from/netherlands",
+        "destination": "/pt-br/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es/receive-money-from/netherlands",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/receive-money-from/netherlands",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt/receive-money-from/netherlands",
+        "destination": "/pt-br/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/receive-money-from/netherlands",
+        "destination": "/en/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/en/receive-money-from/portugal",
+        "destination": "/en/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/receive-money-from/portugal",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/receive-money-from/portugal",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/receive-money-from/portugal",
+        "destination": "/pt-br/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es/receive-money-from/portugal",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/receive-money-from/portugal",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt/receive-money-from/portugal",
+        "destination": "/pt-br/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/receive-money-from/portugal",
+        "destination": "/en/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/en/receive-money-from/spain",
+        "destination": "/en/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/receive-money-from/spain",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/receive-money-from/spain",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/receive-money-from/spain",
+        "destination": "/pt-br/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es/receive-money-from/spain",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/receive-money-from/spain",
+        "destination": "/es-419/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt/receive-money-from/spain",
+        "destination": "/pt-br/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/receive-money-from/spain",
+        "destination": "/en/deposit/from-eur-account",
+        "permanent": true
+    },
+    {
+        "source": "/en/receive-money-from/united-kingdom",
+        "destination": "/en/deposit/from-gbp-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/receive-money-from/united-kingdom",
+        "destination": "/es-419/deposit/from-gbp-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/receive-money-from/united-kingdom",
+        "destination": "/es-419/deposit/from-gbp-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/receive-money-from/united-kingdom",
+        "destination": "/pt-br/deposit/from-gbp-account",
+        "permanent": true
+    },
+    {
+        "source": "/es/receive-money-from/united-kingdom",
+        "destination": "/es-419/deposit/from-gbp-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/receive-money-from/united-kingdom",
+        "destination": "/es-419/deposit/from-gbp-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt/receive-money-from/united-kingdom",
+        "destination": "/pt-br/deposit/from-gbp-account",
+        "permanent": true
+    },
+    {
+        "source": "/receive-money-from/united-kingdom",
+        "destination": "/en/deposit/from-gbp-account",
+        "permanent": true
+    },
+    {
+        "source": "/en/receive-money-from/united-states",
+        "destination": "/en/deposit/from-usd-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/receive-money-from/united-states",
+        "destination": "/es-419/deposit/from-usd-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/receive-money-from/united-states",
+        "destination": "/es-419/deposit/from-usd-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/receive-money-from/united-states",
+        "destination": "/pt-br/deposit/from-usd-account",
+        "permanent": true
+    },
+    {
+        "source": "/es/receive-money-from/united-states",
+        "destination": "/es-419/deposit/from-usd-account",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/receive-money-from/united-states",
+        "destination": "/es-419/deposit/from-usd-account",
+        "permanent": true
+    },
+    {
+        "source": "/pt/receive-money-from/united-states",
+        "destination": "/pt-br/deposit/from-usd-account",
+        "permanent": true
+    },
+    {
+        "source": "/receive-money-from/united-states",
+        "destination": "/en/deposit/from-usd-account",
+        "permanent": true
+    },
+    {
+        "source": "/en/withdraw/arbitrum",
+        "destination": "/en/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/withdraw/arbitrum",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/withdraw/arbitrum",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/withdraw/arbitrum",
+        "destination": "/pt-br/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/withdraw/arbitrum",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/withdraw/arbitrum",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/withdraw/arbitrum",
+        "destination": "/pt-br/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/withdraw/arbitrum",
+        "destination": "/en/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/withdraw/base",
+        "destination": "/en/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/withdraw/base",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/withdraw/base",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/withdraw/base",
+        "destination": "/pt-br/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/withdraw/base",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/withdraw/base",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/withdraw/base",
+        "destination": "/pt-br/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/withdraw/base",
+        "destination": "/en/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/withdraw/ethereum",
+        "destination": "/en/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/withdraw/ethereum",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/withdraw/ethereum",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/withdraw/ethereum",
+        "destination": "/pt-br/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/withdraw/ethereum",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/withdraw/ethereum",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/withdraw/ethereum",
+        "destination": "/pt-br/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/withdraw/ethereum",
+        "destination": "/en/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/withdraw/polygon",
+        "destination": "/en/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/withdraw/polygon",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/withdraw/polygon",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/withdraw/polygon",
+        "destination": "/pt-br/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/withdraw/polygon",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/withdraw/polygon",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/withdraw/polygon",
+        "destination": "/pt-br/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/withdraw/polygon",
+        "destination": "/en/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/withdraw/solana",
+        "destination": "/en/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/withdraw/solana",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/withdraw/solana",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/withdraw/solana",
+        "destination": "/pt-br/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/withdraw/solana",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/withdraw/solana",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/withdraw/solana",
+        "destination": "/pt-br/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/withdraw/solana",
+        "destination": "/en/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/en/withdraw/tron",
+        "destination": "/en/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-419/withdraw/tron",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-ar/withdraw/tron",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt-br/withdraw/tron",
+        "destination": "/pt-br/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es/withdraw/tron",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/withdraw/tron",
+        "destination": "/es-419/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/pt/withdraw/tron",
+        "destination": "/pt-br/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
+        "source": "/withdraw/tron",
+        "destination": "/en/help/withdraw-crypto",
+        "permanent": true
+    },
+    {
         "source": "/en",
         "destination": "/",
         "permanent": true

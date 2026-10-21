@@ -1,12 +1,7 @@
-import {
-    COUNTRIES_SEO,
-    CORRIDORS,
-    DEPOSIT_RAILS,
-    EXCHANGES,
-    PAYMENT_METHOD_SLUGS,
-    RECEIVE_SOURCES,
-    SEND_TO_COUNTRIES,
-} from '@/data/seo'
+import { COUNTRIES_SEO, CORRIDORS, RECEIVE_SOURCES, SEND_TO_COUNTRIES } from '@/data/seo/corridors'
+import { DEPOSIT_RAILS } from '@/data/seo/deposit-rails'
+import { EXCHANGES } from '@/data/seo/exchanges'
+import { PAYMENT_METHOD_SLUGS } from '@/data/seo/payment-methods'
 import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import type { Locale } from '@/i18n/types'
 import {
@@ -99,6 +94,11 @@ export function listContentTopic(topic: ContentTopic, locale: Locale): ContentGu
                 locale
             )
     }
+}
+
+/** Empty directories do not get an indexable topic page or navigation link. */
+export function listContentTopics(locale: Locale): ContentTopic[] {
+    return CONTENT_TOPICS.filter((topic) => listContentTopic(topic, locale).length > 0)
 }
 
 /** Country pages connect to their own receiving guide and the corridors that include them. */

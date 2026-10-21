@@ -1,3 +1,4 @@
+import fs from 'fs'
 import {
     contentGeneratedAt,
     helpArticleTitle,
@@ -72,6 +73,26 @@ describe('listAllContent', () => {
 })
 
 describe('resolveContentHref', () => {
+    beforeEach(() => {
+        const exists = fs.existsSync
+        const read = fs.readFileSync
+        const fixture = (file: unknown) =>
+            typeof file === 'string' &&
+            [
+                '/countries/poland/es-419.md',
+                '/send-to/australia/es-419.md',
+                '/send-to/argentina/from/colombia/es-419.md',
+                '/receive-from/portugal/es-419.md',
+                '/use-cases/families/es-419.md',
+            ].some((suffix) => file.endsWith(suffix))
+        jest.spyOn(fs, 'existsSync').mockImplementation((file) => fixture(file) || exists(file))
+        jest.spyOn(fs, 'readFileSync').mockImplementation(((file: Parameters<typeof read>[0], options: unknown) =>
+            fixture(file)
+                ? '---\ntitle: Resolver fixture\npublished: true\n---\nExample'
+                : read(file, options as never)) as typeof read)
+    })
+    afterEach(() => jest.restoreAllMocks())
+
     it('keeps locale-neutral app routes bare — /{locale}/card would 404 in the country catch-all', () => {
         expect(resolveContentHref('/card', 'es-ar')).toBe('/card')
         expect(resolveContentHref('/shhhhh?campaign=x', 'pt-br')).toBe('/shhhhh?campaign=x')
