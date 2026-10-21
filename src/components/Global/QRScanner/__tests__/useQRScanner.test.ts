@@ -618,13 +618,13 @@ it('reports native permission denial once without starting the camera', async ()
     expect(startCalls).toBe(0)
     expect(posthog.capture).toHaveBeenCalledTimes(1)
     expect(posthog.capture).toHaveBeenCalledWith('qr_camera_permission_denied', {
-        platform: 'android',
+        os: 'android',
         permission: 'denied',
         source: 'native_camera_permission',
     })
     expect(addBreadcrumb).toHaveBeenCalledWith(
         expect.objectContaining({
-            data: { platform: 'android', permission: 'denied', source: 'native_camera_permission' },
+            data: { os: 'android', permission: 'denied', source: 'native_camera_permission' },
         })
     )
     unmount()
