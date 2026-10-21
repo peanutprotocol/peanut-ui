@@ -956,7 +956,8 @@
                 "noWalletAddress": "Nenhum endereço de carteira encontrado. Tente recarregar a página.",
                 "userNotLoaded": "Seus dados não foram carregados. Recarregue a página.",
                 "setupFailed": "Não conseguimos concluir a configuração da sua conta. Tente de novo pelo botão abaixo.",
-                "supportNeeded": "Estamos com problemas para configurar sua conta. Nosso time já foi notificado. Fale com o suporte para receber ajuda."
+                "supportNeeded": "Estamos com problemas para configurar sua conta. Nosso time já foi notificado. Fale com o suporte para receber ajuda.",
+                "passkeyProviderUnsupported": "O gerenciador de senhas deste celular salvou uma passkey que o Peanut não consegue verificar. Crie sua conta em outro dispositivo."
             }
         },
         "finish": {
