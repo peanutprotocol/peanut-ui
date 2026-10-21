@@ -48,18 +48,15 @@ export const QR_BRAZIL_SCANNER_CODE = {
  * The page's own motion (the QrArgentinaMotionStyle pattern, so the shared
  * star LP kit in globals.css stays untouched): the hero scan bar (Split's
  * ScanningAnimation timing: a 1.8s sweep, then 1.2s rest), a hero sticker
- * that rocks three times and then rests, the Pay button press, and a hover
- * lift on everything that opens signup. Transform and opacity only.
+ * that rocks three times and then rests, the Pay button press, and the DS
+ * press (a 4px drop) on everything that opens signup. Transform and opacity only.
  */
 export const QR_BRAZIL_MOTION_CSS = `
 .qr-br-scanline{display:none;position:absolute;inset:0}
 .qr-br-scanline::before{content:'';position:absolute;inset-inline:0;top:0;height:2px;background:var(--color-pink-500)}
-.qr-br-press{transition:transform 170ms ease-out,scale 150ms ease-out}
+.qr-br-press{transition:transform var(--transition-duration-instant) ease-out}
+.qr-br-press:active{transform:translate(4px,4px)}
 .qr-br-tap::after{content:'';position:absolute;left:3.2%;top:16.7%;width:92.5%;height:61.1%;border-radius:9999px;background:#000;opacity:0}
-@media (hover:hover) and (prefers-reduced-motion:no-preference){
-.qr-br-press:hover{transform:translateY(-4px) rotate(-1deg)}
-.qr-br-wobble:hover,.qr-br-wobble:has(:hover){animation-play-state:paused}
-}
 @media (prefers-reduced-motion:no-preference){
 .qr-br-scanline{display:block;animation:qr-br-scan 3s linear 900ms infinite both}
 .qr-br-wobble{animation:qr-br-wobble 2.4s ease-in-out 600ms 3}

@@ -5,7 +5,7 @@ import type { PeanutCardHeroFaceProps } from './peanutCard.types'
 // The face's offset shadow sits 0.625rem down and right (PixelatedCardFace),
 // so a press moves the face exactly onto it and the shadow disappears.
 const PRESS_CLASS =
-    'transition-transform duration-100 motion-safe:group-active/card:translate-x-[0.625rem] motion-safe:group-active/card:translate-y-[0.625rem]'
+    'transition-transform duration-instant motion-safe:group-active/card:translate-x-[0.625rem] motion-safe:group-active/card:translate-y-[0.625rem]'
 
 /**
  * The hero card, scaled to its column in CSS alone, so it paints with the

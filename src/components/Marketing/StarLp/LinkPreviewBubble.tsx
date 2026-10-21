@@ -18,7 +18,11 @@ export function LinkPreviewBubble({ caption, amount, url, side = 'me' }: LinkPre
         >
             <div className="rounded-card bg-background-brand px-2 pt-3 pb-4 text-center">
                 <span className="block text-body-s-semibold">{caption}</span>
-                <KnerdTitle text={amount} size="inline" className="mt-3" />
+                {amount && (
+                    <span className="mt-3 block">
+                        <KnerdTitle text={amount} size="inline" />
+                    </span>
+                )}
             </div>
             <span className="block px-1 pt-2 text-body-xs text-foreground-primary underline">{url}</span>
         </div>

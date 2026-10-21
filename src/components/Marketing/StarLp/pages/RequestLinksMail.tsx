@@ -11,7 +11,7 @@ const typingDot = 'size-1.5 rounded-full bg-foreground-primary'
  */
 export function RequestLinksMail() {
     return (
-        <div className="shadow-primary-6 mx-auto w-full max-w-[420px] -rotate-1 overflow-hidden rounded-card border-2 border-border-default bg-background-default text-left">
+        <div className="star-lp-hero-ui shadow-primary-6 mx-auto w-full max-w-[420px] -rotate-1 overflow-hidden rounded-card border-2 border-border-default bg-background-default text-left">
             <div className="flex items-center gap-2 border-b-2 border-border-default bg-background-page px-3 py-2 text-label-m">
                 <span className="size-2.5 rounded-full border-2 border-border-default bg-background-default" />
                 <span className="size-2.5 rounded-full border-2 border-border-default bg-background-default" />
@@ -34,7 +34,7 @@ export function RequestLinksMail() {
                 <div className="relative mt-2">
                     <span
                         aria-hidden
-                        className="rl-typing absolute top-0 left-0 items-center gap-1 rounded-card border-2 border-border-default bg-background-default px-3 py-2.5"
+                        className="rl-typing absolute top-0 left-0 items-center gap-1 rounded-card border-2 border-border-default bg-background-default px-3 py-2"
                     >
                         <span className={typingDot} />
                         <span className={typingDot} />

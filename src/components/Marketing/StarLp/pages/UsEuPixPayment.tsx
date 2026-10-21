@@ -14,7 +14,7 @@ export function UsEuPixPayment() {
             aria-label="Lunch paid with Pix: R$ 68,00. See how Pix QR payments work"
             className="group star-lp-own-entrance flex w-fit items-center gap-4 rounded-card"
         >
-            <span className="star-lp-stamp grid h-16 w-16 shrink-0 -rotate-3 place-items-center rounded-card border-2 border-border-default bg-background-default shadow-4 group-active:translate-x-[3px] group-active:translate-y-[3px] group-active:shadow-none motion-safe:transition-[translate,box-shadow] motion-safe:duration-instant xs:h-20 xs:w-20">
+            <span className="star-lp-stamp grid h-16 w-16 shrink-0 -rotate-3 place-items-center rounded-card border-2 border-border-default bg-background-default shadow-4 group-active:translate-x-1 group-active:translate-y-1 group-active:shadow-none motion-safe:transition-[translate,box-shadow] motion-safe:duration-instant xs:h-20 xs:w-20">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                     src={PixLogo.src}

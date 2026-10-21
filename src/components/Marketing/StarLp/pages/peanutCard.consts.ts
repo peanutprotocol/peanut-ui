@@ -11,8 +11,8 @@ export const CARD_LOCK_SCREEN = {
     date: 'Tuesday',
 } as const
 
-/** "Tap. Here's the receipt." fold copy. Konrad iterates it apart from the art (round 3, 21 Oct 2026). */
+/** The receipt fold's copy: the headline alone, no line under it (round 4 pick a7o2,
+    21 Oct 2026). "Verification and approval required." stays in the page metadata. */
 export const CARD_RECEIPT_FOLD_COPY = {
-    title: 'Tap. Here’s the receipt.',
-    line: 'Verification and approval required.',
+    title: 'See every spend.',
 } as const

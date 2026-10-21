@@ -24,25 +24,17 @@ export const REQUEST_LINKS_CLIENT_SEES_EVENT = 'request-links:client-sees'
 export const REQUEST_LINKS_STEP_MS = 450
 
 /**
- * The page's own keyframes and hover states (the QrArgentinaMotionStyle pattern).
+ * The page's own keyframes and press states (the QrArgentinaMotionStyle pattern).
  * Server-rendered, so the hero beat runs before hydration. Transform and opacity
  * only; every motion sits under no-preference, so reduced motion paints at rest.
  */
 export const REQUEST_LINKS_MOTION_CSS = `
-.rl-link{transition:transform 300ms var(--ease-spring)}
+.rl-link{transition:transform var(--transition-duration-instant) ease-out}
 .rl-link .rl-lift{transition:box-shadow 150ms ease-out}
 .rl-link:active{transform:translate(2px,2px)}
 .rl-link[data-sink='md']:active{transform:translate(4px,4px)}
 .rl-link:active .rl-lift{box-shadow:none}
 .rl-typing{display:none}
-@media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
-.rl-link:hover{transform:translateY(-4px) rotate(.75deg)}
-.rl-link:hover .rl-lift.shadow-2{box-shadow:.25rem .25rem 0 #000}
-.rl-link:hover .rl-lift.shadow-4{box-shadow:6px 6px 0 #000}
-.rl-link:hover:active{transform:translate(2px,2px)}
-.rl-link[data-sink='md']:hover:active{transform:translate(4px,4px)}
-.rl-link:hover:active .rl-lift{box-shadow:none}
-}
 @media (prefers-reduced-motion:no-preference){
 .rl-typing{display:flex;animation:rl-typing-out 900ms linear both}
 .rl-typing>span{animation:rl-typing-dot 450ms ease-in-out 300ms both}

@@ -1,5 +1,5 @@
 const ROWS = [
-    ['Peanut fee to make it', '$0.00'],
+    ['Peanut fee to create it', '$0.00'],
     ['Peanut fee to pay it', '$0.00'],
     ['Amount', 'Any'],
     ['Expires', 'Never'],
@@ -7,26 +7,29 @@ const ROWS = [
 
 const TEETH_ID = 'request-links-receipt-teeth'
 
-/** Fold 4: the request terms as a till receipt (request-links.md: free, no limits, no expiry). */
+/**
+ * Fold 4: the request terms as a till receipt (request-links.md: free, no limits,
+ * no expiry). "The small print, in large type": the values are set at heading size.
+ */
 export function RequestLinksReceipt() {
     return (
-        // 336 px is 21 teeth, so the zigzag meets both side borders at a full tooth.
-        <div className="mx-auto w-full max-w-[336px]">
-            <div className="border-x-2 border-t-2 border-border-default bg-background-default px-4 pt-6 pb-6 font-mono text-body-s">
+        // 336 px is 21 teeth and 448 px is 28, so the zigzag meets both side borders at a full tooth.
+        <div className="mx-auto w-full max-w-[336px] md:max-w-[448px]">
+            <div className="border-x-2 border-t-2 border-border-default bg-background-default px-4 pt-6 pb-6 font-mono text-body-s md:px-6 md:text-body-m">
                 <p className="text-center font-extraBlack tracking-widest">*** PEANUT REQUEST ***</p>
                 <dl className="mt-3">
                     {ROWS.map(([label, value], i) => (
                         <div
                             key={label}
-                            className={`flex justify-between gap-2 py-2 ${i < ROWS.length - 1 ? 'border-b-2 border-dashed border-border-subtle' : ''}`}
+                            className={`flex items-baseline justify-between gap-2 py-3 ${i < ROWS.length - 1 ? 'border-b-2 border-dashed border-border-subtle' : ''}`}
                         >
                             <dt>{label}</dt>
-                            <dd className="font-extraBlack">{value}</dd>
+                            <dd className="text-heading-s md:text-heading-l">{value}</dd>
                         </div>
                     ))}
                 </dl>
-                <p className="mt-3 text-body-xs">Their exchange or wallet may charge its usual fee.</p>
-                <p className="mt-4 text-center text-body-xs">THANK YOU · COME AGAIN</p>
+                <p className="mt-3">Their exchange or wallet may charge its usual fee.</p>
+                <p className="mt-4 text-center">THANK YOU · COME AGAIN</p>
             </div>
             {/* The torn edge: white teeth with a thin outline and no offset shadow, as in the approved mock. */}
             <svg aria-hidden className="block h-[10px] w-full">

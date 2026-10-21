@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { motion, MotionConfig, type TargetAndTransition } from 'framer-motion'
 import { HeroBackNav } from '@/components/Marketing/HeroBackNav'
 import { twMerge } from '@/utils/tw'
@@ -39,7 +39,20 @@ interface ProductSplitHeroProps {
         bottom edge, which cuts it; from `lg` it stands at the right, beside
         the copy, and the hero fills the first screen above the marquee. */
     artPlacement?: 'headline' | 'edge'
+    /** `center` only: the fit properties of a Follow the pull headline
+        (knerdPullFitStyle), so the art's tuck under it follows its size. */
+    knerdFit?: CSSProperties
+    /** `center`, art under the headline only: how far the art tucks up under
+        the headline. `deep` (default): a share of the Knerd's size. `rim`: from
+        md, only the art's top edge meets the Knerd's ink, so a title bar under
+        it stays readable. `none`: the art starts below the headline. */
+    artTuck?: 'deep' | 'rim' | 'none'
+    /** Nodes with no box of their own (a noscript style, a hidden description),
+        rendered in the section so the h1 holds only its words. */
+    support?: ReactNode
 }
+
+const ART_TUCK_CLASS = { deep: 'psh-art-tuck', rim: 'psh-art-tuck psh-art-tuck-rim', none: '' } as const
 
 /**
  * The sub-LP hero: text left, product art right, on the
@@ -57,6 +70,9 @@ export function ProductSplitHero({
     align = 'start',
     headlineTail,
     artPlacement = 'headline',
+    knerdFit,
+    artTuck = 'deep',
+    support,
 }: ProductSplitHeroProps) {
     const centered = align === 'center'
     const artOnEdge = centered && artPlacement === 'edge'
@@ -95,10 +111,12 @@ export function ProductSplitHero({
                 force 100% leading and -1px tracking. */}
             {lead && (
                 <p
+                    data-knerd-below={centered ? '' : undefined}
                     className={twMerge(
                         !centered && 'font-roboto-flex',
-                        centered && 'psh-lead-fit',
-                        centered ? 'mt-4 md:mt-6' : 'mt-6',
+                        // pretty: a wrapped subtitle never leaves one word alone above the CTA
+                        centered && 'psh-lead-fit text-pretty',
+                        centered ? 'mt-4 md:mt-6 lg:mt-4' : 'mt-6',
                         'text-body-l',
                         copyWidth
                     )}
@@ -151,12 +169,14 @@ export function ProductSplitHero({
             <section
                 className={twMerge(
                     'relative overflow-hidden bg-background-brand px-4 py-20 text-foreground-primary md:py-24',
-                    centered && 'psh-fit pt-18 pb-14 md:pt-18 md:pb-16',
+                    // centred: the DS mobile gutter (24px), as on the bands below
+                    centered && 'psh-fit px-6 pt-16 pb-14 md:px-4 md:pt-16 md:pb-16',
                     artOnEdge && 'psh-fit-edge pb-0 md:pb-0 lg:pb-16'
                 )}
             >
                 {/* framer serialises the hidden start state inline; no-JS visitors get the garnish at rest */}
                 <noscript dangerouslySetInnerHTML={{ __html: NO_JS_DECO }} />
+                {support}
                 <HeroBackNav />
                 {!centered && leadStar('absolute top-[8%] left-[3%] z-10 w-10 md:top-[12%] md:left-[6%] md:w-14')}
                 {/* Art on the edge fills the bottom right, so this star moves to the bottom left;
@@ -196,10 +216,12 @@ export function ProductSplitHero({
                     <div
                         className={twMerge(
                             'psh-fit-grid relative z-20 mx-auto flex max-w-7xl flex-col items-center text-center',
-                            // lg+: the art stands in the right 28rem; the copy fills the
-                            // first screen above the marquee and centres in it.
-                            artOnEdge && 'lg:min-h-[calc(100svh-60px-8.5rem)] lg:justify-center lg:pr-[28rem]'
+                            knerdFit && 'star-lp-knerd-fit',
+                            // lg+: the hero fills the first screen above the marquee (globals.css
+                            // centres the copy beside the art).
+                            artOnEdge && 'lg:min-h-[calc(100svh-60px-8.5rem)]'
                         )}
+                        style={knerdFit}
                     >
                         <div className="psh-copy-fit relative z-30 w-full">
                             {leadStar(
@@ -207,24 +229,36 @@ export function ProductSplitHero({
                             )}
                             {heading}
                         </div>
+                        {/* The tuck (globals.css) is a share of the Knerd's own size. */}
                         {!artOnEdge && (
-                            <div className="psh-art-fit relative z-10 -mt-4 w-full max-w-md md:max-w-lg lg:-mt-12">
+                            <div className={twMerge('psh-art-fit relative z-10 w-full', ART_TUCK_CLASS[artTuck])}>
                                 {artBlock}
                             </div>
                         )}
-                        {headlineTail && (
-                            <div aria-hidden className="psh-tail-fit relative z-30 mt-3 w-full">
-                                {headlineTail}
+                        {/* A plain box in the column; from lg with the art on the edge it is the
+                            copy column left of the art (globals.css). data-knerd-below: the
+                            Knerd's entrance stops short of the first of these. */}
+                        <div className="psh-below-fit">
+                            {headlineTail && (
+                                // Right under the Knerd (art on the edge) it keeps the reference's 20px
+                                // gap (hero.css .hero-body), the room the letters' rise is measured against.
+                                <div
+                                    aria-hidden
+                                    data-knerd-below=""
+                                    className={twMerge('psh-tail-fit relative z-30 mt-3 w-full', artOnEdge && 'mt-6')}
+                                >
+                                    {headlineTail}
+                                </div>
+                            )}
+                            {copy}
+                            <div data-knerd-below="" className="psh-cta-fit relative mt-6 w-fit">
+                                {cta}
+                                {ctaSparkle}
                             </div>
-                        )}
-                        {copy}
-                        <div className="psh-cta-fit relative mt-6 w-fit">
-                            {cta}
-                            {ctaSparkle}
                         </div>
                         {/* lg:-bottom-16 cancels the section's lg:pb-16, so the art stands on the edge. */}
                         {artOnEdge && (
-                            <div className="psh-art-fit psh-art-edge relative z-10 mt-10 w-full max-w-[330px] lg:absolute lg:right-0 lg:-bottom-16 lg:mt-0 lg:max-w-[440px]">
+                            <div className="psh-art-fit psh-art-edge relative z-10 mt-10 lg:absolute lg:right-0 lg:-bottom-16 lg:mt-0">
                                 {artBlock}
                             </div>
                         )}

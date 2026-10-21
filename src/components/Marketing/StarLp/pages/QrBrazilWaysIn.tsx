@@ -1,8 +1,8 @@
 import { Icon } from '@/components/Global/Icons/Icon'
 import { PopIn } from '@/components/Marketing/StarLp/PopIn'
 
-const LABEL = 'text-body-m-semibold'
-const VALUE = 'break-all text-body-s xs:text-body-m'
+const LABEL = 'text-body-m-semibold lg:text-heading-xs'
+const VALUE = 'break-all text-body-s xs:text-body-m lg:text-body-l'
 
 /**
  * The three things Peanut pays at a Brazilian counter: a Pix QR, a Pix key, a
@@ -14,7 +14,7 @@ const VALUE = 'break-all text-body-s xs:text-body-m'
  */
 export function QrBrazilWaysIn() {
     return (
-        <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-4 gap-y-4 text-left xs:grid-cols-[7rem_minmax(0,1fr)] md:grid-cols-[9rem_minmax(0,1fr)]">
+        <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-4 gap-y-4 text-left xs:grid-cols-[7rem_minmax(0,1fr)] md:grid-cols-[9rem_minmax(0,1fr)] lg:grid-cols-[11rem_minmax(0,1fr)] lg:gap-x-6">
             <PopIn className="row-span-2 grid gap-1 self-end" tilt={-2}>
                 <span className={LABEL}>Pix QR</span>
                 <span

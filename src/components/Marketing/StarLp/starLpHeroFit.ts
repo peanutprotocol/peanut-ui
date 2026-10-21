@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { knerdLetters } from '@/components/0_Bruddle/Title.consts'
 
 /**
  * The star-LP hero h1 fills its fold like the peanut.me hero: every line is
@@ -118,13 +119,82 @@ export function heroLineEm(text: string, face: HeroFitFace): number {
     return Math.max(0.5, ...widths)
 }
 
-/** The hero line classes: font size from the line's width and line count (globals.css). */
-export const HERO_FIT_CLASS: Record<HeroFitFace, string> = {
-    knerd: 'star-lp-fit-knerd',
-    display: 'star-lp-fit-display',
-}
-
 /** Inline custom properties the .star-lp-fit-* rules size the line from. */
 export function heroFitStyle(em: number, lines = 1): CSSProperties {
     return { '--fit-em': em.toFixed(3), '--fit-lines': lines } as CSSProperties
+}
+
+/**
+ * Follow the pull sets each Knerd letter in its own box, so pair kerning is
+ * gone and a letter takes its own advance. These glyphs differ from the line
+ * measurement above; measured the same way (Chromium, 1000px, -0.065em).
+ */
+const KNERD_LETTER_ADVANCE: Record<string, number> = { ...KNERD_ADVANCE, E: 0.594, N: 0.786, P: 0.583, X: 0.78 }
+
+/** Roboto Flex 900 lower case at the join word's -0.035em tracking, em. */
+const JOIN_ADVANCE: Record<string, number> = {
+    a: 0.575,
+    b: 0.593,
+    c: 0.542,
+    d: 0.593,
+    e: 0.546,
+    f: 0.291,
+    g: 0.593,
+    h: 0.58,
+    i: 0.261,
+    j: 0.264,
+    k: 0.538,
+    l: 0.26,
+    m: 0.894,
+    n: 0.58,
+    o: 0.59,
+    p: 0.593,
+    q: 0.593,
+    r: 0.342,
+    s: 0.519,
+    t: 0.315,
+    u: 0.58,
+    v: 0.503,
+    w: 0.82,
+    x: 0.523,
+    y: 0.519,
+    z: 0.479,
+}
+
+const isJoinWord = (word: string, join?: string) => !!join && word.toLowerCase() === join.toLowerCase()
+
+/** Width of one Follow the pull line in em of the Knerd size: letters, a spacer between Knerd words, the join word with its margins. */
+export function knerdPullLineEm(line: string, join?: string): number {
+    const words = line.split(' ').filter(Boolean)
+    const { space, join: joinType } = knerdLetters
+    return words.reduce((sum, word, i) => {
+        if (isJoinWord(word, join)) {
+            const text = [...word.toLowerCase()].reduce(
+                (w, glyph) => w + (JOIN_ADVANCE[glyph] ?? FALLBACK_ADVANCE.display),
+                0
+            )
+            return sum + joinType.size * (text + 2 * parseFloat(joinType.marginInline))
+        }
+        const spacer = i > 0 && !isJoinWord(words[i - 1], join) ? space : 0
+        const letters = [...word.toUpperCase()].reduce(
+            (w, glyph) =>
+                w + (KNERD_LETTER_ADVANCE[glyph] ?? (/\d/.test(glyph) ? DIGIT_ADVANCE.knerd : FALLBACK_ADVANCE.knerd)),
+            0
+        )
+        return sum + spacer + letters
+    }, 0)
+}
+
+/**
+ * The inline custom properties .star-lp-knerd-fit sizes a Follow the pull
+ * headline from (globals.css): the wide phrase's width, and the widest
+ * stacked line's width and the line count for 600px and below.
+ */
+export function knerdPullFitStyle(text: string, join?: string): CSSProperties {
+    const lines = text.split('\n')
+    return {
+        '--knerd-em-wide': knerdPullLineEm(lines.join(' '), join).toFixed(3),
+        '--knerd-em-stacked': Math.max(...lines.map((line) => knerdPullLineEm(line, join))).toFixed(3),
+        '--knerd-lines-stacked': lines.length,
+    } as CSSProperties
 }

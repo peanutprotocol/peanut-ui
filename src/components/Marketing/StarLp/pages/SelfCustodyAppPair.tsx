@@ -21,7 +21,7 @@ const RING_DELAY = 1.3
  */
 export function SelfCustodyAppPair() {
     return (
-        <div className="mx-auto grid w-full max-w-md grid-cols-2 gap-3 md:mx-0 md:gap-4">
+        <div className="mx-auto grid w-full max-w-md grid-cols-2 gap-3 md:gap-4 lg:mr-0 lg:[zoom:1.5]">
             <PopIn>
                 <p aria-hidden className="mb-2 text-label-l">
                     Usual app
@@ -45,7 +45,7 @@ export function SelfCustodyAppPair() {
                 </p>
                 <div role="img" aria-label={`Peanut: balance ${BALANCE}, Send available`}>
                     <SelfCustodyAppLink>
-                        <PhoneFrame>
+                        <PhoneFrame className="transition-shadow duration-instant group-active:shadow-none">
                             <div className="-m-3 grid min-h-40 content-center bg-background-page">
                                 <div className="relative">
                                     <Image

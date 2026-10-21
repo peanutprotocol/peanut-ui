@@ -11,10 +11,10 @@ import type { QrBrazilAppLinkProps } from './qrBrazil.types'
 /**
  * Makes a sticker or a capture open what the page's CTA opens: signup, or
  * /app and the download modal when the PWA sunset is on. A phone cannot scan
- * its own screen, so a tap on the code does what the scan would. With a mouse
- * it lifts and tilts on hover (.qr-br-press, QrBrazilMotionStyle; children
- * grow their shadow via `group-hover`). Pressing it gives the DS press (scale
- * down; children drop their shadow via `group-active`).
+ * its own screen, so a tap on the code does what the scan would. Pressing it
+ * gives the DS press: it drops 4px (.qr-br-press, QrBrazilMotionStyle) and its
+ * child's 4px shadow goes (`group-active`). Hover adds no motion
+ * (design.md § marketing components).
  */
 export function QrBrazilAppLink({ children, className, label }: QrBrazilAppLinkProps) {
     const migrationOn = useMigrationFlag()
@@ -24,7 +24,7 @@ export function QrBrazilAppLink({ children, className, label }: QrBrazilAppLinkP
             href={migrationOn ? '/app' : STAR_LP_HREF.signup}
             prefetch={false}
             {...(label ? { 'aria-label': label } : { tabIndex: -1, 'aria-hidden': true })}
-            className={twMerge('qr-br-press group block active:scale-[0.96] motion-reduce:transition-none', className)}
+            className={twMerge('qr-br-press group block', className)}
             onClick={(event) => {
                 if (interceptAppCta(MIGRATION_SURFACES.STAR_LP)) event.preventDefault()
             }}

@@ -24,7 +24,8 @@ export function StarLpQrCode({ campaign, slot, className }: StarLpQrCodeProps) {
     const url = starLpQrUrl({ origin, migrationOn, campaign, slot })
     return (
         <div className={twMerge('block aspect-square text-foreground-primary', className)} data-qr-url={url}>
-            <div className="size-full bg-background-default p-[10%]">
+            {/* The quiet zone scales with the code, so it is a share of the width, not a spacing step. */}
+            <div className="size-full bg-background-default" style={{ padding: '10%' }}>
                 <QRCode
                     value={url}
                     level={STAR_LP_QR_LEVEL}

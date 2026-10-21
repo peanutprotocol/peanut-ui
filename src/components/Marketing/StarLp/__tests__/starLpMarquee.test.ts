@@ -4,12 +4,21 @@ import { marqueeStripGround, seamNeedsMarquee } from '@/components/Marketing/Sta
 describe('marqueeStripGround', () => {
     it('takes the first colour neither neighbour has', () => {
         expect(marqueeStripGround(['pink', 'yellow'])).toBe('sky')
-        expect(marqueeStripGround(['sky', 'black'])).toBe('yellow')
+        expect(marqueeStripGround(['sky', 'black'])).toBe('pink')
         expect(marqueeStripGround(['yellow', 'sky'])).toBe('pink')
+        expect(marqueeStripGround(['pink', 'sky'])).toBe('white')
+    })
+
+    it('never picks yellow (design.md: the yellow marquee is home-only)', () => {
+        const grounds = ['pink', 'cream', 'sky', 'yellow', 'black', 'white'] as const
+        for (const above of grounds)
+            for (const below of grounds) {
+                expect(marqueeStripGround([above, below])).not.toBe('yellow')
+            }
     })
 
     it('treats cream as white', () => {
-        expect(marqueeStripGround(['cream', 'pink'])).toBe('yellow')
+        expect(marqueeStripGround(['cream', 'pink'])).toBe('sky')
         expect(marqueeStripGround(['white', 'yellow'])).toBe('sky')
     })
 })

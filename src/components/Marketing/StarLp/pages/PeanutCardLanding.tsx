@@ -1,7 +1,5 @@
 import { CloseFold } from '@/components/Marketing/StarLp/CloseFold'
-import { DisplayLine } from '@/components/Marketing/StarLp/DisplayLine'
 import { DropIn } from '@/components/Marketing/StarLp/DropIn'
-import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
 import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
 import { PeanutCardCta } from './PeanutCardCta'
@@ -13,11 +11,11 @@ import { PeanutCardReceiptFold } from './PeanutCardReceiptFold'
 // Marquee words: card.md (virtual, Visa, issuance free, no monthly fee, freeze and
 // limit in the app) under Rain's marketing rules: Visa only as acceptance (§14),
 // no debit/prepaid (§6.2), no country or "everywhere" (§7, §12), §15 wording.
-const HERO_SEAM: string[] = ['Virtual', 'Tap to pay', 'US dollars', 'Card details in the app']
+const HERO_SEAM: string[] = ['Virtual', 'Pay online', 'US dollars', 'Card details in the app']
 const NOT_FOR_YOU_SEAM: string[] = ['Free virtual card', 'No monthly fee', 'Freeze anytime', 'Online and in-app']
 const CLOSE_SEAM: string[] = [
     'Accepted wherever Visa is accepted',
-    'Spend card',
+    'Peanut Card',
     'Real-world spending',
     'Set your limit',
 ]
@@ -31,15 +29,17 @@ export function PeanutCardLanding() {
     return (
         <>
             <StarLpHero
-                title={
-                    <>
-                        <DisplayLine size="masthead">US Dollar Card</DisplayLine>
-                        <KnerdTitle text="In pink" size="masthead" />
-                    </>
-                }
+                lead="US Dollar Card"
+                knerd={'In\npink'}
                 subtitle="Accepted wherever Visa is accepted. Add it to Apple Pay or Google Pay where available in your region, then tap."
+                // the tilt lifts the card's top right corner, where the Visa mark sits, so it starts below the Knerd
+                artTuck="none"
                 art={
-                    <DropIn fromTilt={-24} tilt={-7} className="mx-auto w-full max-w-sm px-2 pb-3 md:max-w-md md:pb-4">
+                    <DropIn
+                        fromTilt={-24}
+                        tilt={-7}
+                        className="mx-auto w-full max-w-sm px-2 pb-3 md:max-w-lg md:pb-4 lg:max-w-xl lg:pb-6"
+                    >
                         <PeanutCardHeroLink />
                     </DropIn>
                 }
@@ -48,7 +48,7 @@ export function PeanutCardLanding() {
 
             <StarLpMarquee between={['pink', 'cream']} words={HERO_SEAM} />
 
-            <PeanutCardReceiptFold title={CARD_RECEIPT_FOLD_COPY.title} line={CARD_RECEIPT_FOLD_COPY.line} />
+            <PeanutCardReceiptFold title={CARD_RECEIPT_FOLD_COPY.title} />
 
             <PeanutCardNotForYou />
 

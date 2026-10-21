@@ -11,9 +11,9 @@ import { REQUEST_LINKS_CLIENT_SEES_EVENT } from './requestLinks.consts'
 import type { RequestLinksAppLinkProps } from './requestLinks.types'
 
 /**
- * The DS press, hover lift and sink live in REQUEST_LINKS_MOTION_CSS (.rl-link):
- * the piece lifts on a fine-pointer hover and sinks into its hard shadow on press.
- * A child marked .rl-lift carries the shadow that steps up and drops.
+ * The DS press lives in REQUEST_LINKS_MOTION_CSS (.rl-link): the piece sinks
+ * into its hard shadow on press, and hover adds no motion (design.md § marketing
+ * components). A child marked .rl-lift carries the shadow that drops.
  */
 const LINK = 'rl-link block cursor-pointer focus-visible:outline-[3px] focus-visible:outline-action-focus'
 

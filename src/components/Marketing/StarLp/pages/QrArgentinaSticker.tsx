@@ -6,8 +6,8 @@ import { QrArgentinaAppLink } from './QrArgentinaAppLink'
 /**
  * The till's "Pagá con QR" sticker: a white card, black outline, hard shadow
  * and a scannable QR that opens Peanut. A phone cannot scan its own screen,
- * so a tap opens the same place. It lifts on hover and presses into its
- * shadow like the DS Button (.qr-ar-press, QrArgentinaMotionStyle).
+ * so a tap opens the same place. It presses into its shadow like the DS
+ * Button (.qr-ar-press, QrArgentinaMotionStyle); hover adds no motion.
  */
 export function QrArgentinaSticker({ slot, className }: { slot: StarLpQrSlot; className?: string }) {
     return (

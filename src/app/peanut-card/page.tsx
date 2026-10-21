@@ -13,7 +13,7 @@ export const metadata = starLpMetadata({
 
 export default function Page() {
     return (
-        <StarLpPage siteDirectory={false}>
+        <StarLpPage siteDirectory={false} localeSwitcher={false}>
             <PeanutCardLanding />
         </StarLpPage>
     )

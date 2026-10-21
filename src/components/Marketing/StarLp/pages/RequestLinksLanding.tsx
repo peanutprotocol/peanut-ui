@@ -10,7 +10,12 @@ import { StarLpFaq } from '@/components/Marketing/StarLp/StarLpFaq'
 import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
 import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
 import { TrustBand } from '@/components/Marketing/StarLp/TrustBand'
-import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
+import {
+    STAR_LP_HREF,
+    STAR_LP_SKY_CLOUDS,
+    STAR_LP_SKY_CLOUDS_CLASS,
+    STAR_LP_TRUST_LINE,
+} from '@/components/Marketing/StarLp/starLp.consts'
 import type { StarLpFaqItem } from '@/components/Marketing/StarLp/starLp.types'
 import { RequestLinksExclamations } from './RequestLinksExclamations'
 import { RequestLinksLinkCard } from './RequestLinksLinkCard'
@@ -35,7 +40,7 @@ const FAQ: StarLpFaqItem[] = [
     {
         id: 'client-account',
         question: 'Does my client need an account?',
-        answer: 'Not if you’re verified. They can pay with crypto from an exchange or wallet, with no sign-up. A bank transfer goes through a Peanut account.',
+        answer: 'Not if you’re verified. They can pay from an exchange or wallet, with no sign-up. A bank transfer goes through a Peanut account.',
     },
     {
         id: 'invoice',
@@ -53,7 +58,7 @@ const FAQ: StarLpFaqItem[] = [
 // no expiry, use cases). Never Pix or Mercado Pago: they cannot fund a request.
 const HERO_SEAM: string[] = ['One link', 'Invoices', 'Emails', 'Chats', 'Printed QR']
 const OLD_REPLY_SEAM: string[] = ['Exchange', 'Wallet', 'Bank transfer', 'Peanut balance']
-const CLIENT_SEAM: string[] = ['Instant from Peanut', 'Minutes from a wallet', 'No escrow', 'Any amount']
+const CLIENT_SEAM: string[] = ['Instant from a Peanut balance', 'Minutes from a wallet', 'No escrow', 'Any amount']
 const TIMELINE_SEAM: string[] = ['Free to create', 'Free to pay', 'Never expires', 'Many can chip in']
 const SMALL_PRINT_SEAM: string[] = ['Tips', 'Group gifts', 'Donations', 'Split bills']
 const FAQ_SEAM: string[] = ['Verify once', 'Passkey sign-in', 'Self-custodial', 'Your balance']
@@ -66,14 +71,13 @@ export function RequestLinksLanding() {
         <>
             <RequestLinksMotionStyle />
             <StarLpHero
-                title={
-                    <>
-                        <DisplayLine size="masthead">&ldquo;How do I pay you?&rdquo;</DisplayLine>
-                        <KnerdTitle text={'Send\nthis.'} size="masthead" oneLineFrom="lg" />
-                    </>
-                }
-                subtitle="One link. They pay. It lands in your balance."
+                lead="“How do I pay you?”"
+                knerd={'Send\nthis.'}
+                // no-break spaces: a wrapped line breaks only between the sentences
+                subtitle={'One link. They pay. It\u00a0lands\u00a0in\u00a0your\u00a0balance.'}
                 art={<RequestLinksMail />}
+                // the mail's title bar stays readable under the wide Knerd
+                artTuck="rim"
                 cta={
                     <StarLpCta href={STAR_LP_HREF.signup} ground="pink">
                         {CTA_LABEL}
@@ -84,7 +88,9 @@ export function RequestLinksLanding() {
             <StarLpMarquee between={['pink', 'cream']} words={HERO_SEAM} />
 
             <Band ground="cream">
-                <div className={twoColumns}>
+                {/* One column until lg, like the small print: at md the half-width thread squeezed
+                    "Payment received" onto two lines. */}
+                <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-12">
                     <SectionTitle>
                         The old reply took a{' '}
                         <span className="whitespace-nowrap">
@@ -92,7 +98,7 @@ export function RequestLinksLanding() {
                             <RequestLinksExclamations />
                         </span>
                     </SectionTitle>
-                    <div className="w-full max-w-[520px] md:justify-self-end">
+                    <div className="w-full max-w-[520px] lg:[zoom:1.15] lg:justify-self-end">
                         <RequestLinksOldReply />
                     </div>
                 </div>
@@ -102,17 +108,12 @@ export function RequestLinksLanding() {
 
             {/* Link cards scroll here: "what your client sees" is where a request link opens. */}
             <Band ground="sky" id={REQUEST_LINKS_CLIENT_SEES_ID} className="scroll-mt-16">
-                {/* Band clips (overflow-hidden) and its column is relative z-10: the clouds span the band width behind the content. */}
-                <CloudsCss
-                    clouds={[
-                        { top: '18%', width: 160, speed: '40s', direction: 'ltr' },
-                        { top: '72%', width: 190, speed: '46s', direction: 'rtl' },
-                    ]}
-                    className="pointer-events-none left-1/2 -z-10 w-screen -translate-x-1/2"
-                />
+                {/* In the band's paddings, as on /us-europe-accounts, so no cloud peeks from behind the phone. */}
+                <CloudsCss clouds={[...STAR_LP_SKY_CLOUDS]} className={STAR_LP_SKY_CLOUDS_CLASS} />
                 <div className={twoColumns}>
                     <SectionTitle>This is what your client sees.</SectionTitle>
-                    <PopIn tilt={-1}>
+                    {/* lg scales the art (zoom keeps its proportions) so it holds its column beside the title */}
+                    <PopIn tilt={-1} className="lg:[zoom:1.25]">
                         <RequestLinksPayScreen />
                     </PopIn>
                 </div>
@@ -130,9 +131,11 @@ export function RequestLinksLanding() {
             <StarLpMarquee between={['white', 'yellow']} words={TIMELINE_SEAM} />
 
             <Band ground="yellow">
-                <div className={twoColumns}>
+                {/* one column until lg: at md a half column wraps the receipt's labels */}
+                <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-12">
                     <SectionTitle>The small print, in large type.</SectionTitle>
-                    <div className="relative">
+                    {/* stacked, the box hugs the receipt so the hand keeps its place at the receipt's corner */}
+                    <div className="relative mx-auto w-full max-w-[536px] lg:max-w-none">
                         <RequestLinksReceiptPrint />
                         <PopIn
                             delay={1.1}
@@ -155,7 +158,7 @@ export function RequestLinksLanding() {
             </Band>
 
             <StarLpMarquee between={['yellow', 'black']} ground="pink" words={SMALL_PRINT_SEAM} />
-            <TrustBand text={'No one can block you\nor take your funds.'} />
+            <TrustBand text={STAR_LP_TRUST_LINE} />
             <StarLpFaq items={FAQ} />
             <StarLpMarquee between={['cream', 'pink']} words={FAQ_SEAM} />
 
@@ -168,9 +171,12 @@ export function RequestLinksLanding() {
                     <DisplayLine>
                         Next time they ask, <span className="whitespace-nowrap">you&apos;ll have</span>
                     </DisplayLine>
-                    <KnerdTitle text="the link." size="hero" className="mt-6 md:mt-10 lg:mt-14" />
+                    <span className="mt-6 block md:mt-10 lg:mt-14">
+                        <KnerdTitle text="the link." size="hero" />
+                    </span>
                 </h2>
-                <div className="mx-auto mt-8 flex max-w-md flex-col gap-3 text-left">
+                {/* md+ scales the thread as a whole (zoom keeps its proportions) so it holds up beside the Knerd */}
+                <div className="mx-auto mt-8 flex max-w-md flex-col gap-3 text-left md:[zoom:1.3]">
                     <PopIn className="w-fit max-w-[80%] self-start">
                         <p className="rounded-card border-2 border-border-default bg-background-default px-3 py-2 text-label-l">
                             Logo looks great! How do I pay you?

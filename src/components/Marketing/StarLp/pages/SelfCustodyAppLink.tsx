@@ -12,7 +12,9 @@ import type { SelfCustodyAppLinkProps } from './selfCustody.types'
  * Makes a real app capture open what the page's CTA opens: signup (where the
  * passkey is made), or /app and the download modal when the PWA sunset is on.
  * It repeats a visible CTA, so it stays out of the tab order and the
- * accessibility tree; the CTA is the keyboard path.
+ * accessibility tree; the CTA is the keyboard path. A press is the DS press:
+ * it drops 4px and the phone inside drops its 4px shadow (`group-active`).
+ * Hover adds no motion (design.md § marketing components).
  */
 export function SelfCustodyAppLink({ children, className }: SelfCustodyAppLinkProps) {
     const migrationOn = useMigrationFlag()
@@ -24,8 +26,7 @@ export function SelfCustodyAppLink({ children, className }: SelfCustodyAppLinkPr
             tabIndex={-1}
             aria-hidden
             className={twMerge(
-                // peanutsplit FinalCta: lift on a mouse hover, sink on press; transform only, off under reduced motion
-                'block motion-safe:transition-transform motion-safe:duration-[170ms] motion-safe:ease-out motion-safe:active:translate-y-[0.1rem] motion-safe:active:scale-[0.985] motion-safe:active:rotate-0 motion-safe:active:duration-[90ms] motion-safe:[@media(pointer:fine)]:hover:-translate-y-1 motion-safe:[@media(pointer:fine)]:hover:-rotate-[0.5deg]',
+                'group block transition-transform duration-instant active:translate-x-1 active:translate-y-1',
                 className
             )}
             onClick={(event) => {

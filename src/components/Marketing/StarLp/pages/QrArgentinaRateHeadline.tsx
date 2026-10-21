@@ -1,10 +1,10 @@
-import { formatUsdArsRate } from './qrArgentinaRate.utils'
 import type { QrArgentinaRateHeadlineProps } from './qrArgentina.types'
 
 /**
- * Today's rate as the fold's h2: "$1 =" over the live ARS figure in Roboto Flex
- * extra-black, sized to the column (a container-width font size), with a small
- * "ARS" on its baseline. Screen readers get the live rate once, not the count.
+ * The rate as the fold's h2: "$1 =" (live) or "$1 ≈" (last-known, rounded) over
+ * the ARS figure in Roboto Flex extra-black, sized to the column (a
+ * container-width font size), with a small "ARS" on its baseline. Screen
+ * readers get the value once, not the count.
  */
 export function QrArgentinaRateHeadline({ headline, shown, numberRef }: QrArgentinaRateHeadlineProps) {
     return (
@@ -14,13 +14,14 @@ export function QrArgentinaRateHeadline({ headline, shown, numberRef }: QrArgent
                 // inline: the unlayered .font-roboto-flex-extrabold line-height (100%) beats a leading-* class
                 style={{ fontSize: headline.fontSize, lineHeight: 0.86 }}
             >
-                <span className="sr-only">{`$1 = ${headline.value} ARS`}</span>
-                <span aria-hidden className="mb-[0.12em] block text-[0.5em]">
-                    $1 =
+                <span className="sr-only">{headline.label}</span>
+                {/* The lead and "ARS" are shares of the fitted size, so they scale with it (inline, like the size). */}
+                <span aria-hidden className="block" style={{ fontSize: '0.5em', marginBottom: '0.12em' }}>
+                    {headline.lead}
                 </span>
-                <span ref={numberRef} aria-hidden className="flex items-baseline gap-[0.05em]">
-                    <span>{formatUsdArsRate(shown)}</span>
-                    <span className="text-[0.26em]">ARS</span>
+                <span ref={numberRef} aria-hidden className="flex items-baseline" style={{ columnGap: '0.05em' }}>
+                    <span>{shown}</span>
+                    <span style={{ fontSize: '0.26em' }}>ARS</span>
                 </span>
             </h2>
         </div>

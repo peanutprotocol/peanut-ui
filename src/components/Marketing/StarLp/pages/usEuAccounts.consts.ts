@@ -1,4 +1,7 @@
-import type { CloudConfig } from '@/components/LandingPage/CloudsCss'
+import type { UsEuStripTone } from './usEuAccounts.types'
+
+/** The client's SEPA transfer in How it works, in euros. */
+export const US_EU_EUR_IN = 1500
 
 /** Fulano's EUR account as the hero capture masks it (fixture IBAN DE89 3704 0044 0532 0130 00). */
 export const US_EU_IBAN_MASKED = 'DE89 •••• •••• 0130 00'
@@ -9,8 +12,9 @@ export const US_EU_REQUEST_HREF = {
     signedIn: '/request',
 } as const
 
-/** Two drifting clouds in the sky fold (peanut.me's CloudsCss), so the chat stays the focus. */
-export const US_EU_SKY_CLOUDS = [
-    { top: '18%', width: 180, speed: '38s', direction: 'ltr' },
-    { top: '70%', width: 200, speed: '34s', direction: 'rtl' },
-] as const satisfies CloudConfig[]
+/** Strip ground and disc ground per tone. */
+export const US_EU_STRIP_TONE: Record<UsEuStripTone, { strip: string; disc: string }> = {
+    white: { strip: 'bg-background-default', disc: 'bg-background-brand' },
+    pink: { strip: 'bg-background-brand', disc: 'bg-background-default' },
+    green: { strip: 'bg-background-badge-success', disc: 'bg-background-brand' },
+}

@@ -9,10 +9,10 @@ import { QrArgentinaSticker } from './QrArgentinaSticker'
 /**
  * The till's QR sticker next to the real Peanut scanner. The phone stands
  * upright and the hero's bottom edge cuts it (artPlacement="edge"), so it
- * rises out of the marquee below: its top 520 px show under lg, cut in the
- * dark band under the scan window, and 630 px from lg, which brings in the
- * network labels (Mercado Pago among them: this page's rail). No fade: the
- * cut is hard.
+ * rises out of the marquee below: its top 520 px show at every width, cut in
+ * the dark band under the scan window, above the capture's network row (its
+ * "ETH & EVMs" label is crypto vocabulary, which marketing copy never shows:
+ * messaging.md guardrail 1). No fade: the cut is hard.
  *
  * The capture's own QR (a foreign payload) is covered by the sticker's live
  * code, so every code in the hero opens the same tagged Peanut link. Boxes
@@ -25,15 +25,15 @@ import { QrArgentinaSticker } from './QrArgentinaSticker'
 export function QrArgentinaHeroArt() {
     return (
         <div className="relative w-full">
-            <div className="ml-auto w-[74%] md:mr-[2%]">
+            <div className="ml-auto w-[84%] md:mr-3 md:w-[74%]">
                 <QrArgentinaAppLink>
-                    <div className="aspect-[451/520] overflow-hidden lg:aspect-[451/630]">
+                    <div className="aspect-[451/520] overflow-hidden">
                         <div className="relative">
                             <Image
                                 src={mantecaScanner}
                                 alt="The Peanut scanner reading a QR"
                                 className="h-auto w-full"
-                                sizes="(min-width: 768px) 330px, 250px"
+                                sizes="(min-width: 1024px) 430px, 300px"
                                 priority
                             />
                             {/* The line sweeps the pink margins and passes behind the
@@ -47,7 +47,7 @@ export function QrArgentinaHeroArt() {
                             <StarLpQrCode
                                 campaign="qr-argentina"
                                 slot="hero-sticker"
-                                className="absolute top-[27%] left-[25.7%] w-[48.6%] overflow-hidden rounded-[6%]"
+                                className="absolute top-[27%] left-[25.7%] w-[48.6%] overflow-hidden rounded-card"
                             />
                         </div>
                     </div>
@@ -57,7 +57,7 @@ export function QrArgentinaHeroArt() {
                 fromTilt={-20}
                 tilt={-6}
                 delay={0.4}
-                className="absolute top-[22%] left-0 z-10 w-[40%] md:top-[20%]"
+                className="absolute top-[26%] left-0 z-10 w-[40%] md:top-[25%]"
             >
                 <div className="qr-ar-settle">
                     <QrArgentinaSticker slot="hero-sticker" />

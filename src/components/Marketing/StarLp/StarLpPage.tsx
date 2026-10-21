@@ -10,7 +10,7 @@ import type { StarLpPageProps } from './starLp.types'
  * useStoryStep), so no-JS visitors need no extra style. The Knerd variables
  * point at the preloaded faces (starLpFonts).
  */
-export function StarLpPage({ children, siteDirectory = true }: StarLpPageProps) {
+export function StarLpPage({ children, siteDirectory = true, localeSwitcher = true }: StarLpPageProps) {
     return (
         <LandingPageShell>
             <AppModalProvider>
@@ -18,7 +18,7 @@ export function StarLpPage({ children, siteDirectory = true }: StarLpPageProps) 
                     {children}
                 </main>
             </AppModalProvider>
-            <Footer showSiteDirectory={siteDirectory} />
+            <Footer showSiteDirectory={siteDirectory} showLocaleSwitcher={localeSwitcher} />
         </LandingPageShell>
     )
 }

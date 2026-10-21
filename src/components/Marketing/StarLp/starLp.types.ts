@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { TitleMark } from '@/components/0_Bruddle/Title.types'
 import type { MarqueeItem } from '@/components/Global/MarqueeWrapper/marquee.types'
 
 /** The marketing band grounds the six star LPs use (design.md § grounds). */
@@ -29,32 +30,29 @@ export interface SectionTitleProps {
     className?: string
 }
 
-/** Knerd `Title` size presets. Call sites never pass their own size.
-    `masthead` is the hero h1: it sizes itself to fill the fold (starLpHeroFit). */
-export type KnerdSize = 'masthead' | 'hero' | 'compact' | 'inline'
+/** Knerd `Title` size presets for static Knerd. Call sites never pass their own
+    size. The hero's oversized words are KnerdPullHeadline, not a preset. */
+export type KnerdSize = 'hero' | 'compact' | 'inline' | 'amount'
 
 export interface KnerdTitleProps {
     /** Caps are applied for you. Break lines with "\n". 1–3 words. */
     text: string
     size: KnerdSize
-    className?: string
-    /** `masthead` only: from this breakpoint the "\n" lines join into one row. */
-    oneLineFrom?: 'md' | 'lg'
+    /** A decoration Title anchors on one word (the close fold's circled word). */
+    mark?: TitleMark
 }
 
-export interface KnerdJoinTitleProps {
-    /** Knerd word before the joiner ("US"). */
-    left: string
-    /** Small Roboto word between the two ("and"). */
-    join: string
-    /** Knerd word after the joiner ("Europe"). */
-    right: string
+export interface KnerdPullHeadlineProps {
+    /** The phrase, 1–3 words. "\n" marks the stacked lines for 600px and below;
+        above 600px the lines join into one wide line. */
+    text: string
+    /** A small Roboto word inside the phrase that is not Knerd ("and"). */
+    join?: string
 }
 
 /** A Roboto display line next to a knerd Title (e.g. "GET PAID FROM").
-    `masthead` is the hero h1: a plain-text line sizes itself to fill the fold.
-    `join` is the small word inside a Knerd row ("US and EUROPE"), sized off the Knerd. */
-export type DisplayLineSize = 'masthead' | 'lead' | 'section' | 'join'
+    `masthead` is the hero h1: a plain-text line sizes itself to fill the fold. */
+export type DisplayLineSize = 'masthead' | 'lead' | 'section'
 
 export interface DisplayLineProps {
     children: ReactNode
@@ -63,8 +61,13 @@ export interface DisplayLineProps {
 }
 
 export interface StarLpHeroProps {
-    /** h1 content: DisplayLine and/or KnerdTitle nodes at the `masthead` size. */
-    title: ReactNode
+    /** The Roboto line of the h1, set over the Knerd's top edge ("No DNI?"). */
+    lead: string
+    /** The oversized Knerd words, with Follow the pull. "\n" marks the stacked
+        lines for 600px and below (public/dev/knerd/data.js). */
+    knerd: string
+    /** A small Roboto word inside the Knerd phrase ("and"). */
+    knerdJoin?: string
     /** A last h1 line ("at the till."). It is set under the art, so the art
         tucks up under the Knerd as on the peanut.me hero. */
     titleTail?: string
@@ -81,9 +84,16 @@ export interface StarLpHeroProps {
         stands on the hero's bottom edge, cut by it, so it rises out of the
         marquee below. */
     artPlacement?: StarLpHeroArtPlacement
+    /** Art under the headline only. `deep` (default): it tucks up under the
+        Knerd. `rim`: from md only its top edge meets the Knerd, for art with a
+        title bar on top. `none`: it starts below the Knerd, for art with a mark
+        in its top corner. */
+    artTuck?: StarLpHeroArtTuck
 }
 
 export type StarLpHeroArtPlacement = 'headline' | 'edge'
+
+export type StarLpHeroArtTuck = 'deep' | 'rim' | 'none'
 
 export interface StarLpCtaProps {
     /** Destination when the PWA-sunset flag is off. With the flag on every CTA goes to /app. */
@@ -106,6 +116,9 @@ export interface PhoneFrameProps {
     /** Short description for screen readers (role="img"). Omit and the drawn
         screen is hidden from them, since its text is illustrative. */
     label?: string
+    /** The screen holds a real link: the frame is a labelled group, not an
+        image, so assistive tech still exposes the link. Needs `label`. */
+    interactive?: boolean
 }
 
 export type ChatSide = 'them' | 'me'
@@ -122,8 +135,8 @@ export interface ChatBubbleProps {
 export interface LinkPreviewBubbleProps {
     /** Line above the amount, e.g. "fulano is requesting". */
     caption: string
-    /** Knerd amount, e.g. "$250". */
-    amount: string
+    /** Knerd amount, e.g. "$250". Left out when there is no figure the page can vouch for. */
+    amount?: string
     /** Link text in the real request-link shape (getRequestLink), e.g. "peanut.me/fulano/…". */
     url: string
     side?: ChatSide
@@ -163,20 +176,14 @@ export interface CloseFoldProps {
     circleWord?: string
 }
 
-export interface KnerdWordCircleProps {
-    /** The KnerdTitle's text, "\n" between lines. */
-    text: string
-    /** The word to circle, any case. The first line that holds it gets the circle. */
-    word: string
-    /** The KnerdTitle's size. Not `masthead`: its fit size lives on KnerdTitle's wrapper. */
-    size: Exclude<KnerdSize, 'masthead'>
-}
-
 export interface StarLpPageProps {
     children: ReactNode
     /** false drops the footer's site directory (its "Send to Argentina"-style
         links). The card page sets it: Rain §7/§11 bar country-named links there. */
     siteDirectory?: boolean
+    /** false drops the footer's language picker (flags, country-named labels).
+        The card page sets it: Rain §11 bars flags and selectors there. */
+    localeSwitcher?: boolean
 }
 
 export interface StarLpMetadataInput {
@@ -254,15 +261,15 @@ export interface StoryStepState {
 /** The three coloured grounds. A seam with one of them on either side gets a marquee. */
 export type ColouredGround = Extract<BandGround, 'pink' | 'sky' | 'yellow'>
 
-/** Strip colours: the coloured grounds plus white (cream counts as white). */
-export type MarqueeStripGround = ColouredGround | 'white'
+/** Strip colours: sky, pink or white (cream counts as white). design.md § layout: "the yellow marquee is home-only." */
+export type MarqueeStripGround = Exclude<ColouredGround, 'yellow'> | 'white'
 
 export interface StarLpMarqueeProps {
     /** Real product words for this page. Plain strings, or `{ label, href }` for a word that links somewhere real. */
     words: MarqueeItem[]
     /** The folds above and below the strip, in page order (the footer is black). At least one is coloured. */
     between: readonly [BandGround, BandGround]
-    /** Strip colour. Defaults to the first of yellow, sky, pink, white that neither neighbour has. */
+    /** Strip colour. Defaults to the first of sky, pink, white that neither neighbour has. */
     ground?: MarqueeStripGround
 }
 
@@ -310,4 +317,12 @@ export interface StarLpFxRate {
     source: 'bridge' | 'manteca' | 'reference'
     /** Backend `generatedAt`, ISO. */
     fetchedAt: string
+    /** Backend `effectiveAt`: when the provider observed the rate, ISO. */
+    effectiveAt: string
 }
+
+/**
+ * How a page may print a rate, by the age of the backend's own timestamps:
+ * `live` up to 30 minutes, `lastKnown` up to 12 hours, then `none`.
+ */
+export type StarLpFxReading = { tier: 'live' | 'lastKnown'; quote: StarLpFxRate } | { tier: 'none'; quote: null }

@@ -46,9 +46,7 @@ export function QrBrazilPayStory({ usdBrl }: QrBrazilPayStoryProps) {
                     <QrBrazilAppLink
                         label={`Create an account. Peanut's Pay screen: ${BRL} to Padaria da Esquina${usd}, no Peanut fee.`}
                     >
-                        <span
-                            className={`${BEZEL} block transition-shadow duration-150 group-hover:shadow-4 group-active:shadow-none`}
-                        >
+                        <span className={`${BEZEL} block transition-shadow duration-instant group-active:shadow-none`}>
                             <span className="star-lp-phone-screen block overflow-hidden bg-background-page">
                                 <QrBrazilPayCapture usdBrl={usdBrl} pressed={step > 1} />
                             </span>

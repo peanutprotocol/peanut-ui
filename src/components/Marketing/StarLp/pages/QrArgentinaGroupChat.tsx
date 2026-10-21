@@ -6,22 +6,30 @@ import { PhoneFrame } from '@/components/Marketing/StarLp/PhoneFrame'
 import { StorySequence } from '@/components/Marketing/StarLp/StorySequence'
 import { STAR_LP_ROUTES } from '@/components/Marketing/StarLp/starLp.consts'
 import { STAR_LP_PERSONA, STAR_LP_REQUEST_LINK_TEXT } from '@/components/Marketing/StarLp/starLpPersonas.consts'
+import { qrArDinnerShareUsd } from './qrArgentinaChat.utils'
+import type { QrArgentinaGroupChatProps } from './qrArgentina.types'
 
 const { main, payer, friend } = STAR_LP_PERSONA
 
 /**
  * The trip's group chat after the asado: one request link lands and a friend
- * pays it. The amount is illustrative (a USD request, not a conversion); the
- * preview text matches the app's link preview ("is requesting"). The link
+ * pays it. The asado is the purchase paid by QR above (Parrilla La Esquina), so
+ * the request is one diner's share of that bill in dollars, at the page's rate
+ * (no figure when the page has no rate).
+ * The preview text matches the app's link preview ("is requesting"). The link
  * opens the request-links page, which explains this object, and only once it
  * has appeared. It is the page's only route there, so it is a real, labelled,
  * focusable link for keyboard and screen-reader users too.
  */
-export function QrArgentinaGroupChat() {
+export function QrArgentinaGroupChat({ usdArs }: QrArgentinaGroupChatProps) {
+    const share = qrArDinnerShareUsd(usdArs)
     return (
+        // From lg the phone scales up as a whole (zoom), so the app-size chat text grows with it.
+        // The pink shadow stays: the DS black hard shadow does not show on the black fold.
         <PhoneFrame
-            className="max-w-[19.5rem] shadow-[6px_6px_0_var(--color-pink-500)]"
-            label={`Group chat: ${main.short} sends one Peanut request link for $12.60 for the asado, and ${payer.short} has paid it`}
+            className="max-w-[19.5rem] shadow-[6px_6px_0_var(--color-pink-500)] lg:[zoom:1.35]"
+            interactive
+            label={`Group chat: ${main.short} paid the asado by QR and sends one Peanut request link for ${share ? `${share} each` : 'each share'}, and ${payer.short} has paid it`}
         >
             <p className="border-b-2 border-border-disabled pb-2 text-center text-label-l">Trip crew · 6</p>
             <StorySequence
@@ -43,7 +51,7 @@ export function QrArgentinaGroupChat() {
                     >
                         <LinkPreviewBubble
                             caption={`${main.username} is requesting`}
-                            amount="$12.60"
+                            amount={share ?? undefined}
                             url={STAR_LP_REQUEST_LINK_TEXT}
                         />
                     </Link>,

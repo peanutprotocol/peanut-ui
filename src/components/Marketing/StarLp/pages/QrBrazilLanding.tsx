@@ -1,7 +1,5 @@
 import Link from 'next/link'
 import { Band } from '@/components/Marketing/StarLp/Band'
-import { DisplayLine } from '@/components/Marketing/StarLp/DisplayLine'
-import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
 import { StarLpFaq } from '@/components/Marketing/StarLp/StarLpFaq'
@@ -9,7 +7,7 @@ import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
 import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
 import { fetchUsdBrlRate } from '@/components/Marketing/StarLp/starLpFx'
 import { TrustBand } from '@/components/Marketing/StarLp/TrustBand'
-import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
+import { STAR_LP_HREF, STAR_LP_TRUST_LINE } from '@/components/Marketing/StarLp/starLp.consts'
 import { EN_LANDING_CONTENT_HREFS } from '@/components/LandingPage/landingContentHrefs'
 import type { StarLpFaqItem } from '@/components/Marketing/StarLp/starLp.types'
 import { QrBrazilClose } from './QrBrazilClose'
@@ -74,12 +72,8 @@ export async function QrBrazilLanding() {
         <>
             <QrBrazilMotionStyle />
             <StarLpHero
-                title={
-                    <>
-                        <DisplayLine size="masthead">No CPF?</DisplayLine>
-                        <KnerdTitle text={'No\nproblem'} size="masthead" />
-                    </>
-                }
+                lead="No CPF?"
+                knerd={'No\nproblem'}
                 titleTail="at the counter."
                 artPlacement="edge"
                 subtitle="Pay with Pix in Brazil from your dollars."
@@ -92,10 +86,11 @@ export async function QrBrazilLanding() {
             />
             <StarLpMarquee between={['pink', 'sky']} words={HERO_SEAM} />
             <Band ground="sky">
-                <div className="grid gap-12 md:grid-cols-2 md:items-center">
+                {/* one column until lg: at md the phone pair would shrink until its rows are unreadable */}
+                <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
                     <div className="grid gap-8">
                         <SectionTitle>To the shop, it&apos;s just Pix.</SectionTitle>
-                        <div className="w-full max-w-[420px]">
+                        <div className="w-full max-w-[420px] lg:max-w-[520px]">
                             <QrBrazilWaysIn />
                         </div>
                     </div>
@@ -103,7 +98,7 @@ export async function QrBrazilLanding() {
                 </div>
             </Band>
             <StarLpMarquee between={['sky', 'black']} ground="pink" words={STORY_SEAM} />
-            <TrustBand text={'No one can block you\nor take your funds.'} />
+            <TrustBand text={STAR_LP_TRUST_LINE} />
             <StarLpFaq items={FAQ} />
             <StarLpMarquee between={['cream', 'pink']} words={FAQ_SEAM} />
             <QrBrazilClose />

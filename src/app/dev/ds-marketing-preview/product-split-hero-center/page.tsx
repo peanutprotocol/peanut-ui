@@ -2,8 +2,6 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { CTA_MOTION } from '@/components/Marketing/constants'
-import { DisplayLine } from '@/components/Marketing/StarLp/DisplayLine'
-import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
 import { SelfCustodySendScreen } from '@/components/Marketing/StarLp/pages/SelfCustodySendScreen'
 
@@ -17,14 +15,10 @@ export default function ProductSplitHeroCenterPreview() {
     return (
         <main className="bg-background-page">
             <StarLpHero
-                title={
-                    <>
-                        <DisplayLine size="masthead">Your money.</DisplayLine>
-                        <KnerdTitle text={'Only\nyou'} size="masthead" oneLineFrom="md" />
-                    </>
-                }
+                lead="Your money."
+                knerd={'Only\nyou'}
                 titleTail="can send it."
-                subtitle="Your balance sits in your own account. Every send needs your passkey."
+                subtitle="Your balance sits in your own account. Sending from it needs your passkey."
                 art={<SelfCustodySendScreen />}
                 cta={
                     <Button size="large" variant="secondary" className={`w-fit ${CTA_MOTION}`}>

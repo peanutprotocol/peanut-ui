@@ -99,7 +99,7 @@ export function RequestLinksTimeline() {
             screen: (
                 <div className={screen}>
                     <span className={screenTitle}>Exchange · Send</span>
-                    <span className={big}>400 USDC</span>
+                    <span className={big}>{REQUEST_LINKS_STORY.amount}</span>
                     <button
                         type="button"
                         tabIndex={-1}
@@ -129,7 +129,7 @@ export function RequestLinksTimeline() {
     ]
 
     return (
-        <div ref={ref} className="mx-auto grid w-full max-w-[420px] gap-6" onClick={complete}>
+        <div ref={ref} className="mx-auto grid w-full max-w-[420px] gap-6 lg:[zoom:1.25]" onClick={complete}>
             {stops.map(({ time, screen: stopScreen }, i) => (
                 <div
                     key={time}
@@ -144,7 +144,7 @@ export function RequestLinksTimeline() {
                     {i < stopsCount - 1 && (
                         <span
                             aria-hidden
-                            className="absolute top-[22px] -bottom-[30px] left-[9px] origin-top border-l-[3px] border-dotted border-border-default transition-transform duration-[450ms] ease-[var(--ease-spring)] motion-reduce:transition-none"
+                            className="absolute top-[22px] -bottom-[30px] left-[9px] origin-top border-l-[3px] border-dotted border-border-default transition-transform duration-slow ease-spring motion-reduce:transition-none"
                             style={{ transform: `scaleY(${i + 1 < step ? 1 : 0})` }}
                         />
                     )}

@@ -9,7 +9,7 @@ export function QrBrazilPixSticker({ slot, className, priority = false }: QrBraz
     return (
         <div
             className={twMerge(
-                'shadow-2 rounded-card border-2 border-border-default bg-background-default p-2 text-center transition-shadow duration-150 group-hover:shadow-4 group-active:shadow-none',
+                'rounded-card border-2 border-border-default bg-background-default p-2 text-center shadow-4 transition-shadow duration-instant group-active:shadow-none',
                 className
             )}
         >

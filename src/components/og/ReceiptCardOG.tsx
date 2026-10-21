@@ -1,5 +1,5 @@
 import { type PaymentLink } from '@/interfaces/interfaces'
-import { knerdTitle } from '@/components/0_Bruddle/Title'
+import { knerdTitle } from '@/components/0_Bruddle/Title.consts'
 
 function formatTokenAmount(amount: string, token?: string) {
     return token && token.toLowerCase() !== 'usdc' ? `${amount} ${token}` : `$${amount}`

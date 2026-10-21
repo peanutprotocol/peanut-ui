@@ -63,7 +63,7 @@ const FAQ: StarLpFaqItem[] = [
     faqItem(
         'lost-phone',
         'What if I lose my phone?',
-        "Your passkey syncs with your Apple or Google account. If it can't be recovered, no one can access the account, including Peanut.",
+        "Your passkey can sync with your Apple or Google account. If it can't be recovered, no one can access the account, including Peanut.",
         "can't be recovered",
         HELP.recovery
     ),
@@ -97,24 +97,26 @@ const HERO_SEAM_WORDS: MarqueeItem[] = [
     'Self-custodial',
 ]
 const FACTS_SEAM_WORDS: MarqueeItem[] = ['Onchain', 'Smart account', 'Arbitrum', 'Works with other wallets']
-// security.md: the key is sealed in the Secure Enclave and never sent to Peanut's servers.
-const COMPARE_SEAM_WORDS: MarqueeItem[] = ['Your keys', 'Secure Enclave', 'Never sent to Peanut', 'Audited']
-// security.md: passkeys sync through Apple or Google; ERC-4337 account built on ZeroDev.
-const FAQ_SEAM_WORDS: MarqueeItem[] = ['Synced with Apple or Google', 'No custodian', 'ERC-4337', 'ZeroDev']
+// security.md: the key is sealed in the Secure Enclave and never sent to Peanut's servers;
+// the audit is ZeroDev's smart account contracts, so the strip names what was audited.
+const COMPARE_SEAM_WORDS: MarqueeItem[] = [
+    'Your keys',
+    'Secure Enclave',
+    'Never sent to Peanut',
+    'Audited smart account',
+]
+// security.md: Apple and Google offer passkey sync (a user setting, so no "synced" claim); ERC-4337 account built on ZeroDev.
+const FAQ_SEAM_WORDS: MarqueeItem[] = ['Passkey sync', 'No custodian', 'ERC-4337', 'ZeroDev']
 const CLOSE_SEAM_WORDS: MarqueeItem[] = ['Hold dollars', 'Send', 'Request', 'Withdraw']
 
 export function SelfCustodyLanding() {
     return (
         <>
             <StarLpHero
-                title={
-                    <>
-                        <DisplayLine size="masthead">Your money.</DisplayLine>
-                        <KnerdTitle text={'Only\nyou'} size="masthead" oneLineFrom="md" />
-                    </>
-                }
+                lead="Your money."
+                knerd={'Only\nyou'}
                 titleTail="can send it."
-                subtitle="Your balance sits in your own account. Every send needs your passkey."
+                subtitle="Your balance sits in your own account. Sending from it needs your passkey."
                 art={<SelfCustodySendScreen />}
                 cta={
                     <StarLpCta href={STAR_LP_HREF.signup} ground="pink">
@@ -125,7 +127,7 @@ export function SelfCustodyLanding() {
 
             <StarLpMarquee between={['pink', 'yellow']} words={HERO_SEAM_WORDS} />
 
-            <Band ground="yellow">
+            <Band ground="yellow" align="center">
                 {/* inside the band's top padding, clear of the marquee above */}
                 <Wiggle kind="wobble" className="pointer-events-none absolute -top-10 right-0 w-11 md:-top-14 md:w-14">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -134,21 +136,31 @@ export function SelfCustodyLanding() {
                 {/* Konrad's pick (self-custody fold picker, 20 Oct): type only, no cards.
                     "Money" is the hero's word; the card carve-out stays in the FAQ (security.md). */}
                 <h2>
-                    <DisplayLine>What Peanut can do with your money:</DisplayLine>
-                    <KnerdTitle text="Nothing." size="hero" className="mt-6 md:mt-10" />
+                    {/* balanced, so no width leaves "money:" alone above the Knerd */}
+                    <DisplayLine className="text-balance">What Peanut can do with your money:</DisplayLine>
+                    <span className="mt-6 block md:mt-10 lg:mt-14">
+                        <KnerdTitle text="Nothing." size="hero" />
+                    </span>
                 </h2>
-                <p className="mt-8 text-heading-card text-balance md:mt-10 md:text-heading-s">
-                    Can&apos;t send it. Can&apos;t freeze it. Can&apos;t hold it.
+                {/* each sentence stays on one line; lines break only between them */}
+                <p className="mt-8 text-heading-card md:mt-10 md:text-heading-s">
+                    <span className="whitespace-nowrap">Can&apos;t send it.</span>{' '}
+                    <span className="whitespace-nowrap">Can&apos;t freeze it.</span>{' '}
+                    <span className="whitespace-nowrap">Can&apos;t hold it.</span>
                 </p>
             </Band>
 
             <StarLpMarquee between={['yellow', 'sky']} words={FACTS_SEAM_WORDS} />
 
             <Band ground="sky">
-                <SectionTitle>Most apps hold your money. Peanut doesn&apos;t.</SectionTitle>
-                <div className="mt-10 grid gap-10 md:mt-12 md:grid-cols-2 md:items-center md:gap-12">
+                {/* centred from md, over the centred pair and table (as the yellow fold above) */}
+                <SectionTitle className="md:text-center">Most apps hold your money. Peanut doesn&apos;t.</SectionTitle>
+                {/* Stacked up to lg, as on phones: at md a half column shrinks the phones' labels.
+                    lg: the phones take the wider track and stand at its inner edge, the table fills the rest,
+                    so the two meet with no empty middle. */}
+                <div className="mt-10 grid gap-10 md:mt-12 lg:grid-cols-[3fr_2fr] lg:items-center lg:gap-12">
                     <SelfCustodyAppPair />
-                    <div className="mx-auto w-full max-w-md">
+                    <div className="mx-auto w-full max-w-md lg:max-w-none">
                         <SelfCustodyCompareTable />
                     </div>
                 </div>

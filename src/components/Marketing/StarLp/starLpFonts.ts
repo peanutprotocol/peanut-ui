@@ -5,16 +5,18 @@ import localFont from 'next/font/local'
 // routes declare the same files with preload on: next/font emits the
 // <link rel="preload" as="font"> only for routes that import this module, and
 // StarLpPage applies the variables so the preloaded face is the one used.
+// display: block, as the Follow the pull reference (hero.css): the hero is
+// fitted to Knerd, so a fallback face would paint at the wrong size first.
 export const starLpKnerdOutline = localFont({
     src: '../../../assets/fonts/knerd-outline.woff2',
     variable: '--font-knerd-outline',
-    display: 'swap',
+    display: 'block',
     preload: true,
 })
 
 export const starLpKnerdFilled = localFont({
     src: '../../../assets/fonts/knerd-filled.woff2',
     variable: '--font-knerd-filled',
-    display: 'swap',
+    display: 'block',
     preload: true,
 })

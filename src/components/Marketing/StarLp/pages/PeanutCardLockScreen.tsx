@@ -50,21 +50,22 @@ export function PeanutCardLockScreen() {
                 <motion.div
                     variants={PHONE_VARIANTS}
                     transition={STAR_LP_SPRING.drop}
-                    className="h-[620px] w-full shrink-0 rounded-[44px] bg-gray-950 p-2.5 md:h-[820px] md:rounded-[56px] md:p-3.5"
+                    className="star-lp-lock-phone h-[620px] w-full shrink-0 bg-gray-950 p-3 md:h-[820px] md:p-4"
                 >
-                    <div className="flex h-full flex-col items-center overflow-hidden rounded-[34px] bg-background-brand px-2.5 pt-11 text-foreground-primary md:rounded-[42px] md:px-4 md:pt-16">
-                        <span className="text-body-m font-bold md:text-[20px]">{CARD_LOCK_SCREEN.date}</span>
-                        <span className="font-roboto-flex-extrabold mt-1.5 text-[80px] leading-none tracking-[-0.03em] xs:text-[92px] md:text-[104px] lg:text-[124px]">
+                    <div className="star-lp-lock-screen flex h-full flex-col items-center overflow-hidden bg-background-brand px-3 pt-12 text-foreground-primary md:px-4 md:pt-16">
+                        <span className="text-heading-card md:text-heading-xs">{CARD_LOCK_SCREEN.date}</span>
+                        {/* 80px, the display ramp's step under the fold's headline, so the headline stays the loudest type. */}
+                        <span className="font-roboto-flex-extrabold mt-2 text-headingMedium tracking-[-0.03em]">
                             {CARD_LOCK_SCREEN.clock}
                         </span>
                         <motion.div
                             variants={PUSH_VARIANTS}
                             transition={{ ...STAR_LP_SPRING.drop, delay: 0.45 }}
-                            className="mt-10 flex w-full items-center gap-2.5 rounded-[20px] border-[3px] border-border-default bg-background-default p-3 shadow-4 md:mt-14 md:rounded-[24px] lg:gap-3.5 lg:p-4"
+                            className="star-lp-lock-push mt-10 flex w-full items-center gap-3 border-[3px] border-border-default bg-background-default p-3 shadow-4 md:mt-14 lg:gap-4 lg:p-4"
                         >
                             <motion.span
                                 variants={armed ? ICON_VARIANTS_ARMED : ICON_VARIANTS_STILL}
-                                className="grid size-10 shrink-0 place-items-center rounded-xl border-2 border-border-default bg-background-default lg:size-[52px]"
+                                className="grid size-10 shrink-0 place-items-center rounded-card border-2 border-border-default bg-background-default lg:size-[52px]"
                             >
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
@@ -76,12 +77,12 @@ export function PeanutCardLockScreen() {
                                 />
                             </motion.span>
                             <span className="min-w-0 flex-1 text-left">
-                                <span className="flex justify-between text-label-l font-bold md:text-body-m">
+                                <span className="flex justify-between text-label-l md:text-body-m-semibold">
                                     <span>Peanut</span>
                                     <span className="font-medium">now</span>
                                 </span>
                                 {/* iOS sets a push title on one semibold line and truncates it */}
-                                <span className="mt-0.5 block truncate text-body-m-semibold lg:text-body-l lg:font-semibold">
+                                <span className="mt-0.5 block truncate text-body-m-semibold lg:text-heading-card">
                                     {PUSH_TITLE}
                                 </span>
                             </span>

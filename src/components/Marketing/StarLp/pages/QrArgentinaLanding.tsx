@@ -1,13 +1,11 @@
 import { Band } from '@/components/Marketing/StarLp/Band'
-import { DisplayLine } from '@/components/Marketing/StarLp/DisplayLine'
-import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
 import { StarLpFaq } from '@/components/Marketing/StarLp/StarLpFaq'
 import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
 import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
 import { TrustBand } from '@/components/Marketing/StarLp/TrustBand'
-import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
+import { STAR_LP_HREF, STAR_LP_TRUST_LINE } from '@/components/Marketing/StarLp/starLp.consts'
 import type { StarLpFaqItem } from '@/components/Marketing/StarLp/starLp.types'
 import { fetchUsdArsRate } from '@/components/Marketing/StarLp/starLpFx'
 import { QrArgentinaClose } from './QrArgentinaClose'
@@ -53,7 +51,8 @@ const TRUST_SEAM: string[] = [
     'No Mercado Pago account',
     'Rate shown first',
 ]
-const CLOSE_SEAM: string[] = ['Self-custodial', 'Passkey', 'Dollars', 'Skip foreign card fees']
+// The card-fee saving keeps its qualifier, so it lives in the FAQ answer, not on a strip (pricing.md).
+const CLOSE_SEAM: string[] = ['Self-custodial', 'Passkey', 'Dollars', 'Pay by QR']
 
 /**
  * /qr-payments/argentina: pay Mercado Pago QRs with a passport (mock r4-qr-argentina-a4, folds 0–5).
@@ -67,12 +66,8 @@ export async function QrArgentinaLanding() {
         <>
             <QrArgentinaMotionStyle />
             <StarLpHero
-                title={
-                    <>
-                        <DisplayLine size="masthead">No DNI?</DisplayLine>
-                        <KnerdTitle text={'No\nproblem'} size="masthead" />
-                    </>
-                }
+                lead="No DNI?"
+                knerd={'No\nproblem'}
                 titleTail="at the till."
                 artPlacement="edge"
                 subtitle="Pay Mercado Pago QRs in Argentina with your passport."
@@ -96,10 +91,7 @@ export async function QrArgentinaLanding() {
             <Band ground="sky" id={QR_AR_THEIR_SCREEN_ID}>
                 <div className="grid gap-12 md:grid-cols-2 md:items-center">
                     <SectionTitle>
-                        On their screen, it&apos;s a normal{' '}
-                        <span className="xs:whitespace-nowrap md:whitespace-normal xl:whitespace-nowrap">
-                            Mercado Pago
-                        </span>{' '}
+                        On their screen, it&apos;s a normal <span className="xs:whitespace-nowrap">Mercado Pago</span>{' '}
                         payment.
                     </SectionTitle>
                     <QrArgentinaTheirScreen />
@@ -109,14 +101,17 @@ export async function QrArgentinaLanding() {
             <StarLpMarquee between={['sky', 'black']} words={SCREEN_SEAM} />
 
             <Band ground="black">
-                <div className="grid gap-12 md:grid-cols-2 md:items-center">
-                    <SectionTitle>Dinner for six. One request link.</SectionTitle>
-                    <QrArgentinaGroupChat />
+                {/* one column until lg, so each sentence of the title keeps its own line at md */}
+                <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+                    <SectionTitle>
+                        <span className="block">Dinner for six.</span> <span className="block">One request link.</span>
+                    </SectionTitle>
+                    <QrArgentinaGroupChat usdArs={usdArs} />
                 </div>
             </Band>
 
             <StarLpFaq items={FAQ} />
-            <TrustBand text={'No one can block you\nor take your funds.'} />
+            <TrustBand text={STAR_LP_TRUST_LINE} />
             <StarLpMarquee between={['black', 'pink']} ground="sky" words={TRUST_SEAM} />
             <QrArgentinaClose />
             <StarLpMarquee between={['pink', 'black']} words={CLOSE_SEAM} />

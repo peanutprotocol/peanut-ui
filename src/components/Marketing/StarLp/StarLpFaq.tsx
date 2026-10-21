@@ -11,8 +11,9 @@ export function StarLpFaq({ items, footnote }: StarLpFaqProps) {
     return (
         <section className={`bg-background-page text-foreground-primary ${MARKETING_BAND_PADDING}`}>
             {schema && <JsonLd data={schema} />}
-            {/* the panel's own pb-12 would stack on the band padding: the fold keeps the 64/96 step */}
-            <div className={`mx-auto ${PROSE_WIDTH} [&>section]:pb-0`}>
+            {/* the panel's own pb-12 would stack on the band padding: the fold keeps the 64/96 step;
+                questions wrap balanced, never one word alone on a line */}
+            <div className={`mx-auto ${PROSE_WIDTH} [&_summary>span]:text-balance [&>section]:pb-0`}>
                 <FAQsPanel inline heading="FAQ." questions={items} />
                 {footnote && <p className="mt-8 text-body-s text-foreground-secondary">{footnote}</p>}
             </div>

@@ -1,6 +1,7 @@
 'use client'
 
-import Title, { knerdTitle } from '@/components/0_Bruddle/Title'
+import Title from '@/components/0_Bruddle/Title'
+import { knerdTitle } from '@/components/0_Bruddle/Title.consts'
 import { KnerdReferenceFrame } from '@/app/dev/ds-marketing-preview/_components/KnerdReferenceFrame'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DocHeader } from '../../_components/DocHeader'

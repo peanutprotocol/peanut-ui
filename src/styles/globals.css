@@ -1699,13 +1699,19 @@ input::placeholder {
 }
 
 /* ── Star-feature LPs: hero h1 fit (Marketing/StarLp/starLpHeroFit) ── */
-/* The hero h1 fills the fold like the peanut.me hero. Each line's size is the
-   smallest of: a cap, the size at which it spans --fit-fill of the column
+/* The hero h1 fills the fold like the peanut.me hero. A Roboto line's size is
+   the smallest of: a cap, the size at which it spans --fit-fill of the column
    (--fit-em is its width in em, set inline from its text), and a share of
-   the screen height, so the CTA stays in the first screen on short screens. */
-.star-lp-fit-knerd,
+   the screen height, so the CTA stays in the first screen on short screens.
+   Set solid, and over the Knerd's top edge, as on peanut.me. */
 .font-roboto-flex-extrabold.star-lp-fit-display {
-    --fit-w: min(100vw - 2rem, 80rem);
+    --fit-w: var(--psh-col-w, min(100vw - 2rem, 80rem));
+    --fit-fill: 0.9;
+    --fit-cap: 2.875rem;
+    --fit-vh: 7svh;
+    position: relative;
+    z-index: 1;
+    line-height: 0.92;
     font-size: min(
         var(--fit-cap),
         calc(var(--fit-w) * var(--fit-fill) / var(--fit-em, 8)),
@@ -1713,70 +1719,186 @@ input::placeholder {
     );
 }
 
-/* Knerd glyphs overflow their 0.68 line box; the margins give them room. */
-.star-lp-fit-knerd {
-    --fit-fill: 0.92;
-    --fit-cap: 10rem;
-    --fit-vh: 34svh;
-    margin-block: 0.19em 0.06em;
-}
-
-/* A stacked masthead Knerd ("Send / this.") is big enough that the packed
-   0.68 leading runs one line's caps into the next; a small gap keeps the
-   overlap without the words merging. Both Title layers get it, so the
-   outline stays on the fill. */
-.star-lp-fit-knerd .font-knerd-filled > span + span,
-.star-lp-fit-knerd .font-knerd-outline > span + span {
-    margin-top: 0.08em;
-}
-
-/* KnerdTitle oneLineFrom="md" ("Only / you"): phones stack the words so the
-   Knerd outranks the Roboto line, but only when the screen is tall enough to
-   keep the CTA in the first screen; md+ and short phones keep one row.
-   The row keeps its own display (block or flex) when shown. */
-.star-lp-knerd-stack-md {
-    display: none;
-}
-
-@media (max-width: 767px) and (min-height: 740px) {
-    .star-lp-knerd-stack-md {
-        display: block;
-    }
-
-    .star-lp-knerd-row-md {
-        display: none;
-    }
-}
-
-/* Set solid, and over the Knerd's top edge, as on peanut.me. */
-.font-roboto-flex-extrabold.star-lp-fit-display {
-    --fit-fill: 0.9;
-    --fit-cap: 2.875rem;
-    --fit-vh: 7svh;
-    position: relative;
-    z-index: 1;
-    line-height: 0.92;
-}
-
-/* md+: a one-line Knerd stops at 28svh, two lines at 21svh each. */
 @media (min-width: 768px) {
-    .star-lp-fit-knerd {
-        --fit-cap: min(18.75rem, 28svh);
-        --fit-vh: 42svh;
-    }
-
     .font-roboto-flex-extrabold.star-lp-fit-display {
         --fit-cap: 5.75rem;
         --fit-vh: 10svh;
     }
 }
 
-/* lg, art on the edge: the art stands in the right 28rem (ProductSplitHero
-   pads the column), so the h1 fits what is left. */
+/* The centred hero's column, the width its lines fit to (hero.js measures
+   title.clientWidth): the viewport less the hero's side padding, 24px a side
+   below md and 16px from md (ProductSplitHero), in the 1280 container. */
+.psh-fit {
+    --psh-col-w: min(100vw - 2rem, 80rem);
+}
+
+@media (max-width: 767px) {
+    .psh-fit {
+        --psh-col-w: calc(100vw - 3rem);
+    }
+}
+
+/* Follow the pull (KnerdPullHeadline), fitted like its reference: the wide
+   phrase above 600px at 92% of the column, the stacked lines at 600px and
+   below at 90% (public/dev/knerd/hero.js). The reference fits the height of
+   a hero that holds only the headline; this fold also holds the art and the
+   CTA, so a share of the screen height stands in for it. The widths in em
+   are set inline (knerdPullFitStyle). The hero column carries the same
+   properties, so the art tucks under the Knerd by a share of its size. */
+.star-lp-knerd-fit {
+    --knerd-cap: 10rem;
+    --knerd-vh: 34svh;
+    --knerd-size: min(
+        var(--knerd-cap),
+        calc(var(--knerd-w, var(--psh-col-w, min(100vw - 2rem, 80rem))) * 0.92 / var(--knerd-em-wide, 8)),
+        var(--knerd-vh)
+    );
+}
+
+/* md+: the wide line stops at 28svh. */
+@media (min-width: 768px) {
+    .star-lp-knerd-fit {
+        --knerd-cap: min(18.75rem, 28svh);
+        --knerd-vh: 42svh;
+    }
+}
+
+@media (max-width: 600px) {
+    .star-lp-knerd-fit {
+        --knerd-size: min(
+            var(--knerd-cap),
+            calc(var(--knerd-w, var(--psh-col-w, min(100vw - 2rem, 80rem))) * 0.9 / var(--knerd-em-stacked, 8)),
+            calc(var(--knerd-vh) / var(--knerd-lines-stacked, 2))
+        );
+    }
+}
+
+/* The headline box of the reference: room for the Knerd ink above and below
+   its 0.68 line box. */
+.star-lp-knerd-copy {
+    display: block;
+    font-size: var(--knerd-size);
+    padding: 0.2em 0.04em 0.06em;
+}
+
+.star-lp-knerd-stacked {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .star-lp-knerd-wide {
+        display: none;
+    }
+
+    .star-lp-knerd-stacked {
+        display: block;
+    }
+}
+
+/* A Follow the pull letter (and the join word) paints its text from
+   data-knerd-char (Title), so the heading's text holds the phrase once, in
+   its sr-only copy. */
+[data-knerd-char]::before {
+    content: attr(data-knerd-char);
+}
+
+/* Until the entrance starts, the glyphs and the join word wait unseen in
+   their place, so nothing shifts and the title appears as one, as in hero.js
+   (which hides the headline until its fonts load). The controller starts the
+   entrance once the fonts are in; this timeout is only for a script that
+   never runs: the title then shows at rest and the entrance is skipped
+   (knerdPullController). */
+@media (prefers-reduced-motion: no-preference) {
+    [data-knerd-pull='pending'] [data-knerd-glyph],
+    [data-knerd-pull='pending'] [data-knerd-join] {
+        opacity: 0;
+        animation: star-lp-knerd-reveal 0s linear 3s forwards;
+    }
+}
+
+@keyframes star-lp-knerd-reveal {
+    to {
+        opacity: 1;
+    }
+}
+
+/* The art tucks up under the Knerd by a share of the Knerd's size (the hero
+   column carries .star-lp-knerd-fit); the Knerd paints over it. */
+.psh-art-tuck {
+    margin-top: calc(var(--knerd-size, 4rem) * -0.25);
+}
+
+@media (min-width: 768px) {
+    .psh-art-tuck {
+        margin-top: calc(var(--knerd-size, 10rem) * -0.32);
+    }
+
+    /* rim: only the art's top edge meets the Knerd's ink, so the row under
+       that edge (a window's title bar) stays readable. */
+    .psh-art-tuck-rim {
+        margin-top: calc(var(--knerd-size, 10rem) * -0.1);
+    }
+}
+
+/* Drawn hero UI (HTML, not a capture) is set at app type sizes; from md it
+   scales up as a whole, so its text grows with the box. */
+@media (min-width: 768px) {
+    .star-lp-hero-ui {
+        zoom: 1.3;
+    }
+}
+
+/* The tail, lead and CTA: plain items of the hero column. */
+.psh-below-fit {
+    display: contents;
+}
+
+/* Art on the edge: it stands on the hero's bottom edge after the CTA. */
+.psh-art-edge {
+    width: 100%;
+    max-width: 26rem;
+}
+
+/* lg, art on the edge: the Knerd spans the column; the tail, lead and CTA
+   take the column left of the art, which stands at the right. */
 @media (min-width: 1024px) {
-    .psh-fit-edge .star-lp-fit-knerd,
-    .psh-fit-edge .font-roboto-flex-extrabold.star-lp-fit-display {
-        --fit-w: calc(min(100vw - 2rem, 80rem) - 28rem);
+    .psh-fit-edge {
+        --psh-edge-art-w: clamp(28rem, 40vw, 36rem);
+    }
+
+    /* The Knerd stays at the top; the copy column fills the height left
+       beside the art and starts right under the Knerd, so the tail line
+       reads as the end of the h1. The copy column is left-aligned; the Knerd
+       keeps knerdTitle's centring in its full-width row (design.md § knerd
+       display title: call sites never set alignment of their own). */
+    .psh-fit-edge .psh-fit-grid {
+        justify-content: flex-start;
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .psh-fit-edge .psh-below-fit {
+        display: flex;
+        width: 100%;
+        flex: 1;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        padding-right: var(--psh-edge-art-w);
+    }
+
+    .psh-fit-edge .psh-lead-fit {
+        margin-left: 0;
+    }
+
+    .psh-fit-edge .psh-below-fit .font-roboto-flex-extrabold.star-lp-fit-display {
+        --fit-w: calc(var(--psh-col-w) - var(--psh-edge-art-w));
+    }
+
+    .psh-fit-edge .psh-art-edge {
+        width: var(--psh-edge-art-w);
+        max-width: none;
     }
 }
 
@@ -1786,7 +1908,7 @@ input::placeholder {
    padding tightens until the CTA lands in the first screen. The h1 already
    shrinks with the screen height (above). Art on the edge comes after the
    CTA, so it never needs to shrink for it. */
-@media (max-width: 767px) and (max-height: 860px) {
+@media (max-width: 767px) and (max-height: 760px) {
     .psh-art-fit:not(.psh-art-edge) {
         zoom: 0.85;
     }
@@ -1805,6 +1927,38 @@ input::placeholder {
 @media (max-width: 767px) and (max-height: 640px) {
     .psh-art-fit:not(.psh-art-edge) {
         zoom: 0.6;
+    }
+}
+
+/* A tail line under the art ("can send it.") costs another line of height:
+   its art takes one more step on short phones. */
+@media (max-width: 767px) and (max-height: 760px) {
+    .psh-fit-grid:has(.psh-tail-fit) .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.75;
+    }
+}
+
+@media (max-width: 767px) and (max-height: 700px) {
+    .psh-fit-grid:has(.psh-tail-fit) .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.6;
+    }
+
+    /* The stacked Knerd keeps its lines and gives up size, so the CTA stays on screen. */
+    .star-lp-knerd-fit {
+        --knerd-vh: 30svh;
+    }
+}
+
+@media (max-width: 767px) and (max-height: 640px) {
+    .psh-fit-grid:has(.psh-tail-fit) .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.45;
+    }
+}
+
+/* Laptop landscape: the wide Knerd stops at 26svh. */
+@media (min-width: 768px) and (max-height: 760px) {
+    .star-lp-knerd-fit {
+        --knerd-cap: min(18.75rem, 26svh);
     }
 }
 
@@ -1882,7 +2036,10 @@ input::placeholder {
         align-items: center;
     }
 
-    .psh-fit-grid .star-lp-fit-knerd,
+    .psh-fit-grid {
+        --knerd-w: calc(50vw - 2.75rem);
+    }
+
     .psh-fit-grid .font-roboto-flex-extrabold.star-lp-fit-display {
         --fit-w: calc(50vw - 2.75rem);
     }
@@ -1929,6 +2086,35 @@ input::placeholder {
 
 .star-lp-phone-screen {
     border-radius: 1.5rem;
+}
+
+/* The card fold's lock screen (PeanutCardLockScreen) is a full-size phone, so
+   it takes larger corners: the bezel, the screen inside its padding (bezel
+   radius minus the padding), and the iOS notification. Same DS-review flag. */
+.star-lp-lock-phone {
+    border-radius: 2.75rem;
+}
+
+.star-lp-lock-screen {
+    border-radius: 2rem;
+}
+
+.star-lp-lock-push {
+    border-radius: 1.25rem;
+}
+
+@media (min-width: 768px) {
+    .star-lp-lock-phone {
+        border-radius: 3.5rem;
+    }
+
+    .star-lp-lock-screen {
+        border-radius: 2.5rem;
+    }
+
+    .star-lp-lock-push {
+        border-radius: 1.5rem;
+    }
 }
 
 /* ── Star-feature LPs: animation kit (Marketing/StarLp) ── */
@@ -2002,60 +2188,8 @@ input::placeholder {
     }
 }
 
-/* Typing beat: a beat holding .star-lp-typing-slot keeps its wrapper visible
-   and swaps its own children. Dots show while the beat before it is shown and
-   it is not; then the reply rises and its check pops. */
-.star-lp-beat:has(.star-lp-typing-slot)[data-shown='false'] {
-    opacity: 1;
-    transform: none;
-}
-
-.star-lp-typing {
-    opacity: 0;
-    transition: opacity var(--transition-duration-fast) ease-out;
-}
-
-.star-lp-beat[data-shown='true'] + .star-lp-beat[data-shown='false'] .star-lp-typing {
-    opacity: 1;
-}
-
-.star-lp-typing-reply {
-    transition:
-        opacity var(--transition-duration-slow) var(--ease-spring),
-        transform var(--transition-duration-slow) var(--ease-spring);
-}
-
-.star-lp-beat[data-shown='false'] .star-lp-typing-reply {
-    opacity: 0;
-    transform: translateY(12px) scale(0.96);
-}
-
-/* Dots bounce only while their reply is still hidden: no infinite loop after the story. */
-.star-lp-beat[data-shown='false'] .star-lp-typing-dot {
-    animation: star-lp-typing-dot 900ms ease-in-out infinite;
-}
-
-.star-lp-typing-dot:nth-child(2) {
-    animation-delay: 120ms;
-}
-
-.star-lp-typing-dot:nth-child(3) {
-    animation-delay: 240ms;
-}
-
 .star-lp-beat[data-shown='true'] .star-lp-check-pop {
     animation: star-lp-check-pop 300ms var(--ease-spring) 200ms both;
-}
-
-@keyframes star-lp-typing-dot {
-    0%,
-    60%,
-    100% {
-        transform: translateY(0);
-    }
-    30% {
-        transform: translateY(-3px);
-    }
 }
 
 @keyframes star-lp-check-pop {
@@ -2115,21 +2249,8 @@ input::placeholder {
     .star-lp-beat[data-shown] .star-lp-push-drop,
     .star-lp-beat[data-shown] .star-lp-push-ding,
     .star-lp-beat[data-shown] .star-lp-stamp,
-    .star-lp-beat[data-shown] .star-lp-check-pop,
-    .star-lp-beat[data-shown] .star-lp-typing-dot {
+    .star-lp-beat[data-shown] .star-lp-check-pop {
         animation: none;
-    }
-
-    /* The story is complete at rest: no dots, the reply shown. */
-    .star-lp-typing {
-        display: none;
-    }
-
-    .star-lp-typing-reply,
-    .star-lp-beat[data-shown='false'] .star-lp-typing-reply {
-        opacity: 1;
-        transform: none;
-        transition: none;
     }
 
     /* StarLpMarquee: the strip stands still and the thumbs-up stops waving. */

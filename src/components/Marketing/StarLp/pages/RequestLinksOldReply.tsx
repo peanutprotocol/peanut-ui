@@ -37,7 +37,7 @@ export function RequestLinksOldReply() {
     return (
         <div ref={root} className="rl-old grid grid-cols-2 gap-3 md:gap-6" data-play={inView}>
             <div>
-                <p className={columnTitle}>5 days</p>
+                <p className={columnTitle}>A week</p>
                 <div className="grid -rotate-1 gap-2">
                     {OLD_THREAD.map(({ day: d, text, mine }, i) => (
                         <div

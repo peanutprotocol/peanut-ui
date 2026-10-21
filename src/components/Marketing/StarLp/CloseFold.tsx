@@ -3,6 +3,7 @@ import { Band } from './Band'
 import { KnerdTitle } from './KnerdTitle'
 import { KnerdWordCircle } from './KnerdWordCircle'
 import { PopIn } from './PopIn'
+import { BAND_GROUND_KNOCKOUT_CLASS } from './starLp.consts'
 import type { CloseFoldProps } from './starLp.types'
 
 /**
@@ -34,16 +35,21 @@ export function CloseFold({ title, line, cta, ground = 'pink', decoration, circl
                       </>
                   ))}
             <h2>
-                {circleWord ? (
-                    <span className="relative inline-block">
-                        <KnerdWordCircle text={title} word={circleWord} size="hero" />
-                        <KnerdTitle text={title} size="hero" />
-                    </span>
-                ) : (
-                    <KnerdTitle text={title} size="hero" />
-                )}
+                <KnerdTitle
+                    text={title}
+                    size="hero"
+                    mark={
+                        circleWord
+                            ? {
+                                  word: circleWord,
+                                  node: <KnerdWordCircle />,
+                                  knockoutClassName: BAND_GROUND_KNOCKOUT_CLASS[ground],
+                              }
+                            : undefined
+                    }
+                />
             </h2>
-            {line && <p className="mx-auto mt-6 max-w-xl text-body-l">{line}</p>}
+            {line && <p className="mx-auto mt-6 max-w-xl text-body-l text-balance">{line}</p>}
             <div className="mx-auto mt-8 w-fit">{cta}</div>
         </Band>
     )

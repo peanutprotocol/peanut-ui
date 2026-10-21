@@ -1,5 +1,12 @@
-/** The till price in the story, in pesos. A merchant price, not FX. */
-export const QR_AR_PRICE_ARS = 3600
+/**
+ * The page's one purchase: the asado for six, paid by QR at a parrilla. The
+ * pay screen, the shop's phone and the group chat's request all use it.
+ * A merchant price in pesos, not FX.
+ */
+export const QR_AR_PRICE_ARS = 120_000
+export const QR_AR_MERCHANT = 'Parrilla La Esquina'
+/** Six at the table, so each friend owes a sixth of the bill. */
+export const QR_AR_DINERS = 6
 
 /** The sky fold with both phones; the Review's Pay button scrolls here. */
 export const QR_AR_THEIR_SCREEN_ID = 'their-screen'
@@ -29,12 +36,6 @@ export const QR_AR_MOTION_CSS = `
 .qr-ar-paid[data-shown='false']>*{opacity:0}
 .qr-ar-paid[data-shown='false']>.qr-ar-paid-text{transform:translateY(6px)}
 .qr-ar-paid[data-shown='true']>.qr-ar-paid-text{transition-delay:120ms}
-@media (hover:hover) and (prefers-reduced-motion:no-preference){
-.qr-ar-press:hover{transform:translateY(-2px) rotate(1deg);box-shadow:6px 6px 0 0 #000}
-.qr-ar-press:hover:active{transform:translate(4px,4px);box-shadow:none}
-.qr-ar-chat-link:hover>div{transform:translateY(-2px) rotate(1deg)}
-.qr-ar-chat-link:hover:active>div{transform:scale(.97)}
-}
 @media (prefers-reduced-motion:no-preference){
 .qr-ar-settle{animation:qr-ar-settle 600ms var(--ease-spring) 300ms both}
 .qr-ar-hero-scan{animation:qr-ar-scan-twice 2.8s ease-in-out 900ms both}

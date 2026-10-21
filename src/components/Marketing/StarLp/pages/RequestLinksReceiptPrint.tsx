@@ -25,7 +25,7 @@ export function RequestLinksReceiptPrint() {
     return (
         <div
             ref={setNode}
-            className="rl-feed mx-auto w-full max-w-[336px] -rotate-1"
+            className="rl-feed mx-auto w-full max-w-[336px] -rotate-1 md:max-w-[448px]"
             data-armed={armed}
             data-play={armed && inView}
         >

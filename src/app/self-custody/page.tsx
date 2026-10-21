@@ -5,9 +5,9 @@ import { starLpMetadata } from '@/components/Marketing/StarLp/starLpMetadata'
 
 export const metadata = starLpMetadata({
     title: 'Your money, your key | Peanut',
-    description: 'Your balance sits in your own account, and every send needs your passkey.',
+    description: 'Your balance sits in your own account, and sending from it needs your passkey.',
     ogTitle: 'Your money. Only you can send it.',
-    ogSubtitle: 'Your balance sits in your own account. Every send needs your passkey.',
+    ogSubtitle: 'Your balance sits in your own account. Sending from it needs your passkey.',
     path: STAR_LP_ROUTES.selfCustody,
 })
 

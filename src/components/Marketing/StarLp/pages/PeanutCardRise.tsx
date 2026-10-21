@@ -29,7 +29,7 @@ export function PeanutCardRise({ children, delay, variant, className }: PeanutCa
                 key={armed ? 'armed' : 'rest'}
                 ref={ref}
                 aria-hidden={variant === 'rule' ? true : undefined}
-                className={variant === 'rule' ? `h-0.5 origin-left bg-white/25 ${className ?? ''}` : className}
+                className={variant === 'rule' ? `h-0.5 origin-left bg-border-subtle ${className ?? ''}` : className}
                 initial={armed ? hidden : false}
                 animate={armed ? undefined : shown}
                 whileInView={armed ? shown : undefined}

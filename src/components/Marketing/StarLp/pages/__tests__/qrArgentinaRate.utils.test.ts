@@ -4,6 +4,7 @@ import {
     qrArgentinaRateAt,
     qrArgentinaRateCountFrom,
     qrArgentinaRateHeadline,
+    roundUsdArsRate,
 } from '../qrArgentinaRate.utils'
 
 const usdArs: StarLpFxRate = {
@@ -12,6 +13,7 @@ const usdArs: StarLpFxRate = {
     rate: 1596.75,
     source: 'manteca',
     fetchedAt: '2026-10-21T10:00:00.000Z',
+    effectiveAt: '2026-10-21T09:59:59.000Z',
 }
 
 describe('formatUsdArsRate', () => {
@@ -26,19 +28,46 @@ describe('formatUsdArsRate', () => {
     })
 })
 
+describe('roundUsdArsRate', () => {
+    it('rounds to the nearest 10 ARS', () => {
+        expect(roundUsdArsRate(1601.88)).toBe(1600)
+        expect(roundUsdArsRate(1596.75)).toBe(1600)
+        expect(roundUsdArsRate(1594.99)).toBe(1590)
+        expect(roundUsdArsRate(1605)).toBe(1610)
+    })
+})
+
 describe('qrArgentinaRateHeadline', () => {
-    it('returns null without a live rate, so the fold shows its fallback title', () => {
-        expect(qrArgentinaRateHeadline(null)).toBeNull()
+    it('returns null in the none tier, so the fold says "Best rate"', () => {
+        expect(qrArgentinaRateHeadline({ tier: 'none', quote: null })).toBeNull()
     })
 
-    it('carries the live rate, its printed value and a size that fits it to the column', () => {
-        expect(qrArgentinaRateHeadline(usdArs)).toEqual({ rate: 1596.75, value: '1,596.75', fontSize: '20.75cqw' })
+    it('prints a live rate exactly, after "$1 =", and counts it up', () => {
+        expect(qrArgentinaRateHeadline({ tier: 'live', quote: usdArs })).toEqual({
+            lead: '$1 =',
+            rate: 1596.75,
+            value: '1,596.75',
+            label: '$1 = 1,596.75 ARS',
+            fontSize: '20.80cqw',
+            countsUp: true,
+        })
+    })
+
+    it('prints a last-known rate rounded to the nearest 10, after "$1 ≈", at rest', () => {
+        expect(qrArgentinaRateHeadline({ tier: 'lastKnown', quote: usdArs })).toEqual({
+            lead: '$1 ≈',
+            rate: 1600,
+            value: '1,600',
+            label: '$1 is about 1,600 ARS',
+            fontSize: '30.23cqw',
+            countsUp: false,
+        })
     })
 
     it('sets a longer number smaller', () => {
-        const headline = qrArgentinaRateHeadline({ ...usdArs, rate: 12345.6 })
+        const headline = qrArgentinaRateHeadline({ tier: 'live', quote: { ...usdArs, rate: 12345.6 } })
         expect(headline?.value).toBe('12,345.60')
-        expect(headline?.fontSize).toBe('18.44cqw')
+        expect(headline?.fontSize).toBe('18.54cqw')
     })
 })
 
