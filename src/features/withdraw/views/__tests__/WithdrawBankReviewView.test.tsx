@@ -264,7 +264,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
         )
 
         expect(screen.queryByText('Bridge sends EUR to the bank')).not.toBeInTheDocument()
-        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
+        expect(screen.getByText('1 USD ≈ 0.8955 EUR')).toBeInTheDocument()
     })
 
     it.each([
@@ -283,7 +283,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
             />
         )
 
-        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
+        expect(screen.getByText('1 USD ≈ 0.8955 EUR')).toBeInTheDocument()
         expect(screen.getByTestId('secondary')).toHaveTextContent('≈ €44.78')
         expect(screen.queryByText(/GBP|PLN|SEK|CHF|£/)).not.toBeInTheDocument()
         expect(screen.getByText('Bridge sends EUR to the bank')).toBeInTheDocument()
@@ -298,7 +298,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
             />
         )
 
-        expect(screen.getByText('1 USD = 0.7508 GBP')).toBeInTheDocument()
+        expect(screen.getByText('1 USD ≈ 0.7508 GBP')).toBeInTheDocument()
         expect(screen.getByTestId('secondary')).toHaveTextContent('≈ £37.54')
         expect(screen.queryByText('Bridge sends EUR to the bank')).not.toBeInTheDocument()
     })
@@ -313,7 +313,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
             />
         )
 
-        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
+        expect(screen.getByText('1 USD ≈ 0.8955 EUR')).toBeInTheDocument()
         expect(screen.queryByText('Bridge sends EUR to the bank')).not.toBeInTheDocument()
     })
 
@@ -402,7 +402,7 @@ describe('WithdrawBankReviewView — the amount leads in the currency the user t
         )
         expect(screen.getByTestId('headline')).toHaveTextContent('≈ €2,000')
         expect(screen.getByTestId('secondary')).toHaveTextContent('$50')
-        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
+        expect(screen.getByText('1 USD ≈ 0.8955 EUR')).toBeInTheDocument()
     })
 
     it('typed in USD: the USD leads, the bank amount follows as an estimate', () => {
