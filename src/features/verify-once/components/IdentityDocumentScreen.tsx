@@ -1,6 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useVerifyOnceTrack } from '../analytics'
 import { useLocale, useTranslations } from 'next-intl'
 import Image from 'next/image'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
@@ -168,7 +170,28 @@ export function IdentityDocumentScreen({
         residence && countries.includes(residence) ? residence : countries.length === 1 ? countries[0] : ''
     )
     const [picking, setPicking] = useState<'type' | 'country' | null>(null)
+    const track = useVerifyOnceTrack()
+    const picked = useRef(false)
+    const pick = (next: 'type' | 'country' | null) => {
+        const field = (next ?? picking) === 'type' ? 'document_type' : 'issuing_country'
+        if (next) {
+            picked.current = false
+            track(ANALYTICS_EVENTS.KYC_VO_PICKER_OPENED, { step: 'id', field })
+        } else if (picking) track(ANALYTICS_EVENTS.KYC_VO_PICKER_CLOSED, { step: 'id', field, chose: picked.current })
+        setPicking(next)
+    }
+    useEffect(() => {
+        track(ANALYTICS_EVENTS.KYC_VO_ID_VIEWED, {
+            step: 'id',
+            document_type_count: types.length,
+            issuing_country_count: countries.length,
+            temporary_protection_offered: !!protection,
+        })
+        // Once per visit to the midpoint.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
     const chooseType = (next: string) => {
+        picked.current = true
         setType(next)
         const allowed = countriesFor(next)
         if (!allowed.includes(country))
@@ -193,7 +216,15 @@ export function IdentityDocumentScreen({
                             className="w-full"
                             disabled={!type || !country || busy || !document}
                             loading={busy}
-                            onClick={() => onContinue({ type, issuingCountry: country })}
+                            onClick={() => {
+                                track(ANALYTICS_EVENTS.KYC_VO_ID_SUBMITTED, {
+                                    step: 'id',
+                                    document_type: type,
+                                    issuing_country_is_residence: country === residence,
+                                    proof_of_address_expected: needsProofOfAddress,
+                                })
+                                onContinue({ type, issuingCountry: country })
+                            }}
                             data-testid="verify-id-continue"
                         >
                             {t('midpoint.cta')}
@@ -222,7 +253,7 @@ export function IdentityDocumentScreen({
                         body={t('midpoint.document')}
                         leading={<IconBubble icon="user-id" size="s" color={type ? 'blue' : 'gray'} />}
                         chevron
-                        onClick={() => setPicking('type')}
+                        onClick={() => pick('type')}
                         data-testid="verify-id-type"
                     />
                     <ListItem
@@ -232,7 +263,7 @@ export function IdentityDocumentScreen({
                             country ? <Flag country={country} /> : <IconBubble icon="globe" size="s" color="gray" />
                         }
                         chevron
-                        onClick={() => setPicking('country')}
+                        onClick={() => pick('country')}
                         data-testid="verify-id-country"
                     />
                     {needsProofOfAddress && (
@@ -258,7 +289,7 @@ export function IdentityDocumentScreen({
             )}
             <OptionDrawer
                 open={picking === 'type'}
-                onOpenChange={(open) => setPicking(open ? 'type' : null)}
+                onOpenChange={(open) => pick(open ? 'type' : null)}
                 title={t('midpoint.document')}
                 options={types}
                 value={type}
@@ -267,14 +298,17 @@ export function IdentityDocumentScreen({
             />
             <OptionDrawer
                 open={picking === 'country'}
-                onOpenChange={(open) => setPicking(open ? 'country' : null)}
+                onOpenChange={(open) => pick(open ? 'country' : null)}
                 title={t('midpoint.issuedBy')}
                 searchLabel={t('search.country')}
                 options={countriesFor(type)}
                 value={country}
                 label={countryName}
                 leading={(option) => <Flag country={option} />}
-                onChoose={setCountry}
+                onChoose={(next) => {
+                    picked.current = true
+                    setCountry(next)
+                }}
             />
         </VerifyQuestionLayout>
     )

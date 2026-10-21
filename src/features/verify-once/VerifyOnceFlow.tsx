@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import Loading from '@/components/Global/Loading'
+import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useAuth } from '@/context/authContext'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
@@ -25,6 +27,7 @@ import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
 import { QuestionStepScreen } from './components/QuestionStepScreen'
 import { ProofOfAddressScreen, ReviewScreen, VerifiedScreen } from './components/StatusScreens'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
+import { trackVerifyOnce, VerifyOnceTrackingProvider, type VerifyOnceTrackingContext } from './analytics'
 import { isVerifyOnceEnabled } from './verifyOnceFlag'
 import { useVerifyOnceIdentity } from './useVerifyOnceIdentity'
 import {
@@ -33,6 +36,7 @@ import {
     IN_REVIEW_STATUSES,
     markSaved,
     phoneJoinsAddress,
+    RESIDENCE_CHANGE_HREF,
     resumeStep,
     screenIds,
     stepProgress,
@@ -101,6 +105,7 @@ export function VerifyOnceFlow() {
             setState({ kind: 'ready', questions, plan, status })
             setGeneration((g) => g + 1)
         } catch {
+            trackVerifyOnce({ flow: 'verify_once', residence: null }, ANALYTICS_EVENTS.KYC_VO_LOAD_FAILED)
             setState({ kind: 'failed' })
         }
     }, [])
@@ -207,6 +212,12 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
             return
         }
         const outcome = await identity.open(attemptId, document)
+        if (outcome.kind !== 'busy')
+            track(ANALYTICS_EVENTS.KYC_VO_ID_OUTCOME, {
+                outcome: outcome.kind,
+                retry: !document,
+                ...(outcome.kind === 'questions-missing' && { missing_step: outcome.step }),
+            })
         if (outcome.kind === 'opened') setQuestions((current) => ({ ...current, attemptId: outcome.attemptId }))
         if (outcome.kind === 'document-required') {
             setDocumentRequired(true)
@@ -274,6 +285,34 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
         })
     }, [approved, step, fetchUser, stepper])
 
+    const tracking = useMemo<VerifyOnceTrackingContext>(
+        () => ({ flow: 'verify_once', residence: questions.residence, features: plan?.features }),
+        [questions.residence, plan?.features]
+    )
+    const track = (event: Parameters<typeof trackVerifyOnce>[1], properties?: Record<string, unknown>) =>
+        trackVerifyOnce(tracking, event, properties)
+    useEffect(() => {
+        track(ANALYTICS_EVENTS.KYC_VO_VIEWED, {
+            entry,
+            question_screens: questionIds.length,
+            answered_steps: questions.steps.filter((s) => s.answered).length,
+            phone_on_address: phoneJoined,
+            status: status ?? null,
+        })
+        // Once per load: a reload remounts this component.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    useEffect(() => {
+        if (step === 'review') track(ANALYTICS_EVENTS.KYC_VO_REVIEW_VIEWED, { status: status ?? null })
+        if (step === 'verified') track(ANALYTICS_EVENTS.KYC_VO_VERIFIED_VIEWED)
+        if (step === 'address-proof') track(ANALYTICS_EVENTS.KYC_VO_POA_VIEWED)
+        // A screen view per step change, and per review status while the review is in view.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [step, step === 'review' ? status : null])
+    const [residenceOpen, setResidenceOpen] = useState(false)
+    // Mounted from the first opening on: its restriction fetch only runs for a user who asks to move.
+    const [residenceMounted, setResidenceMounted] = useState(false)
+
     const goHome = () => router.push('/home')
     const residenceName = questions.residence
         ? localizedCountryName(locale, questions.residence, questions.residence)
@@ -300,6 +339,10 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
                 }
                 onConflict={onConflict}
                 onContinueWithoutLocal={continueWithoutLocal}
+                onChangeResidence={() => {
+                    setResidenceMounted(true)
+                    setResidenceOpen(true)
+                }}
             />
         )
     } else if (step === 'id') {
@@ -320,7 +363,14 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
             <ReviewScreen
                 failed={failed}
                 onHome={goHome}
-                onRetry={status === 'ACTION_REQUIRED' ? () => void startIdentity() : undefined}
+                onRetry={
+                    status === 'ACTION_REQUIRED'
+                        ? () => {
+                              track(ANALYTICS_EVENTS.KYC_VO_REVIEW_RETRY)
+                              void startIdentity()
+                          }
+                        : undefined
+                }
                 busy={identity.busy}
                 error={idError}
             />
@@ -328,20 +378,54 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
     } else if (step === 'verified') {
         screen = <VerifiedScreen onHome={goHome} />
     } else if (step === 'address-proof') {
-        screen = <ProofOfAddressStep residenceName={residenceName} onDone={() => void stepper.goTo('verified')} />
+        screen = (
+            <ProofOfAddressStep
+                residenceName={residenceName}
+                onDone={(outcome) => {
+                    track(
+                        outcome === 'skipped'
+                            ? ANALYTICS_EVENTS.KYC_VO_POA_SKIPPED
+                            : ANALYTICS_EVENTS.KYC_VO_POA_UPLOADED
+                    )
+                    void stepper.goTo('verified')
+                }}
+                onUploadStarted={() => track(ANALYTICS_EVENTS.KYC_VO_POA_UPLOAD_STARTED)}
+            />
+        )
     }
 
     return (
-        <>
+        <VerifyOnceTrackingProvider value={tracking}>
             {screen}
+            {residenceMounted && (
+                <ResidenceChangeDrawer
+                    visible={residenceOpen}
+                    onClose={() => setResidenceOpen(false)}
+                    userId={user?.user.userId}
+                    declared={user?.residence?.declared ?? questions.residence}
+                    declaredSecond={user?.residence?.declaredSecond}
+                    verified={user?.residence?.verified ?? null}
+                    pending={user?.residence?.pending ?? null}
+                    onSaved={async () => {
+                        // The questions follow the residence: the server rebuilds them for the new country.
+                        await fetchUser()
+                        await reload()
+                    }}
+                    onReverify={() => router.push(RESIDENCE_CHANGE_HREF)}
+                />
+            )}
             <SumsubKycWrapper
                 visible={!!identity.session}
                 accessToken={identity.session?.token ?? null}
                 documentConfig={identity.session?.sdkConfig}
                 sessionKey={identity.session?.attemptId}
                 preselection="preferred"
-                onClose={identity.close}
+                onClose={() => {
+                    track(ANALYTICS_EVENTS.KYC_VO_IDENTITY_CLOSED)
+                    identity.close()
+                }}
                 onComplete={() => {
+                    track(ANALYTICS_EVENTS.KYC_VO_IDENTITY_SUBMITTED)
                     identity.close()
                     setStatus('PENDING')
                     setSubmitted(true)
@@ -349,24 +433,35 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
                 }}
                 onRefreshToken={identity.refreshToken}
             />
-        </>
+        </VerifyOnceTrackingProvider>
     )
 }
 
 /** Rule 1's upload goes through the existing supplement action (`supplement:bridge`). */
-function ProofOfAddressStep({ residenceName, onDone }: { residenceName: string; onDone: () => void }) {
-    const flow = useSumsubKycFlow({ onKycSuccess: onDone })
+function ProofOfAddressStep({
+    residenceName,
+    onDone,
+    onUploadStarted,
+}: {
+    residenceName: string
+    onDone: (outcome: 'uploaded' | 'skipped') => void
+    onUploadStarted: () => void
+}) {
+    const flow = useSumsubKycFlow({ onKycSuccess: () => onDone('uploaded') })
     return (
         <>
             <ProofOfAddressScreen
                 residenceName={residenceName}
                 uploading={flow.isLoading}
                 error={flow.error}
-                onUpload={() => void flow.handleStartAction('supplement:bridge')}
+                onUpload={() => {
+                    onUploadStarted()
+                    void flow.handleStartAction('supplement:bridge')
+                }}
                 onSkip={() => {
                     // Best effort: a failed save only means the suggestion can come back next visit.
                     void skipProofOfAddress()
-                    onDone()
+                    onDone('skipped')
                 }}
             />
             <SumsubKycWrapper
@@ -375,7 +470,7 @@ function ProofOfAddressStep({ residenceName, onDone }: { residenceName: string; 
                 onClose={flow.handleClose}
                 onComplete={() => {
                     flow.handleSdkComplete()
-                    onDone()
+                    onDone('uploaded')
                 }}
                 onRefreshToken={flow.refreshToken}
             />

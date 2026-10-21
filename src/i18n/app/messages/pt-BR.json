@@ -3569,6 +3569,7 @@
                 "postCode": "CEP ou código postal",
                 "country": "País",
                 "countryLocked": "Seu país de residência. Você pode alterar em Perfil.",
+                "changeResidence": "Alterar seu país de residência",
                 "phone": "Número de telefone",
                 "isPep": "Ocupo um cargo público",
                 "isFatca": "Tenho cidadania ou residência fiscal nos EUA",

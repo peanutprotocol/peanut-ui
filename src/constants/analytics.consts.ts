@@ -244,6 +244,58 @@ export const ANALYTICS_EVENTS = {
     // android destroyed the native sdk screen without a close callback (TASK-22030)
     KYC_SDK_ORPHANED: 'kyc_sdk_orphaned',
 
+    // ── KYC: verify once (/verify) ──
+    // Every event carries `flow` (verify_once | add_later), `residence` and the
+    // picked features; step events carry `step` and `steps` (the step ids on
+    // the screen, e.g. address+phone). Never an answer value: a field is named
+    // by its key, an error by its code. Funnel: viewed → step_viewed →
+    // step_saved → id_viewed → id_outcome(opened) → identity_submitted →
+    // review_viewed → verified_viewed.
+    KYC_VO_VIEWED: 'kyc_verify_once_viewed',
+    KYC_VO_LOAD_FAILED: 'kyc_verify_once_load_failed',
+    KYC_VO_STEP_VIEWED: 'kyc_verify_once_step_viewed',
+    KYC_VO_STEP_SUBMITTED: 'kyc_verify_once_step_submitted',
+    KYC_VO_STEP_SAVED: 'kyc_verify_once_step_saved',
+    KYC_VO_STEP_REJECTED: 'kyc_verify_once_step_rejected',
+    // One per field and code. source: server (the save refused it) | typing
+    // (the screen flagged it while typed, e.g. an ITIN or a phone with no code).
+    KYC_VO_FIELD_ERROR: 'kyc_verify_once_field_error',
+    KYC_VO_FORM_ERROR: 'kyc_verify_once_form_error',
+    KYC_VO_BACK: 'kyc_verify_once_back',
+    // Confusion signals: the explainer opened, a picker left without a pick,
+    // a search that found nothing (only the query length is sent).
+    KYC_VO_WHY_OPENED: 'kyc_verify_once_why_opened',
+    KYC_VO_PICKER_OPENED: 'kyc_verify_once_picker_opened',
+    KYC_VO_PICKER_CLOSED: 'kyc_verify_once_picker_closed',
+    KYC_VO_SEARCH_EMPTY: 'kyc_verify_once_search_empty',
+    KYC_VO_RESIDENCE_CHANGE_OPENED: 'kyc_verify_once_residence_change_opened',
+    KYC_VO_LOCAL_REFUSED: 'kyc_verify_once_local_refused',
+    KYC_VO_CONTINUE_WITHOUT_LOCAL: 'kyc_verify_once_continue_without_local',
+    KYC_VO_ID_VIEWED: 'kyc_verify_once_id_viewed',
+    KYC_VO_ID_SUBMITTED: 'kyc_verify_once_id_submitted',
+    // outcome: opened | document-required | questions-missing | failed
+    KYC_VO_ID_OUTCOME: 'kyc_verify_once_id_outcome',
+    KYC_VO_IDENTITY_SUBMITTED: 'kyc_verify_once_identity_submitted',
+    KYC_VO_IDENTITY_CLOSED: 'kyc_verify_once_identity_closed',
+    KYC_VO_REVIEW_VIEWED: 'kyc_verify_once_review_viewed',
+    KYC_VO_REVIEW_RETRY: 'kyc_verify_once_review_retry',
+    KYC_VO_VERIFIED_VIEWED: 'kyc_verify_once_verified_viewed',
+    KYC_VO_POA_VIEWED: 'kyc_verify_once_poa_viewed',
+    KYC_VO_POA_UPLOAD_STARTED: 'kyc_verify_once_poa_upload_started',
+    KYC_VO_POA_UPLOADED: 'kyc_verify_once_poa_uploaded',
+    KYC_VO_POA_SKIPPED: 'kyc_verify_once_poa_skipped',
+    // Adding a feature after the ID check. outcome: saved | refused |
+    // action-required | questions-missing | failed
+    KYC_VO_ADD_FEATURE_VIEWED: 'kyc_verify_once_add_feature_viewed',
+    KYC_VO_ADD_FEATURE_OUTCOME: 'kyc_verify_once_add_feature_outcome',
+
+    // ── KYC: document picker and setup status (document-first) ──
+    KYC_DOCUMENT_PICKER_VIEWED: 'kyc_document_picker_viewed',
+    KYC_DOCUMENT_PICKER_SUBMITTED: 'kyc_document_picker_submitted',
+    KYC_DOCUMENT_PICKER_CLOSED: 'kyc_document_picker_closed',
+    KYC_SETUP_STATUS_VIEWED: 'kyc_setup_status_viewed',
+    KYC_SETUP_STATUS_ACTION: 'kyc_setup_status_action',
+
     // ── Card: acquisition funnel (Rain virtual card) ──
     // State observed on /card mount or transition. `state` matches CardTopLevelState.
     CARD_STATE_VIEWED: 'card_state_viewed',

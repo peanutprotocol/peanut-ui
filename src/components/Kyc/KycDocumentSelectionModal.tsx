@@ -2,12 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import posthog from 'posthog-js'
 import Modal from '@/components/Global/Modal'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { KycDocumentChoice, KycDocumentPlan, KycFeatures } from '@/app/actions/types/kyc-workflow.types'
 import { identityDocuments, KYC_FEATURE_KEYS } from '@/utils/kyc-document-plan.utils'
 
 type KycRoute = KycDocumentPlan['routes'][number]
+
+const featureProperties = (features: KycFeatures) =>
+    Object.fromEntries(Object.entries(features).map(([key, on]) => [`feature_${key}`, !!on]))
 
 export function KycDocumentSelectionModal({
     plan,
@@ -61,6 +66,22 @@ export function KycDocumentSelectionModal({
             })
         )
     }, [route])
+    useEffect(() => {
+        posthog.capture(ANALYTICS_EVENTS.KYC_DOCUMENT_PICKER_VIEWED, {
+            preferences_only: preferencesOnly,
+            routes: plan.routes.length,
+            ...featureProperties(plan.features),
+        })
+        // Once per opening: the modal mounts when it opens.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    const close = () => {
+        posthog.capture(ANALYTICS_EVENTS.KYC_DOCUMENT_PICKER_CLOSED, {
+            preferences_only: preferencesOnly,
+            had_error: !!error,
+        })
+        onClose()
+    }
     const countryNames = new Intl.DisplayNames([locale], { type: 'region' })
     const countryName = (country: string) => countryNames.of(country) ?? country
     const collator = new Intl.Collator(locale)
@@ -98,7 +119,7 @@ export function KycDocumentSelectionModal({
     return (
         <Modal
             visible
-            onClose={onClose}
+            onClose={close}
             preventClose={busy}
             title={t(preferencesOnly ? 'preferencesTitle' : 'title')}
             closeTestId="kyc-documents-close"
@@ -111,6 +132,12 @@ export function KycDocumentSelectionModal({
                 onSubmit={(e) => {
                     e.preventDefault()
                     if (!ready) return
+                    posthog.capture(ANALYTICS_EVENTS.KYC_DOCUMENT_PICKER_SUBMITTED, {
+                        preferences_only: preferencesOnly,
+                        route_index: plan.routes.findIndex((r) => r.id === routeId),
+                        document_types: choices.map((c) => c.type).join('+'),
+                        ...featureProperties(features),
+                    })
                     void (preferencesOnly ? onConfirm('', [], draftFeatures) : onConfirm(routeId, choices))
                 }}
             >

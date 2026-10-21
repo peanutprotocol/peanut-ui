@@ -10,6 +10,9 @@ import type {
 } from '@/app/actions/types/kyc-verify-once.types'
 import { callingCodeFor, isE164 } from './callingCodes'
 
+/** Accounts with its residence drawer open: where a verified user's move and its new check happen. */
+export const RESIDENCE_CHANGE_HREF = '/profile/accounts?open=residence'
+
 /** The server's next step when it names one, else the first one still open. */
 export function resumeStep(questions: VerifyOnceQuestions): VerifyOnceStepId | null {
     if (questions.firstUnanswered && questions.steps.some((s) => s.id === questions.firstUnanswered))

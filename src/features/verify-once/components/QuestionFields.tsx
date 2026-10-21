@@ -9,6 +9,7 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -59,12 +60,16 @@ export function QuestionFields({
     sentenceSize = 'm',
     sentencesAsHeading = true,
     phonePartner = 'card',
+    onFieldBlur,
+    onChangeResidence,
 }: {
     fields: VerifyOnceField[]
     values: VerifyOnceAnswers
     errors: Record<string, string>
     residence: string | null
     onChange: (key: string, value: string) => void
+    onFieldBlur?: (key: string) => void
+    onChangeResidence?: () => void
     /** One step leads with its sentences as the heading; a screen of several steps has its own title. */
     sentenceSize?: 'm' | 's'
     sentencesAsHeading?: boolean
@@ -136,6 +141,8 @@ export function QuestionFields({
                     idPrefix={id}
                     errorText={errorText}
                     onChange={onChange}
+                    onFieldBlur={onFieldBlur}
+                    onChangeResidence={onChangeResidence}
                     phonePartner={phonePartner}
                 />
             )}
@@ -151,6 +158,8 @@ function TypedFields({
     idPrefix,
     errorText,
     onChange,
+    onFieldBlur,
+    onChangeResidence,
     phonePartner,
 }: {
     fields: VerifyOnceField[]
@@ -160,6 +169,8 @@ function TypedFields({
     idPrefix: string
     errorText: (key: string) => string | null
     onChange: (key: string, value: string) => void
+    onFieldBlur?: (key: string) => void
+    onChangeResidence?: () => void
     phonePartner: 'card' | 'local'
 }) {
     const t = useTranslations('kyc.verifyOnce')
@@ -173,6 +184,7 @@ function TypedFields({
                 name={field.key}
                 value={values[field.key] ?? ''}
                 onChange={(e) => onChange(field.key, e.target.value)}
+                onBlur={() => onFieldBlur?.(field.key)}
                 state={error ? 'error' : 'default'}
                 aria-describedby={error ? `${inputId}-error` : undefined}
                 aria-required={field.required || undefined}
@@ -253,7 +265,13 @@ function TypedFields({
                                     />
                                 )
                             },
-                            country.locked ? t('labels.countryLocked') : undefined
+                            country.locked && onChangeResidence ? (
+                                <LinkButton onClick={onChangeResidence} data-testid="verify-change-residence">
+                                    {t('labels.changeResidence')}
+                                </LinkButton>
+                            ) : country.locked ? (
+                                t('labels.countryLocked')
+                            ) : undefined
                         )}
                 </>
             )}
@@ -357,6 +375,7 @@ function TypedFields({
                     fieldFor(group, (f) => (
                         <PlaceField
                             id={`${idPrefix}-${f.key}`}
+                            field={f.key}
                             value={values[f.key] ?? ''}
                             country={(f.countryField && values[f.countryField]) || null}
                             invalid={!!errorText(f.key)}

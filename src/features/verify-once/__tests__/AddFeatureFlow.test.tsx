@@ -11,6 +11,9 @@ jest.mock('@/app/actions/kyc-verify-once', () => ({
     saveVerifyOnceFeatures: jest.fn(),
 }))
 jest.mock('@/app/actions/kyc-workflow', () => ({ getKycDocumentPlan: jest.fn() }))
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
+}))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div>loading</div> }))
 

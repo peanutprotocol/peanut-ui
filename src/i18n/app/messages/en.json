@@ -3569,6 +3569,7 @@
                 "postCode": "Postcode",
                 "country": "Country",
                 "countryLocked": "Your country of residence. You can change it in Profile.",
+                "changeResidence": "Change your country of residence",
                 "phone": "Phone number",
                 "isPep": "I hold a public office",
                 "isFatca": "I’m a US citizen or tax resident",

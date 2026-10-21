@@ -1,7 +1,9 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
+import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -11,6 +13,7 @@ import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import Badge, { type StatusType } from '@/components/Global/Badges/Badge'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useModalsContext } from '@/context/ModalsContext'
 import { CorridorFlag } from '@/features/deposit-accounts/components/CorridorFlag'
 import { localizedCountryName } from '@/utils/country-name.utils'
@@ -122,6 +125,22 @@ export const KycSetupStatusDrawer = ({
     const country = residence ? localizedCountryName(locale, residence, residence) : null
     const done = rows.length > 0 && rows.every((row) => row.state === 'available')
     const step = done ? null : primaryStep(rows)
+    // Each row's state (and reason) as its own property, so a funnel can split by feature.
+    const rowProperties = Object.fromEntries(
+        rows.flatMap((row) => [
+            [`state_${row.key}`, row.state],
+            ...(row.reason ? [[`reason_${row.key}`, row.reason]] : []),
+        ])
+    )
+    const statesKey = rows.map((row) => `${row.key}:${row.state}`).join(',')
+    const track = (event: typeof ANALYTICS_EVENTS.KYC_SETUP_STATUS_ACTION, action: string) =>
+        posthog.capture(event, { action, done, step: step?.kind ?? null, ...rowProperties })
+    useEffect(() => {
+        if (!open) return
+        posthog.capture(ANALYTICS_EVENTS.KYC_SETUP_STATUS_VIEWED, { done, step: step?.kind ?? null, ...rowProperties })
+        // A view per opening, and per change of a row's state while open.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, statesKey])
 
     const rowLeading = (key: KycFeatureKey) => {
         if (key === 'local' && residence) return <CorridorFlag iso2={residence} />
@@ -141,6 +160,7 @@ export const KycSetupStatusDrawer = ({
         return key ? tIdentity(key) : undefined
     }
     const leave = () => {
+        track(ANALYTICS_EVENTS.KYC_SETUP_STATUS_ACTION, step?.kind === 'document' ? 'later' : 'home')
         onClose()
         router.push('/home')
     }
@@ -230,7 +250,10 @@ export const KycSetupStatusDrawer = ({
                                 shadowSize="4"
                                 className="w-full"
                                 disabled={busy}
-                                onClick={primary.onClick}
+                                onClick={() => {
+                                    track(ANALYTICS_EVENTS.KYC_SETUP_STATUS_ACTION, step?.kind ?? 'none')
+                                    primary.onClick?.()
+                                }}
                                 data-testid="kyc-setup-step"
                             >
                                 {primary.label}
@@ -240,7 +263,19 @@ export const KycSetupStatusDrawer = ({
                             </LinkButton>
                         </div>
                     ) : (
-                        <Button variant="primary" shadowSize="4" className="w-full" onClick={done ? onContinue : leave}>
+                        <Button
+                            variant="primary"
+                            shadowSize="4"
+                            className="w-full"
+                            onClick={
+                                done
+                                    ? () => {
+                                          track(ANALYTICS_EVENTS.KYC_SETUP_STATUS_ACTION, 'continue')
+                                          onContinue()
+                                      }
+                                    : leave
+                            }
+                        >
                             {tCommon(done ? 'continue' : 'goToHome')}
                         </Button>
                     )}

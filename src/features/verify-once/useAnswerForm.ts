@@ -20,7 +20,16 @@ export type AnswerFormError =
     | 'unavailable'
     | 'existing_verification'
     | 'conflict'
-export type SaveOutcome = { ok: true; next: VerifyOnceStepId | null } | { ok: false; error?: AnswerFormError }
+export type SaveOutcome =
+    | { ok: true; next: VerifyOnceStepId | null }
+    | {
+          ok: false
+          error?: AnswerFormError
+          /** the form-level message shown, if any */
+          formError?: AnswerFormError
+          /** the step the server refused, with its field error codes */
+          rejected?: { step: VerifyOnceStepId; errors: Record<string, string> }
+      }
 
 const CONFLICTS = new Set(['feature_not_selected', 'identity_submitted', 'unavailable', 'existing_verification'])
 
@@ -63,20 +72,20 @@ export function useAnswerForm(steps: VerifyOnceStep[], feature?: VerifyOnceFeatu
                     const result = await saveKycAnswers(step.id, stepPayload(step.fields, values), feature)
                     if (result.kind === 'invalid') {
                         setErrors(result.errors)
-                        return { ok: false }
+                        return { ok: false, rejected: { step: step.id, errors: result.errors } }
                     }
                     if (result.kind === 'conflict') {
                         const error = CONFLICTS.has(result.code) ? (result.code as AnswerFormError) : 'conflict'
                         setFormError(error)
-                        return { ok: false, error }
+                        return { ok: false, error, formError: error }
                     }
                     if (result.kind === 'blocked') {
                         setFormError(result.code)
-                        return { ok: false }
+                        return { ok: false, formError: result.code }
                     }
                     if (result.kind === 'retry') {
                         setFormError('retry')
-                        return { ok: false, error: 'retry' }
+                        return { ok: false, error: 'retry', formError: 'retry' }
                     }
                     next = result.next
                 }

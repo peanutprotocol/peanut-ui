@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
@@ -9,7 +10,10 @@ import { getKycDocumentPlan } from '@/app/actions/kyc-workflow'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import type { VerifyOnceFeature, VerifyOnceStep } from '@/app/actions/types/kyc-verify-once.types'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { stepsLabel, trackVerifyOnce, VerifyOnceTrackingProvider, type VerifyOnceTrackingContext } from './analytics'
 import { QuestionStepScreen } from './components/QuestionStepScreen'
+import { RESIDENCE_CHANGE_HREF } from './verifyOnce.utils'
 import { FeatureReadyScreen } from './components/StatusScreens'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
 
@@ -45,7 +49,20 @@ export function AddFeatureQuestions({
 }) {
     const t = useTranslations('kyc.verifyOnce')
     const tKyc = useTranslations('kyc')
+    const router = useRouter()
     const [state, setState] = useState<State>({ kind: 'loading' })
+    const [residence, setResidence] = useState<string | null>(null)
+    const tracking = useMemo<VerifyOnceTrackingContext>(
+        () => ({ flow: 'add_later', feature, residence }),
+        [feature, residence]
+    )
+    const trackingRef = useRef(tracking)
+    trackingRef.current = tracking
+    const track = useCallback(
+        (event: Parameters<typeof trackVerifyOnce>[1], properties?: Record<string, unknown>) =>
+            trackVerifyOnce(trackingRef.current, event, properties),
+        []
+    )
     // Called once per finish, whatever the parent re-renders with.
     const onDoneRef = useRef(onDone)
     onDoneRef.current = onDone
@@ -56,6 +73,11 @@ export function AddFeatureQuestions({
         async (afterRequired?: string | null) => {
             try {
                 const result = await addKycFeature(feature)
+                track(ANALYTICS_EVENTS.KYC_VO_ADD_FEATURE_OUTCOME, {
+                    outcome: result.kind,
+                    ...(result.kind === 'refused' && { refused_for: result.feature, refused_reason: result.copy }),
+                    ...(result.kind === 'questions-missing' && { missing_step: result.step }),
+                })
                 if (result.kind === 'saved') onDoneRef.current()
                 else if (result.kind === 'refused' || result.kind === 'action-required') setState(result)
                 // A step asked a second time with nothing new to answer would loop: stop on the failure screen.
@@ -63,10 +85,11 @@ export function AddFeatureQuestions({
                     await loadRef.current(result.step)
                 else setState({ kind: 'failed' })
             } catch {
+                track(ANALYTICS_EVENTS.KYC_VO_ADD_FEATURE_OUTCOME, { outcome: 'failed' })
                 setState({ kind: 'failed' })
             }
         },
-        [feature]
+        [feature, track]
     )
 
     const load = useCallback(
@@ -75,13 +98,21 @@ export function AddFeatureQuestions({
             try {
                 const questions = await getKycQuestions(feature)
                 const steps = questions.steps.filter((s) => !s.answered || s.id === required)
+                setResidence(questions.residence)
+                trackingRef.current = { ...trackingRef.current, residence: questions.residence }
+                track(ANALYTICS_EVENTS.KYC_VO_ADD_FEATURE_VIEWED, {
+                    steps: stepsLabel(steps),
+                    missing_steps: steps.length,
+                    asked_again: !!required,
+                })
                 if (!steps.length) return finish(required)
                 setState({ kind: 'asking', steps, residence: questions.residence })
             } catch {
+                track(ANALYTICS_EVENTS.KYC_VO_LOAD_FAILED)
                 setState({ kind: 'failed' })
             }
         },
-        [feature, finish]
+        [feature, finish, track]
     )
     loadRef.current = load
 
@@ -137,20 +168,24 @@ export function AddFeatureQuestions({
             />
         )
     return (
-        <QuestionStepScreen
-            steps={state.steps}
-            residence={state.residence}
-            feature={feature}
-            title={t(`addLater.title.${feature}`)}
-            onBack={onBack}
-            onSaved={() => {
-                setState({ kind: 'loading' })
-                void finish()
-            }}
-            onConflict={(error) =>
-                error === 'unavailable' || error === 'existing_verification' ? onBack() : void load()
-            }
-        />
+        <VerifyOnceTrackingProvider value={tracking}>
+            <QuestionStepScreen
+                steps={state.steps}
+                residence={state.residence}
+                feature={feature}
+                title={t(`addLater.title.${feature}`)}
+                onBack={onBack}
+                onSaved={() => {
+                    setState({ kind: 'loading' })
+                    void finish()
+                }}
+                onConflict={(error) =>
+                    error === 'unavailable' || error === 'existing_verification' ? onBack() : void load()
+                }
+                // A verified user's move needs a new residence check, which Accounts runs.
+                onChangeResidence={() => router.push(RESIDENCE_CHANGE_HREF)}
+            />
+        </VerifyOnceTrackingProvider>
     )
 }
 

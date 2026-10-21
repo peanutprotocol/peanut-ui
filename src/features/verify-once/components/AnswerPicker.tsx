@@ -1,6 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useVerifyOnceTrack } from '../analytics'
 import { useLocale, useTranslations } from 'next-intl'
 import Image from 'next/image'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
@@ -93,6 +95,10 @@ export function AnswerPicker({
     const label = useOptionLabel()
     const [open, setOpen] = useState(false)
     const [query, setQuery] = useState('')
+    const track = useVerifyOnceTrack()
+    const chose = useRef(false)
+    const searched = useRef(false)
+    const reportedEmpty = useRef(false)
     const isJob = field.kind === 'occupation'
     const searchable = isJob || field.kind === 'country'
     const jobLabels = useOccupationLabels(isJob)
@@ -122,14 +128,40 @@ export function AnswerPicker({
     const popular = popularJobs.length ? popularJobs : null
     const listed = popular ?? (searchable ? matches.slice(0, MAX_RESULTS) : options)
 
+    const openChange = (next: boolean) => {
+        if (next === open) return
+        if (next) {
+            chose.current = false
+            searched.current = false
+            reportedEmpty.current = false
+            track(ANALYTICS_EVENTS.KYC_VO_PICKER_OPENED, { field: field.key, had_answer: !!value })
+        } else {
+            track(ANALYTICS_EVENTS.KYC_VO_PICKER_CLOSED, {
+                field: field.key,
+                chose: chose.current,
+                searched: searched.current,
+            })
+        }
+        setOpen(next)
+    }
     const choose = (option: string) => {
+        chose.current = true
         onChange(option)
-        setOpen(false)
+        openChange(false)
         setQuery('')
     }
 
+    const noMatch = searchable && open && words.length > 0 && matches.length === 0
+    useEffect(() => {
+        if (!noMatch || reportedEmpty.current) return
+        reportedEmpty.current = true
+        track(ANALYTICS_EVENTS.KYC_VO_SEARCH_EMPTY, { field: field.key, query_length: query.trim().length })
+        // Once per open drawer: the first query that finds nothing is the signal.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [noMatch])
+
     return (
-        <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
+        <Drawer open={open} onOpenChange={openChange} shouldScaleBackground={false}>
             <DrawerTrigger asChild>
                 {variant === 'field' ? (
                     <button
@@ -180,7 +212,10 @@ export function AnswerPicker({
                                 type="search"
                                 autoComplete="off"
                                 value={query}
-                                onChange={(e) => setQuery(e.target.value)}
+                                onChange={(e) => {
+                                    searched.current = true
+                                    setQuery(e.target.value)
+                                }}
                                 placeholder={t(field.kind === 'country' ? 'search.country' : 'search.occupation')}
                                 aria-label={t(field.kind === 'country' ? 'search.country' : 'search.occupation')}
                                 leftContent={<Icon name="search" size={20} className="text-foreground-secondary" />}

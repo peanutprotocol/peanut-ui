@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useId, useRef, useState } from 'react'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useVerifyOnceTrack } from '../analytics'
 import { useTranslations } from 'next-intl'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import Card from '@/components/Global/Card'
@@ -25,6 +27,7 @@ const searchable = (text: string) =>
  */
 export function PlaceField({
     id,
+    field = 'place',
     value,
     country,
     invalid,
@@ -32,6 +35,8 @@ export function PlaceField({
     onChange,
 }: {
     id: string
+    /** the answer's key, for the no-results event */
+    field?: string
     value: string
     country: string | null
     invalid?: boolean
@@ -44,6 +49,10 @@ export function PlaceField({
     const [places, setPlaces] = useState<KycPlace[] | null>(null)
     const [active, setActive] = useState(-1)
     const latest = useRef(0)
+    const track = useVerifyOnceTrack()
+    const trackRef = useRef(track)
+    trackRef.current = track
+    const reportedEmpty = useRef(false)
     const ready = !!country && searchable(value).length >= PLACE_QUERY_MIN_LENGTH
 
     useEffect(() => {
@@ -57,9 +66,14 @@ export function PlaceField({
             if (request !== latest.current) return
             setPlaces(found)
             setActive(-1)
+            // Once per typing session: a village missing from the list is still accepted, but worth knowing.
+            if (!found.length && !reportedEmpty.current) {
+                reportedEmpty.current = true
+                trackRef.current(ANALYTICS_EVENTS.KYC_VO_SEARCH_EMPTY, { field, query_length: value.trim().length })
+            }
         }, SEARCH_DELAY_MS)
         return () => clearTimeout(timer)
-    }, [open, ready, country, value])
+    }, [open, ready, country, value, field])
 
     const choose = (place: KycPlace) => {
         onChange(place.name)
@@ -107,7 +121,10 @@ export function PlaceField({
                     onChange(event.target.value)
                     setOpen(true)
                 }}
-                onFocus={() => setOpen(true)}
+                onFocus={() => {
+                    reportedEmpty.current = false
+                    setOpen(true)
+                }}
                 onBlur={() => setOpen(false)}
                 onKeyDown={onKeyDown}
                 className="notranslate"
