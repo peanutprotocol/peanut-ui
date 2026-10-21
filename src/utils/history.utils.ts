@@ -124,6 +124,11 @@ export interface HistoryEntryExtraData {
      *  transfer. Written by the API request rollup; the requester's drawer
      *  gates on it before asking for the bank details. */
     bankInstructionsShared?: boolean
+    /** Request rollups only: the amount the requester asked, in `requestCurrency`
+     *  (decimal string). The USD figures stay the money truth. */
+    requestedAmount?: string
+    /** Request rollups only: the currency the requester asked in (EUR, BRL…). */
+    requestCurrency?: string
 
     // Common fields
     link?: string

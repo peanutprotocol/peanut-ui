@@ -613,6 +613,10 @@ async function main() {
             console.warn('⚠️  .env.production.local not found — using default rpId (peanut.me)')
         }
 
+        // Keep deferred web attribution readable in native bundles. The sitemap
+        // is disabled below, so generation must happen before any route moves.
+        execSync('pnpm generate:signup-attribution-paths', { cwd: path.join(__dirname, '..'), stdio: 'inherit' })
+
         copyComponentsBeforeDisable()
 
         // verify component copies succeeded — blank stubs would show empty screens

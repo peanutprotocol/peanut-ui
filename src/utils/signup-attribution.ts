@@ -1,4 +1,6 @@
-import { isMarketingRoute } from './marketing-routes'
+import { SUPPORTED_LOCALES } from '@/i18n/types'
+import { LEGAL_POLICIES } from '@/constants/legal-policies'
+import publicAttributionPaths from '@/constants/signup-attribution-paths.generated.json'
 import { getFromCookie, saveToCookie } from './cookie-url.utils'
 import posthog from 'posthog-js'
 
@@ -20,8 +22,15 @@ const MARKETING_VALUE_PATTERN = /^[A-Za-z0-9][-A-Za-z0-9 ._~+]*$/
 const UUID_VALUE_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const WALLET_VALUE_PATTERN = /^0x[0-9a-f]{40}$/i
 const IPV4_VALUE_PATTERN = /^(?:\d{1,3}\.){3}\d{1,3}$/
-const PUBLIC_PATH_PATTERN =
+// Keep old serialized journeys readable when their article has since been retired.
+// New browser captures use the exact sitemap inventory below.
+const LEGACY_PUBLIC_PATH_PATTERN =
     /^\/(?:$|(?:[a-z]{2}(?:-[a-z0-9]{2,8})?\/)?(?:blog|content|help|faq|how-it-works|pay-with|send-money-to|receive-money-from)(?:\/[a-z0-9][a-z0-9/_-]*)?|(?:signup|setup|home))$/i
+const PUBLIC_PATHS = new Set([...publicAttributionPaths, ...SUPPORTED_LOCALES.map((locale) => `/${locale}`)])
+const REGISTRATION_PATHS = new Set(['/signup', '/setup', '/home'])
+const PUBLIC_SLUG_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/
+const IDENTIFIER_SEGMENT_PATTERN =
+    /(?:^|-)(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|0x[0-9a-f]{40})(?:-|$)/i
 
 export type SignupAttributionPlatform = 'web' | 'ios' | 'android' | 'unknown'
 export type SignupAttributionCaptureMethod = 'browser' | 'deferred_link'
@@ -78,9 +87,35 @@ function cleanHost(value: string | null | undefined): string | undefined {
     return cleaned
 }
 
-function cleanPath(path: string): string | undefined {
+// Native bundles can predate an article or outlive its publication. Match the
+// API's bounded public families when reading a journey, while browser capture
+// still requires the exact inventory built with the page.
+function isSerializedPublicPath(pathname: string): boolean {
+    if (isLegacyAttributionPath(pathname)) return true
+    const [, locale, ...segments] = pathname.split('/')
+    if (!pathname.startsWith('/') || !SUPPORTED_LOCALES.some((supported) => supported === locale)) return false
+    if (segments.some((segment) => !PUBLIC_SLUG_PATTERN.test(segment) || IDENTIFIER_SEGMENT_PATTERN.test(segment))) {
+        return false
+    }
+    const [family, slug] = segments
+    if (segments.length === 2) {
+        if (family === 'stories' || family === 'use-cases' || family === 'withdraw') return true
+        if (family === 'compare') return /^peanut-vs-[a-z]/.test(slug)
+        if (family === 'deposit') return /^(?:from|via)-[a-z]/.test(slug)
+    }
+    return segments.length === 4 && family === 'send-money-from' && segments[2] === 'to'
+}
+
+/** Older native decoders reject the whole journey if their path field is unfamiliar. */
+export function isLegacyAttributionPath(pathname: string): boolean {
+    return LEGACY_PUBLIC_PATH_PATTERN.test(pathname)
+}
+
+function cleanPath(path: string, capture = false): string | undefined {
     const clean = cleanValue(path, MAX_PATH_LENGTH)?.split(/[?#]/, 1)[0]
-    return clean && PUBLIC_PATH_PATTERN.test(clean) && !clean.includes('..') && !clean.includes('%') ? clean : undefined
+    if (!clean || clean.includes('..') || clean.includes('%')) return undefined
+    if (PUBLIC_PATHS.has(clean) || REGISTRATION_PATHS.has(clean)) return clean
+    return !capture && isSerializedPublicPath(clean) ? clean : undefined
 }
 
 function newJourneyId(): string {
@@ -101,20 +136,16 @@ function platform(): SignupAttributionPlatform {
           : 'android'
 }
 
-function isContentPath(pathname: string): boolean {
+/** Content classification also decodes older store handoffs that omitted duplicate touches. */
+export function isContentAttributionPath(path: string): boolean {
+    const pathname = cleanPath(path)
+    if (!pathname) return false
+    if (REGISTRATION_PATHS.has(pathname) || pathname === '/' || pathname === '/careers') return false
     const parts = pathname.split('/').filter(Boolean)
-    if (parts.length === 0) return false
-    if (isMarketingRoute(pathname)) return parts.length > 1
-    return [
-        'blog',
-        'content',
-        'help',
-        'faq',
-        'how-it-works',
-        'pay-with',
-        'send-money-to',
-        'receive-money-from',
-    ].includes(parts[0].toLowerCase())
+    const hasLocale = SUPPORTED_LOCALES.some((locale) => parts[0] === locale)
+    if (hasLocale && parts.length === 1) return false
+    const contentPath = hasLocale ? `/${parts.slice(1).join('/')}` : pathname
+    return !LEGAL_POLICIES.some(({ href }) => href.replace(/^\/en(?=\/)/, '') === contentPath)
 }
 
 function currentTouch(includeDocumentReferrer: boolean): SignupAttributionTouch | null {
@@ -140,7 +171,7 @@ function currentTouch(includeDocumentReferrer: boolean): SignupAttributionTouch 
         utmCampaign: cleanMarketingValue(url.searchParams.get('utm_campaign')),
         utmContent: cleanMarketingValue(url.searchParams.get('utm_content')),
         referrerHost,
-        path: cleanPath(url.pathname),
+        path: cleanPath(url.pathname, true),
     }
 }
 
@@ -158,7 +189,7 @@ function isTouch(value: unknown): value is SignupAttributionTouch {
         (touch.utmCampaign !== undefined && !cleanMarketingValue(touch.utmCampaign)) ||
         (touch.utmContent !== undefined && !cleanMarketingValue(touch.utmContent)) ||
         (touch.referrerHost !== undefined && !cleanHost(touch.referrerHost)) ||
-        (touch.path !== undefined && !cleanPath(touch.path))
+        (touch.path !== undefined && typeof touch.path !== 'string')
     )
         return false
     return Object.keys(touch).every((key) =>
@@ -221,6 +252,14 @@ function fitsAttributionStorage(candidate: SignupAttributionContext): boolean {
 /** Rebuild from allowlisted fields and trim lower-priority touches to the API and cookie caps. */
 function canonicalSignupAttribution(value: unknown): SignupAttributionContext | null {
     if (!isContext(value)) return null
+    // An older native inventory may not recognize a new country hub. Drop
+    // that path, not the known campaign and journey. An unknown content touch
+    // must not prevent a later recognized article from becoming the first one.
+    const firstContentTouch =
+        value.firstContentTouch &&
+        (value.firstContentTouch.path === undefined || cleanPath(value.firstContentTouch.path))
+            ? canonicalTouch(value.firstContentTouch)
+            : undefined
     const canonical: SignupAttributionContext = {
         schemaVersion: SIGNUP_ATTRIBUTION_SCHEMA_VERSION,
         journeyId: value.journeyId,
@@ -228,7 +267,7 @@ function canonicalSignupAttribution(value: unknown): SignupAttributionContext | 
         analyticsState: 'enabled',
         captureMethod: value.captureMethod,
         firstTouch: canonicalTouch(value.firstTouch),
-        ...(value.firstContentTouch ? { firstContentTouch: canonicalTouch(value.firstContentTouch) } : {}),
+        ...(firstContentTouch ? { firstContentTouch } : {}),
         ...(value.lastTouch ? { lastTouch: canonicalTouch(value.lastTouch) } : {}),
     }
     const candidates: SignupAttributionContext[] = [
@@ -267,7 +306,7 @@ export function captureSignupAttribution({
         firstTouch: existing?.firstTouch ?? touch,
         ...(existing?.firstContentTouch
             ? { firstContentTouch: existing.firstContentTouch }
-            : touch.path && isContentPath(touch.path)
+            : touch.path && isContentAttributionPath(touch.path)
               ? { firstContentTouch: touch }
               : {}),
         ...(touch.utmSource || touch.utmMedium || touch.utmCampaign || touch.utmContent || touch.referrerHost

@@ -23,6 +23,7 @@ const ctx = {
     setTxHash: jest.fn(),
     setIsSuccess: jest.fn(),
     setCurrentView: jest.fn(),
+    refetchRequestPot: jest.fn(),
 }
 jest.mock('../ContributePotFlowContext', () => ({ useContributePotFlowContext: () => ctx }))
 jest.mock('@/features/payments/shared/hooks/useChargeManager', () => ({

@@ -368,6 +368,13 @@ describe('openExternalUrl Help Center context', () => {
         expect(mockBrowserOpen).toHaveBeenCalledWith({ url: 'https://peanut.me/en/help?fromNativeApp=1' })
     })
 
+    it('opens the slashless page for a native export link, so it never redirects inside the sheet', async () => {
+        window.Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
+        const { openExternalUrl } = require('../capacitor')
+        await openExternalUrl('https://peanut.me/en/help/')
+        expect(mockBrowserOpen).toHaveBeenCalledWith({ url: 'https://peanut.me/en/help?fromNativeApp=1' })
+    })
+
     it('does not mark normal browser visits', async () => {
         const open = jest.spyOn(window, 'open').mockReturnValue(window)
         const { openExternalUrl } = require('../capacitor')

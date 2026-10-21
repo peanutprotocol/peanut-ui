@@ -1,4 +1,5 @@
 import { formatIban } from '@/utils/general.utils'
+import { formatBankAmount } from '@/utils/currency'
 import { isCryptoAddressType } from '@/utils/account-mask.utils'
 
 // union type for all possible rows in the receipt
@@ -79,6 +80,23 @@ export const receiptHeadlineAmount = (
         return { amount: Number.isFinite(collected) ? collected : 0, sign: '', isCollectedTotal: true }
     }
     return { amount: Number.isFinite(fallbackAmount) ? fallbackAmount : 0, sign, isCollectedTotal: false }
+}
+
+/**
+ * A request asked in another currency, as the requester asked it ("€88").
+ *
+ * A request is priced once in dollars, and every amount on its row and receipt
+ * is that dollar figure. Without this the requester never saw the currency they
+ * asked in. Undefined for a dollar request and for an API that does not send it.
+ */
+export const requestedInCurrency = (transaction: {
+    isRequestPotLink?: boolean
+    extraDataForDrawer?: { requestedAmount?: string; requestCurrency?: string }
+}): string | undefined => {
+    const currency = transaction.extraDataForDrawer?.requestCurrency?.toUpperCase()
+    const amount = Number(transaction.extraDataForDrawer?.requestedAmount)
+    if (!transaction.isRequestPotLink || !currency || currency === 'USD' || !(amount > 0)) return undefined
+    return formatBankAmount(amount, currency)
 }
 
 /** Which lifecycle event a receipt's status-dated row names. */

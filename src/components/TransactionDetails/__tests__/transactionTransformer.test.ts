@@ -832,6 +832,41 @@ describe('mapTransactionDataForDrawer', () => {
             ).transactionDetails
             expect(result.status).toBe('closed')
         })
+
+        // TASK-23856: the requester never saw the currency they asked in, nor
+        // what each charge had booked.
+        it('passes the asked currency and the per-charge booking through to the receipt', () => {
+            const charge = {
+                uuid: 'charge-short',
+                tokenAmount: '58.51',
+                settledAmount: '33',
+                status: 'COMPLETED',
+                partialPayment: true,
+                payments: [],
+                fulfillmentPayment: null,
+            }
+            const result = mapTransactionDataForDrawer(
+                closedRequest('99.16', 73.65, {
+                    extraData: { kind: 'P2P_REQUEST_FULFILL', requestedAmount: '88', requestCurrency: 'EUR' },
+                    charges: [charge as unknown as NonNullable<HistoryEntry['charges']>[number]],
+                })
+            ).transactionDetails
+            expect(result.extraDataForDrawer?.requestedAmount).toBe('88')
+            expect(result.extraDataForDrawer?.requestCurrency).toBe('EUR')
+            expect(result.requestPotPayments?.[0]).toMatchObject({
+                settledAmount: '33',
+                status: 'COMPLETED',
+                partialPayment: true,
+            })
+            // no status-mapping change: closed short still reads closed
+            expect(result.status).toBe('closed')
+        })
+
+        it('leaves the asked currency out on an API that does not send it', () => {
+            const result = mapTransactionDataForDrawer(closedRequest('99.16', 73.65)).transactionDetails
+            expect(result.extraDataForDrawer?.requestedAmount).toBeUndefined()
+            expect(result.extraDataForDrawer?.requestCurrency).toBeUndefined()
+        })
     })
 
     describe('sender-side SEND_LINK claim state (TASK-20289)', () => {

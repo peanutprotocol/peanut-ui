@@ -1302,10 +1302,9 @@
             "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pide a quien lo envió que lo comparta de nuevo.",
             "requestNotFoundTitle": "Solicitud no encontrada",
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió.",
-            "requestClosedTitle": "Esta solicitud está cerrada"
+            "requestClosedTitle": "Esta solicitud está cerrada",
+            "externalPaymentNotConfirmed": "No se pudo confirmar este pago. Si el dinero salió de tu billetera, contacta a soporte."
         },
-        "requestCurrencyNote": "Esta solicitud pide {amount}. Con Peanut, cripto o una transferencia bancaria en dólares pagas su monto en dólares, que quedó fijado al crear la solicitud.",
-        "requestCurrencyNotePartPaid": "Esta solicitud pide {amount} y faltan {remaining} por pagar. Con Peanut, cripto o una transferencia bancaria en dólares pagas el monto en dólares, que quedó fijado al crear la solicitud.",
         "bankTransfer": {
             "title": "Pagar por transferencia bancaria",
             "description": "Envía desde tu banco a la cuenta de quien te pide el pago.",
@@ -1327,6 +1326,14 @@
         },
         "requestAsksFor": "Se piden {amount}",
         "requestAsksForDollars": "{amount} en dólares, fijado al crear la solicitud",
+        "partialContribution": {
+            "title": "{received} de {asked} recibidos",
+            "description": "Todavía faltan {remaining}. Envíalos a la dirección de abajo."
+        },
+        "confirmingPayment": {
+            "title": "Confirmando pago",
+            "description": "Todavía estamos confirmando tu pago. Puede tardar unos minutos y aparecerá en Actividad. Si no llega, contacta a soporte."
+        },
         "requestAlreadyCovered": "Esta solicitud ya está cubierta. No queda nada por pagar."
     },
     "claim": {
@@ -1911,6 +1918,7 @@
             "supportedNetworks": "Redes compatibles",
             "supportedTokens": "Tokens compatibles",
             "supportedTokensInline": "Tokens compatibles:",
+            "sendExtraForFees": "Envía un poco más si tu billetera o la red cobra una comisión.",
             "supportedEvmNetworks": "Redes EVM compatibles",
             "evmNetworks": "redes EVM",
             "selectNetworkType": "Selecciona el tipo de red",
@@ -2261,6 +2269,7 @@
         "noGoalSet": "Sin meta definida",
         "amountCollected": "${amount} recaudados",
         "contributors": "Contribuyentes ({count})",
+        "requestedInCurrency": "Se piden {amount}",
         "pendingLinkDeviceNote": "Usa el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
         "type": {
             "send": "Envío",
@@ -2403,6 +2412,12 @@
             "cancelling": "Cancelando",
             "cancelled": "Cancelado",
             "closeRequest": "Cerrar solicitud",
+            "closeRequestConfirm": {
+                "title": "¿Cerrar esta solicitud?",
+                "descriptionUnpaid": "No se pagaron {remaining} de {total}. Nadie podrá pagarlos después de cerrarla.",
+                "description": "Nadie podrá pagar esta solicitud después de cerrarla.",
+                "keepOpen": "Mantener abierta"
+            },
             "cancelRequest": "Cancelar solicitud",
             "pay": "Pagar",
             "rejectRequest": "Rechazar solicitud",
@@ -2631,6 +2646,7 @@
         "iconAlt": "Ícono de {name}",
         "shareAchievement": "Compartir logro",
         "shareText": "¡Gané la insignia {badge} en Peanut!\n\nÚnete a Peanut y empieza a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}",
+        "shareJoin": "Únete a Peanut conmigo: {link}",
         "toastSingle": "Insignia desbloqueada: {name}",
         "toastMultiple": "{count, plural, one {# insignia desbloqueada} other {# insignias desbloqueadas}}",
         "unlock": {
@@ -3760,7 +3776,8 @@
             "goalAchieved": "¡Meta alcanzada!",
             "belowGoal": "{percentage}% por debajo de la meta",
             "contributed": "{amount} aportado",
-            "remaining": "{amount} restante"
+            "remaining": "{amount} restante",
+            "notPaid": "{amount} sin pagar"
         },
         "mantecaMaintenance": {
             "title": "Servicio temporalmente no disponible",

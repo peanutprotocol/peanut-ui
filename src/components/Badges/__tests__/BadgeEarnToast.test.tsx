@@ -89,16 +89,22 @@ describe('BadgeEarnToast', () => {
 
         const { container } = render(mockToast.mock.calls[0][0].content)
         expect(container.querySelector('img')).toHaveAttribute('src', '/badges/backend_product_hunt.webp')
-        // a code in `badges.catalog` renders the localized name, not the backend one
-        expect(screen.getByText(/Product Hunt/)).toBeInTheDocument()
     })
 
-    it('falls back to the backend name for a code with no catalog entry', () => {
-        mockPending = [badge('FUTURE_BADGE', 'Backend Name')]
+    it('shows the API name over the app catalog, which the API localizes', () => {
+        mockPending = [badge('PRODUCT_HUNT', 'Nombre del API')]
         render(<BadgeEarnToast />)
 
         render(mockToast.mock.calls[0][0].content)
-        expect(screen.getByText(/Backend Name/)).toBeInTheDocument()
+        expect(screen.getByText(/Nombre del API/)).toBeInTheDocument()
+    })
+
+    it('falls back to the app catalog name when the API sends none', () => {
+        mockPending = [badge('PRODUCT_HUNT', '')]
+        render(<BadgeEarnToast />)
+
+        render(mockToast.mock.calls[0][0].content)
+        expect(screen.getByText(/Product Hunt/)).toBeInTheDocument()
     })
 
     it('announces unlocked avatars in a non-interactive second toast 500ms later (TASK-22142)', () => {

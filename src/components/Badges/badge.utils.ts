@@ -43,11 +43,8 @@ export function getBadgeDisplayName(code?: string, name?: string | null): string
 }
 
 /**
- * Bespoke first-person share copy, English only. This is frontend presentation
- * for the share card — deliberately NOT in the backend badge catalog, which
- * owns identity and third-person descriptions. Badges without an entry use the
- * generic line; other locales keep their translated generic copy until bespoke
- * translations ship as a content change.
+ * English share lines, kept only as a fallback for an API that does not send
+ * `shareLine` yet (rolling deploy). The API's line is localized and wins.
  */
 const BADGE_SHARE_LINES: Readonly<Record<string, string>> = {
     BETA_TESTER: "I've been in the Peanut lab since the early experiments. Officially a beta tester 🧪",
@@ -102,19 +99,21 @@ const BADGE_SHARE_LINES: Readonly<Record<string, string>> = {
 }
 
 // Share text is:
-//   <funny first-person brag>\n\nJoin me on Peanut 👉 <profileUrl>
+//   <funny first-person brag>\n\nJoin me on Peanut: <profileUrl>
 // profileUrl is the sharer's own public profile — it showcases their badges and
 // carries the join CTA.
 export function getBadgeShareText(
     code: string | undefined,
     displayName: string,
     profileUrl: string,
-    localized?: { locale: string; localizedFallback: string }
+    localized?: { locale: string; localizedFallback: string; shareLine?: string | null; joinLine?: string }
 ): string {
+    const shareLine = localized?.shareLine?.trim()
+    if (shareLine && localized?.joinLine) return `${shareLine}\n\n${localized.joinLine}`
     if (localized && localized.locale !== 'en') return localized.localizedFallback
 
     const brag = (code && BADGE_SHARE_LINES[code]) || `I just unlocked the "${displayName}" badge on Peanut 🥜`
-    return `${brag}\n\nJoin me on Peanut 👉 ${profileUrl}`
+    return `${brag}\n\nJoin me on Peanut: ${profileUrl}`
 }
 
 /** No local copy fallback: descriptions are owned by the backend catalog. */

@@ -1,8 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { USER } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { useAppLocale } from './AppIntlProvider'
+import { DEFAULT_APP_LOCALE } from './config'
 import { currentAppLocale, localeReady } from './locale-store'
 import { syncLocaleToBackend } from './locale-sync'
 
@@ -19,6 +22,11 @@ import { syncLocaleToBackend } from './locale-sync'
 export function LocaleSync() {
     const { userId } = useAuth()
     const { locale } = useAppLocale()
+    const queryClient = useQueryClient()
+    // last locale actually applied. starts at the english hydration default:
+    // /users/me can load before a saved non-english locale applies, so that
+    // first swap must refetch too
+    const appliedLocale = useRef<string>(DEFAULT_APP_LOCALE)
 
     useEffect(() => {
         if (!userId) return
@@ -26,12 +34,20 @@ export function LocaleSync() {
         void localeReady().then((resolved) => {
             // a manual setLocale (already applied and persisted) wins over the
             // startup resolution
-            if (!cancelled) syncLocaleToBackend(userId, currentAppLocale() ?? resolved)
+            if (cancelled) return
+            const applied = currentAppLocale() ?? resolved
+            syncLocaleToBackend(userId, applied)
+            if (locale !== applied) return
+            // the api localizes badge copy on /users/me, so refetch it in the new language
+            if (appliedLocale.current !== locale) {
+                void queryClient.invalidateQueries({ queryKey: [USER] })
+            }
+            appliedLocale.current = locale
         })
         return () => {
             cancelled = true
         }
-    }, [userId, locale])
+    }, [userId, locale, queryClient])
 
     return null
 }
