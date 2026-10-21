@@ -65,11 +65,10 @@ jest.mock('@/hooks/useIdentityVerification', () => ({
     }),
 }))
 
-jest.mock('@/config/underMaintenance.config', () => ({
-    __esModule: true,
-    default: { disableCardPromotion: false },
+let mockCardPromotionDisabled = false
+jest.mock('@/hooks/useFeatureFlag', () => ({
+    useFeatureFlags: () => (flagKey: string) => flagKey === 'card-promotion-disabled' && mockCardPromotionDisabled,
 }))
-import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 const BLOCKED_QR_RAIL = {
     id: 'manteca.pix_br',
@@ -102,7 +101,7 @@ beforeEach(() => {
     mockCardInfoError = null
     mockIdentityStatus = 'not_started'
     mockTerminalFailure = false
-    ;(underMaintenanceConfig as { disableCardPromotion: boolean }).disableCardPromotion = false
+    mockCardPromotionDisabled = false
 })
 
 describe('useActivationStatus', () => {
@@ -136,7 +135,7 @@ describe('useActivationStatus', () => {
         mockCanSpendViaCard = true
         mockRails = [QR_RAIL]
         expect(setup().result.current.onboarding.firstPaymentRoute).toBe('card_qr')
-        ;(underMaintenanceConfig as { disableCardPromotion: boolean }).disableCardPromotion = true
+        mockCardPromotionDisabled = true
         expect(setup().result.current.onboarding.firstPaymentRoute).toBe('qr')
         mockRails = [BLOCKED_QR_RAIL]
         expect(setup().result.current.onboarding.firstPaymentRoute).toBe('none')
