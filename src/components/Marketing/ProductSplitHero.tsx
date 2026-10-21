@@ -27,10 +27,18 @@ interface ProductSplitHeroProps {
         so the hero sells and the fine print stays fine. */
     disclaimer?: string
     /** `start` (default): text left on every width, CTA under the copy — the
-        /shhhhh look. `center`: on phones the copy is centred and the art sits
-        between the copy and the CTA (the star-feature LP order); from `md`
-        it is the same split as `start`. */
+        /shhhhh look. `center`: the peanut.me hero composition on every width
+        (the star-feature LPs): one centred column, the headline fills the
+        fold, the art tucks up under its last line, then the lead and the CTA. */
     align?: 'start' | 'center'
+    /** `center` only: a last headline line set under the art. It stays in the
+        h1 for screen readers; the visible copy is hidden from them. */
+    headlineTail?: ReactNode
+    /** `center` only. `headline` (default): the art tucks up under the
+        headline. `edge`: the art comes after the CTA and stands on the hero's
+        bottom edge, which cuts it; from `lg` it stands at the right, beside
+        the copy, and the hero fills the first screen above the marquee. */
+    artPlacement?: 'headline' | 'edge'
 }
 
 /**
@@ -47,8 +55,11 @@ export function ProductSplitHero({
     art,
     disclaimer,
     align = 'start',
+    headlineTail,
+    artPlacement = 'headline',
 }: ProductSplitHeroProps) {
     const centered = align === 'center'
+    const artOnEdge = centered && artPlacement === 'edge'
     // /shhhhh (`start`) keeps its original whileInView springs; the centred
     // star-LP hero always sits at the top, so it plays on mount.
     const reveal = (target: TargetAndTransition) => (centered ? { animate: target } : { whileInView: target })
@@ -66,9 +77,10 @@ export function ProductSplitHero({
             ) : (
                 headline
             )}
+            {centered && headlineTail && <span className="sr-only"> {headlineTail}</span>}
         </h1>
     )
-    const copyWidth = centered ? 'mx-auto max-w-xl md:mx-0' : 'max-w-xl'
+    const copyWidth = centered ? 'mx-auto max-w-md md:max-w-2xl' : 'max-w-xl'
     const copy = (
         <>
             {pitch && (
@@ -86,7 +98,8 @@ export function ProductSplitHero({
                     className={twMerge(
                         !centered && 'font-roboto-flex',
                         centered && 'psh-lead-fit',
-                        'mt-6 text-body-l',
+                        centered ? 'mt-4 md:mt-6' : 'mt-6',
+                        'text-body-l',
                         copyWidth
                     )}
                 >
@@ -138,13 +151,16 @@ export function ProductSplitHero({
             <section
                 className={twMerge(
                     'relative overflow-hidden bg-background-brand px-4 py-20 text-foreground-primary md:py-24',
-                    centered && 'psh-fit'
+                    centered && 'psh-fit pt-18 pb-14 md:pt-18 md:pb-16',
+                    artOnEdge && 'psh-fit-edge pb-0 md:pb-0 lg:pb-16'
                 )}
             >
                 {/* framer serialises the hidden start state inline; no-JS visitors get the garnish at rest */}
                 <noscript dangerouslySetInnerHTML={{ __html: NO_JS_DECO }} />
                 <HeroBackNav />
                 {!centered && leadStar('absolute top-[8%] left-[3%] z-10 w-10 md:top-[12%] md:left-[6%] md:w-14')}
+                {/* Art on the edge fills the bottom right, so this star moves to the bottom left;
+                    phones have no room left for it beside the sticker. */}
                 <motion.img
                     src={Star.src}
                     alt=""
@@ -152,7 +168,10 @@ export function ProductSplitHero({
                     initial={{ opacity: 0, translateY: 28, translateX: -5 }}
                     {...reveal({ opacity: 1, translateY: 0, translateX: 0 })}
                     transition={{ type: 'spring', damping: 5, delay: 0.15 }}
-                    className="psh-deco pointer-events-none absolute right-[4%] bottom-[5%] z-10 w-8 md:right-[8%] md:bottom-[8%] md:w-12"
+                    className={twMerge(
+                        'psh-deco pointer-events-none absolute right-[4%] bottom-[5%] z-10 w-8 md:right-[8%] md:bottom-[8%] md:w-12',
+                        artOnEdge && 'right-auto left-[4%] hidden md:right-auto md:left-[8%] md:block'
+                    )}
                 />
                 <motion.img
                     src={Sparkle.src}
@@ -161,28 +180,54 @@ export function ProductSplitHero({
                     initial={{ opacity: 0, scale: 0.4 }}
                     {...reveal({ opacity: 1, scale: 1 })}
                     transition={{ type: 'spring', damping: 8, delay: 0.3 }}
-                    className="psh-deco pointer-events-none absolute top-[10%] right-[12%] z-10 hidden w-8 md:block md:w-10"
+                    // centred: the h1's first line runs nearly full width, so the sparkle sits above it
+                    className={twMerge(
+                        'psh-deco pointer-events-none absolute top-[10%] right-[12%] z-10 hidden w-8 md:block md:w-10',
+                        centered && 'top-5'
+                    )}
                 />
                 {centered ? (
-                    // Three cells so phones read copy, art, CTA while md+ keeps
-                    // the split: copy over CTA on the left, art on the right.
-                    // max-w-7xl: the same 1280 column as the Bands below, so the h1,
-                    // the fold h2s and the FAQ share a left edge.
-                    <div className="psh-fit-grid relative z-20 mx-auto grid max-w-7xl grid-cols-1 items-center gap-8 text-center md:grid-cols-2 md:gap-x-12 md:text-left">
-                        <div className="psh-copy-fit relative min-w-0 md:col-start-1 md:row-start-1 md:self-end">
+                    // One centred column, the peanut.me hero order: headline,
+                    // art tucked up under it (z below the headline), the tail
+                    // line, lead, CTA. Art on the edge comes last instead.
+                    // The deep tuck waits for lg: under it the Knerd is too
+                    // small to carry the art's top edge without hitting it.
+                    // max-w-7xl: the same 1280 column as the Bands below.
+                    <div
+                        className={twMerge(
+                            'psh-fit-grid relative z-20 mx-auto flex max-w-7xl flex-col items-center text-center',
+                            // lg+: the art stands in the right 28rem; the copy fills the
+                            // first screen above the marquee and centres in it.
+                            artOnEdge && 'lg:min-h-[calc(100svh-60px-8.5rem)] lg:justify-center lg:pr-[28rem]'
+                        )}
+                    >
+                        <div className="psh-copy-fit relative z-30 w-full">
                             {leadStar(
                                 'psh-star-fit absolute -top-12 right-0 w-10 md:-top-16 md:right-auto md:left-14 md:w-14'
                             )}
                             {heading}
-                            {copy}
                         </div>
-                        <div className="psh-art-fit mx-auto w-full max-w-md md:col-start-2 md:row-span-2 md:row-start-1">
-                            {artBlock}
-                        </div>
-                        <div className="psh-cta-fit relative mx-auto w-fit md:col-start-1 md:row-start-2 md:mx-0 md:self-start">
+                        {!artOnEdge && (
+                            <div className="psh-art-fit relative z-10 -mt-4 w-full max-w-md md:max-w-lg lg:-mt-12">
+                                {artBlock}
+                            </div>
+                        )}
+                        {headlineTail && (
+                            <div aria-hidden className="psh-tail-fit relative z-30 mt-3 w-full">
+                                {headlineTail}
+                            </div>
+                        )}
+                        {copy}
+                        <div className="psh-cta-fit relative mt-6 w-fit">
                             {cta}
                             {ctaSparkle}
                         </div>
+                        {/* lg:-bottom-16 cancels the section's lg:pb-16, so the art stands on the edge. */}
+                        {artOnEdge && (
+                            <div className="psh-art-fit psh-art-edge relative z-10 mt-10 w-full max-w-[330px] lg:absolute lg:right-0 lg:-bottom-16 lg:mt-0 lg:max-w-[440px]">
+                                {artBlock}
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="relative z-20 mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 md:grid-cols-2">

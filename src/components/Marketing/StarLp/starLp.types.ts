@@ -29,18 +29,32 @@ export interface SectionTitleProps {
     className?: string
 }
 
-/** Knerd `Title` size presets. Call sites never pass their own size. */
-export type KnerdSize = 'hero' | 'compact' | 'inline'
+/** Knerd `Title` size presets. Call sites never pass their own size.
+    `masthead` is the hero h1: it sizes itself to fill the fold (starLpHeroFit). */
+export type KnerdSize = 'masthead' | 'hero' | 'compact' | 'inline'
 
 export interface KnerdTitleProps {
     /** Caps are applied for you. Break lines with "\n". 1–3 words. */
     text: string
     size: KnerdSize
     className?: string
+    /** `masthead` only: from this breakpoint the "\n" lines join into one row. */
+    oneLineFrom?: 'md' | 'lg'
 }
 
-/** A Roboto display line next to a knerd Title (e.g. "GET PAID FROM"). */
-export type DisplayLineSize = 'lead' | 'section'
+export interface KnerdJoinTitleProps {
+    /** Knerd word before the joiner ("US"). */
+    left: string
+    /** Small Roboto word between the two ("and"). */
+    join: string
+    /** Knerd word after the joiner ("Europe"). */
+    right: string
+}
+
+/** A Roboto display line next to a knerd Title (e.g. "GET PAID FROM").
+    `masthead` is the hero h1: a plain-text line sizes itself to fill the fold.
+    `join` is the small word inside a Knerd row ("US and EUROPE"), sized off the Knerd. */
+export type DisplayLineSize = 'masthead' | 'lead' | 'section' | 'join'
 
 export interface DisplayLineProps {
     children: ReactNode
@@ -49,8 +63,11 @@ export interface DisplayLineProps {
 }
 
 export interface StarLpHeroProps {
-    /** h1 content: DisplayLine and/or KnerdTitle nodes. */
+    /** h1 content: DisplayLine and/or KnerdTitle nodes at the `masthead` size. */
     title: ReactNode
+    /** A last h1 line ("at the till."). It is set under the art, so the art
+        tucks up under the Knerd as on the peanut.me hero. */
+    titleTail?: string
     /** The one descriptive line under the h1. */
     subtitle?: string
     /** A StarLpCta (white secondary: the hero is pink). */
@@ -60,7 +77,13 @@ export interface StarLpHeroProps {
     /** Short description of the art for screen readers (role="img"). Omit and
         the drawn UI is hidden from them: the h1 and subtitle carry the message. */
     artLabel?: string
+    /** `headline` (default): the art tucks up under the Knerd. `edge`: the art
+        stands on the hero's bottom edge, cut by it, so it rises out of the
+        marquee below. */
+    artPlacement?: StarLpHeroArtPlacement
 }
+
+export type StarLpHeroArtPlacement = 'headline' | 'edge'
 
 export interface StarLpCtaProps {
     /** Destination when the PWA-sunset flag is off. With the flag on every CTA goes to /app. */
@@ -136,6 +159,17 @@ export interface CloseFoldProps {
     ground?: BandGround
     /** Replaces the default two sparkles (approved doodles only). */
     decoration?: ReactNode
+    /** One word of `title` to circle with the hand-drawn scribble; its stroke crosses the letters, as in the homepage noFees fold. The circle replaces the default sparkles. */
+    circleWord?: string
+}
+
+export interface KnerdWordCircleProps {
+    /** The KnerdTitle's text, "\n" between lines. */
+    text: string
+    /** The word to circle, any case. The first line that holds it gets the circle. */
+    word: string
+    /** The KnerdTitle's size. Not `masthead`: its fit size lives on KnerdTitle's wrapper. */
+    size: Exclude<KnerdSize, 'masthead'>
 }
 
 export interface StarLpPageProps {
@@ -168,6 +202,8 @@ export interface PopInProps {
     /** Resting tilt in degrees; the element lands on it from a little further. */
     tilt?: number
     className?: string
+    /** `span` inside phrasing content (a heading); give it a display class. Default `div`. */
+    as?: 'div' | 'span'
 }
 
 export interface DropInProps {

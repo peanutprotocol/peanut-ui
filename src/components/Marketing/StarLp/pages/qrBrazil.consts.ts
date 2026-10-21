@@ -33,15 +33,15 @@ export const QR_BRAZIL_PAY_BUTTON = {
 
 /**
  * The white code card in the scanner capture (src/assets/iphone-ss/manteca_ss.webp,
- * 451 × 900 px; the hero shows its top 520 px). The photo's own code decodes
+ * 451 × 900 px), as fractions of the whole capture. The photo's own code decodes
  * to a Wikipedia URL, so the page lays the sticker's real code over it: the
  * scanner reads the sticker next to it.
  */
 export const QR_BRAZIL_SCANNER_CODE = {
     left: 115 / 451,
-    top: 243 / 520,
+    top: 243 / 900,
     width: 221 / 451,
-    height: 220 / 520,
+    height: 220 / 900,
 } as const
 
 /**
@@ -52,7 +52,8 @@ export const QR_BRAZIL_SCANNER_CODE = {
  * lift on everything that opens signup. Transform and opacity only.
  */
 export const QR_BRAZIL_MOTION_CSS = `
-.qr-br-scanline{display:none;position:absolute;inset-inline:0;top:0;height:18%;background:linear-gradient(to bottom,transparent,color-mix(in srgb,var(--color-pink-500) 60%,transparent),transparent);transform:translateY(-100%)}
+.qr-br-scanline{display:none;position:absolute;inset:0}
+.qr-br-scanline::before{content:'';position:absolute;inset-inline:0;top:0;height:2px;background:var(--color-pink-500)}
 .qr-br-press{transition:transform 170ms ease-out,scale 150ms ease-out}
 .qr-br-tap::after{content:'';position:absolute;left:3.2%;top:16.7%;width:92.5%;height:61.1%;border-radius:9999px;background:#000;opacity:0}
 @media (hover:hover) and (prefers-reduced-motion:no-preference){
@@ -65,7 +66,7 @@ export const QR_BRAZIL_MOTION_CSS = `
 .qr-br-tap[data-pressed='true']{animation:qr-br-tap 180ms ease-out 250ms}
 .qr-br-tap[data-pressed='true']::after{animation:qr-br-flash 180ms ease-out 250ms}
 }
-@keyframes qr-br-scan{0%{transform:translateY(-100%)}60%,100%{transform:translateY(556%)}}
+@keyframes qr-br-scan{0%{transform:translateY(0)}60%,100%{transform:translateY(calc(100% - 2px))}}
 @keyframes qr-br-wobble{25%{transform:rotate(-3deg)}75%{transform:rotate(3deg)}}
 @keyframes qr-br-tap{50%{transform:scale(.96)}}
 @keyframes qr-br-flash{50%{opacity:.08}}

@@ -76,11 +76,12 @@ export async function QrBrazilLanding() {
             <StarLpHero
                 title={
                     <>
-                        <DisplayLine>No CPF?</DisplayLine>
-                        <KnerdTitle text={'No\nproblem'} size="hero" className="my-4 md:my-6" />
-                        <DisplayLine>at the counter.</DisplayLine>
+                        <DisplayLine size="masthead">No CPF?</DisplayLine>
+                        <KnerdTitle text={'No\nproblem'} size="masthead" />
                     </>
                 }
+                titleTail="at the counter."
+                artPlacement="edge"
                 subtitle="Pay with Pix in Brazil from your dollars."
                 art={<QrBrazilHeroScene />}
                 cta={

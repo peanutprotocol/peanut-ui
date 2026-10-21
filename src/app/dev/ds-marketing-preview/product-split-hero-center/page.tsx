@@ -9,8 +9,8 @@ import { SelfCustodySendScreen } from '@/components/Marketing/StarLp/pages/SelfC
 
 /**
  * ProductSplitHero align="center", through StarLpHero (the star-LP kit in
- * Marketing/StarLp). Phones read title, subtitle, art, CTA, centred; md+ is
- * the split. Rendered with the /self-custody hero so the frame shows a real
+ * Marketing/StarLp): the peanut.me hero composition, one centred column on
+ * every width. Rendered with the /self-custody hero so the frame shows a real
  * star-LP hero.
  */
 export default function ProductSplitHeroCenterPreview() {
@@ -19,11 +19,11 @@ export default function ProductSplitHeroCenterPreview() {
             <StarLpHero
                 title={
                     <>
-                        <DisplayLine>Your money.</DisplayLine>
-                        <KnerdTitle text="Only you" size="hero" className="mt-6 mb-4 md:mt-10 md:mb-8" />
-                        <DisplayLine>can send it.</DisplayLine>
+                        <DisplayLine size="masthead">Your money.</DisplayLine>
+                        <KnerdTitle text={'Only\nyou'} size="masthead" oneLineFrom="md" />
                     </>
                 }
+                titleTail="can send it."
                 subtitle="Your balance sits in your own account. Every send needs your passkey."
                 art={<SelfCustodySendScreen />}
                 cta={

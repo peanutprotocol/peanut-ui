@@ -23,7 +23,7 @@ const BEAT_KEYFRAMES = [
  */
 export function SelfCustodySendScreen() {
     return (
-        <SelfCustodyAppLink className="mx-auto w-full max-w-72 md:max-w-80">
+        <SelfCustodyAppLink className="mx-auto w-full max-w-72 md:max-w-80 lg:max-w-88">
             <PhoneFrame>
                 <div className="relative -m-3 overflow-hidden">
                     <style>{BEAT_KEYFRAMES}</style>

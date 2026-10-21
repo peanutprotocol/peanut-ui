@@ -28,7 +28,8 @@ const CTA_LABEL = 'Create an account'
 /**
  * request-links.md: one-side KYC, any channel, Peanut instant, exchange or wallet in minutes.
  * Mercado Pago and Pix cannot fund a request (excluded_contribution_methods), so the copy
- * never offers them, though today's pay page still draws a Mercado Pago row.
+ * never offers them. Today's pay page still draws a Mercado Pago row; the page's capture
+ * has it cut out (RequestLinksPayScreen).
  */
 const FAQ: StarLpFaqItem[] = [
     {
@@ -67,8 +68,8 @@ export function RequestLinksLanding() {
             <StarLpHero
                 title={
                     <>
-                        <DisplayLine className="pt-6 md:pt-0">&ldquo;How do I pay you?&rdquo;</DisplayLine>
-                        <KnerdTitle text={'Send\nthis.'} size="hero" className="mt-6 md:mt-10 lg:mt-14" />
+                        <DisplayLine size="masthead">&ldquo;How do I pay you?&rdquo;</DisplayLine>
+                        <KnerdTitle text={'Send\nthis.'} size="masthead" oneLineFrom="lg" />
                     </>
                 }
                 subtitle="One link. They pay. It lands in your balance."

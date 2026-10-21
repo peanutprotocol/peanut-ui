@@ -3,7 +3,7 @@ import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { CloseFold } from '@/components/Marketing/StarLp/CloseFold'
 import { DisplayLine } from '@/components/Marketing/StarLp/DisplayLine'
-import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
+import { KnerdJoinTitle } from '@/components/Marketing/StarLp/KnerdJoinTitle'
 import { PopIn } from '@/components/Marketing/StarLp/PopIn'
 import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
@@ -55,9 +55,6 @@ const CLOSE_SEAM: string[] = ['USD', 'EUR', 'Verify in minutes', 'Self-custodial
 
 const FOOTNOTE = 'Peanut is not a bank. Accounts may not be available where you live.'
 
-/** Hero knerd scale from md: one step under `hero` so 'US and EUROPE' stays on one line. */
-const HERO_KNERD_FIT = 'md:text-heading lg:text-headingMedium'
-
 /** /us-europe-accounts: get paid from the US and Europe into Peanut's USD and EUR accounts. */
 export async function UsEuAccountsLanding() {
     // Live Bridge EUR→USD rate for the money-in push; null hides the dollar figure.
@@ -67,15 +64,8 @@ export async function UsEuAccountsLanding() {
             <StarLpHero
                 title={
                     <>
-                        <DisplayLine>Get paid from</DisplayLine>
-                        {/* One line at every width: the hero scale steps down from md so the lockup fits the 560px copy column. */}
-                        <span className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 md:flex-nowrap md:justify-start">
-                            <KnerdTitle text="US" size="hero" className={HERO_KNERD_FIT} />
-                            <DisplayLine className="inline-block text-heading-s lowercase md:text-heading-m">
-                                and
-                            </DisplayLine>
-                            <KnerdTitle text="Europe" size="hero" className={HERO_KNERD_FIT} />
-                        </span>
+                        <DisplayLine size="masthead">Get paid from</DisplayLine>
+                        <KnerdJoinTitle left="US" join="and" right="Europe" />
                     </>
                 }
                 subtitle="US account details and a euro IBAN."

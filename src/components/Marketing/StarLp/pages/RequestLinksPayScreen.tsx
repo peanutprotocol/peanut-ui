@@ -12,7 +12,9 @@ import { REQUEST_LINKS_CLIENT_SEES_EVENT, REQUEST_LINKS_STORY } from './requestL
 /**
  * Fold 2: the real request page the client opens (fixture request-pay-open-amount,
  * captured with the persona's name and the story's amount, balance row taken out
- * because a signed-out client sees none). The whole screen is one link to signup.
+ * because a signed-out client sees none). The app's Mercado Pago row is cut out of the
+ * capture: request-links.md lists mercadopago under excluded_contribution_methods, so it
+ * cannot fund a request (the app drawing it is a bug). The whole screen is one link to signup.
  * When a link card scrolls the visitor here, the phone pops again.
  */
 export function RequestLinksPayScreen() {

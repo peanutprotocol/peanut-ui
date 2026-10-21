@@ -21,16 +21,21 @@ export const BAND_WIDTH_CLASS: Record<BandWidth, string> = {
 /** Grounds where the DS secondary (white) button stands alone; everything else takes the pink primary. */
 export const COLOURED_GROUNDS: readonly BandGround[] = ['pink', 'sky', 'yellow']
 
-/** Knerd Title sizes. 320 steps down once per design.md § display type. */
+/** Knerd Title sizes. 320 steps down once per design.md § display type.
+    `masthead` gets its font size from .star-lp-fit-knerd and the inline fit
+    properties KnerdTitle sets (starLpHeroFit), so it carries no size class. */
 export const KNERD_SIZE_CLASS: Record<KnerdSize, string> = {
+    masthead: 'block',
     hero: 'text-headingSmall xs:text-heading md:text-headingMedium lg:text-headingLarge',
     compact: 'text-heading-m xs:text-headingSmall md:text-heading lg:text-headingMedium',
     inline: 'text-heading-l',
 }
 
 export const DISPLAY_LINE_CLASS: Record<DisplayLineSize, string> = {
+    masthead: 'star-lp-fit-display',
     lead: 'text-heading-m md:text-headingSmall',
     section: 'text-headingSmall md:text-headingMedium',
+    join: 'text-[0.3em]',
 }
 
 /** SectionTitle ramps. `fold` stays at or under the hero h1's weight in a half-width

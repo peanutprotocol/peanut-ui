@@ -109,15 +109,11 @@ export function SelfCustodyLanding() {
             <StarLpHero
                 title={
                     <>
-                        <DisplayLine>Your money.</DisplayLine>
-                        <KnerdTitle
-                            text="Only you"
-                            size="hero"
-                            className="mt-6 mb-4 md:mt-10 md:mb-8 md:text-heading lg:text-headingMedium xl:text-headingLarge"
-                        />
-                        <DisplayLine>can send it.</DisplayLine>
+                        <DisplayLine size="masthead">Your money.</DisplayLine>
+                        <KnerdTitle text={'Only\nyou'} size="masthead" oneLineFrom="md" />
                     </>
                 }
+                titleTail="can send it."
                 subtitle="Your balance sits in your own account. Every send needs your passkey."
                 art={<SelfCustodySendScreen />}
                 cta={

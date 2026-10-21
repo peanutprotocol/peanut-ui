@@ -9,8 +9,13 @@ const pct = (fraction: number) => `${fraction * 100}%`
 
 /**
  * The hero art: a "Pague com Pix" sticker beside the real Peanut scanner.
- * The capture is cropped above its network labels and fades out at the foot;
- * its viewfinder shows the sticker's own code with a pink scan bar sweeping
+ * The phone stands upright and the hero's bottom edge cuts it
+ * (artPlacement="edge"), so it rises out of the marquee below: its top
+ * 520 px show at every width, cut in the dark band under the scan window,
+ * above the capture's network labels. Those include Mercado Pago, which is
+ * the Argentina rail (spending.md), so this page never shows them. No fade:
+ * the cut is hard.
+ * Its viewfinder shows the sticker's own code with a pink scan bar sweeping
  * it, so the two make one scan. The sticker rocks three times after load and
  * then rests (.qr-br-wobble, QrBrazilMotionStyle).
  * No scroll entrance: the art is above the fold and must paint with the page.
@@ -19,39 +24,35 @@ const pct = (fraction: number) => `${fraction * 100}%`
  */
 export function QrBrazilHeroScene() {
     return (
-        <div className="relative mx-auto aspect-[10/7] w-full max-w-md">
-            <div className="absolute top-0 right-[2%] w-[58%] rotate-3">
+        <div className="relative w-full">
+            <div className="ml-auto w-[74%] md:mr-[2%]">
                 <QrBrazilAppLink>
-                    <div
-                        className="relative aspect-[451/520] overflow-hidden"
-                        style={{
-                            maskImage: 'linear-gradient(to bottom, black 78%, transparent)',
-                            WebkitMaskImage: 'linear-gradient(to bottom, black 78%, transparent)',
-                        }}
-                    >
-                        <Image
-                            src={mantecaScanner}
-                            alt="Peanut scanner reading a QR code"
-                            sizes="(min-width: 768px) 260px, 58vw"
-                            className="w-full"
-                            priority
-                        />
-                        <div
-                            className="absolute overflow-hidden rounded-[6%]"
-                            style={{
-                                left: pct(QR_BRAZIL_SCANNER_CODE.left),
-                                top: pct(QR_BRAZIL_SCANNER_CODE.top),
-                                width: pct(QR_BRAZIL_SCANNER_CODE.width),
-                                height: pct(QR_BRAZIL_SCANNER_CODE.height),
-                            }}
-                        >
-                            <StarLpQrCode campaign="qr-brazil" slot="hero-sticker" className="size-full" />
-                            <span aria-hidden className="qr-br-scanline" />
+                    <div className="aspect-[451/520] overflow-hidden">
+                        <div className="relative">
+                            <Image
+                                src={mantecaScanner}
+                                alt="Peanut scanner reading a QR code"
+                                sizes="(min-width: 768px) 330px, 250px"
+                                className="h-auto w-full"
+                                priority
+                            />
+                            <div
+                                className="absolute overflow-hidden rounded-[6%]"
+                                style={{
+                                    left: pct(QR_BRAZIL_SCANNER_CODE.left),
+                                    top: pct(QR_BRAZIL_SCANNER_CODE.top),
+                                    width: pct(QR_BRAZIL_SCANNER_CODE.width),
+                                    height: pct(QR_BRAZIL_SCANNER_CODE.height),
+                                }}
+                            >
+                                <StarLpQrCode campaign="qr-brazil" slot="hero-sticker" className="size-full" />
+                                <span aria-hidden className="qr-br-scanline" />
+                            </div>
                         </div>
                     </div>
                 </QrBrazilAppLink>
             </div>
-            <div className="absolute top-[16%] left-[4%] z-10 w-[36%] -rotate-6">
+            <div className="absolute top-[22%] left-0 z-10 w-[40%] -rotate-6 md:top-[20%]">
                 <div className="qr-br-wobble">
                     <QrBrazilAppLink>
                         <QrBrazilPixSticker slot="hero-sticker" priority />

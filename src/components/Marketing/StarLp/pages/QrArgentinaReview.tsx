@@ -7,17 +7,19 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { QR_AR_PAID_EVENT, QR_AR_PAYING_MS, QR_AR_PRICE_ARS, QR_AR_THEIR_SCREEN_ID } from './qrArgentina.consts'
+import { formatUsdArsRate } from './qrArgentinaRate.utils'
 import type { QrArgentinaReviewProps } from './qrArgentina.types'
 
 const ARS = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
 const USD = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const RATE = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
 /**
  * The app's QR pay screen before you pay, built from its own parts (the
  * Mercado Pago method icon, the merchant Card, the dollar line, the
  * "Exchange rate" row and the Pay button) with the live Manteca rate the
  * payment executes at. Not a capture: a PNG would freeze the rate.
+ * The row always prints the live rate: only the fold's headline counts up,
+ * so the screen that proves the rate never shows a value it did not read.
  *
  * Pay moves money nowhere: like the app, it shows its processing beat (the
  * Button's spinner), then plays the next beat, the shop's screen.
@@ -25,7 +27,7 @@ const RATE = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 export function QrArgentinaReview({ usdArs }: QrArgentinaReviewProps) {
     const price = `ARS ${ARS.format(QR_AR_PRICE_ARS)}`
     const usd = usdArs ? `USD ${USD.format(QR_AR_PRICE_ARS / usdArs.rate)}` : null
-    const rate = usdArs ? `1 USD = ${RATE.format(usdArs.rate)} ARS` : null
+    const rate = usdArs ? `1 USD = ${formatUsdArsRate(usdArs.rate)} ARS` : null
 
     const [paying, setPaying] = useState(false)
     const timer = useRef<number | undefined>(undefined)
@@ -77,7 +79,7 @@ export function QrArgentinaReview({ usdArs }: QrArgentinaReviewProps) {
                     {rate && (
                         <Card className="gap-1 px-3 py-2">
                             <span className="text-body-xs font-semibold">Exchange rate</span>
-                            <span className="text-body-m-semibold">{rate}</span>
+                            <span className="text-body-m-semibold tabular-nums">{rate}</span>
                         </Card>
                     )}
                 </div>

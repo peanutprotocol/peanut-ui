@@ -1698,63 +1698,164 @@ input::placeholder {
     line-height: 1;
 }
 
+/* ── Star-feature LPs: hero h1 fit (Marketing/StarLp/starLpHeroFit) ── */
+/* The hero h1 fills the fold like the peanut.me hero. Each line's size is the
+   smallest of: a cap, the size at which it spans --fit-fill of the column
+   (--fit-em is its width in em, set inline from its text), and a share of
+   the screen height, so the CTA stays in the first screen on short screens. */
+.star-lp-fit-knerd,
+.font-roboto-flex-extrabold.star-lp-fit-display {
+    --fit-w: min(100vw - 2rem, 80rem);
+    font-size: min(
+        var(--fit-cap),
+        calc(var(--fit-w) * var(--fit-fill) / var(--fit-em, 8)),
+        calc(var(--fit-vh) / var(--fit-lines, 1))
+    );
+}
+
+/* Knerd glyphs overflow their 0.68 line box; the margins give them room. */
+.star-lp-fit-knerd {
+    --fit-fill: 0.92;
+    --fit-cap: 10rem;
+    --fit-vh: 34svh;
+    margin-block: 0.19em 0.06em;
+}
+
+/* A stacked masthead Knerd ("Send / this.") is big enough that the packed
+   0.68 leading runs one line's caps into the next; a small gap keeps the
+   overlap without the words merging. Both Title layers get it, so the
+   outline stays on the fill. */
+.star-lp-fit-knerd .font-knerd-filled > span + span,
+.star-lp-fit-knerd .font-knerd-outline > span + span {
+    margin-top: 0.08em;
+}
+
+/* KnerdTitle oneLineFrom="md" ("Only / you"): phones stack the words so the
+   Knerd outranks the Roboto line, but only when the screen is tall enough to
+   keep the CTA in the first screen; md+ and short phones keep one row.
+   The row keeps its own display (block or flex) when shown. */
+.star-lp-knerd-stack-md {
+    display: none;
+}
+
+@media (max-width: 767px) and (min-height: 740px) {
+    .star-lp-knerd-stack-md {
+        display: block;
+    }
+
+    .star-lp-knerd-row-md {
+        display: none;
+    }
+}
+
+/* Set solid, and over the Knerd's top edge, as on peanut.me. */
+.font-roboto-flex-extrabold.star-lp-fit-display {
+    --fit-fill: 0.9;
+    --fit-cap: 2.875rem;
+    --fit-vh: 7svh;
+    position: relative;
+    z-index: 1;
+    line-height: 0.92;
+}
+
+/* md+: a one-line Knerd stops at 28svh, two lines at 21svh each. */
+@media (min-width: 768px) {
+    .star-lp-fit-knerd {
+        --fit-cap: min(18.75rem, 28svh);
+        --fit-vh: 42svh;
+    }
+
+    .font-roboto-flex-extrabold.star-lp-fit-display {
+        --fit-cap: 5.75rem;
+        --fit-vh: 10svh;
+    }
+}
+
+/* lg, art on the edge: the art stands in the right 28rem (ProductSplitHero
+   pads the column), so the h1 fits what is left. */
+@media (min-width: 1024px) {
+    .psh-fit-edge .star-lp-fit-knerd,
+    .psh-fit-edge .font-roboto-flex-extrabold.star-lp-fit-display {
+        --fit-w: calc(min(100vw - 2rem, 80rem) - 28rem);
+    }
+}
+
 /* ── Star-feature LPs: hero fit (ProductSplitHero align="center") ── */
 /* The primary CTA sits under the hero art, so on short screens the drawn art
    shrinks (zoom shrinks its layout box, unlike transform) and the hero's
-   padding tightens until the CTA lands in the first screen. Phones: the art
-   is between the copy and the CTA. md+ short landscape: the art spans both
-   rows of the split, so its height sets where the CTA sits. */
+   padding tightens until the CTA lands in the first screen. The h1 already
+   shrinks with the screen height (above). Art on the edge comes after the
+   CTA, so it never needs to shrink for it. */
 @media (max-width: 767px) and (max-height: 860px) {
-    .psh-art-fit {
+    .psh-art-fit:not(.psh-art-edge) {
         zoom: 0.85;
     }
 }
 
 @media (max-width: 767px) and (max-height: 700px) {
-    .psh-art-fit {
+    .psh-art-fit:not(.psh-art-edge) {
         zoom: 0.72;
     }
 
     .psh-fit {
-        padding-top: 4.5rem;
-        padding-bottom: 3.5rem;
-    }
-
-    .psh-fit-grid {
-        gap: 1.5rem;
+        padding-top: 4rem;
     }
 }
 
-@media (max-width: 767px) and (max-height: 680px) {
-    .psh-art-fit {
+@media (max-width: 767px) and (max-height: 640px) {
+    .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.6;
+    }
+}
+
+/* Under 360px the h1's first line runs to the column edge, where the lead
+   star sits; it would land on the line's last glyph. */
+@media (max-width: 359px) {
+    .psh-star-fit {
+        display: none;
+    }
+}
+
+/* md+: the art between the Knerd and the CTA shrinks on laptop heights,
+   one step further when a tail line also sits under it. */
+@media (min-width: 768px) and (max-height: 1000px) {
+    .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.9;
+    }
+
+    .psh-fit-grid:has(.psh-tail-fit) .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.85;
+    }
+}
+
+@media (min-width: 768px) and (max-height: 860px) {
+    .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.75;
+    }
+
+    .psh-fit-grid:has(.psh-tail-fit) .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.65;
+    }
+}
+
+@media (min-width: 768px) and (max-height: 760px) {
+    .psh-art-fit:not(.psh-art-edge) {
         zoom: 0.6;
     }
 
-    .psh-copy-fit {
-        zoom: 0.9;
+    .psh-fit-grid:has(.psh-tail-fit) .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.5;
     }
 }
 
-/* md+ short landscape: the copy column alone outgrows the screen, so it
-   shrinks too. Top padding stays clear of the floating back button. */
+/* md+ short landscape. Top padding stays clear of the floating back button. */
 @media (min-width: 768px) and (max-height: 560px) {
-    .psh-art-fit {
+    .psh-art-fit:not(.psh-art-edge) {
         zoom: 0.5;
-    }
-
-    /* 0.85 is the floor: text-body-l (18px) stays at 15px or more. Only the
-       art shrinks further. */
-    .psh-copy-fit {
-        zoom: 0.85;
     }
 
     .psh-fit {
         padding-top: 4rem;
-        padding-bottom: 3rem;
-    }
-
-    .psh-fit-grid {
-        row-gap: 1.25rem;
     }
 
     /* The top padding no longer clears the floating back button (40px circle
@@ -1765,10 +1866,9 @@ input::placeholder {
     }
 }
 
-/* Phone landscape under md (667x375, 640x360): the stacked phone order puts
-   the CTA below the screen, so take the md split instead (copy over CTA on
-   the left, art on the right) and shrink both. The copy stays centred in its
-   column, so per-page phone alignment classes still hold. */
+/* Phone landscape under md (667x375, 640x360): one column puts the CTA below
+   the screen, so the copy, tail and CTA take the left half and the art the
+   right half. The h1 fits the half column. */
 @media (max-width: 767px) and (max-height: 430px) and (orientation: landscape) {
     .psh-fit {
         padding-top: 3.5rem;
@@ -1776,16 +1876,25 @@ input::placeholder {
     }
 
     .psh-fit-grid {
+        display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         column-gap: 1.5rem;
-        row-gap: 1rem;
+        align-items: center;
+    }
+
+    .psh-fit-grid .star-lp-fit-knerd,
+    .psh-fit-grid .font-roboto-flex-extrabold.star-lp-fit-display {
+        --fit-w: calc(50vw - 2.75rem);
     }
 
     .psh-copy-fit {
         grid-column: 1;
         grid-row: 1;
-        align-self: end;
-        zoom: 0.85;
+    }
+
+    .psh-tail-fit {
+        grid-column: 1;
+        grid-row: 2;
     }
 
     /* Too short for headline, subtitle and CTA at a legible size: the
@@ -1794,16 +1903,18 @@ input::placeholder {
         display: none;
     }
 
-    .psh-art-fit {
-        grid-column: 2;
-        grid-row: 1 / span 2;
-        zoom: 0.45;
-    }
-
     .psh-cta-fit {
         grid-column: 1;
-        grid-row: 2;
-        align-self: start;
+        grid-row: 3;
+        justify-self: center;
+    }
+
+    .psh-art-fit {
+        grid-column: 2;
+        grid-row: 1 / span 3;
+        margin-top: 0;
+        justify-self: center;
+        zoom: 0.45;
     }
 }
 

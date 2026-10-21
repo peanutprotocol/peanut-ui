@@ -1,7 +1,6 @@
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { DisplayLine } from '@/components/Marketing/StarLp/DisplayLine'
 import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
-import { PopIn } from '@/components/Marketing/StarLp/PopIn'
 import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
 import { StarLpFaq } from '@/components/Marketing/StarLp/StarLpFaq'
@@ -15,7 +14,7 @@ import { QrArgentinaClose } from './QrArgentinaClose'
 import { QrArgentinaGroupChat } from './QrArgentinaGroupChat'
 import { QrArgentinaHeroArt } from './QrArgentinaHeroArt'
 import { QrArgentinaMotionStyle } from './QrArgentinaMotionStyle'
-import { QrArgentinaReview } from './QrArgentinaReview'
+import { QrArgentinaRateFold } from './QrArgentinaRateFold'
 import { QrArgentinaTheirScreen } from './QrArgentinaTheirScreen'
 import { QR_AR_THEIR_SCREEN_ID } from './qrArgentina.consts'
 
@@ -70,11 +69,12 @@ export async function QrArgentinaLanding() {
             <StarLpHero
                 title={
                     <>
-                        <DisplayLine>No DNI?</DisplayLine>
-                        <KnerdTitle text={'No\nproblem'} size="hero" className="mt-6 mb-4 md:mt-10 md:mb-8" />
-                        <DisplayLine>at the till.</DisplayLine>
+                        <DisplayLine size="masthead">No DNI?</DisplayLine>
+                        <KnerdTitle text={'No\nproblem'} size="masthead" />
                     </>
                 }
+                titleTail="at the till."
+                artPlacement="edge"
                 subtitle="Pay Mercado Pago QRs in Argentina with your passport."
                 art={<QrArgentinaHeroArt />}
                 artLabel="The Peanut scanner reading a QR code"
@@ -88,12 +88,7 @@ export async function QrArgentinaLanding() {
             <StarLpMarquee between={['pink', 'cream']} words={HERO_SEAM} />
 
             <Band ground="cream">
-                <div className="grid gap-12 md:grid-cols-2 md:items-center">
-                    <SectionTitle>See the pesos before you pay.</SectionTitle>
-                    <PopIn tilt={-1}>
-                        <QrArgentinaReview usdArs={usdArs} />
-                    </PopIn>
-                </div>
+                <QrArgentinaRateFold usdArs={usdArs} />
             </Band>
 
             <StarLpMarquee between={['cream', 'sky']} ground="pink" words={REVIEW_SEAM} />
