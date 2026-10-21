@@ -1,6 +1,7 @@
+import { notFound } from 'next/navigation'
 import { StarLpPage } from '@/components/Marketing/StarLp/StarLpPage'
 import { PeanutCardLanding } from '@/components/Marketing/StarLp/pages/PeanutCardLanding'
-import { STAR_LP_ROUTES } from '@/components/Marketing/StarLp/starLp.consts'
+import { PEANUT_CARD_LP_PUBLISHED, STAR_LP_ROUTES } from '@/components/Marketing/StarLp/starLp.consts'
 import { starLpMetadata } from '@/components/Marketing/StarLp/starLpMetadata'
 
 export const metadata = starLpMetadata({
@@ -12,6 +13,7 @@ export const metadata = starLpMetadata({
 })
 
 export default function Page() {
+    if (!PEANUT_CARD_LP_PUBLISHED && process.env.NEXT_PUBLIC_VERCEL_ENV === 'production') notFound()
     return (
         <StarLpPage siteDirectory={false} localeSwitcher={false}>
             <PeanutCardLanding />

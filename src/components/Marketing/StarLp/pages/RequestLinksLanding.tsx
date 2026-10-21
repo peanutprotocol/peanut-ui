@@ -40,7 +40,7 @@ const FAQ: StarLpFaqItem[] = [
     {
         id: 'client-account',
         question: 'Does my client need an account?',
-        answer: 'Not if you’re verified. They can pay from an exchange or wallet, with no sign-up. A bank transfer goes through a Peanut account.',
+        answer: 'Not if you’re verified. They can pay from an exchange or wallet, with no sign-up.',
     },
     {
         id: 'invoice',

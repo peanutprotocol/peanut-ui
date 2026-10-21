@@ -56,6 +56,10 @@ export const SECTION_TITLE_CLASS: Record<SectionTitleSize, string> = {
     display: 'text-headingSmall md:text-headingMedium',
 }
 
+/** /peanut-card stays off production until Rain's pre-publication review clears it
+    (marketing-compliance.md §4). Previews still render it. Set true once approved. */
+export const PEANUT_CARD_LP_PUBLISHED = false
+
 /** The six routes. Pages are noindex until Konrad approves them. */
 export const STAR_LP_ROUTES = {
     usEuAccounts: '/us-europe-accounts',
