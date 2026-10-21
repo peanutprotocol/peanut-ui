@@ -248,6 +248,12 @@ export const ANALYTICS_EVENTS = {
     // ── Card: acquisition funnel (Rain virtual card) ──
     // State observed on /card mount or transition. `state` matches CardTopLevelState.
     CARD_STATE_VIEWED: 'card_state_viewed',
+    // Steps inside the add-card state, before any application (the "You're in" $10 gate).
+    // `step` ∈ eligibility|looking-up|available|funding|entry; `funded` = balance ≥ $10.
+    // Sent once the balance has loaded, and again whenever step or funded changes.
+    CARD_ACQUISITION_STEP_VIEWED: 'card_acquisition_step_viewed',
+    // `action` ∈ add_funds|continue|bank_transfer|crypto on the available and funding steps.
+    CARD_ACQUISITION_CTA_CLICKED: 'card_acquisition_cta_clicked',
     // POST /rain/cards lifecycle. `outcome` ∈
     // pending|terms-required|incomplete|main-kyc-required|enabled|error|already-applied.
     CARD_APPLY_ATTEMPTED: 'card_apply_attempted',

@@ -5,6 +5,11 @@ import { CardAcquisitionScreen } from '../components/CardAcquisitionScreen'
 const mockHaptic = jest.fn()
 const mockPush = jest.fn()
 const mockApply = jest.fn()
+const mockCapture = jest.fn()
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: (...args: unknown[]) => mockCapture(...args) },
+}))
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('framer-motion', () => ({ useReducedMotion: () => false }))
@@ -44,6 +49,15 @@ afterEach(() => {
     jest.useRealTimers()
 })
 
+const stepViews = () =>
+    mockCapture.mock.calls
+        .filter(([event]) => event === 'card_acquisition_step_viewed')
+        .map(([, props]) => `${props.step}:${props.funded}`)
+const ctaClicks = () =>
+    mockCapture.mock.calls
+        .filter(([event]) => event === 'card_acquisition_cta_clicked')
+        .map(([, props]) => `${props.step}:${props.action}`)
+
 it('runs hold, anticipation, availability and funding before exposing the application', async () => {
     jest.useFakeTimers()
     const { rerender } = render(<CardAcquisitionScreen {...props} />, {
@@ -75,18 +89,47 @@ it('runs hold, anticipation, availability and funding before exposing the applic
     })
     fireEvent.click(screen.getByText('Apply'))
     expect(mockApply).toHaveBeenCalledTimes(1)
+    expect(stepViews()).toEqual([
+        'eligibility:false',
+        'looking-up:false',
+        'available:false',
+        'funding:false',
+        'funding:true',
+        'entry:true',
+    ])
+    expect(ctaClicks()).toEqual(['available:add_funds', 'funding:continue'])
+})
+
+it('waits for the balance before reporting a step', () => {
+    const { rerender } = render(<CardAcquisitionScreen {...props} balanceReady={false} />, {
+        wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=available' }),
+    })
+    expect(stepViews()).toEqual([])
+    rerender(<CardAcquisitionScreen {...props} funded balanceReady />)
+    expect(stepViews()).toEqual(['available:true'])
+})
+
+it('tells funded users they can unlock the card now', () => {
+    render(<CardAcquisitionScreen {...props} funded />, {
+        wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=available' }),
+    })
+    expect(screen.getByText('availableFundedBody')).toBeInTheDocument()
+    expect(screen.queryByText('fundingBody')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('continue'))
+    expect(ctaClicks()).toEqual(['available:continue'])
 })
 
 it.each([
-    ['methods.bankTransfer', '/add-money?method=bank&returnTo=%2Fcard%3Fcard_step%3Dfunding'],
-    ['methods.crypto', '/add-money/crypto?returnTo=%2Fcard%3Fcard_step%3Dfunding'],
-])('carries the card return path through %s', (label, href) => {
+    ['methods.bankTransfer', '/add-money?method=bank&returnTo=%2Fcard%3Fcard_step%3Dfunding', 'bank_transfer'],
+    ['methods.crypto', '/add-money/crypto?returnTo=%2Fcard%3Fcard_step%3Dfunding', 'crypto'],
+])('carries the card return path through %s', (label, href, action) => {
     render(<CardAcquisitionScreen {...props} />, {
         wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=funding' }),
     })
     fireEvent.click(screen.getByText(label))
     expect(mockPush).toHaveBeenCalledWith(href)
     expect(mockApply).not.toHaveBeenCalled()
+    expect(ctaClicks()).toEqual([`funding:${action}`])
 })
 
 it('does not promise availability for an unknown residence', () => {
@@ -95,6 +138,10 @@ it('does not promise availability for an unknown residence', () => {
     })
     expect(screen.queryByText('availableTitle')).not.toBeInTheDocument()
     expect(screen.getByText('Apply')).toBeInTheDocument()
+    expect(mockCapture).toHaveBeenCalledWith(
+        'card_acquisition_step_viewed',
+        expect.objectContaining({ step: 'entry', eligible: false })
+    )
 })
 
 it('does not repeat anticipation for a returning funded user', async () => {
