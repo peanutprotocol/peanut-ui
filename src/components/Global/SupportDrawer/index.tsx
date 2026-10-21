@@ -24,6 +24,8 @@ import { notificationsApi } from '@/services/notifications'
 import { notifyNotificationsUpdated } from '@/utils/notifications-events'
 import { isCapacitor } from '@/utils/capacitor'
 import { ensureNativeCrispConfigured, nativeCrispFields } from '@/utils/crisp'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const DISMISS_THRESHOLD = 100
 
@@ -189,6 +191,12 @@ const SupportDrawer = () => {
     useEffect(() => {
         const isShowingChat = isSupportModalOpen && isCrispReady && !isCrispFailed
         if (isShowingChat) {
+            if (!wasShowingChat.current) {
+                posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_OPENED, {
+                    messenger: 'web',
+                    has_topic: Boolean(latestPayloadRef.current.prefilledMessage),
+                })
+            }
             wasShowingChat.current = true
             clearSupportBadge()
         } else if (wasShowingChat.current && !isSupportModalOpen) {
@@ -324,6 +332,11 @@ const SupportDrawer = () => {
                  * what brought them there.
                  */
                 CapacitorCrisp.openMessenger()
+                // The native messenger is invisible to session replay.
+                posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_OPENED, {
+                    messenger: 'native',
+                    has_topic: Boolean(prefill),
+                })
                 // The chat is now in front of the user, so the badge has done its
                 // job. There is no isCrispReady on this path — the native messenger
                 // reports nothing back — so clear it here rather than in the web
@@ -337,6 +350,13 @@ const SupportDrawer = () => {
                 // reopening support genuinely re-configures rather than replaying
                 // a rejected promise.
                 console.warn('[SupportDrawer] native crisp open failed:', err)
+                const code = (err as { code?: unknown } | null)?.code
+                posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_OPEN_FAILED, {
+                    messenger: 'native',
+                    error_name: err instanceof Error ? err.name : 'unknown',
+                    // Capacitor plugin rejections carry a code such as UNIMPLEMENTED
+                    error_code: typeof code === 'string' && code.length <= 64 ? code : null,
+                })
             })
 
         return () => {
@@ -421,6 +441,10 @@ const SupportDrawer = () => {
                 setIsCrispFailed(false)
             } else if (event.data?.type === 'CRISP_FAILED') {
                 setIsCrispFailed(true)
+                posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_OPEN_FAILED, {
+                    messenger: 'web',
+                    error_name: 'crisp_load_failed',
+                })
             }
         }
 

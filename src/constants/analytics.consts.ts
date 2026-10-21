@@ -396,6 +396,36 @@ export const ANALYTICS_EVENTS = {
     ACTIVITY_EXPORT_STARTED: 'activity_export_started',
     ACTIVITY_EXPORT_SAVED: 'activity_export_saved',
     ACTIVITY_EXPORT_FAILED: 'activity_export_failed',
+
+    // ── Screens session replay cannot see ──
+    // The native Sumsub SDK, the native Crisp messenger and the Sumsub web
+    // iframe paint outside the recorded DOM, and the camera prompt is an OS
+    // sheet. These events are the only trace those screens leave for journey
+    // reviews. Properties are SDK codes, states and error names, never text a
+    // user typed or a document showed. The `platform` super property already
+    // says web or app, so these events do not send their own.
+    //
+    // KYC: `sdk` is 'native' | 'web' (the web SDK can also run inside the app).
+    // status_changed: prev_status, new_status (SDK status names; web adds
+    // review_answer). step: event_type (StepInitiated | StepCompleted), step
+    // (the SDK's idDocSetType, e.g. IDENTITY, SELFIE), is_cancelled. closed
+    // (native only, one per launch result): status, success, error_type.
+    KYC_SDK_STATUS_CHANGED: 'kyc_sdk_status_changed',
+    KYC_SDK_STEP: 'kyc_sdk_step',
+    KYC_SDK_CLOSED: 'kyc_sdk_closed',
+    // Support chat: `messenger` is 'native' | 'web', `has_topic` says the
+    // screen passed a prefilled topic (the topic is free text, so it is not
+    // sent). open_failed carries `error_name`. token_failed fires once a
+    // mount gives up on the Crisp session token, with `reason`.
+    SUPPORT_CHAT_OPENED: 'support_chat_opened',
+    SUPPORT_CHAT_OPEN_FAILED: 'support_chat_open_failed',
+    SUPPORT_CHAT_TOKEN_FAILED: 'support_chat_token_failed',
+    // QR camera: opened once per scanner open. camera_permission `state` is
+    // granted | denied | pending (the web prompt outlived its deadline) |
+    // unavailable (no camera or camera busy), with `error_name` when the
+    // camera failed. Scan results stay on qr_scanned.
+    QR_SCANNER_OPENED: 'qr_scanner_opened',
+    QR_CAMERA_PERMISSION: 'qr_camera_permission',
 } as const
 
 /**

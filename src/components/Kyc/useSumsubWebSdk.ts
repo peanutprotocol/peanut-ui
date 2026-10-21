@@ -6,6 +6,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { toSumsubLocale } from '@/i18n/app/sumsub-locale'
 import { evaluateSumsubStatusEvent, type SumsubStatusEventPayload } from './sumsubStatusEvent.utils'
+import { createSumsubSdkTracker } from './sumsubSdkAnalytics.utils'
 import type { SumsubSdkProps } from './sumsubSdk.types'
 
 // todo: move to consts
@@ -159,6 +160,9 @@ export function useSumsubWebSdk({
             // track sdk init time so we can ignore stale onApplicantStatusChanged events
             // that fire immediately when the applicant is already approved (e.g. additional-docs flow)
             const sdkInitTime = Date.now()
+            // The SDK paints inside a cross-origin iframe that session replay
+            // cannot record; these events are its only trace.
+            const tracker = createSumsubSdkTracker('web')
 
             const handleSubmitted = () => {
                 console.log('[sumsub] onApplicantSubmitted fired')
@@ -224,8 +228,13 @@ export function useSumsubWebSdk({
                     isMultiLevel: !!isMultiLevelRef.current,
                 })
                 if (evaluation.markSubmitted) hasSubmittedRef.current = true
+                tracker.statusChanged(payload?.reviewStatus, undefined, payload?.reviewResult?.reviewAnswer)
                 if (evaluation.autoClose) stableOnComplete()
             }
+            const handleStep = (eventType: string) => (payload?: { idDocSetType?: unknown }) =>
+                tracker.step(eventType, payload?.idDocSetType)
+            const handleStepInitiated = handleStep('StepInitiated')
+            const handleStepCompleted = handleStep('StepCompleted')
             const handleStatusChanged = handleStatusEvent('onApplicantStatusChanged')
             const handleActionCompleted = handleStatusEvent('onApplicantActionStatusChanged')
 
@@ -244,6 +253,8 @@ export function useSumsubWebSdk({
                 .on('onActionSubmitted', handleActionSubmitted)
                 .on('onApplicantActionSubmitted', handleActionSubmitted)
                 .on('onApplicantActionStatusChanged', handleActionCompleted)
+                .on('onStepInitiated', handleStepInitiated)
+                .on('onStepCompleted', handleStepCompleted)
                 // also listen for idCheck-prefixed events (some sdk versions use these)
                 .on('idCheck.onApplicantSubmitted', handleSubmitted)
                 .on('idCheck.onApplicantResubmitted', handleResubmitted)
@@ -251,6 +262,8 @@ export function useSumsubWebSdk({
                 .on('idCheck.onActionSubmitted', handleActionSubmitted)
                 .on('idCheck.onApplicantActionSubmitted', handleActionSubmitted)
                 .on('idCheck.onApplicantActionStatusChanged', handleActionCompleted)
+                .on('idCheck.onStepInitiated', handleStepInitiated)
+                .on('idCheck.onStepCompleted', handleStepCompleted)
                 .on('onError', (error: unknown) => {
                     console.error('[sumsub] sdk error', error)
                     stableOnError(error)
