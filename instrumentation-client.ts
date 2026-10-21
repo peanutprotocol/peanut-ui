@@ -20,7 +20,12 @@ import { isExpectedExceptionChain } from '@/utils/expected-exception'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 import { captureSignupAttribution, signupAttributionPosthogProperties } from '@/utils/signup-attribution'
 import { initialSuperProperties, isAnalyticsCaptureBuild, posthogProjectKey } from '@/utils/posthog-setup'
-import { AUTOCAPTURE_SETTINGS, sampleAutocapture, trackAutocaptureSampleRate } from '@/utils/posthog-autocapture'
+import {
+    AUTOCAPTURE_SETTINGS,
+    redactAutocaptureLinks,
+    sampleAutocapture,
+    trackAutocaptureSampleRate,
+} from '@/utils/posthog-autocapture'
 
 // Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
 // there is nothing to guard, and PERF_BARE builds exist to carry no instrumentation.
@@ -111,7 +116,8 @@ if (
                 // resumed sessions and double-counts reloads (TASK-22516).
                 if (suppressDuplicateLogin(event) === null) return null
                 // Sampling runs last, so every kept event is already redacted.
-                return sampleAutocapture(redactLinkSecrets(redactQrTelemetry(event)))
+                const redacted = redactLinkSecrets(redactQrTelemetry(event))
+                return sampleAutocapture(redactAutocaptureLinks(redacted, window.location.href))
             },
             // Button and link clicks, with element text and attributes masked.
             // The `autocapture-sample-rate` flag cuts volume without a release.

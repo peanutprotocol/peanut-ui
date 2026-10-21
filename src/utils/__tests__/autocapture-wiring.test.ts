@@ -101,6 +101,21 @@ it('keeps every $autocapture event, redacted, when the flag has no payload', asy
     expect(kept?.properties.$el_text).toBe('Claim')
 })
 
+it('cuts link targets in $autocapture to a path or a host', async () => {
+    const { beforeSend } = await loadConfig()
+    const kept = beforeSend({
+        event: '$autocapture',
+        properties: {
+            $elements_chain: 'a:attr__href="https://storage.example.com/uploads/receipt-alice.pdf?sig=s3cr3tSig"',
+            $external_click_url: 'https://storage.example.com/uploads/receipt-alice.pdf?sig=s3cr3tSig',
+        },
+    })
+    expect(kept?.properties).toEqual({
+        $elements_chain: 'a:attr__href="https://storage.example.com"',
+        $external_click_url: 'https://storage.example.com',
+    })
+})
+
 it('keeps every $autocapture event before flags load', async () => {
     const { beforeSend } = await loadConfig()
     jest.spyOn(Math, 'random').mockReturnValue(0.999)

@@ -9,7 +9,8 @@ import type { CaptureResult, PostHog, PostHogConfig } from 'posthog-js'
  * Element text and attributes are masked. A button or link can show a balance,
  * an amount or another person's name, as text or in its aria-label, and none
  * of that may reach PostHog. An event keeps the tag, classes, position, the
- * link target and the page URL. To name a control, give it a code in
+ * page URL and a cut link target (redactAutocaptureLinks, run in
+ * `before_send`). To name a control, give it a code in
  * `data-ph-capture-attribute-<name>`; `ph-no-capture` drops its clicks.
  *
  * The project's server-side autocapture opt-out overrides these settings.
@@ -22,6 +23,50 @@ export const AUTOCAPTURE_SETTINGS = {
     mask_all_text: true,
     mask_all_element_attributes: true,
 } satisfies Partial<PostHogConfig>
+
+/**
+ * A link target cut to what analytics needs: the path of a link inside the app,
+ * the scheme and host of any other link. Queries and fragments never stay: an
+ * external link can be a user's uploaded document or carry a token.
+ */
+export function autocaptureLinkTarget(href: string, pageUrl: string): string {
+    try {
+        const page = new URL(pageUrl)
+        const url = new URL(href, page)
+        // Compare scheme and host, not `origin`: it is "null" for capacitor:// pages.
+        const inApp = url.protocol === page.protocol && url.host === page.host
+        return inApp ? url.pathname : `${url.protocol}//${url.host}`
+    } catch {
+        return ''
+    }
+}
+
+// The chain carries a link target twice, as `attr__href` and as `href`.
+// posthog-js escapes `"` inside chain values as `\"`.
+const CHAIN_HREF = /\b(attr__href|href)="((?:[^"\\]|\\.)*)"/g
+
+/** Applies {@link autocaptureLinkTarget} to every link target in an `$autocapture` event, in place. */
+export function redactAutocaptureLinks(event: CaptureResult | null, pageUrl: string): CaptureResult | null {
+    if (event?.event !== '$autocapture') return event
+    const properties = event.properties
+    if (typeof properties.$elements_chain === 'string') {
+        properties.$elements_chain = properties.$elements_chain.replace(
+            CHAIN_HREF,
+            (_match: string, key: string, href: string) => `${key}="${autocaptureLinkTarget(href, pageUrl)}"`
+        )
+    }
+    if (Array.isArray(properties.$elements)) {
+        for (const element of properties.$elements) {
+            if (typeof element?.attr__href === 'string') {
+                element.attr__href = autocaptureLinkTarget(element.attr__href, pageUrl)
+            }
+        }
+    }
+    if (typeof properties.$external_click_url === 'string') {
+        properties.$external_click_url = autocaptureLinkTarget(properties.$external_click_url, pageUrl)
+    }
+    return event
+}
 
 /*
  * Ops can cut `$autocapture` volume without a release: the JSON payload of this

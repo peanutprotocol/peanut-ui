@@ -2,7 +2,9 @@ import posthog, { type CaptureResult } from 'posthog-js'
 import {
     AUTOCAPTURE_SAMPLE_RATE_FLAG,
     AUTOCAPTURE_SETTINGS,
+    autocaptureLinkTarget,
     autocaptureSampleRate,
+    redactAutocaptureLinks,
     sampleAutocapture,
     trackAutocaptureSampleRate,
 } from '../posthog-autocapture'
@@ -48,6 +50,54 @@ describe('sampleAutocapture', () => {
         const kept = event('$autocapture')
         expect(sampleAutocapture(kept, 1, () => 0.99)).toBe(kept)
         expect(sampleAutocapture(null, 0)).toBeNull()
+    })
+})
+
+describe('autocaptureLinkTarget', () => {
+    const page = 'https://peanut.me/request/pay?amount=5'
+    it.each([
+        ['/home?tab=activity#top', page, '/home'],
+        ['https://peanut.me/send/alice?amount=20', page, '/send/alice'],
+        ['https://storage.example.com/uploads/receipt-alice.pdf?sig=s3cr3tSig', page, 'https://storage.example.com'],
+        ['mailto:alice@example.com', page, 'mailto://'],
+        ['/card?card_step=funding', 'capacitor://localhost/home', '/card'],
+        ['https://peanut.me/home', 'capacitor://localhost/home', 'https://peanut.me'],
+        ['http://[bad', page, ''],
+    ])('cuts %s on %s to %s', (href, pageUrl, expected) => {
+        expect(autocaptureLinkTarget(href, pageUrl)).toBe(expected)
+    })
+})
+
+describe('redactAutocaptureLinks', () => {
+    const page = 'https://peanut.me/history'
+    it('cuts every link target in the elements chain, the elements list and the external click URL', () => {
+        const doc = 'https://storage.example.com/uploads/receipt-alice.pdf?sig=s3cr3tSig'
+        const event = {
+            event: '$autocapture',
+            properties: {
+                $elements_chain: `a.flex:attr__href="${doc}"href="${doc}"nth-child="1";div:nth-child="2";a:attr__href="/send/alice?amount=5"`,
+                $elements: [{ tag_name: 'a', attr__href: doc }, { tag_name: 'div' }],
+                $external_click_url: doc,
+            },
+        } as unknown as CaptureResult
+        redactAutocaptureLinks(event, page)
+        expect(event.properties).toEqual({
+            $elements_chain:
+                'a.flex:attr__href="https://storage.example.com"href="https://storage.example.com"nth-child="1";div:nth-child="2";a:attr__href="/send/alice"',
+            $elements: [{ tag_name: 'a', attr__href: 'https://storage.example.com' }, { tag_name: 'div' }],
+            $external_click_url: 'https://storage.example.com',
+        })
+    })
+
+    it('leaves other events alone', () => {
+        const event = {
+            event: '$pageview',
+            properties: { $external_click_url: 'https://x.example/a?b=c' },
+        } as unknown as CaptureResult
+        expect(redactAutocaptureLinks(event, page)).toEqual({
+            event: '$pageview',
+            properties: { $external_click_url: 'https://x.example/a?b=c' },
+        })
     })
 })
 
@@ -98,7 +148,8 @@ describe('posthog-js with AUTOCAPTURE_SETTINGS', () => {
                 rageclick: false,
                 ...AUTOCAPTURE_SETTINGS,
                 before_send: (event) => {
-                    if (event) captured.push(event)
+                    const redacted = redactAutocaptureLinks(event, window.location.href)
+                    if (redacted) captured.push(redacted)
                     return null // nothing leaves the test
                 },
             },
@@ -110,7 +161,8 @@ describe('posthog-js with AUTOCAPTURE_SETTINGS', () => {
         document.body.innerHTML = `
             <div aria-label="Wallet of alice">
                 <button id="max" aria-label="Use your balance: 123.45 USD"><span>123.45 USD</span></button>
-                <a id="link" href="/home" title="alice's home">Home of alice</a>
+                <a id="link" href="/home?ref=alice" title="alice's home">Home of alice</a>
+                <a id="doc" href="https://storage.example.com/uploads/receipt-alice.pdf?sig=s3cr3tSig" target="_blank">receipt-alice.pdf</a>
                 <button id="secret" class="ph-no-capture">Reveal</button>
                 <input id="field" value="9876" />
                 <div id="plain">Just text</div>
@@ -133,6 +185,16 @@ describe('posthog-js with AUTOCAPTURE_SETTINGS', () => {
         expect(autocaptured()).toHaveLength(1)
         expect(autocaptured()[0].properties.$elements_chain).toContain('attr__href="/home"')
         expect(JSON.stringify(autocaptured()[0])).not.toContain('alice')
+    })
+
+    it('sends only the host of an external link, such as an uploaded attachment', () => {
+        click('doc')
+        expect(autocaptured()).toHaveLength(1)
+        const sent = JSON.stringify(autocaptured()[0])
+        expect(sent).toContain('https://storage.example.com')
+        expect(sent).not.toContain('uploads')
+        expect(sent).not.toContain('receipt')
+        expect(sent).not.toContain('s3cr3tSig')
     })
 
     it('ignores ph-no-capture elements, inputs and other elements', () => {
