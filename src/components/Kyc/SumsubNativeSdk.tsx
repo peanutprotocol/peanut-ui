@@ -10,6 +10,7 @@ import { toSumsubLocale } from '@/i18n/app/sumsub-locale'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { SumsubSdkErrorView } from './SumsubSdkErrorView'
 import { clearActiveSumsubInstance, setActiveSumsubInstance } from './sumsubNativeSession.utils'
+import { captureNativeSdkClosed, createSumsubSdkTracker } from './sumsubSdkAnalytics.utils'
 import type { SumsubSdkProps } from './sumsubSdk.types'
 
 /**
@@ -111,6 +112,8 @@ export const SumsubNativeSdk = ({
         }
 
         let instance: SNSMobileSDKInstance | null = null
+        // The native screen is invisible to session replay; these events are its only trace.
+        const tracker = createSumsubSdkTracker('native')
         let cancelled = false
         let settled = false
         let launched = false
@@ -151,6 +154,10 @@ export const SumsubNativeSdk = ({
                 .withHandlers({
                     onStatusChanged: (event) => {
                         if (event?.newStatus && SUBMITTED_STATES.has(event.newStatus)) hasSubmitted = true
+                        tracker.statusChanged({ newStatus: event?.newStatus, prevStatus: event?.prevStatus })
+                    },
+                    onEvent: (event) => {
+                        tracker.step(event?.eventType, event?.payload?.idDocSetType, event?.payload?.isCancelled)
                     },
                 })
                 .withLocale(sumsubLocaleRef.current)
@@ -182,6 +189,7 @@ export const SumsubNativeSdk = ({
                 posthog.capture(ANALYTICS_EVENTS.KYC_SDK_LAUNCHED)
                 void launchWithStaleLockRecovery().then(
                     (result) => {
+                        captureNativeSdkClosed(result)
                         if (cancelled) {
                             if (SUBMITTED_STATES.has(result?.status ?? '')) hasSubmitted = true
                             reportCancelledSubmission()
