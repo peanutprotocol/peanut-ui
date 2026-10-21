@@ -6,7 +6,9 @@ import {
     initialValues,
     looksLikeItin,
     markSaved,
+    phoneJoinsAddress,
     resumeStep,
+    screenIds,
     stepComplete,
     stepPayload,
     stepProgress,
@@ -79,8 +81,38 @@ describe('entryStep', () => {
 
 describe('stepProgress', () => {
     it('counts sign-up as the done first step and the ID as the last', () => {
-        expect(stepProgress(questions(), 'purpose')).toEqual({ current: 2, total: 5 })
-        expect(stepProgress(questions(), 'tax')).toEqual({ current: 4, total: 5 })
+        const ids = screenIds(questions(), false)
+        expect(stepProgress(ids, 'purpose')).toEqual({ current: 2, total: 5 })
+        expect(stepProgress(ids, 'tax')).toEqual({ current: 4, total: 5 })
+    })
+})
+
+describe('the phone on the address screen', () => {
+    const withAddress = (addressAnswered: boolean, phoneAnswered: boolean) =>
+        questions({
+            steps: [
+                { id: 'address', features: ['base'], answered: addressAnswered, fields: [field('street')] },
+                {
+                    id: 'phone',
+                    features: ['card'],
+                    answered: phoneAnswered,
+                    fields: [field('phone', { kind: 'phone' })],
+                },
+                { id: 'tax', features: ['base'], answered: false, fields: [field('taxId', { kind: 'taxId' })] },
+            ],
+        })
+
+    it('joins the address screen when both are asked together, and counts as one screen', () => {
+        expect(phoneJoinsAddress(withAddress(false, false))).toBe(true)
+        expect(phoneJoinsAddress(withAddress(true, true))).toBe(true)
+        expect(screenIds(withAddress(false, false), true)).toEqual(['address', 'tax'])
+        expect(stepProgress(screenIds(withAddress(false, false), true), 'tax')).toEqual({ current: 3, total: 4 })
+    })
+
+    it('keeps its own screen when the address was given before, or when there is no address', () => {
+        expect(phoneJoinsAddress(withAddress(true, false))).toBe(false)
+        expect(screenIds(withAddress(true, false), false)).toEqual(['address', 'phone', 'tax'])
+        expect(phoneJoinsAddress(questions())).toBe(false)
     })
 })
 

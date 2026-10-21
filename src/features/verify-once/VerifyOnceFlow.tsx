@@ -32,7 +32,9 @@ import {
     FAILED_STATUSES,
     IN_REVIEW_STATUSES,
     markSaved,
+    phoneJoinsAddress,
     resumeStep,
+    screenIds,
     stepProgress,
     type VerifyStep,
 } from './verifyOnce.utils'
@@ -130,8 +132,11 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
     const [idError, setIdError] = useState<string | null>(null)
     const [documentRequired, setDocumentRequired] = useState(false)
     const identity = useVerifyOnceIdentity()
+    // Decided once per load, so Back shows the same screens the user came through.
+    const [phoneJoined] = useState(() => phoneJoinsAddress(initial.questions))
+    const screenOf = (id: VerifyStep): VerifyStep => (phoneJoined && id === 'phone' ? 'address' : id)
 
-    const questionIds = useMemo(() => questions.steps.map((s) => s.id), [questions.steps])
+    const questionIds = useMemo(() => screenIds(questions, phoneJoined), [questions, phoneJoined])
     const steps = useMemo<VerifyStep[]>(
         () => [...questionIds, 'id', 'review', 'verified', 'address-proof'],
         [questionIds]
@@ -141,7 +146,7 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
     const failed = !!status && FAILED_STATUSES.has(status)
     const reviewing = submitted || (!!status && IN_REVIEW_STATUSES.has(status))
     const asking = !approved && !reviewing && !failed
-    const entry = entryStep({ questions, plan, status }, submitted)
+    const entry = screenOf(entryStep({ questions, plan, status }, submitted))
 
     const stepper = useFlowStepper<VerifyStep>({
         steps,
@@ -159,15 +164,16 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
     const step = stepper.step
     const goToStep = stepper.goTo
 
-    const afterSave = async (saved: VerifyOnceStepId, next: VerifyOnceStepId | null, values: VerifyOnceAnswers) => {
-        const updated = markSaved(questions, saved, values)
+    const afterSave = async (saved: VerifyOnceStepId[], next: VerifyOnceStepId | null, values: VerifyOnceAnswers) => {
+        const updated = saved.reduce((current, id) => markSaved(current, id, values), questions)
         setQuestions(updated)
+        const last = saved[saved.length - 1]
         const following =
             (next && updated.steps.some((s) => s.id === next && !s.answered) ? next : null) ??
-            updated.steps.slice(questionIds.indexOf(saved) + 1).find((s) => !s.answered)?.id ??
+            updated.steps.slice(updated.steps.findIndex((s) => s.id === last) + 1).find((s) => !s.answered)?.id ??
             updated.steps.find((s) => !s.answered)?.id
         if (following) {
-            void stepper.goTo(following)
+            void stepper.goTo(screenOf(following))
             return
         }
         // The last answer reserves the attempt: read it back before the midpoint needs it.
@@ -175,7 +181,7 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
             const fresh = await getKycQuestions()
             setQuestions(fresh)
             const open = resumeStep(fresh)
-            void stepper.goTo(open ?? 'id')
+            void stepper.goTo(open ? screenOf(open) : 'id')
         } catch {
             void stepper.goTo('id')
         }
@@ -216,7 +222,7 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
             const fresh = await getKycQuestions().catch(() => null)
             if (fresh) setQuestions(fresh)
             const target = outcome.step ?? (fresh && resumeStep(fresh))
-            if (target) void stepper.goTo(target)
+            if (target) void stepper.goTo(screenOf(target))
         }
     }
 
@@ -274,22 +280,30 @@ function VerifyOnceSteps({ initial, reload }: { initial: Loaded; reload: () => P
         : ''
 
     const current = questions.steps.find((s) => s.id === step)
+    const phone = questions.steps.find((s) => s.id === 'phone')
     let screen: React.ReactNode = null
     if (current) {
+        const shown = phoneJoined && current.id === 'address' && phone ? [current, phone] : [current]
         screen = (
             <QuestionStepScreen
                 key={current.id}
-                steps={[current]}
+                steps={shown}
                 residence={questions.residence}
-                progress={stepProgress(questions, current.id)}
+                progress={stepProgress(questionIds, current.id)}
                 onBack={() => void stepper.back()}
-                onSaved={(next, values) => void afterSave(current.id, next, values)}
+                onSaved={(next, values) =>
+                    void afterSave(
+                        shown.map((s) => s.id),
+                        next,
+                        values
+                    )
+                }
                 onConflict={onConflict}
                 onContinueWithoutLocal={continueWithoutLocal}
             />
         )
     } else if (step === 'id') {
-        const total = questions.steps.length + 2
+        const total = questionIds.length + 2
         screen = (
             <IdentityDocumentScreen
                 plan={plan}

@@ -232,7 +232,7 @@ describe('canonical identity recovery acceptance', () => {
     })
 })
 
-describe('US citizen local-transfer opt-out acceptance', () => {
+describe('US person local-transfer opt-out acceptance', () => {
     it('saves all existing selections minus local and reloads questions before continuing', async () => {
         const selected = { qr: true, bank: true, local: true, card: true }
         mockPlan.mockResolvedValue({ ...plan, features: selected })
@@ -240,18 +240,18 @@ describe('US citizen local-transfer opt-out acceptance', () => {
             ...build(),
             steps: [
                 {
-                    id: 'purpose',
+                    id: 'declarations',
                     features: ['local'],
                     answered: false,
-                    fields: [{ key: 'usCitizen', kind: 'toggle', required: true, value: 'yes' }],
+                    fields: [{ key: 'isFatca', kind: 'toggle', required: true, value: 'yes' }],
                 },
             ],
-            firstUnanswered: 'purpose',
+            firstUnanswered: 'declarations',
         })
-        mockSave.mockResolvedValue({ kind: 'invalid', errors: { usCitizen: 'us_citizen_not_supported' } })
+        mockSave.mockResolvedValue({ kind: 'invalid', errors: { isFatca: 'us_citizen_not_supported' } })
         jest.mocked(saveVerifyOnceFeatures).mockResolvedValue({ kind: 'saved' })
         renderFlow()
-        await screen.findByTestId('verify-toggle-usCitizen')
+        await screen.findByTestId('verify-toggle-isFatca')
         fireEvent.click(continueButton())
         const optOut = await screen.findByRole('button', { name: /continue without local bank transfers/i })
         const readsBeforeOptOut = mockQuestions.mock.calls.length

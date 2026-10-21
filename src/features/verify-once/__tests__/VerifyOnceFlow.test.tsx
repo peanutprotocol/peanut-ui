@@ -147,6 +147,74 @@ beforeEach(() => {
     mockQuestions.mockResolvedValue(build())
 })
 
+const withAddressAndPhone = (addressAnswered: boolean): VerifyOnceQuestions => {
+    const base = build({ purpose: true, money: true }, addressAnswered ? 'phone' : 'address')
+    const text = (key: string, value: string) => ({
+        key,
+        kind: 'text' as const,
+        required: true,
+        value: addressAnswered ? value : null,
+    })
+    return {
+        ...base,
+        steps: [
+            ...base.steps.slice(0, 2),
+            {
+                id: 'address',
+                features: ['base'],
+                answered: addressAnswered,
+                fields: [
+                    text('street', 'Main St 1'),
+                    text('town', 'Austin'),
+                    text('postCode', '78701'),
+                    { key: 'country', kind: 'country', required: true, locked: true, value: 'US' },
+                ],
+            },
+            {
+                id: 'phone',
+                features: ['card'],
+                answered: false,
+                fields: [{ key: 'phone', kind: 'phone', required: true, value: null }],
+            },
+            base.steps[2],
+        ],
+    }
+}
+
+describe('VerifyOnceFlow: the phone', () => {
+    it('shares the address screen when both are asked, saves both in order and counts as one step', async () => {
+        mockQuestions.mockResolvedValue(withAddressAndPhone(false))
+        mockSave
+            .mockResolvedValueOnce({ kind: 'saved', next: 'phone' })
+            .mockResolvedValueOnce({ kind: 'saved', next: 'tax' })
+        renderFlow()
+        expect(await screen.findByText('Where do you live?')).toBeInTheDocument()
+        expect(screen.getByRole('progressbar', { name: 'Step 4 of 6' })).toBeInTheDocument()
+        expect(screen.getByText('For card security. We won’t send you codes.')).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-phone-no-spam')).not.toBeInTheDocument()
+        fireEvent.change(screen.getByTestId('verify-input-street'), { target: { value: 'Main St 1' } })
+        fireEvent.change(screen.getByTestId('verify-input-town'), { target: { value: 'Austin' } })
+        fireEvent.change(screen.getByTestId('verify-input-postCode'), { target: { value: '78701' } })
+        fireEvent.change(screen.getByTestId('verify-input-phone'), { target: { value: '+1 415 555 0132' } })
+        fireEvent.click(continueButton())
+        expect(await screen.findByText('What’s your Social Security number?')).toBeInTheDocument()
+        expect(mockSave.mock.calls.map(([step, values]) => [step, values])).toEqual([
+            ['address', { street: 'Main St 1', town: 'Austin', postCode: '78701', country: 'US' }],
+            ['phone', { phone: '+14155550132' }],
+        ])
+        expect(screen.getByRole('progressbar', { name: 'Step 5 of 6' })).toBeInTheDocument()
+    })
+
+    it('asked later on its own, keeps its own screen with the no-spam promise', async () => {
+        mockQuestions.mockResolvedValue(withAddressAndPhone(true))
+        renderFlow()
+        expect(await screen.findByText('What’s your phone number?')).toBeInTheDocument()
+        expect(screen.getByText('Your card partner uses it to keep your card secure.')).toBeInTheDocument()
+        expect(screen.getByTestId('verify-phone-no-spam')).toHaveTextContent('No spam')
+        expect(screen.queryByTestId('verify-input-street')).not.toBeInTheDocument()
+    })
+})
+
 describe('VerifyOnceFlow', () => {
     it('resumes at the first unanswered step the server names (app killed mid-way)', async () => {
         renderFlow()

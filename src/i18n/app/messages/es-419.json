@@ -3407,6 +3407,14 @@
             "gotIt": "Entendido",
             "optional": "Opcional",
             "phoneHelp": "Incluye el código de tu país, como +52.",
+            "phoneNote": {
+                "card": "Para la seguridad de tu tarjeta. No te enviaremos códigos.",
+                "local": "Para transferencias locales. No te enviaremos códigos."
+            },
+            "noSpam": {
+                "title": "Sin spam",
+                "body": "No te enviaremos mensajes ni lo compartiremos para marketing."
+            },
             "hints": {
                 "purpose": "Elige la opción más parecida.",
                 "work": "Elige la opción más parecida.",
@@ -3418,7 +3426,7 @@
                 "money": "Nuestros socios revisan que el movimiento de tu cuenta coincida con tus ingresos. Un rango es suficiente.",
                 "birth": "Las normas financieras piden estos datos personales, tal como figuran en tu documento.",
                 "address": "Tu domicilio debe coincidir con donde vives y aparece en los datos de tu cuenta.",
-                "phone": "El socio de tu tarjeta usa tu número de teléfono para mantener tu tarjeta segura.",
+                "phone": "Nuestros socios guardan tu número de teléfono para proteger tu cuenta.",
                 "tax": "Las cuentas en tu país deben estar vinculadas a tu número fiscal.",
                 "declarations": "Las normas financieras de tu país piden estas preguntas a todos. Si alguna aplica, podríamos pedirte un documento más adelante.",
                 "nationality": "Los bancos de la UE deben conocer cada país del que tienes ciudadanía."
@@ -3543,14 +3551,15 @@
             "titles": {
                 "address": "¿Dónde vives?",
                 "phone": "¿Cuál es tu número de teléfono?",
-                "declarations": "¿Alguna de estas opciones aplica a ti?",
-                "purpose": "Primero, una verificación rápida"
+                "declarations": "¿Alguna de estas opciones aplica a ti?"
             },
             "descriptions": {
                 "address": "Tu domicilio, como aparece en una factura o estado de cuenta.",
-                "phone": "El socio de tu tarjeta lo usa para mantener tu tarjeta segura. No te enviaremos códigos.",
-                "declarations": "La mayoría las deja desactivadas. Si alguna aplica, podríamos pedirte un documento más adelante.",
-                "purpose": "Las transferencias bancarias locales en Argentina y Brasil no están disponibles para ciudadanos de EE. UU."
+                "phone": {
+                    "card": "El socio de tu tarjeta lo usa para mantener tu tarjeta segura.",
+                    "local": "Nuestro socio de transferencias locales lo guarda en tu cuenta."
+                },
+                "declarations": "La mayoría las deja desactivadas. Si alguna aplica, podríamos pedirte un documento más adelante."
             },
             "labels": {
                 "street": "Calle",
@@ -3562,9 +3571,8 @@
                 "countryLocked": "Tu país de residencia. Puedes cambiarlo en Perfil.",
                 "phone": "Número de teléfono",
                 "isPep": "Ocupo un cargo público",
-                "isFatca": "Soy contribuyente de EE. UU.",
+                "isFatca": "Tengo ciudadanía o residencia fiscal en EE. UU.",
                 "isFep": "Soy sujeto obligado ante la UIF",
-                "usCitizen": "Tengo ciudadanía de EE. UU.",
                 "cityOfBirth": "Ciudad de nacimiento"
             },
             "tax": {
@@ -3618,7 +3626,7 @@
                 "featureNotSelected": "Tu cuenta cambió. Estamos cargando las preguntas correctas.",
                 "identitySubmitted": "Ya enviaste tu documento, así que estas respuestas no pueden cambiar ahora.",
                 "unavailable": "Esta verificación no está disponible en este momento.",
-                "usCitizenNotSupported": "Las transferencias locales no están disponibles para ciudadanos de EE. UU. Igual puedes cobrar con una cuenta en USD o pagar con QR.",
+                "usCitizenNotSupported": "Las transferencias locales no están disponibles para ciudadanos o residentes fiscales de EE. UU. Igual puedes cobrar con una cuenta en USD o pagar con QR.",
                 "tooShort": "Agregá el nombre y el número de la calle.",
                 "streetNumberMissing": "Agregá el número de la calle.",
                 "poBoxNotAccepted": "No se puede usar un apartado postal como domicilio.",
@@ -3693,12 +3701,11 @@
             },
             "toggleNotes": {
                 "isPep": "O lo ocupa un familiar cercano o mi pareja.",
-                "isFatca": "Ciudadano o residente fiscal de EE. UU.",
-                "isFep": "Aplica a algunas profesiones, como escribanos.",
-                "usCitizen": "Aunque también tenga otra ciudadanía."
+                "isFatca": "Aunque también tenga otra ciudadanía o una green card.",
+                "isFep": "Aplica a algunas profesiones, como escribanos."
             },
             "whenYes": {
-                "usCitizen": "Las transferencias locales no están disponibles para ciudadanos de EE. UU. Igual puedes cobrar con una cuenta en USD o pagar con QR."
+                "isFatca": "Las transferencias locales no están disponibles para ciudadanos o residentes fiscales de EE. UU. Igual puedes cobrar con una cuenta en USD o pagar con QR."
             },
             "place": {
                 "placeholder": "Empieza a escribir la ciudad",

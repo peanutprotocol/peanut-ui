@@ -3407,6 +3407,14 @@
             "gotIt": "Got it",
             "optional": "Optional",
             "phoneHelp": "Include your country code, like +1.",
+            "phoneNote": {
+                "card": "For card security. We won’t send you codes.",
+                "local": "For local transfers. We won’t send you codes."
+            },
+            "noSpam": {
+                "title": "No spam",
+                "body": "We won’t text you or share it for marketing."
+            },
             "hints": {
                 "purpose": "Pick the closest match.",
                 "work": "Pick the closest match.",
@@ -3418,7 +3426,7 @@
                 "money": "Our partners check that your account activity fits your income. A range is enough.",
                 "birth": "Financial rules ask for these personal details, the same as on your ID.",
                 "address": "Your home address must match where you live, and it goes on your account details.",
-                "phone": "Your card partner uses your phone number to keep your card secure.",
+                "phone": "Our partners keep your phone number on file to protect your account.",
                 "tax": "Accounts in your country must be linked to your tax number.",
                 "declarations": "Financial rules in your country ask everyone these questions. If one applies, we may ask for a document later.",
                 "nationality": "Banks in the EU must know every country you’re a citizen of."
@@ -3543,14 +3551,15 @@
             "titles": {
                 "address": "Where do you live?",
                 "phone": "What’s your phone number?",
-                "declarations": "Do any of these apply to you?",
-                "purpose": "First, one quick check"
+                "declarations": "Do any of these apply to you?"
             },
             "descriptions": {
                 "address": "Your home address, as it appears on a bill or bank statement.",
-                "phone": "Your card partner uses it to keep your card secure. We won’t send you codes.",
-                "declarations": "Most people leave all three off. If one applies, we may ask for a document later.",
-                "purpose": "Local bank transfers in Argentina and Brazil aren’t open to US citizens."
+                "phone": {
+                    "card": "Your card partner uses it to keep your card secure.",
+                    "local": "Our local transfer partner keeps it on file with your account."
+                },
+                "declarations": "Most people leave these off. If one applies, we may ask for a document later."
             },
             "labels": {
                 "street": "Street",
@@ -3562,9 +3571,8 @@
                 "countryLocked": "Your country of residence. You can change it in Profile.",
                 "phone": "Phone number",
                 "isPep": "I hold a public office",
-                "isFatca": "I’m a US person for tax",
+                "isFatca": "I’m a US citizen or tax resident",
                 "isFep": "I must report to the UIF",
-                "usCitizen": "I’m a US citizen",
                 "cityOfBirth": "City of birth"
             },
             "tax": {
@@ -3618,7 +3626,7 @@
                 "featureNotSelected": "Your account changed. We’re loading the right questions.",
                 "identitySubmitted": "Your ID is already submitted, so these answers can’t change now.",
                 "unavailable": "This check isn’t available right now.",
-                "usCitizenNotSupported": "Local transfers aren’t available to US citizens. You can still get paid with a USD account or pay by QR.",
+                "usCitizenNotSupported": "Local transfers aren’t available to US citizens or tax residents. You can still get paid with a USD account or pay by QR.",
                 "tooShort": "Add the street name and number.",
                 "streetNumberMissing": "Add the street number.",
                 "poBoxNotAccepted": "A PO box can’t be used as a home address.",
@@ -3693,12 +3701,11 @@
             },
             "toggleNotes": {
                 "isPep": "Or a close relative or partner does.",
-                "isFatca": "A US citizen or US tax resident.",
-                "isFep": "Required in some jobs, like notaries.",
-                "usCitizen": "Even if I also hold another citizenship."
+                "isFatca": "Even if I also hold another citizenship or a green card.",
+                "isFep": "Required in some jobs, like notaries."
             },
             "whenYes": {
-                "usCitizen": "Local transfers aren’t available to US citizens. You can still get paid with a USD account or pay by QR."
+                "isFatca": "Local transfers aren’t available to US citizens or tax residents. You can still get paid with a USD account or pay by QR."
             },
             "place": {
                 "placeholder": "Start typing the city",

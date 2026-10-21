@@ -26,9 +26,15 @@ const FORM_ERROR_KEYS: Record<AnswerFormError, string> = {
     conflict: 'errors.unavailable',
 }
 
+/** Who keeps the phone number: the card partner when the card asks for it, else the local bank partner. */
+export const phonePartner = (steps: VerifyOnceStep[]): 'card' | 'local' =>
+    steps.find((s) => s.id === 'phone')?.features.includes('card') ? 'card' : 'local'
+
 function useStepHeading(step: VerifyOnceStep) {
     const t = useTranslations('kyc.verifyOnce')
     if (step.fields.some(isSentenceField)) return null
+    if (step.id === 'phone')
+        return { title: t('titles.phone'), description: t(`descriptions.phone.${phonePartner([step])}`) }
     if (step.id === 'tax') {
         const ssn = step.fields.find((f) => f.kind === 'taxId')?.format === 'ssn'
         return {
@@ -36,8 +42,8 @@ function useStepHeading(step: VerifyOnceStep) {
             description: t(ssn ? 'tax.description.ssn' : 'tax.description.other'),
         }
     }
-    if (['address', 'phone', 'declarations', 'purpose'].includes(step.id))
-        return { title: t(`titles.${step.id}` as never), description: t(`descriptions.${step.id}` as never) }
+    if (step.id === 'address' || step.id === 'declarations')
+        return { title: t(`titles.${step.id}`), description: t(`descriptions.${step.id}`) }
     return null
 }
 
@@ -192,6 +198,7 @@ export function QuestionStepScreen({
                     onChange={form.change}
                     sentenceSize={compact ? 's' : 'm'}
                     sentencesAsHeading={!title}
+                    phonePartner={phonePartner(steps)}
                 />
                 {/* Return on the last typed field submits, as the CTA does. */}
                 <button type="submit" className="sr-only" aria-hidden tabIndex={-1} />

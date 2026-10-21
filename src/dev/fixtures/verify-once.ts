@@ -228,17 +228,12 @@ const DECLARATIONS = {
     id: 'declarations',
     features: ['local'],
     answered: false,
-    fields: [toggle('isPep'), toggle('isFatca'), toggle('isFep')],
+    fields: [toggle('isFatca'), toggle('isPep'), toggle('isFep')],
 }
 
-/** An Argentine resident with local transfers + card: Manteca's answers (US-citizen check, marital status, CUIT, declarations last; no job, which Manteca takes from the CUIT). */
+/** An Argentine resident with local transfers + card: Manteca's answers (marital status, CUIT, declarations last with the US question first; no job, which Manteca takes from the CUIT). */
 const AR_STEPS = [
-    {
-        id: 'purpose',
-        features: ['card', 'local'],
-        answered: false,
-        fields: [choice('cardPurpose', CARD_PURPOSES), toggle('usCitizen')],
-    },
+    { id: 'purpose', features: ['card'], answered: false, fields: [choice('cardPurpose', CARD_PURPOSES)] },
     {
         id: 'work',
         features: ['card'],
@@ -272,7 +267,7 @@ const AR_STEPS = [
 const BR_STEPS = AR_STEPS.map((step) => {
     if (step === MANTECA_BIRTH)
         return { ...step, fields: [choice('sex', ['female', 'male', 'other']), choice('maritalStatus', MARITAL)] }
-    if (step === DECLARATIONS) return { ...step, fields: [toggle('isPep'), toggle('isFatca')] }
+    if (step === DECLARATIONS) return { ...step, fields: [toggle('isFatca'), toggle('isPep')] }
     if (step.id === 'address') return address('BR', true)
     if (step.id === 'tax')
         return { ...step, fields: [{ key: 'taxId', kind: 'taxId', required: true, format: 'cpf', value: null }] }
@@ -357,22 +352,14 @@ export const VERIFY_ONCE_FIXTURES: Record<string, Fixture> = {
         route: '/verify?feature=local',
         about: 'Add-later: a verified Argentine resident adds local transfers; Manteca’s missing answers on one screen.',
         responses: {
-            'GET /users/kyc/questions': questions(
-                'AR',
-                [
-                    { id: 'purpose', features: ['local'], answered: false, fields: [toggle('usCitizen')] },
-                    MANTECA_BIRTH,
-                    DECLARATIONS,
-                ],
-                'purpose'
-            ),
+            'GET /users/kyc/questions': questions('AR', [MANTECA_BIRTH, DECLARATIONS], 'birth'),
             'GET /users/kyc/plan': plan(null, { qr: true, bank: false, local: false, card: true }),
             'GET /users/kyc/profile': profile('APPROVED'),
         },
     },
     'verify-once-us': {
         route: '/verify',
-        about: 'Verify-once questions for a US resident with bank + card; open any step with ?step=work|money|birth|address|phone|tax.',
+        about: 'Verify-once questions for a US resident with bank + card; open any step with ?step=work|money|birth|address|tax (the phone shares the address screen).',
         responses: asking('US', US_STEPS),
     },
     'verify-once-ph': {

@@ -13593,7 +13593,7 @@ export interface paths {
                             }[];
                             requirements: {
                                 collect: "before_identity" | "after_identity" | "when_asked";
-                                item: "residential_address" | "phone" | "tax_id" | "country_of_birth" | "city_of_birth" | "nationality" | "us_citizen" | "account_purpose" | "employment_status" | "occupation" | "source_of_funds" | "expected_monthly_payments" | "acting_as_intermediary" | "card_purpose" | "annual_salary" | "expected_monthly_spend" | "sex" | "marital_status" | "pep" | "fatca" | "fep" | "proof_of_address" | "source_of_funds_document";
+                                item: "residential_address" | "phone" | "tax_id" | "country_of_birth" | "city_of_birth" | "nationality" | "account_purpose" | "employment_status" | "occupation" | "source_of_funds" | "expected_monthly_payments" | "acting_as_intermediary" | "card_purpose" | "annual_salary" | "expected_monthly_spend" | "sex" | "marital_status" | "pep" | "fatca" | "fep" | "proof_of_address" | "source_of_funds_document";
                                 kind: "question" | "document";
                                 products: ("bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "rain.card" | "manteca.local" | "manteca.qr")[];
                                 requiredBy: ("BRIDGE" | "RAIN" | "MANTECA")[];

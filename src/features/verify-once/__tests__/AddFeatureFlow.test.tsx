@@ -68,6 +68,9 @@ describe('AddFeatureQuestions', () => {
         expect(screen.getByTestId('verify-pick-annualSalary')).toBeInTheDocument()
         expect(screen.getByTestId('verify-pick-expectedMonthlyVolume')).toBeInTheDocument()
         expect(screen.getByTestId('verify-input-phone')).toBeInTheDocument()
+        // Without the address beside it, the phone keeps its country-code help and the no-spam promise.
+        expect(screen.getByText('Include your country code, like +1.')).toBeInTheDocument()
+        expect(screen.getByTestId('verify-phone-no-spam')).toHaveTextContent('No spam')
         expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
     })
 
@@ -226,7 +229,7 @@ describe('AddFeatureQuestions: local transfers (Manteca)', () => {
                     id: 'declarations',
                     features: ['local'],
                     answered: false,
-                    fields: ['isPep', 'isFatca', 'isFep'].map((key) => ({
+                    fields: ['isFatca', 'isPep', 'isFep'].map((key) => ({
                         key,
                         kind: 'toggle' as const,
                         required: true,
@@ -246,36 +249,37 @@ describe('AddFeatureQuestions: local transfers (Manteca)', () => {
         fireEvent.click(screen.getByTestId('verify-toggle-isPep'))
         fireEvent.click(screen.getByTestId('verify-continue'))
         await waitFor(() => expect(onDone).toHaveBeenCalled())
-        expect(mockSave).toHaveBeenCalledWith('declarations', { isPep: 'yes', isFatca: 'no', isFep: 'no' }, 'local')
+        expect(mockSave).toHaveBeenCalledWith('declarations', { isFatca: 'no', isPep: 'yes', isFep: 'no' }, 'local')
         expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, local: true }, features)
     })
 })
 
-describe('AddFeatureQuestions: the US-citizen check for local transfers', () => {
-    it('says up front that local transfers are not for US citizens, and shows the refusal on Continue', async () => {
+describe('AddFeatureQuestions: the US question for local transfers', () => {
+    it('says up front that local transfers are not for US persons, and shows the refusal on Continue', async () => {
         mockQuestions.mockResolvedValue({
             available: true,
             attemptId: null,
             residence: 'AR',
             steps: [
                 {
-                    id: 'purpose',
+                    id: 'declarations',
                     features: ['local'],
                     answered: false,
-                    fields: [{ key: 'usCitizen', kind: 'toggle', required: true, value: null }],
+                    fields: [{ key: 'isFatca', kind: 'toggle', required: true, value: null }],
                 },
             ],
-            firstUnanswered: 'purpose',
+            firstUnanswered: 'declarations',
             progress: { done: 1, total: 2 },
         })
-        mockSave.mockResolvedValue({ kind: 'invalid', errors: { usCitizen: 'us_citizen_not_supported' } })
+        mockSave.mockResolvedValue({ kind: 'invalid', errors: { isFatca: 'us_citizen_not_supported' } })
         renderWithIntl(<AddFeatureQuestions feature="local" onBack={jest.fn()} onDone={jest.fn()} />)
-        fireEvent.click(await screen.findByTestId('verify-toggle-usCitizen'))
-        expect(screen.getByTestId('verify-note-usCitizen')).toHaveTextContent('aren’t available to US citizens')
+        expect(await screen.findByText('I’m a US citizen or tax resident')).toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('verify-toggle-isFatca'))
+        expect(screen.getByTestId('verify-note-isFatca')).toHaveTextContent('US citizens or tax residents')
         fireEvent.click(screen.getByTestId('verify-continue'))
-        expect(await screen.findByTestId('verify-error-usCitizen')).toHaveTextContent('aren’t available to US citizens')
-        expect(screen.queryByTestId('verify-note-usCitizen')).not.toBeInTheDocument()
-        expect(mockSave).toHaveBeenCalledWith('purpose', { usCitizen: 'yes' }, 'local')
+        expect(await screen.findByTestId('verify-error-isFatca')).toHaveTextContent('US citizens or tax residents')
+        expect(screen.queryByTestId('verify-note-isFatca')).not.toBeInTheDocument()
+        expect(mockSave).toHaveBeenCalledWith('declarations', { isFatca: 'yes' }, 'local')
     })
 })
 

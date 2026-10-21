@@ -25423,12 +25423,6 @@
                                                             },
                                                             {
                                                                 "enum": [
-                                                                    "us_citizen"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
                                                                     "account_purpose"
                                                                 ],
                                                                 "type": "string"

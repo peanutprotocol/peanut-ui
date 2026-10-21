@@ -1558,7 +1558,7 @@
                 "invalidText": "Usá solo letras, números y signos de puntuación.",
                 "invalid": "Revisá esta respuesta.",
                 "retry": "No pudimos guardarlo. Revisá tu conexión e intentá de nuevo.",
-                "usCitizenNotSupported": "Las transferencias locales no están disponibles para ciudadanos de EE. UU. Igual podés cobrar con una cuenta en USD o pagar con QR."
+                "usCitizenNotSupported": "Las transferencias locales no están disponibles para ciudadanos o residentes fiscales de EE. UU. Igual podés cobrar con una cuenta en USD o pagar con QR."
             },
             "midpoint": {
                 "description": "Último paso: fotos de tu documento y una selfie rápida. Elegí el documento que vas a usar.",
@@ -1585,7 +1585,7 @@
                 "actingAsIntermediary": "En nombre de quién enviás dinero"
             },
             "whenYes": {
-                "usCitizen": "Las transferencias locales no están disponibles para ciudadanos de EE. UU. Igual podés cobrar con una cuenta en USD o pagar con QR."
+                "isFatca": "Las transferencias locales no están disponibles para ciudadanos o residentes fiscales de EE. UU. Igual podés cobrar con una cuenta en USD o pagar con QR."
             },
             "place": {
                 "placeholder": "Empezá a escribir la ciudad",

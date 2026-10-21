@@ -17,14 +17,24 @@ export function resumeStep(questions: VerifyOnceQuestions): VerifyOnceStepId | n
     return questions.steps.find((s) => !s.answered)?.id ?? null
 }
 
+/** Asked together, the phone shares the address screen; asked later on its own, it keeps its own screen. */
+export function phoneJoinsAddress(questions: VerifyOnceQuestions): boolean {
+    const address = questions.steps.find((s) => s.id === 'address')
+    const phone = questions.steps.find((s) => s.id === 'phone')
+    return !!address && !!phone && address.answered === phone.answered
+}
+
+/** The steps that get a screen of their own, in the server's order. */
+export const screenIds = (questions: VerifyOnceQuestions, phoneJoined: boolean): VerifyOnceStepId[] =>
+    questions.steps.map((s) => s.id).filter((id) => !(phoneJoined && id === 'phone'))
+
 /**
  * "Step n of m": sign-up counts as the done first step and the ID check as the
  * last, so the first question already shows progress made.
  */
-export function stepProgress(questions: VerifyOnceQuestions, step: VerifyOnceStepId) {
-    const total = questions.steps.length + 2
-    const index = questions.steps.findIndex((s) => s.id === step)
-    return { current: Math.max(index, 0) + 2, total }
+export function stepProgress(screens: VerifyOnceStepId[], step: VerifyOnceStepId) {
+    const total = screens.length + 2
+    return { current: Math.max(screens.indexOf(step), 0) + 2, total }
 }
 
 /** The server's saved values; an empty phone starts with the residence's calling code, an unset toggle reads no. */

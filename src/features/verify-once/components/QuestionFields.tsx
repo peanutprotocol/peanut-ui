@@ -8,6 +8,7 @@ import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -57,6 +58,7 @@ export function QuestionFields({
     onChange,
     sentenceSize = 'm',
     sentencesAsHeading = true,
+    phonePartner = 'card',
 }: {
     fields: VerifyOnceField[]
     values: VerifyOnceAnswers
@@ -66,6 +68,7 @@ export function QuestionFields({
     /** One step leads with its sentences as the heading; a screen of several steps has its own title. */
     sentenceSize?: 'm' | 's'
     sentencesAsHeading?: boolean
+    phonePartner?: 'card' | 'local'
 }) {
     const t = useTranslations('kyc.verifyOnce')
     const locale = useLocale()
@@ -133,6 +136,7 @@ export function QuestionFields({
                     idPrefix={id}
                     errorText={errorText}
                     onChange={onChange}
+                    phonePartner={phonePartner}
                 />
             )}
         </>
@@ -147,6 +151,7 @@ function TypedFields({
     idPrefix,
     errorText,
     onChange,
+    phonePartner,
 }: {
     fields: VerifyOnceField[]
     values: VerifyOnceAnswers
@@ -155,6 +160,7 @@ function TypedFields({
     idPrefix: string
     errorText: (key: string) => string | null
     onChange: (key: string, value: string) => void
+    phonePartner: 'card' | 'local'
 }) {
     const t = useTranslations('kyc.verifyOnce')
     const byKey = useMemo(() => new Map(fields.map((f) => [f.key, f])), [fields])
@@ -264,8 +270,18 @@ function TypedFields({
                             enterKeyHint: 'done',
                         })
                     },
-                    t('phoneHelp')
+                    // Alone on its screen, the heading says what the number is for.
+                    address ? t(`phoneNote.${phonePartner}`) : t('phoneHelp')
                 )}
+            {phone && !address && (
+                <ListItem
+                    leading={<IconBubble icon="lock" size="s" color="blue" />}
+                    title={t('noSpam.title')}
+                    body={t('noSpam.body')}
+                    bodyWrap
+                    data-testid="verify-phone-no-spam"
+                />
+            )}
             {tax &&
                 fieldFor(
                     tax,
