@@ -11,6 +11,7 @@ import { render, screen } from '@testing-library/react'
 import { Hero } from '../hero'
 import { SendInSeconds } from '../sendInSeconds'
 import { landingStrings } from '../landingStrings'
+import { EN_LANDING_CONTENT_HREFS } from '../landingContentHrefs'
 import { getTranslations } from '@/i18n'
 
 jest.mock('next/image', () => ({
@@ -23,7 +24,12 @@ const strings = landingStrings(getTranslations('en'))
 describe('Hero CTA', () => {
     it('renders the CTA as one button-shaped link carrying the motion layer, with no scale property', () => {
         const { container } = render(
-            <Hero strings={strings} buttonVisible primaryCta={{ label: 'Sign up', href: '/setup' }} />
+            <Hero
+                strings={strings}
+                contentHrefs={EN_LANDING_CONTENT_HREFS}
+                buttonVisible
+                primaryCta={{ label: 'Sign up', href: '/setup' }}
+            />
         )
 
         const cta = screen.getByRole('link', { name: 'Sign up' })
@@ -36,7 +42,14 @@ describe('Hero CTA', () => {
     })
 
     it('fades and parks the CTA while the footer is on screen', () => {
-        render(<Hero strings={strings} buttonVisible={false} primaryCta={{ label: 'Sign up', href: '/setup' }} />)
+        render(
+            <Hero
+                strings={strings}
+                contentHrefs={EN_LANDING_CONTENT_HREFS}
+                buttonVisible={false}
+                primaryCta={{ label: 'Sign up', href: '/setup' }}
+            />
+        )
 
         const holder = screen.getByRole('link', { name: 'Sign up' }).parentElement as HTMLElement
         expect(holder.style.opacity).toBe('0')
@@ -46,7 +59,14 @@ describe('Hero CTA', () => {
     })
 
     it('rests the CTA in place while it is visible', () => {
-        render(<Hero strings={strings} buttonVisible primaryCta={{ label: 'Sign up', href: '/setup' }} />)
+        render(
+            <Hero
+                strings={strings}
+                contentHrefs={EN_LANDING_CONTENT_HREFS}
+                buttonVisible
+                primaryCta={{ label: 'Sign up', href: '/setup' }}
+            />
+        )
 
         const holder = screen.getByRole('link', { name: 'Sign up' }).parentElement as HTMLElement
         expect(holder.style.opacity).toBe('1')
@@ -55,7 +75,14 @@ describe('Hero CTA', () => {
     })
 
     it('keeps rendering a custom CTA', () => {
-        render(<Hero strings={strings} buttonVisible customCta={<span>store pair</span>} />)
+        render(
+            <Hero
+                strings={strings}
+                contentHrefs={EN_LANDING_CONTENT_HREFS}
+                buttonVisible
+                customCta={<span>store pair</span>}
+            />
+        )
 
         expect(screen.getByText('store pair')).toBeInTheDocument()
     })
