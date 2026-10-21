@@ -5,7 +5,7 @@ import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import { getTranslations, t } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 import { resolveContentHref } from '@/lib/content'
-import { countryIso2 } from '@/data/seo/corridors'
+import { countryIso2 } from '@/data/seo/country-display'
 import { localizedCountryName, ptBrFromPreposition } from '@/utils/country-name.utils'
 
 // Server-only SEO footer driven by the content manifest

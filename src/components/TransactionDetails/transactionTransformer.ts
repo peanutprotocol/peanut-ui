@@ -473,6 +473,10 @@ export interface TransactionDetails {
         paymentReference?: string
         /** Request rollups: the requester opted in to payment by bank transfer. */
         bankInstructionsShared?: boolean
+        /** Request rollups: the amount the requester asked, in `requestCurrency` (decimal string). */
+        requestedAmount?: string
+        /** Request rollups: the currency the requester asked in. The USD figures stay the money truth. */
+        requestCurrency?: string
         avatarUrl?: string
         perkReward?: HistoryEntryPerkReward
         perk?: {
@@ -835,6 +839,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             minimumAmountDisplay,
             paymentReference: entry.extraData?.paymentReference?.trim() || undefined,
             bankInstructionsShared: entry.extraData?.bankInstructionsShared || undefined,
+            requestedAmount: entry.extraData?.requestedAmount || undefined,
+            requestCurrency: entry.extraData?.requestCurrency || undefined,
             // Card-payment specifics — populated only for Rain CARD_SPEND /
             // card-refund entries. Drawer reads these to render the merchant
             // hero, status timeline, decline reason, and "Adjusted from $X"

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
@@ -57,9 +58,12 @@ export default function TypographyPage() {
             {/* Knerd display title */}
             <DocSection
                 title="Knerd Display Title"
-                description="The one Knerd treatment (ruled 2026-09-24, design.md → type → knerd display title). Marketing heroes and OG images only, never an app screen."
+                description="Marketing heroes and OG images only. The dedicated Knerd page covers the type treatment and hero animation."
             >
                 <DocSection.Content>
+                    <Link href="/dev/ds/marketing/knerd" className="text-body-s underline">
+                        Knerd type and hero animation →
+                    </Link>
                     <div className="rounded-sm bg-action-primary p-4 text-center">
                         <Title text={'PRESS\nKIT'} className="text-headingLarge" />
                     </div>

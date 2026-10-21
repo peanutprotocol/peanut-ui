@@ -37,7 +37,13 @@ const setupRedirect = `/setup?redirect_uri=${encodeURIComponent(`${CLAIM_PATH}#p
 const savedEnv = { ...process.env }
 
 afterEach(() => {
-    for (const key of ['NODE_ENV', 'NEXT_PUBLIC_CAPACITOR_BUILD', 'NEXT_PUBLIC_SENTRY_DSN', 'NEXT_PUBLIC_PERF_BARE']) {
+    for (const key of [
+        'NODE_ENV',
+        'NEXT_PUBLIC_CAPACITOR_BUILD',
+        'NEXT_PUBLIC_SENTRY_DSN',
+        'NEXT_PUBLIC_PERF_BARE',
+        'NEXT_PUBLIC_POSTHOG_KEY',
+    ]) {
         if (savedEnv[key] === undefined) delete process.env[key]
         else Object.defineProperty(process.env, key, { value: savedEnv[key], writable: true, configurable: true })
     }
@@ -48,6 +54,8 @@ it.each([false, true])('keeps send-link secrets out of PostHog, replay and Sentr
     Object.defineProperty(process.env, 'NODE_ENV', { value: 'production', writable: true, configurable: true })
     process.env.NEXT_PUBLIC_CAPACITOR_BUILD = String(native)
     process.env.NEXT_PUBLIC_SENTRY_DSN = 'https://test@example.test/1'
+    // An empty key skips PostHog entirely (posthogProjectKey), so the wiring needs one.
+    process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phc_test'
     delete process.env.NEXT_PUBLIC_PERF_BARE
     mockInit.mockClear()
     mockSentryInit.mockClear()

@@ -957,6 +957,12 @@
         "source": "features/limits/components/LimitsWarningCard.tsx"
     },
     {
+        "id": "81-g-request-pot-partial",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=81-g-request-pot-partial",
+        "source": "components/AddMoney/views/RhinoDeposit.view.tsx"
+    },
+    {
         "id": "82-f-choice-card-requires-info",
         "flow": "Card",
         "route": "/dev/surfaces?s=82-f-choice-card-requires-info",
@@ -1043,6 +1049,16 @@
         "route": "/history"
     },
     {
+        "id": "fixture-history-request-pot-partial",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-request-pot-partial"
+    },
+    {
+        "id": "fixture-history-request-pot-closed-short",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-request-pot-closed-short"
+    },
+    {
         "id": "fixture-history-request-bank-details",
         "flow": "Payments",
         "route": "/history?tx=fixture-bank-request"
@@ -1091,6 +1107,11 @@
         "id": "fixture-request-pay-open-amount",
         "flow": "Payments",
         "route": "/pay-request?chargeId=demo-open-charge"
+    },
+    {
+        "id": "fixture-pay-request-pot-partial-success",
+        "flow": "Payments",
+        "route": "/pay-request?id=demo-request"
     },
     {
         "id": "fixture-request-pay-by-bank",

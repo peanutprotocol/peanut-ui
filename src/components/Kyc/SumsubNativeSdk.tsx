@@ -93,7 +93,6 @@ export const SumsubNativeSdk = ({
         const reportFailure = (reason: string, detail: unknown, kind: 'sdk-missing' | 'launch' = 'launch') => {
             console.error('[sumsub] native sdk failure', reason, detail)
             posthog.capture(ANALYTICS_EVENTS.KYC_SDK_INIT_FAILED, {
-                platform: 'native',
                 reason,
                 message: detail instanceof Error ? detail.message : String(detail),
             })
@@ -180,7 +179,7 @@ export const SumsubNativeSdk = ({
                 // A reset lock lets a stale launch's late callback clear the
                 // wrapper's event route, so route native events to this instance.
                 setActiveSumsubInstance(sumsub, instance!)
-                posthog.capture(ANALYTICS_EVENTS.KYC_SDK_LAUNCHED, { platform: 'native' })
+                posthog.capture(ANALYTICS_EVENTS.KYC_SDK_LAUNCHED)
                 void launchWithStaleLockRecovery().then(
                     (result) => {
                         if (cancelled) {
@@ -232,7 +231,7 @@ export const SumsubNativeSdk = ({
                                 if (settled || cancelled) return
                                 settled = true
                                 clearActiveSumsubInstance(instance)
-                                posthog.capture(ANALYTICS_EVENTS.KYC_SDK_ORPHANED, { platform: 'native' })
+                                posthog.capture(ANALYTICS_EVENTS.KYC_SDK_ORPHANED)
                                 sumsub.reset?.()
                                 handleExit(undefined)
                             }, ORPHANED_SDK_GRACE_MS)

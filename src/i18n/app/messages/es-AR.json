@@ -728,10 +728,9 @@
             "logInToContinue": "iniciá sesión para continuar",
             "userNotFoundDescription": "No encontramos a @{username} en Peanut. Revisá el nombre de usuario e intentá de nuevo.",
             "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pedile a quien lo envió que lo comparta de nuevo.",
-            "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pedile un nuevo enlace a quien la envió."
+            "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pedile un nuevo enlace a quien la envió.",
+            "externalPaymentNotConfirmed": "No se pudo confirmar este pago. Si el dinero salió de tu billetera, contactá a soporte."
         },
-        "requestCurrencyNote": "Esta solicitud pide {amount}. Con Peanut, cripto o una transferencia bancaria en dólares pagás su monto en dólares, que quedó fijado al crear la solicitud.",
-        "requestCurrencyNotePartPaid": "Esta solicitud pide {amount} y faltan {remaining} por pagar. Con Peanut, cripto o una transferencia bancaria en dólares pagás el monto en dólares, que quedó fijado al crear la solicitud.",
         "bankTransfer": {
             "description": "Enviá desde tu banco a la cuenta de quien te pide el pago.",
             "payInCurrency": "Pagar en {currency} · {rail}",
@@ -740,6 +739,12 @@
             "amountNoteSameCurrency": "Enviá este monto y la solicitud queda pagada.",
             "amountNoteBankConverts": "Ahora no hay un estimado en {currency}. Enviá el monto en {currency} que equivale a este monto en USD. Tu banco fija el tipo de cambio.",
             "chooseCurrency": "Elegí una moneda"
+        },
+        "partialContribution": {
+            "description": "Todavía faltan {remaining}. Envialos a la dirección de abajo."
+        },
+        "confirmingPayment": {
+            "description": "Todavía estamos confirmando tu pago. Puede tardar unos minutos y aparecerá en Actividad. Si no llega, contactá a soporte."
         }
     },
     "claim": {
@@ -1022,7 +1027,8 @@
             "warningTitle": "Enviá solo a redes compatibles",
             "bridgingVarianceNote": "Los depósitos se puentean a Arbitrum y pueden variar un poco (±0.1%).",
             "bridgingVarianceNoteEvm": "Los depósitos de USDC en Arbitrum se acreditan por el monto total. Los depósitos desde otras redes o tokens se puentean y pueden variar un poco (±0.1%).",
-            "addressErrorDescription": "No se envió nada. Intentalo de nuevo: si el problema sigue, contactá a soporte."
+            "addressErrorDescription": "No se envió nada. Intentalo de nuevo: si el problema sigue, contactá a soporte.",
+            "sendExtraForFees": "Enviá un poco más si tu billetera o la red cobra una comisión."
         },
         "manteca": {
             "sendOnlyOwnAccountTitle": "Enviá solo desde cuenta propia",
@@ -1225,7 +1231,8 @@
         "whatYouGet": "Qué desbloquea",
         "emptyDescription": "Ganá insignias a medida que usás Peanut. Hacé pagos, invitá amigos y participá en eventos para desbloquearlas y mostrarlas en tu perfil.",
         "loadErrorDescription": "Revisá tu conexión e intentá de nuevo.",
-        "shareText": "¡Gané la insignia {badge} en Peanut!\n\nUnite a Peanut y empezá a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}"
+        "shareText": "¡Gané la insignia {badge} en Peanut!\n\nUnite a Peanut y empezá a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}",
+        "shareJoin": "Unite a Peanut conmigo: {link}"
     },
     "notifications": {
         "setupDescription": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera."

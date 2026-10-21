@@ -77,6 +77,7 @@ import PublicProfile from '@/components/Profile/components/PublicProfile'
 import NotFoundScreen from '@/components/Global/NotFoundScreen'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { RequestPotActionList } from '@/features/payments/flows/contribute-pot/components/RequestPotActionList'
+import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
 import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-pot/components/BankTransferChooserDrawer'
 
@@ -177,6 +178,32 @@ function AppPageSurface({ children }: { children: React.ReactNode }) {
                 {children}
             </div>
         </div>
+    )
+}
+
+// the deposit card after the pay-request-pot-partial-success fixture's short
+// deposit, without its tap and 15 s deposit poll
+function RequestPotPartialSurface() {
+    const t = useTranslations('payment')
+    return (
+        <AppPageSurface>
+            <RhinoDepositView
+                headerTitle={t('headers.pay')}
+                chainType="EVM"
+                setChainType={noop}
+                depositAddressData={{
+                    depositAddress: '0xdec0debad1dec0debad1dec0debad1dec0debad1',
+                    minDepositLimitUsd: 1,
+                    maxDepositLimitUsd: 10000,
+                    supportedChains: [],
+                }}
+                isDepositAddressDataLoading={false}
+                onSuccess={noop}
+                amount={58.51}
+                shortDeposit={{ received: '33', asked: '58.51' }}
+                onDone={noop}
+            />
+        </AppPageSurface>
     )
 }
 
@@ -862,6 +889,10 @@ export const SURFACES: Record<string, Surface> = {
                 />
             </div>
         ),
+    },
+    '81-g-request-pot-partial': {
+        ...SURFACE_META['81-g-request-pot-partial'],
+        render: () => <RequestPotPartialSurface />,
     },
     '82-f-choice-card-requires-info': {
         ...SURFACE_META['82-f-choice-card-requires-info'],

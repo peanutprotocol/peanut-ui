@@ -16,8 +16,7 @@ import { BankFlowManager } from './views/BankFlowManager.view'
 import { ClaimAddressConfirmationModal } from './views/ClaimAddressConfirmationModal.view'
 import { Button } from '@/components/0_Bruddle/Button'
 import Image from 'next/image'
-import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO, WORDMARK } from '@/assets/brand'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
 import { useInitialClaimFlow } from './useInitialClaimFlow'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
@@ -78,8 +77,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 <div className="flex items-center gap-1">
                     <div>{t('initial.receiveOn')} </div>
                     <div className="flex items-center gap-1">
-                        <Image src={PEANUTMAN} alt={tNav('peanutLogoAlt')} className="size-5" />
-                        <Image src={PEANUT_LOGO_BLACK} alt={tNav('peanutLogoAlt')} />
+                        <Image src={LOGO} alt={tNav('peanutLogoAlt')} className="size-5" />
+                        <Image src={WORDMARK} alt={tNav('peanutLogoAlt')} className="h-3 w-auto" />
                     </div>
                 </div>
             )
