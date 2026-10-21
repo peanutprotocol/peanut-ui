@@ -5,7 +5,6 @@
 import { render, screen } from '@testing-library/react'
 import { Hero } from '../hero'
 import { landingStrings } from '../landingStrings'
-import { EN_LANDING_CONTENT_HREFS } from '../landingContentHrefs'
 import { getTranslations } from '@/i18n'
 
 jest.mock('next/image', () => ({
@@ -21,14 +20,7 @@ jest.mock('@/hooks/useMigrationFlag', () => ({
 const strings = landingStrings(getTranslations('en'))
 
 function renderHero() {
-    render(
-        <Hero
-            strings={strings}
-            contentHrefs={EN_LANDING_CONTENT_HREFS}
-            buttonVisible
-            customCta={<span>store pair</span>}
-        />
-    )
+    render(<Hero strings={strings} buttonVisible customCta={<span>store pair</span>} />)
 }
 
 describe('Hero login link', () => {

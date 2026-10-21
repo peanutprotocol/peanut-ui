@@ -10,11 +10,12 @@ export interface LandingStrings {
     signUpNow: string
     sendNow: string
     sendMoney: string
-    heroTapScan: string
-    heroNoLocalId: string
-    heroCityNewYork: string
-    heroCityMadrid: string
-    heroCityMexicoCity: string
+    heroGetPaid: string
+    heroGlobally: string
+    heroSpend: string
+    heroLocally: string
+    heroReceiveCurrencies: string
+    heroPayMethods: string
     zeroFees: string
     reallyZero: string
     noHiddenFees: string
@@ -57,11 +58,12 @@ export function landingStrings(i18n: Translations): LandingStrings {
         signUpNow: i18n.landingSignUpNow,
         sendNow: i18n.landingSendNow,
         sendMoney: i18n.sendMoney,
-        heroTapScan: i18n.landingHeroTapScan,
-        heroNoLocalId: i18n.landingHeroNoLocalId,
-        heroCityNewYork: i18n.landingHeroCityNewYork,
-        heroCityMadrid: i18n.landingHeroCityMadrid,
-        heroCityMexicoCity: i18n.landingHeroCityMexicoCity,
+        heroGetPaid: i18n.landingHeroGetPaid,
+        heroGlobally: i18n.landingHeroGlobally,
+        heroSpend: i18n.landingHeroSpend,
+        heroLocally: i18n.landingHeroLocally,
+        heroReceiveCurrencies: i18n.landingHeroReceiveCurrencies,
+        heroPayMethods: i18n.landingHeroPayMethods,
         zeroFees: i18n.landingZeroFees,
         reallyZero: i18n.landingReallyZero,
         noHiddenFees: i18n.landingNoHiddenFees,
