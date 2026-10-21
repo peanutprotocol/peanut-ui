@@ -18,9 +18,9 @@ import { localizedCountryName } from '@/utils/country-name.utils'
 import { countryForPhone } from '../callingCodes'
 import { fieldErrorKey, formatTaxId, looksLikeItin } from '../verifyOnce.utils'
 import { AnswerPicker } from './AnswerPicker'
-import { PlaceField } from './PlaceField'
+import { PlacePicker } from './PlaceField'
 
-const SENTENCE_KINDS = new Set(['choice', 'occupation', 'country'])
+const SENTENCE_KINDS = new Set(['choice', 'occupation', 'country', 'place'])
 // A conditional field belongs with the form control it depends on, not in the heading sentences.
 export const isSentenceField = (field: VerifyOnceField) => SENTENCE_KINDS.has(field.kind) && !field.locked
 
@@ -82,6 +82,23 @@ export function QuestionFields({
     const sentences = fields.filter(isSentenceField)
     const typed = fields.filter((f) => !isSentenceField(f))
     const errorText = (key: string) => (errors[key] ? t(`errors.${fieldErrorKey(errors[key])}` as never) : null)
+    const pill = (field: VerifyOnceField) =>
+        field.kind === 'place' ? (
+            <PlacePicker
+                field={field}
+                value={values[field.key] ?? ''}
+                country={(field.countryField && values[field.countryField]) || null}
+                invalid={!!errors[field.key]}
+                onChange={(value) => onChange(field.key, value)}
+            />
+        ) : (
+            <AnswerPicker
+                field={field}
+                value={values[field.key] ?? ''}
+                invalid={!!errors[field.key]}
+                onChange={(value) => onChange(field.key, value)}
+            />
+        )
 
     return (
         <>
@@ -102,26 +119,12 @@ export function QuestionFields({
                                         className={sentenceSize === 'm' ? 'block h-4 compact:h-2' : 'block h-1'}
                                     />
                                 )}
-                                {t.has(`sentence.${field.key}` as never) ? (
-                                    t.rich(`sentence.${field.key}` as 'sentence.cardPurpose', {
-                                        nw: nowrap,
-                                        pill: () => (
-                                            <AnswerPicker
-                                                field={field}
-                                                value={values[field.key] ?? ''}
-                                                invalid={!!errors[field.key]}
-                                                onChange={(value) => onChange(field.key, value)}
-                                            />
-                                        ),
-                                    })
-                                ) : (
-                                    <AnswerPicker
-                                        field={field}
-                                        value={values[field.key] ?? ''}
-                                        invalid={!!errors[field.key]}
-                                        onChange={(value) => onChange(field.key, value)}
-                                    />
-                                )}
+                                {t.has(`sentence.${field.key}` as never)
+                                    ? t.rich(`sentence.${field.key}` as 'sentence.cardPurpose', {
+                                          nw: nowrap,
+                                          pill: () => pill(field),
+                                      })
+                                    : pill(field)}
                             </Fragment>
                         ))}
                     </Sentences>
@@ -368,18 +371,6 @@ function TypedFields({
                             field={f}
                             value={values[f.key] ?? ''}
                             invalid={!!errorText(f.key)}
-                            onChange={(value) => onChange(f.key, value)}
-                        />
-                    ))
-                ) : group.kind === 'place' ? (
-                    fieldFor(group, (f) => (
-                        <PlaceField
-                            id={`${idPrefix}-${f.key}`}
-                            field={f.key}
-                            value={values[f.key] ?? ''}
-                            country={(f.countryField && values[f.countryField]) || null}
-                            invalid={!!errorText(f.key)}
-                            describedBy={errorText(f.key) ? `${idPrefix}-${f.key}-error` : undefined}
                             onChange={(value) => onChange(f.key, value)}
                         />
                     ))

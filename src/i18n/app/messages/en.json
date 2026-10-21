@@ -3440,6 +3440,7 @@
                 "expectedMonthlyVolume": "<nw>I’ll spend <pill></pill></nw> <nw>a month</nw>",
                 "sourceOfFunds": "My money comes <nw>from <pill></pill></nw>",
                 "countryOfBirth": "I was born <nw>in <pill></pill></nw>",
+                "cityOfBirth": "in the city <nw>of <pill></pill></nw>",
                 "bankMonthlyPayments": "Each month, my account <nw>moves <pill></pill></nw>",
                 "actingAsIntermediary": "I’ll send money <nw><pill></pill></nw>",
                 "nationality": "I’m a citizen <nw>of <pill></pill></nw>",
@@ -3455,6 +3456,7 @@
                 "expectedMonthlyVolume": "What you’ll spend each month",
                 "sourceOfFunds": "Where your money comes from",
                 "countryOfBirth": "Country of birth",
+                "cityOfBirth": "City of birth",
                 "bankMonthlyPayments": "What your account moves each month",
                 "actingAsIntermediary": "Who you send money for",
                 "nationality": "Your citizenship",
@@ -3712,7 +3714,9 @@
                 "placeholder": "Start typing the city",
                 "countryFirst": "Choose the country first",
                 "suggestions": "Matching places",
-                "noMatch": "Not in the list. The name as typed works too."
+                "noMatch": "Not in the list. The name as typed works too.",
+                "inCountry": "Places in {country}. A name that isn’t listed works too.",
+                "done": "Done"
             },
             "continueWithoutLocal": "Continue without local bank transfers"
         }

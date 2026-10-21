@@ -3440,6 +3440,7 @@
                 "expectedMonthlyVolume": "<nw>Vou gastar <pill></pill></nw> <nw>por mês</nw>",
                 "sourceOfFunds": "Meu dinheiro vem <nw>de <pill></pill></nw>",
                 "countryOfBirth": "Nasci <nw>em <pill></pill></nw>",
+                "cityOfBirth": "na cidade <nw>de <pill></pill></nw>",
                 "bankMonthlyPayments": "Por mês, minha conta <nw>movimenta <pill></pill></nw>",
                 "actingAsIntermediary": "Vou enviar dinheiro <nw><pill></pill></nw>",
                 "nationality": "Tenho cidadania <nw>de <pill></pill></nw>",
@@ -3455,6 +3456,7 @@
                 "expectedMonthlyVolume": "Quanto você vai gastar por mês",
                 "sourceOfFunds": "De onde vem seu dinheiro",
                 "countryOfBirth": "País de nascimento",
+                "cityOfBirth": "Cidade de nascimento",
                 "bankMonthlyPayments": "Quanto sua conta vai movimentar por mês",
                 "actingAsIntermediary": "Em nome de quem você envia dinheiro",
                 "nationality": "Sua cidadania",
@@ -3712,7 +3714,9 @@
                 "placeholder": "Comece a digitar a cidade",
                 "countryFirst": "Escolha o país primeiro",
                 "suggestions": "Lugares encontrados",
-                "noMatch": "Não está na lista. O nome como você digitou também vale."
+                "noMatch": "Não está na lista. O nome como você digitou também vale.",
+                "inCountry": "Lugares em {country}. Um nome que não está na lista também vale.",
+                "done": "Pronto"
             },
             "continueWithoutLocal": "Continuar sem transferências bancárias locais"
         }

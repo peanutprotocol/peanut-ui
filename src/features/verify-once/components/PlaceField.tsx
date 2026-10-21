@@ -1,14 +1,18 @@
 'use client'
 
 import { useEffect, useId, useRef, useState } from 'react'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useVerifyOnceTrack } from '../analytics'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
+import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
+import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/Global/Drawer'
 import { searchKycPlaces } from '@/app/actions/kyc-verify-once'
-import type { KycPlace } from '@/app/actions/types/kyc-verify-once.types'
+import type { KycPlace, VerifyOnceField } from '@/app/actions/types/kyc-verify-once.types'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { localizedCountryName } from '@/utils/country-name.utils'
 import { twMerge } from '@/utils/tw'
+import { useVerifyOnceTrack } from '../analytics'
+import { SentencePill } from './AnswerPicker'
 
 export const PLACE_QUERY_MIN_LENGTH = 3
 const SEARCH_DELAY_MS = 250
@@ -32,7 +36,9 @@ export function PlaceField({
     country,
     invalid,
     describedBy,
+    autoFocus,
     onChange,
+    onPick,
 }: {
     id: string
     /** the answer's key, for the no-results event */
@@ -41,7 +47,10 @@ export function PlaceField({
     country: string | null
     invalid?: boolean
     describedBy?: string
+    autoFocus?: boolean
     onChange: (value: string) => void
+    /** a suggestion was picked (after onChange), as opposed to typed */
+    onPick?: (name: string) => void
 }) {
     const t = useTranslations('kyc.verifyOnce.place')
     const listId = `${useId()}-places`
@@ -78,6 +87,7 @@ export function PlaceField({
     const choose = (place: KycPlace) => {
         onChange(place.name)
         setOpen(false)
+        onPick?.(place.name)
     }
 
     const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -114,6 +124,7 @@ export function PlaceField({
                 enterKeyHint="next"
                 maxLength={100}
                 disabled={!country}
+                autoFocus={autoFocus}
                 placeholder={country ? t('placeholder') : t('countryFirst')}
                 state={invalid ? 'error' : 'default'}
                 value={value}
@@ -169,5 +180,95 @@ export function PlaceField({
                 </Card>
             )}
         </div>
+    )
+}
+
+/**
+ * The city of birth as a sentence pill. Its drawer holds the typed field with
+ * the country's places as hints: a hint picks and closes in one tap, and Done
+ * keeps what was typed, so a village missing from the list still works.
+ */
+export function PlacePicker({
+    field,
+    value,
+    country,
+    invalid,
+    onChange,
+}: {
+    field: VerifyOnceField
+    value: string
+    country: string | null
+    invalid?: boolean
+    onChange: (value: string) => void
+}) {
+    const t = useTranslations('kyc.verifyOnce')
+    const locale = useLocale()
+    const track = useVerifyOnceTrack()
+    const id = useId()
+    const [open, setOpen] = useState(false)
+    const [draft, setDraft] = useState(value)
+    const kept = useRef(false)
+    const title = t(`pickerTitle.${field.key}` as never)
+    const countryName = country ? localizedCountryName(locale, country, country) : null
+
+    const openChange = (next: boolean) => {
+        if (next === open) return
+        if (next) {
+            kept.current = false
+            setDraft(value)
+            track(ANALYTICS_EVENTS.KYC_VO_PICKER_OPENED, { field: field.key, had_answer: !!value })
+        } else track(ANALYTICS_EVENTS.KYC_VO_PICKER_CLOSED, { field: field.key, chose: kept.current })
+        setOpen(next)
+    }
+    const keep = (name: string) => {
+        if (!name.trim()) return
+        kept.current = true
+        onChange(name.trim())
+        openChange(false)
+    }
+
+    return (
+        <Drawer open={open} onOpenChange={openChange} shouldScaleBackground={false}>
+            <DrawerTrigger asChild>
+                <SentencePill
+                    field={field}
+                    value={value}
+                    shown={value || t('choose')}
+                    title={title}
+                    invalid={invalid}
+                />
+            </DrawerTrigger>
+            <DrawerContent>
+                <div className="flex flex-col gap-4 pb-4">
+                    <DrawerTitle>{title}</DrawerTitle>
+                    <div className="flex flex-col gap-1">
+                        <PlaceField
+                            id={`${id}-place`}
+                            field={field.key}
+                            value={draft}
+                            country={country}
+                            describedBy={countryName ? `${id}-help` : undefined}
+                            autoFocus
+                            onChange={setDraft}
+                            onPick={keep}
+                        />
+                        {countryName && (
+                            <p id={`${id}-help`} className="text-body-xs text-foreground-secondary">
+                                {t('place.inCountry', { country: countryName })}
+                            </p>
+                        )}
+                    </div>
+                    <Button
+                        shadowSize="4"
+                        className="w-full"
+                        disabled={!draft.trim()}
+                        onClick={() => keep(draft)}
+                        data-testid="verify-place-done"
+                    >
+                        {t('place.done')}
+                    </Button>
+                </div>
+            </DrawerContent>
+        </Drawer>
     )
 }

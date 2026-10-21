@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { forwardRef, useEffect, useMemo, useRef, useState, type ComponentPropsWithoutRef } from 'react'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useVerifyOnceTrack } from '../analytics'
 import { useLocale, useTranslations } from 'next-intl'
@@ -29,6 +29,7 @@ const FIELD_ICONS: Record<string, IconName> = {
     sourceOfFunds: 'wallet',
     bankMonthlyPayments: 'arrow-up-right',
     actingAsIntermediary: 'users',
+    cityOfBirth: 'home',
 }
 
 // Most picked first; one list serves the card and the bank account.
@@ -68,6 +69,40 @@ function Leading({ field, value, size }: { field: VerifyOnceField; value: string
     if (!value) return <IconBubble icon={<span />} size={size} color="gray" />
     return <IconBubble icon={FIELD_ICONS[field.key] ?? 'check'} size={size} color="blue" />
 }
+
+/** The pill a sentence answer sits in ("I earn [pill] a year"); a drawer trigger passes its props through. */
+export const SentencePill = forwardRef<
+    HTMLButtonElement,
+    {
+        field: VerifyOnceField
+        value: string
+        shown: string
+        title: string
+        invalid?: boolean
+    } & Omit<ComponentPropsWithoutRef<'button'>, 'value' | 'title'>
+>(function SentencePill({ field, value, shown, title, invalid, ...props }, ref) {
+    return (
+        <Button
+            ref={ref}
+            {...props}
+            variant="secondary"
+            size="compact"
+            shadowSize="2"
+            aria-label={`${title}: ${shown}`}
+            aria-haspopup="dialog"
+            aria-invalid={invalid || undefined}
+            data-testid={`verify-pick-${field.key}`}
+            className="inline-flex w-fit max-w-[calc(100vw_-_8.5rem)] min-w-0 align-middle"
+            icon={<Leading field={field} value={value} size="xs" />}
+            iconContainerClassName="size-6"
+        >
+            <span className="block min-w-0 truncate" title={shown}>
+                {shown}
+            </span>
+            <Icon name="chevron-down" size={20} className="shrink-0" />
+        </Button>
+    )
+})
 
 /**
  * The inline answer pill of a sentence question ("I earn [pill] a year"): the
@@ -183,23 +218,7 @@ export function AnswerPicker({
                         <Icon name="chevron-down" size={20} className="shrink-0" />
                     </button>
                 ) : (
-                    <Button
-                        variant="secondary"
-                        size="compact"
-                        shadowSize="2"
-                        aria-label={`${title}: ${shown}`}
-                        aria-haspopup="dialog"
-                        aria-invalid={invalid || undefined}
-                        data-testid={`verify-pick-${field.key}`}
-                        className="inline-flex w-fit max-w-[calc(100vw_-_8.5rem)] min-w-0 align-middle"
-                        icon={<Leading field={field} value={value} size="xs" />}
-                        iconContainerClassName="size-6"
-                    >
-                        <span className="block min-w-0 truncate" title={shown}>
-                            {shown}
-                        </span>
-                        <Icon name="chevron-down" size={20} className="shrink-0" />
-                    </Button>
+                    <SentencePill field={field} value={value} shown={shown} title={title} invalid={invalid} />
                 )}
             </DrawerTrigger>
             <DrawerContent>

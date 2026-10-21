@@ -2,7 +2,7 @@ import { act, fireEvent, screen } from '@testing-library/react'
 import { useState } from 'react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { searchKycPlaces } from '@/app/actions/kyc-verify-once'
-import { PlaceField } from '../components/PlaceField'
+import { PlaceField, PlacePicker } from '../components/PlaceField'
 
 jest.mock('@/app/actions/kyc-verify-once', () => ({ searchKycPlaces: jest.fn() }))
 const mockSearch = searchKycPlaces as jest.MockedFunction<typeof searchKycPlaces>
@@ -73,5 +73,49 @@ describe('PlaceField', () => {
         renderWithIntl(<Harness country={null} />)
         expect(screen.getByTestId('verify-input-place')).toBeDisabled()
         expect(screen.getByTestId('verify-input-place')).toHaveAttribute('placeholder', 'Choose the country first')
+    })
+})
+
+function PickerHarness({ onChange }: { onChange: (value: string) => void }) {
+    const [value, setValue] = useState('')
+    return (
+        <PlacePicker
+            field={{ key: 'cityOfBirth', kind: 'place', required: true, value: null, countryField: 'countryOfBirth' }}
+            value={value}
+            country="DE"
+            onChange={(next) => {
+                setValue(next)
+                onChange(next)
+            }}
+        />
+    )
+}
+
+describe('PlacePicker', () => {
+    it('keeps a typed name that is not in the list once Done is tapped', async () => {
+        mockSearch.mockResolvedValue([])
+        const onChange = jest.fn()
+        renderWithIntl(<PickerHarness onChange={onChange} />)
+        expect(screen.getByTestId('verify-pick-cityOfBirth')).toHaveTextContent('Choose')
+        fireEvent.click(screen.getByTestId('verify-pick-cityOfBirth'))
+        expect(screen.getByText('Places in Germany. A name that isn’t listed works too.')).toBeInTheDocument()
+        await type('Kleindorf')
+        expect(screen.getByTestId('verify-place-list')).toHaveTextContent('Not in the list')
+        expect(onChange).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByTestId('verify-place-done'))
+        expect(onChange).toHaveBeenCalledWith('Kleindorf')
+        expect(screen.getByTestId('verify-pick-cityOfBirth')).toHaveTextContent('Kleindorf')
+    })
+
+    it('picks a suggestion and closes in one tap', async () => {
+        mockSearch.mockResolvedValue([{ name: 'Berlin', region: 'Berlin' }])
+        const onChange = jest.fn()
+        renderWithIntl(<PickerHarness onChange={onChange} />)
+        fireEvent.click(screen.getByTestId('verify-pick-cityOfBirth'))
+        await type('Ber')
+        expect(mockSearch).toHaveBeenCalledWith('DE', 'Ber')
+        fireEvent.click(screen.getByRole('option', { name: /Berlin/ }))
+        expect(onChange).toHaveBeenCalledWith('Berlin')
+        expect(screen.getByTestId('verify-pick-cityOfBirth')).toHaveTextContent('Berlin')
     })
 })
