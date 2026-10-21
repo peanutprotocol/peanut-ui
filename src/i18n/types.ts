@@ -131,6 +131,12 @@ export interface Translations {
     landingClosingSubline: string
 
     // Landing page — hero
+    landingHeroGetPaid: string
+    landingHeroGlobally: string
+    landingHeroSpend: string
+    landingHeroLocally: string
+    landingHeroReceiveCurrencies: string
+    landingHeroPayMethods: string
     landingHeroTapScan: string
     landingHeroNoLocalId: string
     landingHeroCityNewYork: string
