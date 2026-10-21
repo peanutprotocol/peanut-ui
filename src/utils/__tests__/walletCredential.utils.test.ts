@@ -1,4 +1,9 @@
-import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
+import {
+    isAa24Error,
+    isStaleClientForUser,
+    isStaleKeyError,
+    createStaleSessionError,
+} from '@/utils/walletCredential.utils'
 
 describe('isStaleClientForUser', () => {
     const accountA = '0xAAAAaaAAaAAAAAaaAAaaAAaaaAAAAAaAAaAAaAaa'
@@ -44,5 +49,15 @@ describe('isStaleKeyError', () => {
 
     it('does not flag an unrelated error', () => {
         expect(isStaleKeyError(new Error('network request failed'))).toBe(false)
+    })
+})
+
+describe('isAa24Error', () => {
+    it('matches only the AA24 code, not the other stale-key symptoms', () => {
+        const aa24 = new Error('UserOperation reverted with reason: AA24 signature error')
+        expect(isAa24Error(aa24)).toBe(true)
+        expect(isAa24Error('wapk: unauthorized')).toBe(false)
+        expect(isStaleKeyError(aa24)).toBe(true)
+        expect(isStaleKeyError('wapk: unauthorized')).toBe(true)
     })
 })

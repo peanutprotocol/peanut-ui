@@ -17,6 +17,14 @@ export const isStaleClientForUser = (
 }
 
 /**
+ * Recognises the EntryPoint's AA24 code: the account's validator rejected the
+ * UserOperation signature. A wrong passkey causes it, and so does a correct
+ * signature over a clientDataJSON layout the validator cannot read
+ * (TASK-23931), so AA24 alone does not prove a stale session.
+ */
+export const isAa24Error = (error: unknown): boolean => String(error).toLowerCase().includes('aa24')
+
+/**
  * Recognises a stale-credential failure: either one we threw ourselves (tagged
  * `isStaleKeyError`) or the on-chain/bundler symptoms of signing with the wrong
  * passkey — AA24 (EntryPoint signature check failed) or ZeroDev's `wapk
@@ -27,8 +35,9 @@ export const isStaleKeyError = (error: unknown): boolean => {
     if (error && typeof error === 'object' && (error as { isStaleKeyError?: unknown }).isStaleKeyError === true) {
         return true
     }
+    if (isAa24Error(error)) return true
     const errorStr = String(error).toLowerCase()
-    return errorStr.includes('aa24') || (errorStr.includes('wapk') && errorStr.includes('unauthorized'))
+    return errorStr.includes('wapk') && errorStr.includes('unauthorized')
 }
 
 /**
