@@ -1,5 +1,4 @@
-import { redactQrTelemetry } from './qr-telemetry-privacy'
-import { beforeSendHandler } from '../../sentry.utils'
+import { beforeSendHandler, redactSentryTelemetry } from '../../sentry.utils'
 import { posthogErrorMirror, withoutNoise } from '@/utils/sentry-posthog-mirror'
 import { inferSentryEnvironment, isSentryReportingEnvironment } from '@/utils/sentry-env'
 import { loadSentry } from '@/utils/sentry-lazy'
@@ -81,7 +80,7 @@ export function initSentry(): void {
             beforeSend: (event) =>
                 isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
             beforeSendTransaction: (event) =>
-                isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactQrTelemetry(event),
+                isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactSentryTelemetry(event),
 
             integrations: [
                 /*

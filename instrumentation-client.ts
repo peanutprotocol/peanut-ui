@@ -1,8 +1,14 @@
 import { redactQrTelemetry, redactQrTelemetryString, maskQrReplayRequest } from '@/utils/qr-telemetry-privacy'
+import { maskLinkSecretsInReplayRequest, redactLinkSecrets, stripLinkSecrets } from '@/utils/link-secret-privacy'
 import { APP_RELEASE } from '@/constants/app-release'
 import { suppressDuplicateLogin } from '@/utils/login-once-per-session'
 import posthog from 'posthog-js'
-import { beforeSendHandler, crossOriginScriptErrorContext, isBrowserHostScriptError } from './sentry.utils'
+import {
+    beforeSendHandler,
+    crossOriginScriptErrorContext,
+    isBrowserHostScriptError,
+    redactSentryTelemetry,
+} from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { withoutBrowserTracing } from '@/utils/sentry-integrations'
 import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
@@ -62,6 +68,10 @@ if (
         loaded: (ph) =>
             ph.register({ app_release: APP_RELEASE, ...signupAttributionPosthogProperties(signupAttribution) }),
         capture_pageleave: true,
+        // Send links carry their secret in `#p=`. The SDK drops the fragment
+        // from $current_url, initial and session-entry URLs, web vitals and the
+        // replay page URL; before_send below also catches it when encoded.
+        disable_capture_url_hashes: true,
         // The payment explorer contains team-only identity and relationship data.
         // Drop every event on client navigation; direct loads skip init above.
         // Doubles as the review nudge's friction tap: every money-flow failure
@@ -89,7 +99,7 @@ if (
             // $session_id — a pre-capture get_session_id() guard misses idle-
             // resumed sessions and double-counts reloads (TASK-22516).
             if (suppressDuplicateLogin(event) === null) return null
-            return redactQrTelemetry(event)
+            return redactLinkSecrets(redactQrTelemetry(event))
         },
         // Off everywhere since 2026-09-10 (server-side toggle, mirrored here):
         // $autocapture was 35% of billed event volume with zero saved insights
@@ -126,8 +136,8 @@ if (
         session_recording: {
             recordBody: false,
             recordHeaders: false,
-            maskCapturedNetworkRequestFn: maskQrReplayRequest,
-            maskAttributeFn: (_name, value) => redactQrTelemetryString(value),
+            maskCapturedNetworkRequestFn: (request) => maskLinkSecretsInReplayRequest(maskQrReplayRequest(request)),
+            maskAttributeFn: (_name, value) => stripLinkSecrets(redactQrTelemetryString(value)),
         },
     })
 
@@ -176,7 +186,7 @@ if (
                 beforeSend: (event) =>
                     isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
                 beforeSendTransaction: (event) =>
-                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactQrTelemetry(event),
+                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactSentryTelemetry(event),
                 // A WebView that can't reach the bundler can't reach ingest either,
                 // so the report of the failure died with the session. The offline
                 // transport parks undeliverable envelopes in IndexedDB and flushes
