@@ -24683,6 +24683,12 @@
                                                         },
                                                         {
                                                             "enum": [
+                                                                "declarations"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
                                                                 "birth"
                                                             ],
                                                             "type": "string"
@@ -24702,12 +24708,6 @@
                                                         {
                                                             "enum": [
                                                                 "tax"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "declarations"
                                                             ],
                                                             "type": "string"
                                                         }
@@ -27297,6 +27297,12 @@
                                                         },
                                                         {
                                                             "enum": [
+                                                                "declarations"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
                                                                 "birth"
                                                             ],
                                                             "type": "string"
@@ -27316,12 +27322,6 @@
                                                         {
                                                             "enum": [
                                                                 "tax"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "declarations"
                                                             ],
                                                             "type": "string"
                                                         }
@@ -27446,6 +27446,12 @@
                                                             },
                                                             {
                                                                 "enum": [
+                                                                    "declarations"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
                                                                     "birth"
                                                                 ],
                                                                 "type": "string"
@@ -27465,12 +27471,6 @@
                                                             {
                                                                 "enum": [
                                                                     "tax"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
-                                                                    "declarations"
                                                                 ],
                                                                 "type": "string"
                                                             }

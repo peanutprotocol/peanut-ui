@@ -231,7 +231,7 @@ const DECLARATIONS = {
     fields: [toggle('isFatca'), toggle('isPep'), toggle('isFep')],
 }
 
-/** An Argentine resident with local transfers + card: Manteca's answers (marital status, CUIT, declarations last with the US question first; no job, which Manteca takes from the CUIT). */
+/** An Argentine resident with local transfers + card: Manteca's answers (the declarations right after the card's taps, US question first, then marital status and CUIT; no job, which Manteca takes from the CUIT). */
 const AR_STEPS = [
     { id: 'purpose', features: ['card'], answered: false, fields: [choice('cardPurpose', CARD_PURPOSES)] },
     {
@@ -246,6 +246,7 @@ const AR_STEPS = [
         answered: false,
         fields: [choice('annualSalary', SALARIES), choice('expectedMonthlyVolume', VOLUMES)],
     },
+    DECLARATIONS,
     MANTECA_BIRTH,
     address('AR', true),
     {
@@ -260,7 +261,6 @@ const AR_STEPS = [
         answered: false,
         fields: [{ key: 'taxId', kind: 'taxId', required: true, format: 'cuit', value: null }],
     },
-    DECLARATIONS,
 ]
 
 /** A Brazilian resident with local transfers + card: Manteca's table adds the sex on the ID beside the marital status. */
@@ -352,7 +352,7 @@ export const VERIFY_ONCE_FIXTURES: Record<string, Fixture> = {
         route: '/verify?feature=local',
         about: 'Add-later: a verified Argentine resident adds local transfers; Manteca’s missing answers on one screen.',
         responses: {
-            'GET /users/kyc/questions': questions('AR', [MANTECA_BIRTH, DECLARATIONS], 'birth'),
+            'GET /users/kyc/questions': questions('AR', [DECLARATIONS, MANTECA_BIRTH], 'declarations'),
             'GET /users/kyc/plan': plan(null, { qr: true, bank: false, local: false, card: true }),
             'GET /users/kyc/profile': profile('APPROVED'),
         },

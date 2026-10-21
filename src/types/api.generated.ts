@@ -13286,7 +13286,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            next: ("purpose" | "work" | "money" | "birth" | "address" | "phone" | "tax" | "declarations") | null;
+                            next: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax") | null;
                         };
                     };
                 };
@@ -13976,7 +13976,7 @@ export interface paths {
                         "application/json": {
                             attemptId: string | null;
                             available: boolean;
-                            firstUnanswered: ("purpose" | "work" | "money" | "birth" | "address" | "phone" | "tax" | "declarations") | null;
+                            firstUnanswered: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax") | null;
                             progress: {
                                 done: number;
                                 total: number;
@@ -13995,7 +13995,7 @@ export interface paths {
                                     required: boolean;
                                     value: string | null;
                                 }[];
-                                id: "purpose" | "work" | "money" | "birth" | "address" | "phone" | "tax" | "declarations";
+                                id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax";
                             }[];
                         };
                     };
