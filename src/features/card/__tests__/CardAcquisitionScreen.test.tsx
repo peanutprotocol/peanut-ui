@@ -1,8 +1,14 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { withNuqsTestingAdapter } from 'nuqs/adapters/testing'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { CardAcquisitionScreen } from '../components/CardAcquisitionScreen'
 
 const mockHaptic = jest.fn()
+const mockCapture = jest.fn()
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: (...args: unknown[]) => mockCapture(...args) },
+}))
 const mockPush = jest.fn()
 const mockApply = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
@@ -111,4 +117,89 @@ it('explains the funding destination on the returning entry path', () => {
     fireEvent.click(screen.getByText('Add money'))
     expect(mockApply).toHaveBeenCalledTimes(1)
     expect(screen.queryByText('Hold complete')).not.toBeInTheDocument()
+})
+
+describe('card gate analytics', () => {
+    const gateEvents = () =>
+        mockCapture.mock.calls.filter(([name]) =>
+            [ANALYTICS_EVENTS.CARD_GATE_STEP_VIEWED, ANALYTICS_EVENTS.CARD_GATE_ADD_FUNDS_TAPPED].includes(name)
+        )
+
+    it('reports each gate screen once, with the funding state and the minimum-balance notice', async () => {
+        jest.useFakeTimers()
+        const { rerender } = render(<CardAcquisitionScreen {...props} />, {
+            wrapper: withNuqsTestingAdapter({ hasMemory: true }),
+        })
+        fireEvent.click(screen.getByText('Hold complete'))
+        await act(async () => {
+            jest.advanceTimersByTime(1400)
+        })
+        await act(async () => {
+            jest.advanceTimersByTime(100)
+        })
+        fireEvent.click(screen.getByText('addFunds'))
+        await act(async () => {
+            jest.advanceTimersByTime(100)
+        })
+        rerender(<CardAcquisitionScreen {...props} funded />)
+        rerender(<CardAcquisitionScreen {...props} funded />)
+
+        expect(gateEvents()).toEqual([
+            ['card_gate_step_viewed', { step: 'eligibility', funded: false, min_balance_shown: false }],
+            ['card_gate_step_viewed', { step: 'available', funded: false, min_balance_shown: true }],
+            ['card_gate_add_funds_tapped', { step: 'available', method: null, funded: false }],
+            ['card_gate_step_viewed', { step: 'funding', funded: false, min_balance_shown: true }],
+            ['card_gate_step_viewed', { step: 'funding', funded: true, min_balance_shown: true }],
+        ])
+    })
+
+    it.each([
+        ['methods.bankTransfer', 'bank'],
+        ['methods.crypto', 'crypto'],
+    ])('reports the deposit method picked on the funding screen: %s', (label, method) => {
+        render(<CardAcquisitionScreen {...props} />, {
+            wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=funding' }),
+        })
+        fireEvent.click(screen.getByText(label))
+        expect(gateEvents()).toEqual([
+            ['card_gate_step_viewed', { step: 'funding', funded: false, min_balance_shown: true }],
+            ['card_gate_add_funds_tapped', { step: 'funding', method, funded: false }],
+        ])
+    })
+
+    it('reports the entry "Add money" tap before it opens the funding screen', () => {
+        localStorage.setItem('card_anticipation_completed_v1:alice', '1')
+        render(<CardAcquisitionScreen {...props} needsFundingBeforeApply />, {
+            wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=entry' }),
+        })
+        fireEvent.click(screen.getByText('Add money'))
+        expect(gateEvents()).toEqual([
+            ['card_gate_step_viewed', { step: 'entry', funded: false, min_balance_shown: true }],
+            ['card_gate_add_funds_tapped', { step: 'entry', method: null, funded: false }],
+        ])
+        expect(mockApply).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not count an apply tap from a funded user as an add-funds tap', () => {
+        localStorage.setItem('card_anticipation_completed_v1:alice', '1')
+        render(<CardAcquisitionScreen {...props} funded />, {
+            wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=entry' }),
+        })
+        fireEvent.click(screen.getByText('Apply'))
+        expect(gateEvents()).toEqual([
+            ['card_gate_step_viewed', { step: 'entry', funded: true, min_balance_shown: false }],
+        ])
+    })
+
+    it('waits for the first balance read before it reports a screen', () => {
+        localStorage.setItem('card_anticipation_completed_v1:alice', '1')
+        const { rerender } = render(<CardAcquisitionScreen {...props} balanceKnown={false} />, {
+            wrapper: withNuqsTestingAdapter({ hasMemory: true }),
+        })
+        expect(gateEvents()).toEqual([])
+        rerender(<CardAcquisitionScreen {...props} funded balanceKnown />)
+        expect(gateEvents()).toEqual([
+            ['card_gate_step_viewed', { step: 'entry', funded: true, min_balance_shown: false }],
+        ])
+    })
 })
