@@ -22,6 +22,7 @@ import { offerPushPrompt } from '@/hooks/useNotifications'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { writeStoredValue } from '@/utils/safe-storage'
+import { isRainBalanceKnown } from '@/utils/balance.utils'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
 /**
  * flow hook for the card page — owns every behaviour so the page stays dumb
@@ -34,8 +35,6 @@ export function useCardFlow() {
     const userId = user?.user?.userId
     const { balance, hasSufficientSpendableBalance } = useWallet()
     const isCardFunded = hasSufficientSpendableBalance(10)
-    // A failed first read also ends loading with no balance: only a value read counts.
-    const isBalanceKnown = balance !== undefined
     const [fundingRequired, setFundingRequired] = useState(false)
     useEffect(() => {
         if (isCardFunded) setFundingRequired(false)
@@ -54,6 +53,9 @@ export function useCardFlow() {
     })
 
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
+    // `isCardFunded` sums the smart account and Rain collateral. Both must be read
+    // values: a failed first read or an unavailable Rain balance counts as 0 there.
+    const isBalanceKnown = balance !== undefined && isRainBalanceKnown(overview)
     const needsFundingBeforeApply =
         !overview?.status.hasApplication && overview?.status.railStatus !== 'ENABLED' && !isCardFunded
     const { serializeGrant } = useGrantSessionKey()

@@ -463,6 +463,7 @@ describe('useCardFlow — state viewed analytics', () => {
 describe('useCardFlow — balance known', () => {
     beforeEach(() => {
         mockBalance = 10_000_000n
+        mockOverview = { status: { hasApplication: false }, cards: [], balance: null }
     })
 
     it('treats the balance as known only once a value was read', () => {
@@ -470,6 +471,24 @@ describe('useCardFlow — balance known', () => {
         const { result, rerender } = renderHook(() => useCardFlow())
         expect(result.current.isBalanceKnown).toBe(false)
         mockBalance = 0n
+        rerender()
+        expect(result.current.isBalanceKnown).toBe(true)
+    })
+
+    it('waits for the Rain half of the balance', () => {
+        mockBalance = 0n
+        mockOverview = undefined
+        const { result, rerender } = renderHook(() => useCardFlow())
+        expect(result.current.isBalanceKnown).toBe(false)
+        mockOverview = {
+            status: { hasApplication: false, railStatus: 'ENABLED' },
+            cards: [],
+            balance: null,
+            balanceUnavailable: true,
+        }
+        rerender()
+        expect(result.current.isBalanceKnown).toBe(false)
+        mockOverview = { ...mockOverview, balance: { spendingPower: 2500 }, balanceUnavailable: false }
         rerender()
         expect(result.current.isBalanceKnown).toBe(true)
     })
