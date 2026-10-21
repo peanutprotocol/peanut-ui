@@ -440,9 +440,11 @@ function captureRestore(
  * Consumers: the store-bounce handlers in migration.utils (openStore /
  * onStoreAnchorClick); the download modal (TASK-20769) joins them when built.
  */
-export function trackDeferredHandoffCreated(platform: 'ios' | 'android'): void {
+export function trackDeferredHandoffCreated(store: 'ios' | 'android'): void {
     try {
-        posthog.capture(ANALYTICS_EVENTS.DEFERRED_LINK_HANDOFF_CREATED, { platform })
+        // `store`, not `platform`: the `platform` super property is the device
+        // the event came from, and an event must not overwrite it.
+        posthog.capture(ANALYTICS_EVENTS.DEFERRED_LINK_HANDOFF_CREATED, { store })
     } catch {}
 }
 

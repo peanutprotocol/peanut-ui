@@ -956,7 +956,8 @@
                 "noWalletAddress": "No wallet address found. Please try refreshing the page.",
                 "userNotLoaded": "User data not loaded. Please refresh the page.",
                 "setupFailed": "Failed to complete account setup. Please try again by clicking the button below.",
-                "supportNeeded": "We're having trouble setting up your account. Our team has been notified. Please contact support for help."
+                "supportNeeded": "We're having trouble setting up your account. Our team has been notified. Please contact support for help.",
+                "passkeyProviderUnsupported": "The password manager on this phone saved a passkey that Peanut can’t verify. Sign up on another device."
             }
         },
         "finish": {

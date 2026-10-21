@@ -956,7 +956,8 @@
                 "noWalletAddress": "No se encontró la dirección de la billetera. Intenta recargar la página.",
                 "userNotLoaded": "Tus datos no se han cargado. Recarga la página.",
                 "setupFailed": "No pudimos completar la configuración de tu cuenta. Inténtalo de nuevo con el botón de abajo.",
-                "supportNeeded": "Estamos teniendo problemas para configurar tu cuenta. Nuestro equipo ya fue notificado. Contacta a soporte para recibir ayuda."
+                "supportNeeded": "Estamos teniendo problemas para configurar tu cuenta. Nuestro equipo ya fue notificado. Contacta a soporte para recibir ayuda.",
+                "passkeyProviderUnsupported": "El gestor de contraseñas de este teléfono guardó una passkey que Peanut no puede verificar. Regístrate en otro dispositivo."
             }
         },
         "finish": {

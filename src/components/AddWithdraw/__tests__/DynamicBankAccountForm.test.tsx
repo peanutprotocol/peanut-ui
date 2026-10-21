@@ -8,6 +8,9 @@
  * into the withdraw flow, which dead-ended on its no-amount guard; the
  * backend add is idempotent for the same user's account, so falling through
  * is safe.
+ *
+ * The same number with another routing number is not the saved account: it is
+ * a correction, and it goes to the API (TASK-23891).
  */
 import React from 'react'
 import { render, act, screen, fireEvent, waitFor } from '@testing-library/react'
@@ -41,6 +44,7 @@ jest.mock('@/hooks/useSendFlowOrigin', () => ({
 const SAVED_US_ACCOUNT = {
     id: 'acct-1',
     identifier: '123456789',
+    routingNumber: '021000021',
     type: 'us',
     details: { countryCode: 'USA' },
 }
@@ -144,6 +148,7 @@ const renderForm = (props: {
     onSuccess: jest.Mock
     onExistingAccount?: (account: unknown) => void
     flow: 'claim' | 'withdraw'
+    initialData?: Partial<typeof US_INITIAL_DATA>
 }) => {
     const ref = React.createRef<{ handleSubmit: () => void }>()
     render(
@@ -151,7 +156,7 @@ const renderForm = (props: {
             ref={ref}
             country="USA"
             flow={props.flow}
-            initialData={US_INITIAL_DATA}
+            initialData={{ ...US_INITIAL_DATA, ...props.initialData }}
             error={null}
             onSuccess={props.onSuccess}
             onExistingAccount={props.onExistingAccount}
@@ -181,6 +186,29 @@ describe('DynamicBankAccountForm — existing-account branch (Chip round 9)', ()
 
         expect(onExistingAccount).toHaveBeenCalledWith(expect.objectContaining({ identifier: '123456789' }))
         expect(onSuccess).not.toHaveBeenCalled()
+    })
+
+    it('withdraw flow: the saved number with a corrected routing number goes to the API, not the saved account', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const onExistingAccount = jest.fn()
+        // valid ABA checksum, another bank than the saved account's
+        const ref = renderForm({
+            flow: 'withdraw',
+            onSuccess,
+            onExistingAccount,
+            initialData: { routingNumber: '026009593' },
+        })
+
+        await act(async () => {
+            ref.current!.handleSubmit()
+        })
+
+        expect(onExistingAccount).not.toHaveBeenCalled()
+        expect(onSuccess).toHaveBeenCalledTimes(1)
+        expect(onSuccess).toHaveBeenCalledWith(
+            expect.objectContaining({ accountNumber: '123456789', routingNumber: '026009593' }),
+            expect.anything()
+        )
     })
 
     it('claim flow (no handler): an already-saved account proceeds to onSuccess instead of navigating', async () => {
