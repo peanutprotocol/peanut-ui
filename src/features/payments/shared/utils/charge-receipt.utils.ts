@@ -1,5 +1,10 @@
 import { isIntentKind, type IntentKind } from '@/components/TransactionDetails/strategies/registry'
 import { type IconStatusType } from '@/components/Global/Badges/Badge'
+import {
+    mapTransactionDataForDrawer,
+    type TransactionDetails,
+} from '@/components/TransactionDetails/transactionTransformer'
+import { type HistoryEntry } from '@/utils/history.utils'
 
 /**
  * The history kind under which a charge's receipt resolves.
@@ -119,4 +124,29 @@ export async function readChargeUntilFinal<T extends { status?: string | null; s
  */
 export function isChargeAwaitingBooking(charge: { status?: string | null } | null | undefined): boolean {
     return !['COMPLETED', 'FAILED', 'CANCELLED'].includes(charge?.status ?? '')
+}
+
+/**
+ * The facts a success screen's receipt takes from the charge's history entry
+ * once it loads: the amount, the status, the proof and the dates, and the
+ * network fee with what the recipient received. The rest of the receipt stays
+ * as the flow built it. The history projection carries no memo or attachment,
+ * so replacing the whole receipt would drop the Comment and Attachment rows.
+ *
+ * Only a crypto withdrawal states a network fee. Every other charge here is
+ * paid from the Peanut wallet, whose gas Peanut sponsors.
+ */
+export function settledReceiptFields(entry: HistoryEntry): Partial<TransactionDetails> {
+    const canonical = mapTransactionDataForDrawer(entry).transactionDetails
+    const isCryptoWithdraw = canonical.extraDataForDrawer?.kind === 'CRYPTO_WITHDRAW'
+    return {
+        amount: canonical.amount,
+        status: canonical.status,
+        // the hash and its explorer link travel together (see the transformer)
+        ...(canonical.txHash && { txHash: canonical.txHash, explorerUrl: canonical.explorerUrl }),
+        completedAt: canonical.completedAt,
+        date: canonical.date,
+        networkFeeDetails: isCryptoWithdraw ? canonical.networkFeeDetails : { state: 'sponsored' },
+        recipientReceivesUsd: canonical.recipientReceivesUsd,
+    }
 }

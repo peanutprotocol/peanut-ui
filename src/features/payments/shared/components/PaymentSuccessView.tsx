@@ -52,7 +52,8 @@ import type { ParsedURL } from '@/lib/url-parser/types/payment'
 import { payLinkUrl } from '@/utils/url.utils'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import type { ProviderId } from '@/types/provider.types'
-import { receiptKindForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
+import { receiptKindForCharge, settledReceiptFields } from '@/features/payments/shared/utils/charge-receipt.utils'
+import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 
 // minimal user info needed for display
 type UserDisplayInfo = {
@@ -171,7 +172,6 @@ const PaymentSuccessView = ({
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
         if (!chargeDetails) return null
 
-        const networkFeeDisplayValue = '$0' // fee is zero for peanut wallet txns
         const peanutFeeDisplayValue = '$0' // peanut doesn't charge fees yet
 
         const recipientIdentifier = user?.username || parsedPaymentData?.recipient?.identifier
@@ -218,10 +218,10 @@ const PaymentSuccessView = ({
                 tokenIconUrl: tokenIconUrl,
                 chainIconUrl: chainIconUrl,
             },
-            networkFeeDetails: {
-                amountDisplay: networkFeeDisplayValue,
-                moreInfoText: t('confirm.slippageInfo'),
-            },
+            // Until the history entry loads: a withdrawal's network fee is not
+            // known yet, and every other flow here pays from the Peanut wallet,
+            // whose gas Peanut sponsors.
+            networkFeeDetails: { state: isWithdrawFlow ? 'pending' : 'sponsored' },
             peanutFeeDetails: {
                 amountDisplay: peanutFeeDisplayValue,
             },
@@ -249,12 +249,30 @@ const PaymentSuccessView = ({
         origin,
         usdAmount,
         receiptStatus,
-        t,
+        isWithdrawFlow,
     ])
 
+    // The charge's history entry: the backend's own amount, status and network
+    // fee, polled while a withdrawal's fee settles. A guest cannot read it (the
+    // API answers 404 by design), and demo mode has no backend.
+    const { data: historyEntry } = useHistoryEntry(
+        chargeDetails?.uuid,
+        chargeDetails ? receiptKindForCharge(chargeDetails) : undefined,
+        {
+            enabled: !!authUser?.user.userId && !isDemoMode() && !transactionDetailsProp && !!chargeDetails,
+            retry: false,
+        }
+    )
+
     // the one transaction this view's receipt drawer shows — the drawer opens
-    // when the url's `?tx=` matches its id (see useTransactionDetailsDrawer)
-    const receiptTransaction = transactionDetailsProp ?? transactionForDrawer
+    // when the url's `?tx=` matches its id (see useTransactionDetailsDrawer).
+    // The entry's facts go over the receipt the flow built, never replace it:
+    // the flow's receipt keeps the comment and the attachment.
+    const receiptTransaction = useMemo(() => {
+        if (transactionDetailsProp) return transactionDetailsProp
+        if (!transactionForDrawer || !historyEntry) return transactionForDrawer
+        return { ...transactionForDrawer, ...settledReceiptFields(historyEntry) }
+    }, [transactionDetailsProp, transactionForDrawer, historyEntry])
 
     const pointsDivRef = useRef<HTMLDivElement>(null)
     usePointsConfetti(points, pointsDivRef)
