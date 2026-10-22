@@ -84,6 +84,8 @@ jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockPwaSunset
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: jest.fn(),
     getStoredRedirect: () => mockStoredRedirect,
+    getValidRedirectUrl: (redirectUrl: string, fallbackRoute: string) =>
+        jest.requireActual('@/utils/general.utils').getValidRedirectUrl(redirectUrl, fallbackRoute),
     saveToCookie: jest.fn(),
     toInviteCode: jest.fn(),
 }))
@@ -311,6 +313,45 @@ it('treats a stale legacy no-access profile as an authenticated account', async 
 
     expect(mockRouter.replace).toHaveBeenCalledWith('/home')
     expect(screen.getByRole('status')).toBeInTheDocument()
+})
+
+/*
+ * A guest funding row sends a user to /setup?redirect_uri=%2Fadd-money. A
+ * user who is already signed in must land on that page, not /home (TASK-23974).
+ */
+it.each([
+    { label: 'a same-origin redirect_uri', query: 'redirect_uri=%2Fadd-money', destination: '/add-money' },
+    { label: 'an external redirect_uri', query: 'redirect_uri=https%3A%2F%2Fevil.example', destination: '/home' },
+    { label: 'a redirect_uri back into setup', query: 'redirect_uri=%2Fsetup%3Fstep%3Dsignup', destination: '/home' },
+    { label: 'no redirect_uri', query: '', destination: '/home' },
+])('sends a completed session with $label to $destination', async ({ query, destination }) => {
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams(query)
+
+    renderWithIntl(<SetupPage />)
+
+    expect(mockRouter.replace).toHaveBeenCalledTimes(1)
+    expect(mockRouter.replace).toHaveBeenCalledWith(destination)
+    expect(screen.getByRole('status')).toBeInTheDocument()
+})
+
+it('does not let stored redirect state redirect a completed session', async () => {
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true } }
+    mockStoredRedirect = { destination: '/card', origin: 'deep-link', generationId: 'g1' }
+
+    renderWithIntl(<SetupPage />)
+
+    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+})
+
+it('sends a completed session to its redirect_uri once a native badge claim settles', async () => {
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer&redirect_uri=%2Fadd-money')
+
+    renderWithIntl(<SetupPage />)
+
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith('/add-money'))
+    expect(mockRouter.replace).not.toHaveBeenCalledWith('/home')
 })
 
 it.each([true, false])('preserves the resolved entry flow (native=%s)', async (native) => {

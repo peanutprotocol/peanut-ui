@@ -243,7 +243,6 @@ export function SemanticRequestInputView() {
                     )}
                 </div>
 
-                {/* action list for non-logged in users */}
                 <PaymentMethodActionList
                     // Only the signed-in requestee can set an open amount, so a
                     // signed-out visitor gets no wallet option here; the button
