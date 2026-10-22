@@ -481,11 +481,6 @@ function parseContentDate(value: unknown): Date | undefined {
     return undefined
 }
 
-/** Regeneration provenance; this is not a publication or modification date. */
-export function contentGeneratedAt(content: MarkdownContent<ContentFrontmatter> | null): Date | undefined {
-    return parseContentDate(content?.frontmatter.generated_at)
-}
-
 /** Authored publication date, independent of content regeneration. */
 export function contentPublishedAt(
     content: Pick<MarkdownContent<ContentFrontmatter>, 'frontmatter'> | null

@@ -1,7 +1,6 @@
 import fs from 'fs'
 import {
     contentArticleMetadata,
-    contentGeneratedAt,
     contentModifiedAt,
     contentPublishedAt,
     helpArticleTitle,
@@ -192,34 +191,6 @@ describe('resolveContentHref', () => {
             'https://peanut.me/en/card-terms-international',
             'https://peanut.me/en/terms',
         ])
-    })
-})
-
-describe('contentGeneratedAt', () => {
-    // gray-matter turns unquoted YAML timestamps into Date objects.
-    it('accepts a Date (the usual runtime shape from unquoted YAML)', () => {
-        const at = contentGeneratedAt({ frontmatter: { generated_at: new Date('2026-03-27') } as never, body: '' })
-        expect(at?.toISOString().split('T')[0]).toBe('2026-03-27')
-    })
-
-    it('accepts a quoted string date', () => {
-        const at = contentGeneratedAt({ frontmatter: { generated_at: '2026-03-20T17:10:00Z' } as never, body: '' })
-        expect(at?.toISOString()).toBe('2026-03-20T17:10:00.000Z')
-    })
-
-    it('returns undefined for null content, a missing field, or an unparseable value', () => {
-        expect(contentGeneratedAt(null)).toBeUndefined()
-        expect(contentGeneratedAt({ frontmatter: {} as never, body: '' })).toBeUndefined()
-        expect(contentGeneratedAt({ frontmatter: { generated_at: 'not-a-date' } as never, body: '' })).toBeUndefined()
-        expect(contentGeneratedAt({ frontmatter: { generated_at: '' } as never, body: '' })).toBeUndefined()
-    })
-
-    it('reads a real date off a real content file', () => {
-        const at = contentGeneratedAt(readPageContent<ContentFrontmatter>('help', 'delete-account', 'en'))
-        expect(at).toBeInstanceOf(Date)
-        // A real authored date, not the build clock.
-        expect(at!.getTime()).toBeLessThan(Date.now())
-        expect(at!.getUTCFullYear()).toBeGreaterThanOrEqual(2026)
     })
 })
 
