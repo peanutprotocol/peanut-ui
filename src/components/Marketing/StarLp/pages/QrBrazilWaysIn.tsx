@@ -1,5 +1,6 @@
 import { PopIn } from '@/components/Marketing/StarLp/PopIn'
 import { StarLpQrCode } from '@/components/Marketing/StarLp/StarLpQrCode'
+import { QrBrazilAppLink } from './QrBrazilAppLink'
 
 const LABEL = 'text-body-m-semibold lg:text-heading-xs'
 const VALUE = 'break-all text-body-s xs:text-body-m lg:text-body-l'
@@ -19,7 +20,8 @@ const COPIA_E_COLA =
  * The key is spending.md's own labelled example, "CPF 123.456.789-09", the way
  * the app shows a looked-up key. The key and the code are plain illustrations:
  * nothing to copy. The QR is real and opens Peanut, like the "Pague com Pix"
- * sticker: a bank app scanning it gets a link, not a Pix payload.
+ * sticker: a bank app scanning it gets a link, not a Pix payload, and a tap
+ * opens the same link, because a phone cannot scan itself.
  */
 export function QrBrazilWaysIn() {
     return (
@@ -31,9 +33,12 @@ export function QrBrazilWaysIn() {
             </PopIn>
             <PopIn className="grid gap-1" delay={0.12} tilt={-2}>
                 <span className={LABEL}>Pix QR</span>
-                <span className="shadow-2 block w-28 rounded-sm border-2 border-border-default bg-background-default p-1 lg:w-36">
-                    <StarLpQrCode campaign="qr-brazil" slot="ways-in" className="w-full" />
-                </span>
+                {/* A phone cannot scan its own screen: a tap opens what the scan would. */}
+                <QrBrazilAppLink className="w-28 lg:w-36" label="Get the Peanut app">
+                    <span className="shadow-2 block rounded-sm border-2 border-border-default bg-background-default p-1 transition-shadow duration-instant group-active:shadow-none">
+                        <StarLpQrCode campaign="qr-brazil" slot="ways-in" className="w-full" />
+                    </span>
+                </QrBrazilAppLink>
                 <span className="text-body-s text-foreground-secondary">Scan this one to get the app.</span>
             </PopIn>
             <PopIn className="grid gap-1" delay={0.24}>
