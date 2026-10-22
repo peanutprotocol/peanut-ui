@@ -308,6 +308,27 @@ export interface StarLpPersona {
     username: string
 }
 
+/** One illustrative earner on the income pages' persona fold: a composite from
+    product/icps.md, never a real person. */
+export interface StarLpEarner {
+    /** Avatar sticker key (avatar.utils), e.g. "basic.flower". */
+    avatar: string
+    /** Trade and city, e.g. "Brand designer, Buenos Aires". */
+    who: string
+}
+
+/** An earner's card on one page: their own line and one short fact. */
+export interface StarLpPersonaCard extends StarLpEarner {
+    /** First person, sentence case, one sentence. Not a quote: no quote marks. */
+    line: string
+    /** The rail that pays them (SEPA, ACH) or where the client pays from. */
+    tag: string
+}
+
+export interface PersonaFoldProps {
+    cards: readonly StarLpPersonaCard[]
+}
+
 /** A live indicative rate from the backend's /fx/rate. */
 export interface StarLpFxRate {
     from: string

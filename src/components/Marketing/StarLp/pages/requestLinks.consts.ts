@@ -1,4 +1,21 @@
-import { STAR_LP_PERSONA, STAR_LP_REQUEST_LINK_TEXT } from '@/components/Marketing/StarLp/starLpPersonas.consts'
+import type { StarLpPersonaCard } from '@/components/Marketing/StarLp/starLp.types'
+import {
+    STAR_LP_EARNERS,
+    STAR_LP_PERSONA,
+    STAR_LP_REQUEST_LINK_TEXT,
+} from '@/components/Marketing/StarLp/starLpPersonas.consts'
+
+/**
+ * The persona fold's cards: how each earner shares the link and where the
+ * client pays from. The channels are request-links.md's ("any channel":
+ * invoice, email, chat, printed QR), the same words as the hero seam.
+ */
+export const REQUEST_LINKS_PERSONA_CARDS: readonly StarLpPersonaCard[] = [
+    { ...STAR_LP_EARNERS.designer, line: 'I put the link in every invoice.', tag: 'Clients in Germany' },
+    { ...STAR_LP_EARNERS.developer, line: 'I send one link per milestone.', tag: 'Startup in Austin' },
+    { ...STAR_LP_EARNERS.writer, line: 'I paste the link in the chat.', tag: 'Magazines in New York' },
+    { ...STAR_LP_EARNERS.editor, line: 'My invoice carries the QR.', tag: 'Studio in Amsterdam' },
+]
 
 /** The one illustrative request the page follows from first reply to balance. */
 export const REQUEST_LINKS_STORY = {
