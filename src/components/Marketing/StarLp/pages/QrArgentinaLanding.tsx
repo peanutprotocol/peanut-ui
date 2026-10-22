@@ -51,7 +51,7 @@ const TRUST_SEAM: string[] = [
     'No Mercado Pago account',
     'Rate shown first',
 ]
-// The card-fee saving keeps its qualifier, so it lives in the FAQ answer, not on a strip (pricing.md).
+// The card saving is the rate fold's dated example with its footnote (pricing.md); no strip carries a number.
 const CLOSE_SEAM: string[] = ['Self-custodial', 'Passkey', 'Dollars', 'Pay by QR']
 
 /**

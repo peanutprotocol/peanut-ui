@@ -48,7 +48,7 @@ describe('qrArgentinaRateHeadline', () => {
             rate: 1596.75,
             value: '1,596.75',
             label: '$1 = 1,596.75 ARS',
-            fontSize: '20.80cqw',
+            fontSize: '14.16cqw',
             countsUp: true,
         })
     })
@@ -59,7 +59,7 @@ describe('qrArgentinaRateHeadline', () => {
             rate: 1600,
             value: '1,600',
             label: '$1 is about 1,600 ARS',
-            fontSize: '30.23cqw',
+            fontSize: '20.58cqw',
             countsUp: false,
         })
     })
@@ -67,7 +67,7 @@ describe('qrArgentinaRateHeadline', () => {
     it('sets a longer number smaller', () => {
         const headline = qrArgentinaRateHeadline({ tier: 'live', quote: { ...usdArs, rate: 12345.6 } })
         expect(headline?.value).toBe('12,345.60')
-        expect(headline?.fontSize).toBe('18.54cqw')
+        expect(headline?.fontSize).toBe('12.62cqw')
     })
 })
 

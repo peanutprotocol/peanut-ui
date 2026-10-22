@@ -6,12 +6,13 @@ const ROUNDED = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
 
 // Widths in em of the headline's line (Roboto Flex extra-black, tabular digits,
 // the h2's tracking), measured on the page: a digit, a "," or ".", and the small
-// "ARS" with its gap. The font size sets the whole line at 94% of the column,
-// so the exact and the rounded number fit alike.
+// "ARS" with its gap. The font size sets the whole line at 64% of the column
+// (a support line under the saving headline), so the exact and the rounded
+// number fit alike.
 const DIGIT_EM = 0.55
 const SEPARATOR_EM = 0.31
 const ARS_EM = 0.6
-const LINE_FIT_CQW = 94
+const LINE_FIT_CQW = 64
 
 function fitFontSize(value: string): string {
     const digits = value.replace(/\D/g, '').length
@@ -30,7 +31,7 @@ export function roundUsdArsRate(rate: number): number {
 }
 
 /**
- * The headline for each tier, or `null` for none (the fold then says "Best rate").
+ * The rate line for each tier, or `null` for none (the fold then says "Best rate").
  * Live: "$1 =" over the exact rate, which counts up. Last-known (30 min–12 h):
  * "$1 ≈" over the rate rounded to the nearest 10, at rest. The font size fits
  * the number to the column whatever its digit count.
