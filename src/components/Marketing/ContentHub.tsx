@@ -11,7 +11,7 @@ import { ContentHubFallback } from '@/components/Marketing/ContentHubFallback'
 import ContentLanding, { type ContentLandingStrings } from '@/components/Marketing/ContentLanding'
 import { Hero } from '@/components/Marketing/mdx/Hero'
 
-/** The content hub body, served at /{locale}/blog and its /{locale}/content alias. */
+/** The content hub body, served at /{locale}/blog (the former /{locale}/content address 308s here). */
 export function ContentHub({ locale }: { locale: Locale }) {
     const i18n = getTranslations(locale)
     const items = listAllContent(locale)
