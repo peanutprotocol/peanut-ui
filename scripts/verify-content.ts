@@ -30,7 +30,7 @@ import { RAIL_SLUGS } from '../src/data/seo/deposit-rails'
 import { getIndexablePages } from '../src/lib/seo/url-inventory'
 import { listContentTopics } from '../src/lib/content-topics'
 import { SUPPORTED_LOCALES } from '../src/i18n/types'
-import { MERCHANT_SLUGS } from '../src/app/m/[slug]/merchants'
+import { MERCHANT_SLUGS } from '../src/data/merchants'
 import { checkIncomeMigration } from './seo-income-migration'
 
 const ROOT = path.join(process.cwd(), 'src/content')

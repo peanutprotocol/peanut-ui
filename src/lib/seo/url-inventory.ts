@@ -9,7 +9,7 @@ import { SUPPORTED_LOCALES } from '@/i18n/types'
 import { listContentTopics } from '@/lib/content-topics'
 import { isPermanentRedirectPath } from '@/lib/seo/redirects'
 import { STAR_LP_ROUTES } from '@/components/Marketing/StarLp/starLp.consts'
-import { MERCHANT_SLUGS } from '@/app/m/[slug]/merchants'
+import { MERCHANT_SLUGS } from '@/data/merchants'
 import {
     contentModifiedAt,
     isPublished,
