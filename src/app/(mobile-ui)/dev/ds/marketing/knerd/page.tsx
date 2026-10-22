@@ -1,8 +1,10 @@
 'use client'
 
+import Link from 'next/link'
 import Title from '@/components/0_Bruddle/Title'
 import { knerdTitle } from '@/components/0_Bruddle/Title.consts'
 import { KnerdReferenceFrame } from '@/app/dev/ds-marketing-preview/_components/KnerdReferenceFrame'
+import { ViewportFrame } from '@/app/dev/ds-marketing-preview/_components/ViewportFrame'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocPage } from '../../_components/DocPage'
@@ -82,6 +84,128 @@ export default function KnerdPage() {
                     code={`import Title from '@/components/0_Bruddle/Title'\n\n<Title text={'IN\\nPINK'} className="text-heading md:text-headingMedium" />`}
                 />
             </DocSection>
+
+            <section id="homepage-layout" className="space-y-6 scroll-mt-6">
+                <DocSection
+                    title="Homepage — two lines, four on phones"
+                    description="Get paid GLOBALLY. Spend LOCALLY. Black Roboto Flex introduces each Knerd word; the mascot overlaps the bottom of the headline."
+                >
+                    <ViewportFrame
+                        demo="key-visual-hero"
+                        label="Approved homepage hero"
+                        heights={{ phone: 812, desktop: 900 }}
+                    />
+                    <SpecTable
+                        rows={[
+                            ['Composition', 'Two phrase rows from 768px; four lines below 768px.'],
+                            ['Gap between phrase rows', 'Desktop −11px; phone 5px.'],
+                            ['Black → Knerd gap', 'Desktop 22px horizontally; phone −10px vertically.'],
+                            ['Overall headline scale', 'Desktop 102%; phone 100%, before fitting.'],
+                            ['Knerd scale', 'Desktop 98% of the scaled accent size; phone 100%.'],
+                            ['Mascot overlap', 'Desktop 70px; phone 40px.'],
+                            ['Mascot → subline gap', 'Desktop 8px; phone 12px, reduced to 8px at heights ≤600px.'],
+                            ['Mascot scale', '100% of its responsive size, reduced when needed to fit the fold.'],
+                        ]}
+                    />
+                    <p className="text-body-s">
+                        <code>LandingPage/hero.module.css</code> owns these settings. The phone accent adds its existing
+                        0.18em ink compensation before the −10px gap. <code>useHeroLayout</code> fits the translated
+                        phrase to the available width, then reduces the mascot before the type on short screens. These
+                        are starting values, not fixed rendered sizes. The black labels paint above Knerd so the tight
+                        overlap cannot erase their strokes.
+                    </p>
+                    <p className="text-body-s">
+                        The subline is “Receive dollars and euros. Pay by card or QR.” This hero uses static{' '}
+                        <code>Title</code> words with the existing mascot, cloud, star and CTA motion.{' '}
+                        <Link className="underline" href="/dev/ds-marketing-preview/key-visual-hero">
+                            View the real homepage hero at your viewport size
+                        </Link>
+                        .
+                    </p>
+                </DocSection>
+            </section>
+
+            <section id="star-layout" className="space-y-6 scroll-mt-6">
+                <DocSection
+                    title="Star pages — the tighter stack"
+                    description="The approved A treatment: a stronger black lead sits close to the Knerd words. Keep the existing illustration, headline tail, supporting copy and Follow the pull motion."
+                >
+                    <ViewportFrame
+                        demo="product-split-hero-center"
+                        label="Approved star hero using the self-custody composition"
+                        heights={{ phone: 812, desktop: 900 }}
+                    />
+                    <SpecTable
+                        rows={[
+                            ['Roboto width budget', '98% of the available column; estimated by starLpHeroFit.'],
+                            ['Roboto size cap', 'Below 768px: 3.5rem and 8svh. From 768px: 7rem and 12svh.'],
+                            ['Black lead → Knerd margin', 'Below 768px: −8px. From 768px: −22px.'],
+                            ['Paint order', 'The black lead is above the Knerd wrapper (z-index 2 / 1).'],
+                            ['Knerd composition', 'Wide above 600px; prescribed stacked lines at 600px and below.'],
+                            ['Knerd width budget', 'Unchanged: 92% wide; 90% stacked. The 98% rule is for Roboto.'],
+                            [
+                                'Headline tail',
+                                'Uses the same Roboto fit; keeps its existing position relative to the art.',
+                            ],
+                        ]}
+                    />
+                    <p className="text-body-s">
+                        Reuse <code>StarLpHero</code>. The shared <code>.star-lp-fit-display</code> rules in{' '}
+                        <code>src/styles/globals.css</code> choose the smallest width, size-cap and height-cap result.
+                        The negative margin and raised black layer apply to the headline children only. Keep the
+                        existing <code>starLpHeroFit</code> measurements, <code>Title</code> treatment and motion
+                        preset; do not copy their math or retune individual pages. Preserve each illustration’s tuck or
+                        edge placement, including card logos and the request-window title bar.
+                    </p>
+                    <p className="text-body-s">The shared treatment covers all six star pages:</p>
+                    <ul className="space-y-2 list-disc pl-6 text-body-s">
+                        <li>
+                            <Link className="underline" href="/us-europe-accounts">
+                                US and Europe accounts
+                            </Link>
+                            : Get paid from → US / and EUROPE. The small “and” stays in Roboto.
+                        </li>
+                        <li>
+                            <Link className="underline" href="/peanut-card">
+                                Peanut Card
+                            </Link>
+                            : Peanut Card → IN / DOLLARS.
+                        </li>
+                        <li>
+                            <Link className="underline" href="/request-links">
+                                Request links
+                            </Link>
+                            : “How do I pay you?” → SEND / THIS.
+                        </li>
+                        <li>
+                            <Link className="underline" href="/self-custody">
+                                Self-custody
+                            </Link>
+                            : Your money. → ONLY / YOU → can send it.
+                        </li>
+                        <li>
+                            <Link className="underline" href="/qr-payments/brazil">
+                                Brazil QR
+                            </Link>
+                            : No CPF? → NO / PROBLEM → at the counter.
+                        </li>
+                        <li>
+                            <Link className="underline" href="/qr-payments/argentina">
+                                Argentina QR
+                            </Link>
+                            : No DNI? → NO / PROBLEM.
+                        </li>
+                    </ul>
+                    <p className="text-body-s">
+                        The frame renders the production <code>StarLpHero</code> with self-custody art.{' '}
+                        <Link className="underline" href="/dev/ds-marketing-preview/product-split-hero-center">
+                            View it at your viewport size
+                        </Link>
+                        . Check both the 600px Knerd wrap and 768px sizing boundaries, short phones, and the actual art
+                        before changing these shared rules.
+                    </p>
+                </DocSection>
+            </section>
 
             <section id="hero-animation" className="space-y-6 scroll-mt-6">
                 <DocSection
@@ -180,8 +304,8 @@ export default function KnerdPage() {
             </DocSection>
 
             <DocSection
-                title="Fill the fold"
-                description="Fit the phrase to the available space after the real fonts load. Keep one shared font size across the lines; this is C’s wide/stacked composition."
+                title="Motion reference — fill the fold"
+                description="These dimensions belong to the isolated C reference above. Production star heroes use the shared fit rules and real product art shown in the tighter-stack section."
             >
                 <SpecTable
                     rows={[
@@ -208,8 +332,9 @@ export default function KnerdPage() {
                     ]}
                 />
                 <p className="text-body-s text-foreground-secondary">
-                    Keep the lead and CTA visible. On resize, wait 100ms, reset transforms and refit; do not replay the
-                    entrance. The reference includes all six reviewed headline compositions.
+                    In this reference, fit after the real fonts load and keep one size across the lines. On resize, wait
+                    100ms, reset transforms and refit; do not replay the entrance. Its six headline compositions
+                    demonstrate the motion without production product art.
                 </p>
             </DocSection>
 
@@ -232,13 +357,16 @@ export default function KnerdPage() {
 
             <DocSection
                 title="Reference and implementation"
-                description="The embedded reference preserves the reviewed C engine. It does not change the existing landing pages."
+                description="The reference and production star heroes share the reviewed Follow the pull preset. Their layout sizing has separate owners."
             >
                 <CodeBlock label="Exact preset used by the demo" code={JSON.stringify(motion, null, 2)} />
                 <p className="text-body-s">
                     The reference lives in <code>public/dev/knerd/</code>. Its <code>preset.js</code> is shared by this
-                    page and the demo. <code>hero.js</code> contains the sizing, keyframes, physics, and lifecycle
-                    behavior to preserve in a production port. Static Knerd continues to use <code>Title</code>.
+                    page, the demo and production <code>knerdPull.utils.ts</code>. Production{' '}
+                    <code>KnerdPullHeadline</code> renders letters through <code>Title</code>, while{' '}
+                    <code>knerdPullController.ts</code> handles motion and lifecycle. The reference’s{' '}
+                    <code>hero.js</code> also owns its demo controls and isolated layout; those controls are not part of
+                    a landing page. Static Knerd continues to use <code>Title</code>.
                 </p>
                 <p className="text-body-s">
                     <a

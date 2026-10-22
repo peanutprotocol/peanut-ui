@@ -12,6 +12,10 @@ export interface LandingStrings {
     sendMoney: string
     heroHeadline: string
     heroSubline: string
+    heroGetPaid: string
+    heroGlobally: string
+    heroSpend: string
+    heroLocally: string
     zeroFees: string
     reallyZero: string
     noHiddenFees: string
@@ -56,6 +60,10 @@ export function landingStrings(i18n: Translations): LandingStrings {
         sendMoney: i18n.sendMoney,
         heroHeadline: i18n.landingHeroHeadline,
         heroSubline: i18n.landingHeroSubline,
+        heroGetPaid: i18n.landingHeroGetPaid,
+        heroGlobally: i18n.landingHeroGlobally,
+        heroSpend: i18n.landingHeroSpend,
+        heroLocally: i18n.landingHeroLocally,
         zeroFees: i18n.landingZeroFees,
         reallyZero: i18n.landingReallyZero,
         noHiddenFees: i18n.landingNoHiddenFees,
