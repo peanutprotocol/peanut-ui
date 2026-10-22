@@ -97,10 +97,50 @@ jest.mock('@/components/Global/ValidatedInput', () => ({
         />
     ),
 }))
+// The buttons stand in for what the real field reports: a typed local amount,
+// a USD toggle, a balance fill. Only the exact-amount cases press them.
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
-    default: ({ walletBalance, balanceFillAmount }: { walletBalance?: string; balanceFillAmount?: number }) => (
-        <div data-testid="amount-input" data-wallet-balance={walletBalance} data-balance-fill={balanceFillAmount} />
+    default: (props: {
+        walletBalance?: string
+        balanceFillAmount?: number
+        setPrimaryAmount: (v: string) => void
+        setSecondaryAmount?: (v: string) => void
+        setCurrentDenomination?: (symbol: string) => void
+        onBalanceFilled?: (v: string) => void
+    }) => (
+        <div
+            data-testid="amount-input"
+            data-wallet-balance={props.walletBalance}
+            data-balance-fill={props.balanceFillAmount}
+        >
+            <button
+                onClick={() => {
+                    props.setPrimaryAmount('20000')
+                    props.setSecondaryAmount?.('13.33')
+                }}
+            >
+                type-ars
+            </button>
+            <button
+                onClick={() => {
+                    props.setCurrentDenomination?.('USD')
+                    props.setPrimaryAmount('30000')
+                    props.setSecondaryAmount?.('20')
+                }}
+            >
+                type-usd
+            </button>
+            <button
+                onClick={() => {
+                    props.onBalanceFilled?.('150000')
+                    props.setPrimaryAmount('150000')
+                    props.setSecondaryAmount?.('100')
+                }}
+            >
+                fill-balance
+            </button>
+        </div>
     ),
 }))
 jest.mock('@/components/Payment/PaymentInfoRow', () => ({ PaymentInfoRow: () => null }))
@@ -341,7 +381,7 @@ import MantecaWithdrawFlow from '../page'
 
 // ---------- helpers ----------
 
-const PRICE_LOCK = { priceLockCode: 'lock-1', fiatAmount: '75000.00' }
+const PRICE_LOCK = { priceLockCode: 'lock-1', usdAmount: '50.00', fiatAmount: '75000.00' }
 
 const render = (ui: React.ReactElement) => rtlRender(ui)
 
@@ -567,7 +607,9 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
 
         // Tap 2: quote ONLY — never a signature against the dead lock.
-        mockInitiateWithdraw.mockResolvedValueOnce({ data: { priceLockCode: 'lock-2', fiatAmount: '76000.00' } })
+        mockInitiateWithdraw.mockResolvedValueOnce({
+            data: { priceLockCode: 'lock-2', usdAmount: '50.00', fiatAmount: '76000.00' },
+        })
         clickConfirm()
         await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledTimes(2))
         expect(mockSignSpend).toHaveBeenCalledTimes(1)
@@ -828,5 +870,138 @@ describe('manteca withdraw — balance fill crosses the quoted rate', () => {
         render(<MantecaWithdrawFlow />)
 
         expect(screen.getByTestId('amount-input')).not.toHaveAttribute('data-balance-fill')
+    })
+})
+
+/*
+ * TASK-23997: a local amount the user typed reaches the bank unchanged. The
+ * lock prices the exact USDC for it (6 decimals) and the app signs and orders
+ * exactly that. A USD amount the user chose (USD toggle, ?amount= hand-off,
+ * balance fill) is still the amount to deliver, so the lock prices that USD.
+ */
+describe('manteca withdraw — exact typed amount (TASK-23997)', () => {
+    const ARS_LOCK = { priceLockCode: 'lock-ars', usdAmount: '13.336891', fiatAmount: '20000.00' }
+    const smartOnly = {
+        strategy: 'smart-only',
+        signedUserOp: { signedUserOp: '0xsigned', chainId: '42161', entryPointAddress: '0xep' },
+    }
+
+    /** Destination confirmed, amount step open; `press` is the field action. */
+    const enterAmount = (press: string | null) => {
+        mockStepper.step = 'bank-details'
+        const view = render(<MantecaWithdrawFlow />)
+        fireEvent.change(screen.getByTestId('destination-input'), { target: { value: '0000003100010000000009' } })
+        fireEvent.click(screen.getByText('common.continue'))
+        mockStepper.step = 'amount'
+        view.rerender(<MantecaWithdrawFlow />)
+        if (press) fireEvent.click(screen.getByText(press))
+        return view
+    }
+
+    const lockAndOpenReview = async (view: ReturnType<typeof render>, lock: Record<string, unknown>) => {
+        mockInitiateWithdraw.mockResolvedValue({ data: lock })
+        fireEvent.click(screen.getByText('common.continue'))
+        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('review'))
+        mockStepper.step = 'review'
+        view.rerender(<MantecaWithdrawFlow />)
+    }
+
+    beforeEach(() => {
+        mockUrlAmount = ''
+    })
+
+    it('a typed ARS amount is locked as fiat, then signed and ordered as the lock’s exact USDC', async () => {
+        mockSignSpend.mockResolvedValue(smartOnly)
+        mockWithdrawWithSignedTx.mockResolvedValue({ data: { ok: true } })
+        const view = enterAmount('type-ars')
+
+        await lockAndOpenReview(view, ARS_LOCK)
+        // the USD estimate rides along for an API that predates fiatAmount
+        expect(mockInitiateWithdraw).toHaveBeenCalledWith({ amount: '13.33', fiatAmount: '20000', currency: 'ARS' })
+        clickConfirm()
+
+        await waitFor(() => expect(mockWithdrawWithSignedTx).toHaveBeenCalledTimes(1))
+        expect(mockSignSpend.mock.calls[0][0].requiredUsdcAmount).toBe(13_336_891n)
+        expect(mockWithdrawWithSignedTx).toHaveBeenCalledWith(
+            expect.objectContaining({ priceLockCode: 'lock-ars', amount: '13.336891' })
+        )
+    })
+
+    it('an amount typed in USD is locked as USD only', async () => {
+        const view = enterAmount('type-usd')
+
+        await lockAndOpenReview(view, { priceLockCode: 'lock-usd', usdAmount: '20', fiatAmount: '30120.00' })
+
+        expect(mockInitiateWithdraw).toHaveBeenCalledWith({ amount: '20', currency: 'ARS' })
+    })
+
+    it('a filled balance is locked as USD only: the user asked for everything', async () => {
+        const view = enterAmount('fill-balance')
+
+        await lockAndOpenReview(view, { priceLockCode: 'lock-all', usdAmount: '100', fiatAmount: '150600.00' })
+
+        expect(mockInitiateWithdraw).toHaveBeenCalledWith({ amount: '100', currency: 'ARS' })
+    })
+
+    it('a ?amount= hand-off is locked as USD only until the user edits the local amount', async () => {
+        mockUrlAmount = '50'
+        const seeded = enterAmount(null)
+        await lockAndOpenReview(seeded, PRICE_LOCK)
+        expect(mockInitiateWithdraw).toHaveBeenLastCalledWith({ amount: '50.00', currency: 'ARS' })
+        seeded.unmount()
+
+        mockStepperGoTo.mockClear()
+        const edited = enterAmount('type-ars')
+        await lockAndOpenReview(edited, ARS_LOCK)
+        expect(mockInitiateWithdraw).toHaveBeenLastCalledWith({
+            amount: '13.33',
+            fiatAmount: '20000',
+            currency: 'ARS',
+        })
+    })
+
+    it('a quote recovery re-locks with the same fiat request', async () => {
+        mockSignSpend.mockRejectedValueOnce(new SpendRecoveryQuoteReviewError(new Error('cooling down')))
+        const view = enterAmount('type-ars')
+        await lockAndOpenReview(view, ARS_LOCK)
+        mockInitiateWithdraw.mockClear()
+
+        clickConfirm()
+
+        await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1))
+        expect(mockInitiateWithdraw).toHaveBeenCalledWith({ amount: '13.33', fiatAmount: '20000', currency: 'ARS' })
+        expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
+    })
+
+    it('a lock that needs more USDC than the balance stays on the amount step and says so', async () => {
+        const view = enterAmount('fill-balance')
+        // the user edits the filled amount, so it is a typed local amount again
+        fireEvent.click(screen.getByText('type-ars'))
+        mockInitiateWithdraw.mockResolvedValue({ data: { ...ARS_LOCK, usdAmount: '100.300000' } })
+
+        fireEvent.click(screen.getByText('common.continue'))
+
+        await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1))
+        view.rerender(<MantecaWithdrawFlow />)
+        expect(await screen.findByText('errors.notEnoughBalanceAddFunds')).toBeInTheDocument()
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('review')
+    })
+
+    it('a balance that drops under the locked USDC on review returns to the amount step and moves no money', async () => {
+        const view = enterAmount('type-ars')
+        await lockAndOpenReview(view, ARS_LOCK)
+
+        // still enough for the 13.33 estimate, not for the locked 13.336891
+        mockBalance = 13_335_000n
+        view.rerender(<MantecaWithdrawFlow />)
+        mockStepperGoTo.mockClear()
+        clickConfirm()
+
+        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('amount'))
+        expect(mockSignSpend).not.toHaveBeenCalled()
+        expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
+        mockStepper.step = 'amount'
+        view.rerender(<MantecaWithdrawFlow />)
+        expect(screen.getByText('errors.notEnoughBalanceAddFunds')).toBeInTheDocument()
     })
 })

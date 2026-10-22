@@ -136,6 +136,17 @@ export type MantecaPrice = {
 /** Owner of a PIX key. `legalIdMasked` keeps the first 2 and last 2 digits. Read from the API schema, so a contract change fails typecheck. */
 export type PixKeyOwner = paths['/manteca/pix-key/owner']['post']['responses'][200]['content']['application/json']
 
+/** Body of /manteca/withdraw/init. */
+export type WithdrawInitRequest = {
+    /** USD (USDC) amount. With `fiatAmount` it is only the fallback for an API
+     *  that predates `fiatAmount` and ignores it. */
+    amount: string
+    /** The local amount the user typed, at most 2 decimals. The API ignores
+     *  `amount` and prices the exact USDC for this amount (TASK-23997). */
+    fiatAmount?: string
+    currency: string
+}
+
 // withdraw init response - contains locked price for withdraw flow
 export type WithdrawPriceLock = {
     priceLockCode: string
@@ -144,6 +155,8 @@ export type WithdrawPriceLock = {
     /** Milliseconds the lock had left when the API answered. Read this, not
      *  `expiresAt`, against the device clock (see receiveLock). */
     expiresInMs?: number
+    /** The exact USDC to sign and order, up to 6 decimals. For a `fiatAmount`
+     *  request the API prices it so the bank receives that amount (TASK-23997). */
     usdAmount: string
     fiatAmount: string
     currency: string
@@ -361,10 +374,9 @@ export const mantecaApi = {
      * Initialize withdraw with a locked price.
      * This locks the exchange rate for ~120 seconds so user sees the exact amount they'll receive.
      */
-    initiateWithdraw: async (params: {
-        amount: string
-        currency: string
-    }): Promise<{ data?: WithdrawPriceLock; error?: string; code?: string }> => {
+    initiateWithdraw: async (
+        params: WithdrawInitRequest
+    ): Promise<{ data?: WithdrawPriceLock; error?: string; code?: string }> => {
         try {
             const response = await serverFetch('/manteca/withdraw/init', {
                 method: 'POST',
