@@ -13,6 +13,10 @@ import { QrArgentinaSticker } from './QrArgentinaSticker'
  * the dark band under the scan window, above the capture's network row (its
  * "ETH & EVMs" label is crypto vocabulary, which marketing copy never shows:
  * messaging.md guardrail 1). No fade: the cut is hard.
+ * From lg the phone takes 90% of the art column, so its top rises to the
+ * Knerd's baseline instead of leaving a pink field under the CTA, and the
+ * sticker hangs off the column's left edge towards the copy; it still only
+ * touches the scan window's pink frame, never the code inside it.
  *
  * The capture's own QR (a foreign payload) is covered by the sticker's live
  * code, so every code in the hero opens the same tagged Peanut link. Boxes
@@ -25,7 +29,7 @@ import { QrArgentinaSticker } from './QrArgentinaSticker'
 export function QrArgentinaHeroArt() {
     return (
         <div className="relative w-full">
-            <div className="ml-auto w-[84%] md:mr-3 md:w-[74%]">
+            <div className="ml-auto w-[84%] md:mr-3 md:w-[74%] lg:w-[90%]">
                 <QrArgentinaAppLink>
                     <div className="aspect-[451/520] overflow-hidden">
                         <div className="relative">
@@ -33,7 +37,7 @@ export function QrArgentinaHeroArt() {
                                 src={mantecaScanner}
                                 alt="The Peanut scanner reading a QR"
                                 className="h-auto w-full"
-                                sizes="(min-width: 1024px) 430px, 300px"
+                                sizes="(min-width: 1024px) 520px, 300px"
                                 priority
                             />
                             {/* The line sweeps the pink margins and passes behind the
@@ -57,7 +61,7 @@ export function QrArgentinaHeroArt() {
                 fromTilt={-20}
                 tilt={-6}
                 delay={0.4}
-                className="absolute top-[26%] left-0 z-10 w-[40%] md:top-[25%]"
+                className="absolute top-[26%] left-0 z-10 w-[40%] md:top-[25%] lg:-left-[14%]"
             >
                 <div className="qr-ar-settle">
                     <QrArgentinaSticker slot="hero-sticker" />

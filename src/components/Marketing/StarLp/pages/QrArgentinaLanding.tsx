@@ -68,7 +68,6 @@ export async function QrArgentinaLanding() {
             <StarLpHero
                 lead="No DNI?"
                 knerd={'No\nproblem'}
-                titleTail="at the till."
                 artPlacement="edge"
                 subtitle="Pay Mercado Pago QRs in Argentina with your passport."
                 art={<QrArgentinaHeroArt />}
