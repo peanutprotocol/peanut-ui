@@ -74,7 +74,7 @@
 
 .subtitle {
     max-width: 900px;
-    text-wrap: balance;
+    white-space: pre-line;
     margin: 0 auto;
     font-size: 20px;
     font-weight: 500;
@@ -140,6 +140,7 @@
     }
 
     .subtitle {
+        white-space: normal;
         font-size: 28px;
         line-height: 1.2;
     }

@@ -107,7 +107,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                 <PeanutMascot pose="waving-chill" alt="Peanut Guy" className="size-full" />
             </div>
             <div ref={copyRef} className={styles.copy}>
-                <p className={styles.subtitle}>{strings.heroSubline}</p>
+                <p className={styles.subtitle}>{strings.heroSubline.replace('. ', '.\n')}</p>
                 {primaryCta ? (
                     renderCTAButton(primaryCta, 'primary')
                 ) : customCta ? (
