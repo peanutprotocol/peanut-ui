@@ -6,8 +6,9 @@ import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { Hero } from '@/components/Marketing/mdx/Hero'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { Breadcrumb } from '@/components/0_Bruddle/Breadcrumb'
-import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
-import { availableContentLocales, contentLocaleFor, getLocaleFallbacks } from '@/lib/content'
+import { SUPPORTED_LOCALES, HREFLANG_MAP, isValidLocale } from '@/i18n/config'
+import { contentLocaleFor, getLocaleFallbacks, isPublished, readPageContent } from '@/lib/content'
+import { BASE_URL } from '@/constants/general.consts'
 import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
 
@@ -38,6 +39,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const post = await getPostBySlug(slug, contentLocale)
     if (!post) return {}
 
+    const publishedLocales = SUPPORTED_LOCALES.filter((lang) => isPublished(readPageContent('blog', slug, lang)))
+    const languages = Object.fromEntries(
+        publishedLocales.map((lang) => [HREFLANG_MAP[lang], `${BASE_URL}/${lang}/blog/${slug}`])
+    )
+
     return {
         ...metadataHelper({
             locale: contentLocale,
@@ -47,7 +53,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         }),
         alternates: {
             canonical: `/${contentLocale}/blog/${slug}`,
-            languages: getAlternatesFor(availableContentLocales('blog', slug), 'blog', slug),
+            languages: {
+                ...languages,
+                'x-default': `${BASE_URL}/${publishedLocales[0]}/blog/${slug}`,
+            },
         },
     }
 }

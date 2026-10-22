@@ -16,6 +16,7 @@ import {
     hasCorridorContent,
     hasPageContent,
     hasSingletonContent,
+    isPublished,
     listContentSlugs,
     listPublishedSlugs,
     readCorridorContent,
@@ -303,7 +304,7 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         }
         for (const slug of listContentSlugs('blog')) {
             if (slug === 'index') continue
-            if (!hasPageContent('blog', slug, locale)) continue
+            if (!isPublished(readPageContent('blog', slug, locale))) continue
             pages.push({
                 path: `/${locale}/blog/${slug}`,
                 priority: 0.6 * basePriority,
