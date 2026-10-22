@@ -680,16 +680,17 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         // the row a tap is held on carries the wait, and takes
                         // no second tap while it does
                         const isHeld = heldMethod?.method.id === method.id
-                        // Argentina's one bank row opens the screen that takes a bank or
-                        // a Mercado Pago transfer, so it carries the name the Add money
-                        // hub gives that rail (TASK-21375).
+                        // Argentina's one bank row opens the screen that takes a transfer
+                        // from Mercado Pago or a bank, so it names both, Mercado Pago first
+                        // (TASK-21375). Its own key: the shared rail name also sits inside
+                        // sentences on the request and account screens.
                         const isArgentinaBank =
                             flow === 'add' && currentCountry.id === 'AR' && method.id === 'bank-transfer-add'
                         return (
                             <ListItem
                                 key={method.id}
                                 disabled={method.isSoon || isHeld}
-                                title={isArgentinaBank ? tDeposit('corridors.BANK_TRANSFER_AR.railName') : method.title}
+                                title={isArgentinaBank ? tAddMoney('methods.mercadoPagoOrBank') : method.title}
                                 body={
                                     <div className="text-body-xs">
                                         {isArgentinaBank

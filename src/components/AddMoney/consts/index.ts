@@ -1,4 +1,4 @@
-import { PIX } from '@/assets/payment-apps'
+import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { MANTECA_SUPPORTED_EXCHANGES, isMantecaCountry } from '@/constants/manteca.consts'
 
@@ -2698,8 +2698,8 @@ countryData.forEach((country) => {
         }
 
         // Argentina has no Mercado Pago row of its own: its bank row opens the
-        // same Manteca screen, which takes a bank or a Mercado Pago transfer, and
-        // the country list names that row for both (TASK-21375).
+        // same Manteca screen, which takes a transfer from Mercado Pago or a bank,
+        // so that one row names both and carries the Mercado Pago icon (TASK-21375).
         const currentAddMethods = UPDATED_DEFAULT_ADD_MONEY_METHODS.filter((method) => {
             if (method.id === 'pix-add') {
                 return countryCode === 'BR'
@@ -2714,6 +2714,7 @@ countryData.forEach((country) => {
                     newMethod.path = `/add-money/${country.path}/bank`
                 }
                 newMethod.isSoon = !isCountryEnabledForBankTransfer(countryCode, 'deposit')
+                if (countryCode === 'AR') newMethod.icon = MERCADO_PAGO
             }
             return newMethod
         })

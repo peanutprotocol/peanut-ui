@@ -866,7 +866,7 @@ it('a Manteca rail clicked from a multi-rail list forwards the send origin as se
  * renders and the button that leaves it.
  */
 // TASK-21375: "Mercado Pago" and "From Bank" were two rows into the one Manteca
-// screen, which takes either transfer. One row names both.
+// screen, which takes either transfer. One row names both, Mercado Pago first.
 describe('AddWithdrawCountriesList — Argentina', () => {
     beforeEach(() => {
         mockPush.mockClear()
@@ -878,13 +878,14 @@ describe('AddWithdrawCountriesList — Argentina', () => {
         mockParams.country = 'testland'
     })
 
-    it('offers one row for a bank or Mercado Pago transfer, into the Manteca screen', () => {
+    it('offers one row for a Mercado Pago or bank transfer, into the Manteca screen', () => {
         render(<AddWithdrawCountriesList flow="add" />)
 
-        const row = screen.getByTestId('method-bank or mercado pago')
+        const row = screen.getByTestId('method-mercado pago or bank')
         expect(row).toHaveTextContent('Usually arrives in minutes')
         expect(screen.queryByTestId('method-from bank')).toBeNull()
         expect(screen.queryByTestId('method-mercado pago')).toBeNull()
+        expect(screen.queryByTestId('method-bank or mercado pago')).toBeNull()
 
         fireEvent.click(row)
         expect(mockPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
