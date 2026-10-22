@@ -20,6 +20,7 @@ test('every sitemap URL is a direct 200, self-canonical and indexable', async ({
         },
         await sitemapResponse.text()
     )
+    await sitemapResponse.dispose()
 
     const expected = inventory.map(({ path }) => new URL(path, canonicalOrigin).href).sort()
     const actual = sitemap.map(({ url }) => new URL(url).href).sort()
@@ -72,5 +73,9 @@ test('every sitemap URL is a direct 200, self-canonical and indexable', async ({
         if (errors.length) failures.push({ url: entry.url, errors })
     }
     console.log(`Checked ${sitemap.length} rendered sitemap URLs; ${failures.length} failures`)
+    await test.info().attach('rendered-head-results', {
+        body: Buffer.from(JSON.stringify({ checked: sitemap.length, failures }, null, 2)),
+        contentType: 'application/json',
+    })
     expect(failures).toEqual([])
 })
