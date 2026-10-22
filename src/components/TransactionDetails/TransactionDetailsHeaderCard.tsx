@@ -316,7 +316,9 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                 <Image src={LOGO} alt="Peanut Logo" width={64} height={64} className="size-12" />
             ) : (
                 <div
+                    // ph-sensitive: its aria-label can be the counterparty's real name
                     className={twMerge(
+                        'ph-sensitive',
                         isAvatarClickable &&
                             'cursor-pointer rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus'
                     )}

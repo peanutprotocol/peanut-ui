@@ -20,6 +20,12 @@ import { isExpectedExceptionChain } from '@/utils/expected-exception'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 import { captureSignupAttribution, signupAttributionPosthogProperties } from '@/utils/signup-attribution'
 import { initialSuperProperties, isAnalyticsCaptureBuild, posthogProjectKey } from '@/utils/posthog-setup'
+import {
+    AUTOCAPTURE_SETTINGS,
+    redactAutocapture,
+    sampleAutocapture,
+    trackAutocaptureSampleRate,
+} from '@/utils/posthog-autocapture'
 
 // Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
 // there is nothing to guard, and PERF_BARE builds exist to carry no instrumentation.
@@ -73,8 +79,10 @@ if (
             // persisted — so a late register left the first open after an OTA
             // carrying the PREVIOUS bundle's release, and a first visit with no
             // `platform`. `loaded` runs before that first capture.
-            loaded: (ph) =>
-                ph.register({ ...initialSuperProperties(), ...signupAttributionPosthogProperties(signupAttribution) }),
+            loaded: (ph) => {
+                ph.register({ ...initialSuperProperties(), ...signupAttributionPosthogProperties(signupAttribution) })
+                trackAutocaptureSampleRate(ph)
+            },
             capture_pageleave: true,
             // Send links carry their secret in `#p=`. The SDK drops the fragment
             // from $current_url, initial and session-entry URLs, web vitals and the
@@ -107,13 +115,13 @@ if (
                 // $session_id — a pre-capture get_session_id() guard misses idle-
                 // resumed sessions and double-counts reloads (TASK-22516).
                 if (suppressDuplicateLogin(event) === null) return null
-                return redactLinkSecrets(redactQrTelemetry(event))
+                // Sampling runs last, so every kept event is already redacted.
+                const redacted = redactLinkSecrets(redactQrTelemetry(event))
+                return sampleAutocapture(redactAutocapture(redacted, window.location.href))
             },
-            // Off everywhere since 2026-09-10 (server-side toggle, mirrored here):
-            // $autocapture was 35% of billed event volume with zero saved insights
-            // reading it, and the DOM ancestor walk on every tap costs frames. The
-            // 220+ explicit posthog.capture calls are the taxonomy (TASK-22516).
-            autocapture: false,
+            // Button and link clicks; before_send scrubs their text and attributes.
+            // The `autocapture-sample-rate` flag cuts volume without a release.
+            ...AUTOCAPTURE_SETTINGS,
             /*
              * Session recording is ON everywhere, native included, as a deliberate
              * trial from 1.0.48.
