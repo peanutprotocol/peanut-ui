@@ -65,6 +65,7 @@ const FOOTNOTE = 'Peanut is not a bank. Accounts may not be available where you 
  * /us-europe-accounts: get paid from the US and Europe into Peanut's USD and EUR accounts.
  * Folds: pink, yellow, cream, sky, black, cream, pink, footer. Every seam with a
  * coloured side carries a marquee; the black/cream seam after the trust line does not.
+ * Two-column folds alternate sides: How it works has its art right, Send a link left.
  */
 export async function UsEuAccountsLanding() {
     // Live EUR→USD for the money-in push; null leaves the push without a dollar figure.
@@ -106,8 +107,10 @@ export async function UsEuAccountsLanding() {
 
             <Band ground="sky">
                 <CloudsCss clouds={[...STAR_LP_SKY_CLOUDS]} className={STAR_LP_SKY_CLOUDS_CLASS} />
+                {/* Mirrors How it works: the strips take the first column from md, the title the second;
+                    stacked, the title still comes first. */}
                 <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
-                    <div className="flex flex-col items-start gap-8">
+                    <div className="flex flex-col items-start gap-8 md:order-last">
                         <SectionTitle>Paid by someone on Peanut? Send a link.</SectionTitle>
                         <StarLpCta
                             href={US_EU_REQUEST_HREF.guest}

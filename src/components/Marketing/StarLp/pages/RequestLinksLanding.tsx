@@ -72,7 +72,8 @@ const twoColumns = 'grid gap-10 md:grid-cols-2 md:items-center md:gap-12'
 /**
  * Folds: pink, yellow, cream, sky, white, yellow, black, cream, pink, footer. Every
  * seam with a coloured side carries a marquee; the black/cream seam after the trust
- * line does not.
+ * line does not. Two-column folds alternate sides: old reply art right, client sees
+ * art left, timeline right, small print left; stacked, the title always comes first.
  */
 export function RequestLinksLanding() {
     return (
@@ -124,8 +125,9 @@ export function RequestLinksLanding() {
                 <CloudsCss clouds={[...STAR_LP_SKY_CLOUDS]} className={STAR_LP_SKY_CLOUDS_CLASS} />
                 <div className={twoColumns}>
                     <SectionTitle>This is what your client sees.</SectionTitle>
-                    {/* lg scales the art (zoom keeps its proportions) so it holds its column beside the title */}
-                    <PopIn tilt={-1} className="lg:[zoom:1.25]">
+                    {/* lg scales the art (zoom keeps its proportions) so it holds its column beside the title;
+                        from md it takes the first column, opposite the old reply above */}
+                    <PopIn tilt={-1} className="md:order-first lg:[zoom:1.25]">
                         <RequestLinksPayScreen />
                     </PopIn>
                 </div>
@@ -146,8 +148,9 @@ export function RequestLinksLanding() {
                 {/* one column until lg: at md a half column wraps the receipt's labels */}
                 <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-12">
                     <SectionTitle>The small print, in large type.</SectionTitle>
-                    {/* stacked, the box hugs the receipt so the hand keeps its place at the receipt's corner */}
-                    <div className="relative mx-auto w-full max-w-[536px] lg:max-w-none">
+                    {/* stacked, the box hugs the receipt so the hand keeps its place at the receipt's corner;
+                        from lg it takes the first column, opposite the timeline above */}
+                    <div className="relative mx-auto w-full max-w-[536px] lg:order-first lg:max-w-none">
                         <RequestLinksReceiptPrint />
                         <PopIn
                             delay={1.1}
