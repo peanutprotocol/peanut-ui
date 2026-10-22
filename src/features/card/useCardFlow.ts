@@ -32,8 +32,9 @@ export function useCardFlow() {
     const queryClient = useQueryClient()
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
-    const { hasSufficientSpendableBalance } = useWallet()
+    const { hasSufficientSpendableBalance, isFetchingBalance } = useWallet()
     const isCardFunded = hasSufficientSpendableBalance(10)
+    const isCardBalanceKnown = !isFetchingBalance
     const [fundingRequired, setFundingRequired] = useState(false)
     useEffect(() => {
         if (isCardFunded) setFundingRequired(false)
@@ -615,6 +616,7 @@ export function useCardFlow() {
         // data
         user,
         isCardFunded,
+        isCardBalanceKnown,
         needsFundingBeforeApply,
         fundingRequired,
         fetchUser,

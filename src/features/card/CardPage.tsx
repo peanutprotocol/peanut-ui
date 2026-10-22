@@ -23,6 +23,7 @@ export const CardPage: FC = () => {
         user,
         cardInfo,
         isCardFunded,
+        isCardBalanceKnown,
         needsFundingBeforeApply,
         fundingRequired,
         fetchUser,
@@ -144,6 +145,7 @@ export const CardPage: FC = () => {
                     eligible={true}
                     funded={isCardFunded}
                     needsFundingBeforeApply={needsFundingBeforeApply}
+                    balanceReady={isCardBalanceKnown}
                     fundingRequired
                     onApply={() => handleApply(false)}
                     onPrev={onBack}
@@ -173,6 +175,7 @@ export const CardPage: FC = () => {
                         }
                         funded={isCardFunded}
                         needsFundingBeforeApply={needsFundingBeforeApply}
+                        balanceReady={isCardBalanceKnown}
                         fundingRequired={fundingRequired}
                         onApply={() => handleApply(false)}
                         onPrev={onBack}

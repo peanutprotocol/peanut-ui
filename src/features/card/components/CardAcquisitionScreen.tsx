@@ -5,6 +5,8 @@ import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -24,6 +26,8 @@ import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { withReturnTo } from '@/utils/return-to.utils'
 
 const STEPS = ['eligibility', 'looking-up', 'available', 'funding', 'entry'] as const
+type Step = (typeof STEPS)[number]
+type CtaAction = 'add_funds' | 'continue' | 'bank_transfer' | 'crypto'
 
 export function CardMilestoneScreen({
     issued = false,
@@ -54,7 +58,7 @@ export function CardMilestoneScreen({
                 )}
                 <TitleBlock
                     title={<h1>{t(issued ? 'issuedTitle' : 'availableTitle')}</h1>}
-                    description={<p>{t(issued ? 'issuedBody' : 'fundingBody')}</p>}
+                    description={<p>{t(issued ? 'issuedBody' : funded ? 'fundedBody' : 'fundingBody')}</p>}
                     align={issued ? 'center' : 'start'}
                     size="s"
                 />
@@ -76,6 +80,7 @@ export function CardAcquisitionScreen({
     funded,
     fundingRequired,
     needsFundingBeforeApply = false,
+    balanceReady = true,
     onApply,
     onPrev,
     applyError,
@@ -85,6 +90,7 @@ export function CardAcquisitionScreen({
     funded: boolean
     fundingRequired: boolean
     needsFundingBeforeApply?: boolean
+    balanceReady?: boolean
     onApply: () => void | Promise<void>
     onPrev: () => void
     applyError?: string | null
@@ -123,7 +129,33 @@ export function CardAcquisitionScreen({
 
     // Unknown residence still goes through the existing verification path;
     // it must never receive the "You're in" eligibility promise.
-    if (!eligible || (currentStep === 'entry' && !fundingRequired)) {
+    const view: Step =
+        !eligible || (currentStep === 'entry' && !fundingRequired)
+            ? 'entry'
+            : fundingRequired || currentStep === 'funding'
+              ? 'funding'
+              : currentStep
+
+    const trackedViewRef = useRef<string | null>(null)
+    useEffect(() => {
+        // `funded` reads false until the balance loads; reporting earlier would count funded users as unfunded.
+        if (!balanceReady) return
+        const key = `${view}:${funded}`
+        if (trackedViewRef.current === key) return
+        trackedViewRef.current = key
+        posthog.capture(ANALYTICS_EVENTS.CARD_ACQUISITION_STEP_VIEWED, {
+            step: view,
+            funded,
+            eligible,
+            funding_required: fundingRequired,
+            returning: seen,
+        })
+    }, [view, funded, balanceReady, eligible, fundingRequired, seen])
+
+    const trackCta = (action: CtaAction) =>
+        posthog.capture(ANALYTICS_EVENTS.CARD_ACQUISITION_CTA_CLICKED, { step: view, action, funded })
+
+    if (view === 'entry') {
         return (
             <AddCardEntryScreen
                 onApply={onApply}
@@ -134,26 +166,34 @@ export function CardAcquisitionScreen({
         )
     }
 
-    if (fundingRequired || currentStep === 'funding') {
+    if (view === 'funding') {
         return (
             <PageStack>
                 <NavHeader title={t('onboarding.navTitle')} onPrev={onPrev} />
                 <h1 className="text-heading-s text-foreground-primary">{tAdd('title')}</h1>
-                <p className="text-body-m text-foreground-secondary">{t('onboarding.fundingBody')}</p>
+                <p className="text-body-m text-foreground-secondary">
+                    {t(funded ? 'onboarding.fundedBody' : 'onboarding.fundingBody')}
+                </p>
                 <ListGroup>
                     <ListItem
                         title={tAdd('methods.bankTransfer')}
                         body={tAdd('methods.bankTransferDescription')}
                         leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
                         chevron
-                        onClick={() => router.push(withReturnTo('/add-money?method=bank', '/card?card_step=funding'))}
+                        onClick={() => {
+                            trackCta('bank_transfer')
+                            router.push(withReturnTo('/add-money?method=bank', '/card?card_step=funding'))
+                        }}
                     />
                     <ListItem
                         title={tAdd('methods.crypto')}
                         body={tAdd('methods.cryptoDescription')}
                         leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
                         chevron
-                        onClick={() => router.push(withReturnTo('/add-money/crypto', '/card?card_step=funding'))}
+                        onClick={() => {
+                            trackCta('crypto')
+                            router.push(withReturnTo('/add-money/crypto', '/card?card_step=funding'))
+                        }}
                     />
                 </ListGroup>
                 <PageStack.Footer>
@@ -161,7 +201,10 @@ export function CardAcquisitionScreen({
                         variant="primary"
                         className="w-full"
                         disabled={!funded}
-                        onClick={() => void setStep('entry', { history: 'replace' })}
+                        onClick={() => {
+                            trackCta('continue')
+                            void setStep('entry', { history: 'replace' })
+                        }}
                     >
                         {tCommon('continue')}
                     </Button>
@@ -170,11 +213,12 @@ export function CardAcquisitionScreen({
         )
     }
 
-    if (currentStep === 'available') {
+    if (view === 'available') {
         return (
             <CardMilestoneScreen
                 funded={funded}
                 onContinue={() => {
+                    trackCta(funded ? 'continue' : 'add_funds')
                     writeStoredValue(seenKey, '1')
                     void setStep(funded ? 'entry' : 'funding', { history: 'push' })
                 }}
