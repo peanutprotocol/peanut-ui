@@ -1702,13 +1702,13 @@ input::placeholder {
 /* The hero h1 fills the fold like the peanut.me hero. A Roboto line's size is
    the smallest of: a cap, the size at which it spans --fit-fill of the column
    (--fit-em is its width in em, set inline from its text), and a share of
-   the screen height, so the CTA stays in the first screen on short screens.
+   the screen height, to limit the heading height on short screens.
    Set solid, and over the Knerd's top edge, as on peanut.me. */
 .font-roboto-flex-extrabold.star-lp-fit-display {
     --fit-w: var(--psh-col-w, min(100vw - 2rem, 80rem));
-    --fit-fill: 0.9;
-    --fit-cap: 2.875rem;
-    --fit-vh: 7svh;
+    --fit-fill: 0.98;
+    --fit-cap: 3.5rem;
+    --fit-vh: 8svh;
     position: relative;
     z-index: 1;
     line-height: 0.92;
@@ -1719,10 +1719,25 @@ input::placeholder {
     );
 }
 
+/* Keep the black lead readable where the Knerd overlaps its lower edge. */
+.psh-fit h1 > .star-lp-fit-display {
+    z-index: 2;
+}
+
+.psh-fit h1 > [data-knerd-pull] {
+    position: relative;
+    z-index: 1;
+    margin-top: -8px;
+}
+
 @media (min-width: 768px) {
     .font-roboto-flex-extrabold.star-lp-fit-display {
-        --fit-cap: 5.75rem;
-        --fit-vh: 10svh;
+        --fit-cap: 7rem;
+        --fit-vh: 12svh;
+    }
+
+    .psh-fit h1 > [data-knerd-pull] {
+        margin-top: -22px;
     }
 }
 
