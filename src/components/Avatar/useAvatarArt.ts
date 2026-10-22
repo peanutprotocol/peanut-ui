@@ -29,7 +29,12 @@ async function getAvatarArt(): Promise<AvatarArtUrls> {
     }
 }
 
-export function useAvatarArt(): AvatarArtUrls {
+/**
+ * The map once the request has settled, null before. getAvatarArt never
+ * throws, so a failed request settles as {} too. For a one-shot decision that
+ * must not be made on the empty map of a cold load.
+ */
+export function useSettledAvatarArt(): AvatarArtUrls | null {
     const { data } = useQuery({
         queryKey: [AVATAR_ART],
         queryFn: getAvatarArt,
@@ -37,5 +42,9 @@ export function useAvatarArt(): AvatarArtUrls {
         staleTime: 60 * 60 * 1000,
         gcTime: Infinity,
     })
-    return data ?? NO_ART
+    return data ?? null
+}
+
+export function useAvatarArt(): AvatarArtUrls {
+    return useSettledAvatarArt() ?? NO_ART
 }

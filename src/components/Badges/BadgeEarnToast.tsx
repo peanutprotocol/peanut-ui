@@ -28,7 +28,7 @@ import { useBadgeEarnToast } from '@/components/Badges/useBadgeEarnToast'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { BadgeImage } from '@/components/Badges/BadgeImage'
 import { badgeAvatarKeys } from '@/components/Avatar/avatar.utils'
-import { useAvatarArt } from '@/components/Avatar/useAvatarArt'
+import { useSettledAvatarArt } from '@/components/Avatar/useAvatarArt'
 
 const HOME_PATH = '/home'
 /** Gap between the badge toast and the avatar-unlock toast that follows it. */
@@ -40,8 +40,10 @@ export default function BadgeEarnToast() {
     const pathname = usePathname()
     const { toast, dismiss } = useToast()
     const { pending, markSeen } = useBadgeEarnToast()
-    // the served map also counts badge art this bundle predates
-    const art = useAvatarArt()
+    // the served map also counts badge art this bundle predates. The batch is
+    // marked seen once shown, so wait for the map: deciding on a cold load's
+    // empty map would drop the avatar toast for API-only art for good.
+    const art = useSettledAvatarArt()
     // Ids of the toast(s) currently on screen, so we can dismiss them when the
     // user navigates away from /home (they'd otherwise linger over the next route).
     const liveToastIdsRef = useRef<string[]>([])
@@ -55,7 +57,7 @@ export default function BadgeEarnToast() {
         // Only surface on /home (never mid-onboarding) and only when there's
         // something fresh to show. markSeen() empties `pending`, so this effect
         // fires the toast exactly once per batch.
-        if (pathname !== HOME_PATH || pending.length === 0) return
+        if (pathname !== HOME_PATH || pending.length === 0 || !art) return
 
         const badges = pending
         const codes = badges.map((b) => b.code)
