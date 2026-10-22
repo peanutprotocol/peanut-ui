@@ -4,10 +4,11 @@ import { STAR_LP_ROUTES } from '@/components/Marketing/StarLp/starLp.consts'
 import { starLpMetadata } from '@/components/Marketing/StarLp/starLpMetadata'
 
 export const metadata = starLpMetadata({
-    title: 'US Dollar Card in pink | Peanut',
-    description: 'A US Dollar Card in pink, accepted wherever Visa is accepted. Verification and approval required.',
-    ogTitle: 'US Dollar Card in pink',
-    ogSubtitle: 'Get your virtual card.',
+    title: 'Peanut Card in US dollars | Peanut',
+    description:
+        'A virtual card with a balance in US dollars, accepted wherever Visa is accepted. Verification and approval required.',
+    ogTitle: 'Peanut Card in dollars',
+    ogSubtitle: 'Tap in pink.',
     path: STAR_LP_ROUTES.peanutCard,
 })
 

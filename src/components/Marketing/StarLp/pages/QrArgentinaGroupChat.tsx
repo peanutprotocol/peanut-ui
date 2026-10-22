@@ -25,9 +25,8 @@ export function QrArgentinaGroupChat({ usdArs }: QrArgentinaGroupChatProps) {
     const share = qrArDinnerShareUsd(usdArs)
     return (
         // From lg the phone scales up as a whole (zoom), so the app-size chat text grows with it.
-        // The pink shadow stays: the DS black hard shadow does not show on the black fold.
         <PhoneFrame
-            className="max-w-[19.5rem] shadow-[6px_6px_0_var(--color-pink-500)] lg:[zoom:1.35]"
+            className="max-w-[19.5rem] lg:[zoom:1.35]"
             interactive
             label={`Group chat: ${main.short} paid the asado by QR and sends one Peanut request link for ${share ? `${share} each` : 'each share'}, and ${payer.short} has paid it`}
         >

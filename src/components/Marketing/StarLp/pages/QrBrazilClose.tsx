@@ -19,7 +19,7 @@ export function QrBrazilClose() {
             <h2>
                 <KnerdTitle text="Pix it" size="hero" />
             </h2>
-            <QrBrazilScanFrame className="mx-auto mt-12 w-44 md:w-52">
+            <QrBrazilScanFrame className="mx-auto mt-12 w-52 md:w-60">
                 <DropIn fromTilt={-18} tilt={-5}>
                     <QrBrazilAppLink>
                         <QrBrazilPixSticker slot="close-sticker" />

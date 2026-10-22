@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { StaticImageData } from 'next/image'
 import type { TitleMark } from '@/components/0_Bruddle/Title.types'
 import type { MarqueeItem } from '@/components/Global/MarqueeWrapper/marquee.types'
 
@@ -307,6 +308,27 @@ export interface StarLpPersona {
     username: string
 }
 
+/** One illustrative earner on the income pages' persona fold: a composite from
+    product/icps.md, never a real person. */
+export interface StarLpEarner {
+    /** Avatar sticker key (avatar.utils), e.g. "basic.flower". */
+    avatar: string
+    /** Trade and city, e.g. "Brand designer, Buenos Aires". */
+    who: string
+}
+
+/** An earner's card on one page: their own line and one short fact. */
+export interface StarLpPersonaCard extends StarLpEarner {
+    /** First person, sentence case, one sentence. Not a quote: no quote marks. */
+    line: string
+    /** The rail that pays them (SEPA, ACH) or where the client pays from. */
+    tag: string
+}
+
+export interface PersonaFoldProps {
+    cards: readonly StarLpPersonaCard[]
+}
+
 /** A live indicative rate from the backend's /fx/rate. */
 export interface StarLpFxRate {
     from: string
@@ -326,3 +348,21 @@ export interface StarLpFxRate {
  * `live` up to 30 minutes, `lastKnown` up to 12 hours, then `none`.
  */
 export type StarLpFxReading = { tier: 'live' | 'lastKnown'; quote: StarLpFxRate } | { tier: 'none'; quote: null }
+
+export interface TillStickerProps {
+    /** The rail's mark above the line: a `@/assets/payment-apps` SVG import. */
+    mark: StaticImageData
+    /** The rail's name, as the mark's alt text. */
+    markAlt: string
+    /** The sticker's line, in the till's language ("Pagá con QR"). */
+    label: string
+    /** BCP 47 tag of `label`. */
+    lang: string
+    campaign: StarLpQrCampaign
+    /** Where the sticker sits; tags the QR's utm_content. */
+    slot: StarLpQrSlot
+    /** Width classes; the sticker scales with its width. */
+    className?: string
+    /** Load the mark eagerly; set only where the sticker is in the first screen. */
+    priority?: boolean
+}

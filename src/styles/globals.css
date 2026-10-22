@@ -2103,35 +2103,6 @@ input::placeholder {
     border-radius: 1.5rem;
 }
 
-/* The card fold's lock screen (PeanutCardLockScreen) is a full-size phone, so
-   it takes larger corners: the bezel, the screen inside its padding (bezel
-   radius minus the padding), and the iOS notification. Same DS-review flag. */
-.star-lp-lock-phone {
-    border-radius: 2.75rem;
-}
-
-.star-lp-lock-screen {
-    border-radius: 2rem;
-}
-
-.star-lp-lock-push {
-    border-radius: 1.25rem;
-}
-
-@media (min-width: 768px) {
-    .star-lp-lock-phone {
-        border-radius: 3.5rem;
-    }
-
-    .star-lp-lock-screen {
-        border-radius: 2.5rem;
-    }
-
-    .star-lp-lock-push {
-        border-radius: 1.5rem;
-    }
-}
-
 /* ── Star-feature LPs: animation kit (Marketing/StarLp) ── */
 /* Story beats (StorySequence / useStoryStep): a hidden beat keeps its space,
    so the fold never jumps. Opacity and transform only, on the DS tokens. */

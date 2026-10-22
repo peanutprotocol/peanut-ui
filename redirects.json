@@ -240,46 +240,6 @@
         "permanent": true
     },
     {
-        "source": "/en/deposit/from-crypto-com",
-        "destination": "/en/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-419/deposit/from-crypto-com",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-ar/deposit/from-crypto-com",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/pt-br/deposit/from-crypto-com",
-        "destination": "/pt-br/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es/deposit/from-crypto-com",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-es/deposit/from-crypto-com",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/pt/deposit/from-crypto-com",
-        "destination": "/pt-br/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/deposit/from-crypto-com",
-        "destination": "/en/help/deposit-crypto",
-        "permanent": true
-    },
-    {
         "source": "/en/deposit/from-kraken",
         "destination": "/en/help/deposit-crypto",
         "permanent": true
@@ -356,46 +316,6 @@
     },
     {
         "source": "/deposit/from-kucoin",
-        "destination": "/en/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/en/deposit/from-lemon",
-        "destination": "/en/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-419/deposit/from-lemon",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-ar/deposit/from-lemon",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/pt-br/deposit/from-lemon",
-        "destination": "/pt-br/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es/deposit/from-lemon",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-es/deposit/from-lemon",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/pt/deposit/from-lemon",
-        "destination": "/pt-br/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/deposit/from-lemon",
         "destination": "/en/help/deposit-crypto",
         "permanent": true
     },
@@ -720,86 +640,6 @@
         "permanent": true
     },
     {
-        "source": "/en/deposit/via-polygon",
-        "destination": "/en/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-419/deposit/via-polygon",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-ar/deposit/via-polygon",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/pt-br/deposit/via-polygon",
-        "destination": "/pt-br/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es/deposit/via-polygon",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-es/deposit/via-polygon",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/pt/deposit/via-polygon",
-        "destination": "/pt-br/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/deposit/via-polygon",
-        "destination": "/en/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/en/deposit/via-solana",
-        "destination": "/en/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-419/deposit/via-solana",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-ar/deposit/via-solana",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/pt-br/deposit/via-solana",
-        "destination": "/pt-br/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es/deposit/via-solana",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-es/deposit/via-solana",
-        "destination": "/es-419/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/pt/deposit/via-solana",
-        "destination": "/pt-br/help/deposit-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/deposit/via-solana",
-        "destination": "/en/help/deposit-crypto",
-        "permanent": true
-    },
-    {
         "source": "/en/deposit/via-tron",
         "destination": "/en/help/deposit-crypto",
         "permanent": true
@@ -1080,46 +920,6 @@
         "permanent": true
     },
     {
-        "source": "/en/receive-money-from/spain",
-        "destination": "/en/deposit/from-eur-account",
-        "permanent": true
-    },
-    {
-        "source": "/es-419/receive-money-from/spain",
-        "destination": "/es-419/deposit/from-eur-account",
-        "permanent": true
-    },
-    {
-        "source": "/es-ar/receive-money-from/spain",
-        "destination": "/es-419/deposit/from-eur-account",
-        "permanent": true
-    },
-    {
-        "source": "/pt-br/receive-money-from/spain",
-        "destination": "/pt-br/deposit/from-eur-account",
-        "permanent": true
-    },
-    {
-        "source": "/es/receive-money-from/spain",
-        "destination": "/es-419/deposit/from-eur-account",
-        "permanent": true
-    },
-    {
-        "source": "/es-es/receive-money-from/spain",
-        "destination": "/es-419/deposit/from-eur-account",
-        "permanent": true
-    },
-    {
-        "source": "/pt/receive-money-from/spain",
-        "destination": "/pt-br/deposit/from-eur-account",
-        "permanent": true
-    },
-    {
-        "source": "/receive-money-from/spain",
-        "destination": "/en/deposit/from-eur-account",
-        "permanent": true
-    },
-    {
         "source": "/en/receive-money-from/united-kingdom",
         "destination": "/en/deposit/from-gbp-account",
         "permanent": true
@@ -1157,86 +957,6 @@
     {
         "source": "/receive-money-from/united-kingdom",
         "destination": "/en/deposit/from-gbp-account",
-        "permanent": true
-    },
-    {
-        "source": "/en/receive-money-from/united-states",
-        "destination": "/en/deposit/from-usd-account",
-        "permanent": true
-    },
-    {
-        "source": "/es-419/receive-money-from/united-states",
-        "destination": "/es-419/deposit/from-usd-account",
-        "permanent": true
-    },
-    {
-        "source": "/es-ar/receive-money-from/united-states",
-        "destination": "/es-419/deposit/from-usd-account",
-        "permanent": true
-    },
-    {
-        "source": "/pt-br/receive-money-from/united-states",
-        "destination": "/pt-br/deposit/from-usd-account",
-        "permanent": true
-    },
-    {
-        "source": "/es/receive-money-from/united-states",
-        "destination": "/es-419/deposit/from-usd-account",
-        "permanent": true
-    },
-    {
-        "source": "/es-es/receive-money-from/united-states",
-        "destination": "/es-419/deposit/from-usd-account",
-        "permanent": true
-    },
-    {
-        "source": "/pt/receive-money-from/united-states",
-        "destination": "/pt-br/deposit/from-usd-account",
-        "permanent": true
-    },
-    {
-        "source": "/receive-money-from/united-states",
-        "destination": "/en/deposit/from-usd-account",
-        "permanent": true
-    },
-    {
-        "source": "/en/withdraw/arbitrum",
-        "destination": "/en/help/withdraw-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-419/withdraw/arbitrum",
-        "destination": "/es-419/help/withdraw-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-ar/withdraw/arbitrum",
-        "destination": "/es-419/help/withdraw-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/pt-br/withdraw/arbitrum",
-        "destination": "/pt-br/help/withdraw-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es/withdraw/arbitrum",
-        "destination": "/es-419/help/withdraw-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-es/withdraw/arbitrum",
-        "destination": "/es-419/help/withdraw-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/pt/withdraw/arbitrum",
-        "destination": "/pt-br/help/withdraw-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/withdraw/arbitrum",
-        "destination": "/en/help/withdraw-crypto",
         "permanent": true
     },
     {
@@ -1316,46 +1036,6 @@
     },
     {
         "source": "/withdraw/ethereum",
-        "destination": "/en/help/withdraw-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/en/withdraw/polygon",
-        "destination": "/en/help/withdraw-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-419/withdraw/polygon",
-        "destination": "/es-419/help/withdraw-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-ar/withdraw/polygon",
-        "destination": "/es-419/help/withdraw-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/pt-br/withdraw/polygon",
-        "destination": "/pt-br/help/withdraw-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es/withdraw/polygon",
-        "destination": "/es-419/help/withdraw-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/es-es/withdraw/polygon",
-        "destination": "/es-419/help/withdraw-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/pt/withdraw/polygon",
-        "destination": "/pt-br/help/withdraw-crypto",
-        "permanent": true
-    },
-    {
-        "source": "/withdraw/polygon",
         "destination": "/en/help/withdraw-crypto",
         "permanent": true
     },

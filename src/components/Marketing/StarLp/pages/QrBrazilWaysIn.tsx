@@ -1,39 +1,60 @@
-import { Icon } from '@/components/Global/Icons/Icon'
 import { PopIn } from '@/components/Marketing/StarLp/PopIn'
+import { StarLpQrCode } from '@/components/Marketing/StarLp/StarLpQrCode'
+import { QrBrazilAppLink } from './QrBrazilAppLink'
 
 const LABEL = 'text-body-m-semibold lg:text-heading-xs'
 const VALUE = 'break-all text-body-s xs:text-body-m lg:text-body-l'
 
 /**
- * The three things Peanut pays at a Brazilian counter: a Pix QR, a Pix key, a
- * copia e cola code. All three are plain illustrations, not fields: there is
- * nothing to copy or scan here. The QR is a drawn glyph on purpose: a real
- * code under a "Pix QR" label would have to be a Pix payload, and a bank app
- * scanning a Peanut link there gets an invalid-Pix error. The page's one
- * scannable code is the "Pague com Pix" sticker in the hero and the close.
+ * A BR Code the way a shop's copia e cola reads: the Pix GUI, a random key,
+ * BRL, the pay story's shop and till price (qrBrazil.consts), a CRC. An
+ * illustration with a made-up key and CRC, shown as one clipped line.
+ */
+const COPIA_E_COLA =
+    '00020126580014br.gov.bcb.pix0136a3f0c2d4-18e0-4b6b-9c1e-7f2d5a9b0c3e520400005303986540518.005802BR5918PADARIA DA ESQUINA6009SAO PAULO62070503***6304B1D7'
+
+/**
+ * The three things Peanut pays with Pix, the key first: a Pix key is how it
+ * pays a person, not only a shop (spending.md "Sending Funds to a Person":
+ * any key, CPF, CNPJ, phone, email or random; a pasted copia e cola works).
+ * The key is spending.md's own labelled example, "CPF 123.456.789-09", the way
+ * the app shows a looked-up key. The key and the code are plain illustrations:
+ * nothing to copy. The QR is real and opens Peanut, like the "Pague com Pix"
+ * sticker: a bank app scanning it gets a link, not a Pix payload, and a tap
+ * opens the same link, because a phone cannot scan itself.
  */
 export function QrBrazilWaysIn() {
     return (
-        <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-4 gap-y-4 text-left xs:grid-cols-[7rem_minmax(0,1fr)] md:grid-cols-[9rem_minmax(0,1fr)] lg:grid-cols-[11rem_minmax(0,1fr)] lg:gap-x-6">
-            <PopIn className="row-span-2 grid gap-1 self-end" tilt={-2}>
-                <span className={LABEL}>Pix QR</span>
-                <span
-                    role="img"
-                    aria-label="A Pix QR code"
-                    className="shadow-2 block rounded-sm border-2 border-border-default bg-background-default p-1"
-                >
-                    <Icon name="qr-code" size="100%" aria-hidden className="block aspect-square" />
-                </span>
-            </PopIn>
-            <PopIn className="grid gap-1" delay={0.12}>
+        <div className="grid gap-6 text-left">
+            <PopIn className="grid gap-1">
                 <span className={LABEL}>Pix key</span>
-                <span className={VALUE}>12.345.678/0001-00</span>
+                <span className={VALUE}>CPF 123.456.789-09</span>
+                <span className="text-body-s lg:text-body-m">Any key: CPF, CNPJ, phone, email or random key</span>
+            </PopIn>
+            <PopIn className="grid gap-1" delay={0.12} tilt={-2}>
+                <span className={LABEL}>Pix QR</span>
+                {/* A phone cannot scan its own screen: a tap opens what the scan would.
+                    No label, like the hero sticker: the CTA is the keyboard route, so the
+                    code stays out of the tab order. The 4px shadow pairs with the 4px press. */}
+                <QrBrazilAppLink className="w-28 lg:w-36">
+                    <span className="block rounded-sm border-2 border-border-default bg-background-default p-1 shadow-4 transition-shadow duration-instant group-active:shadow-none">
+                        <StarLpQrCode campaign="qr-brazil" slot="ways-in" className="w-full" />
+                    </span>
+                </QrBrazilAppLink>
+                <span className="text-body-s text-foreground-secondary">Scan this one to get the app.</span>
             </PopIn>
             <PopIn className="grid gap-1" delay={0.24}>
                 <span lang="pt-BR" className={LABEL}>
                     Copia e cola
                 </span>
-                <span className={VALUE}>000201…br.gov.bcb.pix</span>
+                {/* One long line, cut by a fade at the right edge, never a typed ellipsis. */}
+                <span
+                    aria-hidden
+                    className="block overflow-hidden mask-r-from-55% font-mono text-body-s whitespace-nowrap select-none lg:text-body-m"
+                >
+                    {COPIA_E_COLA}
+                </span>
+                <span className="sr-only">A long Pix copia e cola code</span>
             </PopIn>
         </div>
     )

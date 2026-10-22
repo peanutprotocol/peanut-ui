@@ -1,10 +1,5 @@
 import type { ReactNode } from 'react'
 
-export interface PeanutCardReceiptFoldProps {
-    /** Section title, e.g. "See every spend." */
-    title: string
-}
-
 export type PeanutCardCtaPlacement = 'hero' | 'hero-card' | 'close'
 
 export interface PeanutCardCtaProps {

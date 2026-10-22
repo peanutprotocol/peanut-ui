@@ -12,14 +12,14 @@ export interface QrArgentinaGroupChatProps {
 }
 
 export interface QrArgentinaRateFoldProps {
-    /** USD→ARS (Manteca sell) with its tier: the exact rate, "≈" a rounded last-known one, or "Best rate". */
+    /** USD→ARS (Manteca sell) with its tier for the rate line: the exact rate, "≈" a rounded last-known one, or "Best rate". */
     usdArs: StarLpFxReading
 }
 
 export interface QrArgentinaRateHeadlineData {
     /** "$1 =" over a live rate, "$1 ≈" over a last-known one. */
     lead: string
-    /** The value the headline prints: the live rate, or the last-known one rounded to the nearest 10. */
+    /** The value the rate line prints: the live rate, or the last-known one rounded to the nearest 10. */
     rate: number
     /** As printed, e.g. "1,596.75" (live) or "1,600" (last-known). */
     value: string

@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 export const metadata = starLpMetadata({
     title: 'Pay Mercado Pago QRs in Argentina | Peanut',
     description: 'Pay Mercado Pago QRs in Argentina with your passport.',
-    ogTitle: 'No DNI? No problem at the till.',
+    ogTitle: 'No DNI? No problem.',
     ogSubtitle: 'Pay Mercado Pago QRs in Argentina with your passport.',
     path: STAR_LP_ROUTES.qrArgentina,
 })
