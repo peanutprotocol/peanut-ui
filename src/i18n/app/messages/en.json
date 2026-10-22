@@ -1858,9 +1858,10 @@
             "navTitle": "Get a card",
             "lookingUpTitle": "Looking you up…",
             "lookingUpBody": "Checking your badges.",
-            "availableTitle": "You're in.",
-            "fundingBody": "You need a Peanut balance of at least $10 to get your card.",
-            "addFunds": "Add funds",
+            "availableTitle": "You're in. One step left.",
+            "fundingBody": "You need at least $10 in your Peanut balance to get your card. The card is free, and the money stays yours to spend with it.",
+            "fundedBody": "Your balance covers it. Continue to request your card.",
+            "addFunds": "Add money",
             "issuedTitle": "Meet your Peanut card.",
             "issuedBody": "It’s ready for online and contactless payments.",
             "viewCard": "View card"
