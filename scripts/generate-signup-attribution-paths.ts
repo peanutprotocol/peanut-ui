@@ -25,7 +25,7 @@ async function main() {
             })
         ),
     ].sort()
-    if (!paths.includes('/en/content') || paths.length < 2) {
+    if (!paths.includes('/en/blog') || paths.length < 2) {
         throw new Error('Sitemap has no content hub; refusing to replace the attribution inventory')
     }
     const output = `${JSON.stringify(paths, null, 4)}\n`

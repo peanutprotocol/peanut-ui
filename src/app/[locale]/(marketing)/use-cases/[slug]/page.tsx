@@ -60,7 +60,7 @@ export default async function UseCasePage({ params }: PageProps) {
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const url = `/${locale}/use-cases/${slug}`
-    const hubHref = `/${locale}/content?type=use-cases`
+    const hubHref = `/${locale}/blog?type=use-cases`
 
     return (
         <ContentPage

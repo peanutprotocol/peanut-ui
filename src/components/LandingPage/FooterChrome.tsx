@@ -121,7 +121,7 @@ export const FooterChrome = ({
                     <Link prefetch={false} className={NAV_LINK} href="/support">
                         {i18n.footerSupport}
                     </Link>
-                    <Link prefetch={false} className={NAV_LINK} href={`/${locale}/content`}>
+                    <Link prefetch={false} className={NAV_LINK} href={`/${locale}/blog`}>
                         {i18n.content}
                     </Link>
                     <Link prefetch={false} className={NAV_LINK} href={`/${locale}/help`}>

@@ -114,7 +114,7 @@ export default function BreadcrumbPage() {
                         className="pt-8"
                         items={[
                             { name: 'Home', href: '/en' },
-                            { name: 'Blog', href: '/en/content?type=blog' },
+                            { name: 'Blog', href: '/en/blog?type=blog' },
                             { name: 'How Peanut keeps cross-border fees honest', href: '/en/blog/honest-fees' },
                         ]}
                     />

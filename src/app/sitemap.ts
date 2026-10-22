@@ -263,17 +263,16 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             })
         }
 
-        // Content hub + blog posts. There is no blog index URL any more —
-        // /{locale}/blog is a 308 to /{locale}/content, which already lists the
-        // same posts behind its Blog filter. The posts themselves stay.
+        // Content hub (+ topics) and blog posts. /{locale}/content serves the
+        // same hub but canonicalizes to /{locale}/blog, so only /blog is listed.
         pages.push({
-            path: `/${locale}/content`,
+            path: `/${locale}/blog`,
             priority: 0.7 * basePriority,
             changeFrequency: 'weekly',
         })
         for (const topic of listContentTopics(locale)) {
             pages.push({
-                path: `/${locale}/content/${topic}`,
+                path: `/${locale}/blog/${topic}`,
                 priority: 0.7 * basePriority,
                 changeFrequency: 'weekly',
             })

@@ -33,7 +33,7 @@ export const UTM_MEDIUMS = {
     CPM: 'cpm',
     /** Paid ambassador / creator partnership (distinct from organic referral). */
     AMBASSADOR: 'ambassador',
-    /** Links inside the SEO hub pages (`/content/*`). */
+    /** Links inside the SEO hub pages (`/blog/*`). */
     CONTENT: 'content',
 } as const
 

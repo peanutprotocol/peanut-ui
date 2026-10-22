@@ -44,7 +44,7 @@ const FOCUS_RING = 'focus-visible:outline-[3px] focus-visible:outline-action-foc
 export function LocaleSwitcher({ locale, label }: { locale: Locale; label: string }) {
     const pathname = usePathname() ?? '/'
     const [open, setOpen] = useState(false)
-    // /content keeps its filters in the query string (`?type=blog&q=fees`), so
+    // /blog keeps its filters in the query string (`?type=blog&q=fees`), so
     // dropping it silently resets the list the reader is looking at. (The help
     // hub holds its search in state, so it has nothing to carry.) Read from the
     // browser at open time rather than through useSearchParams: that hook opts

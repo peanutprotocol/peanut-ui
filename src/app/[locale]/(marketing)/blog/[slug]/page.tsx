@@ -8,6 +8,9 @@ import { JsonLd } from '@/components/Marketing/JsonLd'
 import { Breadcrumb } from '@/components/0_Bruddle/Breadcrumb'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { availableContentLocales, contentLocaleFor } from '@/lib/content'
+import { contentHubPath, contentTopicMetadata } from '@/lib/content-hub-metadata'
+import { isContentTopic, listContentTopics } from '@/lib/content-topics'
+import { ContentTopicHub } from '@/components/Marketing/ContentTopicHub'
 import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
 
@@ -15,11 +18,17 @@ interface PageProps {
     params: Promise<{ locale: string; slug: string }>
 }
 
+// /{locale}/blog/{slug} serves two kinds of page: the hub topics (/blog/send,
+// /blog/deposit, …) and the posts. Next allows one dynamic segment name per
+// level, so the topic pages share this file; a topic name wins over a post slug.
 export async function generateStaticParams() {
     return SUPPORTED_LOCALES.flatMap((locale) => {
         let posts = getAllPosts(locale as Locale)
         if (posts.length === 0) posts = getAllPosts('en')
-        return posts.map((post) => ({ locale, slug: post.slug }))
+        return [
+            ...listContentTopics(locale).map((topic) => ({ locale, slug: topic })),
+            ...posts.map((post) => ({ locale, slug: post.slug })),
+        ]
     })
 }
 
@@ -29,6 +38,9 @@ export const dynamicParams = true
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { locale, slug } = await params
     if (!isValidLocale(locale)) return {}
+    if (isContentTopic(slug)) {
+        return listContentTopics(locale).includes(slug) ? contentTopicMetadata(locale, slug) : {}
+    }
 
     // A fallback-served page canonicalizes to the locale that owns the prose.
     const contentLocale = contentLocaleFor('blog', slug, locale)
@@ -62,6 +74,11 @@ function formatPostDate(date: string, locale: Locale): string {
 export default async function BlogPostPageLocalized({ params }: PageProps) {
     const { locale, slug } = await params
     if (!isValidLocale(locale)) notFound()
+    if (isContentTopic(slug)) {
+        // An empty topic is not linked from the hub or the sitemap, so it is not a page.
+        if (!listContentTopics(locale).includes(slug)) notFound()
+        return <ContentTopicHub locale={locale} topic={slug} />
+    }
 
     // Resolve through the full fallback chain (es-ar → es-419 → en), not
     // straight to English.
@@ -98,9 +115,8 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
           }
         : null
 
-    // The standalone /{locale}/blog index is gone (308 to the content hub), so the
-    // parent crumb is the hub filtered to blog — same shape as compare/ and use-cases/.
-    const hubHref = `/${locale}/content?type=blog`
+    // The parent crumb is the hub filtered to blog — same shape as compare/ and use-cases/.
+    const hubHref = `${contentHubPath(locale)}?type=blog`
 
     const breadcrumbs = [
         { name: i18n.home, href: `/${locale}` },

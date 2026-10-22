@@ -75,7 +75,7 @@ export default async function ComparisonPageLocalized({ params }: PageProps) {
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const url = `/${locale}/compare/peanut-vs-${slug}`
-    const hubHref = `/${locale}/content?type=compare`
+    const hubHref = `/${locale}/blog?type=compare`
 
     return (
         <ContentPage

@@ -117,10 +117,10 @@ describe('content topic discovery', () => {
         const paths = new Set((await sitemap()).map(({ url }) => new URL(url).pathname))
         for (const locale of SUPPORTED_LOCALES) {
             expect(listContentTopics(locale)).toEqual(['countries', 'deposit', 'pay', 'withdraw'])
-            expect(paths.has(`/${locale}/content/send`)).toBe(false)
-            expect(paths.has(`/${locale}/content/receive`)).toBe(false)
+            expect(paths.has(`/${locale}/blog/send`)).toBe(false)
+            expect(paths.has(`/${locale}/blog/receive`)).toBe(false)
             for (const topic of ['countries', 'deposit', 'pay', 'withdraw']) {
-                expect(paths.has(`/${locale}/content/${topic}`)).toBe(true)
+                expect(paths.has(`/${locale}/blog/${topic}`)).toBe(true)
             }
         }
     })
