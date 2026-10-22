@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import type { ComponentProps } from 'react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 import { UserAvatar } from '../UserAvatar'
@@ -7,6 +7,13 @@ jest.mock('next/image', () => ({
     __esModule: true,
     default: ({ unoptimized, ...rest }: ComponentProps<'img'> & { unoptimized?: boolean }) => <img {...rest} />,
 }))
+
+let mockArt: Record<string, string> = {}
+jest.mock('../useAvatarArt', () => ({ useAvatarArt: () => mockArt }))
+
+beforeEach(() => {
+    mockArt = {}
+})
 
 describe('UserAvatar', () => {
     it('renders the picked character on its palette', () => {
@@ -61,5 +68,24 @@ describe('UserAvatar', () => {
 
         expect(container).toHaveTextContent(/^0$/)
         expect(container.firstElementChild).toHaveAttribute('aria-hidden', 'true')
+    })
+
+    it('renders the served art url when the API has one', () => {
+        mockArt = { 'basic.frog': 'https://api.peanut.me/badges/art/avatar-basic-frog.0123456789ab.webp' }
+        const { container } = render(<UserAvatar name="satoshi" avatarKey="basic.frog" />)
+
+        expect(container.querySelector('img')).toHaveAttribute('src', mockArt['basic.frog'])
+    })
+
+    // TASK-23547: a missing file must not leave a broken image
+    it('swaps to the initials avatar when the art fails to load, and retries new art', () => {
+        const { container, rerender } = render(<UserAvatar name="satoshi" avatarKey="basic.frog" />)
+
+        fireEvent.error(container.querySelector('img')!)
+        expect(container.querySelector('img')).toBeNull()
+        expect(container).toHaveTextContent(/^S$/i)
+
+        rerender(<UserAvatar name="satoshi" avatarKey="basic.cactus" />)
+        expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/cactus.webp')
     })
 })

@@ -69,6 +69,11 @@ jest.mock('next/cache', () => ({
     unstable_cache: (fn: Function) => fn,
 }))
 
+// UserAvatar renders in most screens, and many suites mount them without a
+// QueryClientProvider. An empty map is the bundled-art path; a suite that
+// tests served art mocks this module itself.
+jest.mock('@/components/Avatar/useAvatarArt', () => ({ useAvatarArt: () => ({}) }))
+
 jest.mock('@/app/actions/tokens', () => ({
     fetchTokenPriceApi: jest.fn(() => Promise.resolve({ price: 100, symbol: 'TEST' })),
     getTokenBalances: jest.fn(() => Promise.resolve([])),
