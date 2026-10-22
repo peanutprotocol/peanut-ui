@@ -610,6 +610,28 @@ describe('mapTransactionDataForDrawer', () => {
             expect(result.networkFeeDetails).toBeUndefined()
         })
 
+        // An API that predates `networkFeeStatus` sends a v2 withdrawal's net as
+        // `usdAmount` and the fee beside it. Until it deploys, the receipt adds
+        // them back, so the headline never drops by the fee.
+        it('an API before the fee status: net plus fee, and no fee rows', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, { usdAmount: '9.50', networkFeeUsd: 0.5 })
+            expect(result.amount).toBe(10)
+            expect(result.networkFeeDetails).toBeUndefined()
+            expect(result.recipientReceivesUsd).toBeUndefined()
+        })
+
+        it('an API with the fee status: the stated gross, never added to', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, {
+                usdAmount: '9.50',
+                networkFeeStatus: 'settled',
+                networkFeeUsd: 0.5,
+                deliveredUsd: '9.00',
+            })
+            expect(result.amount).toBe(9.5)
+            expect(result.networkFeeDetails).toEqual({ state: 'charged', amountDisplay: '$0.50' })
+            expect(result.recipientReceivesUsd).toBe(9)
+        })
+
         it.each([
             ['pending', { networkFeeStatus: 'pending', networkFeeUsd: null }],
             ['charged', { networkFeeStatus: 'settled', networkFeeUsd: 1.432671, deliveredUsd: '63.067329' }],

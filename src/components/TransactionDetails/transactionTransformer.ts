@@ -702,9 +702,14 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         uiStatus = 'pending'
     }
 
-    // parse the amount from the usdamount string in extradata. A crypto
-    // withdrawal's is already the gross that left the wallet, fee included.
-    const amount = entry.extraData?.usdAmount ? parseWireAmount(entry.extraData.usdAmount) : 0
+    // An API that states `networkFeeStatus` states the gross. One that predates
+    // the field states a v2 withdrawal's net and the fee beside it; add them back
+    // as before, so the headline never drops by the fee during a deploy window.
+    const preContractFee =
+        entry.extraData?.networkFeeStatus === undefined && typeof entry.extraData?.networkFeeUsd === 'number'
+            ? entry.extraData.networkFeeUsd
+            : 0
+    const amount = (entry.extraData?.usdAmount ? parseWireAmount(entry.extraData.usdAmount) : 0) + preContractFee
     // The settled network fee and what the recipient received, both stated by
     // the backend. Only a crypto withdrawal carries them.
     const { networkFeeDetails, recipientReceivesUsd } =
