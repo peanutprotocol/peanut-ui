@@ -3,6 +3,7 @@ import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { DisplayLine } from '@/components/Marketing/StarLp/DisplayLine'
 import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
+import { PersonaFold } from '@/components/Marketing/StarLp/PersonaFold'
 import { PopIn } from '@/components/Marketing/StarLp/PopIn'
 import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
@@ -26,7 +27,7 @@ import { RequestLinksPaidTick } from './RequestLinksPaidTick'
 import { RequestLinksPayScreen } from './RequestLinksPayScreen'
 import { RequestLinksReceiptPrint } from './RequestLinksReceiptPrint'
 import { RequestLinksTimeline } from './RequestLinksTimeline'
-import { REQUEST_LINKS_CLIENT_SEES_ID, REQUEST_LINKS_STORY } from './requestLinks.consts'
+import { REQUEST_LINKS_CLIENT_SEES_ID, REQUEST_LINKS_PERSONA_CARDS, REQUEST_LINKS_STORY } from './requestLinks.consts'
 
 const CTA_LABEL = 'Create an account'
 
@@ -57,6 +58,8 @@ const FAQ: StarLpFaqItem[] = [
 // Marquee words: request-links.md (channels, contribution methods, speed, fees,
 // no expiry, use cases). Never Pix or Mercado Pago: they cannot fund a request.
 const HERO_SEAM: string[] = ['One link', 'Invoices', 'Emails', 'Chats', 'Printed QR']
+// The core ICP in product/icps.md: freelancers and remote workers, paid project fees and milestones.
+const PERSONA_SEAM: string[] = ['Freelancers', 'Remote workers', 'Project fees', 'Milestone payments']
 const OLD_REPLY_SEAM: string[] = ['Exchange', 'Wallet', 'Bank transfer', 'Peanut balance']
 const CLIENT_SEAM: string[] = ['Instant from a Peanut balance', 'Minutes from a wallet', 'No escrow', 'Any amount']
 const TIMELINE_SEAM: string[] = ['Free to create', 'Free to pay', 'Never expires', 'Many can chip in']
@@ -66,6 +69,12 @@ const CLOSE_SEAM: string[] = ['Freelance work', 'Client payments', 'Shared costs
 
 const twoColumns = 'grid gap-10 md:grid-cols-2 md:items-center md:gap-12'
 
+/**
+ * Folds: pink, yellow, cream, sky, white, yellow, black, cream, pink, footer. Every
+ * seam with a coloured side carries a marquee; the black/cream seam after the trust
+ * line does not. Two-column folds alternate sides: old reply art right, client sees
+ * art left, timeline right, small print left; stacked, the title always comes first.
+ */
 export function RequestLinksLanding() {
     return (
         <>
@@ -85,7 +94,11 @@ export function RequestLinksLanding() {
                 }
             />
 
-            <StarLpMarquee between={['pink', 'cream']} words={HERO_SEAM} />
+            <StarLpMarquee between={['pink', 'yellow']} words={HERO_SEAM} />
+
+            <PersonaFold cards={REQUEST_LINKS_PERSONA_CARDS} />
+
+            <StarLpMarquee between={['yellow', 'cream']} words={PERSONA_SEAM} />
 
             <Band ground="cream">
                 {/* One column until lg, like the small print: at md the half-width thread squeezed
@@ -112,8 +125,9 @@ export function RequestLinksLanding() {
                 <CloudsCss clouds={[...STAR_LP_SKY_CLOUDS]} className={STAR_LP_SKY_CLOUDS_CLASS} />
                 <div className={twoColumns}>
                     <SectionTitle>This is what your client sees.</SectionTitle>
-                    {/* lg scales the art (zoom keeps its proportions) so it holds its column beside the title */}
-                    <PopIn tilt={-1} className="lg:[zoom:1.25]">
+                    {/* lg scales the art (zoom keeps its proportions) so it holds its column beside the title;
+                        from md it takes the first column, opposite the old reply above */}
+                    <PopIn tilt={-1} className="md:order-first lg:[zoom:1.25]">
                         <RequestLinksPayScreen />
                     </PopIn>
                 </div>
@@ -134,8 +148,9 @@ export function RequestLinksLanding() {
                 {/* one column until lg: at md a half column wraps the receipt's labels */}
                 <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-12">
                     <SectionTitle>The small print, in large type.</SectionTitle>
-                    {/* stacked, the box hugs the receipt so the hand keeps its place at the receipt's corner */}
-                    <div className="relative mx-auto w-full max-w-[536px] lg:max-w-none">
+                    {/* stacked, the box hugs the receipt so the hand keeps its place at the receipt's corner;
+                        from lg it takes the first column, opposite the timeline above */}
+                    <div className="relative mx-auto w-full max-w-[536px] lg:order-first lg:max-w-none">
                         <RequestLinksReceiptPrint />
                         <PopIn
                             delay={1.1}

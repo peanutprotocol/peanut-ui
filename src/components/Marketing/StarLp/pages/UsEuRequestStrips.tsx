@@ -22,7 +22,7 @@ export function UsEuRequestStrips() {
         <div
             role="img"
             aria-label={`Chat: ${payer.short} asks where to pay; ${main.short} sends a Peanut request link for ${AMOUNT}; ${payer.short} paid`}
-            className="w-full md:max-w-lg md:justify-self-end"
+            className="w-full md:max-w-lg md:justify-self-start"
         >
             {/* An img's children are presentational, so the strips (and the link inside) stay out of the
                 accessibility tree; the fold's CTA is the keyboard and screen-reader path. */}

@@ -6,7 +6,7 @@ import { CARD_NOT_FOR_YOU_COPY } from './peanutCard.consts'
 import { keepTogether } from './peanutCard.utils'
 
 /**
- * "Probably not for you.": the /shhhhh §4 fold under the pink one. The title pops in,
+ * "Probably not for you.": the /shhhhh §4 fold under the sky one. The title pops in,
  * then the body follows in steps; the closing fold after it carries the CTA.
  */
 export function PeanutCardNotForYou() {

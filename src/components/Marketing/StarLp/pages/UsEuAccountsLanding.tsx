@@ -2,6 +2,7 @@ import HandPeace from '@/assets/illustrations/hand-peace.svg'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { CloseFold } from '@/components/Marketing/StarLp/CloseFold'
+import { PersonaFold } from '@/components/Marketing/StarLp/PersonaFold'
 import { PopIn } from '@/components/Marketing/StarLp/PopIn'
 import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
@@ -21,7 +22,7 @@ import { fetchEurUsdRate } from '@/components/Marketing/StarLp/starLpFx'
 import { UsEuAccountPair } from './UsEuAccountPair'
 import { UsEuRequestStrips } from './UsEuRequestStrips'
 import { UsEuTimeline } from './UsEuTimeline'
-import { US_EU_REQUEST_HREF } from './usEuAccounts.consts'
+import { US_EU_PERSONA_CARDS, US_EU_REQUEST_HREF } from './usEuAccounts.consts'
 
 // Payer rules, timing and cost from product/quick-ref.md and pricing.md
 // (deposit-account-open, bank-deposits-sepa, bank-deposits-ach).
@@ -51,6 +52,8 @@ const FAQ: StarLpFaqItem[] = [
 // Marquee words: the hero, FAQ and pricing.md (no Peanut fee to open or keep),
 // request-links.md (instant from a Peanut balance, no expiry). Plain words only.
 const HERO_SEAM: string[] = ['US account details', 'Euro IBAN', 'ACH', 'SEPA', 'Dollars arrive as dollars']
+// The core ICP in product/icps.md, in its own words.
+const PERSONA_SEAM: string[] = ['Freelancers', 'Remote workers', 'Paid from the US', 'Paid from Europe']
 const HOW_SEAM: string[] = ['Employers', 'Business clients', 'Salary', 'Invoices']
 const LINK_SEAM: string[] = ['One link', 'Instant from a Peanut balance', 'Share in any chat', 'Never expires']
 const FAQ_SEAM: string[] = ['No fee to open', 'No fee to keep', 'Withdraw to your bank', 'Passkey sign-in']
@@ -58,7 +61,12 @@ const CLOSE_SEAM: string[] = ['USD', 'EUR', 'Verify in minutes', 'Self-custodial
 
 const FOOTNOTE = 'Peanut is not a bank. Accounts may not be available where you live.'
 
-/** /us-europe-accounts: get paid from the US and Europe into Peanut's USD and EUR accounts. */
+/**
+ * /us-europe-accounts: get paid from the US and Europe into Peanut's USD and EUR accounts.
+ * Folds: pink, yellow, cream, sky, black, cream, pink, footer. Every seam with a
+ * coloured side carries a marquee; the black/cream seam after the trust line does not.
+ * Two-column folds alternate sides: How it works has its art right, Send a link left.
+ */
 export async function UsEuAccountsLanding() {
     // Live EUR→USD for the money-in push; null leaves the push without a dollar figure.
     const eurUsd = await fetchEurUsdRate()
@@ -68,7 +76,8 @@ export async function UsEuAccountsLanding() {
                 lead="Get paid from"
                 knerd={'US\nand Europe'}
                 knerdJoin="and"
-                subtitle="US account details and a euro IBAN."
+                // The audience first (product/icps.md: lead with the source of earnings, then the labels).
+                subtitle="For freelancers and remote workers paid from the US or Europe."
                 art={<UsEuAccountPair />}
                 cta={
                     <StarLpCta
@@ -81,7 +90,11 @@ export async function UsEuAccountsLanding() {
                 }
             />
 
-            <StarLpMarquee between={['pink', 'cream']} words={HERO_SEAM} />
+            <StarLpMarquee between={['pink', 'yellow']} words={HERO_SEAM} />
+
+            <PersonaFold cards={US_EU_PERSONA_CARDS} />
+
+            <StarLpMarquee between={['yellow', 'cream']} words={PERSONA_SEAM} />
 
             <Band ground="cream">
                 <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
@@ -94,8 +107,10 @@ export async function UsEuAccountsLanding() {
 
             <Band ground="sky">
                 <CloudsCss clouds={[...STAR_LP_SKY_CLOUDS]} className={STAR_LP_SKY_CLOUDS_CLASS} />
+                {/* Mirrors How it works: the strips take the first column from md, the title the second;
+                    stacked, the title still comes first. */}
                 <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
-                    <div className="flex flex-col items-start gap-8">
+                    <div className="flex flex-col items-start gap-8 md:order-last">
                         <SectionTitle>Paid by someone on Peanut? Send a link.</SectionTitle>
                         <StarLpCta
                             href={US_EU_REQUEST_HREF.guest}

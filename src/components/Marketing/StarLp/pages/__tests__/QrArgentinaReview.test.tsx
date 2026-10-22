@@ -24,6 +24,7 @@ const LAST_KNOWN: StarLpFxReading = { tier: 'lastKnown', quote: quote(1412.34) }
 const NONE: StarLpFxReading = { tier: 'none', quote: null }
 
 const rateRow = () => screen.queryByTestId('qr-ar-rate-row')
+const rateLine = () => screen.getByTestId('qr-ar-rate-line')
 
 beforeEach(() => mockCountUp.mockImplementation((rate: number | null) => ({ ref: () => {}, shown: rate })))
 
@@ -45,27 +46,35 @@ describe('QrArgentinaReview exchange-rate row (only the real live rate)', () => 
 })
 
 describe('QrArgentinaRateFold', () => {
-    it('keeps the live rate on the pay screen while the headline counts', () => {
+    it('keeps the live rate on the pay screen while the rate line counts', () => {
         mockCountUp.mockImplementation(() => ({ ref: () => {}, shown: 1000 }))
         render(<QrArgentinaRateFold usdArs={LIVE} />)
         expect(rateRow()).toHaveTextContent(`1 USD = ${formatUsdArsRate(1601.9)} ARS`)
         expect(rateRow()).not.toHaveTextContent('1,000')
     })
 
+    // pricing.md: the dated example only with its date, USD funding, the assumed fee and "indicative" together
+    it('headlines the dated saving with its footnote, whatever the rate tier', () => {
+        render(<QrArgentinaRateFold usdArs={NONE} />)
+        expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('About 6% less than a foreign card.*')
+        expect(screen.getByText(/Indicative comparison on 22 Sep 2026/)).toHaveTextContent(
+            /USD-funded .* 6\.02% less .* assumed 3% issuer fee\. Not a live result\./
+        )
+    })
+
     it('prints a last-known rate rounded after "≈", at rest, and names it "about"', () => {
         render(<QrArgentinaRateFold usdArs={LAST_KNOWN} />)
-        expect(screen.getByRole('heading', { level: 2 })).toHaveAccessibleName('$1 is about 1,410 ARS')
-        expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('$1 ≈')
+        expect(rateLine()).toHaveTextContent('$1 is about 1,410 ARS')
+        expect(rateLine()).toHaveTextContent('$1 ≈')
         // no count-up for an old rate
         expect(mockCountUp).toHaveBeenLastCalledWith(null)
         expect(rateRow()).toBeNull()
     })
 
-    it('says "Best rate" and prints no digits anywhere when there is no rate', () => {
+    it('says "Best rate" and prints no rate anywhere when there is no rate', () => {
         const { container } = render(<QrArgentinaRateFold usdArs={NONE} />)
-        const headline = screen.getByRole('heading', { level: 2 })
-        expect(headline).toHaveAccessibleName('Best rate')
-        expect(headline).not.toHaveTextContent(/\d/)
+        expect(rateLine()).toHaveTextContent('Best rate')
+        expect(rateLine()).not.toHaveTextContent(/\d/)
         expect(container).not.toHaveTextContent(/1 USD|≈/)
         expect(mockCountUp).toHaveBeenLastCalledWith(null)
     })

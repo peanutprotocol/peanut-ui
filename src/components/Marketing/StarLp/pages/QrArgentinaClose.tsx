@@ -20,6 +20,11 @@ export function QrArgentinaClose() {
             <QrArgentinaScanFrame>
                 <QrArgentinaSticker slot="close-sticker" />
             </QrArgentinaScanFrame>
+            {/* The code is the page's install link dressed as the till's sticker, so the
+                caption says which is which: without it the fold reads as a code to pay. */}
+            <p className="mx-auto mt-4 max-w-xs text-body-s text-balance">
+                The sticker you&apos;ll see at the till. Scan this one to get the app.
+            </p>
             <p className="mx-auto mt-8 max-w-xl text-body-l">Verify with your passport before you land.</p>
             <div className="mx-auto mt-8 w-fit">
                 <StarLpCta href={STAR_LP_HREF.signup} ground="pink">

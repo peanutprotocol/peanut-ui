@@ -17,7 +17,8 @@ import { QrBrazilPayStory } from './QrBrazilPayStory'
 import { QrBrazilWaysIn } from './QrBrazilWaysIn'
 
 /* Claims: product/spending.md (Pix QR, keys, copia e cola; Pix Automático
-   rejected), kyc.md (passport instead of CPF, pay only), build-brief.md. */
+   rejected; "Sending Funds to a Person": any Pix key pays a person, not only a
+   shop), kyc.md (passport instead of CPF, pay only), build-brief.md. */
 const FAQ: StarLpFaqItem[] = [
     {
         id: 'cpf',
@@ -76,7 +77,7 @@ export async function QrBrazilLanding() {
                 knerd={'No\nproblem'}
                 titleTail="at the counter."
                 artPlacement="edge"
-                subtitle="Pay with Pix in Brazil from your dollars."
+                subtitle="Pay shops and people with Pix in Brazil, from your dollars."
                 art={<QrBrazilHeroScene />}
                 cta={
                     <StarLpCta href={STAR_LP_HREF.signup} ground="pink">
@@ -89,7 +90,7 @@ export async function QrBrazilLanding() {
                 {/* one column until lg: at md the phone pair would shrink until its rows are unreadable */}
                 <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
                     <div className="grid gap-8">
-                        <SectionTitle>To the shop, it&apos;s just Pix.</SectionTitle>
+                        <SectionTitle>Shops or people, it&apos;s just Pix.</SectionTitle>
                         <div className="w-full max-w-[420px] lg:max-w-[520px]">
                             <QrBrazilWaysIn />
                         </div>

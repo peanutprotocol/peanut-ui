@@ -51,13 +51,14 @@ const TRUST_SEAM: string[] = [
     'No Mercado Pago account',
     'Rate shown first',
 ]
-// The card-fee saving keeps its qualifier, so it lives in the FAQ answer, not on a strip (pricing.md).
+// The card saving is the rate fold's dated example with its footnote (pricing.md); no strip carries a number.
 const CLOSE_SEAM: string[] = ['Self-custodial', 'Passkey', 'Dollars', 'Pay by QR']
 
 /**
  * /qr-payments/argentina: pay Mercado Pago QRs with a passport (mock r4-qr-argentina-a4, folds 0–5).
- * Folds: pink, cream, sky, black, cream, black, pink, footer. Every seam with a
- * coloured side carries a marquee; the two black/cream seams around the FAQ do not.
+ * Folds: pink, cream, sky, pink, cream, black, pink, footer. Every seam with a
+ * coloured side carries a marquee except the dinner fold's into the FAQ (a pink
+ * fold was black; the marquee count stayed); the FAQ/trust-band seam has none.
  */
 export async function QrArgentinaLanding() {
     // Live Manteca USD→ARS, the rate the QR payment executes at; null hides the dollar line.
@@ -68,7 +69,6 @@ export async function QrArgentinaLanding() {
             <StarLpHero
                 lead="No DNI?"
                 knerd={'No\nproblem'}
-                titleTail="at the till."
                 artPlacement="edge"
                 subtitle="Pay Mercado Pago QRs in Argentina with your passport."
                 art={<QrArgentinaHeroArt />}
@@ -98,13 +98,13 @@ export async function QrArgentinaLanding() {
                 </div>
             </Band>
 
-            <StarLpMarquee between={['sky', 'black']} words={SCREEN_SEAM} />
+            <StarLpMarquee between={['sky', 'pink']} words={SCREEN_SEAM} />
 
-            <Band ground="black">
+            <Band ground="pink">
                 {/* one column until lg, so each sentence of the title keeps its own line at md */}
                 <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
                     <SectionTitle>
-                        <span className="block">Dinner for six.</span> <span className="block">One request link.</span>
+                        <span className="block">Dinner for six.</span> <span className="block">Be the star.</span>
                     </SectionTitle>
                     <QrArgentinaGroupChat usdArs={usdArs} />
                 </div>

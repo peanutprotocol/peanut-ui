@@ -11,7 +11,7 @@ export const metadata = starLpMetadata({
     title: 'Pay with Pix in Brazil | Peanut',
     description: 'No CPF needed to pay. Verify once with your passport, add dollars, scan.',
     ogTitle: 'No CPF? No problem at the counter.',
-    ogSubtitle: 'Pay with Pix in Brazil from your dollars.',
+    ogSubtitle: 'Pay shops and people with Pix in Brazil, from your dollars.',
     path: STAR_LP_ROUTES.qrBrazil,
 })
 
