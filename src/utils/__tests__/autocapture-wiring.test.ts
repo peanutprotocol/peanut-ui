@@ -83,11 +83,44 @@ afterEach(() => {
     jest.restoreAllMocks()
 })
 
-it('captures clicks on buttons and links only, with element text and attributes masked', async () => {
+it('captures clicks on buttons and links only, with text and attributes left to before_send', async () => {
     const { config } = await loadConfig()
     expect(config.autocapture).toEqual({ dom_event_allowlist: ['click'], element_allowlist: ['button', 'a'] })
-    expect(config.mask_all_text).toBe(true)
-    expect(config.mask_all_element_attributes).toBe(true)
+    expect(config.mask_all_text).toBeUndefined()
+    expect(config.mask_all_element_attributes).toBeUndefined()
+})
+
+it('scrubs $autocapture text and drops the text of a ph-sensitive element, leaving named events alone', async () => {
+    const { beforeSend } = await loadConfig()
+    const label = beforeSend({
+        event: '$autocapture',
+        properties: {
+            $el_text: 'Send $1,250.00 to @alice',
+            $elements_chain: 'button:nth-child="1"nth-of-type="1"text="Send $1,250.00 to @alice"',
+        },
+    })
+    expect(label?.properties).toEqual({
+        $el_text: 'Send $*,***.** to @alice',
+        $elements_chain: 'button:nth-child="1"nth-of-type="1"text="Send $*,***.** to @alice"',
+    })
+
+    const contact = beforeSend({
+        event: '$autocapture',
+        properties: {
+            $el_text: 'Alice Smith',
+            $elements_chain:
+                'button.ph-sensitive:attr__class="ph-sensitive"nth-child="1"nth-of-type="1"text="Alice Smith"',
+        },
+    })
+    expect(contact?.properties).toEqual({
+        $elements_chain: 'button.ph-sensitive:attr__class="ph-sensitive"nth-child="1"nth-of-type="1"',
+    })
+
+    const named = {
+        event: 'card_gate_add_funds_tapped',
+        properties: { step: 'funding', note: 'Card 4111 1111 1111 1111' },
+    }
+    expect(beforeSend({ ...named, properties: { ...named.properties } })).toEqual(named)
 })
 
 it('keeps every $autocapture event, redacted, when the flag has no payload', async () => {

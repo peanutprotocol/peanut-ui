@@ -6,12 +6,13 @@ import type { CaptureResult, PostHog, PostHogConfig } from 'posthog-js'
  * (off since 2026-09-10, TASK-22516). No input, change or submit events, so
  * no field values.
  *
- * Element text and attributes are masked. A button or link can show a balance,
- * an amount or another person's name, as text or in its aria-label, and none
- * of that may reach PostHog. An event keeps the tag, classes, position, the
- * page URL and a cut link target (redactAutocaptureLinks, run in
- * `before_send`). To name a control, give it a code in
- * `data-ph-capture-attribute-<name>`; `ph-no-capture` drops its clicks.
+ * A click keeps the words on the control ("Add money", "Send $25 to @alice"),
+ * its tag, classes and position. `redactAutocapture`, run in `before_send`,
+ * removes what identifies a person: long digit runs, emails, addresses, tokens
+ * and the query of every link target. A real name cannot be found by pattern,
+ * so a control that shows one carries `ph-sensitive`: its click is sent
+ * without text or attributes. `ph-no-capture` drops a click. To name a
+ * control, give it a code in `data-ph-capture-attribute-<name>`.
  *
  * The project's server-side autocapture opt-out overrides these settings.
  */
@@ -20,8 +21,6 @@ export const AUTOCAPTURE_SETTINGS = {
         dom_event_allowlist: ['click'],
         element_allowlist: ['button', 'a'],
     },
-    mask_all_text: true,
-    mask_all_element_attributes: true,
 } satisfies Partial<PostHogConfig>
 
 /**
@@ -41,29 +40,155 @@ export function autocaptureLinkTarget(href: string, pageUrl: string): string {
     }
 }
 
-// The chain carries a link target twice, as `attr__href` and as `href`.
-// posthog-js escapes `"` inside chain values as `\"`.
-const CHAIN_HREF = /\b(attr__href|href)="((?:[^"\\]|\\.)*)"/g
+const EMAIL = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g
+const ADDRESS = /\b0x[0-9a-fA-F]{6,}\b/g
+// 20 or more letters and digits, with at least one of each: ids, keys, secrets.
+const TOKEN = /\b(?=[A-Za-z0-9]*\d)(?=[A-Za-z0-9]*[A-Za-z])[A-Za-z0-9]{20,}\b/g
+// Digits with at most one separator between them: "4111 1111 1111 1111", "+54 11 1234-5678".
+const DIGIT_RUN = /\d(?:[ .,\/-]?\d)*/g
+// Kept whole, so "21/10/2026 10:30" is not read as one long number.
+const DATE_TIME = /(\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b|\b\d{1,2}:\d{2}(?::\d{2})?\b)/
+const MIN_MASKED_DIGITS = 6
 
-/** Applies {@link autocaptureLinkTarget} to every link target in an `$autocapture` event, in place. */
-export function redactAutocaptureLinks(event: CaptureResult | null, pageUrl: string): CaptureResult | null {
-    if (event?.event !== '$autocapture') return event
-    const properties = event.properties
-    if (typeof properties.$elements_chain === 'string') {
-        properties.$elements_chain = properties.$elements_chain.replace(
-            CHAIN_HREF,
-            (_match: string, key: string, href: string) => `${key}="${autocaptureLinkTarget(href, pageUrl)}"`
-        )
-    }
-    if (Array.isArray(properties.$elements)) {
-        for (const element of properties.$elements) {
-            if (typeof element?.attr__href === 'string') {
-                element.attr__href = autocaptureLinkTarget(element.attr__href, pageUrl)
-            }
+function maskLongDigitRun(run: string): string {
+    const digits = run.replace(/\D/g, '').length
+    return digits < MIN_MASKED_DIGITS ? run : run.replace(/\d/g, '*')
+}
+
+/**
+ * Removes personal data from a control's text or attribute: runs of 6 or more
+ * digits (card, phone, document and account numbers) become `*`, emails
+ * `[email]`, 0x addresses `[address]`, long letter-and-digit tokens `[token]`.
+ * Short numbers (amounts such as "$25", counts, dates, a card's last 4) and
+ * @usernames stay. The same idea as mono's journey-review transcript masking.
+ */
+export function scrubAutocaptureText(text: string): string {
+    const masked = text.replace(EMAIL, '[email]').replace(ADDRESS, '[address]').replace(TOKEN, '[token]')
+    // Odd parts are dates and times.
+    return masked
+        .split(DATE_TIME)
+        .map((part, i) => (i % 2 ? part : part.replace(DIGIT_RUN, maskLongDigitRun)))
+        .join('')
+}
+
+const SENSITIVE_CLASS = 'ph-sensitive'
+
+// One `key="value"` pair of an elements chain. posthog-js escapes `"` inside values as `\"`.
+const CHAIN_PAIR = /([\w-]+)="((?:[^"\\]|\\.)*)"/g
+const CHAIN_PAIR_START = /[\w-]+="/
+
+/** Splits an elements chain into its elements, at the `;` outside quoted values. */
+function splitChain(chain: string): string[] {
+    const elements: string[] = []
+    let start = 0
+    let quoted = false
+    for (let i = 0; i < chain.length; i++) {
+        const char = chain[i]
+        if (quoted && char === '\\') i++
+        else if (char === '"') quoted = !quoted
+        else if (char === ';' && !quoted) {
+            elements.push(chain.slice(start, i))
+            start = i + 1
         }
     }
+    elements.push(chain.slice(start))
+    return elements
+}
+
+function chainElementClasses(element: string): string[] {
+    const firstPair = element.search(CHAIN_PAIR_START)
+    const prefixClasses = element
+        .slice(0, firstPair < 0 ? undefined : firstPair)
+        .split('.')
+        .slice(1)
+    const classAttr = /\battr__class="((?:[^"\\]|\\.)*)"/.exec(element)?.[1] ?? ''
+    return [...prefixClasses, ...classAttr.split(/\s+/)].map((name) => name.replace(/:$/, ''))
+}
+
+/**
+ * Elements run from the clicked one to its ancestors, so the clicked element
+ * sits inside every `ph-sensitive` element of the list. Returns how many
+ * elements, counted from the clicked one, are inside one (0 when none is).
+ */
+function sensitiveDepth(classLists: string[][]): number {
+    let depth = 0
+    classLists.forEach((classes, index) => {
+        if (classes.includes(SENSITIVE_CLASS)) depth = index + 1
+    })
+    return depth
+}
+
+/** The value a link target or text-bearing attribute is sent with. */
+function redactValue(key: string, value: string, pageUrl: string): string {
+    if (key === 'attr__class') return value
+    const isLink = key === 'href' || key === 'attr__href'
+    return scrubAutocaptureText(isLink ? autocaptureLinkTarget(value, pageUrl) : value)
+}
+
+/** The redacted chain, and whether the clicked element is inside a `ph-sensitive` one. */
+function redactChain(chain: string, pageUrl: string): { chain: string; sensitive: boolean } {
+    const elements = splitChain(chain)
+    const depth = sensitiveDepth(elements.map(chainElementClasses))
+    const redacted = elements
+        .map((element, index) => {
+            const sensitive = index < depth
+            return element.replace(CHAIN_PAIR, (pair: string, key: string, value: string) => {
+                if (key === 'nth-child' || key === 'nth-of-type') return pair
+                if (sensitive && key !== 'attr__class') return ''
+                return `${key}="${redactValue(key, value, pageUrl)}"`
+            })
+        })
+        .join(';')
+    return { chain: redacted, sensitive: depth > 0 }
+}
+
+type CapturedElement = Record<string, unknown>
+
+function elementClasses(element: CapturedElement): string[] {
+    const { classes, attr__class } = element
+    if (Array.isArray(classes)) return classes.map(String)
+    return typeof attr__class === 'string' ? attr__class.split(/\s+/) : []
+}
+
+function redactElement(element: CapturedElement, sensitive: boolean, pageUrl: string): void {
+    for (const [key, value] of Object.entries(element)) {
+        if (key !== '$el_text' && !key.startsWith('attr__')) continue
+        if (key === 'attr__class') continue
+        if (sensitive) delete element[key]
+        else if (typeof value === 'string') element[key] = redactValue(key, value, pageUrl)
+    }
+}
+
+/**
+ * Removes personal data from an `$autocapture` event, in place: link targets
+ * are cut ({@link autocaptureLinkTarget}), text and attributes are scrubbed
+ * ({@link scrubAutocaptureText}), and inside a `ph-sensitive` element only the
+ * tag, classes and position stay. Every other event is returned unchanged.
+ */
+export function redactAutocapture(event: CaptureResult | null, pageUrl: string): CaptureResult | null {
+    if (event?.event !== '$autocapture') return event
+    const properties = event.properties
+    let sensitive = false
+    if (typeof properties.$elements_chain === 'string') {
+        const redacted = redactChain(properties.$elements_chain, pageUrl)
+        properties.$elements_chain = redacted.chain
+        sensitive = redacted.sensitive
+    }
+    if (Array.isArray(properties.$elements)) {
+        const elements = properties.$elements.filter(
+            (element: unknown): element is CapturedElement => typeof element === 'object' && element !== null
+        )
+        const depth = sensitiveDepth(elements.map(elementClasses))
+        sensitive ||= depth > 0
+        elements.forEach((element, index) => redactElement(element, index < depth, pageUrl))
+    }
+    if (sensitive) {
+        delete properties.$el_text
+        delete properties.$external_click_url
+    }
+    if (typeof properties.$el_text === 'string') properties.$el_text = scrubAutocaptureText(properties.$el_text)
     if (typeof properties.$external_click_url === 'string') {
-        properties.$external_click_url = autocaptureLinkTarget(properties.$external_click_url, pageUrl)
+        properties.$external_click_url = redactValue('href', properties.$external_click_url, pageUrl)
     }
     return event
 }

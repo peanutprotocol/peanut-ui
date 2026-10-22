@@ -4,8 +4,9 @@ import {
     AUTOCAPTURE_SETTINGS,
     autocaptureLinkTarget,
     autocaptureSampleRate,
-    redactAutocaptureLinks,
+    redactAutocapture,
     sampleAutocapture,
+    scrubAutocaptureText,
     trackAutocaptureSampleRate,
 } from '../posthog-autocapture'
 
@@ -68,7 +69,37 @@ describe('autocaptureLinkTarget', () => {
     })
 })
 
-describe('redactAutocaptureLinks', () => {
+describe('scrubAutocaptureText', () => {
+    it.each([
+        ['Card 4111 1111 1111 1111', 'Card **** **** **** ****'],
+        ['Call +54 11 1234-5678', 'Call +** ** ****-****'],
+        ['CBU 0110599520000001234567', 'CBU **********************'],
+        ['CPF 123.456.789-09', 'CPF ***.***.***-**'],
+        ['Send $1,250.00', 'Send $*,***.**'],
+        ['Mail alice.smith+pay@example.com now', 'Mail [email] now'],
+        ['To 0x1234abcd5678ef90', 'To [address]'],
+        ['Key sk9f8e7d6c5b4a3f2e1d0c9b', 'Key [token]'],
+    ])('masks %p as %p', (text, expected) => {
+        expect(scrubAutocaptureText(text)).toBe(expected)
+    })
+
+    it.each([
+        'Continue',
+        'Add money',
+        'Send $25 to @alice',
+        'Pay $12,500',
+        '3 friends joined',
+        'Card ending 4242',
+        'On 21/10/2026 10:30',
+        '2026-10-21',
+        'Oct 22, 2026',
+        'supercalifragilisticexpialidocious',
+    ])('keeps %p', (text) => {
+        expect(scrubAutocaptureText(text)).toBe(text)
+    })
+})
+
+describe('redactAutocapture', () => {
     const page = 'https://peanut.me/history'
     it('cuts every link target in the elements chain, the elements list and the external click URL', () => {
         const doc = 'https://storage.example.com/uploads/receipt-alice.pdf?sig=s3cr3tSig'
@@ -80,7 +111,7 @@ describe('redactAutocaptureLinks', () => {
                 $external_click_url: doc,
             },
         } as unknown as CaptureResult
-        redactAutocaptureLinks(event, page)
+        redactAutocapture(event, page)
         expect(event.properties).toEqual({
             $elements_chain:
                 'a.flex:attr__href="https://storage.example.com"href="https://storage.example.com"nth-child="1";div:nth-child="2";a:attr__href="/send/alice"',
@@ -89,14 +120,78 @@ describe('redactAutocaptureLinks', () => {
         })
     })
 
+    it('scrubs text and attributes, keeping the words, classes and position', () => {
+        const event = {
+            event: '$autocapture',
+            properties: {
+                $el_text: 'Send $1,250.00 to @alice',
+                $elements_chain:
+                    'button.btn:attr__aria-label="Card 4111 1111 1111 1111"attr__class="btn"attr__title="Mail \\"bob@example.com\\""nth-child="2"nth-of-type="1"text="Send $1,250.00 to @alice";div.row:attr__class="row"nth-child="12345678"',
+                $elements: [
+                    {
+                        tag_name: 'button',
+                        $el_text: 'Send $1,250.00 to @alice',
+                        classes: ['btn'],
+                        attr__class: 'btn',
+                        attr__placeholder: '0x1234abcd5678ef90',
+                        nth_child: 2,
+                    },
+                ],
+            },
+        } as unknown as CaptureResult
+        redactAutocapture(event, page)
+        expect(event.properties).toEqual({
+            $el_text: 'Send $*,***.** to @alice',
+            $elements_chain:
+                'button.btn:attr__aria-label="Card **** **** **** ****"attr__class="btn"attr__title="Mail \\"[email]\\""nth-child="2"nth-of-type="1"text="Send $*,***.** to @alice";div.row:attr__class="row"nth-child="12345678"',
+            $elements: [
+                {
+                    tag_name: 'button',
+                    $el_text: 'Send $*,***.** to @alice',
+                    classes: ['btn'],
+                    attr__class: 'btn',
+                    attr__placeholder: '[address]',
+                    nth_child: 2,
+                },
+            ],
+        })
+    })
+
+    it('keeps only tag, classes and position inside a ph-sensitive element', () => {
+        const event = {
+            event: '$autocapture',
+            properties: {
+                $el_text: 'Alice Smith',
+                $elements_chain:
+                    'span:nth-child="1"nth-of-type="1"text="Alice Smith";a.row:attr__class="row"attr__href="/alice"attr__title="Alice; Smith"href="/alice"nth-child="3"nth-of-type="3"text="Alice Smith";li.ph-sensitive:attr__class="ph-sensitive"attr__data-name="Alice Smith"nth-child="1"nth-of-type="1";main.page:attr__class="page"attr__aria-label="Wallet 4111111111111111"nth-child="1"nth-of-type="1"',
+                $elements: [
+                    { tag_name: 'a', $el_text: 'Alice Smith', attr__href: '/alice', classes: ['row'] },
+                    { tag_name: 'li', attr__class: 'ph-sensitive', attr__title: 'Alice Smith' },
+                    { tag_name: 'main', attr__class: 'page', attr__title: 'Home' },
+                ],
+                $external_click_url: 'https://alice.example.com',
+            },
+        } as unknown as CaptureResult
+        redactAutocapture(event, page)
+        expect(event.properties).toEqual({
+            $elements_chain:
+                'span:nth-child="1"nth-of-type="1";a.row:attr__class="row"nth-child="3"nth-of-type="3";li.ph-sensitive:attr__class="ph-sensitive"nth-child="1"nth-of-type="1";main.page:attr__class="page"attr__aria-label="Wallet ****************"nth-child="1"nth-of-type="1"',
+            $elements: [
+                { tag_name: 'a', classes: ['row'] },
+                { tag_name: 'li', attr__class: 'ph-sensitive' },
+                { tag_name: 'main', attr__class: 'page', attr__title: 'Home' },
+            ],
+        })
+    })
+
     it('leaves other events alone', () => {
         const event = {
             event: '$pageview',
-            properties: { $external_click_url: 'https://x.example/a?b=c' },
+            properties: { $external_click_url: 'https://x.example/a?b=c', $el_text: 'Card 4111 1111 1111 1111' },
         } as unknown as CaptureResult
-        expect(redactAutocaptureLinks(event, page)).toEqual({
+        expect(redactAutocapture(event, page)).toEqual({
             event: '$pageview',
-            properties: { $external_click_url: 'https://x.example/a?b=c' },
+            properties: { $external_click_url: 'https://x.example/a?b=c', $el_text: 'Card 4111 1111 1111 1111' },
         })
     })
 })
@@ -148,7 +243,7 @@ describe('posthog-js with AUTOCAPTURE_SETTINGS', () => {
                 rageclick: false,
                 ...AUTOCAPTURE_SETTINGS,
                 before_send: (event) => {
-                    const redacted = redactAutocaptureLinks(event, window.location.href)
+                    const redacted = redactAutocapture(event, window.location.href)
                     if (redacted) captured.push(redacted)
                     return null // nothing leaves the test
                 },
@@ -159,32 +254,47 @@ describe('posthog-js with AUTOCAPTURE_SETTINGS', () => {
     beforeEach(() => {
         captured.length = 0
         document.body.innerHTML = `
-            <div aria-label="Wallet of alice">
-                <button id="max" aria-label="Use your balance: 123.45 USD"><span>123.45 USD</span></button>
-                <a id="link" href="/home?ref=alice" title="alice's home">Home of alice</a>
-                <a id="doc" href="https://storage.example.com/uploads/receipt-alice.pdf?sig=s3cr3tSig" target="_blank">receipt-alice.pdf</a>
+            <main aria-label="Wallet of alice@example.com">
+                <button id="max" aria-label="Use your balance: 1,234.56 USD">Use <span>1,234.56 USD</span></button>
+                <button id="continue" class="btn">Continue</button>
+                <a id="link" href="/home?ref=alice" title="Home of @alice">Home of @alice</a>
+                <a id="doc" href="https://storage.example.com/uploads/receipt-alice.pdf?sig=s3cr3tSig" target="_blank">receipt</a>
+                <ul class="ph-sensitive">
+                    <li><button id="contact" class="row" aria-label="Pay Alice Smith" title="Alice Smith"><span>Alice Smith</span></button></li>
+                </ul>
                 <button id="secret" class="ph-no-capture">Reveal</button>
                 <input id="field" value="9876" />
                 <div id="plain">Just text</div>
-            </div>`
+            </main>`
     })
     const click = (id: string) => document.getElementById(id)!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     const autocaptured = () => captured.filter((event) => event.event === '$autocapture')
 
-    it('sends a button click without its text or attributes', () => {
+    it('sends a button label with its words and long numbers masked', () => {
         click('max')
         expect(autocaptured()).toHaveLength(1)
+        const { properties } = autocaptured()[0]
+        expect(properties.$el_text).toBe('Use *,***.** USD')
+        expect(properties.$elements_chain).toMatch(/^button/)
+        expect(properties.$elements_chain).toContain('attr__aria-label="Use your balance: *,***.** USD"')
+        expect(properties.$elements_chain).toContain('attr__aria-label="Wallet of [email]"')
         const sent = JSON.stringify(autocaptured()[0])
-        expect(sent).not.toContain('123.45')
-        expect(sent).not.toContain('alice')
-        expect(autocaptured()[0].properties.$elements_chain).toMatch(/^button/)
+        expect(sent).not.toContain('1,234.56')
+        expect(sent).not.toContain('alice@example.com')
     })
 
-    it('keeps the link target but not the link text or title', () => {
+    it('keeps a plain label and the classes', () => {
+        click('continue')
+        expect(autocaptured()[0].properties.$el_text).toBe('Continue')
+        expect(autocaptured()[0].properties.$elements_chain).toMatch(/^button\.btn:.*text="Continue"/)
+    })
+
+    it('keeps a link label with a @username and the link path', () => {
         click('link')
         expect(autocaptured()).toHaveLength(1)
+        expect(autocaptured()[0].properties.$el_text).toBe('Home of @alice')
         expect(autocaptured()[0].properties.$elements_chain).toContain('attr__href="/home"')
-        expect(JSON.stringify(autocaptured()[0])).not.toContain('alice')
+        expect(JSON.stringify(autocaptured()[0])).not.toContain('ref=alice')
     })
 
     it('sends only the host of an external link, such as an uploaded attachment', () => {
@@ -193,8 +303,17 @@ describe('posthog-js with AUTOCAPTURE_SETTINGS', () => {
         const sent = JSON.stringify(autocaptured()[0])
         expect(sent).toContain('https://storage.example.com')
         expect(sent).not.toContain('uploads')
-        expect(sent).not.toContain('receipt')
+        expect(sent).not.toContain('receipt-alice')
         expect(sent).not.toContain('s3cr3tSig')
+    })
+
+    it('sends a click inside a ph-sensitive element without its text or attributes', () => {
+        click('contact')
+        expect(autocaptured()).toHaveLength(1)
+        const { properties } = autocaptured()[0]
+        expect(properties.$el_text).toBeUndefined()
+        expect(properties.$elements_chain).toMatch(/^button\.row:attr__class="row"nth-child="1"nth-of-type="1";li:/)
+        expect(JSON.stringify(autocaptured()[0])).not.toContain('Alice')
     })
 
     it('ignores ph-no-capture elements, inputs and other elements', () => {

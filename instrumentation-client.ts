@@ -22,7 +22,7 @@ import { captureSignupAttribution, signupAttributionPosthogProperties } from '@/
 import { initialSuperProperties, isAnalyticsCaptureBuild, posthogProjectKey } from '@/utils/posthog-setup'
 import {
     AUTOCAPTURE_SETTINGS,
-    redactAutocaptureLinks,
+    redactAutocapture,
     sampleAutocapture,
     trackAutocaptureSampleRate,
 } from '@/utils/posthog-autocapture'
@@ -117,9 +117,9 @@ if (
                 if (suppressDuplicateLogin(event) === null) return null
                 // Sampling runs last, so every kept event is already redacted.
                 const redacted = redactLinkSecrets(redactQrTelemetry(event))
-                return sampleAutocapture(redactAutocaptureLinks(redacted, window.location.href))
+                return sampleAutocapture(redactAutocapture(redacted, window.location.href))
             },
-            // Button and link clicks, with element text and attributes masked.
+            // Button and link clicks; before_send scrubs their text and attributes.
             // The `autocapture-sample-rate` flag cuts volume without a release.
             ...AUTOCAPTURE_SETTINGS,
             /*
