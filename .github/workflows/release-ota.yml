@@ -74,6 +74,7 @@ jobs:
             ios_bridge_before: ${{ steps.resolve.outputs.ios_bridge_before }}
             android_bridge_before: ${{ steps.resolve.outputs.android_bridge_before }}
             source_sha: ${{ steps.source.outputs.sha }}
+            superseded: ${{ steps.source.outputs.superseded }}
         defaults:
             run:
                 working-directory: app
@@ -118,6 +119,10 @@ jobs:
                   SOURCE_SHA="$(git rev-parse HEAD)"
                   LATEST_MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
                   if ! node ../release-tooling/scripts/release-source-guard.mjs "$SOURCE_SHA" "$LATEST_MAIN_SHA"; then
+                      # Expected when two merges land close together: the newer main push runs its
+                      # own OTA. The run still stops here, but it is not an alert (2026-10-20: two
+                      # merges 22 s apart paged #🔥-notifs twice for a release that then succeeded).
+                      echo "superseded=true" >> "$GITHUB_OUTPUT"
                       echo "::error::main advanced while the OTA source was selected ($SOURCE_SHA -> $LATEST_MAIN_SHA)" >&2
                       exit 1
                   fi
@@ -617,7 +622,7 @@ jobs:
     # build and does not alert; App Release Android & iOS alerts for itself.
     alert:
         needs: [resolve, deploy, tag]
-        if: ${{ always() && contains(needs.*.result, 'failure') && needs.deploy.outputs.native_incompatible != 'true' }}
+        if: ${{ always() && contains(needs.*.result, 'failure') && needs.deploy.outputs.native_incompatible != 'true' && needs.resolve.outputs.superseded != 'true' }}
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v7
