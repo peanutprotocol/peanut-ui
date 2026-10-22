@@ -1476,7 +1476,7 @@
             "blockedDescription": "QR payments are not available for your account. Contact support for help.",
             "uploadDocument": "Upload document",
             "verifyAgainTitle": "Verify identity again",
-            "verifyAgainDescription": "Verify your identity again to restore QR payments."
+            "verifyAgainDescription": "QR payments are paused until you verify again."
         },
         "info": {
             "exchangeRate": "Exchange Rate",

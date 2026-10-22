@@ -1476,7 +1476,7 @@
             "blockedDescription": "Pagamentos com QR não estão disponíveis para a sua conta. Fale com o suporte para receber ajuda.",
             "uploadDocument": "Enviar documento",
             "verifyAgainTitle": "Verificar identidade novamente",
-            "verifyAgainDescription": "Verifique sua identidade novamente para voltar a pagar com QR."
+            "verifyAgainDescription": "Os pagamentos com QR estão pausados até você verificar de novo."
         },
         "info": {
             "exchangeRate": "Taxa de câmbio",

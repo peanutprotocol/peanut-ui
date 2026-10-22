@@ -82,7 +82,7 @@ export function QrPayProviderRejectionView() {
                                 onClick: () => sumsubFlow.handleRestartIdentity(),
                                 variant: 'primary' as const,
                                 shadowSize: '4' as const,
-                                icon: 'upload-cloud' satisfies IconName,
+                                icon: (isVerifyAgain ? 'check-circle' : 'upload-cloud') satisfies IconName,
                             }
                           : {
                                 text: tCommon('contactSupport'),
