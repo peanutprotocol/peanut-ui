@@ -201,22 +201,22 @@ describe('avatar artwork geometry', () => {
     })
 })
 
-// GET /avatars/art (TASK-23547): served url first, bundled file second, none last
+// GET /avatars/art (TASK-23547): bundled file first, served url second, none last
 describe('served avatar art', () => {
     const served = (file: string) => `${PEANUT_API_URL}/badges/art/${file}`
     const frog = served('avatar-basic-frog.0123456789ab.webp')
     const newBadge = served('avatar-badge-NEW_BADGE-owl.0123456789ab.webp')
     const art = { 'basic.frog': frog, 'badge.NEW_BADGE.owl': newBadge, 'letter.s': served('avatar-letter-s.webp') }
 
-    it('prefers the served url, then the bundled file, then nothing', () => {
-        expect(avatarSrc('basic.frog', art)).toBe(frog)
-        expect(avatarSrc('basic.cactus', art)).toBe('/avatars/basic/cactus.webp')
-        expect(avatarSrc('basic.frog')).toBe('/avatars/basic/frog.webp')
+    it('prefers the bundled file, then the served url, then nothing', () => {
+        // known to both: the bundle wins
+        expect(avatarSrc('basic.frog', art)).toBe('/avatars/basic/frog.webp')
+        expect(letterAvatarSrc('satoshi', art)).toBe('/avatars/letter/s.webp')
+        // served only: the map url
         expect(avatarSrc('badge.NEW_BADGE.owl', art)).toBe(newBadge)
         expect(avatarSrc('badge.NEW_BADGE.owl')).toBeNull()
         expect(avatarSrc('badge.NOPE.x', art)).toBeNull()
-        expect(letterAvatarSrc('satoshi', art)).toBe(art['letter.s'])
-        expect(letterAvatarSrc('hal', art)).toBe('/avatars/letter/h.webp')
+        expect(servedAvatarArt('basic.frog', art)).toBe(frog)
     })
 
     it.each([
@@ -229,9 +229,9 @@ describe('served avatar art', () => {
         ['a query string', served('avatar-basic-frog.webp?x=1')],
         ['a data url', 'data:image/webp;base64,AAAA'],
         ['a relative path', '/badges/art/avatar-basic-frog.webp'],
-    ])('rejects %s and falls back to the bundled file', (_, url) => {
-        expect(servedAvatarArt('basic.frog', { 'basic.frog': url })).toBeNull()
-        expect(avatarSrc('basic.frog', { 'basic.frog': url })).toBe('/avatars/basic/frog.webp')
+    ])('rejects %s', (_, url) => {
+        expect(servedAvatarArt('badge.NEW_BADGE.owl', { 'badge.NEW_BADGE.owl': url })).toBeNull()
+        expect(avatarSrc('badge.NEW_BADGE.owl', { 'badge.NEW_BADGE.owl': url })).toBeNull()
     })
 
     it('does not read a key off Object.prototype', () => {

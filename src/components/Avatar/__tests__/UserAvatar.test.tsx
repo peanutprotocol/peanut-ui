@@ -70,16 +70,24 @@ describe('UserAvatar', () => {
         expect(container.firstElementChild).toHaveAttribute('aria-hidden', 'true')
     })
 
-    it('renders the served art url when the API has one', () => {
-        mockArt = { 'basic.frog': 'https://api.peanut.me/badges/art/avatar-basic-frog.0123456789ab.webp' }
-        const { container } = render(<UserAvatar name="satoshi" avatarKey="basic.frog" />)
+    it('keeps bundled art and uses the served url only for keys the bundle lacks', () => {
+        mockArt = {
+            'basic.frog': 'https://api.peanut.me/badges/art/avatar-basic-frog.0123456789ab.webp',
+            'badge.NEW_BADGE.owl': 'https://api.peanut.me/badges/art/avatar-badge-NEW_BADGE-owl.0123456789ab.webp',
+        }
+        const { container, rerender } = render(<UserAvatar name="satoshi" avatarKey="basic.frog" />)
+        expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.webp')
 
-        expect(container.querySelector('img')).toHaveAttribute('src', mockArt['basic.frog'])
+        rerender(<UserAvatar name="satoshi" avatarKey="badge.NEW_BADGE.owl" />)
+        expect(container.querySelector('img')).toHaveAttribute('src', mockArt['badge.NEW_BADGE.owl'])
     })
 
-    // TASK-23547: a missing file must not leave a broken image
+    // TASK-23547: a missing served file must not leave a broken image
     it('swaps to the initials avatar when the art fails to load, and retries new art', () => {
-        const { container, rerender } = render(<UserAvatar name="satoshi" avatarKey="basic.frog" />)
+        mockArt = {
+            'badge.NEW_BADGE.owl': 'https://api.peanut.me/badges/art/avatar-badge-NEW_BADGE-owl.0123456789ab.webp',
+        }
+        const { container, rerender } = render(<UserAvatar name="satoshi" avatarKey="badge.NEW_BADGE.owl" />)
 
         fireEvent.error(container.querySelector('img')!)
         expect(container.querySelector('img')).toBeNull()

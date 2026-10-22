@@ -12,8 +12,8 @@
  * (`public/avatars/letter/`), so they are listed here and unlocked for all.
  *
  * The API also serves the art (GET /avatars/art, TASK-23547) as a key → url
- * map. A url from that map wins over the bundled file, and a key only the map
- * knows (a badge avatar added after this bundle shipped) is pickable too. An
+ * map. The bundled file wins; the map fills in keys this bundle does not know
+ * (a badge avatar added after it shipped), which are then pickable too. An
  * empty map (an API without the route, or without an art bucket) leaves
  * everything as the bundle has it.
  */
@@ -127,13 +127,15 @@ export function dealHand(
 }
 
 /**
- * Url of the avatar art: the API's served url when the map has a safe one,
- * else the bundled public path, else null for a key neither knows.
+ * Url of the avatar art: the bundled public path, else the API's served url
+ * when the map has a safe one, else null for a key neither knows.
  */
 export function avatarSrc(key: string | null | undefined, art: AvatarArtUrls = {}): string | null {
     if (!key) return null
-    const served = servedAvatarArt(key, art)
-    if (served) return served
+    return bundledAvatarSrc(key) ?? servedAvatarArt(key, art)
+}
+
+function bundledAvatarSrc(key: string): string | null {
     const [kind, ...rest] = key.split('.')
     if (kind === 'basic' && rest.length === 1 && BASICS.includes(rest[0])) return `/avatars/basic/${rest[0]}.webp`
     if (kind === 'badge' && rest.length === 2 && slugsOf(rest[0]).includes(rest[1])) {

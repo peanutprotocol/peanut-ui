@@ -28,6 +28,7 @@ import { useBadgeEarnToast } from '@/components/Badges/useBadgeEarnToast'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { BadgeImage } from '@/components/Badges/BadgeImage'
 import { badgeAvatarKeys } from '@/components/Avatar/avatar.utils'
+import { useAvatarArt } from '@/components/Avatar/useAvatarArt'
 
 const HOME_PATH = '/home'
 /** Gap between the badge toast and the avatar-unlock toast that follows it. */
@@ -39,6 +40,8 @@ export default function BadgeEarnToast() {
     const pathname = usePathname()
     const { toast, dismiss } = useToast()
     const { pending, markSeen } = useBadgeEarnToast()
+    // the served map also counts badge art this bundle predates
+    const art = useAvatarArt()
     // Ids of the toast(s) currently on screen, so we can dismiss them when the
     // user navigates away from /home (they'd otherwise linger over the next route).
     const liveToastIdsRef = useRef<string[]>([])
@@ -71,8 +74,8 @@ export default function BadgeEarnToast() {
         const label = count === 1 ? t('toastSingle', { name: newestName }) : t('toastMultiple', { count })
 
         // Announce avatars only when one of the earned badges has art.
-        const withArt = codes.filter((code) => badgeAvatarKeys([code]).length > 0)
-        const avatarCount = badgeAvatarKeys(withArt).length
+        const withArt = codes.filter((code) => badgeAvatarKeys([code], art).length > 0)
+        const avatarCount = badgeAvatarKeys(withArt, art).length
 
         toast({
             id: toastId,
@@ -115,7 +118,7 @@ export default function BadgeEarnToast() {
         }
 
         markSeen(codes)
-    }, [pathname, pending, toast, markSeen, t, badgeCopy])
+    }, [pathname, pending, toast, markSeen, t, badgeCopy, art])
 
     // Dismiss the toast(s) when the user leaves /home so they don't ride over
     // the next route for their remaining duration, and cancel a not-yet-fired
