@@ -69,7 +69,8 @@ jest.mock('@/components/AddMoney/consts', () => ({
                     id: 'bank-transfer-add',
                     title: 'From Bank',
                     description: 'Usually in minutes - KYC required',
-                    icon: 'bank',
+                    // the Mercado Pago logo, an imported image like the real one
+                    icon: { src: '/mercado-pago.svg', width: 32, height: 32 },
                     path: '/add-money/argentina/manteca',
                 },
             ],
@@ -252,6 +253,7 @@ jest.mock('@/components/0_Bruddle/ListItem', () => ({
             onClick={props.disabled ? undefined : props.onClick}
             disabled={props.disabled}
         >
+            {props.leading}
             {props.title}
             {props.body}
             {props.trailing}
@@ -305,7 +307,8 @@ jest.mock('@/components/Kyc/InitiateKycModal', () => ({
             </div>
         ) : null,
 }))
-jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
+// renders the alt text only, so a test can read what the row announces
+jest.mock('next/image', () => ({ __esModule: true, default: ({ alt }: { alt: string }) => <img alt={alt} /> }))
 
 describe('AddWithdrawCountriesList — bank gate', () => {
     beforeEach(() => {
@@ -886,6 +889,9 @@ describe('AddWithdrawCountriesList — Argentina', () => {
         expect(screen.queryByTestId('method-from bank')).toBeNull()
         expect(screen.queryByTestId('method-mercado pago')).toBeNull()
         expect(screen.queryByTestId('method-bank or mercado pago')).toBeNull()
+        // the logo is decorative: the button's name is the title, not a method id
+        expect(row.querySelector('img')).toHaveAttribute('alt', '')
+        expect(row).not.toHaveTextContent('bank-transfer-add')
 
         fireEvent.click(row)
         expect(mockPush).toHaveBeenCalledWith('/add-money/argentina/manteca')

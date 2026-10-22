@@ -714,9 +714,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                             }}
                                         />
                                     ) : (
+                                        // decorative: the row title already names the method, and an
+                                        // id as alt text was read out as part of the button's name
                                         <Image
                                             src={method.icon as StaticImageData}
-                                            alt={method.id}
+                                            alt=""
                                             className="h-8 w-8 rounded-full"
                                             width={32}
                                             height={32}
