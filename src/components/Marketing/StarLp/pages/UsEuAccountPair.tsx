@@ -24,12 +24,16 @@ export function UsEuAccountPair() {
                 src={detailsUsd}
                 tilt={-3}
                 delay={0.15}
+                badge="$"
+                badgeCorner="bottom-left"
                 className="relative -ml-2 w-[97%] md:ml-0 md:w-[84%] lg:w-[54%]"
             />
             <UsEuAccountCapture
                 src={detailsEur}
                 tilt={2}
                 delay={0.45}
+                badge="€"
+                badgeCorner="top-right"
                 className="relative z-10 -mt-3 -mr-2 ml-auto w-[97%] md:mr-0 md:w-[84%] lg:mt-16 lg:-ml-16 lg:w-[54%]"
             />
         </UsEuAppLink>
