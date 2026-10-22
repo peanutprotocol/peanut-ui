@@ -65,7 +65,7 @@ export default function ScannedDestinationPayView({
     error,
 }: ScannedDestinationPayViewProps) {
     const t = useTranslations('payment')
-    const { recipient } = useWithdrawFlow()
+    const { recipient, scannedRecipient } = useWithdrawFlow()
     const { selectedTokenData, selectedChainID, selectedTokenAddress, supportedChainsAndTokens } =
         useContext(tokenSelectorContext)
 
@@ -73,11 +73,24 @@ export default function ScannedDestinationPayView({
     // can hold another address for it (ENSIP-11), so it re-resolves per pick
     const isResolvingEns = useEnsRecipientForChain(selectedChainID, addressFamily)
 
+    // A scan that named its network, and a payment request that named its
+    // asset, are paid on exactly that pair. Checked on what would be sent, so
+    // neither a pick nor the selector's own correction can send another pair.
     const chain = withdrawChainRecord(supportedChainsAndTokens, selectedChainID)
-    const canContinue = !!selectedTokenData && !!chain && !!recipient.address && !isResolvingEns
+    const requestedChainId = scannedRecipient?.chainId
+    const requestedToken = scannedRecipient?.tokenAddress
+    const isScannedPair =
+        (!requestedChainId || (selectedChainID === requestedChainId && chain?.chainId === requestedChainId)) &&
+        (!requestedToken ||
+            (!!selectedTokenData &&
+                areEvmAddressesEqual(selectedTokenAddress, requestedToken) &&
+                areEvmAddressesEqual(selectedTokenData.address, requestedToken)))
+
+    const canContinue = !!selectedTokenData && !!chain && !!recipient.address && !isResolvingEns && isScannedPair
     const handleContinue = () => {
         if (!selectedTokenData || !chain || !recipient.address || isResolvingEns || continueDisabled || isLoading)
             return
+        if (!isScannedPair) return
         onContinue({ token: selectedTokenData, chain, address: recipient.address })
     }
 
@@ -121,7 +134,8 @@ export default function ScannedDestinationPayView({
                     {amountError && <FieldError>{amountError}</FieldError>}
                 </div>
 
-                <TokenSelector viewType="withdraw" addressFamily={addressFamily} />
+                {/* a payment request's asset is the request: nothing to pick */}
+                <TokenSelector viewType="withdraw" addressFamily={addressFamily} disabled={!!requestedToken} />
 
                 {showFreeRouteHint && (
                     <div className="pt-1 text-center text-body-xs text-foreground-secondary">

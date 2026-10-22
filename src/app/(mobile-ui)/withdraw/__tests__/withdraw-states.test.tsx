@@ -816,8 +816,8 @@ describe('GROUP 3: Amount Validation', () => {
             expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(SOLANA_USDC)
             expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: SOLANA_ADDRESS })
             expect(mockSetIsValidRecipient).toHaveBeenCalledWith(true)
-            // the pay screen's pickers keep to Solana for a Solana address
-            expect(mockSetScannedRecipient).toHaveBeenCalledWith({ addressFamily: 'solana' })
+            // the pay screen's pickers keep to Solana for a Solana address, the chain it names
+            expect(mockSetScannedRecipient).toHaveBeenCalledWith({ addressFamily: 'solana', chainId: 'solana' })
             expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=25')
         })
 
@@ -990,7 +990,12 @@ describe('GROUP 3: Amount Validation', () => {
 
             expect(mockSetSelectedChainID).toHaveBeenCalledWith('8453')
             expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(BASE_USDC)
-            expect(mockSetScannedRecipient).toHaveBeenCalledWith({ addressFamily: 'evm' })
+            // the requested pair travels with the scan, so the pay screen can hold to it
+            expect(mockSetScannedRecipient).toHaveBeenCalledWith({
+                addressFamily: 'evm',
+                chainId: '8453',
+                tokenAddress: BASE_USDC,
+            })
             expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=10')
             expect(mockRouterReplace.mock.calls[0][0]).not.toContain(EVM_ADDRESS)
         })
@@ -1002,7 +1007,24 @@ describe('GROUP 3: Amount Validation', () => {
             renderWithdraw(entryParams(withdrawScanEntryUrl(id, { tokenSymbol: 'ETH', amount: '0.1' })))
 
             expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(BASE_ETH)
+            expect(mockSetScannedRecipient).toHaveBeenCalledWith({
+                addressFamily: 'evm',
+                chainId: '8453',
+                tokenAddress: BASE_ETH,
+            })
             expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto')
+        })
+
+        // `ethereum:<address>@8453` with no value or transfer asks for no asset:
+        // the chain is the request, and the token stays the user's pick.
+        test('a request that names only its network keeps the network and asks for no token', () => {
+            const id = stashScannedDestination(EVM_ADDRESS, '8453')!
+
+            renderWithdraw(entryParams(withdrawScanEntryUrl(id)))
+
+            expect(mockSetSelectedChainID).toHaveBeenCalledWith('8453')
+            expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(BASE_USDC)
+            expect(mockSetScannedRecipient).toHaveBeenCalledWith({ addressFamily: 'evm', chainId: '8453' })
         })
 
         // Several contracts can share a symbol: the request's exact contract is
@@ -1018,6 +1040,9 @@ describe('GROUP 3: Amount Validation', () => {
             renderWithdraw(entryParams(withdrawScanEntryUrl(id, { tokenSymbol: 'USDC', amount: '10' })))
 
             expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(BASE_BRIDGED_USDC)
+            expect(mockSetScannedRecipient).toHaveBeenCalledWith(
+                expect.objectContaining({ chainId: '8453', tokenAddress: BASE_BRIDGED_USDC })
+            )
         })
 
         // A request is paid in the token it asks for or not at all: a token the
