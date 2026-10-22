@@ -143,7 +143,7 @@ export const FooterChrome = ({
                     <HandSigns i18n={i18n} />
                 </div>
             </nav>
-            <FooterStoreLinks />
+            <FooterStoreLinks locale={locale} />
         </footer>
     )
 }
