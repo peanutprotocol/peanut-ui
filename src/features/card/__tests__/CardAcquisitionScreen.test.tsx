@@ -112,3 +112,14 @@ it('explains the funding destination on the returning entry path', () => {
     expect(mockApply).toHaveBeenCalledTimes(1)
     expect(screen.queryByText('Hold complete')).not.toBeInTheDocument()
 })
+
+it.each([
+    [false, 'fundingBody', 'addFunds'],
+    [true, 'fundedBody', 'continue'],
+])('asks for money on the availability screen only while unfunded (funded=%s)', (funded, body, cta) => {
+    render(<CardAcquisitionScreen {...props} funded={funded} />, {
+        wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=available' }),
+    })
+    expect(screen.getByText(body)).toBeInTheDocument()
+    expect(screen.getByText(cta)).toBeInTheDocument()
+})

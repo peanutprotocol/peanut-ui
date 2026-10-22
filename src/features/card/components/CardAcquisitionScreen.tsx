@@ -54,7 +54,7 @@ export function CardMilestoneScreen({
                 )}
                 <TitleBlock
                     title={<h1>{t(issued ? 'issuedTitle' : 'availableTitle')}</h1>}
-                    description={<p>{t(issued ? 'issuedBody' : 'fundingBody')}</p>}
+                    description={<p>{t(issued ? 'issuedBody' : funded ? 'fundedBody' : 'fundingBody')}</p>}
                     align={issued ? 'center' : 'start'}
                     size="s"
                 />
