@@ -10,6 +10,8 @@ jest.mock('@/lib/content', () => {
             actual
                 .listContentSlugs(intent)
                 .filter((slug: string) => intent !== 'countries' || slug !== 'united-kingdom'),
+        listPublishedSlugs: (intent: string) =>
+            ['send-to', 'receive-from'].includes(intent) ? ['united-kingdom'] : actual.listPublishedSlugs(intent),
         readPageContentLocalized: (intent: string, slug: string, locale: string) =>
             intent === 'countries' && slug === 'united-kingdom'
                 ? null

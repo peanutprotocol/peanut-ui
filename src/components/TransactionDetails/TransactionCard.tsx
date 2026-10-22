@@ -8,6 +8,7 @@ import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { translateTransactionName } from '@/components/TransactionDetails/transaction-name-keys'
+import { requestedInCurrency } from '@/components/TransactionDetails/transaction-details.utils'
 import {
     hasUserProfile,
     isCardPaymentEntry,
@@ -200,9 +201,13 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // that reads as converted but isn't.
     const hasValidCurrencyAmount =
         !!transaction.currency?.amount && Number.isFinite(Number(transaction.currency.amount))
+    // a request asked in euros says so under its dollar figures
+    const requestedAmountDisplay = requestedInCurrency(transaction)
     if (depositKind) {
         // the bank's own amount is already the headline, so no second line
         currencyDisplayAmount = undefined
+    } else if (requestedAmountDisplay) {
+        currencyDisplayAmount = t('requestedInCurrency', { amount: requestedAmountDisplay })
     } else if (
         transaction.currency &&
         ccyCode &&
@@ -315,7 +320,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     return (
         <>
             {/* the clickable row — figma list-item board anatomy */}
+            {/* ph-sensitive: the row can show a counterparty's real name; autocapture keeps the click, not the text */}
             <ListItem
+                className="ph-sensitive"
                 position={position}
                 onClick={handleClick}
                 data-testid="transaction-card"

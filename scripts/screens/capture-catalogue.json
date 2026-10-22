@@ -804,6 +804,11 @@
         "source": "AddMoney/components/OnrampConfirmationModal.tsx"
     },
     {
+        "id": "fixture-history-card-spend",
+        "flow": "Card",
+        "route": "/history"
+    },
+    {
         "id": "fixture-card-application",
         "flow": "Card",
         "route": "/card"
@@ -957,6 +962,12 @@
         "source": "features/limits/components/LimitsWarningCard.tsx"
     },
     {
+        "id": "81-g-request-pot-partial",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=81-g-request-pot-partial",
+        "source": "components/AddMoney/views/RhinoDeposit.view.tsx"
+    },
+    {
         "id": "82-f-choice-card-requires-info",
         "flow": "Card",
         "route": "/dev/surfaces?s=82-f-choice-card-requires-info",
@@ -1013,6 +1024,11 @@
         "route": "/qr-pay?qrCode=00020126330014br.gov.bcb.pix0111123456789095204000053039865802BR5911123456789096009SAO%20PAULO62070503***63047AC2&type=PIX&pixKey=12345678909&t=1"
     },
     {
+        "id": "fixture-history-request-paid-external",
+        "flow": "Payments",
+        "route": "/history"
+    },
+    {
         "id": "fixture-send",
         "flow": "Payments",
         "route": "/send"
@@ -1041,6 +1057,16 @@
         "id": "fixture-history-bank-paid-request",
         "flow": "Payments",
         "route": "/history"
+    },
+    {
+        "id": "fixture-history-request-pot-partial",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-request-pot-partial"
+    },
+    {
+        "id": "fixture-history-request-pot-closed-short",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-request-pot-closed-short"
     },
     {
         "id": "fixture-history-request-bank-details",
@@ -1091,6 +1117,11 @@
         "id": "fixture-request-pay-open-amount",
         "flow": "Payments",
         "route": "/pay-request?chargeId=demo-open-charge"
+    },
+    {
+        "id": "fixture-pay-request-pot-partial-success",
+        "flow": "Payments",
+        "route": "/pay-request?id=demo-request"
     },
     {
         "id": "fixture-request-pay-by-bank",

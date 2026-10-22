@@ -513,6 +513,14 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
+            label: 'Knerd',
+            icon: Type,
+            href: '/dev/ds/marketing/knerd',
+            description:
+                'Display lettering and the exact Follow the pull hero animation: live reference, sizing and motion specs',
+            status: 'limited',
+        },
+        {
             label: 'Assets',
             icon: Images,
             href: '/dev/ds/marketing/assets',

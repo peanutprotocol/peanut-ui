@@ -1,4 +1,5 @@
 import type { CapturedNetworkRequest, SessionRecordingOptions } from 'posthog-js'
+import { maskLinkSecretsInReplayRequest, stripLinkSecrets } from './link-secret-privacy'
 import { maskQrReplayRequest, redactQrTelemetryString } from './qr-telemetry-privacy'
 
 /*
@@ -59,7 +60,7 @@ export function maskReplayTextIn(text: string, element?: Element | null): string
 const TEXT_ATTRIBUTES = new Set(['aria-label', 'aria-valuetext', 'aria-valuenow', 'title', 'alt', 'value'])
 
 export function maskReplayAttribute(name: string, value: string, element?: Element | null): string {
-    const redacted = redactQrTelemetryString(value)
+    const redacted = stripLinkSecrets(redactQrTelemetryString(value))
     // A link target is a URL like any other; a stylesheet's href must stay
     // loadable for the replay to render, so only links are rewritten.
     if (name === 'href') return element?.tagName === 'A' ? maskReplayUrl(redacted) : redacted
@@ -93,9 +94,10 @@ export function maskReplayUrl(url: string): string {
  * every body and header, as well as what `maskReplayUrl` drops.
  */
 export function maskReplayNetworkRequest(request: CapturedNetworkRequest): CapturedNetworkRequest {
-    const masked = maskQrReplayRequest(request)
+    const linkSafe = maskLinkSecretsInReplayRequest(request)
+    const masked = maskQrReplayRequest(linkSafe)
     // a QR URL already reads as the QR redaction marker; keep that contract
-    if (!masked.name || masked.name !== request.name) return masked
+    if (!masked.name || masked.name !== linkSafe.name) return masked
     return { ...masked, name: maskReplayUrl(masked.name) }
 }
 

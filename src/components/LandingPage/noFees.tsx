@@ -161,7 +161,6 @@ export function NoFees({
                         // no bare-slug page, so the short form 404s
                         { label: 'Wise', href: contentHrefs.wiseComparison },
                         { label: 'PayPal', href: contentHrefs.paypalComparison },
-                        { label: 'Western Union', href: contentHrefs.westernUnionComparison },
                     ]}
                 />
             </div>

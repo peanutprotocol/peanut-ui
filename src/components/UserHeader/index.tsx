@@ -71,7 +71,8 @@ export const VerifiedUserLabel = ({
     const isInviter = user?.invitedBy === username
 
     return (
-        <div className="flex min-w-0 items-center gap-1">
+        // ph-sensitive: `name` can be a real name; autocapture keeps the click, not the text
+        <div className="ph-sensitive flex min-w-0 items-center gap-1">
             {/* The AddressLink lane only wins when the caller passed no worded
                 copy (name === username). A caller that DID word the name — the
                 receipt head's "Added from {ens}" — must not have its title

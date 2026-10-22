@@ -956,7 +956,8 @@
                 "noWalletAddress": "Nenhum endereço de carteira encontrado. Tente recarregar a página.",
                 "userNotLoaded": "Seus dados não foram carregados. Recarregue a página.",
                 "setupFailed": "Não conseguimos concluir a configuração da sua conta. Tente de novo pelo botão abaixo.",
-                "supportNeeded": "Estamos com problemas para configurar sua conta. Nosso time já foi notificado. Fale com o suporte para receber ajuda."
+                "supportNeeded": "Estamos com problemas para configurar sua conta. Nosso time já foi notificado. Fale com o suporte para receber ajuda.",
+                "passkeyProviderUnsupported": "O gerenciador de senhas deste celular salvou uma passkey que o Peanut não consegue verificar. Crie sua conta em outro dispositivo."
             }
         },
         "finish": {
@@ -1302,10 +1303,9 @@
             "invalidPaymentUrlDescription": "O link está incompleto ou digitado errado. Peça para quem enviou compartilhar de novo.",
             "requestNotFoundTitle": "Cobrança não encontrada",
             "requestNotFoundDescription": "Esta cobrança não existe ou foi removida. Peça um novo link para quem enviou.",
-            "requestClosedTitle": "Esta cobrança está encerrada"
+            "requestClosedTitle": "Esta cobrança está encerrada",
+            "externalPaymentNotConfirmed": "Não foi possível confirmar este pagamento. Se o dinheiro saiu da sua carteira, fale com o suporte."
         },
-        "requestCurrencyNote": "Esta solicitação pede {amount}. Com Peanut, cripto ou transferência bancária em dólar você paga o valor em dólar, que foi fixado quando a solicitação foi criada.",
-        "requestCurrencyNotePartPaid": "Esta solicitação pede {amount} e faltam {remaining} a pagar. Com Peanut, cripto ou transferência bancária em dólar você paga o valor em dólar, que foi fixado quando a solicitação foi criada.",
         "bankTransfer": {
             "title": "Pagar por transferência bancária",
             "description": "Envie do seu banco para a conta de quem pediu o pagamento.",
@@ -1327,6 +1327,14 @@
         },
         "requestAsksFor": "Pedido de {amount}",
         "requestAsksForDollars": "{amount} em dólar, fixado quando a solicitação foi criada",
+        "partialContribution": {
+            "title": "{received} de {asked} recebidos",
+            "description": "Ainda faltam {remaining}. Envie para o endereço abaixo."
+        },
+        "confirmingPayment": {
+            "title": "Confirmando pagamento",
+            "description": "Ainda estamos confirmando seu pagamento. Pode levar alguns minutos, e ele vai aparecer em Atividade. Se não chegar, fale com o suporte."
+        },
         "requestAlreadyCovered": "Esta solicitação já está coberta. Não falta nada a pagar."
     },
     "claim": {
@@ -1911,6 +1919,7 @@
             "supportedNetworks": "Redes compatíveis",
             "supportedTokens": "Tokens compatíveis",
             "supportedTokensInline": "Tokens compatíveis:",
+            "sendExtraForFees": "Envie um pouco a mais se sua carteira ou a rede cobrar uma taxa.",
             "supportedEvmNetworks": "Redes EVM compatíveis",
             "evmNetworks": "redes EVM",
             "selectNetworkType": "Selecione o tipo de rede",
@@ -2261,6 +2270,7 @@
         "noGoalSet": "Sem meta definida",
         "amountCollected": "${amount} arrecadados",
         "contributors": "Contribuidores ({count})",
+        "requestedInCurrency": "Pedido de {amount}",
         "pendingLinkDeviceNote": "Use o dispositivo onde você criou este link para cancelar ou compartilhar de novo.",
         "type": {
             "send": "Envio",
@@ -2403,6 +2413,12 @@
             "cancelling": "Cancelando",
             "cancelled": "Cancelado",
             "closeRequest": "Fechar cobrança",
+            "closeRequestConfirm": {
+                "title": "Fechar esta cobrança?",
+                "descriptionUnpaid": "{remaining} de {total} não foram pagos. Ninguém poderá pagar depois que você fechar.",
+                "description": "Ninguém poderá pagar esta cobrança depois que você a fechar.",
+                "keepOpen": "Manter aberta"
+            },
             "cancelRequest": "Cancelar cobrança",
             "pay": "Pagar",
             "rejectRequest": "Recusar cobrança",
@@ -2631,6 +2647,7 @@
         "iconAlt": "Ícone de {name}",
         "shareAchievement": "Compartilhar conquista",
         "shareText": "Ganhei o selo {badge} no Peanut!\n\nEntre no Peanut e comece a ganhar pontos, desbloquear conquistas e movimentar dinheiro pelo mundo\n\n{link}",
+        "shareJoin": "Bora pro Peanut comigo: {link}",
         "toastSingle": "Selo desbloqueado: {name}",
         "toastMultiple": "{count, plural, one {# selo desbloqueado} other {# selos desbloqueados}}",
         "unlock": {
@@ -3760,7 +3777,8 @@
             "goalAchieved": "Meta alcançada!",
             "belowGoal": "{percentage}% abaixo da meta",
             "contributed": "{amount} contribuído",
-            "remaining": "{amount} restante"
+            "remaining": "{amount} restante",
+            "notPaid": "{amount} não pago"
         },
         "mantecaMaintenance": {
             "title": "Serviço temporariamente indisponível",

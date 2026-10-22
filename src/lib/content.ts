@@ -24,6 +24,7 @@ import path from 'path'
 import matter from 'gray-matter'
 import { SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
 import { isValidLocale } from '@/i18n/config'
+import { resolvePermanentRedirectPath } from '@/lib/seo/redirects'
 
 const CONTENT_ROOT = path.join(process.cwd(), 'src/content')
 
@@ -224,7 +225,7 @@ export function resolveContentHref(href: string, locale: Locale): string {
         if (!targetLocale) return href
 
         const ownedPath = `/${[targetLocale, ...segments].join('/')}`
-        return `${PEANUT_PRODUCTION_ORIGIN}${ownedPath}${absoluteHref.search}${absoluteHref.hash}`
+        return `${PEANUT_PRODUCTION_ORIGIN}${resolvePermanentRedirectPath(ownedPath)}${absoluteHref.search}${absoluteHref.hash}`
     }
     if (href.startsWith('//')) return href
 
@@ -239,7 +240,7 @@ export function resolveContentHref(href: string, locale: Locale): string {
     const owner = contentOwnerForPath(segments, locale)
     const targetLocale = owner ?? locale
     const localizedPath = `/${[targetLocale, ...segments].join('/')}`
-    return `${localizedPath}${suffix}`
+    return `${resolvePermanentRedirectPath(localizedPath)}${suffix}`
 }
 
 /** Supported locales whose own file exists for this page. */

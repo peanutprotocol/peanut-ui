@@ -603,6 +603,34 @@ describe('General Utilities', () => {
             expect(contributors[0].isPeanutUser).toBe(false)
             expect(contributors[0].avatarKey).toBeNull()
         })
+
+        // TASK-23856: $99.16 asked, Hugo paid $40.65, a second payer's $58.51
+        // charge received 33 USDC. The rows read $40.65 + $58.51 = $99.16 beside
+        // "$73.65 contributed".
+        it('shows what each contributor paid, so the rows add up to the collected total', () => {
+            const charges = [
+                {
+                    ...makeCharge('hugo', [makePayment('SUCCESSFUL', 'hugo')]),
+                    tokenAmount: '40.65',
+                    settledAmount: '40.65',
+                    partialPayment: false,
+                },
+                {
+                    ...makeCharge('short', [makePayment('SUCCESSFUL', null)]),
+                    tokenAmount: '58.51',
+                    settledAmount: '33',
+                    partialPayment: true,
+                },
+            ]
+            const contributors = getContributorsFromCharge(charges)
+            expect(contributors.map((c) => c.amount)).toEqual(['40.65', '33'])
+            expect(contributors.reduce((sum, c) => sum + Number(c.amount), 0)).toBeCloseTo(73.65, 2)
+        })
+
+        it('keeps the asked amount on an API that sends no settled figure', () => {
+            const [contributor] = getContributorsFromCharge([makeCharge('c1', [makePayment('SUCCESSFUL', 'alice')])])
+            expect(contributor.amount).toBe('10')
+        })
     })
 
     /*

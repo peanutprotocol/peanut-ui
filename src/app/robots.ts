@@ -3,6 +3,7 @@ import { BASE_URL } from '@/constants/general.consts'
 import { SUPPORTED_LOCALES } from '@/i18n/types'
 import {
     GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS,
+    MARKETING_CRAWL_ALLOW_PATHS,
     ROBOTS_DISALLOWED_PATHS,
     isProductionDomain,
 } from '@/constants/seo-route-policy'
@@ -24,6 +25,9 @@ export default function robots(): MetadataRoute.Robots {
     }
 
     const disallowedPaths = [...ROBOTS_DISALLOWED_PATHS]
+    // Every group that repeats the disallows also repeats these allows, or the
+    // bare '/request' and '/qr' prefixes would hide the marketing pages.
+    const marketingAllows = [...MARKETING_CRAWL_ALLOW_PATHS]
 
     return {
         rules: [
@@ -46,7 +50,7 @@ export default function robots(): MetadataRoute.Robots {
             // `/api/og` allow still wins over `/api/` by longest-match.
             {
                 userAgent: 'Googlebot',
-                allow: ['/api/og', ...GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS],
+                allow: ['/api/og', ...GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS, ...marketingAllows],
                 disallow: disallowedPaths,
             },
 
@@ -63,7 +67,7 @@ export default function robots(): MetadataRoute.Robots {
                     'Google-Extended',
                     'Applebot-Extended',
                 ],
-                allow: ['/'],
+                allow: ['/', ...marketingAllows],
                 disallow: disallowedPaths,
             },
 
@@ -78,6 +82,7 @@ export default function robots(): MetadataRoute.Robots {
                     // Exact app shells currently present in search indexes.
                     // Narrow crawling lets engines process and refresh noindex.
                     ...GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS,
+                    ...marketingAllows,
                     // SEO routes (all locale-prefixed)
                     ...SUPPORTED_LOCALES.map((l) => `/${l}/`),
                 ],
@@ -85,9 +90,9 @@ export default function robots(): MetadataRoute.Robots {
             },
 
             // A named group does not inherit `*`, so repeat the shared blocks.
-            { userAgent: 'AhrefsBot', disallow: disallowedPaths, crawlDelay: 10 },
-            { userAgent: 'SemrushBot', disallow: disallowedPaths, crawlDelay: 10 },
-            { userAgent: 'MJ12bot', disallow: disallowedPaths, crawlDelay: 10 },
+            { userAgent: 'AhrefsBot', allow: marketingAllows, disallow: disallowedPaths, crawlDelay: 10 },
+            { userAgent: 'SemrushBot', allow: marketingAllows, disallow: disallowedPaths, crawlDelay: 10 },
+            { userAgent: 'MJ12bot', allow: marketingAllows, disallow: disallowedPaths, crawlDelay: 10 },
         ],
         sitemap: `${BASE_URL}/sitemap.xml`,
     }

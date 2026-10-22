@@ -2,7 +2,7 @@
 
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import { MASCOT_ART_FILL } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
-import { GlobalCashLocalFeel, Star } from '@/assets/illustrations'
+import { Star } from '@/assets/illustrations'
 import Link from 'next/link'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import Image from 'next/image'
@@ -11,14 +11,13 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss, type CloudConfig } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import type { LandingStrings } from './landingStrings'
-import type { LandingContentHrefs } from './landingContentHrefs'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { CTA_MOTION } from '@/components/Marketing/constants'
 
 /**
  * Peanut mascot that positions itself so only 6% of its height (the feet)
- * overlaps with the h2 subtitle below. Measures the h2 position on mount
- * and resize, then sets its own bottom edge to sit 6% into the h2.
+ * overlaps with the h1 subtitle below. Measures the h1 position on mount
+ * and resize, then sets its own bottom edge to sit 6% into the h1.
  */
 function HeroMascot() {
     const hostRef = useRef<HTMLDivElement>(null)
@@ -26,11 +25,11 @@ function HeroMascot() {
     const position = useCallback(() => {
         const host = hostRef.current
         const hero = document.getElementById('hero')
-        const h2 = hero?.querySelector('h2')
-        if (!host || !hero || !h2) return
+        const h1 = hero?.querySelector('h1')
+        if (!host || !hero || !h1) return
 
         const heroRect = hero.getBoundingClientRect()
-        const h2Rect = h2.getBoundingClientRect()
+        const h1Rect = h1.getBoundingClientRect()
         const hostHeight = host.getBoundingClientRect().height
 
         if (hostHeight === 0) return // not rendered yet
@@ -38,9 +37,9 @@ function HeroMascot() {
         const peanutHeight = hostHeight * MASCOT_ART_FILL
         const footPadding = (hostHeight - peanutHeight) / 2
 
-        // Position so peanut's feet (bottom 3%) overlap with h2 top
+        // Position so peanut's feet (bottom 3%) overlap with h1 top
         const overlap = peanutHeight * 0.06
-        const peanutBottom = h2Rect.top - heroRect.top + overlap
+        const peanutBottom = h1Rect.top - heroRect.top + overlap
         const peanutTop = peanutBottom - peanutHeight - footPadding
 
         host.style.top = `${peanutTop}px`
@@ -88,7 +87,6 @@ const heroClouds: CloudConfig[] = [
 
 type HeroProps = {
     strings: LandingStrings
-    contentHrefs: LandingContentHrefs
     primaryCta?: CTAButton
     secondaryCta?: CTAButton
     buttonVisible?: boolean
@@ -113,7 +111,7 @@ const getCtaStyle = (buttonVisible?: boolean): CSSProperties =>
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `relative z-20 mt-8 flex flex-col items-center justify-center transition-opacity duration-slow ${variant === 'primary' ? 'mx-auto' : 'right-[calc(50%-120px)]'}`
 
-export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strings, contentHrefs }: HeroProps) {
+export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strings }: HeroProps) {
     const migrationOn = useMigrationFlag()
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
@@ -153,14 +151,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
             <CloudsCss clouds={heroClouds} className="md:hidden" />
             <CloudsCss className="hidden md:block" />
             <div className="relative mt-10 w-full md:mt-0">
-                {/* 23rem = the fixed stack below the artwork (h2 -> CTA) + 3rem slack, so the CTA stays inside the first fold on short laptop viewports */}
-                <Image
-                    src={GlobalCashLocalFeel}
-                    preload
-                    sizes="(min-width: 768px) 50vw, 100vw"
-                    className="z-0 mx-auto h-auto max-h-[calc(100svh-23rem)] w-full max-w-7xl object-contain md:w-[50%]"
-                    alt="Global Cash Local Feel"
-                />
+                <div aria-hidden className="h-[32vh] max-h-80" />
 
                 <AnimateOnView
                     className="absolute bottom-[-4%] left-[1%] w-8 sm:bottom-[11%] sm:left-[12%] md:bottom-[18%] md:left-[5%] md:w-12"
@@ -180,33 +171,12 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
             <HeroMascot />
 
             <div className="relative z-20 flex w-full flex-col items-center justify-center">
-                {/* Short phone viewports only: the pt-BR headline wraps to 3 lines (and to 4 below
-                    360px) where en/es take 2, which pushes the CTA under the fold. Buy the 38-76px
-                    back from this gap rather than from the artwork, so every locale keeps the same
-                    hero on normal screens. Width-scoped too, or it would fire on 1366x657 laptops. */}
-                <h2 className="font-roboto-flex-extrabold mt-16 text-center text-[2.375rem] font-extraBlack text-foreground-primary md:mt-12 md:text-heading [@media(max-height:660px)_and_(max-width:767px)]:mt-4">
-                    {strings.heroTapScan}
-                </h2>
-                <span
-                    className="mt-2 block text-center text-xl leading-tight text-foreground-primary md:mt-4 md:text-5xl"
-                    style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
-                >
-                    <Link prefetch={false} href={contentHrefs.unitedStates} className="hover:underline">
-                        {strings.heroCityNewYork}
-                    </Link>
-                    .{' '}
-                    <Link prefetch={false} href={contentHrefs.spain} className="hover:underline">
-                        {strings.heroCityMadrid}
-                    </Link>
-                    .{' '}
-                    <Link prefetch={false} href={contentHrefs.mexico} className="hover:underline">
-                        {strings.heroCityMexicoCity}
-                    </Link>
-                    .
-                </span>
-                <span className="mt-2 block text-center text-body-s text-foreground-over-color-secondary md:text-body-m">
-                    {strings.heroNoLocalId}
-                </span>
+                <h1 className="font-roboto-flex-extrabold mt-16 max-w-4xl text-center text-[2.375rem] font-extraBlack text-foreground-primary md:mt-12 md:text-heading [@media(max-height:660px)_and_(max-width:767px)]:mt-4">
+                    {strings.heroHeadline}
+                </h1>
+                <p className="mt-2 max-w-3xl text-center text-xl leading-tight text-foreground-primary md:mt-4 md:text-3xl">
+                    {strings.heroSubline}
+                </p>
                 {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
                 {/* Web login remains available until migration moves authentication into the app. */}

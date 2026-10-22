@@ -7,6 +7,7 @@ import { clearAuthState } from '@/utils/auth.utils'
 import { currentCeremonyId, stashCeremonyVerifyToken } from '@/utils/passkeyCeremony.utils'
 import { PasskeyVerifyRejectedError } from '@/utils/passkey-auth-capture'
 import { getPasskeyErrorSetupKey } from '@/utils/webauthn.utils'
+import { AccountType } from '@/interfaces/interfaces'
 
 const mockSetIsLoggingIn = jest.fn()
 const mockCaptureException = jest.fn()
@@ -21,6 +22,8 @@ const mockGetClientForChain = jest.fn()
 const mockEnsureClientForChain = jest.fn()
 let mockUseRealProvider = false
 let mockSavedKey: unknown
+let mockAccounts: Array<{ type: AccountType }> = []
+let mockUserLoaded = true
 
 type PasskeyTestGlobals = typeof globalThis & {
     __passkeyTestIOSNative?: boolean
@@ -30,7 +33,7 @@ const passkeyTestGlobals = globalThis as PasskeyTestGlobals
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
-        user: { user: { userId: 'u1', username: 'alice' }, accounts: [] },
+        user: mockUserLoaded ? { user: { userId: 'u1', username: 'alice' }, accounts: mockAccounts } : null,
         logoutUser: mockLogoutUser,
         fetchUser: jest.fn(),
         hydrateLoginSession: mockHydrateLoginSession,
@@ -120,6 +123,8 @@ jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockAccounts = []
+    mockUserLoaded = true
     passkeyTestGlobals.__passkeyTestIOSNative = false
     delete passkeyTestGlobals.__capgoPasskeyShimInstalled
 })
@@ -524,6 +529,8 @@ describe('useZeroDev handleSendUserOpEncoded — stale credential cleanup', () =
 
     beforeEach(() => {
         errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        // a signed-in wallet user: the only case where a stale key means a stale session
+        mockAccounts = [{ type: AccountType.PEANUT_WALLET }]
         client = {
             account: {
                 encodeCalls: jest.fn().mockResolvedValue('0xencoded'),
@@ -582,6 +589,31 @@ describe('useZeroDev handleSendUserOpEncoded — stale credential cleanup', () =
                 expect(zeroDevFlowActions.setIsSendingUserOp).toHaveBeenLastCalledWith(false)
             }
         )
+
+        // TASK-23931: at signup's Confirm & finish the key is fresh, and AA24
+        // can come from a clientDataJSON layout the validator cannot read
+        it.each(['UserOperation reverted with reason: AA24 signature error', 'wapk: unauthorized'])(
+            'keeps the session and the saved key when no wallet account exists yet, for %s',
+            async (message) => {
+                mockAccounts = []
+                const error = new Error(message)
+                expect(await sendRejectingWith(error)).toBe(error)
+
+                expect(mockLogoutUser).not.toHaveBeenCalled()
+                expect(mockUpdateUserPreferences).not.toHaveBeenCalled()
+                expect(client.waitForUserOperationReceipt).not.toHaveBeenCalled()
+                const { zeroDevFlowActions } = jest.requireMock('@/hooks/useZeroDevFlow')
+                expect(zeroDevFlowActions.setIsSendingUserOp).toHaveBeenLastCalledWith(false)
+            }
+        )
+
+        it('still logs out on AA24 while the user is not loaded yet', async () => {
+            mockUserLoaded = false
+            const error = new Error('UserOperation reverted with reason: AA24 signature error')
+
+            expect(await sendRejectingWith(error)).toMatchObject({ isStaleKeyError: true, cause: error })
+            expect(mockLogoutUser).toHaveBeenCalledTimes(1)
+        })
 
         it.each(['401 unauthorized', 'network request failed'])(
             'preserves the saved credential for %s',

@@ -69,7 +69,13 @@ jest.mock('@/services/pending-invite-attribution', () => ({
 }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { identify: jest.fn(), reset: jest.fn(), register: jest.fn() },
+    default: {
+        identify: jest.fn(),
+        get_distinct_id: jest.fn(),
+        setPersonProperties: jest.fn(),
+        reset: jest.fn(),
+        register: jest.fn(),
+    },
 }))
 
 import { AuthProvider, useAuth } from '../authContext'
@@ -149,6 +155,18 @@ describe('logoutUser', () => {
         })
 
         expect(hasHeldSession()).toBe(false)
+    })
+
+    it('forgets the analytics identity fingerprint, so the next user starts clean', async () => {
+        localStorage.setItem('posthog-person-properties-sent', 'abc123')
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(localStorage.getItem('posthog-person-properties-sent')).toBeNull()
     })
 
     it('releases the latch when the hard navigation never happens', async () => {

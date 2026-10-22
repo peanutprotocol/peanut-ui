@@ -29,6 +29,7 @@ import {
     persistSignupAttribution,
     readSignupAttribution,
     restoreSignupAttribution,
+    signupAnalyticsState,
     signupAttributionPosthogProperties,
     type SignupAttributionContext,
 } from './signup-attribution'
@@ -475,9 +476,11 @@ function captureRestore(
  * Consumers: the store-bounce handlers in migration.utils (openStore /
  * onStoreAnchorClick); the download modal (TASK-20769) joins them when built.
  */
-export function trackDeferredHandoffCreated(platform: 'ios' | 'android'): void {
+export function trackDeferredHandoffCreated(store: 'ios' | 'android'): void {
     try {
-        posthog.capture(ANALYTICS_EVENTS.DEFERRED_LINK_HANDOFF_CREATED, { platform })
+        // `store`, not `platform`: the `platform` super property is the device
+        // the event came from, and an event must not overwrite it.
+        posthog.capture(ANALYTICS_EVENTS.DEFERRED_LINK_HANDOFF_CREATED, { store })
     } catch {}
 }
 
@@ -576,9 +579,11 @@ async function doRestore(): Promise<RestoredContext | null> {
     }
 
     const restored = applyDeferredPayload(payload)
-    if (payload.attribution) {
-        const persisted = readSignupAttribution()
-        if (persisted) await persistSignupAttribution(persisted)
+    if (payload.attribution && signupAnalyticsState() === 'enabled') {
+        // WKWebView can discard the cookie immediately. Await the native
+        // write using the decoded evidence before registration or a restart.
+        const persisted = readSignupAttribution() ?? { ...payload.attribution, captureMethod: 'deferred_link' as const }
+        await persistSignupAttribution(persisted)
     }
     const restoreFields: Record<string, boolean | string> = {
         has_dest: !!restored.dest,

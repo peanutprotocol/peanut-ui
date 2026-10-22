@@ -5,7 +5,6 @@
 import { render, screen } from '@testing-library/react'
 import { Hero } from '../hero'
 import { landingStrings } from '../landingStrings'
-import { EN_LANDING_CONTENT_HREFS } from '../landingContentHrefs'
 import { getTranslations } from '@/i18n'
 
 jest.mock('next/image', () => ({
@@ -21,14 +20,7 @@ jest.mock('@/hooks/useMigrationFlag', () => ({
 const strings = landingStrings(getTranslations('en'))
 
 function renderHero() {
-    render(
-        <Hero
-            strings={strings}
-            contentHrefs={EN_LANDING_CONTENT_HREFS}
-            buttonVisible
-            customCta={<span>store pair</span>}
-        />
-    )
+    render(<Hero strings={strings} buttonVisible customCta={<span>store pair</span>} />)
 }
 
 describe('Hero login link', () => {
@@ -46,4 +38,12 @@ describe('Hero login link', () => {
         renderHero()
         expect(screen.queryByRole('link', { name: strings.logIn })).not.toBeInTheDocument()
     })
+})
+
+it('leads with the approved income-and-spending promise as a real H1', () => {
+    renderHero()
+    expect(screen.getByRole('heading', { level: 1, name: 'Get paid globally. Spend locally.' })).toBeInTheDocument()
+    expect(screen.getByText('Receive dollars and euros. Pay by card or QR.')).toBeInTheDocument()
+    expect(screen.queryByText('No local ID or bank required.')).not.toBeInTheDocument()
+    expect(screen.queryByAltText('Global Cash Local Feel')).not.toBeInTheDocument()
 })

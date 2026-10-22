@@ -112,7 +112,6 @@ export function LandingPageClient({
                 primaryCta={primaryCta}
                 buttonVisible={!isFooterVisible}
                 strings={strings}
-                contentHrefs={contentHrefs}
                 customCta={migrationOn ? <LandingDownloadCta subtext={heroConfig.primaryCta.subtext} /> : undefined}
             />
             <Marquee {...marqueeProps} />

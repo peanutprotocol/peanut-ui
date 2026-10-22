@@ -16,6 +16,30 @@ export function withNativeHelpContext(href: string): string {
     }
 }
 
+/**
+ * The native export renders every app link with a trailing slash
+ * (`trailingSlash: true`), so a tap on `/en/help` asks the sheet for
+ * `/en/help/`. The website is slashless and redirects.json 308s the locale tree
+ * back, and once peanut.me's service worker controls the sheet, iOS 16 Safari
+ * fails a navigation whose worker response followed a redirect: "Response
+ * served by service worker has redirections". Open the slashless page directly.
+ *
+ * The website's own origins only — other peanut.me hosts (the API, attachment
+ * storage) keep whatever path they were given.
+ */
+export function withoutTrailingSlash(href: string): string {
+    try {
+        const url = new URL(href)
+        const appOrigin = new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.me').origin
+        const isWebsite = url.origin === 'https://peanut.me' || url.origin === appOrigin
+        if (!isWebsite || url.pathname === '/' || !url.pathname.endsWith('/')) return href
+        url.pathname = url.pathname.replace(/\/+$/, '')
+        return url.href
+    } catch {
+        return href
+    }
+}
+
 let nativeHelpDocument = false
 
 /**

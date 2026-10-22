@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
@@ -151,9 +152,12 @@ export default function MarketingBrandPage() {
 
             <DocSection
                 title="Knerd"
-                description="Only through Title, for 1–3 accent words. Pass a size class, nothing else."
+                description="Use Title for static accent words. The Knerd page documents the type treatment and selected hero animation."
             >
                 <DocSection.Content>
+                    <Link href="/dev/ds/marketing/knerd" className="text-body-s underline">
+                        Knerd type and hero animation →
+                    </Link>
                     <div className="rounded-sm bg-action-primary p-4 text-center">
                         <Title text="NO FEES." className="text-heading" />
                     </div>
