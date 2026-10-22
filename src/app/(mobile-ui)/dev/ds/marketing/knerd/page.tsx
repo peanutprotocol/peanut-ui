@@ -158,7 +158,7 @@ export default function KnerdPage() {
                         edge placement, including card logos and the request-window title bar.
                     </p>
                     <p className="text-body-s">The shared treatment covers all six star pages:</p>
-                    <ul className="space-y-2 list-disc pl-5 text-body-s">
+                    <ul className="space-y-2 list-disc pl-6 text-body-s">
                         <li>
                             <Link className="underline" href="/us-europe-accounts">
                                 US and Europe accounts
