@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { writeFile } from 'node:fs/promises'
 import { getIndexablePages } from '../../src/lib/seo/url-inventory'
 
 test('every sitemap URL is a direct 200, self-canonical and indexable', async ({ request, page }) => {
@@ -73,9 +74,8 @@ test('every sitemap URL is a direct 200, self-canonical and indexable', async ({
         if (errors.length) failures.push({ url: entry.url, errors })
     }
     console.log(`Checked ${sitemap.length} rendered sitemap URLs; ${failures.length} failures`)
-    await test.info().attach('rendered-head-results', {
-        body: Buffer.from(JSON.stringify({ checked: sitemap.length, failures }, null, 2)),
-        contentType: 'application/json',
-    })
+    const reportPath = test.info().outputPath('rendered-head-results.json')
+    await writeFile(reportPath, JSON.stringify({ checked: sitemap.length, failures }, null, 2))
+    await test.info().attach('rendered-head-results', { path: reportPath, contentType: 'application/json' })
     expect(failures).toEqual([])
 })
