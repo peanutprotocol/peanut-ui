@@ -12,24 +12,27 @@ export {}
 const KEY = '__harness_skip_passkey'
 const ENV = 'NEXT_PUBLIC_HARNESS_SKIP_PASSKEY_CHECK'
 
-async function loadBypass(flag: boolean): Promise<() => boolean> {
+async function loadHarnessConsts(flag: boolean) {
     if (flag) process.env[ENV] = 'true'
     else delete process.env[ENV]
     jest.resetModules()
-    const mod = await import('../harness.consts')
-    return mod.harnessPasskeyBypass
+    return import('../harness.consts')
 }
 
+async function loadBypass(flag: boolean): Promise<() => boolean> {
+    return (await loadHarnessConsts(flag)).harnessPasskeyBypass
+}
+
+const original = process.env[ENV]
+
+afterEach(() => {
+    if (original === undefined) delete process.env[ENV]
+    else process.env[ENV] = original
+    localStorage.clear()
+    jest.resetModules()
+})
+
 describe('harnessPasskeyBypass', () => {
-    const original = process.env[ENV]
-
-    afterEach(() => {
-        if (original === undefined) delete process.env[ENV]
-        else process.env[ENV] = original
-        localStorage.clear()
-        jest.resetModules()
-    })
-
     it('bypasses only when the harness flag AND the localStorage key are both set', async () => {
         localStorage.setItem(KEY, 'true')
         const harnessPasskeyBypass = await loadBypass(true)
@@ -50,5 +53,39 @@ describe('harnessPasskeyBypass', () => {
     it('is false when neither signal is present', async () => {
         const harnessPasskeyBypass = await loadBypass(false)
         expect(harnessPasskeyBypass()).toBe(false)
+    })
+})
+
+describe('HARNESS_STORAGE_KEYS', () => {
+    // The QA harness in mono imports these through uiSrc(), but reproduce
+    // manifests saved before a rename still carry the old strings. A rename is
+    // a deliberate change: update this list in the same PR.
+    it('keeps the strings the harness and saved reproduce manifests use', async () => {
+        const { HARNESS_STORAGE_KEYS } = await loadHarnessConsts(false)
+        expect(HARNESS_STORAGE_KEYS).toEqual({
+            skipPasskey: '__harness_skip_passkey',
+            ecdsaPk: '__harness_ecdsa_pk',
+            ecdsaSponsored: '__harness_ecdsa_sponsored',
+            replayActions: '__harness_replay_actions',
+            replayIndex: '__harness_replay_index',
+        })
+    })
+})
+
+describe('harnessSignerStorage', () => {
+    it('turns the bypass on and stores the key and the sponsorship mode', async () => {
+        const { harnessSignerStorage } = await loadHarnessConsts(false)
+        expect(harnessSignerStorage('0xabc', true)).toEqual({
+            __harness_skip_passkey: 'true',
+            __harness_ecdsa_pk: '0xabc',
+            __harness_ecdsa_sponsored: 'true',
+        })
+        expect(harnessSignerStorage('0xabc', false).__harness_ecdsa_sponsored).toBe('false')
+    })
+
+    it('writes entries the bypass check accepts', async () => {
+        const { harnessSignerStorage, harnessPasskeyBypass } = await loadHarnessConsts(true)
+        for (const [k, v] of Object.entries(harnessSignerStorage('0xabc', true))) localStorage.setItem(k, v)
+        expect(harnessPasskeyBypass()).toBe(true)
     })
 })

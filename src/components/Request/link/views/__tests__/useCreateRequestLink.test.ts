@@ -103,7 +103,10 @@ jest.mock('@/app/actions/tokens', () => ({ fetchTokenDetails: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 // identity debounce keeps the autosave path synchronous in tests
 jest.mock('@/hooks/useDebounce', () => ({ useDebounce: (value: unknown) => value }))
-jest.mock('@/constants/harness.consts', () => ({ HARNESS_ENABLED: false }))
+jest.mock('@/constants/harness.consts', () => ({
+    ...jest.requireActual('@/constants/harness.consts'),
+    HARNESS_ENABLED: false,
+}))
 jest.mock('@/constants/zerodev.consts', () => ({ PEANUT_WALLET_CHAIN: { id: 42161 }, PEANUT_WALLET_TOKEN: '0xusdc' }))
 jest.mock('@/utils/general.utils', () => ({
     fetchTokenSymbol: jest.fn(),

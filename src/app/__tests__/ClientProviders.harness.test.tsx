@@ -31,7 +31,10 @@ jest.mock('next/dynamic', () => ({
     },
 }))
 
-jest.mock('@/constants/harness.consts', () => ({ HARNESS_ENABLED: true }))
+jest.mock('@/constants/harness.consts', () => ({
+    ...jest.requireActual('@/constants/harness.consts'),
+    HARNESS_ENABLED: true,
+}))
 jest.mock('@/constants/dev-tools.consts', () => ({ DEV_TOOLS_ENABLED: false }))
 
 const passthrough = (name: string) => ({
