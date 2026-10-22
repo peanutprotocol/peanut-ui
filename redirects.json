@@ -1450,6 +1450,36 @@
         "permanent": true
     },
     {
+        "source": "/es/content",
+        "destination": "/es-419/blog",
+        "permanent": true
+    },
+    {
+        "source": "/es/content/:path*",
+        "destination": "/es-419/blog/:path*",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/content",
+        "destination": "/es-419/blog",
+        "permanent": true
+    },
+    {
+        "source": "/es-es/content/:path*",
+        "destination": "/es-419/blog/:path*",
+        "permanent": true
+    },
+    {
+        "source": "/pt/content",
+        "destination": "/pt-br/blog",
+        "permanent": true
+    },
+    {
+        "source": "/pt/content/:path*",
+        "destination": "/pt-br/blog/:path*",
+        "permanent": true
+    },
+    {
         "source": "/es/:path*",
         "destination": "/es-419/:path*",
         "permanent": true

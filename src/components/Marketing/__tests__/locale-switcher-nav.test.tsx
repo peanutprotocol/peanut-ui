@@ -30,10 +30,10 @@ describe('LocaleSwitcher', () => {
     })
 
     it('carries the query string across the locale switch', () => {
-        pathname = '/en/content'
-        window.history.replaceState({}, '', '/en/content?type=blog&q=fees')
+        pathname = '/en/blog'
+        window.history.replaceState({}, '', '/en/blog?type=blog&q=fees')
 
-        expect(openAndGetOption()).toHaveAttribute('href', '/pt-br/content?type=blog&q=fees')
+        expect(openAndGetOption()).toHaveAttribute('href', '/pt-br/blog?type=blog&q=fees')
     })
 
     it('adds no bare ? when there is no query', () => {

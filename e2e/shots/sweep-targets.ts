@@ -250,7 +250,7 @@ const REP = new Set([
     '/{locale}/pricing',
     '/{locale}/supported-networks',
     '/{locale}/help',
-    '/{locale}/content',
+    '/{locale}/blog',
     '/{locale}/stories',
 ])
 
@@ -271,7 +271,7 @@ const paths: string[] = [
     '/{locale}/pricing',
     '/{locale}/supported-networks',
     '/{locale}/help',
-    '/{locale}/content',
+    '/{locale}/blog',
     '/{locale}/stories',
     '/{locale}/press',
 ]

@@ -7,7 +7,7 @@ import { ContentPage } from '@/components/Marketing/ContentPage'
 import { ContentGuideList } from '@/components/Marketing/ContentGuideList'
 import { Hero } from '@/components/Marketing/mdx/Hero'
 
-/** One topic of the content hub, served at /{locale}/blog/{topic} and its /{locale}/content/{topic} alias. */
+/** One topic of the content hub, served at /{locale}/blog/{topic} (the former /content address 308s here). */
 export function ContentTopicHub({ locale, topic }: { locale: Locale; topic: ContentTopic }) {
     const i18n = getTranslations(locale)
     const { title, description } = getContentTopicCopy(i18n, topic)

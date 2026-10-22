@@ -4318,7 +4318,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         role: "Bare <div className='... animate-pulse rounded bg-gray-200'/> skeleton blocks.",
         usages: 9,
         status: 'adhoc',
-        source: 'src/app/[locale]/(marketing)/help/page.tsx:64,70,74,75; (marketing)/content/page.tsx:52; Common/ContactsListSkeleton.tsx; Common/CountryListSkeleton.tsx',
+        source: 'src/app/[locale]/(marketing)/help/page.tsx:64,70,74,75; (marketing)/blog/page.tsx; Common/ContactsListSkeleton.tsx; Common/CountryListSkeleton.tsx',
         notes: 'Grew 4 -> 9. The off-token grey fill is now concentrated in the marketing routes and the two named skeletons — the in-app surfaces migrated to bg-background-disabled, so this is the un-migrated tail.',
     },
     {

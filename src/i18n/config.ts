@@ -9,7 +9,6 @@ export const ROUTE_SLUGS = [
     'compare',
     'deposit',
     'blog',
-    'content',
     'receive-money-from',
     'pay-with',
     'press',

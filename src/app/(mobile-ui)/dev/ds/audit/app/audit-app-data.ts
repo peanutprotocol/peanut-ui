@@ -751,7 +751,7 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                     'app/quests/explore/page.tsx',
                     'app/[locale]/(marketing)/press/page.tsx',
                     'app/quests/[questId]/page.tsx',
-                    'app/[locale]/(marketing)/content/page.tsx',
+                    'app/[locale]/(marketing)/blog/page.tsx',
                     'app/[locale]/(marketing)/stories/page.tsx',
                 ],
                 verified: true,

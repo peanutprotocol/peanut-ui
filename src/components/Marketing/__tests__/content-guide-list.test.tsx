@@ -17,14 +17,14 @@ describe('topic guide links', () => {
                 heading={i18n.contentBrowseTopics}
                 items={CONTENT_TOPICS.map((topic) => ({
                     ...getContentTopicCopy(i18n, topic),
-                    href: `/${locale}/content/${topic}`,
+                    href: `/${locale}/blog/${topic}`,
                     lang: locale,
                 }))}
             />
         )
         expect(getByRole('navigation', { name: i18n.contentBrowseTopics })).toBeInTheDocument()
         expect(container.querySelectorAll('a')).toHaveLength(6)
-        expect(container.querySelector(`a[href="/${locale}/content/deposit"]`)).toHaveTextContent(
+        expect(container.querySelector(`a[href="/${locale}/blog/deposit"]`)).toHaveTextContent(
             getContentTopicCopy(i18n, 'deposit').title
         )
     })
