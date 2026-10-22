@@ -171,6 +171,7 @@ describe('AmountInput full-balance fill', () => {
 
         fireEvent.change(field, { target: { value: '5' } })
         expect(onAmountTyped).toHaveBeenCalledTimes(1)
+        expect(onAmountTyped).toHaveBeenCalledWith('$')
     })
 
     it('does not offer the fill while the input is disabled', () => {

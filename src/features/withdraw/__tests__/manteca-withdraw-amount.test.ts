@@ -4,8 +4,7 @@ const base = {
     usdAmount: '13.33',
     currencyAmount: '20000',
     currency: 'ARS',
-    isAmountTypedInUsd: false,
-    isUsdSourced: false,
+    amountEnteredIn: 'local' as const,
 }
 
 describe('mantecaWithdrawInitRequest (TASK-23997)', () => {
@@ -18,15 +17,8 @@ describe('mantecaWithdrawInitRequest (TASK-23997)', () => {
         expect(mantecaWithdrawInitRequest({ ...base, currencyAmount: '20,000.5' }).fiatAmount).toBe('20000.5')
     })
 
-    it('an amount typed in USD is the amount to deliver', () => {
-        expect(mantecaWithdrawInitRequest({ ...base, isAmountTypedInUsd: true })).toEqual({
-            amount: '13.33',
-            currency: 'ARS',
-        })
-    })
-
-    it('a local amount that came from USD, untyped since, keeps the USD amount', () => {
-        expect(mantecaWithdrawInitRequest({ ...base, isUsdSourced: true })).toEqual({
+    it('an amount entered in USD is the amount to deliver, whatever the field displays', () => {
+        expect(mantecaWithdrawInitRequest({ ...base, amountEnteredIn: 'usd' })).toEqual({
             amount: '13.33',
             currency: 'ARS',
         })

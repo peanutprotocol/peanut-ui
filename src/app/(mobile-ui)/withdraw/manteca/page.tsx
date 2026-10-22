@@ -141,10 +141,10 @@ function MantecaBankWithdrawFlow() {
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
     // The amount field can toggle to USD; the review and success lead with the currency typed.
     const [isAmountTypedInUsd, setIsAmountTypedInUsd] = useState(false)
-    // The local amount came from a USD amount (the ?amount= hand-off or a
-    // balance fill) and the user has not typed since: the USD amount is the one
-    // the user chose, and the lock prices that USD (TASK-23997).
-    const [isAmountUsdSourced, setIsAmountUsdSourced] = useState(false)
+    // The currency the user last entered the amount in: the lock prices that
+    // amount exactly (TASK-23997). A ?amount= hand-off and a balance fill are
+    // USD; toggling the field's display does not change it.
+    const [amountEnteredIn, setAmountEnteredIn] = useState<'local' | 'usd'>('local')
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     // USD amount handed over by the shared /withdraw amount step (TASK-21664)
     const [urlAmount] = useWithdrawAmount()
@@ -310,7 +310,7 @@ function MantecaBankWithdrawFlow() {
 
     const setSeededCurrencyAmount = useCallback((local: string) => {
         setCurrencyAmount(local)
-        setIsAmountUsdSourced(true)
+        setAmountEnteredIn('usd')
     }, [])
     const { resetSeed } = useMantecaAmountSeed({
         urlAmount,
@@ -468,8 +468,7 @@ function MantecaBankWithdrawFlow() {
             usdAmount,
             currencyAmount,
             currency: currencyCode,
-            isAmountTypedInUsd,
-            isUsdSourced: isAmountUsdSourced,
+            amountEnteredIn,
         })
         setIsLockingPrice(true)
         try {
@@ -520,8 +519,7 @@ function MantecaBankWithdrawFlow() {
         usdAmount,
         currencyCode,
         currencyAmount,
-        isAmountTypedInUsd,
-        isAmountUsdSourced,
+        amountEnteredIn,
         isAmountWithinLiveBalance,
         isUserMantecaKycApprovedForCountry,
         isLockingPrice,
@@ -901,7 +899,7 @@ function MantecaBankWithdrawFlow() {
         setOutcome(null)
         setCurrencyAmount(undefined)
         setUsdAmount(undefined)
-        setIsAmountUsdSourced(false)
+        setAmountEnteredIn('local')
         setWithdrawInitRequest(null)
         setUnaffordableQuote(null)
         setDestinationAddress(paramAddress ?? '')
@@ -946,8 +944,7 @@ function MantecaBankWithdrawFlow() {
                     usdAmount,
                     currencyAmount,
                     currency: currencyCode,
-                    isAmountTypedInUsd,
-                    isUsdSourced: isAmountUsdSourced,
+                    amountEnteredIn,
                 })
             ) &&
             !isAmountWithinBalance(unaffordableQuote.usdAmount, balance)
@@ -967,8 +964,7 @@ function MantecaBankWithdrawFlow() {
         balance,
         unaffordableQuote,
         currencyCode,
-        isAmountTypedInUsd,
-        isAmountUsdSourced,
+        amountEnteredIn,
         hasPendingTransactions,
         isLoading,
         t,
@@ -1196,8 +1192,10 @@ function MantecaBankWithdrawFlow() {
                             setCurrentDenomination={(symbol) => setIsAmountTypedInUsd(symbol.toUpperCase() === 'USD')}
                             // a filled balance means "withdraw everything": the USD amount is the one to
                             // deliver, until the user types
-                            onBalanceFilled={() => setIsAmountUsdSourced(true)}
-                            onAmountTyped={() => setIsAmountUsdSourced(false)}
+                            onBalanceFilled={() => setAmountEnteredIn('usd')}
+                            onAmountTyped={(symbol) =>
+                                setAmountEnteredIn(symbol.toUpperCase() === 'USD' ? 'usd' : 'local')
+                            }
                             walletBalance={balance !== undefined ? formattedSpendableBalance : undefined}
                             // the amount field is in the local currency while the balance row is
                             // usd, so the fill converts with currencyPrice.sell — the same

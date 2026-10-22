@@ -108,7 +108,7 @@ jest.mock('@/components/Global/AmountInput', () => ({
         setSecondaryAmount?: (v: string) => void
         setCurrentDenomination?: (symbol: string) => void
         onBalanceFilled?: (v: string) => void
-        onAmountTyped?: () => void
+        onAmountTyped?: (denomination: string) => void
         initialAmount?: string
     }) => (
         <div
@@ -118,7 +118,7 @@ jest.mock('@/components/Global/AmountInput', () => ({
         >
             <button
                 onClick={() => {
-                    props.onAmountTyped?.()
+                    props.onAmountTyped?.('ARS')
                     props.setPrimaryAmount('20000')
                     props.setSecondaryAmount?.('13.33')
                 }}
@@ -128,7 +128,7 @@ jest.mock('@/components/Global/AmountInput', () => ({
             <button
                 onClick={() => {
                     // the user clears the seeded amount and types the same digits again
-                    props.onAmountTyped?.()
+                    props.onAmountTyped?.('ARS')
                     props.setPrimaryAmount(props.initialAmount ?? '')
                 }}
             >
@@ -137,7 +137,7 @@ jest.mock('@/components/Global/AmountInput', () => ({
             <button
                 onClick={() => {
                     // a lower local amount whose USD estimate rounds the same
-                    props.onAmountTyped?.()
+                    props.onAmountTyped?.('ARS')
                     props.setPrimaryAmount('19996')
                     props.setSecondaryAmount?.('13.33')
                 }}
@@ -147,13 +147,22 @@ jest.mock('@/components/Global/AmountInput', () => ({
             <button
                 onClick={() => {
                     props.setCurrentDenomination?.('USD')
-                    props.onAmountTyped?.()
+                    props.onAmountTyped?.('USD')
                     props.setPrimaryAmount('30000')
                     props.setSecondaryAmount?.('20')
                 }}
             >
                 type-usd
             </button>
+            <button
+                onClick={() => {
+                    // the toggle only switches what the field shows; nothing is typed
+                    props.setCurrentDenomination?.('ARS')
+                }}
+            >
+                show-local
+            </button>
+            <button onClick={() => props.setCurrentDenomination?.('USD')}>show-usd</button>
             <button
                 onClick={() => {
                     props.onBalanceFilled?.('150000')
@@ -965,6 +974,24 @@ describe('manteca withdraw — exact typed amount (TASK-23997)', () => {
         await lockAndOpenReview(view, { priceLockCode: 'lock-usd', usdAmount: '20', fiatAmount: '30120.00' })
 
         expect(mockInitiateWithdraw).toHaveBeenCalledWith({ amount: '20', currency: 'ARS' })
+    })
+
+    it('USD typed and then shown in the local currency stays USD (Chip review)', async () => {
+        const view = enterAmount('type-usd')
+        fireEvent.click(screen.getByText('show-local'))
+
+        await lockAndOpenReview(view, { priceLockCode: 'lock-usd', usdAmount: '20', fiatAmount: '30120.00' })
+
+        expect(mockInitiateWithdraw).toHaveBeenCalledWith({ amount: '20', currency: 'ARS' })
+    })
+
+    it('a local amount typed and then shown in USD stays the local amount', async () => {
+        const view = enterAmount('type-ars')
+        fireEvent.click(screen.getByText('show-usd'))
+
+        await lockAndOpenReview(view, ARS_LOCK)
+
+        expect(mockInitiateWithdraw).toHaveBeenCalledWith({ amount: '13.33', fiatAmount: '20000', currency: 'ARS' })
     })
 
     it('a filled balance is locked as USD only: the user asked for everything', async () => {

@@ -6,13 +6,13 @@ import { normalizeBankAmount } from './bank-amount'
 /**
  * The /manteca/withdraw/init request for the amount on the screen (TASK-23997).
  *
- * A local amount the user typed goes as `fiatAmount`, so the API prices the
- * exact USDC for it and the bank receives that amount. The USD amount stays
- * the one to deliver when the user typed USD, or when the local amount came
- * from a USD amount and the user has not typed since: the ?amount= hand-off
- * (the /withdraw amount step is USD only) or a balance fill (withdraw
- * everything). Typing decides, not the value: a user who retypes the derived
- * amount has typed it.
+ * The amount to deliver is the one the user entered, in the currency they
+ * entered it in. A local amount goes as `fiatAmount`, so the API prices the
+ * exact USDC for it and the bank receives that amount. A USD amount is sent
+ * as USD: typed in USD (and only displayed in the local currency after a
+ * toggle), handed over by ?amount= (the /withdraw amount step is USD only),
+ * or a balance fill (withdraw everything). The last typed edit decides, not
+ * the value on the field or the currency it shows.
  *
  * `amount` goes with `fiatAmount` too: an API that predates `fiatAmount`
  * ignores it and prices `amount`, so the app works whichever repo deploys first.
@@ -21,14 +21,13 @@ export function mantecaWithdrawInitRequest(input: {
     usdAmount: string
     currencyAmount: string | undefined
     currency: string
-    isAmountTypedInUsd: boolean
-    /** The local amount came from a USD amount, and the user has not typed since. */
-    isUsdSourced: boolean
+    /** The currency the user last entered the amount in. */
+    amountEnteredIn: 'local' | 'usd'
 }): WithdrawInitRequest {
     const request = { amount: input.usdAmount, currency: input.currency }
-    if (input.isAmountTypedInUsd) return request
+    if (input.amountEnteredIn === 'usd') return request
     const fiatAmount = normalizeBankAmount(input.currencyAmount)
-    if (fiatAmount === null || input.isUsdSourced) return request
+    if (fiatAmount === null) return request
     return { ...request, fiatAmount }
 }
 
