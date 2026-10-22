@@ -39,6 +39,9 @@ interface AmountInputProps {
     balanceFillAmount?: number
     /** Called with the amount actually filled when the balance row is tapped. */
     onBalanceFilled?: (value: string) => void
+    /** Called with the denomination symbol the user types in; a balance fill,
+     *  a currency toggle or an `initialAmount` sync does not call it. */
+    onAmountTyped?: (denomination: string) => void
     hideCurrencyToggle?: boolean
     hideBalance?: boolean
     infoContent?: React.ReactNode
@@ -67,6 +70,7 @@ const AmountInput = ({
     walletBalance,
     balanceFillAmount,
     onBalanceFilled,
+    onAmountTyped,
     hideCurrencyToggle,
     hideBalance,
     infoContent,
@@ -383,6 +387,7 @@ const AmountInput = ({
                                     value = formattedAmount
                                 }
                                 if (value === displayValue) return
+                                onAmountTyped?.(displaySymbol)
                                 // a payer who emptied the field takes the next suggestion
                                 suggestionArmedRef.current = value === ''
                                 setDisplayValue(value)
