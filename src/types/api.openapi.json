@@ -11289,7 +11289,7 @@
         },
         "/manteca/withdraw/init": {
             "post": {
-                "description": "Creates a price lock for withdraw. Returns the locked exchange rate valid for ~120 seconds. Use this before showing the user the final amount.",
+                "description": "Creates a price lock for withdraw. Returns the locked exchange rate valid for ~120 seconds. Use this before showing the user the final amount. With `fiatAmount`, `usdAmount` is the exact USDC (6 decimals) to sign so the bank receives `fiatAmount`.",
                 "parameters": [
                     {
                         "in": "header",
@@ -11306,7 +11306,7 @@
                             "schema": {
                                 "properties": {
                                     "amount": {
-                                        "description": "Amount to withdraw in USD (USDC)",
+                                        "description": "Amount to withdraw in USD (USDC). Ignored when `fiatAmount` is set.",
                                         "type": "string"
                                     },
                                     "currency": {
@@ -11373,10 +11373,14 @@
                                             }
                                         ],
                                         "description": "Target fiat currency (e.g. ARS, BRL)"
+                                    },
+                                    "fiatAmount": {
+                                        "description": "Amount the bank must receive, in `currency`, as the user typed it (at most 2 decimals). The response prices the USDC for it.",
+                                        "pattern": "^(?=.*[1-9])\\d{1,12}(\\.\\d{1,2})?$",
+                                        "type": "string"
                                     }
                                 },
                                 "required": [
-                                    "amount",
                                     "currency"
                                 ],
                                 "type": "object"
