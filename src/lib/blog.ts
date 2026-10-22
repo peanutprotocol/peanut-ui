@@ -2,6 +2,7 @@ import matter from 'gray-matter'
 import fs from 'fs'
 import path from 'path'
 import { renderContent } from '@/lib/mdx'
+import { getLocaleFallbacks } from '@/lib/content'
 
 import type { Locale } from '@/i18n/types'
 import type { ReactNode } from 'react'
@@ -57,17 +58,21 @@ export function getAllPosts(locale: Locale = 'en'): BlogPost[] {
 export async function getPostBySlug(
     slug: string,
     locale: Locale = 'en'
-): Promise<{ frontmatter: BlogPost['frontmatter']; content: ReactNode } | null> {
-    const filePath = path.join(getBlogDir(), slug, `${locale}.md`)
-    if (!fs.existsSync(filePath)) return null
+): Promise<{ frontmatter: BlogPost['frontmatter']; content: ReactNode; locale: Locale } | null> {
+    for (const lang of getLocaleFallbacks(locale)) {
+        const filePath = path.join(getBlogDir(), slug, `${lang}.md`)
+        if (!fs.existsSync(filePath)) continue
 
-    const raw = fs.readFileSync(filePath, 'utf8')
-    const { data, content: body } = matter(raw)
-    if (data.published === false) return null
+        const raw = fs.readFileSync(filePath, 'utf8')
+        const { data, content: body } = matter(raw)
+        if (data.published === false) continue
 
-    const { content } = await renderContent(body, locale)
+        const contentLocale = lang as Locale
+        const { content } = await renderContent(body, contentLocale)
 
-    const frontmatter = { ...data, date: coerceDate(data.date) } as BlogPost['frontmatter']
+        const frontmatter = { ...data, date: coerceDate(data.date) } as BlogPost['frontmatter']
 
-    return { frontmatter, content }
+        return { frontmatter, content, locale: contentLocale }
+    }
+    return null
 }
