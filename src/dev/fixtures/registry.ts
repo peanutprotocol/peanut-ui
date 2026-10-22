@@ -738,6 +738,26 @@ const QR_PAY_BLOCKED_RAIL = {
     reason: { code: 'provider_rejected', userMessage: 'QR payments are not available for this account.' },
 }
 
+/**
+ * QR rails the API paused because the identity evidence behind the approval is
+ * gone (`SUMSUB_IDENTITY_MISSING`): the fix is the identity restart.
+ */
+const QR_IDENTITY_MISSING_CAPABILITIES = {
+    rails: [
+        {
+            ...QR_PAY_BLOCKED_RAIL,
+            blockingActions: ['restart-identity'],
+            reason: { code: 'identity_missing', userMessage: 'Verify your identity again to restore QR payments.' },
+        },
+    ],
+    nextActions: [{ key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_missing' }],
+    restrictions: [],
+}
+
+/** A static Pix QR with no amount: the scan screen's own route. */
+const PIX_QR_ROUTE =
+    '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1'
+
 /** An Argentine user: one Manteca bank rail, and no Bridge corridor at all. */
 const MANTECA_AR_CAPABILITIES = {
     rails: [
@@ -1233,6 +1253,28 @@ export const FIXTURES: Record<string, Fixture> = {
             'POST /manteca/pix-key/owner': { name: 'MARIA DA SILVA', legalIdMasked: '12*******09' },
         },
     },
+    // The capabilities let the user pay, but the API refuses the scan for
+    // identity (TASK-23747): the card starts the verification.
+    'qr-pay-kyc-required': {
+        route: PIX_QR_ROUTE,
+        about: 'A scan the API refuses with MANTECA_KYC_REQUIRED: the error card offers Verify identity.',
+        rejects: {
+            'POST /manteca/qr-payment/init': {
+                status: 400,
+                body: {
+                    error: 'User KYC not approved',
+                    message: 'User KYC not approved',
+                    code: 'MANTECA_KYC_REQUIRED',
+                },
+            },
+        },
+    },
+    // TASK-22698: the restart, not the start route that answers "already approved".
+    'qr-pay-identity-missing': {
+        route: PIX_QR_ROUTE,
+        about: 'QR rails paused for missing identity evidence: the gate restarts the identity check.',
+        responses: { 'GET /users/me': { capabilities: QR_IDENTITY_MISSING_CAPABILITIES } },
+    },
     // Activity after a PIX-key payment: the owner's name, not the key.
     'history-pix-key-owner': {
         route: '/history',
@@ -1698,6 +1740,28 @@ export const FIXTURES: Record<string, Fixture> = {
                         { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_missing' },
                     ],
                     restrictions: [],
+                },
+            },
+        },
+    },
+    // TASK-20344: the provider refuses the ARS top-up for the account. Tap
+    // Continue: the screen shows the refusal copy, not "Unexpected error".
+    'add-money-provider-rejected': {
+        route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
+        about: 'ARS top-up the provider refuses (PROVIDER_REJECTED): Continue shows the refusal copy.',
+        responses: {
+            'GET /users/me': {
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                capabilities: MANTECA_AR_CAPABILITIES,
+            },
+        },
+        rejects: {
+            'POST /manteca/deposit': {
+                status: 422,
+                body: {
+                    error: 'Unexpected error',
+                    message: 'Failed to create price lock: User needs extra doc.',
+                    code: 'PROVIDER_REJECTED',
                 },
             },
         },
