@@ -5,6 +5,7 @@ import * as content from './content'
 import { CORRIDORS, RECEIVE_SOURCES, SEND_TO_COUNTRIES } from '@/data/seo'
 import { SUPPORTED_LOCALES } from '@/i18n/types'
 import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
+import redirects from '../../redirects.json'
 
 const originalCorridors = [...CORRIDORS]
 const originalReceiveSources = [...RECEIVE_SOURCES]
@@ -42,6 +43,21 @@ describe('content topic discovery', () => {
         expect(deposits).not.toContain('/en/deposit/from-ach')
         expect(listContentTopic('countries', 'en').map(({ href }) => href)).toContain('/en/argentina')
         expect(listContentTopic('withdraw', 'en').map(({ href }) => href)).toContain('/en/withdraw/faster-payments')
+    })
+
+    it('does not advertise retired guide titles whose URLs redirect to a different article', () => {
+        const redirectSources = new Set(
+            redirects
+                .filter((redirect) => redirect.permanent && !redirect.source.includes(':') && !('has' in redirect))
+                .map(({ source }) => source)
+        )
+        for (const locale of SUPPORTED_LOCALES) {
+            const guides = CONTENT_TOPICS.flatMap((topic) => listContentTopic(topic, locale))
+            expect(guides.filter(({ href }) => redirectSources.has(href))).toEqual([])
+            expect(listCountryGuides('france', locale).filter(({ href }) => redirectSources.has(href))).toEqual([])
+        }
+        expect(listContentTopic('deposit', 'en').some(({ href }) => href === '/en/deposit/from-binance')).toBe(false)
+        expect(listContentTopic('deposit', 'en').some(({ href }) => href === '/en/deposit/from-eur-account')).toBe(true)
     })
 
     it('links to the published content owner when a regional translation is absent', () => {

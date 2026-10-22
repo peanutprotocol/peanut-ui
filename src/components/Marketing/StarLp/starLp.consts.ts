@@ -56,7 +56,7 @@ export const SECTION_TITLE_CLASS: Record<SectionTitleSize, string> = {
     display: 'text-headingSmall md:text-headingMedium',
 }
 
-/** The six routes. Pages are noindex until Konrad approves them. */
+/** The six public feature landing pages. */
 export const STAR_LP_ROUTES = {
     usEuAccounts: '/us-europe-accounts',
     qrArgentina: '/qr-payments/argentina',

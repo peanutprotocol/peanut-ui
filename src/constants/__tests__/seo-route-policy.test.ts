@@ -95,12 +95,15 @@ describe('SEO route policy', () => {
         }
     )
 
-    it.each(['/lp', '/api/og/marketing?title=Peanut', '/m/stain', '/en/pay-with/pix'])(
-        'does not render a noindex header for %s through Next route matching',
-        async (route) => {
-            await expect(renderedRobotsHeader(route)).resolves.toBeNull()
-        }
-    )
+    it.each([
+        '/lp',
+        '/api/og/marketing?title=Peanut',
+        '/m/stain',
+        '/en/pay-with/pix',
+        ...Object.values(STAR_LP_ROUTES),
+    ])('does not render a noindex header for %s through Next route matching', async (route) => {
+        await expect(renderedRobotsHeader(route)).resolves.toBeNull()
+    })
 
     it('has no duplicate or malformed route entries', () => {
         expect(new Set(NOINDEX_ROUTE_PREFIXES).size).toBe(NOINDEX_ROUTE_PREFIXES.length)
