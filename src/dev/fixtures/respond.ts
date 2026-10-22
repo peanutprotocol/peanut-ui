@@ -52,6 +52,10 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
     if (fixture.fails?.includes(key)) {
         return new Response(JSON.stringify({ error: 'fixture failure' }), { status: 500, headers: JSON_HEADERS })
     }
+    const rejection = fixture.rejects?.[key]
+    if (rejection) {
+        return new Response(JSON.stringify(rejection.body), { status: rejection.status, headers: JSON_HEADERS })
+    }
 
     // demo-api already answers every route the app calls, with a shape-aware
     // fallback for the rest. A fixture only says what differs from that.
