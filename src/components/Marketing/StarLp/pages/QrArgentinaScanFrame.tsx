@@ -32,7 +32,7 @@ export function QrArgentinaScanFrame({ children }: { children: ReactNode }) {
             <motion.div
                 key={armed ? 'armed' : 'rest'}
                 ref={ref}
-                className="relative mx-auto mt-10 w-44 p-4 md:w-52"
+                className="relative mx-auto mt-10 w-52 p-4 md:w-60"
                 initial={armed ? 'hidden' : false}
                 whileInView={armed ? 'locked' : undefined}
                 viewport={{ once: true, amount: 0.6 }}

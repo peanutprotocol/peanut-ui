@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { StaticImageData } from 'next/image'
 import type { TitleMark } from '@/components/0_Bruddle/Title.types'
 import type { MarqueeItem } from '@/components/Global/MarqueeWrapper/marquee.types'
 
@@ -326,3 +327,21 @@ export interface StarLpFxRate {
  * `live` up to 30 minutes, `lastKnown` up to 12 hours, then `none`.
  */
 export type StarLpFxReading = { tier: 'live' | 'lastKnown'; quote: StarLpFxRate } | { tier: 'none'; quote: null }
+
+export interface TillStickerProps {
+    /** The rail's mark above the line: a `@/assets/payment-apps` SVG import. */
+    mark: StaticImageData
+    /** The rail's name, as the mark's alt text. */
+    markAlt: string
+    /** The sticker's line, in the till's language ("Pagá con QR"). */
+    label: string
+    /** BCP 47 tag of `label`. */
+    lang: string
+    campaign: StarLpQrCampaign
+    /** Where the sticker sits; tags the QR's utm_content. */
+    slot: StarLpQrSlot
+    /** Width classes; the sticker scales with its width. */
+    className?: string
+    /** Load the mark eagerly; set only where the sticker is in the first screen. */
+    priority?: boolean
+}
