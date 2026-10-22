@@ -1884,7 +1884,8 @@
             "cryptoDescription": "Deposite de uma carteira ou corretora",
             "bankTransfer": "Transferência bancária",
             "kycRequired": "Precisa de verificação",
-            "bankTransferDescription": "Dados bancários reutilizáveis para receber"
+            "bankTransferDescription": "Dados bancários reutilizáveis para receber",
+            "mercadoPagoOrBank": "Mercado Pago ou Banco"
         },
         "networkDrawer": {
             "title": "Escolher rede",

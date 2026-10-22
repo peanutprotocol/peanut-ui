@@ -1884,7 +1884,8 @@
             "cryptoDescription": "Deposit from a wallet or exchange",
             "bankTransfer": "Bank transfer",
             "kycRequired": "Verification required",
-            "bankTransferDescription": "Reusable bank details to get paid"
+            "bankTransferDescription": "Reusable bank details to get paid",
+            "mercadoPagoOrBank": "Mercado Pago or Bank"
         },
         "networkDrawer": {
             "title": "Choose network",

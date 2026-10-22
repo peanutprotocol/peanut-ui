@@ -57,10 +57,25 @@ jest.mock('@/components/AddMoney/consts', () => ({
         // hand-editing the URL, which is the hole F9 names
         { type: 'country', path: 'nocorridor', id: 'IND', title: 'Nocorridor', currency: 'inr' },
         { type: 'country', path: 'aland', id: 'ALA', title: 'Åland', currency: 'eur' },
+        { type: 'country', path: 'argentina', id: 'AR', title: 'Argentina', currency: 'ars' },
     ],
     // the corridor table reads this; the real module exports it
     BRIDGE_ALPHA3_TO_ALPHA2: { DEU: 'DE', ALA: 'AX' },
     COUNTRY_SPECIFIC_METHODS: {
+        // the real Argentina row: Mercado Pago has no row of its own
+        AR: {
+            add: [
+                {
+                    id: 'bank-transfer-add',
+                    title: 'From Bank',
+                    description: 'Usually in minutes - KYC required',
+                    // the Mercado Pago logo, an imported image like the real one
+                    icon: { src: '/mercado-pago.svg', width: 32, height: 32 },
+                    path: '/add-money/argentina/manteca',
+                },
+            ],
+            withdraw: [],
+        },
         US: {
             add: [
                 {
@@ -238,7 +253,9 @@ jest.mock('@/components/0_Bruddle/ListItem', () => ({
             onClick={props.disabled ? undefined : props.onClick}
             disabled={props.disabled}
         >
+            {props.leading}
             {props.title}
+            {props.body}
             {props.trailing}
         </button>
     ),
@@ -290,7 +307,8 @@ jest.mock('@/components/Kyc/InitiateKycModal', () => ({
             </div>
         ) : null,
 }))
-jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
+// renders the alt text only, so a test can read what the row announces
+jest.mock('next/image', () => ({ __esModule: true, default: ({ alt }: { alt: string }) => <img alt={alt} /> }))
 
 describe('AddWithdrawCountriesList — bank gate', () => {
     beforeEach(() => {
@@ -850,6 +868,36 @@ it('a Manteca rail clicked from a multi-rail list forwards the send origin as se
  * rail list of its own, so the two things that could break are the screen it
  * renders and the button that leaves it.
  */
+// TASK-21375: "Mercado Pago" and "From Bank" were two rows into the one Manteca
+// screen, which takes either transfer. One row names both, Mercado Pago first.
+describe('AddWithdrawCountriesList — Argentina', () => {
+    beforeEach(() => {
+        mockPush.mockClear()
+        mockParams.country = 'argentina'
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'AR' }])
+    })
+
+    afterEach(() => {
+        mockParams.country = 'testland'
+    })
+
+    it('offers one row for a Mercado Pago or bank transfer, into the Manteca screen', () => {
+        render(<AddWithdrawCountriesList flow="add" />)
+
+        const row = screen.getByTestId('method-mercado pago or bank')
+        expect(row).toHaveTextContent('Usually arrives in minutes')
+        expect(screen.queryByTestId('method-from bank')).toBeNull()
+        expect(screen.queryByTestId('method-mercado pago')).toBeNull()
+        expect(screen.queryByTestId('method-bank or mercado pago')).toBeNull()
+        // the logo is decorative: the button's name is the title, not a method id
+        expect(row.querySelector('img')).toHaveAttribute('alt', '')
+        expect(row).not.toHaveTextContent('bank-transfer-add')
+
+        fireEvent.click(row)
+        expect(mockPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
+    })
+})
+
 describe('AddWithdrawCountriesList — the euro area', () => {
     beforeEach(() => {
         mockPush.mockClear()

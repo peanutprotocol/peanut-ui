@@ -1884,7 +1884,8 @@
             "cryptoDescription": "Deposita desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
             "kycRequired": "Requiere verificación",
-            "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
+            "bankTransferDescription": "Datos bancarios reutilizables para cobrar",
+            "mercadoPagoOrBank": "Mercado Pago o Banco"
         },
         "networkDrawer": {
             "title": "Elegir red",
