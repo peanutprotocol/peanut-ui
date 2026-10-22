@@ -15,6 +15,8 @@ interface ContentPageProps {
     breadcrumbs: Array<{ name: string; href: string }>
     /** Article schema data for freshness signals */
     article?: ArticleMeta
+    /** Authored CollectionPage metadata, with the canonical path of its prose. */
+    collection?: { title: string; description: string; url: string }
     /** Page locale — used for the error-boundary fallback copy. */
     locale?: Locale
     /**
@@ -34,6 +36,7 @@ export function ContentPage({
     children,
     breadcrumbs,
     article,
+    collection,
     locale = DEFAULT_LOCALE,
     contentLocale = locale,
 }: ContentPageProps) {
@@ -54,6 +57,18 @@ export function ContentPage({
         <>
             <JsonLd data={breadcrumbSchema} />
             {article && <JsonLd data={articleSchema({ inLanguage: contentLocale, ...article })} />}
+            {collection && (
+                <JsonLd
+                    data={{
+                        '@context': 'https://schema.org',
+                        '@type': 'CollectionPage',
+                        name: collection.title,
+                        description: collection.description,
+                        url: `${BASE_URL}${collection.url}`,
+                        inLanguage: contentLocale,
+                    }}
+                />
+            )}
             <MarketingErrorBoundary strings={{ title: i18n.errorContentUnavailable, body: i18n.errorTryRefreshing }}>
                 <article className="content-page select-text">
                     {/* the body is written in the content locale; on a fallback

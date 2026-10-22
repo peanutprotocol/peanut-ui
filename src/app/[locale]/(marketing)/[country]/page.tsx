@@ -77,6 +77,15 @@ export default async function CountryHubPage({ params }: PageProps) {
                 { name: countryName, href: url },
             ]}
             article={contentArticleMetadata(mdxSource, url)}
+            collection={
+                mdxSource.frontmatter.schema_types?.includes('CollectionPage')
+                    ? {
+                          title: mdxSource.frontmatter.title,
+                          description: mdxSource.frontmatter.description,
+                          url: `/${contentLocale}/${country}`,
+                      }
+                    : undefined
+            }
         >
             {content}
             <ContentGuideList
