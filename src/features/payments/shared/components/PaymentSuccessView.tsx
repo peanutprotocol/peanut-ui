@@ -52,7 +52,11 @@ import type { ParsedURL } from '@/lib/url-parser/types/payment'
 import { payLinkUrl } from '@/utils/url.utils'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import type { ProviderId } from '@/types/provider.types'
-import { receiptKindForCharge, settledReceiptFields } from '@/features/payments/shared/utils/charge-receipt.utils'
+import {
+    receiptKindForCharge,
+    settledReceiptFields,
+    sponsoredNetworkFee,
+} from '@/features/payments/shared/utils/charge-receipt.utils'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 
 // minimal user info needed for display
@@ -74,6 +78,11 @@ type DirectSuccessViewProps = {
     /** A second amount under the headline, already formatted: the other currency of a conversion. */
     secondaryAmount?: string
     isExternalWalletFlow?: boolean
+    /**
+     * The charge was paid from an external wallet, which paid its own gas:
+     * the receipt states no network fee for it.
+     */
+    isExternalWalletPayment?: boolean
     isWithdrawFlow?: boolean
     /**
      * A withdraw the user reached through the send flow. Narrow on purpose: it
@@ -112,6 +121,7 @@ const PaymentSuccessView = ({
     currencyAmount,
     secondaryAmount,
     isExternalWalletFlow,
+    isExternalWalletPayment,
     isWithdrawFlow,
     isFromSendFlow,
     redirectTo = '/home',
@@ -219,9 +229,11 @@ const PaymentSuccessView = ({
                 chainIconUrl: chainIconUrl,
             },
             // Until the history entry loads: a withdrawal's network fee is not
-            // known yet, and every other flow here pays from the Peanut wallet,
-            // whose gas Peanut sponsors.
-            networkFeeDetails: { state: isWithdrawFlow ? 'pending' : 'sponsored' },
+            // known yet; any other charge states the sponsored row only when it
+            // is a same-chain Peanut-wallet payment (sponsoredNetworkFee).
+            networkFeeDetails: isWithdrawFlow
+                ? { state: 'pending' }
+                : sponsoredNetworkFee(chargeDetails, !!isExternalWalletPayment),
             peanutFeeDetails: {
                 amountDisplay: peanutFeeDisplayValue,
             },
@@ -250,6 +262,7 @@ const PaymentSuccessView = ({
         usdAmount,
         receiptStatus,
         isWithdrawFlow,
+        isExternalWalletPayment,
     ])
 
     // The charge's history entry: the backend's own amount, status and network

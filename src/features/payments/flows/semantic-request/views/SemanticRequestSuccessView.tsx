@@ -76,6 +76,7 @@ export function SemanticRequestSuccessView() {
             message={attachment.message}
             chargeDetails={charge}
             paymentDetails={payment}
+            isExternalWalletPayment={isExternalWalletPayment}
             parsedPaymentData={parsedUrl}
             onComplete={resetSemanticRequestFlow}
             redirectTo="/home"

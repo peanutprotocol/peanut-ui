@@ -12,6 +12,7 @@ import { render } from '@testing-library/react'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import type { PaymentCreationResponse, TChargeTransactionType, TRequestChargeResponse } from '@/services/services.types'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import type { HistoryEntry } from '@/utils/history.utils'
 
 const capturedTransactions: Array<TransactionDetails | null | undefined> = []
@@ -102,15 +103,17 @@ jest.mock('@/components/Common/PointsCard', () => ({ __esModule: true, default: 
 const INTENT_UUID = '1f3c5c92-2222-3333-4444-555555555555'
 const SOURCE_HASH = '0x' + 'a'.repeat(64)
 
-const charge = (transactionType: TChargeTransactionType) =>
+// a charge settling in the Peanut wallet's own token and chain, unless overridden
+const charge = (transactionType: TChargeTransactionType, overrides: Record<string, unknown> = {}) =>
     ({
         uuid: INTENT_UUID,
         createdAt: '2026-10-22T10:00:00.000Z',
         tokenSymbol: 'USDC',
         tokenAmount: '64.5',
-        chainId: '42161',
-        tokenAddress: '0xtoken',
+        chainId: PEANUT_WALLET_CHAIN.id.toString(),
+        tokenAddress: PEANUT_WALLET_TOKEN,
         transactionType,
+        ...overrides,
         requestLink: {
             recipientAddress: 'TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE',
             reference: 'rent for october',
@@ -248,6 +251,44 @@ describe('PaymentSuccessView — the settled network fee on the receipt', () => 
         renderSend()
         expect(lastReceipt().networkFeeDetails).toEqual({ state: 'sponsored' })
         expect(lastReceipt().memo).toBe('rent for october')
+    })
+
+    it('an external-wallet payment claims no network fee, before and after its entry loads', () => {
+        const renderExternal = () =>
+            render(
+                <PaymentSuccessView
+                    type="SEND"
+                    recipientType="USERNAME"
+                    user={{ username: 'alice', fullName: 'Alice' }}
+                    amount="5"
+                    usdAmount="5"
+                    chargeDetails={charge('REQUEST')}
+                    isExternalWalletPayment
+                />
+            )
+        renderExternal()
+        expect(lastReceipt().networkFeeDetails).toBeUndefined()
+
+        capturedTransactions.length = 0
+        mockEntry = historyEntry('P2P_REQUEST_FULFILL', 'COMPLETED', {})
+        renderExternal()
+        expect(lastReceipt().networkFeeDetails).toBeUndefined()
+    })
+
+    it('a request paid onto another chain claims no network fee: Rhino takes one the API does not project', () => {
+        mockEntry = historyEntry('P2P_REQUEST_FULFILL', 'COMPLETED', {})
+        render(
+            <PaymentSuccessView
+                type="SEND"
+                recipientType="USERNAME"
+                user={{ username: 'alice', fullName: 'Alice' }}
+                amount="5"
+                usdAmount="5"
+                chargeDetails={charge('REQUEST', { chainId: '1' })}
+                paymentDetails={paymentDetails}
+            />
+        )
+        expect(lastReceipt().networkFeeDetails).toBeUndefined()
     })
 
     it("a guest keeps the flow's receipt: the API does not serve them the entry", () => {

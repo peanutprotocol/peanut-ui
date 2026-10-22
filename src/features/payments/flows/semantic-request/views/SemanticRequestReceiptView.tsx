@@ -88,8 +88,8 @@ export function SemanticRequestReceiptView() {
                 tokenIconUrl: tokenIconUrl,
                 chainIconUrl: chainIconUrl,
             },
-            // Peanut sponsors the gas of a Peanut-wallet payment
-            networkFeeDetails: { state: 'sponsored' },
+            // The payer may be an external wallet that paid its own gas, and
+            // this is the recipient's receipt: no network fee is claimed.
             peanutFeeDetails: {
                 amountDisplay: peanutFeeDisplayValue,
             },
