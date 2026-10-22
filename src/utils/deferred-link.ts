@@ -29,6 +29,7 @@ import {
     persistSignupAttribution,
     readSignupAttribution,
     restoreSignupAttribution,
+    signupAnalyticsState,
     signupAttributionPosthogProperties,
     type SignupAttributionContext,
 } from './signup-attribution'
@@ -543,9 +544,11 @@ async function doRestore(): Promise<RestoredContext | null> {
     }
 
     const restored = applyDeferredPayload(payload)
-    if (payload.attribution) {
-        const persisted = readSignupAttribution()
-        if (persisted) await persistSignupAttribution(persisted)
+    if (payload.attribution && signupAnalyticsState() === 'enabled') {
+        // WKWebView can discard the cookie immediately. Await the native
+        // write using the decoded evidence before registration or a restart.
+        const persisted = readSignupAttribution() ?? { ...payload.attribution, captureMethod: 'deferred_link' as const }
+        await persistSignupAttribution(persisted)
     }
     const restoreFields: Record<string, boolean> = {
         has_dest: !!restored.dest,
