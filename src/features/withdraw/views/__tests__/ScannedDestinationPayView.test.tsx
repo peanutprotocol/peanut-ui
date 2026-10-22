@@ -131,6 +131,7 @@ function renderView({
                 }
             >
                 <button onClick={() => setSelectedChainID('8453')}>switch network</button>
+                <button onClick={() => setSelectedChainID('42161')}>switch back</button>
                 <Seeded name={name}>
                     <ScannedDestinationPayView
                         addressFamily={addressFamily}
@@ -298,6 +299,26 @@ describe('ScannedDestinationPayView (TASK-23974)', () => {
             expect(cta()).toBeDisabled()
             fireEvent.click(cta())
             expect(onContinue).not.toHaveBeenCalled()
+        })
+
+        it('a hit after a miss clears the miss message (Chip, #3804)', async () => {
+            const miss = deferred<never>()
+            const hit = deferred<{ identifier: string; recipientType: 'ENS'; resolvedAddress: string }>()
+            mockResolve.mockReturnValueOnce(miss.promise).mockReturnValueOnce(hit.promise)
+            renderView({ name: 'alice.eth' })
+            await ctaReady()
+
+            fireEvent.click(screen.getByRole('button', { name: 'switch network' }))
+            await waitFor(() => expect(mockResolve).toHaveBeenCalledTimes(1))
+            miss.reject(new Error('no record'))
+            await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+
+            fireEvent.click(screen.getByRole('button', { name: 'switch back' }))
+            await waitFor(() => expect(mockResolve).toHaveBeenCalledTimes(2))
+            hit.resolve({ identifier: 'alice.eth', recipientType: 'ENS', resolvedAddress: USDC_BASE })
+
+            await waitFor(() => expect(cta()).toBeEnabled())
+            expect(screen.queryByRole('alert')).toBeNull()
         })
 
         it('a bare address never resolves', async () => {

@@ -36,6 +36,9 @@ export function useEnsRecipientForChain(selectedChainID: string, addressFamily: 
                 if (stale) return
                 setRecipient({ name, address: validation.resolvedAddress })
                 setIsValidRecipient(true)
+                // a miss on the previous network left its message behind; the
+                // pay screen has no chain-change reset of its own (Chip, #3804)
+                setError({ showError: false, errorMessage: '' })
             })
             .catch(() => {
                 if (stale) return
