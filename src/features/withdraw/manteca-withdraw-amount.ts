@@ -1,4 +1,6 @@
+import { formatUnits } from 'viem'
 import { type WithdrawInitRequest } from '@/services/manteca'
+import { parseUsdAmountToUnits, usdcUnitsToRainCents } from '@/utils/balance.utils'
 import { normalizeBankAmount } from './bank-amount'
 
 /**
@@ -31,4 +33,17 @@ export function mantecaWithdrawInitRequest(input: {
         return request
     }
     return { ...request, fiatAmount }
+}
+
+/**
+ * The locked USD as review and success show it: rounded up to the cent, from
+ * the same cents a card-funded withdrawal debits (`usdcUnitsToRainCents`), so
+ * the screen and the card debit cannot differ. A wallet-funded withdrawal
+ * pays at most this figure. Rounding to the nearest cent could show less than
+ * the card debit (12.493001 as 12.49 while the card moves 12.50).
+ */
+export function lockedUsdDisplayAmount(usdAmount: string): string {
+    const units = parseUsdAmountToUnits(usdAmount)
+    if (units === null) return usdAmount
+    return formatUnits(usdcUnitsToRainCents(units), 2)
 }

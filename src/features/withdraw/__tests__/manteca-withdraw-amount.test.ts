@@ -1,4 +1,4 @@
-import { mantecaWithdrawInitRequest } from '../manteca-withdraw-init'
+import { lockedUsdDisplayAmount, mantecaWithdrawInitRequest } from '../manteca-withdraw-amount'
 
 const base = {
     usdAmount: '13.33',
@@ -45,4 +45,15 @@ describe('mantecaWithdrawInitRequest (TASK-23997)', () => {
             })
         }
     )
+})
+
+describe('lockedUsdDisplayAmount (TASK-23997)', () => {
+    it.each([
+        ['12.493001', '12.5'],
+        ['13.336891', '13.34'],
+        ['20', '20'],
+        ['20.000001', '20.01'],
+    ])('%s USDC shows as the %s a card-funded withdrawal debits', (usdAmount, shown) => {
+        expect(lockedUsdDisplayAmount(usdAmount)).toBe(shown)
+    })
 })

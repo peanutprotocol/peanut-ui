@@ -92,7 +92,7 @@ import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
 import { shouldShowAmountError } from '@/features/limits/amount-error-gating'
 import { useAmountErrorScroll } from '@/features/withdraw/useAmountErrorScroll'
 import { useMantecaAmountSeed } from '@/features/withdraw/useMantecaAmountSeed'
-import { mantecaWithdrawInitRequest } from '@/features/withdraw/manteca-withdraw-init'
+import { lockedUsdDisplayAmount, mantecaWithdrawInitRequest } from '@/features/withdraw/manteca-withdraw-amount'
 import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
 import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -979,13 +979,17 @@ function MantecaBankWithdrawFlow() {
     }
 
     // Locked, both amounts are the lock's: fiat = USD × locked price, no fee.
-    // Before the lock, the amount the user did not type is an estimate.
+    // The USD shows rounded up to the cent, what a card-funded withdrawal
+    // debits. Before the lock, the amount the user did not type is an estimate.
     const estimate = priceLock ? '' : '≈ '
     const localLine = `${isAmountTypedInUsd ? estimate : ''}${currencyCode} ${formatNumberForDisplay(
         priceLock?.fiatAmount ?? currencyAmount,
         { maxDecimals: 2 }
     )}`
-    const usdLine = `${isAmountTypedInUsd ? '' : estimate}${formatBankAmount(priceLock?.usdAmount ?? usdAmount ?? '0', 'USD')}`
+    const usdLine = `${isAmountTypedInUsd ? '' : estimate}${formatBankAmount(
+        priceLock ? lockedUsdDisplayAmount(priceLock.usdAmount) : (usdAmount ?? '0'),
+        'USD'
+    )}`
 
     if (step === 'success') {
         return (
