@@ -13,10 +13,14 @@ import { QrArgentinaSticker } from './QrArgentinaSticker'
  * the dark band under the scan window, above the capture's network row (its
  * "ETH & EVMs" label is crypto vocabulary, which marketing copy never shows:
  * messaging.md guardrail 1). No fade: the cut is hard.
- * From lg the phone takes 90% of the art column, so its top rises to the
+ * From lg the phone takes up to 90% of the art column, so its top rises to the
  * Knerd's baseline instead of leaving a pink field under the CTA, and the
  * sticker hangs off the column's left edge towards the copy; it still only
- * touches the scan window's pink frame, never the code inside it.
+ * touches the scan window's pink frame, never the code inside it. The width is
+ * also capped by the room under the headline (fold height 100svh - 60px - 8.5rem,
+ * plus the 4rem the art hangs below it, minus the laptop Knerd's 26svh and
+ * 5rem of lead, times the capture's 451/520 aspect), so on a 1366x768 or
+ * 1440x900 laptop the phone stops under "No problem" instead of rising into it.
  *
  * The capture's own QR (a foreign payload) is covered by the sticker's live
  * code, so every code in the hero opens the same tagged Peanut link. Boxes
@@ -29,7 +33,7 @@ import { QrArgentinaSticker } from './QrArgentinaSticker'
 export function QrArgentinaHeroArt() {
     return (
         <div className="relative w-full">
-            <div className="ml-auto w-[84%] md:mr-3 md:w-[74%] lg:w-[90%]">
+            <div className="ml-auto w-[84%] md:mr-3 md:w-[74%] lg:w-[min(90%,calc((74svh_-_60px_-_9.5rem)_*_0.867))]">
                 <QrArgentinaAppLink>
                     <div className="aspect-[451/520] overflow-hidden">
                         <div className="relative">

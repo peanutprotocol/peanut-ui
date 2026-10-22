@@ -47,7 +47,7 @@ export function PeanutCardLanding() {
             <StarLpHero
                 lead="Peanut Card"
                 knerd={'In\ndollars'}
-                subtitle="A balance in US dollars, spent as dollars wherever Visa is accepted. Dollar purchases don't convert; other currencies convert at the Visa exchange rate plus 1%, with no Peanut fee on top."
+                subtitle="A US dollar balance, spent wherever Visa is accepted. Dollar purchases don't convert; other currencies convert at the Visa rate plus 1%, no Peanut fee on top."
                 // the tilt lifts the card's top right corner, where the Visa mark sits, so it starts below the Knerd
                 artTuck="none"
                 art={
@@ -62,7 +62,7 @@ export function PeanutCardLanding() {
                 cta={<PeanutCardCta placement="hero" />}
             />
 
-            <StarLpMarquee between={['pink', 'sky']} words={HERO_SEAM} />
+            <StarLpMarquee between={['pink', 'yellow']} words={HERO_SEAM} />
 
             <PeanutCardForYou />
 

@@ -11,7 +11,8 @@ const PRESS =
     the inner ones under the other card, so each capture gets the outer corner that stays clear. */
 const BADGE_CORNER_CLASS: Record<UsEuAccountCaptureProps['badgeCorner'], string> = {
     'bottom-left': '-bottom-3 -left-3 -rotate-6',
-    'top-right': '-top-3 -right-3 rotate-6',
+    // right-0 below md: the EUR card already hangs past the gutter on phones
+    'top-right': '-top-3 right-0 rotate-6 md:-right-3',
 }
 
 /**

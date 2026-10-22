@@ -5,7 +5,7 @@ const RATE = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumF
 const ROUNDED = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
 
 // Widths in em of the headline's line (Roboto Flex extra-black, tabular digits,
-// the h2's tracking), measured on the page: a digit, a "," or ".", and the small
+// the line's tracking), measured on the page: a digit, a "," or ".", and the small
 // "ARS" with its gap. The font size sets the whole line at 64% of the column
 // (a support line under the saving headline), so the exact and the rounded
 // number fit alike.

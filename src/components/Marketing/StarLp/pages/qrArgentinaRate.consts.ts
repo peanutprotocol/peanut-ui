@@ -12,6 +12,7 @@ export const QR_AR_BEST_RATE = 'Best rate'
  * nothing on the page derives a saving from the live rate. Evidence:
  * mono projects/seo-content-workstream-c/review/savings-verification-2026-09-22/.
  */
-export const QR_AR_SAVING_HEADLINE = ['About 6% less', 'than a foreign card.*'] as const
+export const QR_AR_SAVING_HEADLINE = ['About 6% less', 'than a foreign card.'] as const
+// The asterisk is drawn by the fold (aria-hidden), so screen readers never hear it.
 export const QR_AR_SAVING_FOOTNOTE =
-    "*Indicative comparison on 22 Sep 2026: a USD-funded 100,000 ARS QR payment at Peanut's quote cost 6.02% less than at a Visa quote plus an assumed 3% issuer fee. Not a live result. Card fees and exchange rates vary."
+    "Indicative comparison on 22 Sep 2026, for a USD-funded 100,000 ARS QR payment. At Peanut's quote it cost 6.02% less than at a Visa quote plus an assumed 3% issuer fee. Not a live result. Card fees and exchange rates vary."

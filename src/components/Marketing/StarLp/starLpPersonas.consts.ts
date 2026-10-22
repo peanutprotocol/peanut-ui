@@ -27,7 +27,7 @@ export const STAR_LP_PERSONA = {
  * the app's basic stickers (public/avatars/basic).
  */
 export const STAR_LP_EARNERS = {
-    designer: { avatar: 'basic.flower', who: 'Brand designer, Buenos Aires' },
+    designer: { avatar: 'basic.flower', who: 'Designer, Buenos Aires' },
     developer: { avatar: 'basic.planet', who: 'Developer, Bogotá' },
     writer: { avatar: 'basic.moon', who: 'Freelance writer, Lisbon' },
     editor: { avatar: 'basic.sun', who: 'Video editor, São Paulo' },

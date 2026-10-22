@@ -57,7 +57,7 @@ describe('QrArgentinaRateFold', () => {
     it('headlines the dated saving with its footnote, whatever the rate tier', () => {
         render(<QrArgentinaRateFold usdArs={NONE} />)
         expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('About 6% less than a foreign card.*')
-        expect(screen.getByText(/^\*Indicative comparison on 22 Sep 2026/)).toHaveTextContent(
+        expect(screen.getByText(/Indicative comparison on 22 Sep 2026/)).toHaveTextContent(
             /USD-funded .* 6\.02% less .* assumed 3% issuer fee\. Not a live result\./
         )
     })

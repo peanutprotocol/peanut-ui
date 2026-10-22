@@ -12,8 +12,8 @@ import {
  */
 export const REQUEST_LINKS_PERSONA_CARDS: readonly StarLpPersonaCard[] = [
     { ...STAR_LP_EARNERS.designer, line: 'I put the link in every invoice.', tag: 'Clients in Germany' },
-    { ...STAR_LP_EARNERS.developer, line: 'I send one link per milestone.', tag: 'Startup in Austin' },
-    { ...STAR_LP_EARNERS.writer, line: 'I paste the link in the chat.', tag: 'Magazines in New York' },
+    { ...STAR_LP_EARNERS.developer, line: 'I send one link per milestone.', tag: 'Startup in Denver' },
+    { ...STAR_LP_EARNERS.writer, line: 'I paste the link in the chat.', tag: 'Magazines in Chicago' },
     { ...STAR_LP_EARNERS.editor, line: 'My invoice carries the QR.', tag: 'Studio in Amsterdam' },
 ]
 

@@ -34,6 +34,7 @@ export function QrBrazilWaysIn() {
                 <span className="shadow-2 block w-28 rounded-sm border-2 border-border-default bg-background-default p-1 lg:w-36">
                     <StarLpQrCode campaign="qr-brazil" slot="ways-in" className="w-full" />
                 </span>
+                <span className="text-body-s text-foreground-secondary">Scan this one to get the app.</span>
             </PopIn>
             <PopIn className="grid gap-1" delay={0.24}>
                 <span lang="pt-BR" className={LABEL}>

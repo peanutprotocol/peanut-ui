@@ -24,12 +24,12 @@ export const QR_AR_PAYING_MS = 450
  */
 export const QR_AR_MOTION_CSS = `
 .qr-ar-scan{opacity:0}
-.qr-ar-press{transition:transform 150ms ease-out,box-shadow 150ms ease-out}
+.qr-ar-press{transition:transform var(--transition-duration-instant) ease-out}
 .qr-ar-chat-link>div{transition:transform 150ms ease-out}
 .qr-ar-chat-link:active>div{transform:scale(.97)}
 .star-lp-beat:has(>.qr-ar-chat-link:focus-visible){opacity:1;transform:none;pointer-events:auto}
 .star-lp-beat:has(>.qr-ar-chat-link:focus-visible) .qr-ar-chat-link{pointer-events:auto}
-.qr-ar-press:active{transform:translate(4px,4px);box-shadow:none}
+.qr-ar-press:active{transform:translate(4px,4px)}
 .qr-ar-push{transition:opacity 450ms ease-out,transform 450ms cubic-bezier(.34,1.56,.64,1)}
 .qr-ar-push[data-shown='false']{opacity:0;transform:translateY(-120%) scale(.98)}
 .qr-ar-paid>*{transition:opacity 300ms ease-out,transform 350ms var(--ease-spring)}

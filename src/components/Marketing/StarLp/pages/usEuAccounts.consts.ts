@@ -12,7 +12,7 @@ import type { UsEuStripTone } from './usEuAccounts.types'
 export const US_EU_PERSONA_CARDS: readonly StarLpPersonaCard[] = [
     { ...STAR_LP_EARNERS.designer, line: 'A Berlin agency pays me in euros.', tag: 'SEPA' },
     { ...STAR_LP_EARNERS.developer, line: 'My salary comes from a US employer.', tag: 'ACH' },
-    { ...STAR_LP_EARNERS.writer, line: 'My clients are magazines in New York.', tag: 'ACH' },
+    { ...STAR_LP_EARNERS.writer, line: 'My clients are magazines in Chicago.', tag: 'ACH' },
     { ...STAR_LP_EARNERS.editor, line: 'A studio in Amsterdam pays my invoices.', tag: 'SEPA' },
 ]
 
