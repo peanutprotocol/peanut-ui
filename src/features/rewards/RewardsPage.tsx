@@ -264,7 +264,8 @@ export function RewardsPage() {
                             <NavigationArrow className="text-foreground-primary" />
                         </button>
 
-                        <div ref={inviteesRef}>
+                        {/* ph-sensitive: rows can show an invitee's real name */}
+                        <div ref={inviteesRef} className="ph-sensitive">
                             {invites.invitees?.slice(0, 5).map((invite: PointsInvite, i: number) => {
                                 const username = invite.username
                                 const fullName = invite.fullName

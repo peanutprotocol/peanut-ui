@@ -152,7 +152,8 @@ const InvitesPage = () => {
                 <h2 className="font-bold">{t('peopleYouInvited')}</h2>
 
                 {/* Full list */}
-                <div ref={listRef}>
+                {/* ph-sensitive: rows can show an invitee's real name */}
+                <div ref={listRef} className="ph-sensitive">
                     {invites?.invitees?.map((invite: PointsInvite, i: number) => {
                         const username = invite.username
                         const fullName = invite.fullName
