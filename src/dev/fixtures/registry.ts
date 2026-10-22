@@ -873,6 +873,24 @@ const VA_READY_RESPONSE = {
 }
 
 /**
+ * A UK top-up as the API returns it: GBP over Faster Payments, so the bank
+ * details are a sort code and an account number, not an IBAN and a BIC.
+ */
+const GBP_ONRAMP = {
+    transferId: 'fixture-onramp-gbp',
+    depositInstructions: {
+        amount: '7.00',
+        currency: 'gbp',
+        depositMessage: 'BRGFIXTURE7GBP',
+        bankName: 'Clear Junction Limited',
+        bankAddress: '1 Fixture Street, London EC1A 1AA',
+        accountHolderName: 'Fixture Payments Ltd',
+        sortCode: '04-00-53',
+        accountNumber: '00000001',
+    },
+}
+
+/**
  * The Accounts page mix (Hugo, 2026-09-25): a verified Portuguese resident.
  * EUR is held and USD can open. The backend's own signals decide the rest
  * (peanut-api-ts `listDepositCorridors`): GBP is `not-offered`, MXN is in
@@ -1009,6 +1027,27 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
+    // TASK-21375: Argentina's bank transfer and Mercado Pago open the same
+    // screen, so the country offers one row.
+    'add-money-argentina': {
+        route: '/add-money/argentina',
+        about: 'Add money, Argentina: one row for bank or Mercado Pago.',
+        responses: { 'GET /users/me': { capabilities: MANTECA_AR_CAPABILITIES } },
+    },
+    // TASK-23924: Liechtenstein banks in CHF, and a top-up pays EUR, so the
+    // amount screen asks for a euro account, as it does for Switzerland.
+    'add-money-bank-liechtenstein': {
+        route: '/add-money/liechtenstein/bank?step=inputAmount&amount=100',
+        about: 'Add money by bank, Liechtenstein: the amount screen asks for a euro account.',
+        responses: VA_READY_RESPONSE,
+    },
+    // TASK-23924: tap Continue, then confirm. The bank details show the sort
+    // code, the account number and pounds, read from the API answer.
+    'add-money-bank-uk': {
+        route: '/add-money/united-kingdom/bank?step=inputAmount&amount=7',
+        about: 'Add money by bank, UK: continue to the GBP bank details (sort code and account number).',
+        responses: { ...VA_READY_RESPONSE, 'POST /bridge/onramp/create': GBP_ONRAMP },
+    },
     // Open /add-money/spain?__fixture=add-money-country-provider-wait and tap
     // "From Bank". The euro rail is under provider review (waiting-on-provider),
     // so the tap opens the "We're reviewing your details" modal (TASK-22153).

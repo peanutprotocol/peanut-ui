@@ -662,6 +662,21 @@
         "route": "/add-money/crypto"
     },
     {
+        "id": "fixture-add-money-argentina",
+        "flow": "Add money",
+        "route": "/add-money/argentina"
+    },
+    {
+        "id": "fixture-add-money-bank-liechtenstein",
+        "flow": "Add money",
+        "route": "/add-money/liechtenstein/bank?step=inputAmount&amount=100"
+    },
+    {
+        "id": "fixture-add-money-bank-uk",
+        "flow": "Add money",
+        "route": "/add-money/united-kingdom/bank?step=inputAmount&amount=7"
+    },
+    {
         "id": "fixture-add-money-country-provider-wait",
         "flow": "Add money",
         "route": "/add-money/spain"

@@ -1860,8 +1860,9 @@
             "navTitle": "Obtener tarjeta",
             "lookingUpTitle": "Buscándote…",
             "lookingUpBody": "Nos estamos ubicando.",
-            "availableTitle": "Ya estás dentro.",
-            "fundingBody": "Necesitas un saldo de al menos $10 en Peanut para obtener tu tarjeta.",
+            "availableTitle": "Ya estás dentro. Falta un paso.",
+            "fundingBody": "Necesitas al menos USD 10 en tu saldo de Peanut para obtener tu tarjeta. La tarjeta es gratis y el dinero sigue siendo tuyo para gastarlo con ella.",
+            "fundedBody": "Tu saldo ya alcanza. Continúa para pedir tu tarjeta.",
             "addFunds": "Agregar dinero",
             "issuedTitle": "Conoce tu tarjeta Peanut.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
@@ -1885,7 +1886,8 @@
             "cryptoDescription": "Deposita desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
             "kycRequired": "Requiere verificación",
-            "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
+            "bankTransferDescription": "Datos bancarios reutilizables para cobrar",
+            "mercadoPagoOrBank": "Mercado Pago o Banco"
         },
         "networkDrawer": {
             "title": "Elegir red",
