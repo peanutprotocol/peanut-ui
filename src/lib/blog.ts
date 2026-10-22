@@ -2,7 +2,7 @@ import matter from 'gray-matter'
 import fs from 'fs'
 import path from 'path'
 import { renderContent } from '@/lib/mdx'
-import { getLocaleFallbacks } from '@/lib/content'
+import { getLocaleFallbacks, type ContentFrontmatter } from '@/lib/content'
 
 import type { Locale } from '@/i18n/types'
 import type { ReactNode } from 'react'
@@ -16,7 +16,7 @@ function getBlogDir() {
 
 export interface BlogPost {
     slug: string
-    frontmatter: {
+    frontmatter: ContentFrontmatter & {
         title: string
         description: string
         date: string
