@@ -25,7 +25,7 @@ export default function MarketingLandingPage() {
                 title="Pick one hero"
                 description="A page gets exactly one. /shhhhh keeps its own look as a one-off."
             >
-                <div className="grid gap-6 xl:grid-cols-3">
+                <div className="grid gap-6 xl:grid-cols-2">
                     {HERO_RECIPES.map((hero) => (
                         <div key={hero.demo} className="space-y-2 min-w-0">
                             <p className="text-body-m-semibold">{hero.name}</p>

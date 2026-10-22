@@ -36,6 +36,11 @@ const ITEMS_TO_DISABLE = [
     { path: 'terms', type: 'dir' }, // legal pages
     { path: 'careers', type: 'dir' }, // careers page
     { path: 'lp', type: 'dir' }, // landing pages
+    { path: 'us-europe-accounts', type: 'dir' }, // star-feature LP (web-only)
+    { path: 'qr-payments', type: 'dir' }, // star-feature LP (web-only)
+    { path: 'peanut-card', type: 'dir' }, // star-feature LP (web-only)
+    { path: 'request-links', type: 'dir' }, // star-feature LP (web-only)
+    { path: 'self-custody', type: 'dir' }, // star-feature LP (web-only)
     { path: 'maintenance', type: 'dir' }, // maintenance page
     { path: 'not-found.tsx', type: 'file' }, // custom 404 (not needed in native)
     { path: 'crisp-proxy', type: 'dir' }, // crisp iframe proxy (handled differently in native)

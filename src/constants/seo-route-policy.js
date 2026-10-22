@@ -89,6 +89,13 @@ const GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS = Object.freeze([
     '/invite?code=',
 ])
 
+// Marketing pages that share a prefix with a disallowed app surface
+// ('/request', '/qr'). Listed as allows so crawlers can reach them and their
+// meta robots governs; the longer allow wins over the bare disallow by
+// longest-match (Google, Bing and most crawlers). The bare prefixes stay so
+// prefix-only crawlers still skip the app shells.
+const MARKETING_CRAWL_ALLOW_PATHS = Object.freeze(['/request-links', '/qr-payments/'])
+
 const NOINDEX_HEADER = Object.freeze({ key: 'X-Robots-Tag', value: 'noindex, nofollow' })
 
 /**
@@ -116,6 +123,7 @@ function buildNoindexHeaderRules() {
 
 module.exports = {
     GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS,
+    MARKETING_CRAWL_ALLOW_PATHS,
     NOINDEX_HEADER,
     NOINDEX_EXACT_ROUTES,
     NOINDEX_ROUTE_PREFIXES,

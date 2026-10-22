@@ -30,6 +30,14 @@ export const HERO_RECIPES: HeroRecipe[] = [
         heights: { phone: 1000, desktop: 760 },
     },
     {
+        demo: 'product-split-hero-center',
+        name: 'Product split, centred',
+        useWhen:
+            'Star-feature LPs, through StarLpHero in Marketing/StarLp. Phones put the art between the copy and the CTA.',
+        component: "import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'",
+        heights: { phone: 1000, desktop: 760 },
+    },
+    {
         demo: 'content-hero',
         name: 'Content hero',
         useWhen: 'Every content page, blog included.',
