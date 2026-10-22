@@ -188,6 +188,42 @@ describe('PaymentSuccessView — the settled network fee on the receipt', () => 
         expect(lastReceipt().recipientReceivesUsd).toBeUndefined()
     })
 
+    it("reads the flow's quote as the estimate before the entry loads, then the entry's", () => {
+        render(
+            <PaymentSuccessView
+                type="SEND"
+                recipientType="ADDRESS"
+                isWithdrawFlow
+                quotedNetworkFeeUsd={1.43}
+                amount="64.5"
+                usdAmount="64.5"
+                chargeDetails={charge('WITHDRAW')}
+                paymentDetails={paymentDetails}
+            />
+        )
+        expect(lastReceipt().networkFeeDetails).toEqual({ state: 'pending', amountDisplay: '$1.43' })
+
+        capturedTransactions.length = 0
+        mockEntry = historyEntry('CRYPTO_WITHDRAW', 'COMPLETED', {
+            networkFeeStatus: 'pending',
+            networkFeeUsd: null,
+            quotedFeeUsd: 1.47,
+        })
+        render(
+            <PaymentSuccessView
+                type="SEND"
+                recipientType="ADDRESS"
+                isWithdrawFlow
+                quotedNetworkFeeUsd={1.43}
+                amount="64.5"
+                usdAmount="64.5"
+                chargeDetails={charge('WITHDRAW')}
+                paymentDetails={paymentDetails}
+            />
+        )
+        expect(lastReceipt().networkFeeDetails).toEqual({ state: 'pending', amountDisplay: '$1.47' })
+    })
+
     it('states the settled fee and what the recipient received', () => {
         mockEntry = historyEntry('CRYPTO_WITHDRAW', 'COMPLETED', {
             networkFeeStatus: 'settled',

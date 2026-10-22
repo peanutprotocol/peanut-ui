@@ -212,7 +212,10 @@ export function ReceiptDetailsCard({
                             transaction.networkFeeDetails.state === 'charged'
                                 ? transaction.networkFeeDetails.amountDisplay
                                 : transaction.networkFeeDetails.state === 'pending'
-                                  ? tCommon('pending')
+                                  ? // the quote, as an estimate, until the fee settles
+                                    transaction.networkFeeDetails.amountDisplay
+                                      ? `≈ ${transaction.networkFeeDetails.amountDisplay}`
+                                      : tCommon('pending')
                                   : tCommon('sponsoredByPeanut')
                         }
                     />

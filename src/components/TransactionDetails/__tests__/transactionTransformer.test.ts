@@ -568,6 +568,25 @@ describe('mapTransactionDataForDrawer', () => {
             expect(result.recipientReceivesUsd).toBeUndefined()
         })
 
+        it('a pending fee with a quote reads the quote as the estimate', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, {
+                networkFeeStatus: 'pending',
+                networkFeeUsd: null,
+                quotedFeeUsd: 1.43,
+            })
+            expect(result.networkFeeDetails).toEqual({ state: 'pending', amountDisplay: '$1.43' })
+            expect(result.recipientReceivesUsd).toBeUndefined()
+        })
+
+        it('a zero quote is a plain pending, never "≈ $0"', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, {
+                networkFeeStatus: 'pending',
+                networkFeeUsd: null,
+                quotedFeeUsd: 0,
+            })
+            expect(result.networkFeeDetails).toEqual({ state: 'pending' })
+        })
+
         it('a settled zero fee reads sponsored', () => {
             const result = withdraw(EHistoryStatus.COMPLETED, { networkFeeStatus: 'settled', networkFeeUsd: 0 })
             expect(result.networkFeeDetails).toEqual({ state: 'sponsored' })

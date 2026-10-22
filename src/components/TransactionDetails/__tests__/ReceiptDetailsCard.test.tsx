@@ -207,6 +207,13 @@ describe('ReceiptDetailsCard — network fee (TASK-23487)', () => {
         expect(screen.queryByText('Recipient receives')).not.toBeInTheDocument()
     })
 
+    it('prints the quote as an estimate while the fee settles', () => {
+        renderWithIntl(<Card transaction={withdraw({ state: 'pending', amountDisplay: '$1.43' })} />)
+        expect(screen.getByText('≈ $1.43')).toBeInTheDocument()
+        expect(screen.queryByText('Pending')).not.toBeInTheDocument()
+        expect(screen.queryByText('Recipient receives')).not.toBeInTheDocument()
+    })
+
     it('prints Sponsored by Peanut! for a settled zero fee', () => {
         renderWithIntl(<Card transaction={withdraw({ state: 'sponsored' })} />)
         expect(screen.getByText('Network fee')).toBeInTheDocument()

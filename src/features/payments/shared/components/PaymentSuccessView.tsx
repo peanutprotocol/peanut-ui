@@ -58,6 +58,7 @@ import {
     sponsoredNetworkFee,
 } from '@/features/payments/shared/utils/charge-receipt.utils'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
+import { pendingNetworkFee } from '@/components/TransactionDetails/network-fee.utils'
 
 // minimal user info needed for display
 type UserDisplayInfo = {
@@ -84,6 +85,12 @@ type DirectSuccessViewProps = {
      */
     isExternalWalletPayment?: boolean
     isWithdrawFlow?: boolean
+    /**
+     * A cross-chain withdrawal's quoted fee (USD), the number the confirm
+     * screen showed: the receipt reads it as an estimate until the charge's
+     * history entry states the settled fee.
+     */
+    quotedNetworkFeeUsd?: number
     /**
      * A withdraw the user reached through the send flow. Narrow on purpose: it
      * only reframes the title. `isWithdrawFlow` still governs layout (it
@@ -123,6 +130,7 @@ const PaymentSuccessView = ({
     isExternalWalletFlow,
     isExternalWalletPayment,
     isWithdrawFlow,
+    quotedNetworkFeeUsd,
     isFromSendFlow,
     redirectTo = '/home',
     onComplete,
@@ -232,7 +240,7 @@ const PaymentSuccessView = ({
             // known yet; any other charge states the sponsored row only when it
             // is a same-chain Peanut-wallet payment (sponsoredNetworkFee).
             networkFeeDetails: isWithdrawFlow
-                ? { state: 'pending' }
+                ? pendingNetworkFee(quotedNetworkFeeUsd)
                 : sponsoredNetworkFee(chargeDetails, !!isExternalWalletPayment),
             peanutFeeDetails: {
                 amountDisplay: peanutFeeDisplayValue,
@@ -263,6 +271,7 @@ const PaymentSuccessView = ({
         receiptStatus,
         isWithdrawFlow,
         isExternalWalletPayment,
+        quotedNetworkFeeUsd,
     ])
 
     // The charge's history entry: the backend's own amount, status and network

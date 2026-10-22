@@ -148,6 +148,10 @@ export interface HistoryEntryExtraData {
     /** CRYPTO_WITHDRAW only: what the destination received, as a decimal
      *  string. Set when the fee settled and something was deducted. */
     deliveredUsd?: string | null
+    /** CRYPTO_WITHDRAW only: Rhino's quoted fee in USD while the fee is
+     *  `pending`, shown as an estimate until it settles; null once settled or
+     *  unknown, and on a same-chain withdrawal. */
+    quotedFeeUsd?: number | null
     /** Flat fee a paid USD payout rail (wire) withheld, in USD; absent when free. */
     payoutFeeUsd?: number | null
     /** The rail a Bridge payout went out on ('ach_same_day', 'wire', …). */
