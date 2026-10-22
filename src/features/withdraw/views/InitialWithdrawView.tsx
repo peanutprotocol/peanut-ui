@@ -17,6 +17,7 @@ import { addressFamilyForChainId } from '@/lib/validation/addressFamily'
 import { printableAddress } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
 import { validateAndResolveRecipient } from '@/lib/validation/recipient'
+import { withdrawChainRecord } from '../chain-record'
 
 interface InitialWithdrawViewProps {
     onContinue: (data: { token: ITokenPriceData; chain: ChainWithTokens; address: string }) => void
@@ -123,23 +124,7 @@ export default function InitialWithdrawView({
     }, [selectedChainID, addressFamily, recipient.name, setRecipient, setIsValidRecipient, setError])
 
     const handleContinue = () => {
-        // Context record already includes the synthetic non-EVM withdraw
-        // destinations (merged once in tokenSelector.context).
-        const xchainChainData = supportedChainsAndTokens[selectedChainID]
-        // supportedChainsAndTokens may not list the Peanut wallet chain on
-        // testnets / env-configured chains. Synthesize a minimal entry so the
-        // same-chain (no-bridge) path can proceed.
-        const isPeanutWalletChain = selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
-        const fallbackChainData =
-            isPeanutWalletChain && !xchainChainData
-                ? ({
-                      chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                      networkName: PEANUT_WALLET_CHAIN.name,
-                      chainIconURI: '',
-                      tokens: [],
-                  } satisfies ChainWithTokens)
-                : undefined
-        const selectedChainData = xchainChainData ?? fallbackChainData
+        const selectedChainData = withdrawChainRecord(supportedChainsAndTokens, selectedChainID)
 
         if (selectedTokenData && selectedChainData && recipient.address) {
             onContinue({

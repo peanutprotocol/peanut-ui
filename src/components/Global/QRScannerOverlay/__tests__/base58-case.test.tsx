@@ -146,11 +146,7 @@ describe('QRScannerOverlay case handling', () => {
             expect(params.get('method')).toBe('crypto')
             // the address goes in process, never in the URL PostHog records
             expect(pushed).not.toContain(address)
-            expect(takeScannedDestination(params.get(SCAN_ID_PARAM))).toEqual({
-                address,
-                chainId,
-                networkPending: false,
-            })
+            expect(takeScannedDestination(params.get(SCAN_ID_PARAM))).toEqual({ address, chainId })
         })
     })
 

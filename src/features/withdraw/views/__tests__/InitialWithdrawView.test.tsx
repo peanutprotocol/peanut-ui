@@ -228,38 +228,6 @@ describe('InitialWithdrawView', () => {
         expect(screen.queryByText('Pick the network for this address')).toBeNull()
     })
 
-    // A scanned EVM address names no network. It arrives prefilled with the
-    // network pick still pending, set by the flow before this step mounts.
-    describe('a scanned address with its network still to pick (TASK-23974)', () => {
-        const SCANNED = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'
-
-        it('asks for the network and keeps Continue disabled', async () => {
-            renderMountHarness(SCANNED, { networkUnconfirmed: true })
-            const cont = await screen.findByRole('button', { name: 'Continue' })
-            expect(screen.getByText('Pick the network for this address')).toBeInTheDocument()
-            expect(cont).toBeDisabled()
-        })
-
-        // The default network is a guess: picking it, even unchanged, is the
-        // user's answer.
-        it('a network pick clears it, even of the network already shown', async () => {
-            const { setSelectedChainID } = renderMountHarness(SCANNED, { networkUnconfirmed: true })
-            const cont = await screen.findByRole('button', { name: 'Continue' })
-            fireEvent.click(screen.getByRole('button', { name: 'selector network pick' }))
-            expect(screen.queryByText('Pick the network for this address')).toBeNull()
-            expect(cont).toBeEnabled()
-            expect(setSelectedChainID).not.toHaveBeenCalled()
-        })
-
-        it('a token pick does not, because it keeps the default network', async () => {
-            renderMountHarness(SCANNED, { networkUnconfirmed: true })
-            const cont = await screen.findByRole('button', { name: 'Continue' })
-            fireEvent.click(screen.getByRole('button', { name: 'selector token pick' }))
-            expect(screen.getByText('Pick the network for this address')).toBeInTheDocument()
-            expect(cont).toBeDisabled()
-        })
-    })
-
     it('a correction with no destination typed asks nothing', async () => {
         renderMountHarness()
         await screen.findByRole('button', { name: 'Continue' })

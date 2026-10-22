@@ -75,7 +75,6 @@ describe('the scanned-destination hand-off', () => {
         expect(takeScannedDestination(id)).toEqual({
             address: SOLANA_ADDRESS,
             chainId: 'solana',
-            networkPending: false,
         })
     })
 
@@ -95,7 +94,6 @@ describe('the scanned-destination hand-off', () => {
         expect(takeScannedDestination(second)).toEqual({
             address: OTHER_SOLANA_ADDRESS,
             chainId: 'solana',
-            networkPending: false,
         })
     })
 
@@ -121,7 +119,6 @@ describe('the scanned-destination hand-off', () => {
             chainId: '8453',
             tokenSymbol: 'USDC',
             tokenAddress: BASE_USDC,
-            networkPending: false,
         })
     })
 
@@ -134,7 +131,7 @@ describe('the scanned-destination hand-off', () => {
     // An ENS name resolves to the address, and the recipient step shows both.
     it('hands over the ENS name the address was resolved from', () => {
         const id = stashScannedDestination(EVM_ADDRESS, undefined, { name: 'alice.eth' })
-        expect(takeScannedDestination(id)).toEqual({ address: EVM_ADDRESS, name: 'alice.eth', networkPending: true })
+        expect(takeScannedDestination(id)).toEqual({ address: EVM_ADDRESS, name: 'alice.eth' })
     })
 
     it('hands over the token a payment request asks for', () => {
@@ -143,7 +140,6 @@ describe('the scanned-destination hand-off', () => {
             address: EVM_ADDRESS,
             chainId: '8453',
             tokenSymbol: 'USDC',
-            networkPending: false,
         })
     })
 })
@@ -157,7 +153,6 @@ describe('readWithdrawDestination', () => {
         expect(readWithdrawDestination(SOLANA_ADDRESS, 'solana')).toEqual({
             address: SOLANA_ADDRESS,
             chainId: 'solana',
-            networkPending: false,
         })
     })
 
@@ -165,7 +160,6 @@ describe('readWithdrawDestination', () => {
         expect(readWithdrawDestination(TRON_ADDRESS, 'tron')).toEqual({
             address: TRON_ADDRESS,
             chainId: 'tron',
-            networkPending: false,
         })
     })
 
@@ -173,14 +167,13 @@ describe('readWithdrawDestination', () => {
         expect(readWithdrawDestination(EVM_ADDRESS, '8453')).toEqual({
             address: EVM_ADDRESS,
             chainId: '8453',
-            networkPending: false,
         })
     })
 
     // One EVM address is valid on every EVM chain, so a bare scan names no
-    // network. The user has to pick it, and the checksum case stays intact.
+    // network. The user picks it on the pay screen, and the checksum case stays intact.
     it('accepts an EVM address with no chain, leaving the network to the user', () => {
-        expect(readWithdrawDestination(EVM_ADDRESS)).toEqual({ address: EVM_ADDRESS, networkPending: true })
+        expect(readWithdrawDestination(EVM_ADDRESS)).toEqual({ address: EVM_ADDRESS })
     })
 
     it.each([
@@ -206,12 +199,11 @@ describe('readWithdrawDestination', () => {
         expect(readWithdrawDestination(EVM_ADDRESS, '8453')).toBeNull()
     })
 
-    // The lock pins USDC on Arbitrum and disables the network pick, so a pending
-    // network could never be confirmed. Arbitrum is the same chain, which the
-    // lock allows.
-    it('accepts a chainless EVM address under the kill-switch with no network to pick', () => {
+    // The lock pins USDC on Arbitrum, and Arbitrum is the same chain, which
+    // the lock allows.
+    it('accepts a chainless EVM address under the kill-switch', () => {
         mockConfig.disableXchainWithdraw = true
-        expect(readWithdrawDestination(EVM_ADDRESS)).toEqual({ address: EVM_ADDRESS, networkPending: false })
+        expect(readWithdrawDestination(EVM_ADDRESS)).toEqual({ address: EVM_ADDRESS })
     })
 })
 
@@ -227,7 +219,6 @@ describe("a payment request's token", () => {
             address: EVM_ADDRESS,
             chainId: '8453',
             tokenSymbol: 'usdc',
-            networkPending: false,
         })
     })
 
