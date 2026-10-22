@@ -1,8 +1,9 @@
 import fs from 'fs'
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import BlogPostPage, { generateMetadata, generateStaticParams } from '../page'
 import * as blog from '@/lib/blog'
 import { SUPPORTED_LOCALES } from '@/i18n/types'
+import { getTranslations } from '@/i18n'
 
 jest.mock('@/lib/mdx', () => ({
     renderContent: async (body: string) => ({ content: body }),
@@ -11,7 +12,13 @@ jest.mock('@/constants/general.consts', () => ({ BASE_URL: 'https://peanut.me' }
 jest.mock('@/components/Marketing/MarketingShell', () => ({
     MarketingShell: ({ children }: { children: React.ReactNode }) => children,
 }))
-jest.mock('@/components/Marketing/mdx/Hero', () => ({ Hero: () => null }))
+jest.mock('@/components/Global/MarqueeWrapper', () => ({
+    MarqueeComp: ({ message }: { message: string[] }) => <p data-testid="marquee">{message.join(' | ')}</p>,
+}))
+jest.mock('@/components/LandingPage/CloudsCss', () => ({ CloudsCss: () => null }))
+jest.mock('@/components/0_Bruddle/Button', () => ({
+    Button: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a>,
+}))
 jest.mock('@/components/Marketing/JsonLd', () => ({ JsonLd: () => null }))
 jest.mock('@/components/0_Bruddle/Breadcrumb', () => ({ Breadcrumb: () => null }))
 jest.mock('next/navigation', () => ({
@@ -24,6 +31,47 @@ const ENGLISH_ONLY_SLUG = 'stablecoin-balance-visa-merchants'
 const params = (locale: string, slug = ENGLISH_ONLY_SLUG) => ({ params: Promise.resolve({ locale, slug }) })
 
 afterEach(() => jest.restoreAllMocks())
+
+it('keeps articles without an authored Hero action unchanged', async () => {
+    const post = {
+        frontmatter: { title: 'Manual article', description: 'Article', date: '2026-10-22' },
+        content: 'Article without a Hero action',
+        locale: 'en' as const,
+    }
+    jest.spyOn(blog, 'getPostBySlug').mockResolvedValue(post)
+    const { container } = render(await BlogPostPage(params('en')))
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(post.frontmatter.title)
+    expect(container.querySelector('section a')).toBeNull()
+})
+
+it.each(['en', 'pt-br'])(
+    'renders the authored Hero action and subtitle in the prose language on a %s route',
+    async (locale) => {
+        const href = '/en/card?utm_source=blog&utm_medium=seo&utm_campaign=card-guide'
+        const slug = 'authored-hero-action-fixture'
+        const exists = fs.existsSync
+        const read = fs.readFileSync
+        jest.spyOn(fs, 'existsSync').mockImplementation((file) => {
+            return typeof file === 'string' && file.includes(`/blog/${slug}/`) ? file.endsWith('/en.md') : exists(file)
+        })
+        jest.spyOn(fs, 'readFileSync').mockImplementation(((file: Parameters<typeof read>[0], options: unknown) => {
+            return typeof file === 'string' && file.endsWith(`/blog/${slug}/en.md`)
+                ? `---\ntitle: Authored card article\ndescription: Article\ndate: 2026-10-22\nheroCta:\n  text: Apply for a card\n  href: "${href}"\n  subtitle: Applications are subject to approval\n---\nEnglish prose`
+                : read(file, options as never)
+        }) as typeof read)
+
+        const { container } = render(await BlogPostPage(params(locale, slug)))
+        const action = screen.getByRole('link', { name: 'Apply for a card' })
+        expect(action).toHaveAttribute('href', href)
+        expect(action.closest('[lang]')).toHaveAttribute('lang', 'en')
+        expect(screen.getByText('Applications are subject to approval').closest('[lang]')).toHaveAttribute('lang', 'en')
+        expect(container.querySelector('article')).toHaveAttribute('lang', 'en')
+        expect(screen.getByTestId('marquee').closest('[lang]')).toHaveAttribute('lang', locale)
+        expect(screen.getByTestId('marquee')).toHaveTextContent(
+            getTranslations(locale as 'en' | 'pt-br').heroMarqueeDollars
+        )
+    }
+)
 
 it('generates the English-only article in every locale even when translated posts already exist', async () => {
     expect(blog.getAllPosts('es-ar').length).toBeGreaterThan(0)
@@ -51,7 +99,8 @@ it.each(['es-419', 'es-ar', 'pt-br'])(
         })
         const { container } = render(await BlogPostPage(params(locale)))
         expect(container.querySelector('article')).toHaveAttribute('lang', 'en')
-        expect(container).toHaveTextContent('What is the Peanut Card?')
+        const englishPost = await blog.getPostBySlug(ENGLISH_ONLY_SLUG)
+        expect(container.querySelector('article')?.textContent).toBe(englishPost?.content)
     }
 )
 

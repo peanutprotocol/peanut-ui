@@ -9,7 +9,8 @@ interface RedirectRule {
     has?: unknown[]
 }
 
-const networks = ['arbitrum', 'base', 'ethereum', 'polygon', 'solana', 'tron']
+const depositNetworks = ['arbitrum', 'base', 'ethereum', 'tron']
+const withdrawalNetworks = ['base', 'ethereum', 'solana', 'tron']
 const exchanges = [
     'belo',
     'binance',
@@ -17,10 +18,8 @@ const exchanges = [
     'buenbit',
     'bybit',
     'coinbase',
-    'crypto-com',
     'kraken',
     'kucoin',
-    'lemon',
     'metamask',
     'okx',
     'phantom',
@@ -28,14 +27,13 @@ const exchanges = [
     'ripio',
 ]
 const merges = [
-    ...networks.map((slug) => [`deposit/via-${slug}`, 'help/deposit-crypto']),
+    ...depositNetworks.map((slug) => [`deposit/via-${slug}`, 'help/deposit-crypto']),
     ...exchanges.map((slug) => [`deposit/from-${slug}`, 'help/deposit-crypto']),
-    ...networks.map((slug) => [`withdraw/${slug}`, 'help/withdraw-crypto']),
-    ...['france', 'germany', 'italy', 'netherlands', 'portugal', 'spain'].map((slug) => [
+    ...withdrawalNetworks.map((slug) => [`withdraw/${slug}`, 'help/withdraw-crypto']),
+    ...['france', 'germany', 'italy', 'netherlands', 'portugal'].map((slug) => [
         `receive-money-from/${slug}`,
         'deposit/from-eur-account',
     ]),
-    ['receive-money-from/united-states', 'deposit/from-usd-account'],
     ['receive-money-from/united-kingdom', 'deposit/from-gbp-account'],
     ['pay-with/fps', 'withdraw/faster-payments'],
 ]
@@ -78,8 +76,8 @@ function matchRedirect(pathname: string) {
     return rules.find((rule) => !rule.has && getPathMatch(rule.source)(pathname))
 }
 
-it('merges all 36 topics and all 8 locale/bare aliases directly to a permanent content owner', () => {
-    expect(merges).toHaveLength(36)
+it('merges all 28 topics and all 8 locale/bare aliases directly to a permanent content owner', () => {
+    expect(merges).toHaveLength(28)
     for (const [source, target] of merges) {
         for (const [locale, owner] of Object.entries(localeOwners)) {
             const pathname = locale ? `/${locale}/${source}` : `/${source}`
@@ -91,6 +89,23 @@ it('merges all 36 topics and all 8 locale/bare aliases directly to a permanent c
             const slug = rawSlug.replace(/^from-/, '')
             const resolved = readPageContentLocalizedResolved<ContentFrontmatter>(intent, slug, owner)
             expect(resolved?.lang).toBe(owner)
+        }
+    }
+})
+
+it('keeps deferred consolidation guides reachable in each supported locale', () => {
+    for (const source of [
+        'deposit/from-crypto-com',
+        'deposit/from-lemon',
+        'deposit/via-polygon',
+        'deposit/via-solana',
+        'receive-money-from/spain',
+        'receive-money-from/united-states',
+        'withdraw/arbitrum',
+        'withdraw/polygon',
+    ]) {
+        for (const locale of ['en', 'es-419', 'es-ar', 'pt-br']) {
+            expect(matchRedirect(`/${locale}/${source}`)).toBeUndefined()
         }
     }
 })

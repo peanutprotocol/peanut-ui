@@ -140,7 +140,13 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
                 other content page. The title is in the content
                 locale; the Hero marks its own marquee with the route locale. */}
             <div lang={contentLocale}>
-                <Hero title={post.frontmatter.title} locale={locale} />
+                <Hero
+                    title={post.frontmatter.title}
+                    subtitle={post.frontmatter.heroCta?.subtitle}
+                    cta={post.frontmatter.heroCta?.text}
+                    ctaHref={post.frontmatter.heroCta?.href}
+                    locale={locale}
+                />
             </div>
             {/* px-0: the mdx element map already carries the 24px prose inset
                 (mx-auto PROSE_WIDTH px-6 md:px-4), so the shell's own padding
