@@ -17,6 +17,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withdrawBankUrl, withdrawCountryUrl } from '@/utils/native-routes'
 import { SCAN_ID_PARAM, takeScannedDestination, withdrawTokenForChain } from './destination'
+import { addressFamilyForChainId } from '@/lib/validation/addressFamily'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { parseAsString, parseAsBoolean, useQueryState } from 'nuqs'
@@ -62,7 +63,7 @@ export function useWithdrawRootFlow() {
         setIsMaxWithdrawal,
         setRecipient,
         setIsValidRecipient,
-        setNetworkUnconfirmed,
+        setScannedRecipient,
     } = useWithdrawFlow()
 
     const { supportedChainsAndTokens, isLoadingChains, setSelectedChainID, setSelectedTokenAddress } =
@@ -102,9 +103,9 @@ export function useWithdrawRootFlow() {
         const scanned = takeScannedDestination(scanIdParam)
         if (scanned) {
             // An EVM address that names no network starts on USDC on the wallet
-            // chain, set here: the recipient step keeps the selection it finds
-            // under a prefilled recipient, so a Solana or Tron chain left in the
-            // app-wide selector would make the address read as invalid.
+            // chain, set here: the pay screen keeps the selection it finds, so a
+            // Solana or Tron chain left in the app-wide selector would otherwise
+            // be offered to an EVM address.
             const chainId = scanned.chainId ?? PEANUT_WALLET_CHAIN.id.toString()
             const tokenAddress = scanned.chainId
                 ? withdrawTokenForChain(supportedChainsAndTokens[scanned.chainId]?.tokens, {
@@ -117,7 +118,7 @@ export function useWithdrawRootFlow() {
                 setSelectedTokenAddress(tokenAddress)
                 setRecipient({ name: scanned.name, address: scanned.address })
                 setIsValidRecipient(true)
-                setNetworkUnconfirmed(scanned.networkPending)
+                setScannedRecipient({ addressFamily: addressFamilyForChainId(scanned.chainId) })
             }
         }
         if (selectedMethod?.type !== 'crypto') {
@@ -143,7 +144,7 @@ export function useWithdrawRootFlow() {
         setSelectedTokenAddress,
         setRecipient,
         setIsValidRecipient,
-        setNetworkUnconfirmed,
+        setScannedRecipient,
         setSelectedBankAccount,
         setSelectedMethod,
         router,

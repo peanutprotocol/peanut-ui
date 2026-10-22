@@ -13,8 +13,6 @@ export interface WithdrawDestination {
     tokenSymbol?: string
     /** The exact contract that request names: several contracts can share a symbol. */
     tokenAddress?: string
-    /** The user has to pick the network before the withdrawal can continue. */
-    networkPending: boolean
 }
 
 /** What a scan knows beyond the address and its chain. */
@@ -63,8 +61,8 @@ export function withdrawScanEntryUrl(scanId: string, request: ScannedPaymentRequ
  * The destination an address and chain name, or null when they name none we can
  * pay out to: the chain has to be one Rhino delivers to, and the address has to
  * be valid for that chain's address family. With no chain, the address has to
- * be an EVM one, and the user picks its network in the flow. The token a payment
- * request asks for has to be one Rhino delivers to that chain.
+ * be an EVM one, and the user picks its network on the pay screen. The token a
+ * payment request asks for has to be one Rhino delivers to that chain.
  */
 export function readWithdrawDestination(
     address: string | null | undefined,
@@ -76,11 +74,7 @@ export function readWithdrawDestination(
         // A requested token cannot be checked against a chain nobody named.
         if (tokenSymbol) return null
         if (!isValidAddressForFamily(address, 'evm')) return null
-        // The ops kill-switch locks withdrawals to USDC on Arbitrum and disables
-        // the network pick, so a pending network could never be confirmed.
-        // Arbitrum is the same chain, which the lock allows, so the address is
-        // accepted with nothing to pick.
-        return { address, networkPending: !underMaintenanceConfig.disableXchainWithdraw }
+        return { address }
     }
     // A destination that names its chain keeps that chain and the token it
     // asks for. The kill-switch would move it to USDC on Arbitrum, so it
@@ -95,7 +89,7 @@ export function readWithdrawDestination(
         return null
     }
     if (!isValidAddressForFamily(address, addressFamilyForChainId(chainId))) return null
-    return { address, chainId, tokenSymbol, networkPending: false }
+    return { address, chainId, tokenSymbol }
 }
 
 let scanned: (WithdrawDestination & { id: string }) | null = null

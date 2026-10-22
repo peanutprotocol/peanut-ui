@@ -16,7 +16,8 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { addressFamilyForChainId } from '@/lib/validation/addressFamily'
 import { printableAddress } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
-import { validateAndResolveRecipient } from '@/lib/validation/recipient'
+import { withdrawChainRecord } from '../chain-record'
+import { useEnsRecipientForChain } from '../useEnsRecipientForChain'
 
 interface InitialWithdrawViewProps {
     onContinue: (data: { token: ITokenPriceData; chain: ChainWithTokens; address: string }) => void
@@ -86,60 +87,13 @@ export default function InitialWithdrawView({
         }
     }, [selectedChainID, error.showError, setError])
 
-    // ENS names resolve per destination chain (ENSIP-11) — a validated name
-    // must re-resolve when the user switches chains after typing it, or the
-    // withdraw would go to the previous chain's address. Kept separate from the
-    // error-clearing effect above: its error.showError dep would abort an
-    // in-flight resolution via this cleanup.
-    const prevResolvedChainRef = useRef(selectedChainID)
-    useEffect(() => {
-        if (prevResolvedChainRef.current === selectedChainID) return
-        prevResolvedChainRef.current = selectedChainID
-        if (addressFamily !== 'evm' || !recipient.name) return
-
-        const name = recipient.name
-        // Gate Review while the previous chain's address is still in state —
-        // clicking it mid-resolution would send to that address.
-        setIsValidRecipient(false)
-        let stale = false
-        validateAndResolveRecipient(name, true, 'evm', selectedChainID)
-            .then((validation) => {
-                if (stale) return
-                setRecipient({ name, address: validation.resolvedAddress })
-                setIsValidRecipient(true)
-            })
-            .catch(() => {
-                if (stale) return
-                setRecipient({ name: undefined, address: '' })
-                setIsValidRecipient(false)
-                setError({
-                    showError: true,
-                    errorMessage: 'Could not resolve the ENS name for the selected network',
-                })
-            })
-        return () => {
-            stale = true
-        }
-    }, [selectedChainID, addressFamily, recipient.name, setRecipient, setIsValidRecipient, setError])
+    // ENS names resolve per destination chain (ENSIP-11): a typed name
+    // re-resolves when the user switches chains. Kept out of the error-clearing
+    // effect above: its error.showError dep would abort an in-flight resolution.
+    useEnsRecipientForChain(selectedChainID, addressFamily)
 
     const handleContinue = () => {
-        // Context record already includes the synthetic non-EVM withdraw
-        // destinations (merged once in tokenSelector.context).
-        const xchainChainData = supportedChainsAndTokens[selectedChainID]
-        // supportedChainsAndTokens may not list the Peanut wallet chain on
-        // testnets / env-configured chains. Synthesize a minimal entry so the
-        // same-chain (no-bridge) path can proceed.
-        const isPeanutWalletChain = selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
-        const fallbackChainData =
-            isPeanutWalletChain && !xchainChainData
-                ? ({
-                      chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                      networkName: PEANUT_WALLET_CHAIN.name,
-                      chainIconURI: '',
-                      tokens: [],
-                  } satisfies ChainWithTokens)
-                : undefined
-        const selectedChainData = xchainChainData ?? fallbackChainData
+        const selectedChainData = withdrawChainRecord(supportedChainsAndTokens, selectedChainID)
 
         if (selectedTokenData && selectedChainData && recipient.address) {
             onContinue({

@@ -172,6 +172,30 @@ jest.mock('@/features/withdraw/views/InitialWithdrawView', () => ({
     ),
 }))
 
+// the pay screen for a scanned destination: exposes onContinue (setup) and the amount error
+jest.mock('@/features/withdraw/views/ScannedDestinationPayView', () => ({
+    __esModule: true,
+    default: (props: {
+        onContinue: (data: unknown) => void
+        onBack: () => void
+        addressFamily: string
+        amountError?: string
+        error: { errorMessage: string }
+    }) => (
+        <>
+            <span data-testid="pay-family">{props.addressFamily}</span>
+            {props.amountError && <p role="alert">{props.amountError}</p>}
+            {props.error.errorMessage && <p role="alert">{props.error.errorMessage}</p>}
+            <button data-testid="pay-back" onClick={props.onBack}>
+                Back
+            </button>
+            <button data-testid="pay-cta" onClick={() => props.onContinue({ ...withdrawData })}>
+                Send with Peanut
+            </button>
+        </>
+    ),
+}))
+
 jest.mock('@/features/withdraw/views/WithdrawAmountView', () => ({
     WithdrawAmountView: (props: {
         walletBalance: string
@@ -284,6 +308,7 @@ const withdrawData = {
 
 const mockSetRecipient = jest.fn()
 const mockSetIsValidRecipient = jest.fn()
+const mockSetScannedRecipient = jest.fn()
 const mockWithdrawFlow = {
     isMaxWithdrawal: false,
     setIsMaxWithdrawal: jest.fn(),
@@ -292,6 +317,9 @@ const mockWithdrawFlow = {
     transactionHash: null as string | null,
     setRecipient: mockSetRecipient,
     setIsValidRecipient: mockSetIsValidRecipient,
+    // set by a scan; the page then opens on the pay screen instead of the destination form
+    scannedRecipient: null as { addressFamily: 'evm' | 'solana' | 'tron' } | null,
+    setScannedRecipient: mockSetScannedRecipient,
     setWithdrawData: jest.fn(),
     showCompatibilityModal: false,
     setShowCompatibilityModal: jest.fn(),
@@ -299,6 +327,7 @@ const mockWithdrawFlow = {
     setIsPreparingReview: jest.fn(),
     paymentError: null as string | null,
     setPaymentError: mockSetPaymentError,
+    error: { showError: false, errorMessage: '' },
     setError: mockSetWithdrawError,
     chargeDetails,
     setChargeDetails: jest.fn(),
@@ -409,6 +438,7 @@ beforeEach(() => {
     withdrawData.token.price = 1
     mockIsWithdrawFeeDisproportionate.mockImplementation(() => false)
     mockWithdrawFlow.paymentError = null
+    mockWithdrawFlow.scannedRecipient = null
     mockUrlAmount = '50'
     mockStepper.step = 'review'
     mockWithdrawFlow.isMaxWithdrawal = false
@@ -1609,5 +1639,83 @@ describe('unpaid withdrawal draft cleanup', () => {
         await waitFor(() => expect(mockSendMoney).toHaveBeenCalledTimes(1))
         view.unmount()
         expect(chargesApi.cancel).not.toHaveBeenCalled()
+    })
+})
+
+// A scanned destination opens on the pay screen (TASK-23974): the address,
+// the amount and the pickers on one screen, straight to the review.
+describe('crypto withdraw — a scanned destination opens the pay screen', () => {
+    beforeEach(() => {
+        mockWithdrawFlow.scannedRecipient = { addressFamily: 'evm' }
+        mockStepper.step = 'recipient'
+        ;(chargesApi.create as jest.Mock).mockResolvedValue({ data: { id: CHARGE_UUID } })
+        ;(chargesApi.get as jest.Mock).mockResolvedValue(chargeDetails)
+    })
+
+    it('renders the pay screen for the scanned family instead of the destination form', () => {
+        render(<WithdrawCryptoPage />)
+        expect(screen.getByTestId('pay-family')).toHaveTextContent('evm')
+        expect(screen.queryByTestId('destination-cta')).toBeNull()
+    })
+
+    it('a typed destination still gets the form', () => {
+        mockWithdrawFlow.scannedRecipient = null
+        render(<WithdrawCryptoPage />)
+        expect(screen.getByTestId('destination-cta')).toBeInTheDocument()
+        expect(screen.queryByTestId('pay-family')).toBeNull()
+    })
+
+    it('the flag alone is not enough: with no recipient left in the flow the form comes back', () => {
+        const recipient = mockWithdrawFlow.recipient
+        mockWithdrawFlow.recipient = { address: '', name: '' }
+        try {
+            render(<WithdrawCryptoPage />)
+            expect(screen.getByTestId('destination-cta')).toBeInTheDocument()
+        } finally {
+            mockWithdrawFlow.recipient = recipient
+        }
+    })
+
+    // A scanned ENS name that misses on a newly picked network keeps its name
+    // and loses its address: the pay screen stays, with the flow error on it.
+    it('keeps the pay screen for a scanned name whose address is gone, and shows the flow error', () => {
+        const recipient = mockWithdrawFlow.recipient
+        const error = mockWithdrawFlow.error
+        mockWithdrawFlow.recipient = { address: '', name: 'alice.eth' }
+        mockWithdrawFlow.error = {
+            showError: true,
+            errorMessage: 'Could not resolve the ENS name for the selected network',
+        }
+        try {
+            render(<WithdrawCryptoPage />)
+            expect(screen.getByTestId('pay-family')).toBeInTheDocument()
+            expect(screen.getByRole('alert')).toHaveTextContent(
+                'Could not resolve the ENS name for the selected network'
+            )
+        } finally {
+            mockWithdrawFlow.recipient = recipient
+            mockWithdrawFlow.error = error
+        }
+    })
+
+    it('Send with Peanut prepares the review straight from the pay screen: no amount step', async () => {
+        render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('pay-cta'))
+        await waitFor(() => expect(chargesApi.create).toHaveBeenCalled())
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('amount')
+        await waitFor(() => expect(mockWithdrawFlow.setShowCompatibilityModal).toHaveBeenCalledWith(true))
+    })
+
+    it('Back from the review returns to the pay screen, not an amount step', () => {
+        mockStepper.step = 'review'
+        render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('back-review'))
+        expect(mockStepperGoTo).toHaveBeenCalledWith('recipient')
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('amount')
+    })
+
+    it('the scan is forgotten when the page unmounts, with the rest of the transient state', () => {
+        render(<WithdrawCryptoPage />).unmount()
+        expect(mockSetScannedRecipient).toHaveBeenCalledWith(null)
     })
 })

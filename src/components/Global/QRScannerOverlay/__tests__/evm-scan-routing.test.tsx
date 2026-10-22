@@ -142,19 +142,18 @@ describe('a signed-in scan of an EVM address', () => {
             expect(params.get('step')).toBe('amount')
             expect(params.get('method')).toBe('crypto')
             expect(params.toString().toLowerCase()).not.toContain(LOWERCASE)
-            expect(destination).toEqual({ address, networkPending: true })
+            expect(destination).toEqual({ address })
         })
     })
 
-    // The kill-switch disables the network pick, and Arbitrum is the chain it
-    // allows, so the scan still goes through with nothing left to pick.
-    it('still goes into the withdrawal under the kill-switch, with no network to pick', async () => {
+    // Arbitrum is the chain the kill-switch allows, so the scan still goes through.
+    it('still goes into the withdrawal under the kill-switch', async () => {
         mockMaintenance.disableXchainWithdraw = true
 
         const { path, destination } = withdrawEntry(await scanAndConfirm(CHECKSUMMED))
 
         expect(path).toBe('/withdraw')
-        expect(destination).toEqual({ address: CHECKSUMMED, networkPending: false })
+        expect(destination).toEqual({ address: CHECKSUMMED })
     })
 })
 
@@ -169,7 +168,7 @@ describe('a signed-in scan of an ENS name', () => {
         expect(mockResolveEns).toHaveBeenCalledWith('alice.eth', '42161')
         expect(path).toBe('/withdraw')
         expect(params.toString()).not.toContain('alice.eth')
-        expect(destination).toEqual({ address: CHECKSUMMED, name: 'alice.eth', networkPending: true })
+        expect(destination).toEqual({ address: CHECKSUMMED, name: 'alice.eth' })
     })
 
     it('a name that resolves to nothing is unrecognized', async () => {
@@ -193,7 +192,6 @@ describe('a signed-in scan of an EIP-681 payment request', () => {
             chainId: '8453',
             tokenSymbol: 'USDC',
             tokenAddress: BASE_USDC,
-            networkPending: false,
         })
     })
 
@@ -230,7 +228,7 @@ describe('a signed-in scan of an EIP-681 payment request', () => {
 
         expect(path).toBe('/withdraw')
         expect(params.get('amount')).toBeNull()
-        expect(destination).toEqual(expect.objectContaining({ address: LOWERCASE, networkPending: true }))
+        expect(destination).toEqual({ address: LOWERCASE })
         expect(destination?.chainId).toBeUndefined()
     })
 
@@ -238,7 +236,7 @@ describe('a signed-in scan of an EIP-681 payment request', () => {
         const { params, destination } = withdrawEntry(await scanAndConfirm(`ethereum:${CHECKSUMMED}@8453`))
 
         expect(params.get('amount')).toBeNull()
-        expect(destination).toEqual({ address: LOWERCASE, chainId: '8453', networkPending: false })
+        expect(destination).toEqual({ address: LOWERCASE, chainId: '8453' })
     })
 
     it('for native ETH on a chain that pays it out keeps ETH and leaves the amount to the user', async () => {
@@ -250,7 +248,6 @@ describe('a signed-in scan of an EIP-681 payment request', () => {
             chainId: '8453',
             tokenSymbol: 'ETH',
             tokenAddress: NATIVE,
-            networkPending: false,
         })
     })
 

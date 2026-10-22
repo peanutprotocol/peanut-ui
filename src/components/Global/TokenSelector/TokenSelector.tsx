@@ -23,6 +23,7 @@ import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type IToken } from '@/interfaces/interfaces'
 import { isNativeCurrency } from '@/utils/general.utils'
+import { addressFamilyForChainId, type WithdrawAddressFamily } from '@/lib/validation/addressFamily'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 import EmptyState from '../EmptyStates/EmptyState'
 import SelectorOptionRow from './Components/SelectorOptionRow'
@@ -62,6 +63,8 @@ interface NewTokenSelectorProps {
     onNetworkSelect?: () => void
     /** guidance under the network picker, for example when the screen needs an explicit network pick; the lock hint wins */
     networkHelper?: string
+    /** only the networks an address of this family is valid on: a scanned EVM address is never offered Solana */
+    addressFamily?: WithdrawAddressFamily
 }
 
 type DrawerKind = 'token' | 'network'
@@ -72,6 +75,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
     onAutoCorrect,
     onNetworkSelect,
     networkHelper,
+    addressFamily,
 }) => {
     const t = useTranslations('global')
     // check if cross-chain is disabled via maintenance config
@@ -116,8 +120,9 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
             isAllowed = (_chainId, token) =>
                 POPULAR_SYMBOLS.includes(token.symbol.toUpperCase()) || isNativeCurrency(token.address)
         }
+        if (addressFamily) chainIds = chainIds.filter((chainId) => addressFamilyForChainId(chainId) === addressFamily)
         return buildTokenOptions(chains, chainIds, isAllowed)
-    }, [supportedChainsAndTokens, isLocked, restrictToRhino])
+    }, [supportedChainsAndTokens, isLocked, restrictToRhino, addressFamily])
 
     const current = useMemo(
         () => findSelection(options, selectedChainID, selectedTokenAddress),

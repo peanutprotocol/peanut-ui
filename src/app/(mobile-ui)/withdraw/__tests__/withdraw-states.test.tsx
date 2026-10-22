@@ -65,7 +65,7 @@ const mockSetSelectedMethod = jest.fn()
 const mockSetIsMaxWithdrawal = jest.fn()
 const mockSetRecipient = jest.fn()
 const mockSetIsValidRecipient = jest.fn()
-const mockSetNetworkUnconfirmed = jest.fn()
+const mockSetScannedRecipient = jest.fn()
 
 const mockWithdrawFlow = {
     error: { showError: false, errorMessage: '' },
@@ -77,7 +77,7 @@ const mockWithdrawFlow = {
     setSelectedMethod: mockSetSelectedMethod,
     setRecipient: mockSetRecipient,
     setIsValidRecipient: mockSetIsValidRecipient,
-    setNetworkUnconfirmed: mockSetNetworkUnconfirmed,
+    setScannedRecipient: mockSetScannedRecipient,
 }
 
 jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
@@ -809,13 +809,15 @@ describe('GROUP 3: Amount Validation', () => {
             mockWithdrawFlow.selectedMethod = { type: 'crypto' }
         })
 
-        test('seeds the recipient step with the scanned address, its chain and token', () => {
+        test('seeds the pay screen with the scanned address, its chain and token', () => {
             renderWithdraw(scanEntry(scanInto(SOLANA_ADDRESS)))
 
             expect(mockSetSelectedChainID).toHaveBeenCalledWith('solana')
             expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(SOLANA_USDC)
             expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: SOLANA_ADDRESS })
             expect(mockSetIsValidRecipient).toHaveBeenCalledWith(true)
+            // the pay screen's pickers keep to Solana for a Solana address
+            expect(mockSetScannedRecipient).toHaveBeenCalledWith({ addressFamily: 'solana' })
             expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=25')
         })
 
@@ -941,10 +943,10 @@ describe('GROUP 3: Amount Validation', () => {
             }
         })
 
-        // Set here because the recipient step keeps the selection it finds
-        // under a prefilled recipient: a Solana chain left in the app-wide
-        // selector would make the EVM address read as invalid.
-        test('a bare address starts on USDC on Arbitrum with the network pick pending', () => {
+        // Set here because the pay screen keeps the selection it finds: a
+        // Solana chain left in the app-wide selector would be offered to the
+        // EVM address. The pay screen opens for it, with EVM networks only.
+        test('a bare address starts on USDC on Arbitrum and opens the pay screen for an EVM recipient', () => {
             const id = stashScannedDestination(EVM_ADDRESS)!
 
             renderWithdraw(entryParams(withdrawScanEntryUrl(id)))
@@ -953,7 +955,7 @@ describe('GROUP 3: Amount Validation', () => {
             expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(PEANUT_WALLET_TOKEN)
             expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: EVM_ADDRESS })
             expect(mockSetIsValidRecipient).toHaveBeenCalledWith(true)
-            expect(mockSetNetworkUnconfirmed).toHaveBeenCalledWith(true)
+            expect(mockSetScannedRecipient).toHaveBeenCalledWith({ addressFamily: 'evm' })
             expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto')
             expect(mockRouterReplace.mock.calls[0][0]).not.toContain(EVM_ADDRESS)
         })
@@ -966,9 +968,8 @@ describe('GROUP 3: Amount Validation', () => {
             expect(mockSetRecipient).toHaveBeenCalledWith({ name: 'alice.eth', address: EVM_ADDRESS })
         })
 
-        // The kill-switch disables the network pick, so a pending pick could
-        // never be cleared and Continue would stay dead.
-        test('under the kill-switch nothing is pending: Arbitrum is the only network', () => {
+        // The kill-switch locks the pickers to USDC on Arbitrum; the scan still opens the pay screen.
+        test('under the kill-switch the scan still opens the pay screen on Arbitrum', () => {
             const lock = jest.replaceProperty(underMaintenanceConfig, 'disableXchainWithdraw', true)
             try {
                 const id = stashScannedDestination(EVM_ADDRESS)!
@@ -976,7 +977,7 @@ describe('GROUP 3: Amount Validation', () => {
                 renderWithdraw(entryParams(withdrawScanEntryUrl(id)))
 
                 expect(mockSetSelectedChainID).toHaveBeenCalledWith('42161')
-                expect(mockSetNetworkUnconfirmed).toHaveBeenCalledWith(false)
+                expect(mockSetScannedRecipient).toHaveBeenCalledWith({ addressFamily: 'evm' })
             } finally {
                 lock.restore()
             }
@@ -989,7 +990,7 @@ describe('GROUP 3: Amount Validation', () => {
 
             expect(mockSetSelectedChainID).toHaveBeenCalledWith('8453')
             expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(BASE_USDC)
-            expect(mockSetNetworkUnconfirmed).toHaveBeenCalledWith(false)
+            expect(mockSetScannedRecipient).toHaveBeenCalledWith({ addressFamily: 'evm' })
             expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=10')
             expect(mockRouterReplace.mock.calls[0][0]).not.toContain(EVM_ADDRESS)
         })
