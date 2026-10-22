@@ -10,7 +10,7 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type ITokenPriceData } from '@/interfaces/interfaces'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { useRouter } from 'next/navigation'
-import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef } from 'react'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { addressFamilyForChainId } from '@/lib/validation/addressFamily'
@@ -52,14 +52,12 @@ export default function InitialWithdrawView({
         setInputChanging,
         recipient,
         setRecipient,
+        networkUnconfirmed,
+        setNetworkUnconfirmed,
         error,
         setError,
     } = useWithdrawFlow()
 
-    // A prefilled destination (address book, back navigation) on a network the
-    // selector no longer offers gets moved to a valid one. Never send to the
-    // moved network silently: the user picks the network for that address first.
-    const [networkUnconfirmed, setNetworkUnconfirmed] = useState(false)
     const recipientAddressRef = useRef(recipient.address)
     recipientAddressRef.current = recipient.address
 
@@ -193,11 +191,14 @@ export default function InitialWithdrawView({
             <div className="space-y-4">
                 <TokenSelector
                     viewType="withdraw"
+                    // never send to a network moved under a prefilled destination silently
                     onAutoCorrect={() => {
                         if (recipientAddressRef.current) setNetworkUnconfirmed(true)
                     }}
                     // a token tap keeps the default network, so only a network pick confirms it
                     onNetworkSelect={() => setNetworkUnconfirmed(false)}
+                    // guidance, not an error: the address is fine, the network is still the user's call
+                    networkHelper={networkUnconfirmed ? t('initial.confirmNetwork') : undefined}
                 />
 
                 {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
@@ -221,11 +222,7 @@ export default function InitialWithdrawView({
                         showInfoText={false}
                         isWithdrawal
                     />
-                    {networkUnconfirmed ? (
-                        <FieldError>{t('initial.confirmNetwork')}</FieldError>
-                    ) : (
-                        error.showError && !!error.errorMessage && <FieldError>{error.errorMessage}</FieldError>
-                    )}
+                    {error.showError && !!error.errorMessage && <FieldError>{error.errorMessage}</FieldError>}
                 </div>
 
                 {/* Surface the resolved address as soon as an ENS name validates —

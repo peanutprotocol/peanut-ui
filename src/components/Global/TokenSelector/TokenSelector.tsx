@@ -60,6 +60,8 @@ interface NewTokenSelectorProps {
     onAutoCorrect?: () => void
     /** the user picked a network in the network drawer — an explicit network choice */
     onNetworkSelect?: () => void
+    /** guidance under the network picker, for example when the screen needs an explicit network pick; the lock hint wins */
+    networkHelper?: string
 }
 
 type DrawerKind = 'token' | 'network'
@@ -69,6 +71,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
     disabled,
     onAutoCorrect,
     onNetworkSelect,
+    networkHelper,
 }) => {
     const t = useTranslations('global')
     // check if cross-chain is disabled via maintenance config
@@ -297,7 +300,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
                 label={t('tokenSelector.networkLabel')}
                 value={shown?.network.name ?? placeholder}
                 iconUrl={shown?.network.iconUrl}
-                helper={isLocked ? t('tokenSelector.lockedHint') : undefined}
+                helper={isLocked ? t('tokenSelector.lockedHint') : networkHelper}
                 disabled={disabled || isLocked || !shown}
                 onClick={() => open('network')}
                 data-testid="network-selector-trigger"

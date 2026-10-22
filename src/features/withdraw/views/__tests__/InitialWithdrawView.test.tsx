@@ -58,15 +58,32 @@ jest.mock('@/components/Global/PeanutActionDetailsCard', () => ({
     default: () => null,
 }))
 
-// stand-in exposing the selector's two callbacks as buttons
+// stand-in exposing the selector's two callbacks as buttons, plus a token pick,
+// which (as in the real selector) writes the token and calls neither
 jest.mock('@/components/Global/TokenSelector/TokenSelector', () => ({
     __esModule: true,
-    default: ({ onAutoCorrect, onNetworkSelect }: { onAutoCorrect?: () => void; onNetworkSelect?: () => void }) => (
-        <>
-            <button onClick={onAutoCorrect}>selector auto-correct</button>
-            <button onClick={onNetworkSelect}>selector network pick</button>
-        </>
-    ),
+    default: ({
+        onAutoCorrect,
+        onNetworkSelect,
+        networkHelper,
+    }: {
+        onAutoCorrect?: () => void
+        onNetworkSelect?: () => void
+        networkHelper?: string
+    }) => {
+        const { tokenSelectorContext } = jest.requireActual('@/context/tokenSelector.context')
+        const { setSelectedTokenAddress } = jest.requireActual('react').useContext(tokenSelectorContext)
+        return (
+            <>
+                {networkHelper && <p>{networkHelper}</p>}
+                <button onClick={onAutoCorrect}>selector auto-correct</button>
+                <button onClick={onNetworkSelect}>selector network pick</button>
+                <button onClick={() => setSelectedTokenAddress('0x3333333333333333333333333333333333333333')}>
+                    selector token pick
+                </button>
+            </>
+        )
+    },
 }))
 
 jest.mock('@/constants/zerodev.consts', () => ({
@@ -122,21 +139,24 @@ function TestHarness() {
  */
 function MountSeeder({
     prefillAddress,
+    networkUnconfirmed = false,
     setSelectedChainID,
     setSelectedTokenAddress,
 }: {
     prefillAddress?: string
+    networkUnconfirmed?: boolean
     setSelectedChainID: jest.Mock
     setSelectedTokenAddress: jest.Mock
 }) {
-    const { setRecipient, setIsValidRecipient } = useWithdrawFlow()
+    const { setRecipient, setIsValidRecipient, setNetworkUnconfirmed } = useWithdrawFlow()
     const [ready, setReady] = useState(!prefillAddress)
     useEffect(() => {
         if (!prefillAddress) return
         setRecipient({ name: undefined, address: prefillAddress })
         setIsValidRecipient(true)
+        setNetworkUnconfirmed(networkUnconfirmed)
         setReady(true)
-    }, [prefillAddress, setRecipient, setIsValidRecipient])
+    }, [prefillAddress, networkUnconfirmed, setRecipient, setIsValidRecipient, setNetworkUnconfirmed])
     const tokenContext = useMemo(
         () =>
             ({
@@ -156,7 +176,7 @@ function MountSeeder({
     )
 }
 
-const renderMountHarness = (prefillAddress?: string) => {
+const renderMountHarness = (prefillAddress?: string, { networkUnconfirmed = false } = {}) => {
     const setSelectedChainID = jest.fn()
     const setSelectedTokenAddress = jest.fn()
     render(
@@ -164,6 +184,7 @@ const renderMountHarness = (prefillAddress?: string) => {
             <WithdrawFlowProvider>
                 <MountSeeder
                     prefillAddress={prefillAddress}
+                    networkUnconfirmed={networkUnconfirmed}
                     setSelectedChainID={setSelectedChainID}
                     setSelectedTokenAddress={setSelectedTokenAddress}
                 />
@@ -205,6 +226,38 @@ describe('InitialWithdrawView', () => {
         expect(cont).toBeDisabled()
         fireEvent.click(screen.getByRole('button', { name: 'selector network pick' }))
         expect(screen.queryByText('Pick the network for this address')).toBeNull()
+    })
+
+    // A scanned EVM address names no network. It arrives prefilled with the
+    // network pick still pending, set by the flow before this step mounts.
+    describe('a scanned address with its network still to pick (TASK-23974)', () => {
+        const SCANNED = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'
+
+        it('asks for the network and keeps Continue disabled', async () => {
+            renderMountHarness(SCANNED, { networkUnconfirmed: true })
+            const cont = await screen.findByRole('button', { name: 'Continue' })
+            expect(screen.getByText('Pick the network for this address')).toBeInTheDocument()
+            expect(cont).toBeDisabled()
+        })
+
+        // The default network is a guess: picking it, even unchanged, is the
+        // user's answer.
+        it('a network pick clears it, even of the network already shown', async () => {
+            const { setSelectedChainID } = renderMountHarness(SCANNED, { networkUnconfirmed: true })
+            const cont = await screen.findByRole('button', { name: 'Continue' })
+            fireEvent.click(screen.getByRole('button', { name: 'selector network pick' }))
+            expect(screen.queryByText('Pick the network for this address')).toBeNull()
+            expect(cont).toBeEnabled()
+            expect(setSelectedChainID).not.toHaveBeenCalled()
+        })
+
+        it('a token pick does not, because it keeps the default network', async () => {
+            renderMountHarness(SCANNED, { networkUnconfirmed: true })
+            const cont = await screen.findByRole('button', { name: 'Continue' })
+            fireEvent.click(screen.getByRole('button', { name: 'selector token pick' }))
+            expect(screen.getByText('Pick the network for this address')).toBeInTheDocument()
+            expect(cont).toBeDisabled()
+        })
     })
 
     it('a correction with no destination typed asks nothing', async () => {

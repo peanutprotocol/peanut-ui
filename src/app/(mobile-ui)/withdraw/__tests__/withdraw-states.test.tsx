@@ -65,6 +65,7 @@ const mockSetSelectedMethod = jest.fn()
 const mockSetIsMaxWithdrawal = jest.fn()
 const mockSetRecipient = jest.fn()
 const mockSetIsValidRecipient = jest.fn()
+const mockSetNetworkUnconfirmed = jest.fn()
 
 const mockWithdrawFlow = {
     error: { showError: false, errorMessage: '' },
@@ -76,6 +77,7 @@ const mockWithdrawFlow = {
     setSelectedMethod: mockSetSelectedMethod,
     setRecipient: mockSetRecipient,
     setIsValidRecipient: mockSetIsValidRecipient,
+    setNetworkUnconfirmed: mockSetNetworkUnconfirmed,
 }
 
 jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
@@ -155,9 +157,13 @@ const mockSetSelectedTokenAddress = jest.fn()
 const SOLANA_USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
 const TRON_USDT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
 const mockSupportedChainsAndTokens: Record<string, { chainId: string; tokens: unknown[] }> = {}
+let mockIsLoadingChains = false
 jest.mock('@/context/tokenSelector.context', () => ({
     tokenSelectorContext: jest.requireActual('react').createContext({
         supportedChainsAndTokens: mockSupportedChainsAndTokens,
+        get isLoadingChains() {
+            return mockIsLoadingChains
+        },
         setSelectedChainID: (...args: unknown[]) => mockSetSelectedChainID(...args),
         setSelectedTokenAddress: (...args: unknown[]) => mockSetSelectedTokenAddress(...args),
     }),
@@ -276,7 +282,14 @@ jest.mock('@/features/withdraw/views/WithdrawMethodView', () => ({
 
 // ---------- import component under test AFTER all mocks ----------
 import WithdrawPage from '../page'
-import { clearScannedDestination, stashScannedDestination } from '@/features/withdraw/destination'
+import {
+    clearScannedDestination,
+    stashScannedDestination,
+    takeScannedDestination,
+    withdrawScanEntryUrl,
+} from '@/features/withdraw/destination'
+import { PEANUT_WALLET_TOKEN } from '@/constants/wallet-token.consts'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 
 // ---------- helpers ----------
@@ -370,6 +383,7 @@ beforeEach(() => {
     mockBankRate = '0.9'
     mockBankRateError = false
     mockUseRealAmountInput = false
+    mockIsLoadingChains = false
 })
 
 // ============================================================
@@ -891,6 +905,131 @@ describe('GROUP 3: Amount Validation', () => {
             expect(mockSetSelectedTokenAddress).not.toHaveBeenCalled()
             expect(mockSetRecipient).not.toHaveBeenCalled()
             expect(mockSetIsValidRecipient).not.toHaveBeenCalled()
+        })
+
+        // The token comes from the chain list, so the scan waits for it rather
+        // than being consumed with nothing to seed.
+        test('holds the scan while the chain list loads', () => {
+            mockIsLoadingChains = true
+            const id = scanInto(SOLANA_ADDRESS)
+
+            renderWithdraw(scanEntry(id))
+
+            expect(mockSetRecipient).not.toHaveBeenCalled()
+            expect(mockRouterReplace).not.toHaveBeenCalled()
+            expect(takeScannedDestination(id)).toEqual(expect.objectContaining({ address: SOLANA_ADDRESS }))
+        })
+    })
+
+    // A signed-in scan of an EVM address, an ENS name or an EIP-681 request
+    // enters here too (TASK-23974). A bare address names no network.
+    describe('a scanned EVM destination (TASK-23974)', () => {
+        const EVM_ADDRESS = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'
+        const BASE_USDC = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+        const BASE_ETH = '0x0000000000000000000000000000000000000000'
+        const entryParams = (url: string) => Object.fromEntries(new URLSearchParams(url.split('?')[1]))
+
+        beforeEach(() => {
+            clearScannedDestination()
+            mockWithdrawFlow.selectedMethod = { type: 'crypto' }
+            mockSupportedChainsAndTokens['8453'] = {
+                chainId: '8453',
+                tokens: [
+                    { symbol: 'ETH', address: BASE_ETH },
+                    { symbol: 'USDC', address: BASE_USDC },
+                ],
+            }
+        })
+
+        // Set here because the recipient step keeps the selection it finds
+        // under a prefilled recipient: a Solana chain left in the app-wide
+        // selector would make the EVM address read as invalid.
+        test('a bare address starts on USDC on Arbitrum with the network pick pending', () => {
+            const id = stashScannedDestination(EVM_ADDRESS)!
+
+            renderWithdraw(entryParams(withdrawScanEntryUrl(id)))
+
+            expect(mockSetSelectedChainID).toHaveBeenCalledWith('42161')
+            expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(PEANUT_WALLET_TOKEN)
+            expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: EVM_ADDRESS })
+            expect(mockSetIsValidRecipient).toHaveBeenCalledWith(true)
+            expect(mockSetNetworkUnconfirmed).toHaveBeenCalledWith(true)
+            expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto')
+            expect(mockRouterReplace.mock.calls[0][0]).not.toContain(EVM_ADDRESS)
+        })
+
+        test('an ENS name arrives with the name beside its address', () => {
+            const id = stashScannedDestination(EVM_ADDRESS, undefined, { name: 'alice.eth' })!
+
+            renderWithdraw(entryParams(withdrawScanEntryUrl(id)))
+
+            expect(mockSetRecipient).toHaveBeenCalledWith({ name: 'alice.eth', address: EVM_ADDRESS })
+        })
+
+        // The kill-switch disables the network pick, so a pending pick could
+        // never be cleared and Continue would stay dead.
+        test('under the kill-switch nothing is pending: Arbitrum is the only network', () => {
+            const lock = jest.replaceProperty(underMaintenanceConfig, 'disableXchainWithdraw', true)
+            try {
+                const id = stashScannedDestination(EVM_ADDRESS)!
+
+                renderWithdraw(entryParams(withdrawScanEntryUrl(id)))
+
+                expect(mockSetSelectedChainID).toHaveBeenCalledWith('42161')
+                expect(mockSetNetworkUnconfirmed).toHaveBeenCalledWith(false)
+            } finally {
+                lock.restore()
+            }
+        })
+
+        test('an EIP-681 request on Base seeds Base, its USDC and the amount', () => {
+            const id = stashScannedDestination(EVM_ADDRESS, '8453', { tokenSymbol: 'USDC', tokenAddress: BASE_USDC })!
+
+            renderWithdraw(entryParams(withdrawScanEntryUrl(id, { tokenSymbol: 'USDC', amount: '10' })))
+
+            expect(mockSetSelectedChainID).toHaveBeenCalledWith('8453')
+            expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(BASE_USDC)
+            expect(mockSetNetworkUnconfirmed).toHaveBeenCalledWith(false)
+            expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=10')
+            expect(mockRouterReplace.mock.calls[0][0]).not.toContain(EVM_ADDRESS)
+        })
+
+        // The amount step takes USD, so an ETH amount would be read as dollars.
+        test('an EIP-681 request for ETH seeds ETH and leaves the amount to the user', () => {
+            const id = stashScannedDestination(EVM_ADDRESS, '8453', { tokenSymbol: 'ETH' })!
+
+            renderWithdraw(entryParams(withdrawScanEntryUrl(id, { tokenSymbol: 'ETH', amount: '0.1' })))
+
+            expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(BASE_ETH)
+            expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto')
+        })
+
+        // Several contracts can share a symbol: the request's exact contract is
+        // seeded, not the first one with its symbol (Chip, #3796).
+        test('an EIP-681 request seeds the exact contract it names', () => {
+            const BASE_BRIDGED_USDC = '0x7f5c764cbc14f9669b88837ca1490cca17c31607'
+            mockSupportedChainsAndTokens['8453'].tokens.push({ symbol: 'USDC', address: BASE_BRIDGED_USDC })
+            const id = stashScannedDestination(EVM_ADDRESS, '8453', {
+                tokenSymbol: 'USDC',
+                tokenAddress: BASE_BRIDGED_USDC,
+            })!
+
+            renderWithdraw(entryParams(withdrawScanEntryUrl(id, { tokenSymbol: 'USDC', amount: '10' })))
+
+            expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(BASE_BRIDGED_USDC)
+        })
+
+        // A request is paid in the token it asks for or not at all: a token the
+        // chain's list lacks seeds nothing, instead of USDC in its place.
+        test('an EIP-681 request for a token the chain list lacks seeds no destination', () => {
+            const id = stashScannedDestination(EVM_ADDRESS, '8453', { tokenSymbol: 'USDT' })!
+
+            renderWithdraw(entryParams(withdrawScanEntryUrl(id, { tokenSymbol: 'USDT', amount: '10' })))
+
+            expect(mockSetSelectedTokenAddress).not.toHaveBeenCalled()
+            expect(mockSetRecipient).not.toHaveBeenCalled()
+            expect(mockSetIsValidRecipient).not.toHaveBeenCalledWith(true)
+            expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=10')
         })
     })
 
