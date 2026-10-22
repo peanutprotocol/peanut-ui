@@ -23,14 +23,14 @@ import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPea
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
-import type { RecipientState } from '@/components/Global/GeneralRecipientInput/types'
 import type { WithdrawAddressFamily } from '@/lib/validation/addressFamily'
 import type { FlowErrorState } from '@/interfaces/interfaces'
 import { withdrawChainRecord } from '../chain-record'
+import { useEnsRecipientForChain } from '../useEnsRecipientForChain'
+import { useWithdrawFlow } from '../WithdrawFlowContext'
 import type { WithdrawData } from '../types'
 
 interface ScannedDestinationPayViewProps {
-    recipient: RecipientState
     /** The scanned address's family: the pickers offer only its networks. */
     addressFamily: WithdrawAddressFamily
     initialAmount: string
@@ -49,9 +49,8 @@ interface ScannedDestinationPayViewProps {
     error: FlowErrorState
 }
 
-/** Pay screen for a scanned destination — dumb view, state lives in the flow hook + URL. */
+/** Pay screen for a scanned destination — the recipient lives in the flow context, the amount in the URL. */
 export default function ScannedDestinationPayView({
-    recipient,
     addressFamily,
     initialAmount,
     walletBalance,
@@ -66,13 +65,19 @@ export default function ScannedDestinationPayView({
     error,
 }: ScannedDestinationPayViewProps) {
     const t = useTranslations('payment')
+    const { recipient } = useWithdrawFlow()
     const { selectedTokenData, selectedChainID, selectedTokenAddress, supportedChainsAndTokens } =
         useContext(tokenSelectorContext)
 
+    // a scanned ENS name was resolved for the wallet chain; another network
+    // can hold another address for it (ENSIP-11), so it re-resolves per pick
+    const isResolvingEns = useEnsRecipientForChain(selectedChainID, addressFamily)
+
     const chain = withdrawChainRecord(supportedChainsAndTokens, selectedChainID)
-    const canContinue = !!selectedTokenData && !!chain && !!recipient.address
+    const canContinue = !!selectedTokenData && !!chain && !!recipient.address && !isResolvingEns
     const handleContinue = () => {
-        if (!selectedTokenData || !chain || !recipient.address || continueDisabled || isLoading) return
+        if (!selectedTokenData || !chain || !recipient.address || isResolvingEns || continueDisabled || isLoading)
+            return
         onContinue({ token: selectedTokenData, chain, address: recipient.address })
     }
 
@@ -90,8 +95,9 @@ export default function ScannedDestinationPayView({
             <PageStack.Center className="gap-4">
                 <UserCard
                     type="send"
-                    // the full address: the card's AddressLink shortens it and links to it
-                    username={recipient.name ?? recipient.address}
+                    // the full address: the card's AddressLink shortens it and links to it.
+                    // A name stays on the card while it re-resolves, and after a miss.
+                    username={recipient.name || recipient.address}
                     recipientType={recipient.name ? 'ENS' : 'ADDRESS'}
                     isVerified={false}
                 />

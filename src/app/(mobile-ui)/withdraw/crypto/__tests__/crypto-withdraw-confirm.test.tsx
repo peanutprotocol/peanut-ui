@@ -327,6 +327,7 @@ const mockWithdrawFlow = {
     setIsPreparingReview: jest.fn(),
     paymentError: null as string | null,
     setPaymentError: mockSetPaymentError,
+    error: { showError: false, errorMessage: '' },
     setError: mockSetWithdrawError,
     chargeDetails,
     setChargeDetails: jest.fn(),
@@ -1664,7 +1665,7 @@ describe('crypto withdraw — a scanned destination opens the pay screen', () =>
         expect(screen.queryByTestId('pay-family')).toBeNull()
     })
 
-    it('the flag alone is not enough: with no address left in the flow the form comes back', () => {
+    it('the flag alone is not enough: with no recipient left in the flow the form comes back', () => {
         const recipient = mockWithdrawFlow.recipient
         mockWithdrawFlow.recipient = { address: '', name: '' }
         try {
@@ -1672,6 +1673,28 @@ describe('crypto withdraw — a scanned destination opens the pay screen', () =>
             expect(screen.getByTestId('destination-cta')).toBeInTheDocument()
         } finally {
             mockWithdrawFlow.recipient = recipient
+        }
+    })
+
+    // A scanned ENS name that misses on a newly picked network keeps its name
+    // and loses its address: the pay screen stays, with the flow error on it.
+    it('keeps the pay screen for a scanned name whose address is gone, and shows the flow error', () => {
+        const recipient = mockWithdrawFlow.recipient
+        const error = mockWithdrawFlow.error
+        mockWithdrawFlow.recipient = { address: '', name: 'alice.eth' }
+        mockWithdrawFlow.error = {
+            showError: true,
+            errorMessage: 'Could not resolve the ENS name for the selected network',
+        }
+        try {
+            render(<WithdrawCryptoPage />)
+            expect(screen.getByTestId('pay-family')).toBeInTheDocument()
+            expect(screen.getByRole('alert')).toHaveTextContent(
+                'Could not resolve the ENS name for the selected network'
+            )
+        } finally {
+            mockWithdrawFlow.recipient = recipient
+            mockWithdrawFlow.error = error
         }
     })
 

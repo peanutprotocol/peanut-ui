@@ -75,6 +75,7 @@ export default function WithdrawCryptoPage() {
         setIsPreparingReview,
         paymentError,
         setPaymentError,
+        error: withdrawError,
         setError: setWithdrawError,
         chargeDetails,
         setChargeDetails,
@@ -91,9 +92,11 @@ export default function WithdrawCryptoPage() {
 
     // A scanned destination opens on the pay screen (address, amount and
     // pickers together) instead of the destination form and the amount step.
-    // Only while the flow still holds the address: a refresh loses both and
-    // falls back to the form.
-    const scannedEntry = recipient.address ? scannedRecipient : null
+    // Only while the flow still holds the recipient: a refresh loses both and
+    // falls back to the form. A scanned ENS name that misses on a newly picked
+    // network keeps its name and loses its address, so the name keeps the
+    // screen and the user picks another network there.
+    const scannedEntry = recipient.address || recipient.name ? scannedRecipient : null
 
     // the one typed amount (USD), carried in the URL from the shared amount step
     const [amountToWithdraw, setAmountToWithdraw] = useWithdrawAmount()
@@ -942,7 +945,6 @@ export default function WithdrawCryptoPage() {
         <div className="mx-auto flex min-h-inherit w-full max-w-md flex-col gap-4 self-center">
             {stepper.step === 'recipient' && scannedEntry && (
                 <ScannedDestinationPayView
-                    recipient={recipient}
                     addressFamily={scannedEntry.addressFamily}
                     {...amountField}
                     onBack={onBack}
@@ -954,7 +956,11 @@ export default function WithdrawCryptoPage() {
                     continueDisabled={!amountCheck.ok || isPreparingReview}
                     isLoading={isPreparingReview}
                     amountError={amountError || undefined}
-                    error={{ showError: !!paymentError, errorMessage: paymentError || '' }}
+                    // the flow error carries the ENS re-resolution miss; paymentError the preparation failures
+                    error={{
+                        showError: !!paymentError || withdrawError.showError,
+                        errorMessage: paymentError || withdrawError.errorMessage,
+                    }}
                 />
             )}
 
