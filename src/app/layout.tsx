@@ -99,7 +99,6 @@ const roboto = Roboto_Flex({
     subsets: ['latin'],
     display: 'swap',
     variable: '--font-roboto',
-    axes: ['wdth'],
 })
 
 // preload: false on the decorative faces — next/font preloads every declared
