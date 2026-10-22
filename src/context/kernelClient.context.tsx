@@ -1,5 +1,5 @@
 'use client'
-import { HARNESS_ENABLED } from '@/constants/harness.consts'
+import { HARNESS_ENABLED, HARNESS_STORAGE_KEYS, harnessPasskeyBypass } from '@/constants/harness.consts'
 import {
     assertZeroDevBundlerUrl,
     assertZeroDevRpcUrls,
@@ -145,7 +145,7 @@ export const createHarnessEcdsaKernelClient = async <C extends Chain>(
     })
 
     const sponsored =
-        typeof window !== 'undefined' && window.localStorage?.getItem('__harness_ecdsa_sponsored') !== 'false'
+        typeof window !== 'undefined' && window.localStorage?.getItem(HARNESS_STORAGE_KEYS.ecdsaSponsored) !== 'false'
 
     const clientConfig: Parameters<typeof createKernelAccountClient>[0] = {
         account: kernelAccount,
@@ -414,11 +414,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             setWebAuthnKey((prev) =>
                 prev && bigIntSafeStringify(prev) === bigIntSafeStringify(storedWebAuthnKey) ? prev : storedWebAuthnKey
             )
-        } else if (
-            HARNESS_ENABLED &&
-            typeof window !== 'undefined' &&
-            window.localStorage?.getItem('__harness_skip_passkey') === 'true'
-        ) {
+        } else if (harnessPasskeyBypass()) {
             // Harness-only: skip auto-logout so playwright can screenshot the
             // authenticated UI with a seeded user that has no real passkey.
         } else {
@@ -456,9 +452,8 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
     // AND the localStorage flag (runtime) — prod tree-shakes the whole block.
     useEffect(() => {
         if (!HARNESS_ENABLED) return
-        if (typeof window === 'undefined') return
-        if (window.localStorage?.getItem('__harness_skip_passkey') !== 'true') return
-        const pk = window.localStorage.getItem('__harness_ecdsa_pk')
+        if (!harnessPasskeyBypass()) return
+        const pk = window.localStorage.getItem(HARNESS_STORAGE_KEYS.ecdsaPk)
         if (!pk || !/^0x[0-9a-fA-F]{64}$/.test(pk)) return
         if (!user?.user.userId) return
 
