@@ -24,6 +24,7 @@ import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
 import { recipientPayUrl, qrClaimUrl, deepLinkToNativePath } from '@/utils/native-routes'
 import { qrTelemetry, reportQrScanError } from '@/components/Global/QRScanner/utils'
 import { stashScannedDestination, withdrawScanEntryUrl } from '@/features/withdraw/destination'
+import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
@@ -228,6 +229,9 @@ export default function QRScannerOverlay() {
     const searchParams = useSearchParams()
     const toast = useToast()
     const { user } = useAuth()
+    // A signed-in scan of an EVM destination is the user's own payout, so it
+    // goes into the crypto withdrawal. A guest keeps the payment page.
+    const isLoggedIn = !!user?.user?.userId
     const payUserUrl = user?.user.username ? `${BASE_URL}/pay/${user.user.username}` : ''
     const { triggerHaptic } = useAppHaptic()
     const { isQRScannerOpen, setIsQRScannerOpen } = useModalsContext()
@@ -333,16 +337,38 @@ export default function QRScannerOverlay() {
                     }
                 }
                 break
-            case EQrType.EVM_ADDRESS:
-                {
+            case EQrType.EVM_ADDRESS: {
+                if (!isLoggedIn) {
                     // recipientPayUrl → web: /<addr> ([...recipient]); native: /send?recipient=<addr>
                     toConfirmUrl = recipientPayUrl(normalized)
+                    break
                 }
+                // Verbatim, not `normalized`: lowercasing drops an EIP-55
+                // checksum. The address names no network, so the user picks
+                // one in the flow.
+                const scanId = stashScannedDestination(scanned)
+                if (!scanId) {
+                    showModal(EModalType.QR_NOT_SUPPORTED)
+                    return { success: true }
+                }
+                toConfirmUrl = withdrawScanEntryUrl(scanId)
                 break
+            }
             case EQrType.EIP_681:
                 {
                     try {
                         const { address, chainId, amount, tokenSymbol } = parseEip681(normalized)
+                        if (isLoggedIn) {
+                            // Refused when the chain is not a withdraw destination,
+                            // and while the ops kill-switch is on.
+                            const scanId = stashScannedDestination(address, chainId, { tokenSymbol })
+                            if (!scanId) {
+                                showModal(EModalType.QR_NOT_SUPPORTED)
+                                return { success: true }
+                            }
+                            toConfirmUrl = withdrawScanEntryUrl(scanId, { tokenSymbol, amount })
+                            break
+                        }
                         // build the recipient PATH (no leading slash), then route it
                         // through recipientPayUrl for native query-param compatibility.
                         let path = address
@@ -371,13 +397,26 @@ export default function QRScannerOverlay() {
                 return { success: true }
             }
             case EQrType.ENS_NAME: {
-                const resolvedAddress = await resolveEns(normalized)
-                if (resolvedAddress) {
+                if (!isLoggedIn) {
+                    if (!(await resolveEns(normalized))) {
+                        showModal(EModalType.UNRECOGNIZED)
+                        return { success: true }
+                    }
                     toConfirmUrl = recipientPayUrl(normalized)
-                } else {
+                    break
+                }
+                // The withdrawal starts on the wallet chain, and a name can hold
+                // a different address per chain (ENSIP-11). The recipient step
+                // resolves it again for every network the user picks.
+                const resolvedAddress = await resolveEns(normalized, PEANUT_WALLET_CHAIN.id.toString())
+                const scanId = resolvedAddress
+                    ? stashScannedDestination(resolvedAddress, undefined, { name: normalized })
+                    : null
+                if (!scanId) {
                     showModal(EModalType.UNRECOGNIZED)
                     return { success: true }
                 }
+                toConfirmUrl = withdrawScanEntryUrl(scanId)
                 break
             }
             case EQrType.MERCADO_PAGO:

@@ -57,3 +57,18 @@ describe('PaymentPage request-pot dispatch', () => {
         expect(screen.getByTestId('contribute-pot')).toHaveTextContent('req-2')
     })
 })
+
+// A scanned EVM address now goes into the crypto withdrawal (TASK-23974), but a
+// shared payment link to one still opens the payment page, signed in or not.
+describe('PaymentPage for an address link', () => {
+    it.each([
+        ['a signed-out payer', null],
+        ['a signed-in payer', { user: { userId: 'u-1' } }],
+    ])('opens the payment page for %s', (_case, user) => {
+        authUser = user
+
+        render(<PaymentPage recipient={['0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed']} />)
+
+        expect(screen.getByTestId('semantic-request')).toBeInTheDocument()
+    })
+})
