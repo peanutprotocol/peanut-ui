@@ -37,6 +37,9 @@ jobs:
             - name: Pull Vercel Environment Information
               run: vercel pull --yes --environment=preview --scope=squirrellabs --token=${{ secrets.VERCEL_TOKEN }}
             - name: Build Project Artifacts
+              env:
+                  # Use the same stored Google fonts as the other CI builds.
+                  NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
               run: vercel build --target=preview --token=${{ secrets.VERCEL_TOKEN }}
             - name: Deploy Project Artifacts to Vercel
               run: vercel deploy --prebuilt --archive=tgz --target=preview --scope=squirrellabs --token=${{ secrets.VERCEL_TOKEN }}

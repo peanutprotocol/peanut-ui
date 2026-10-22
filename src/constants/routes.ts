@@ -55,7 +55,7 @@ export const DEDICATED_ROUTES = [
     'lp',
     'exchange',
     'shhhhh',
-    // star-feature LPs (noindex until approved)
+    // Public feature landing pages
     'us-europe-accounts',
     'qr-payments',
     'peanut-card',

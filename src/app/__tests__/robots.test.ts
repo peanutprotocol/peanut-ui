@@ -26,6 +26,19 @@ function ruleFor(userAgent: string): RobotsRule {
     return rule
 }
 
+function allowsPath(rule: RobotsRule, path: string): boolean {
+    const longestMatch = (patterns: string | string[] | undefined) => {
+        const values = typeof patterns === 'string' ? [patterns] : (patterns ?? [])
+        return Math.max(
+            -1,
+            ...values
+                .filter((value) => (value.endsWith('$') ? path === value.slice(0, -1) : path.startsWith(value)))
+                .map((value) => value.length)
+        )
+    }
+    return longestMatch(rule.allow) >= longestMatch(rule.disallow)
+}
+
 describe('production robots policy', () => {
     it('lets Google recrawl only the exact indexed app shells needed for deindexing', () => {
         const googlebot = ruleFor('Googlebot')
@@ -59,6 +72,17 @@ describe('production robots policy', () => {
                 Array.isArray(candidate.userAgent) ? candidate.userAgent.includes(bot) : candidate.userAgent === bot
             )
             expect(rule?.allow).toEqual(expect.arrayContaining([...MARKETING_CRAWL_ALLOW_PATHS]))
+        }
+    )
+
+    it.each(rules.map((rule) => [String(rule.userAgent), rule] as const))(
+        '%s can crawl public marketing images without opening private APIs',
+        (_, rule) => {
+            expect(allowsPath(rule, '/api/og/marketing?title=Peanut&subtitle=Send')).toBe(true)
+            if (rule.userAgent !== 'Twitterbot') {
+                expect(allowsPath(rule, '/api/user')).toBe(false)
+                expect(allowsPath(rule, '/request/pay')).toBe(false)
+            }
         }
     )
 

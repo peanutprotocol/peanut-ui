@@ -6,8 +6,9 @@ import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { Hero } from '@/components/Marketing/mdx/Hero'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { Breadcrumb } from '@/components/0_Bruddle/Breadcrumb'
-import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
-import { availableContentLocales, contentLocaleFor } from '@/lib/content'
+import { SUPPORTED_LOCALES, HREFLANG_MAP, isValidLocale } from '@/i18n/config'
+import { getLocaleFallbacks, isPublished, readPageContent } from '@/lib/content'
+import { BASE_URL } from '@/constants/general.consts'
 import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
 
@@ -16,10 +17,13 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
+    // Include every post available through the locale's prose fallback, even
+    // when the locale already has some translated posts.
     return SUPPORTED_LOCALES.flatMap((locale) => {
-        let posts = getAllPosts(locale as Locale)
-        if (posts.length === 0) posts = getAllPosts('en')
-        return posts.map((post) => ({ locale, slug: post.slug }))
+        const slugs = new Set(
+            getLocaleFallbacks(locale).flatMap((lang) => getAllPosts(lang as Locale).map(({ slug }) => slug))
+        )
+        return [...slugs].map((slug) => ({ locale, slug }))
     })
 }
 
@@ -31,9 +35,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!isValidLocale(locale)) return {}
 
     // A fallback-served page canonicalizes to the locale that owns the prose.
-    const contentLocale = contentLocaleFor('blog', slug, locale)
-    const post = await getPostBySlug(slug, contentLocale)
+    const post = await getPostBySlug(slug, locale)
     if (!post) return {}
+    const contentLocale = post.locale
+
+    const publishedLocales = SUPPORTED_LOCALES.filter((lang) => isPublished(readPageContent('blog', slug, lang)))
+    const languages = Object.fromEntries(
+        publishedLocales.map((lang) => [HREFLANG_MAP[lang], `${BASE_URL}/${lang}/blog/${slug}`])
+    )
 
     return {
         ...metadataHelper({
@@ -44,7 +53,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         }),
         alternates: {
             canonical: `/${contentLocale}/blog/${slug}`,
-            languages: getAlternatesFor(availableContentLocales('blog', slug), 'blog', slug),
+            languages: {
+                ...languages,
+                'x-default': `${BASE_URL}/${publishedLocales[0]}/blog/${slug}`,
+            },
         },
     }
 }
@@ -65,9 +77,9 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
 
     // Resolve through the full fallback chain (es-ar → es-419 → en), not
     // straight to English.
-    const contentLocale = contentLocaleFor('blog', slug, locale)
-    const post = await getPostBySlug(slug, contentLocale)
+    const post = await getPostBySlug(slug, locale)
     if (!post) notFound()
+    const contentLocale = post.locale
 
     const i18n = getTranslations(locale)
 
