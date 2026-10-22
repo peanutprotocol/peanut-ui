@@ -92,7 +92,11 @@ import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
 import { shouldShowAmountError } from '@/features/limits/amount-error-gating'
 import { useAmountErrorScroll } from '@/features/withdraw/useAmountErrorScroll'
 import { useMantecaAmountSeed } from '@/features/withdraw/useMantecaAmountSeed'
-import { lockedUsdDisplayAmount, mantecaWithdrawInitRequest } from '@/features/withdraw/manteca-withdraw-amount'
+import {
+    lockedUsdDisplayAmount,
+    mantecaWithdrawInitRequest,
+    sameWithdrawInitRequest,
+} from '@/features/withdraw/manteca-withdraw-amount'
 import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
 import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -172,6 +176,13 @@ function MantecaBankWithdrawFlow() {
     // The request that minted `priceLock`. A re-quote sends it again, so the
     // new lock prices the same amount in the same currency.
     const [withdrawInitRequest, setWithdrawInitRequest] = useState<WithdrawInitRequest | null>(null)
+    // A lock that needed more USDC than the balance, and the request that
+    // minted it. The lock itself is dropped; the amount step says why while
+    // the screen would send the same request again.
+    const [unaffordableQuote, setUnaffordableQuote] = useState<{
+        request: WithdrawInitRequest
+        usdAmount: string
+    } | null>(null)
     // Neutral notice shown on review after a controller-rotation re-quote.
     const [quoteUpdatedNotice, setQuoteUpdatedNotice] = useState<string | null>(null)
     /** The replacement quote could not be minted: the review control retries the
@@ -477,15 +488,19 @@ function MantecaBankWithdrawFlow() {
             }
 
             if (result.data) {
+                // A typed local amount is priced at the locked rate, which can
+                // be worse than the rate this screen converts with, so the lock
+                // can need more USDC than the balance. Drop it and let the
+                // amount step say so.
+                if (!isAmountWithinBalance(result.data.usdAmount, balance)) {
+                    setUnaffordableQuote({ request: initRequest, usdAmount: result.data.usdAmount })
+                    return
+                }
+                setUnaffordableQuote(null)
                 // The field keeps the amount the user entered; review shows
                 // the lock's amounts.
                 setWithdrawInitRequest(initRequest)
                 setPriceLock(receiveLock(result.data))
-                // A typed local amount is priced at the locked rate, which can
-                // be worse than the rate this screen converts with, so the lock
-                // can need more USDC than the balance. The amount step then
-                // says so (the balance check below reads the lock).
-                if (!isAmountWithinBalance(result.data.usdAmount, balance)) return
                 void stepper.goTo('review')
             }
         } catch (error) {
@@ -603,8 +618,12 @@ function MantecaBankWithdrawFlow() {
         }
         // The lock's USDC is what leaves the balance, and it can be more than
         // the amount the screen estimated (a typed local amount at the locked
-        // rate). The amount step says why.
+        // rate). The lock is dropped and the amount step says why.
         if (!isAmountWithinBalance(priceLock.usdAmount, balance)) {
+            if (withdrawInitRequest)
+                setUnaffordableQuote({ request: withdrawInitRequest, usdAmount: priceLock.usdAmount })
+            setPriceLock(null)
+            setWithdrawInitRequest(null)
             void stepper.goTo('amount')
             return
         }
@@ -884,6 +903,7 @@ function MantecaBankWithdrawFlow() {
         setUsdAmount(undefined)
         setUsdSourcedCurrencyAmount(null)
         setWithdrawInitRequest(null)
+        setUnaffordableQuote(null)
         setDestinationAddress(paramAddress ?? '')
         setSelectedBank(null)
         setAccountType(null)
@@ -914,16 +934,27 @@ function MantecaBankWithdrawFlow() {
             return
         }
         const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
-        // The lock minted for this amount is what leaves the balance, and it can
-        // need more USDC than the estimate (a typed local amount at the locked rate).
-        const lockedUsdAmount = priceLock && withdrawInitRequest?.amount === usdAmount ? priceLock.usdAmount : undefined
+        // A lock for the amount on screen needed more USDC than the estimate (a
+        // typed local amount at the locked rate). It counts only while the
+        // screen would send the same request: any other amount gets a new lock.
+        const unaffordable =
+            unaffordableQuote !== null &&
+            !!currencyCode &&
+            sameWithdrawInitRequest(
+                unaffordableQuote.request,
+                mantecaWithdrawInitRequest({
+                    usdAmount,
+                    currencyAmount,
+                    currency: currencyCode,
+                    isAmountTypedInUsd,
+                    usdSourcedCurrencyAmount,
+                })
+            ) &&
+            !isAmountWithinBalance(unaffordableQuote.usdAmount, balance)
         // only check min amount and balance here - max amount is handled by limits validation
         if (paymentAmount < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(t('errors.minWithdrawAmount', { amount: MIN_MANTECA_WITHDRAW_AMOUNT }))
-        } else if (
-            !isAmountWithinBalance(usdAmount, balance) ||
-            (lockedUsdAmount !== undefined && !isAmountWithinBalance(lockedUsdAmount, balance))
-        ) {
+        } else if (!isAmountWithinBalance(usdAmount, balance) || unaffordable) {
             // gate on the displayed total; an in-transit shortfall passes here and
             // fails late with the settling message at execution.
             setBalanceErrorMessage(tErrors('notEnoughBalanceAddFunds'))
@@ -934,8 +965,10 @@ function MantecaBankWithdrawFlow() {
         usdAmount,
         currencyAmount,
         balance,
-        priceLock,
-        withdrawInitRequest,
+        unaffordableQuote,
+        currencyCode,
+        isAmountTypedInUsd,
+        usdSourcedCurrencyAmount,
         hasPendingTransactions,
         isLoading,
         t,
