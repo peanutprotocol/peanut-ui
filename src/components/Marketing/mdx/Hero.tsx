@@ -70,13 +70,7 @@ export function Hero({ title, subtitle, cta, ctaHref, locale = DEFAULT_LOCALE, s
             {/* marquee words come from the route-locale catalog, not the MDX file */}
             <div lang={locale}>
                 <MarqueeComp
-                    message={[
-                        i18n.heroMarqueeNoFees,
-                        i18n.heroMarqueeInstant,
-                        '24/7',
-                        i18n.heroMarqueeDollars,
-                        'USDT/USDC',
-                    ]}
+                    message={[i18n.heroMarqueeNoFees, i18n.heroMarqueeInstant, '24/7', i18n.heroMarqueeDollars]}
                     imageSrc={HandThumbsUp.src}
                     backgroundColor="bg-action-secondary"
                 />

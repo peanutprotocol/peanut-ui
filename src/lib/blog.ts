@@ -21,6 +21,7 @@ export interface BlogPost {
         description: string
         date: string
         author?: string
+        heroCta?: { text: string; href: string; subtitle?: string }
         faqs?: Array<{ question: string; answer: string }>
     }
     content: string
