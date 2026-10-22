@@ -882,6 +882,15 @@ describe('manteca withdraw — exact typed amount (TASK-23997)', () => {
         )
     })
 
+    it('review shows the locked USD rounded up to the cent a card-funded withdrawal debits', async () => {
+        const view = enterAmount('type-ars')
+
+        await lockAndOpenReview(view, { ...ARS_LOCK, usdAmount: '12.493001' })
+
+        expect(screen.getByText('$12.50')).toBeInTheDocument()
+        expect(screen.queryByText('$12.49')).not.toBeInTheDocument()
+    })
+
     it('an amount typed in USD is locked as USD only', async () => {
         const view = enterAmount('type-usd')
 
