@@ -1,5 +1,6 @@
-import { redactQrTelemetry, redactQrTelemetryString, maskQrReplayRequest } from '@/utils/qr-telemetry-privacy'
-import { maskLinkSecretsInReplayRequest, redactLinkSecrets, stripLinkSecrets } from '@/utils/link-secret-privacy'
+import { redactQrTelemetry } from '@/utils/qr-telemetry-privacy'
+import { redactLinkSecrets } from '@/utils/link-secret-privacy'
+import { SESSION_RECORDING_PRIVACY } from '@/utils/replay-privacy'
 import { suppressDuplicateLogin } from '@/utils/login-once-per-session'
 import posthog from 'posthog-js'
 import {
@@ -149,12 +150,9 @@ if (
              * reach for, before switching recording off again.
              */
             disable_session_recording: true,
-            session_recording: {
-                recordBody: false,
-                recordHeaders: false,
-                maskCapturedNetworkRequestFn: (request) => maskLinkSecretsInReplayRequest(maskQrReplayRequest(request)),
-                maskAttributeFn: (_name, value) => stripLinkSecrets(redactQrTelemetryString(value)),
-            },
+            // Masks amounts, ids, addresses, names in sensitive areas, picked images,
+            // QR payloads and claim-link secrets; drops network bodies and headers.
+            session_recording: SESSION_RECORDING_PRIVACY,
         })
 
         if (ANALYTICS_CAPTURE) whenIdle(() => posthog.startSessionRecording())

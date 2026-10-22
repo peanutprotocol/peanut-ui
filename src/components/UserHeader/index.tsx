@@ -41,6 +41,10 @@ export const VerifiedUserLabel = ({
     onNameClick?: () => void
 }) => {
     const { invitedUsernamesSet, user } = useAuth()
+    // Session replays keep a Peanut username readable: it is the public pay-link
+    // handle (peanut.me/<username>). Anything else shown here can be a legal
+    // name (a full name, a bank or Pix recipient), so it is masked.
+    const replayMask = name.toLowerCase() === username.toLowerCase() ? undefined : 'ph-mask'
     // determine badge and tooltip content based on verification status
     let badge = null
     let tooltipContent = ''
@@ -75,10 +79,17 @@ export const VerifiedUserLabel = ({
                 discarded for a raw-address username (the bug behind the
                 type-less crypto-deposit receipt). */}
             {isCryptoAddressComputed && name === username ? (
-                <AddressLink isLink={false} className={twMerge(LABEL_TYPE, className)} address={username} />
+                // ph-mask: a wallet address is hidden in session replays
+                <AddressLink isLink={false} className={twMerge('ph-mask', LABEL_TYPE, className)} address={username} />
             ) : (
                 <div
-                    className={twMerge('line-clamp-1 min-w-0', LABEL_TYPE, className, onNameClick && 'cursor-pointer')}
+                    className={twMerge(
+                        'line-clamp-1 min-w-0',
+                        replayMask,
+                        LABEL_TYPE,
+                        className,
+                        onNameClick && 'cursor-pointer'
+                    )}
                     onClick={
                         onNameClick &&
                         ((e) => {
@@ -101,6 +112,8 @@ export const VerifiedUserLabel = ({
                 <Tooltip
                     id={isInviter ? 'inviter-user' : 'invited-by-user'}
                     content={isInviter ? 'You were invited by this user.' : `You've invited ${name}`}
+                    // portaled to <body>, outside the label: the text repeats the name
+                    contentClassName={replayMask}
                     position="top"
                 >
                     <Icon name="invite-heart" size={iconSize} />

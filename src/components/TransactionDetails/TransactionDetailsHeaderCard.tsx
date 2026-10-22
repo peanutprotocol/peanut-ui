@@ -320,7 +320,9 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     className={twMerge(
                         'ph-sensitive',
                         isAvatarClickable &&
-                            'cursor-pointer rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus'
+                            'cursor-pointer rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                        // a full name in the accessible name is a legal name; a username is not
+                        nameForAvatar !== userName && 'ph-mask'
                     )}
                     onClick={isAvatarClickable ? handleUserProfileClick : undefined}
                     role={isAvatarClickable ? 'button' : undefined}
