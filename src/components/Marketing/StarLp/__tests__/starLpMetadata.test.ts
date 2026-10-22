@@ -3,12 +3,15 @@ import { STAR_LP_ROUTES } from '@/components/Marketing/StarLp/starLp.consts'
 import { starLpMetadata } from '@/components/Marketing/StarLp/starLpMetadata'
 
 describe('starLpMetadata', () => {
-    it.each(Object.values(STAR_LP_ROUTES))('keeps %s noindex/nofollow with its own OG card', (path) => {
-        const meta = starLpMetadata({ title: 'T', description: 'D', path, ogSubtitle: 'S' })
-        expect(meta.robots).toEqual({ index: false, follow: false })
-        expect(meta.alternates?.canonical).toBe(path)
-        expect(JSON.stringify(meta.openGraph?.images)).toContain('/api/og/marketing?title=T&subtitle=S')
-    })
+    it.each(Object.values(STAR_LP_ROUTES))(
+        'lets %s inherit the production indexing policy with its own OG card',
+        (path) => {
+            const meta = starLpMetadata({ title: 'T', description: 'D', path, ogSubtitle: 'S' })
+            expect(meta.robots).toBeUndefined()
+            expect(meta.alternates?.canonical).toBe(path)
+            expect(JSON.stringify(meta.openGraph?.images)).toContain('/api/og/marketing?title=T&subtitle=S')
+        }
+    )
 })
 
 describe('starLpMetadata OG headline', () => {

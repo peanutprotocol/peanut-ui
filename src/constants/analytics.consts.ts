@@ -248,6 +248,14 @@ export const ANALYTICS_EVENTS = {
     // ── Card: acquisition funnel (Rain virtual card) ──
     // State observed on /card mount or transition. `state` matches CardTopLevelState.
     CARD_STATE_VIEWED: 'card_state_viewed',
+    // The screens inside the `add-card` state (the eligibility gate). `step` ∈
+    // eligibility|available|funding|entry; `funded` = spendable balance at the
+    // $10 minimum; `min_balance_shown` = the screen states that minimum.
+    CARD_GATE_STEP_VIEWED: 'card_gate_step_viewed',
+    // "Add funds" tapped on the gate. `step` as above; `method` ∈ bank|crypto
+    // when a deposit method was picked, else null. The deposit itself is the
+    // server-side `deposit_completion` (peanut-api-ts, every rail).
+    CARD_GATE_ADD_FUNDS_TAPPED: 'card_gate_add_funds_tapped',
     // POST /rain/cards lifecycle. `outcome` ∈
     // pending|terms-required|incomplete|main-kyc-required|enabled|error|already-applied.
     CARD_APPLY_ATTEMPTED: 'card_apply_attempted',

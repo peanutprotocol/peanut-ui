@@ -6,8 +6,9 @@ import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { Hero } from '@/components/Marketing/mdx/Hero'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { Breadcrumb } from '@/components/0_Bruddle/Breadcrumb'
-import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
-import { availableContentLocales, contentLocaleFor } from '@/lib/content'
+import { SUPPORTED_LOCALES, HREFLANG_MAP, isValidLocale } from '@/i18n/config'
+import { getLocaleFallbacks, isPublished, readPageContent } from '@/lib/content'
+import { BASE_URL } from '@/constants/general.consts'
 import { contentHubPath, contentTopicMetadata } from '@/lib/content-hub-metadata'
 import { isContentTopic, listContentTopics } from '@/lib/content-topics'
 import { ContentTopicHub } from '@/components/Marketing/ContentTopicHub'
@@ -22,12 +23,15 @@ interface PageProps {
 // /blog/deposit, …) and the posts. Next allows one dynamic segment name per
 // level, so the topic pages share this file; a topic name wins over a post slug.
 export async function generateStaticParams() {
+    // Include every post available through the locale's prose fallback, even
+    // when the locale already has some translated posts.
     return SUPPORTED_LOCALES.flatMap((locale) => {
-        let posts = getAllPosts(locale as Locale)
-        if (posts.length === 0) posts = getAllPosts('en')
+        const slugs = new Set(
+            getLocaleFallbacks(locale).flatMap((lang) => getAllPosts(lang as Locale).map(({ slug }) => slug))
+        )
         return [
             ...listContentTopics(locale).map((topic) => ({ locale, slug: topic })),
-            ...posts.map((post) => ({ locale, slug: post.slug })),
+            ...[...slugs].map((slug) => ({ locale, slug })),
         ]
     })
 }
@@ -43,9 +47,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     }
 
     // A fallback-served page canonicalizes to the locale that owns the prose.
-    const contentLocale = contentLocaleFor('blog', slug, locale)
-    const post = await getPostBySlug(slug, contentLocale)
+    const post = await getPostBySlug(slug, locale)
     if (!post) return {}
+    const contentLocale = post.locale
+
+    const publishedLocales = SUPPORTED_LOCALES.filter((lang) => isPublished(readPageContent('blog', slug, lang)))
+    const languages = Object.fromEntries(
+        publishedLocales.map((lang) => [HREFLANG_MAP[lang], `${BASE_URL}/${lang}/blog/${slug}`])
+    )
 
     return {
         ...metadataHelper({
@@ -56,7 +65,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         }),
         alternates: {
             canonical: `/${contentLocale}/blog/${slug}`,
-            languages: getAlternatesFor(availableContentLocales('blog', slug), 'blog', slug),
+            languages: {
+                ...languages,
+                'x-default': `${BASE_URL}/${publishedLocales[0]}/blog/${slug}`,
+            },
         },
     }
 }
@@ -82,9 +94,9 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
 
     // Resolve through the full fallback chain (es-ar → es-419 → en), not
     // straight to English.
-    const contentLocale = contentLocaleFor('blog', slug, locale)
-    const post = await getPostBySlug(slug, contentLocale)
+    const post = await getPostBySlug(slug, locale)
     if (!post) notFound()
+    const contentLocale = post.locale
 
     const i18n = getTranslations(locale)
 
