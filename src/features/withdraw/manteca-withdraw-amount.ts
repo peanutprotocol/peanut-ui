@@ -35,6 +35,11 @@ export function mantecaWithdrawInitRequest(input: {
     return { ...request, fiatAmount }
 }
 
+/** Whether two init requests price the same amount in the same currency. */
+export function sameWithdrawInitRequest(a: WithdrawInitRequest, b: WithdrawInitRequest): boolean {
+    return a.currency === b.currency && a.amount === b.amount && a.fiatAmount === b.fiatAmount
+}
+
 /**
  * The locked USD as review and success show it: rounded up to the cent, from
  * the same cents a card-funded withdrawal debits (`usdcUnitsToRainCents`), so

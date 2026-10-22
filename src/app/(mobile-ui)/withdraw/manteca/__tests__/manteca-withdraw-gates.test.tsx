@@ -124,6 +124,15 @@ jest.mock('@/components/Global/AmountInput', () => ({
             </button>
             <button
                 onClick={() => {
+                    // a lower local amount whose USD estimate rounds the same
+                    props.setPrimaryAmount('19996')
+                    props.setSecondaryAmount?.('13.33')
+                }}
+            >
+                type-ars-lower
+            </button>
+            <button
+                onClick={() => {
                     props.setCurrentDenomination?.('USD')
                     props.setPrimaryAmount('30000')
                     props.setSecondaryAmount?.('20')
@@ -949,6 +958,25 @@ describe('manteca withdraw — exact typed amount (TASK-23997)', () => {
         view.rerender(<MantecaWithdrawFlow />)
         expect(await screen.findByText('errors.notEnoughBalanceAddFunds')).toBeInTheDocument()
         expect(mockStepperGoTo).not.toHaveBeenCalledWith('review')
+    })
+
+    it('a lower local amount after an unaffordable lock gets a new lock, not the old error (Chip review)', async () => {
+        // enough for the 13.33 estimate, not for the locked 13.336891
+        mockBalance = 13_335_000n
+        const view = enterAmount('type-ars')
+        mockInitiateWithdraw.mockResolvedValue({ data: ARS_LOCK })
+        fireEvent.click(screen.getByText('common.continue'))
+        await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1))
+        view.rerender(<MantecaWithdrawFlow />)
+        expect(await screen.findByText('errors.notEnoughBalanceAddFunds')).toBeInTheDocument()
+
+        // same USD estimate, different typed amount: the old lock no longer applies
+        fireEvent.click(screen.getByText('type-ars-lower'))
+        view.rerender(<MantecaWithdrawFlow />)
+        await waitFor(() => expect(screen.queryByText('errors.notEnoughBalanceAddFunds')).not.toBeInTheDocument())
+        await lockAndOpenReview(view, { ...ARS_LOCK, usdAmount: '13.334193', fiatAmount: '19996.00' })
+
+        expect(mockInitiateWithdraw).toHaveBeenLastCalledWith({ amount: '13.33', fiatAmount: '19996', currency: 'ARS' })
     })
 
     it('a balance that drops under the locked USDC on review returns to the amount step and moves no money', async () => {
