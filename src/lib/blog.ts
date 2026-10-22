@@ -43,6 +43,7 @@ export function getAllPosts(locale: Locale = 'en'): BlogPost[] {
 
             const raw = fs.readFileSync(filePath, 'utf8')
             const { data, content } = matter(raw)
+            if (data.published === false) return null
             return {
                 slug,
                 frontmatter: { ...data, date: coerceDate(data.date) } as BlogPost['frontmatter'],
@@ -62,6 +63,7 @@ export async function getPostBySlug(
 
     const raw = fs.readFileSync(filePath, 'utf8')
     const { data, content: body } = matter(raw)
+    if (data.published === false) return null
 
     const { content } = await renderContent(body, locale)
 

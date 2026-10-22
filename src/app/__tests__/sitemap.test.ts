@@ -1,6 +1,7 @@
 import sitemap from '../sitemap'
 import redirects from '../../../redirects.json'
 import { STAR_LP_ROUTES } from '@/components/Marketing/StarLp/starLp.consts'
+import { MERCHANT_SLUGS } from '@/app/m/[slug]/merchants'
 import { SUPPORTED_LOCALES } from '@/i18n/types'
 import { availableSingletonLocales } from '@/lib/content'
 import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
@@ -24,6 +25,15 @@ describe('public sitemap', () => {
         for (const locale of SUPPORTED_LOCALES) {
             expect(paths.has(`/${locale}/press`)).toBe(pressLocales.includes(locale))
         }
+    })
+
+    it('lists each published merchant landing page without inventing locale variants', async () => {
+        const paths = (await sitemap()).map(({ url }) => new URL(url).pathname)
+        expect(MERCHANT_SLUGS.length).toBeGreaterThan(0)
+        expect(paths.filter((path) => path.startsWith('/m/')).sort()).toEqual(
+            MERCHANT_SLUGS.map((slug) => `/m/${slug}`).sort()
+        )
+        expect(paths.filter((path) => /^\/(en|es-419|es-ar|pt-br)\/m\//.test(path))).toEqual([])
     })
 
     it('omits retired URLs while retaining their published canonical destinations', async () => {

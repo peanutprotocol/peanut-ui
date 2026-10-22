@@ -7,7 +7,7 @@ import { Hero } from '@/components/Marketing/mdx/Hero'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { Breadcrumb } from '@/components/0_Bruddle/Breadcrumb'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
-import { availableContentLocales, contentLocaleFor } from '@/lib/content'
+import { availableContentLocales, contentLocaleFor, getLocaleFallbacks } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
 
@@ -16,10 +16,13 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
+    // Include every post available through the locale's prose fallback, even
+    // when the locale already has some translated posts.
     return SUPPORTED_LOCALES.flatMap((locale) => {
-        let posts = getAllPosts(locale as Locale)
-        if (posts.length === 0) posts = getAllPosts('en')
-        return posts.map((post) => ({ locale, slug: post.slug }))
+        const slugs = new Set(
+            getLocaleFallbacks(locale).flatMap((lang) => getAllPosts(lang as Locale).map(({ slug }) => slug))
+        )
+        return [...slugs].map((slug) => ({ locale, slug }))
     })
 }
 

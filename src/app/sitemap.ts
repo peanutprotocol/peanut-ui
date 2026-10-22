@@ -10,6 +10,7 @@ import { SUPPORTED_LOCALES } from '@/i18n/config'
 import { listContentTopics } from '@/lib/content-topics'
 import { isPermanentRedirectPath } from '@/lib/seo/redirects'
 import { STAR_LP_ROUTES } from '@/components/Marketing/StarLp/starLp.consts'
+import { MERCHANT_SLUGS } from '@/app/m/[slug]/merchants'
 import {
     contentGeneratedAt,
     hasCorridorContent,
@@ -75,6 +76,11 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             path,
             priority: 0.8,
             changeFrequency: 'weekly' as const,
+        })),
+        ...MERCHANT_SLUGS.map((slug) => ({
+            path: `/m/${slug}`,
+            priority: 0.7,
+            changeFrequency: 'monthly' as const,
         })),
 
         // Legal — the bare /privacy and /terms are redirects; list the real URLs.
