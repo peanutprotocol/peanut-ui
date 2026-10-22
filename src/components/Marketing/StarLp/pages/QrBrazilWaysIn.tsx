@@ -33,9 +33,11 @@ export function QrBrazilWaysIn() {
             </PopIn>
             <PopIn className="grid gap-1" delay={0.12} tilt={-2}>
                 <span className={LABEL}>Pix QR</span>
-                {/* A phone cannot scan its own screen: a tap opens what the scan would. */}
-                <QrBrazilAppLink className="w-28 lg:w-36" label="Get the Peanut app">
-                    <span className="shadow-2 block rounded-sm border-2 border-border-default bg-background-default p-1 transition-shadow duration-instant group-active:shadow-none">
+                {/* A phone cannot scan its own screen: a tap opens what the scan would.
+                    No label, like the hero sticker: the CTA is the keyboard route, so the
+                    code stays out of the tab order. The 4px shadow pairs with the 4px press. */}
+                <QrBrazilAppLink className="w-28 lg:w-36">
+                    <span className="block rounded-sm border-2 border-border-default bg-background-default p-1 shadow-4 transition-shadow duration-instant group-active:shadow-none">
                         <StarLpQrCode campaign="qr-brazil" slot="ways-in" className="w-full" />
                     </span>
                 </QrBrazilAppLink>
