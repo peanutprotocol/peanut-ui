@@ -177,19 +177,11 @@ export function getIndexablePages(): IndexablePage[] {
 
         // Deposit pages (exchanges + rails)
         for (const exchange of Object.keys(EXCHANGES)) {
-            // With no MDX at all the page builds from i18n copy (localized for
-            // every locale); with an en file, a missing locale file serves the
-            // English MDX, so only locales with their own file are listed.
-            if (
-                hasPublishedPageContent('deposit', exchange, 'en') &&
-                !hasPublishedPageContent('deposit', exchange, locale)
-            )
-                continue
+            if (!hasPublishedPageContent('deposit', exchange, locale)) continue
             pages.push({
                 path: `/${locale}/deposit/from-${exchange}`,
                 priority: 0.7 * basePriority,
                 changeFrequency: 'monthly',
-                // Omit lastmod for exchanges without a dated content file.
                 lastModified: pageDate('deposit', exchange, locale),
             })
         }
