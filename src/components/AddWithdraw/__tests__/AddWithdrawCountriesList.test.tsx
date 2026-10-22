@@ -57,10 +57,24 @@ jest.mock('@/components/AddMoney/consts', () => ({
         // hand-editing the URL, which is the hole F9 names
         { type: 'country', path: 'nocorridor', id: 'IND', title: 'Nocorridor', currency: 'inr' },
         { type: 'country', path: 'aland', id: 'ALA', title: 'Åland', currency: 'eur' },
+        { type: 'country', path: 'argentina', id: 'AR', title: 'Argentina', currency: 'ars' },
     ],
     // the corridor table reads this; the real module exports it
     BRIDGE_ALPHA3_TO_ALPHA2: { DEU: 'DE', ALA: 'AX' },
     COUNTRY_SPECIFIC_METHODS: {
+        // the real Argentina row: Mercado Pago has no row of its own
+        AR: {
+            add: [
+                {
+                    id: 'bank-transfer-add',
+                    title: 'From Bank',
+                    description: 'Usually in minutes - KYC required',
+                    icon: 'bank',
+                    path: '/add-money/argentina/manteca',
+                },
+            ],
+            withdraw: [],
+        },
         US: {
             add: [
                 {
@@ -239,6 +253,7 @@ jest.mock('@/components/0_Bruddle/ListItem', () => ({
             disabled={props.disabled}
         >
             {props.title}
+            {props.body}
             {props.trailing}
         </button>
     ),
@@ -850,6 +865,32 @@ it('a Manteca rail clicked from a multi-rail list forwards the send origin as se
  * rail list of its own, so the two things that could break are the screen it
  * renders and the button that leaves it.
  */
+// TASK-21375: "Mercado Pago" and "From Bank" were two rows into the one Manteca
+// screen, which takes either transfer. One row names both.
+describe('AddWithdrawCountriesList — Argentina', () => {
+    beforeEach(() => {
+        mockPush.mockClear()
+        mockParams.country = 'argentina'
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'AR' }])
+    })
+
+    afterEach(() => {
+        mockParams.country = 'testland'
+    })
+
+    it('offers one row for a bank or Mercado Pago transfer, into the Manteca screen', () => {
+        render(<AddWithdrawCountriesList flow="add" />)
+
+        const row = screen.getByTestId('method-bank or mercado pago')
+        expect(row).toHaveTextContent('Usually arrives in minutes')
+        expect(screen.queryByTestId('method-from bank')).toBeNull()
+        expect(screen.queryByTestId('method-mercado pago')).toBeNull()
+
+        fireEvent.click(row)
+        expect(mockPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
+    })
+})
+
 describe('AddWithdrawCountriesList — the euro area', () => {
     beforeEach(() => {
         mockPush.mockClear()

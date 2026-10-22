@@ -53,6 +53,14 @@ describe('liveRailsForCountry — add', () => {
         expect(soleLiveRailForCountry('AR', 'add')?.path).toBe('/add-money/argentina/manteca')
     })
 
+    // TASK-21375: a second "Mercado Pago" row opened the same screen as the bank row
+    it('Argentina lists one way in by bank, not a second row into the same screen', () => {
+        const rows = COUNTRY_SPECIFIC_METHODS.AR.add.filter((method) => method.id !== 'crypto-add')
+        expect(rows.map((method) => [method.id, method.path])).toEqual([
+            ['bank-transfer-add', '/add-money/argentina/manteca'],
+        ])
+    })
+
     it('a country where bank deposits are not live yet keeps its per-country screen', () => {
         expect(soleLiveRailForCountry('IN', 'add')).toBeNull()
     })

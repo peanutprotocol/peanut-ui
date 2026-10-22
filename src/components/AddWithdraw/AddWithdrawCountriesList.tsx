@@ -75,6 +75,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const locale = useLocale()
     const t = useTranslations('withdraw')
     const tAddMoney = useTranslations('addMoney')
+    const tDeposit = useTranslations('depositAccounts')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
 
@@ -679,12 +680,23 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         // the row a tap is held on carries the wait, and takes
                         // no second tap while it does
                         const isHeld = heldMethod?.method.id === method.id
+                        // Argentina's one bank row opens the screen that takes a bank or
+                        // a Mercado Pago transfer, so it carries the name the Add money
+                        // hub gives that rail (TASK-21375).
+                        const isArgentinaBank =
+                            flow === 'add' && currentCountry.id === 'AR' && method.id === 'bank-transfer-add'
                         return (
                             <ListItem
                                 key={method.id}
                                 disabled={method.isSoon || isHeld}
-                                title={method.title}
-                                body={<div className="text-body-xs">{method.description}</div>}
+                                title={isArgentinaBank ? tDeposit('corridors.BANK_TRANSFER_AR.railName') : method.title}
+                                body={
+                                    <div className="text-body-xs">
+                                        {isArgentinaBank
+                                            ? tDeposit('corridors.BANK_TRANSFER_AR.arrivalShort')
+                                            : method.description}
+                                    </div>
+                                }
                                 leading={
                                     method.icon === ('bank' as IconName) ? (
                                         <IconBubble {...CONCEPT_ICONS.bank} size="s" />
