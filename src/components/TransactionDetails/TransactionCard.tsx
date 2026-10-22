@@ -320,7 +320,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     return (
         <>
             {/* the clickable row — figma list-item board anatomy */}
+            {/* ph-sensitive: the row can show a counterparty's real name; autocapture keeps the click, not the text */}
             <ListItem
+                className="ph-sensitive"
                 position={position}
                 onClick={handleClick}
                 data-testid="transaction-card"
