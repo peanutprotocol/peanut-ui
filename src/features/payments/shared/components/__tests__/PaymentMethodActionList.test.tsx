@@ -63,7 +63,7 @@ beforeEach(() => {
     mockAuth = signedOut
 })
 
-describe('PaymentMethodActionList — Crypto card', () => {
+describe('PaymentMethodActionList — Crypto card (guests)', () => {
     it('is hidden when no onPayWithExternalWallet handler is provided (direct-send)', () => {
         render(<PaymentMethodActionList isAmountEntered={true} />)
         expect(screen.queryByText('Crypto')).not.toBeInTheDocument()
@@ -93,30 +93,23 @@ describe('PaymentMethodActionList — guest funding methods', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/setup?redirect_uri=%2Fadd-money')
     })
 
-    it('hides them from a signed-in user and keeps a working Crypto card', () => {
+    // A signed-in user pays from their Peanut balance: no guest method, and no
+    // external wallet either (Hugo, TASK-23974).
+    it.each([
+        ['with an external-wallet handler', jest.fn()],
+        ['without one', undefined],
+    ])('renders nothing for a signed-in user, Crypto included, %s', (_case, onPay) => {
         mockAuth = signedIn
-        const onPay = jest.fn()
-        render(<PaymentMethodActionList isAmountEntered={true} onPayWithExternalWallet={onPay} />)
-        for (const title of GUEST_METHOD_TITLES) {
-            expect(screen.queryByText(title)).not.toBeInTheDocument()
-        }
-        fireEvent.click(screen.getByText('Crypto'))
-        expect(onPay).toHaveBeenCalledTimes(1)
-        expect(mockRouterPush).not.toHaveBeenCalled()
+        const { container } = render(<PaymentMethodActionList isAmountEntered={true} onPayWithExternalWallet={onPay} />)
+        expect(container).toBeEmptyDOMElement()
+        if (onPay) expect(onPay).not.toHaveBeenCalled()
     })
 
-    it('hides them while the session is still loading', () => {
+    it('renders nothing while the session is still loading, so it never flashes for a signed-in user', () => {
         mockAuth = { user: null, isFetchingUser: true }
-        render(<PaymentMethodActionList isAmountEntered={true} onPayWithExternalWallet={jest.fn()} />)
-        for (const title of GUEST_METHOD_TITLES) {
-            expect(screen.queryByText(title)).not.toBeInTheDocument()
-        }
-        expect(screen.getByText('Crypto')).toBeInTheDocument()
-    })
-
-    it('renders nothing for a signed-in user when there is no external-wallet handler', () => {
-        mockAuth = signedIn
-        const { container } = render(<PaymentMethodActionList isAmountEntered={true} />)
+        const { container } = render(
+            <PaymentMethodActionList isAmountEntered={true} onPayWithExternalWallet={jest.fn()} />
+        )
         expect(container).toBeEmptyDOMElement()
     })
 })

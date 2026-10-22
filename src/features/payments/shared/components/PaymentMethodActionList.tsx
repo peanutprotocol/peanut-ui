@@ -7,8 +7,9 @@
  * each of which goes through login/signup to the add-money flow, and the
  * external-wallet method when the caller can honor it.
  *
- * a signed-in user gets the external-wallet method only: the guest methods
- * would send them to /setup, which they have already completed.
+ * a signed-in user gets none of them: they pay from their Peanut balance. The
+ * guest methods would send them to /setup, which they have already completed,
+ * and an external wallet is not how a Peanut user pays.
  *
  * used by: send, semantic-request input views
  */
@@ -38,8 +39,9 @@ interface PaymentMethodActionListProps {
 
 /**
  * generic payment method action list for both direct send and semantic request flows
- * shows bank/mercadopago/pix options to guests only; they redirect to setup with
- * add-money as the final destination after login/signup
+ * shows bank/mercadopago/pix options to guests only, who redirect to setup with
+ * add-money as the final destination after login/signup; renders nothing for a
+ * signed-in user
  * @param isAmountEntered - whether the amount is entered
  * @param showDivider - whether to show the divider
  * @returns the payment options list component
@@ -77,16 +79,9 @@ export function PaymentMethodActionList({
     // no external-wallet path, so without this filter the card renders enabled
     // but its tap is a silent no-op — a dead button. Only offer it when we can
     // actually honor it.
-    //
-    // The guest methods fund through signup (/setup), which a signed-in user has
-    // already done. Hide them while the session resolves too, so they never
-    // flash for that user.
-    const showGuestMethods = !isLoggedIn && !isFetchingUser
-    const visibleMethods = sortedMethods.filter((method) => {
-        if (method.id === 'exchange-or-wallet') return !!onPayWithExternalWallet
-        if (GUEST_METHOD_IDS.includes(method.id)) return showGuestMethods
-        return true
-    })
+    const visibleMethods = onPayWithExternalWallet
+        ? sortedMethods
+        : sortedMethods.filter((method) => method.id !== 'exchange-or-wallet')
 
     const handleMethodClick = (method: PaymentMethod) => {
         // for all methods, save current url and redirect to setup with add-money as final destination
@@ -104,9 +99,11 @@ export function PaymentMethodActionList({
         }
     }
 
-    // A signed-in caller without an external-wallet handler has nothing to
-    // offer: render nothing, not a spinner or a bare "or" divider.
-    if (visibleMethods.length === 0) return null
+    // The list is for guests. A signed-in user pays from their Peanut balance:
+    // the guest methods fund through signup (/setup), which they have already
+    // completed, and an external wallet is not how a Peanut user pays. Hidden
+    // while the session resolves too, so it never flashes for that user.
+    if (isLoggedIn || isFetchingUser) return null
 
     if (isGeoLoading) {
         return (
