@@ -3,10 +3,12 @@
 /**
  * payment method action list for payment flows
  *
- * shows alternative payment methods (bank, mercadopago, pix)
- * for users who don't have peanut wallet balance.
+ * shows the funding methods a guest can use to pay (bank, mercadopago, pix),
+ * each of which goes through login/signup to the add-money flow, and the
+ * external-wallet method when the caller can honor it.
  *
- * redirects to add-money flow after login/signup
+ * a signed-in user gets the external-wallet method only: the guest methods
+ * would send them to /setup, which they have already completed.
  *
  * used by: send, semantic-request input views
  */
@@ -21,8 +23,12 @@ import { usePaymentMethodLabels } from '@/features/payments/shared/hooks/usePaym
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import Loading from '@/components/Global/Loading'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useAuth } from '@/context/authContext'
 import { saveRedirectUrl } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
+
+// methods that fund through login/signup and the add-money flow
+const GUEST_METHOD_IDS = ['bank', 'mercadopago', 'pix']
 
 interface PaymentMethodActionListProps {
     isAmountEntered: boolean
@@ -32,8 +38,8 @@ interface PaymentMethodActionListProps {
 
 /**
  * generic payment method action list for both direct send and semantic request flows
- * shows bank/mercadopago/pix options
- * redirects to setup with add-money as final destination after login/signup if user is not logged in
+ * shows bank/mercadopago/pix options to guests only; they redirect to setup with
+ * add-money as the final destination after login/signup
  * @param isAmountEntered - whether the amount is entered
  * @param showDivider - whether to show the divider
  * @returns the payment options list component
@@ -48,6 +54,8 @@ export function PaymentMethodActionList({
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
     const methodLabels = usePaymentMethodLabels()
+    const { user, isFetchingUser } = useAuth()
+    const isLoggedIn = !!user?.user?.userId
     // Display-only "REQUIRES VERIFICATION" badges, provider-blind. The real
     // gate happens later in the add-money flow.
     //   QR-pay methods (mercadopago / pix) ← any rail with `pay` op enabled
@@ -69,9 +77,16 @@ export function PaymentMethodActionList({
     // no external-wallet path, so without this filter the card renders enabled
     // but its tap is a silent no-op — a dead button. Only offer it when we can
     // actually honor it.
-    const visibleMethods = onPayWithExternalWallet
-        ? sortedMethods
-        : sortedMethods.filter((method) => method.id !== 'exchange-or-wallet')
+    //
+    // The guest methods fund through signup (/setup), which a signed-in user has
+    // already done. Hide them while the session resolves too, so they never
+    // flash for that user.
+    const showGuestMethods = !isLoggedIn && !isFetchingUser
+    const visibleMethods = sortedMethods.filter((method) => {
+        if (method.id === 'exchange-or-wallet') return !!onPayWithExternalWallet
+        if (GUEST_METHOD_IDS.includes(method.id)) return showGuestMethods
+        return true
+    })
 
     const handleMethodClick = (method: PaymentMethod) => {
         // for all methods, save current url and redirect to setup with add-money as final destination
@@ -82,12 +97,16 @@ export function PaymentMethodActionList({
             return
         }
 
-        if (['bank', 'mercadopago', 'pix'].includes(method.id)) {
+        if (GUEST_METHOD_IDS.includes(method.id)) {
             saveRedirectUrl()
             const redirectUri = encodeURIComponent('/add-money')
             router.push(`/setup?redirect_uri=${redirectUri}`)
         }
     }
+
+    // A signed-in caller without an external-wallet handler has nothing to
+    // offer: render nothing, not a spinner or a bare "or" divider.
+    if (visibleMethods.length === 0) return null
 
     if (isGeoLoading) {
         return (
