@@ -28,6 +28,7 @@ import fs from 'fs'
 import path from 'path'
 import { RAIL_SLUGS } from '../src/data/seo/deposit-rails'
 import { LOCALE_NEUTRAL_APP_ROUTES } from '../src/lib/content'
+import { CONTENT_TOPICS } from '../src/lib/content-topic-types'
 import { checkIncomeMigration } from './seo-income-migration'
 
 const ROOT = path.join(process.cwd(), 'src/content')
@@ -292,14 +293,13 @@ function discoverRoutes(): Set<string> {
             routes.add(`/${locale}/supported-networks`)
         }
 
-        // Blog (index + post slugs)
+        // Content hub (blog index), its topic pages and the posts. The topics
+        // share blog/[slug] with the posts; /{locale}/content is a 308 here.
         if (hasRoute('blog')) routes.add(`/${locale}/blog`)
         if (hasRoute('blog/[slug]')) {
+            for (const topic of CONTENT_TOPICS) routes.add(`/${locale}/blog/${topic}`)
             for (const slug of blogSlugs) routes.add(`/${locale}/blog/${slug}`)
         }
-
-        // Content hub (cross-type landing)
-        if (hasRoute('content')) routes.add(`/${locale}/content`)
     }
 
     return routes
@@ -741,8 +741,9 @@ function expectedSitemapUrls(): string[] {
         for (const slug of withdrawSlugs) urls.push(`/${locale}/withdraw/${slug}`)
         urls.push(`/${locale}/supported-networks`)
         urls.push(`/${locale}/pricing`)
-        urls.push(`/${locale}/content`)
-        // No /{locale}/blog index — it is a 308 to /{locale}/content. Posts stay.
+        // The hub index. Its topic pages are listed only when the locale has
+        // content for them, so they are not asserted here. Posts stay.
+        urls.push(`/${locale}/blog`)
         for (const slug of blogSlugs) urls.push(`/${locale}/blog/${slug}`)
     }
 
