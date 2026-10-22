@@ -34,8 +34,13 @@ jest.mock('@/utils/invite-stash', () => ({
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 function InviterState() {
-    const { inviterUsername } = useSetupFlowContext()
-    return <output data-testid="inviter">{inviterUsername}</output>
+    const { inviterUsername, username } = useSetupFlowContext()
+    return (
+        <>
+            <output data-testid="inviter">{inviterUsername}</output>
+            <output data-testid="username">{username}</output>
+        </>
+    )
 }
 
 // Leaving and re-entering the step keeps the provider, as the real flow does.
@@ -52,6 +57,7 @@ function FlowHarness() {
 const renderInvite = () => renderWithIntl(<FlowHarness />)
 const field = () => screen.getByRole('textbox', { name: 'Username of the person who invited you' })
 const continueButton = () => screen.getByRole('button', { name: 'Continue' })
+const claimInstead = (username: string) => screen.queryByRole('button', { name: `Claim @${username} instead` })
 
 beforeEach(() => {
     jest.clearAllMocks()
@@ -64,7 +70,8 @@ beforeEach(() => {
 describe('Invited by a friend?', () => {
     it('shows an @-prefixed username field, Continue disabled until a verified inviter, and Skip below it', () => {
         renderInvite()
-        expect(field()).toHaveAttribute('placeholder', 'batman')
+        // The username step's placeholder is "batman"; this field must read as someone else's username.
+        expect(field()).toHaveAttribute('placeholder', 'Friend’s username')
         expect(screen.getByText('@')).toBeInTheDocument()
         expect(continueButton()).toBeDisabled()
         const skip = screen.getByRole('button', { name: 'Skip' })
@@ -109,6 +116,48 @@ describe('Invited by a friend?', () => {
         expect(mockStoredInvite.code).toBe('')
     })
 
+    it('offers an unknown username as the new user’s own, and carries it to the username step on tap', async () => {
+        mockValidateInviter.mockResolvedValue({ success: false, notFound: true, attributionResolved: false })
+        renderInvite()
+        fireEvent.change(field(), { target: { value: '@NewPerson ' } })
+        expect(await screen.findByText('We couldn’t find this user.')).toBeInTheDocument()
+        expect(mockHandleNext).not.toHaveBeenCalled()
+        expect(screen.getByTestId('username')).toHaveTextContent('')
+
+        fireEvent.click(claimInstead('newperson')!)
+        expect(screen.getByTestId('username')).toHaveTextContent('newperson')
+        expect(screen.getByTestId('inviter')).toHaveTextContent('')
+        expect(mockStoredInvite.code).toBe('')
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_INVITE_USED_AS_USERNAME)
+        expect(posthog.capture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_INVITE_SKIPPED)
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
+    })
+
+    it('hides the offer while the person types again', async () => {
+        mockValidateInviter.mockResolvedValue({ success: false, notFound: true, attributionResolved: false })
+        renderInvite()
+        fireEvent.change(field(), { target: { value: 'newperson' } })
+        expect(await screen.findByText('We couldn’t find this user.')).toBeInTheDocument()
+        expect(claimInstead('newperson')).toBeInTheDocument()
+        mockValidateInviter.mockReturnValue(new Promise(() => {}))
+        fireEvent.change(field(), { target: { value: 'newperson2' } })
+        expect(claimInstead('newperson')).not.toBeInTheDocument()
+        expect(claimInstead('newperson2')).not.toBeInTheDocument()
+    })
+
+    it('does not offer a name that cannot be a username, or one the check could not look up', async () => {
+        mockValidateInviter.mockResolvedValue({ success: false, notFound: true, attributionResolved: false })
+        renderInvite()
+        fireEvent.change(field(), { target: { value: '1person' } })
+        expect(await screen.findByText('We couldn’t find this user.')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /instead/ })).not.toBeInTheDocument()
+
+        mockValidateInviter.mockResolvedValue({ success: false, attributionResolved: false })
+        fireEvent.change(field(), { target: { value: 'person' } })
+        expect(await screen.findByText('We couldn’t check this username. Try again.')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /instead/ })).not.toBeInTheDocument()
+    })
+
     it('does not validate a handle too short to be one', async () => {
         renderInvite()
         fireEvent.change(field(), { target: { value: 'ab' } })
@@ -122,6 +171,7 @@ describe('Invited by a friend?', () => {
         renderInvite()
         fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
         expect(mockStoredInvite).toEqual({ code: 'aliceinvitesyou', type: 'INVITE_LINK' })
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_INVITE_SKIPPED)
         expect(mockHandleNext).toHaveBeenCalledTimes(1)
         expect(mockValidateInviter).not.toHaveBeenCalled()
     })

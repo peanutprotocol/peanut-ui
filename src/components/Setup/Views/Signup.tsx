@@ -110,16 +110,19 @@ const SignupStep = () => {
         // check length requirement
         if (username.length < USERNAME_MIN_LENGTH) {
             setError(t('signupStep.errors.tooShort'))
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'too_short', username })
             return false
         }
         if (username.length > 12) {
             setError(t('signupStep.errors.tooLong'))
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'too_long', username })
             return false
         }
 
         // check character requirement
         if (!username.match(/^[a-z][a-z0-9]{3,11}$/)) {
             setError(t('signupStep.errors.invalidFormat'))
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'format', username })
             return false
         }
 
@@ -239,7 +242,16 @@ const SignupStep = () => {
                                 )}
                             </AnimatePresence>
                         </div>
-                        <div className="min-h-8 compact:min-h-6">{error && <FieldError>{error}</FieldError>}</div>
+                        <div className="min-h-8 compact:min-h-6">
+                            {/* The rules show before any error; an error replaces them (form-field board). */}
+                            {error ? (
+                                <FieldError>{error}</FieldError>
+                            ) : (
+                                <p className="text-body-xs text-foreground-secondary">
+                                    {t('signupStep.usernameRules')}
+                                </p>
+                            )}
+                        </div>
                     </div>
                     {passkey.usernameTaken && (
                         <div className="flex flex-col gap-3">

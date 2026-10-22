@@ -5,10 +5,12 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import SetupFooter from '../components/SetupFooter'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { isPlausibleUsername } from '@/constants/routes'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { invitesApi } from '@/services/invites'
@@ -17,20 +19,25 @@ import { toInviteCode } from '@/utils/invite-code.utils'
 /**
  * Invited by a friend? An optional step before the username: a verified inviter
  * becomes the invite that registration attributes; Skip leaves any invite link
- * the user arrived with in place.
+ * the user arrived with in place. New users often type the username they want
+ * here, so an unknown username offers to carry it to the username step instead.
  */
 export default function InviteStep() {
     const t = useTranslations('setup')
-    const { inviterUsername, setInviterUsername, applyManualInvite, clearManualInvite } = useSetupFlowContext()
+    const { inviterUsername, setInviterUsername, applyManualInvite, clearManualInvite, setUsername } =
+        useSetupFlowContext()
     const { handleNext, isLoading } = useSetupFlow()
     const [draft, setDraft] = useState(inviterUsername)
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
     const [error, setError] = useState('')
+    // Set only for a confirmed "not found" of a username someone could claim.
+    const [claimableUsername, setClaimableUsername] = useState('')
     const valueRef = useRef(inviterUsername)
 
     const validate = async (value: string): Promise<boolean> => {
         setError('')
+        setClaimableUsername('')
         const result = await invitesApi.validateInviteCode(value)
         const valid = result.success && result.attributionResolved
         if (valueRef.current !== value) return valid
@@ -38,6 +45,8 @@ export default function InviteStep() {
         // "Not found" only for a confirmed miss; a failed request says the check did not work.
         const notFound = result.notFound || (result.success && !result.attributionResolved)
         if (!valid) setError(t(notFound ? 'signupStep.inviterNotFound' : 'signupStep.inviterCheckFailed'))
+        const code = toInviteCode(value)
+        if (notFound && isPlausibleUsername(code)) setClaimableUsername(code)
         return valid
     }
 
@@ -52,12 +61,24 @@ export default function InviteStep() {
 
     // Skip undoes an inviter added on an earlier visit and restores the
     // invite-link referral, if there was one.
-    const onSkip = () => {
+    const skipInviter = () => {
         if (inviterUsername) {
             clearManualInvite()
             setInviterUsername('')
         }
         void handleNext()
+    }
+
+    const onSkip = () => {
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITE_SKIPPED)
+        skipInviter()
+    }
+
+    // The username step validates the prefilled name as if it was typed there.
+    const onClaimInstead = () => {
+        setUsername(claimableUsername)
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITE_USED_AS_USERNAME)
+        skipInviter()
     }
 
     return (
@@ -75,14 +96,24 @@ export default function InviteStep() {
                         setDraft(value)
                         setIsValid(isValid)
                         setIsChanging(isChanging)
-                        if (isChanging) setError('')
+                        if (isChanging) {
+                            setError('')
+                            setClaimableUsername('')
+                        }
                     }}
                     isSetupFlow
                     isInputChanging={isChanging}
                     prefix="@"
                     className="rounded-sm"
                 />
-                <div className="min-h-8 compact:min-h-6">{error && <FieldError>{error}</FieldError>}</div>
+                <div className="flex min-h-8 flex-col items-start gap-4 compact:min-h-6">
+                    {error && <FieldError>{error}</FieldError>}
+                    {claimableUsername && !isChanging && (
+                        <LinkButton onClick={onClaimInstead} disabled={isLoading}>
+                            {t('inviteStep.claimInstead', { username: claimableUsername })}
+                        </LinkButton>
+                    )}
+                </div>
             </div>
             <SetupFooter
                 actions={

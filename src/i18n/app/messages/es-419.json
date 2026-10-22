@@ -809,15 +809,16 @@
         "signupStep": {
             "usernameLabel": "Usuario",
             "usernamePlaceholder": "batman",
+            "usernameRules": "De 4 a 12 caracteres. Empieza con una letra. Solo letras y números.",
             "inviterUsernameLabel": "Usuario de quien te invitó",
-            "inviterUsernamePlaceholder": "batman",
+            "inviterUsernamePlaceholder": "Usuario de quien invita",
             "inviterNotFound": "No encontramos a este usuario.",
             "inviterCheckFailed": "No pudimos revisar este usuario. Inténtalo de nuevo.",
             "errors": {
                 "required": "El nombre de usuario es obligatorio",
-                "tooShort": "El nombre de usuario debe tener al menos 4 caracteres",
-                "tooLong": "El nombre de usuario debe tener como máximo 12 caracteres",
-                "invalidFormat": "El nombre de usuario solo puede tener letras minúsculas y números, y debe empezar con una letra",
+                "tooShort": "Usa al menos 4 caracteres.",
+                "tooLong": "Usa 12 caracteres o menos.",
+                "invalidFormat": "Empieza con una letra. Usa solo letras y números.",
                 "taken": "Ese nombre de usuario ya está en uso",
                 "invalid": "El nombre de usuario no es válido, usa uno diferente",
                 "checkFailed": "No pudimos verificar la disponibilidad del usuario. Inténtalo de nuevo.",
@@ -1023,7 +1024,8 @@
         },
         "inviteStep": {
             "continue": "Continuar",
-            "skip": "Omitir"
+            "skip": "Omitir",
+            "claimInstead": "Reclamar @{username}"
         }
     },
     "loadingStates": {

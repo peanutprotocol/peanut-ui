@@ -1,5 +1,8 @@
 /** @jest-environment jsdom */
+import { useEffect } from 'react'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { renderWithIntl } from '@/test-utils/intl'
 import { setupScreenIds } from '@/components/Setup/Setup.consts'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -48,12 +51,19 @@ function FlowState() {
     )
 }
 
-const renderSignup = () => {
+// The invite step can hand over a name it could not find as the new user's own.
+function PrefilledSignup({ name }: { name: string }) {
+    const { username, setUsername } = useSetupFlowContext()
+    useEffect(() => setUsername(name), [name, setUsername])
+    return username ? <SignupStep /> : null
+}
+
+const renderSignup = (prefill?: string) => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const view = renderWithIntl(
         <QueryClientProvider client={queryClient}>
             <SetupFlowProvider masterScreenIds={setupScreenIds}>
-                <SignupStep />
+                {prefill ? <PrefilledSignup name={prefill} /> : <SignupStep />}
                 <FlowState />
             </SetupFlowProvider>
         </QueryClientProvider>
@@ -92,11 +102,47 @@ describe('Claim username', () => {
         expect(mockSetScreenId).not.toHaveBeenCalled()
     })
 
-    it('explains a too-short username instead of only marking the field red', async () => {
+    it('shows the username rules before any error, and an error in their place', async () => {
         renderSignup()
+        const rules = '4–12 characters. Start with a letter. Letters and numbers only.'
+        expect(screen.getByText(rules)).toBeInTheDocument()
         fireEvent.change(usernameField(), { target: { value: 'abc' } })
-        expect(await screen.findByText('Username must be at least 4 characters long')).toBeInTheDocument()
+        expect(await screen.findByText('Use at least 4 characters.')).toBeInTheDocument()
+        expect(screen.queryByText(rules)).not.toBeInTheDocument()
         expect(mockApiFetch).not.toHaveBeenCalled()
+        expect(claimButton()).toBeDisabled()
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, {
+            error_type: 'too_short',
+            username: 'abc',
+        })
+    })
+
+    it.each([
+        ['waytoolongname', 'Use 12 characters or fewer.', 'too_long'],
+        ['1abc', 'Start with a letter. Use only letters and numbers.', 'format'],
+        ['ab.cd', 'Start with a letter. Use only letters and numbers.', 'format'],
+    ])('explains %s against the same rules and records why', async (value, message, errorType) => {
+        renderSignup()
+        fireEvent.change(usernameField(), { target: { value } })
+        expect(await screen.findByText(message)).toBeInTheDocument()
+        expect(mockApiFetch).not.toHaveBeenCalled()
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, {
+            error_type: errorType,
+            username: value,
+        })
+    })
+
+    it('checks a username handed over from the invite step as if it was typed here', async () => {
+        renderSignup('newperson')
+        expect(usernameField()).toHaveValue('newperson')
+        await waitFor(() => expect(claimButton()).toBeEnabled())
+        expect(mockApiFetch).toHaveBeenCalledWith('/users/username/newperson', expect.any(Object))
+    })
+
+    it('says so when a handed-over username is taken', async () => {
+        mockApiFetch.mockResolvedValue({ status: 200 })
+        renderSignup('takenname')
+        expect(await screen.findByText('Username already taken')).toBeInTheDocument()
         expect(claimButton()).toBeDisabled()
     })
 
