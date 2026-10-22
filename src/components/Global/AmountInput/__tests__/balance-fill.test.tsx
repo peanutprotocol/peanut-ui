@@ -162,6 +162,17 @@ describe('AmountInput full-balance fill', () => {
         expect(onBalanceFilled).not.toHaveBeenCalled()
     })
 
+    it('reports typing separately, so the parent can tell it from a fill (TASK-23997)', () => {
+        const onAmountTyped = jest.fn()
+        const { field, useFullBalance } = setup({ onAmountTyped })
+
+        fireEvent.click(useFullBalance()!)
+        expect(onAmountTyped).not.toHaveBeenCalled()
+
+        fireEvent.change(field, { target: { value: '5' } })
+        expect(onAmountTyped).toHaveBeenCalledTimes(1)
+    })
+
     it('does not offer the fill while the input is disabled', () => {
         const { useFullBalance } = setup({ disabled: true })
 

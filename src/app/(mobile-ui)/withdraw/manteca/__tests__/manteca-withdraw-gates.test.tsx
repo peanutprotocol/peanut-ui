@@ -108,6 +108,8 @@ jest.mock('@/components/Global/AmountInput', () => ({
         setSecondaryAmount?: (v: string) => void
         setCurrentDenomination?: (symbol: string) => void
         onBalanceFilled?: (v: string) => void
+        onAmountTyped?: () => void
+        initialAmount?: string
     }) => (
         <div
             data-testid="amount-input"
@@ -116,6 +118,7 @@ jest.mock('@/components/Global/AmountInput', () => ({
         >
             <button
                 onClick={() => {
+                    props.onAmountTyped?.()
                     props.setPrimaryAmount('20000')
                     props.setSecondaryAmount?.('13.33')
                 }}
@@ -124,7 +127,17 @@ jest.mock('@/components/Global/AmountInput', () => ({
             </button>
             <button
                 onClick={() => {
+                    // the user clears the seeded amount and types the same digits again
+                    props.onAmountTyped?.()
+                    props.setPrimaryAmount(props.initialAmount ?? '')
+                }}
+            >
+                retype-same
+            </button>
+            <button
+                onClick={() => {
                     // a lower local amount whose USD estimate rounds the same
+                    props.onAmountTyped?.()
                     props.setPrimaryAmount('19996')
                     props.setSecondaryAmount?.('13.33')
                 }}
@@ -134,6 +147,7 @@ jest.mock('@/components/Global/AmountInput', () => ({
             <button
                 onClick={() => {
                     props.setCurrentDenomination?.('USD')
+                    props.onAmountTyped?.()
                     props.setPrimaryAmount('30000')
                     props.setSecondaryAmount?.('20')
                 }}
@@ -976,6 +990,18 @@ describe('manteca withdraw — exact typed amount (TASK-23997)', () => {
             fiatAmount: '20000',
             currency: 'ARS',
         })
+    })
+
+    it('retyping the seeded local amount makes it the amount to deliver (Chip review)', async () => {
+        mockUrlAmount = '50'
+        const view = enterAmount('retype-same')
+
+        await lockAndOpenReview(view, PRICE_LOCK)
+
+        const sent = mockInitiateWithdraw.mock.lastCall?.[0] as { amount: string; fiatAmount?: string }
+        expect(sent.amount).toBe('50.00')
+        // the same digits as the seed, but typed: the bank must receive them
+        expect(sent.fiatAmount).toBeDefined()
     })
 
     it('a quote recovery re-locks with the same fiat request', async () => {
