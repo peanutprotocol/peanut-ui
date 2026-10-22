@@ -62,11 +62,20 @@ jest.mock('@/components/Global/PeanutActionDetailsCard', () => ({
 // which (as in the real selector) writes the token and calls neither
 jest.mock('@/components/Global/TokenSelector/TokenSelector', () => ({
     __esModule: true,
-    default: ({ onAutoCorrect, onNetworkSelect }: { onAutoCorrect?: () => void; onNetworkSelect?: () => void }) => {
+    default: ({
+        onAutoCorrect,
+        onNetworkSelect,
+        networkHelper,
+    }: {
+        onAutoCorrect?: () => void
+        onNetworkSelect?: () => void
+        networkHelper?: string
+    }) => {
         const { tokenSelectorContext } = jest.requireActual('@/context/tokenSelector.context')
         const { setSelectedTokenAddress } = jest.requireActual('react').useContext(tokenSelectorContext)
         return (
             <>
+                {networkHelper && <p>{networkHelper}</p>}
                 <button onClick={onAutoCorrect}>selector auto-correct</button>
                 <button onClick={onNetworkSelect}>selector network pick</button>
                 <button onClick={() => setSelectedTokenAddress('0x3333333333333333333333333333333333333333')}>

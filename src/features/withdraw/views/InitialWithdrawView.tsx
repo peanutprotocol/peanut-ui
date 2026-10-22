@@ -197,6 +197,8 @@ export default function InitialWithdrawView({
                     }}
                     // a token tap keeps the default network, so only a network pick confirms it
                     onNetworkSelect={() => setNetworkUnconfirmed(false)}
+                    // guidance, not an error: the address is fine, the network is still the user's call
+                    networkHelper={networkUnconfirmed ? t('initial.confirmNetwork') : undefined}
                 />
 
                 {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
@@ -220,11 +222,7 @@ export default function InitialWithdrawView({
                         showInfoText={false}
                         isWithdrawal
                     />
-                    {networkUnconfirmed ? (
-                        <FieldError>{t('initial.confirmNetwork')}</FieldError>
-                    ) : (
-                        error.showError && !!error.errorMessage && <FieldError>{error.errorMessage}</FieldError>
-                    )}
+                    {error.showError && !!error.errorMessage && <FieldError>{error.errorMessage}</FieldError>}
                 </div>
 
                 {/* Surface the resolved address as soon as an ENS name validates —

@@ -53,6 +53,7 @@ function Harness({
     isLoadingChains = false,
     onAutoCorrect,
     onNetworkSelect,
+    networkHelper,
 }: {
     initialChainID?: string
     initialTokenAddress?: string
@@ -60,6 +61,7 @@ function Harness({
     isLoadingChains?: boolean
     onAutoCorrect?: () => void
     onNetworkSelect?: () => void
+    networkHelper?: string
 }) {
     const [selectedChainID, setSelectedChainID] = useState(initialChainID)
     const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenAddress)
@@ -77,7 +79,12 @@ function Harness({
                     } as never
                 }
             >
-                <TokenSelector viewType={viewType} onAutoCorrect={onAutoCorrect} onNetworkSelect={onNetworkSelect} />
+                <TokenSelector
+                    viewType={viewType}
+                    onAutoCorrect={onAutoCorrect}
+                    onNetworkSelect={onNetworkSelect}
+                    networkHelper={networkHelper}
+                />
                 <output data-testid="chain-probe">{selectedChainID || 'none'}</output>
                 <output data-testid="token-probe">{selectedTokenAddress || 'none'}</output>
             </tokenSelectorContext.Provider>
@@ -226,6 +233,17 @@ describe('TokenSelector (TASK-23392)', () => {
         render(<Harness initialChainID="137" initialTokenAddress="0xpolygonUsdt" isLoadingChains />)
         expect(chain()).toBe('137')
         expect(tokenAddress()).toBe('0xpolygonUsdt')
+    })
+
+    // A screen that needs an explicit network pick says so under the network
+    // picker, as guidance. While a lock is on, the lock hint is what matters.
+    test('guidance under the network picker shows when the screen asks for it; the lock hint wins', () => {
+        const { rerender } = render(<Harness networkHelper="Pick the network for this address" />)
+        expect(screen.getByText('Pick the network for this address')).toBeInTheDocument()
+        ;(underMaintenanceConfig as { disableXchainWithdraw: boolean }).disableXchainWithdraw = true
+        rerender(<Harness networkHelper="Pick the network for this address" />)
+        expect(screen.queryByText('Pick the network for this address')).toBeNull()
+        expect(screen.getByText('Only USDC on Arbitrum for now')).toBeInTheDocument()
     })
 
     test('cross-chain send off: claim is locked to USDC on Arbitrum', () => {
