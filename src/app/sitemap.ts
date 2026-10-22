@@ -263,8 +263,8 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             })
         }
 
-        // Content hub (+ topics) and blog posts. /{locale}/content serves the
-        // same hub but canonicalizes to /{locale}/blog, so only /blog is listed.
+        // Content hub (+ topics) and blog posts. The former /{locale}/content
+        // addresses 308 to /blog (redirects.json), so only /blog is listed.
         pages.push({
             path: `/${locale}/blog`,
             priority: 0.7 * basePriority,

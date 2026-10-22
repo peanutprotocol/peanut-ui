@@ -1,9 +1,13 @@
-import ContentTopicPage, {
-    generateMetadata,
-    generateStaticParams,
-} from '@/app/[locale]/(marketing)/content/[topic]/page'
+import BlogSlugPage, { generateMetadata, generateStaticParams } from '@/app/[locale]/(marketing)/blog/[slug]/page'
 import { notFound } from 'next/navigation'
 
+// The hub topics share /{locale}/blog/[slug] with the posts (the former
+// /{locale}/content/[topic] address 308s here). No posts in this test, so
+// every generated param is a topic.
+jest.mock('./blog', () => ({
+    getAllPosts: () => [],
+    getPostBySlug: async () => null,
+}))
 jest.mock('./content-topics', () => ({
     isContentTopic: (topic: string) => ['deposit', 'receive', 'send'].includes(topic),
     listContentTopics: () => ['deposit'],
@@ -19,10 +23,11 @@ jest.mock('next/navigation', () => ({
 }))
 
 it('does not generate or advertise metadata for empty topic routes', async () => {
-    expect(generateStaticParams()).toHaveLength(4)
-    expect(generateStaticParams().every(({ topic }) => topic === 'deposit')).toBe(true)
-    expect(await generateMetadata({ params: Promise.resolve({ locale: 'en', topic: 'receive' }) })).toEqual({})
-    await expect(ContentTopicPage({ params: Promise.resolve({ locale: 'en', topic: 'send' }) })).rejects.toThrow(
+    const params = await generateStaticParams()
+    expect(params).toHaveLength(4)
+    expect(params.every(({ slug }) => slug === 'deposit')).toBe(true)
+    expect(await generateMetadata({ params: Promise.resolve({ locale: 'en', slug: 'receive' }) })).toEqual({})
+    await expect(BlogSlugPage({ params: Promise.resolve({ locale: 'en', slug: 'send' }) })).rejects.toThrow(
         'NEXT_NOT_FOUND'
     )
     expect(notFound).toHaveBeenCalled()

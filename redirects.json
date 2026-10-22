@@ -1516,12 +1516,22 @@
     },
     {
         "source": "/content",
-        "destination": "/en/content",
+        "destination": "/en/blog",
         "permanent": true
     },
     {
         "source": "/blog",
         "destination": "/en/blog",
+        "permanent": true
+    },
+    {
+        "source": "/:locale(en|es-419|es-ar|pt-br)/content",
+        "destination": "/:locale/blog",
+        "permanent": true
+    },
+    {
+        "source": "/:locale(en|es-419|es-ar|pt-br)/content/:path*",
+        "destination": "/:locale/blog/:path*",
         "permanent": true
     },
     {

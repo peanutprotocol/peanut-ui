@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return contentHubMetadata(locale)
 }
 
-/** The content hub. /{locale}/content serves the same page (content/page.tsx re-exports this one). */
+/** The content hub. Its former address, /{locale}/content, 308s here (redirects.json). */
 export default async function ContentHubPage({ params }: PageProps) {
     const { locale } = await params
     if (!isValidLocale(locale)) notFound()

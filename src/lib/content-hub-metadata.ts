@@ -6,9 +6,9 @@ import type { Locale } from '@/i18n/types'
 import { type ContentTopic, getContentTopicCopy } from '@/lib/content-topic-types'
 
 /**
- * The content hub's canonical home is /{locale}/blog. /{locale}/content serves
- * the same pages, so both routes build their links, canonical and hreflang
- * from here and nothing points a crawler at the alias.
+ * The content hub lives at /{locale}/blog; its former /{locale}/content
+ * addresses 308 there (redirects.json). Links, canonical and hreflang all
+ * build from here so nothing points a crawler at the old address.
  */
 export function contentHubPath(locale: Locale, topic?: ContentTopic): string {
     return topic ? `/${locale}/blog/${topic}` : `/${locale}/blog`
