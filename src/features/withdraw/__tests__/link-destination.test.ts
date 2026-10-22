@@ -106,6 +106,21 @@ describe('withdrawEntryForLink', () => {
         expect(await withdrawEntryForLink(['nobody.eth'])).toBeNull()
     })
 
+    // Two links in quick succession: the older one's name lookup finishes after
+    // the newer link has stashed and left. The hand-off holds one destination,
+    // so the late call must not overwrite the newer link's (Chip, #3802).
+    it('lets a newer link win over an older one that resolves late', async () => {
+        let resolveOlder!: (address: string) => void
+        mockResolveEns.mockReturnValueOnce(new Promise<string>((resolve) => (resolveOlder = resolve)))
+        const older = withdrawEntryForLink(['vitalik.eth'])
+        const newerUrl = (await withdrawEntryForLink([ADDRESS]))!
+        resolveOlder(RESOLVED)
+
+        expect(await older).toBeNull()
+        const newerId = new URLSearchParams(newerUrl.split('?')[1]).get(SCAN_ID_PARAM)
+        expect(takeScannedDestination(newerId)).toEqual({ address: ADDRESS, networkPending: true })
+    })
+
     describe('with the ops kill-switch on', () => {
         beforeEach(() => {
             mockConfig.disableXchainWithdraw = true

@@ -21,7 +21,13 @@ import { stashScannedDestination, withdrawScanEntryUrl, withdrawTokenForRequest 
  * always has. A page visit has no "not supported" modal to show, and the payment
  * page is a working fallback.
  */
+// Links can resolve out of order: a slow name lookup for one link can finish
+// after a newer link has stashed its destination and left. The hand-off holds
+// one destination, so only the newest call may stash.
+let latestCall = 0
+
 export async function withdrawEntryForLink(segments: string[]): Promise<string | null> {
+    const call = ++latestCall
     if (segments.length === 0 || segments.length > 2) return null
     const { recipient, chainId: chainName } = parseRecipientAndChain(segments[0])
 
@@ -62,6 +68,7 @@ export async function withdrawEntryForLink(segments: string[]): Promise<string |
     const isName = !isAddress(recipient)
     const address = isName ? await resolveEns(recipient, chainId ?? PEANUT_WALLET_CHAIN.id.toString()) : recipient
     if (!address) return null
+    if (call !== latestCall) return null
 
     const scanId = stashScannedDestination(address, chainId, {
         name: isName ? recipient : undefined,
