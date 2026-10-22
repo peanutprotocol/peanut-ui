@@ -41,6 +41,25 @@ describe('withdrawScanEntryUrl', () => {
         const id = stashScannedDestination(SOLANA_ADDRESS, 'solana')!
         expect(withdrawScanEntryUrl(id)).not.toContain(SOLANA_ADDRESS)
     })
+
+    // The amount step takes USD, so only a dollar stablecoin's amount means the
+    // same thing there. Any other token's amount would be read as dollars.
+    const entryAmount = (tokenSymbol: string | undefined, amount: string) =>
+        new URLSearchParams(withdrawScanEntryUrl('scan-1', { tokenSymbol, amount }).split('?')[1]).get('amount')
+
+    it.each([
+        ['a USDC request', 'USDC', '10'],
+        ['a USDT request, whatever the case', 'usdt', '2.5'],
+    ])('carries the amount of %s', (_case, tokenSymbol, amount) => {
+        expect(entryAmount(tokenSymbol, amount)).toBe(amount)
+    })
+
+    it.each([
+        ['an ETH request', 'ETH'],
+        ['a request that names no token', undefined],
+    ])('leaves out the amount of %s', (_case, tokenSymbol) => {
+        expect(entryAmount(tokenSymbol, '0.1')).toBeNull()
+    })
 })
 
 describe('the scanned-destination hand-off', () => {
@@ -52,7 +71,11 @@ describe('the scanned-destination hand-off', () => {
     it('hands a payable destination to the scan that stashed it', () => {
         const id = stashScannedDestination(SOLANA_ADDRESS, 'solana')
         expect(id).toBeTruthy()
-        expect(takeScannedDestination(id)).toEqual({ address: SOLANA_ADDRESS, chainId: 'solana' })
+        expect(takeScannedDestination(id)).toEqual({
+            address: SOLANA_ADDRESS,
+            chainId: 'solana',
+            networkPending: false,
+        })
     })
 
     it('hands it over once — pressing on again cannot re-apply it', () => {
@@ -68,7 +91,11 @@ describe('the scanned-destination hand-off', () => {
         const second = stashScannedDestination(OTHER_SOLANA_ADDRESS, 'solana')
         expect(first).not.toBe(second)
         expect(takeScannedDestination(first)).toBeNull()
-        expect(takeScannedDestination(second)).toEqual({ address: OTHER_SOLANA_ADDRESS, chainId: 'solana' })
+        expect(takeScannedDestination(second)).toEqual({
+            address: OTHER_SOLANA_ADDRESS,
+            chainId: 'solana',
+            networkPending: false,
+        })
     })
 
     it.each([
@@ -90,6 +117,22 @@ describe('the scanned-destination hand-off', () => {
         clearScannedDestination()
         expect(takeScannedDestination(id)).toBeNull()
     })
+
+    // An ENS name resolves to the address, and the recipient step shows both.
+    it('hands over the ENS name the address was resolved from', () => {
+        const id = stashScannedDestination(EVM_ADDRESS, undefined, { name: 'alice.eth' })
+        expect(takeScannedDestination(id)).toEqual({ address: EVM_ADDRESS, name: 'alice.eth', networkPending: true })
+    })
+
+    it('hands over the token a payment request asks for', () => {
+        const id = stashScannedDestination(EVM_ADDRESS, '8453', { tokenSymbol: 'USDC' })
+        expect(takeScannedDestination(id)).toEqual({
+            address: EVM_ADDRESS,
+            chainId: '8453',
+            tokenSymbol: 'USDC',
+            networkPending: false,
+        })
+    })
 })
 
 describe('readWithdrawDestination', () => {
@@ -101,15 +144,37 @@ describe('readWithdrawDestination', () => {
         expect(readWithdrawDestination(SOLANA_ADDRESS, 'solana')).toEqual({
             address: SOLANA_ADDRESS,
             chainId: 'solana',
+            networkPending: false,
         })
     })
 
     it('accepts a base58 address on Tron, which delivers USDT and no USDC', () => {
-        expect(readWithdrawDestination(TRON_ADDRESS, 'tron')).toEqual({ address: TRON_ADDRESS, chainId: 'tron' })
+        expect(readWithdrawDestination(TRON_ADDRESS, 'tron')).toEqual({
+            address: TRON_ADDRESS,
+            chainId: 'tron',
+            networkPending: false,
+        })
     })
 
     it('accepts an EVM address on an EVM chain Rhino delivers to', () => {
-        expect(readWithdrawDestination(EVM_ADDRESS, '8453')).toEqual({ address: EVM_ADDRESS, chainId: '8453' })
+        expect(readWithdrawDestination(EVM_ADDRESS, '8453')).toEqual({
+            address: EVM_ADDRESS,
+            chainId: '8453',
+            networkPending: false,
+        })
+    })
+
+    // One EVM address is valid on every EVM chain, so a bare scan names no
+    // network. The user has to pick it, and the checksum case stays intact.
+    it('accepts an EVM address with no chain, leaving the network to the user', () => {
+        expect(readWithdrawDestination(EVM_ADDRESS)).toEqual({ address: EVM_ADDRESS, networkPending: true })
+    })
+
+    it.each([
+        ['a Solana address', SOLANA_ADDRESS],
+        ['a Tron address', TRON_ADDRESS],
+    ])('refuses %s with no chain — only an EVM address can leave the network open', (_case, address) => {
+        expect(readWithdrawDestination(address)).toBeNull()
     })
 
     it.each([
@@ -122,9 +187,18 @@ describe('readWithdrawDestination', () => {
         expect(readWithdrawDestination(address, chainId)).toBeNull()
     })
 
-    it('refuses everything while the ops kill-switch locks withdrawals to Arbitrum', () => {
+    it('refuses every destination that names its chain while the ops kill-switch locks withdrawals to Arbitrum', () => {
         mockConfig.disableXchainWithdraw = true
         expect(readWithdrawDestination(SOLANA_ADDRESS, 'solana')).toBeNull()
+        expect(readWithdrawDestination(EVM_ADDRESS, '8453')).toBeNull()
+    })
+
+    // The lock pins USDC on Arbitrum and disables the network pick, so a pending
+    // network could never be confirmed. Arbitrum is the same chain, which the
+    // lock allows.
+    it('accepts a chainless EVM address under the kill-switch with no network to pick', () => {
+        mockConfig.disableXchainWithdraw = true
+        expect(readWithdrawDestination(EVM_ADDRESS)).toEqual({ address: EVM_ADDRESS, networkPending: false })
     })
 })
 
@@ -138,6 +212,14 @@ describe('withdrawTokenForChain', () => {
 
     it("falls back to the chain's only token (Tron delivers USDT and no USDC)", () => {
         expect(withdrawTokenForChain([usdt])).toBe(usdt)
+    })
+
+    it('takes the token a payment request asks for when the chain has it', () => {
+        expect(withdrawTokenForChain([usdc, usdt], 'usdt')).toBe(usdt)
+    })
+
+    it('falls back to USDC when the chain lacks the requested token', () => {
+        expect(withdrawTokenForChain([usdt, usdc], 'DAI')).toBe(usdc)
     })
 
     it.each([

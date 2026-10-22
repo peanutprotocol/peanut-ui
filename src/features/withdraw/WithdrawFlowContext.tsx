@@ -42,6 +42,14 @@ interface WithdrawFlowContextType {
     setInputChanging: (isChanging: boolean) => void
     recipient: RecipientState
     setRecipient: (recipient: RecipientState) => void
+    /**
+     * The destination arrived without a network the user chose: a scanned EVM
+     * address names none, and an auto-corrected one was moved. The recipient
+     * step asks for a network pick before it continues. Flow state, not view
+     * state, because a scan is consumed before that step mounts.
+     */
+    networkUnconfirmed: boolean
+    setNetworkUnconfirmed: (unconfirmed: boolean) => void
     error: FlowErrorState
     setError: (error: FlowErrorState) => void
     selectedBankAccount: Account | null
@@ -68,6 +76,7 @@ export const WithdrawFlowProvider: React.FC<{ children: ReactNode }> = ({ childr
     const [isValidRecipient, setIsValidRecipient] = useState<boolean>(false)
     const [inputChanging, setInputChanging] = useState<boolean>(false)
     const [recipient, setRecipient] = useState<RecipientState>({ address: '', name: '' })
+    const [networkUnconfirmed, setNetworkUnconfirmed] = useState<boolean>(false)
     const [error, setError] = useState<FlowErrorState>({ showError: false, errorMessage: '' })
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
     const [selectedMethod, setSelectedMethod] = useState<WithdrawMethod | null>(null)
@@ -82,6 +91,7 @@ export const WithdrawFlowProvider: React.FC<{ children: ReactNode }> = ({ childr
         setWithdrawData(null)
         setSelectedBankAccount(null)
         setRecipient({ address: '', name: '' })
+        setNetworkUnconfirmed(false)
         setError({ showError: false, errorMessage: '' })
         setPaymentError(null)
         setSelectedMethod(null)
@@ -109,6 +119,8 @@ export const WithdrawFlowProvider: React.FC<{ children: ReactNode }> = ({ childr
             setInputChanging,
             recipient,
             setRecipient,
+            networkUnconfirmed,
+            setNetworkUnconfirmed,
             error,
             setError,
             selectedBankAccount,
@@ -132,6 +144,7 @@ export const WithdrawFlowProvider: React.FC<{ children: ReactNode }> = ({ childr
             isValidRecipient,
             inputChanging,
             recipient,
+            networkUnconfirmed,
             error,
             selectedBankAccount,
             selectedMethod,

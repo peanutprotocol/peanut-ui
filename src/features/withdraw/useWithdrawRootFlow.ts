@@ -2,7 +2,8 @@
 
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_TOKEN } from '@/constants/wallet-token.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { getCountryFromAccount } from '@/utils/bridge.utils'
 import { BRIDGE_OFFRAMP_MIN_USD, bankPayoutMinimum, meetsBankPayoutMinimum } from './amount-validation'
@@ -61,9 +62,11 @@ export function useWithdrawRootFlow() {
         setIsMaxWithdrawal,
         setRecipient,
         setIsValidRecipient,
+        setNetworkUnconfirmed,
     } = useWithdrawFlow()
 
-    const { supportedChainsAndTokens, setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
+    const { supportedChainsAndTokens, isLoadingChains, setSelectedChainID, setSelectedTokenAddress } =
+        useContext(tokenSelectorContext)
 
     const [urlAmount, setUrlAmount] = useWithdrawAmount()
     // raw amount currently typed in the input; the URL is the commit point
@@ -94,14 +97,25 @@ export function useWithdrawRootFlow() {
     const forwardsToCrypto = isCryptoFromSend || (stepper.step === 'amount' && selectedMethod?.type === 'crypto')
     useEffect(() => {
         if (!forwardsToCrypto) return
-        if (scanIdParam && !supportedChainsAndTokens) return
+        // a scan's token comes from the chain list, so the scan waits for it
+        if (scanIdParam && isLoadingChains) return
         const scanned = takeScannedDestination(scanIdParam)
-        const token = scanned ? withdrawTokenForChain(supportedChainsAndTokens?.[scanned.chainId]?.tokens) : undefined
-        if (scanned && token) {
-            setSelectedChainID(scanned.chainId)
-            setSelectedTokenAddress(token.address)
-            setRecipient({ name: undefined, address: scanned.address })
-            setIsValidRecipient(true)
+        if (scanned) {
+            // An EVM address that names no network starts on USDC on the wallet
+            // chain, set here: the recipient step keeps the selection it finds
+            // under a prefilled recipient, so a Solana or Tron chain left in the
+            // app-wide selector would make the address read as invalid.
+            const chainId = scanned.chainId ?? PEANUT_WALLET_CHAIN.id.toString()
+            const tokenAddress = scanned.chainId
+                ? withdrawTokenForChain(supportedChainsAndTokens[scanned.chainId]?.tokens, scanned.tokenSymbol)?.address
+                : PEANUT_WALLET_TOKEN
+            if (tokenAddress) {
+                setSelectedChainID(chainId)
+                setSelectedTokenAddress(tokenAddress)
+                setRecipient({ name: scanned.name, address: scanned.address })
+                setIsValidRecipient(true)
+                setNetworkUnconfirmed(scanned.networkPending)
+            }
         }
         if (selectedMethod?.type !== 'crypto') {
             setSelectedMethod({ type: 'crypto', title: 'Crypto', countryPath: undefined })
@@ -118,6 +132,7 @@ export function useWithdrawRootFlow() {
         forwardsToCrypto,
         selectedMethod,
         scanIdParam,
+        isLoadingChains,
         supportedChainsAndTokens,
         methodParam,
         urlAmount,
@@ -125,6 +140,7 @@ export function useWithdrawRootFlow() {
         setSelectedTokenAddress,
         setRecipient,
         setIsValidRecipient,
+        setNetworkUnconfirmed,
         setSelectedBankAccount,
         setSelectedMethod,
         router,
