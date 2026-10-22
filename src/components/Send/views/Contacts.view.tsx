@@ -193,8 +193,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                         {contacts.length > 0 ? (
                             <div className="space-y-2">
                                 <h2 className="text-body-m-semibold">{t('contacts.yourContacts')}</h2>
-                                {/* ph-sensitive: rows can show a contact's real name */}
-                                <div className="ph-sensitive space-y-0 flex-1 overflow-y-auto">
+                                <div className="space-y-0 flex-1 overflow-y-auto">
                                     {contacts.map((contact, index) => {
                                         const isVerified = contact.isVerified
                                         const displayName = contact.showFullName
