@@ -2376,6 +2376,7 @@
             "txId": "ID da transação",
             "fee": "Taxa",
             "bankReceives": "O banco recebe",
+            "recipientReceives": "O destinatário recebe",
             "transferId": "ID da transferência",
             "senderNote": "Nota do remetente",
             "paymentReference": "Referência que enviamos",

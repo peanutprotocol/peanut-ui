@@ -205,11 +205,23 @@ export function ReceiptDetailsCard({
                     <DataRow label={tCommon('exchangeRate')} value={exchangeRate} />
                 )}
 
-                {rowVisibilityConfig.networkFee && (
+                {rowVisibilityConfig.networkFee && transaction.networkFeeDetails && (
                     <DataRow
                         label={t('rows.networkFee')}
-                        value={transaction.networkFeeDetails!.amountDisplay}
-                        moreInfoText={transaction.networkFeeDetails!.moreInfoText}
+                        value={
+                            transaction.networkFeeDetails.state === 'charged'
+                                ? transaction.networkFeeDetails.amountDisplay
+                                : transaction.networkFeeDetails.state === 'pending'
+                                  ? tCommon('pending')
+                                  : tCommon('sponsoredByPeanut')
+                        }
+                    />
+                )}
+
+                {rowVisibilityConfig.recipientReceives && (
+                    <DataRow
+                        label={t('rows.recipientReceives')}
+                        value={`$${formatAmount(transaction.recipientReceivesUsd as number)}`}
                     />
                 )}
 
