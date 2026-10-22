@@ -27,7 +27,6 @@
 import fs from 'fs'
 import path from 'path'
 import { RAIL_SLUGS } from '../src/data/seo/deposit-rails'
-import { LOCALE_NEUTRAL_APP_ROUTES } from '../src/lib/content'
 import { getIndexablePages } from '../src/lib/seo/url-inventory'
 import { listContentTopics } from '../src/lib/content-topics'
 import { SUPPORTED_LOCALES } from '../src/i18n/types'
@@ -173,15 +172,9 @@ function discoverRoutes(): Set<string> {
         for (const slug of MERCHANT_SLUGS) routes.add(`/m/${slug}`)
     }
 
-    // Static pages + the locale-neutral app routes the resolver passes
-    // through bare (shared with generate-valid-links.ts so a link the
-    // generator advertises can't fail validation here — /card did).
-    for (const p of ['/', '/privacy', '/terms']) {
-        routes.add(p)
-    }
-    for (const r of LOCALE_NEUTRAL_APP_ROUTES) {
-        routes.add(`/${r}`)
-    }
+    // Bare legal URLs redirect to their localized pages and remain valid links.
+    routes.add('/privacy')
+    routes.add('/terms')
 
     // App routes (mobile-ui)
     for (const p of [

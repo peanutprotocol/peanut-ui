@@ -75,11 +75,23 @@ it('excludes missing locale files, drafts, redirects, and retired pages from cra
                 { cwd: fixture, encoding: 'utf8' }
             ).stdout
         const missingPress = 'Sitemap would emit URL with no matching static route: /en/press'
-        expect(verify()).toContain(missingPress)
+        const missingCareers = 'Sitemap would emit URL with no matching static route: /careers'
+        const missingHomepage = 'Sitemap would emit URL with no matching static route: /\n'
+        const before = verify()
+        expect(before).toContain(missingPress)
+        expect(before).toContain(missingCareers)
+        expect(before).toContain(missingHomepage)
         const pressRoute = join(fixture, 'src/app/[locale]/(marketing)/press')
         mkdirSync(pressRoute, { recursive: true })
         writeFileSync(join(pressRoute, 'page.tsx'), 'export default function Press() { return null }\n')
-        expect(verify()).not.toContain(missingPress)
+        const careersRoute = join(fixture, 'src/app/careers')
+        mkdirSync(careersRoute, { recursive: true })
+        writeFileSync(join(careersRoute, 'page.tsx'), 'export default function Careers() { return null }\n')
+        writeFileSync(join(fixture, 'src/app/page.tsx'), 'export default function Home() { return null }\n')
+        const after = verify()
+        expect(after).not.toContain(missingPress)
+        expect(after).not.toContain(missingCareers)
+        expect(after).not.toContain(missingHomepage)
     } finally {
         rmSync(fixture, { recursive: true, force: true })
     }
