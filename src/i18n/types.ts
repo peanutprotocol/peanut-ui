@@ -133,6 +133,10 @@ export interface Translations {
     // Landing page — hero
     landingHeroHeadline: string
     landingHeroSubline: string
+    landingHeroGetPaid: string
+    landingHeroGlobally: string
+    landingHeroSpend: string
+    landingHeroLocally: string
 
     // Landing page — zero-fees section
     landingZeroFees: string
