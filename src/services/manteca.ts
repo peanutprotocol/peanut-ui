@@ -282,7 +282,7 @@ export const mantecaApi = {
     },
     deposit: async (
         params: CreateMantecaOnrampParams
-    ): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {
+    ): Promise<{ data?: MantecaDepositResponseData; error?: string; code?: string }> => {
         try {
             const response = await serverFetch('/manteca/deposit', {
                 method: 'POST',
@@ -298,7 +298,12 @@ export const mantecaApi = {
 
             if (!response.ok) {
                 console.log('error', response)
-                return { error: data.error || 'Failed to create on-ramp transfer for guest.' }
+                // A refusal's `error` is the generic "Unexpected error"; what
+                // it means is in `code` (PROVIDER_REJECTED).
+                return {
+                    error: data.error || 'Failed to create on-ramp transfer for guest.',
+                    ...(typeof data.code === 'string' ? { code: data.code } : {}),
+                }
             }
 
             return { data }

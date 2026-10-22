@@ -426,7 +426,10 @@ jest.mock('@/utils/retry.utils', () => ({ retryAsync: (fn: () => Promise<unknown
 jest.mock('@/utils/reconnect.utils', () => ({ onReconnect: () => jest.fn() }))
 jest.mock('@/utils/native-webauthn', () => ({ createNativeSignMessageCallback: jest.fn() }))
 jest.mock('@/dev/fixtures/active', () => ({ ensureActiveFixture: () => null }))
-jest.mock('@/constants/harness.consts', () => ({ HARNESS_ENABLED: false }))
+jest.mock('@/constants/harness.consts', () => ({
+    ...jest.requireActual('@/constants/harness.consts'),
+    HARNESS_ENABLED: false,
+}))
 
 it.each(['login', 'registration'])(
     'restores the %s key after an RPC outage and remount with no cookie',

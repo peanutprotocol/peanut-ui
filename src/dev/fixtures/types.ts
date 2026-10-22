@@ -19,6 +19,12 @@ export type Fixture = {
     /** `METHOD /path` keys that answer 500, for error-state screens. */
     fails?: string[]
     /**
+     * `METHOD /path` keys that answer an API refusal: the 4xx status and the
+     * body the API sends with it, `code` included. For screens that branch on a
+     * typed refusal rather than on a 500.
+     */
+    rejects?: Record<string, { status: number; body: Record<string, unknown> }>
+    /**
      * Set when the state under test IS a loader — a screen waiting on a
      * provider that will not answer inside a fixture. The capture normally
      * fails on a visible loader, because a run that photographs 120 spinners

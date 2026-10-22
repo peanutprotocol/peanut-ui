@@ -165,7 +165,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const recoverSignedSpend = useSignedSpendRecovery()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const queryClient = useQueryClient()
 
@@ -495,6 +495,15 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     )
     // The generic init card has no support entry; these refusals need one.
     const initErrorNeedsSupport = scanOutcome.kind === 'failed' && SUPPORT_ACTIONABLE_FAILURES.has(scanOutcome.reason)
+    // The API refused the scan for identity, whatever the capabilities said:
+    // the card offers the verification step instead of only "Go back".
+    const initErrorNeedsVerification = scanOutcome.kind === 'failed' && scanOutcome.reason === QR_INIT_CODE.KYC
+    // The same answer can pause the QR rails (a pool payment with no sender
+    // identity). Read the user again, so the gate and the verification step
+    // act on what the API decided rather than on the capabilities from before.
+    useEffect(() => {
+        if (initErrorNeedsVerification) void fetchUser()
+    }, [initErrorNeedsVerification, fetchUser])
 
     // Side effects only. Everything the screen RENDERS is derived above.
     useEffect(() => {
@@ -1239,6 +1248,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         errorMessage,
         errorInitiatingPayment,
         initErrorNeedsSupport,
+        initErrorNeedsVerification,
         isBlockingError,
         balanceErrorMessage,
         rateUnavailable,

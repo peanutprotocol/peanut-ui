@@ -1474,7 +1474,9 @@
             "fixableDescription": "Necesitamos un documento actualizado para habilitar los pagos con QR. Sube una foto más clara de tu identificación.",
             "restartDescription": "Los pagos con QR necesitan un documento de un país compatible. Puedes verificarte con otra identificación.",
             "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contacta a soporte para recibir ayuda.",
-            "uploadDocument": "Subir documento"
+            "uploadDocument": "Subir documento",
+            "verifyAgainTitle": "Verificar identidad de nuevo",
+            "verifyAgainDescription": "Los pagos con QR están en pausa hasta que vuelvas a verificarte."
         },
         "info": {
             "exchangeRate": "Tipo de cambio",
@@ -1884,7 +1886,8 @@
             "cryptoDescription": "Deposita desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
             "kycRequired": "Requiere verificación",
-            "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
+            "bankTransferDescription": "Datos bancarios reutilizables para cobrar",
+            "mercadoPagoOrBank": "Mercado Pago o Banco"
         },
         "networkDrawer": {
             "title": "Elegir red",
@@ -2377,6 +2380,7 @@
             "txId": "ID de transacción",
             "fee": "Comisión",
             "bankReceives": "El banco recibe",
+            "recipientReceives": "El destinatario recibe",
             "transferId": "ID de transferencia",
             "senderNote": "Nota del remitente",
             "paymentReference": "Referencia que enviamos",
@@ -3927,6 +3931,7 @@
         "xchainPaymentDisabled": "Las transferencias a otras redes están limitadas en tu cuenta. Contacta a soporte para recibir ayuda.",
         "rainInsufficientCollateral": "Tu tarjeta no tiene suficiente colateral para este retiro.",
         "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
+        "providerRejected": "Nuestro socio de pagos no pudo aceptar esta operación para tu cuenta. No se movió dinero. Contacta a soporte.",
         "bankAccountNotUsable": "Esta cuenta bancaria ya no se puede usar. Agrégala de nuevo.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualiza la página e inténtalo de nuevo.",
