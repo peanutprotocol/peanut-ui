@@ -43,12 +43,16 @@
 }
 
 .label {
+    position: relative;
+    z-index: 1;
     font-size: var(--hero-label-size);
     line-height: 0.95;
     letter-spacing: -0.045em;
 }
 
 .accentWrap {
+    position: relative;
+    z-index: 0;
     margin-top: calc(var(--hero-accent-size) * 0.18 + var(--hero-word-gap));
 }
 
