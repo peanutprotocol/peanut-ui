@@ -813,6 +813,7 @@
             "inviterUsernameLabel": "Usuário de quem convidou você",
             "inviterUsernamePlaceholder": "Usuário de quem convidou",
             "inviterNotFound": "Não encontramos esse usuário.",
+            "inviterIsSelf": "Esse é o seu próprio usuário.",
             "inviterCheckFailed": "Não conseguimos verificar esse usuário. Tente de novo.",
             "errors": {
                 "required": "O nome de usuário é obrigatório",
@@ -1024,8 +1025,7 @@
         },
         "inviteStep": {
             "continue": "Continuar",
-            "skip": "Pular",
-            "claimInstead": "Garantir @{username}"
+            "skip": "Pular"
         }
     },
     "loadingStates": {

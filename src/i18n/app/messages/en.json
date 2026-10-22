@@ -813,6 +813,7 @@
             "inviterUsernameLabel": "Username of the person who invited you",
             "inviterUsernamePlaceholder": "Friend’s username",
             "inviterNotFound": "We couldn’t find this user.",
+            "inviterIsSelf": "That’s your own username.",
             "inviterCheckFailed": "We couldn’t check this username. Try again.",
             "errors": {
                 "required": "Username is required",
@@ -1024,8 +1025,7 @@
         },
         "inviteStep": {
             "continue": "Continue",
-            "skip": "Skip",
-            "claimInstead": "Claim @{username} instead"
+            "skip": "Skip"
         }
     },
     "loadingStates": {

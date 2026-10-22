@@ -621,6 +621,7 @@ it('hides Logout on the final ready-to-start confirmation screen', async () => {
 })
 
 it.each([
+    'invite',
     'payment-plan',
     'advantage-fees',
     'advantage-card',
@@ -638,7 +639,7 @@ it.each([
     expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument()
     expect(mockSetNoBackLock).toHaveBeenCalledWith('residence')
 })
-it.each(['landing', 'invite', 'signup'] as const)('does not arm the registration lock on %s', async (screenId) => {
+it.each(['landing', 'signup'] as const)('does not arm the registration lock on %s', async (screenId) => {
     const step = { ...landing, screenId, showBackButton: true }
     mockStore.steps = [step]
     mockFlow.step = step

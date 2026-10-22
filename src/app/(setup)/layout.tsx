@@ -12,11 +12,15 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
 import { isCapacitor } from '@/utils/capacitor'
 import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
-import { filterSetupStepsForResidence } from '@/features/setup/filterSetupSteps'
+import { filterSetupStepsForInvite, filterSetupStepsForResidence } from '@/features/setup/filterSetupSteps'
+import { useAuth } from '@/context/authContext'
+import { readInviteCode } from '@/utils/invite-stash'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const { setSteps, residenceCountry } = useSetupFlowContext()
     const residenceRestrictions = useResidenceRestrictionSets()
+    const { user } = useAuth()
+    const invitedBy = user?.invitedBy
     const { deviceType } = useDeviceType()
 
     /*
@@ -50,9 +54,13 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
             .catch(() => {})
     }, [])
 
+    // The invite stash is read when the list is rebuilt, not watched: registration
+    // settles it before the residence answer rebuilds the list, and the invite
+    // step comes after residence.
     useEffect(() => {
-        setSteps(filterSetupStepsForResidence(setupSteps, residenceRestrictions, residenceCountry))
-    }, [setSteps, residenceRestrictions, residenceCountry])
+        const steps = filterSetupStepsForResidence(setupSteps, residenceRestrictions, residenceCountry)
+        setSteps(filterSetupStepsForInvite(steps, !!invitedBy || !!readInviteCode()))
+    }, [setSteps, residenceRestrictions, residenceCountry, invitedBy])
 
     usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
 

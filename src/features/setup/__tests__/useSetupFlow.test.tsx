@@ -58,8 +58,8 @@ describe('useSetupFlow (URL stepper)', () => {
         ['IN', ['advantage-fees']],
         ['JP', ['advantage-card']],
         ['RU', []],
-    ])('walks the sell screens offered between residence and the payment plan for %s', async (country, features) => {
-        const { result } = renderFlow({ screen: 'residence' })
+    ])('walks the sell screens offered between the inviter and the payment plan for %s', async (country, features) => {
+        const { result } = renderFlow({ screen: 'invite' })
         const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
         await seedSteps(result, filterSetupStepsForResidence(setupSteps, restrictions, country as string))
         for (const expected of features) {
@@ -77,7 +77,7 @@ describe('useSetupFlow (URL stepper)', () => {
             expect(result.current.flow.step?.screenId).toBe(expected)
         }
         await act(async () => result.current.flow.handleBack())
-        expect(result.current.flow.step?.screenId).toBe('residence')
+        expect(result.current.flow.step?.screenId).toBe('invite')
     })
 
     it('uses the registry-derived master order until runtime-filtered steps arrive', () => {
@@ -172,6 +172,7 @@ describe('useSetupFlow (URL stepper)', () => {
             'payment-plan',
             'advantage-card',
             'advantage-fees',
+            'invite',
             'residence',
         ]) {
             await act(async () => {
@@ -179,12 +180,12 @@ describe('useSetupFlow (URL stepper)', () => {
             })
             expect(result.current.flow.step?.screenId).toBe(expected)
         }
-        // the account exists: neither Back nor a URL move may reopen the username or invite step
+        // the account exists: neither Back nor a URL move may reopen the username step
         await act(async () => {
             result.current.flow.handleBack()
         })
         expect(result.current.flow.step?.screenId).toBe('residence')
-        for (const target of ['signup', 'invite', 'landing'] as const) {
+        for (const target of ['signup', 'landing'] as const) {
             await act(async () => {
                 result.current.flow.setScreenId(target)
             })
@@ -262,13 +263,13 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.flow.step?.screenId).toBe(SETUP_DEFAULT_SCREEN)
     })
 
-    it('creates the account on the username step, then residence, sell screens, plan, contact and finish', () => {
+    it('creates the account on the username step, then residence, inviter, sell screens, plan, contact and finish', () => {
         expect(SETUP_POST_REGISTRATION_SCREEN).toBe('residence')
         expect(setupScreenIds).toEqual([
             'landing',
-            'invite',
             'signup',
             'residence',
+            'invite',
             'advantage-fees',
             'advantage-card',
             'payment-plan',

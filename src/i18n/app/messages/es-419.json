@@ -813,6 +813,7 @@
             "inviterUsernameLabel": "Usuario de quien te invitó",
             "inviterUsernamePlaceholder": "Usuario de quien invita",
             "inviterNotFound": "No encontramos a este usuario.",
+            "inviterIsSelf": "Ese es tu propio usuario.",
             "inviterCheckFailed": "No pudimos revisar este usuario. Inténtalo de nuevo.",
             "errors": {
                 "required": "El nombre de usuario es obligatorio",
@@ -1024,8 +1025,7 @@
         },
         "inviteStep": {
             "continue": "Continuar",
-            "skip": "Omitir",
-            "claimInstead": "Reclamar @{username}"
+            "skip": "Omitir"
         }
     },
     "loadingStates": {

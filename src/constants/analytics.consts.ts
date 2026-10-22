@@ -30,7 +30,6 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_INVITER_PROMPT_OPENED: 'signup_inviter_prompt_opened',
     SIGNUP_INVITER_ADDED: 'signup_inviter_added',
     SIGNUP_INVITE_SKIPPED: 'signup_invite_skipped',
-    SIGNUP_INVITE_USED_AS_USERNAME: 'signup_invite_used_as_username',
     SIGNUP_EXISTING_SESSION_CONTINUED: 'signup_existing_session_continued',
     SIGNUP_PASSKEY_STARTED: 'signup_passkey_started',
     SIGNUP_PASSKEY_SUCCEEDED: 'signup_passkey_succeeded',

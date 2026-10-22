@@ -26,3 +26,12 @@ export function filterSetupStepsForResidence(
     const selected = setupFeatureScreensForResidence(restrictions, residence)
     return steps.filter((step) => !SETUP_FEATURE_SCREENS.includes(step.screenId) || selected.includes(step.screenId))
 }
+
+/**
+ * The invite step asks for an inviter only when the signup has none: an invite
+ * link (still in the invite stash, accepted or retrying) or an inviter already
+ * on the account hides it.
+ */
+export function filterSetupStepsForInvite(steps: ISetupStep[], hasInvite: boolean) {
+    return hasInvite ? steps.filter((step) => step.screenId !== 'invite') : steps
+}

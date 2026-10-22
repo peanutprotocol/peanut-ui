@@ -16,14 +16,6 @@ export const setupSteps: ISetupStep[] = [
         contentClassName: 'flex flex-col justify-between gap-8',
     },
     {
-        screenId: 'invite',
-        layoutType: 'signup',
-        image: { animation: 'invite' },
-        component: InviteStep,
-        showBackButton: true,
-        contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
-    },
-    {
         screenId: 'signup',
         layoutType: 'signup',
         image: { pose: 'thinking' },
@@ -36,6 +28,16 @@ export const setupSteps: ISetupStep[] = [
         layoutType: 'signup',
         image: { animation: 'residence' },
         component: ResidenceStep,
+        showBackButton: true,
+        contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
+    },
+    // Asked after registration, so a new user claims their own username first and the
+    // inviter is accepted on the spot. Hidden when the signup already carries an invite.
+    {
+        screenId: 'invite',
+        layoutType: 'signup',
+        image: { animation: 'invite' },
+        component: InviteStep,
         showBackButton: true,
         contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
     },

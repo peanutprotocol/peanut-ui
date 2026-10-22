@@ -1,5 +1,4 @@
 /** @jest-environment jsdom */
-import { useEffect } from 'react'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -51,19 +50,12 @@ function FlowState() {
     )
 }
 
-// The invite step can hand over a name it could not find as the new user's own.
-function PrefilledSignup({ name }: { name: string }) {
-    const { username, setUsername } = useSetupFlowContext()
-    useEffect(() => setUsername(name), [name, setUsername])
-    return username ? <SignupStep /> : null
-}
-
-const renderSignup = (prefill?: string) => {
+const renderSignup = () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const view = renderWithIntl(
         <QueryClientProvider client={queryClient}>
             <SetupFlowProvider masterScreenIds={setupScreenIds}>
-                {prefill ? <PrefilledSignup name={prefill} /> : <SignupStep />}
+                <SignupStep />
                 <FlowState />
             </SetupFlowProvider>
         </QueryClientProvider>
@@ -130,20 +122,6 @@ describe('Claim username', () => {
             error_type: errorType,
             username: value,
         })
-    })
-
-    it('checks a username handed over from the invite step as if it was typed here', async () => {
-        renderSignup('newperson')
-        expect(usernameField()).toHaveValue('newperson')
-        await waitFor(() => expect(claimButton()).toBeEnabled())
-        expect(mockApiFetch).toHaveBeenCalledWith('/users/username/newperson', expect.any(Object))
-    })
-
-    it('says so when a handed-over username is taken', async () => {
-        mockApiFetch.mockResolvedValue({ status: 200 })
-        renderSignup('takenname')
-        expect(await screen.findByText('Username already taken')).toBeInTheDocument()
-        expect(claimButton()).toBeDisabled()
     })
 
     it('keeps Claim disabled for a taken username', async () => {
