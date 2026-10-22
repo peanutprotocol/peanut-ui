@@ -167,9 +167,9 @@ export default function KnerdPage() {
                         </li>
                         <li>
                             <Link className="underline" href="/peanut-card">
-                                Dollar card
+                                Peanut Card
                             </Link>
-                            : US Dollar Card → IN / PINK.
+                            : Peanut Card → IN / DOLLARS.
                         </li>
                         <li>
                             <Link className="underline" href="/request-links">
@@ -193,7 +193,7 @@ export default function KnerdPage() {
                             <Link className="underline" href="/qr-payments/argentina">
                                 Argentina QR
                             </Link>
-                            : No DNI? → NO / PROBLEM → at the till.
+                            : No DNI? → NO / PROBLEM.
                         </li>
                     </ul>
                     <p className="text-body-s">
