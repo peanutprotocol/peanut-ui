@@ -52,7 +52,13 @@ import type { ParsedURL } from '@/lib/url-parser/types/payment'
 import { payLinkUrl } from '@/utils/url.utils'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import type { ProviderId } from '@/types/provider.types'
-import { receiptKindForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
+import {
+    receiptKindForCharge,
+    settledReceiptFields,
+    sponsoredNetworkFee,
+} from '@/features/payments/shared/utils/charge-receipt.utils'
+import { useHistoryEntry } from '@/hooks/useHistoryEntry'
+import { pendingNetworkFee } from '@/components/TransactionDetails/network-fee.utils'
 
 // minimal user info needed for display
 type UserDisplayInfo = {
@@ -73,7 +79,18 @@ type DirectSuccessViewProps = {
     /** A second amount under the headline, already formatted: the other currency of a conversion. */
     secondaryAmount?: string
     isExternalWalletFlow?: boolean
+    /**
+     * The charge was paid from an external wallet, which paid its own gas:
+     * the receipt states no network fee for it.
+     */
+    isExternalWalletPayment?: boolean
     isWithdrawFlow?: boolean
+    /**
+     * A cross-chain withdrawal's quoted fee (USD), the number the confirm
+     * screen showed: the receipt reads it as an estimate until the charge's
+     * history entry states the settled fee.
+     */
+    quotedNetworkFeeUsd?: number
     /**
      * A withdraw the user reached through the send flow. Narrow on purpose: it
      * only reframes the title. `isWithdrawFlow` still governs layout (it
@@ -111,7 +128,9 @@ const PaymentSuccessView = ({
     currencyAmount,
     secondaryAmount,
     isExternalWalletFlow,
+    isExternalWalletPayment,
     isWithdrawFlow,
+    quotedNetworkFeeUsd,
     isFromSendFlow,
     redirectTo = '/home',
     onComplete,
@@ -171,7 +190,6 @@ const PaymentSuccessView = ({
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
         if (!chargeDetails) return null
 
-        const networkFeeDisplayValue = '$0' // fee is zero for peanut wallet txns
         const peanutFeeDisplayValue = '$0' // peanut doesn't charge fees yet
 
         const recipientIdentifier = user?.username || parsedPaymentData?.recipient?.identifier
@@ -218,10 +236,12 @@ const PaymentSuccessView = ({
                 tokenIconUrl: tokenIconUrl,
                 chainIconUrl: chainIconUrl,
             },
-            networkFeeDetails: {
-                amountDisplay: networkFeeDisplayValue,
-                moreInfoText: t('confirm.slippageInfo'),
-            },
+            // Until the history entry loads: a withdrawal's network fee is not
+            // known yet; any other charge states the sponsored row only when it
+            // is a same-chain Peanut-wallet payment (sponsoredNetworkFee).
+            networkFeeDetails: isWithdrawFlow
+                ? pendingNetworkFee(quotedNetworkFeeUsd)
+                : sponsoredNetworkFee(chargeDetails, !!isExternalWalletPayment),
             peanutFeeDetails: {
                 amountDisplay: peanutFeeDisplayValue,
             },
@@ -249,12 +269,32 @@ const PaymentSuccessView = ({
         origin,
         usdAmount,
         receiptStatus,
-        t,
+        isWithdrawFlow,
+        isExternalWalletPayment,
+        quotedNetworkFeeUsd,
     ])
 
+    // The charge's history entry: the backend's own amount, status and network
+    // fee, polled while a withdrawal's fee settles. A guest cannot read it (the
+    // API answers 404 by design), and demo mode has no backend.
+    const { data: historyEntry } = useHistoryEntry(
+        chargeDetails?.uuid,
+        chargeDetails ? receiptKindForCharge(chargeDetails) : undefined,
+        {
+            enabled: !!authUser?.user.userId && !isDemoMode() && !transactionDetailsProp && !!chargeDetails,
+            retry: false,
+        }
+    )
+
     // the one transaction this view's receipt drawer shows — the drawer opens
-    // when the url's `?tx=` matches its id (see useTransactionDetailsDrawer)
-    const receiptTransaction = transactionDetailsProp ?? transactionForDrawer
+    // when the url's `?tx=` matches its id (see useTransactionDetailsDrawer).
+    // The entry's facts go over the receipt the flow built, never replace it:
+    // the flow's receipt keeps the comment and the attachment.
+    const receiptTransaction = useMemo(() => {
+        if (transactionDetailsProp) return transactionDetailsProp
+        if (!transactionForDrawer || !historyEntry) return transactionForDrawer
+        return { ...transactionForDrawer, ...settledReceiptFields(historyEntry) }
+    }, [transactionDetailsProp, transactionForDrawer, historyEntry])
 
     const pointsDivRef = useRef<HTMLDivElement>(null)
     usePointsConfetti(points, pointsDivRef)

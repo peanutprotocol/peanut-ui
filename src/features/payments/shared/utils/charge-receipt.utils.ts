@@ -1,5 +1,12 @@
 import { isIntentKind, type IntentKind } from '@/components/TransactionDetails/strategies/registry'
 import { type IconStatusType } from '@/components/Global/Badges/Badge'
+import { type NetworkFeeDetails } from '@/components/TransactionDetails/transaction-types'
+import {
+    mapTransactionDataForDrawer,
+    type TransactionDetails,
+} from '@/components/TransactionDetails/transactionTransformer'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { type HistoryEntry } from '@/utils/history.utils'
 
 /**
  * The history kind under which a charge's receipt resolves.
@@ -119,4 +126,55 @@ export async function readChargeUntilFinal<T extends { status?: string | null; s
  */
 export function isChargeAwaitingBooking(charge: { status?: string | null } | null | undefined): boolean {
     return !['COMPLETED', 'FAILED', 'CANCELLED'].includes(charge?.status ?? '')
+}
+
+/**
+ * The network-fee row a success receipt states for a charge the user just
+ * paid, when the API projects no fee for its kind.
+ *
+ * Peanut sponsors the gas of a same-chain Peanut-wallet payment: the charge
+ * settles in the wallet's own token on the wallet's own chain. A charge on
+ * another chain or token rides Rhino, whose fee comes out of the delivery
+ * (product/networks.md), and an external wallet pays its own gas. Neither is
+ * a fee Peanut paid, so the receipt claims nothing for them.
+ */
+export function sponsoredNetworkFee(
+    charge: { chainId?: string | null; tokenAddress?: string | null },
+    isExternalWalletPayment: boolean
+): NetworkFeeDetails | undefined {
+    if (isExternalWalletPayment) return undefined
+    const sameChain =
+        String(charge.chainId) === PEANUT_WALLET_CHAIN.id.toString() &&
+        (charge.tokenAddress ?? '').toLowerCase() === PEANUT_WALLET_TOKEN.toLowerCase()
+    return sameChain ? { state: 'sponsored' } : undefined
+}
+
+/**
+ * The facts a success screen's receipt takes from the charge's history entry
+ * once it loads: the amount, the status, the proof and the dates, and the
+ * network fee with what the recipient received. The rest of the receipt stays
+ * as the flow built it. The history projection carries no memo or attachment,
+ * so replacing the whole receipt would drop the Comment and Attachment rows.
+ *
+ * Only a crypto withdrawal's entry states a network fee, and then it is the
+ * whole answer: pending, sponsored, charged, or no row when the ledger booked
+ * nothing it can stand behind. For every other kind the row the flow built
+ * stands (`sponsoredNetworkFee`), so the entry never turns an external-wallet
+ * or cross-chain payment into a sponsored one.
+ */
+export function settledReceiptFields(entry: HistoryEntry): Partial<TransactionDetails> {
+    const canonical = mapTransactionDataForDrawer(entry).transactionDetails
+    const isCryptoWithdraw = canonical.extraDataForDrawer?.kind === 'CRYPTO_WITHDRAW'
+    return {
+        amount: canonical.amount,
+        status: canonical.status,
+        // the hash and its explorer link travel together (see the transformer)
+        ...(canonical.txHash && { txHash: canonical.txHash, explorerUrl: canonical.explorerUrl }),
+        completedAt: canonical.completedAt,
+        date: canonical.date,
+        ...(isCryptoWithdraw && {
+            networkFeeDetails: canonical.networkFeeDetails,
+            recipientReceivesUsd: canonical.recipientReceivesUsd,
+        }),
+    }
 }

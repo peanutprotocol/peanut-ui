@@ -70,5 +70,8 @@ describe('SemanticRequestReceiptView — receipt id and kind', () => {
         expect(receipt.id).toBe(CHARGE_UUID)
         expect(receipt.extraDataForDrawer?.kind).toBe(expectedKind)
         expect(receipt.txHash).toBe(TX_HASH)
+        // the recipient's receipt: the payer may be an external wallet that
+        // paid its own gas, so no network fee is claimed
+        expect(receipt.networkFeeDetails).toBeUndefined()
     })
 })
