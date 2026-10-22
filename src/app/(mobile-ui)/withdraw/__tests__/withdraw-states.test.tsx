@@ -983,7 +983,7 @@ describe('GROUP 3: Amount Validation', () => {
         })
 
         test('an EIP-681 request on Base seeds Base, its USDC and the amount', () => {
-            const id = stashScannedDestination(EVM_ADDRESS, '8453', { tokenSymbol: 'USDC' })!
+            const id = stashScannedDestination(EVM_ADDRESS, '8453', { tokenSymbol: 'USDC', tokenAddress: BASE_USDC })!
 
             renderWithdraw(entryParams(withdrawScanEntryUrl(id, { tokenSymbol: 'USDC', amount: '10' })))
 
@@ -1002,6 +1002,21 @@ describe('GROUP 3: Amount Validation', () => {
 
             expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(BASE_ETH)
             expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto')
+        })
+
+        // Several contracts can share a symbol: the request's exact contract is
+        // seeded, not the first one with its symbol (Chip, #3796).
+        test('an EIP-681 request seeds the exact contract it names', () => {
+            const BASE_BRIDGED_USDC = '0x7f5c764cbc14f9669b88837ca1490cca17c31607'
+            mockSupportedChainsAndTokens['8453'].tokens.push({ symbol: 'USDC', address: BASE_BRIDGED_USDC })
+            const id = stashScannedDestination(EVM_ADDRESS, '8453', {
+                tokenSymbol: 'USDC',
+                tokenAddress: BASE_BRIDGED_USDC,
+            })!
+
+            renderWithdraw(entryParams(withdrawScanEntryUrl(id, { tokenSymbol: 'USDC', amount: '10' })))
+
+            expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(BASE_BRIDGED_USDC)
         })
 
         // A request is paid in the token it asks for or not at all: a token the

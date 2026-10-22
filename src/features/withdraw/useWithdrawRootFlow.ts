@@ -107,7 +107,10 @@ export function useWithdrawRootFlow() {
             // app-wide selector would make the address read as invalid.
             const chainId = scanned.chainId ?? PEANUT_WALLET_CHAIN.id.toString()
             const tokenAddress = scanned.chainId
-                ? withdrawTokenForChain(supportedChainsAndTokens[scanned.chainId]?.tokens, scanned.tokenSymbol)?.address
+                ? withdrawTokenForChain(supportedChainsAndTokens[scanned.chainId]?.tokens, {
+                      symbol: scanned.tokenSymbol,
+                      address: scanned.tokenAddress,
+                  })?.address
                 : PEANUT_WALLET_TOKEN
             if (tokenAddress) {
                 setSelectedChainID(chainId)

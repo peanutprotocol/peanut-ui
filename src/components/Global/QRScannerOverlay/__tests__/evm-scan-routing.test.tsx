@@ -86,6 +86,12 @@ const LOWERCASE = CHECKSUMMED.toLowerCase()
 const BASE_USDC = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
 // 10 USDC (6 decimals) to the address, on Base
 const EIP681_BASE_USDC = `ethereum:${BASE_USDC}@8453/transfer?address=${CHECKSUMMED}&uint256=1e7`
+const NATIVE = '0x0000000000000000000000000000000000000000'
+// Optimism lists two USDC contracts: native USDC and the bridged USDC.e.
+const OPTIMISM_USDC = '0x0b2c639c533813f4aa9d7837caf62653d097ff85'
+const OPTIMISM_BRIDGED_USDC = '0x7f5c764cbc14f9669b88837ca1490cca17c31607'
+const eip681Transfer = (token: string, chainId: string) =>
+    `ethereum:${token}@${chainId}/transfer?address=${CHECKSUMMED}&uint256=1e7`
 
 /** Scan, tick the acknowledgement and press on; returns the pushed URL. */
 const scanAndConfirm = async (data: string): Promise<string> => {
@@ -182,7 +188,23 @@ describe('a signed-in scan of an EIP-681 payment request', () => {
         expect(path).toBe('/withdraw')
         expect(params.get('amount')).toBe('10')
         expect(params.toString().toLowerCase()).not.toContain(LOWERCASE)
-        expect(destination).toEqual({ address: LOWERCASE, chainId: '8453', tokenSymbol: 'USDC', networkPending: false })
+        expect(destination).toEqual({
+            address: LOWERCASE,
+            chainId: '8453',
+            tokenSymbol: 'USDC',
+            tokenAddress: BASE_USDC,
+            networkPending: false,
+        })
+    })
+
+    // Several contracts can share a symbol. The withdrawal selects one by
+    // symbol, so only a request for that contract is paid (Chip, #3796).
+    it('carries the exact contract it names when the withdrawal selects that one', async () => {
+        const { destination } = withdrawEntry(await scanAndConfirm(eip681Transfer(OPTIMISM_USDC, '10')))
+
+        expect(destination).toEqual(
+            expect.objectContaining({ chainId: '10', tokenSymbol: 'USDC', tokenAddress: OPTIMISM_USDC })
+        )
     })
 
     // Today's payment page hid the network selector for a chain in the URL and
@@ -223,7 +245,13 @@ describe('a signed-in scan of an EIP-681 payment request', () => {
         const { params, destination } = withdrawEntry(await scanAndConfirm(`ethereum:${CHECKSUMMED}@8453?value=1e17`))
 
         expect(params.get('amount')).toBeNull()
-        expect(destination).toEqual({ address: LOWERCASE, chainId: '8453', tokenSymbol: 'ETH', networkPending: false })
+        expect(destination).toEqual({
+            address: LOWERCASE,
+            chainId: '8453',
+            tokenSymbol: 'ETH',
+            tokenAddress: NATIVE,
+            networkPending: false,
+        })
     })
 
     // A request is paid in the asset it asks for or not at all. Falling back to
@@ -235,6 +263,10 @@ describe('a signed-in scan of an EIP-681 payment request', () => {
             `ethereum:0x000000000000000000000000000000000000dead@8453/transfer?address=${CHECKSUMMED}&uint256=1e7`,
         ],
         ['an asset on no chain', `ethereum:${CHECKSUMMED}?value=1e18`],
+        [
+            'a contract that shares its symbol with the one the withdrawal selects',
+            eip681Transfer(OPTIMISM_BRIDGED_USDC, '10'),
+        ],
     ])('is not supported for %s, never paid in another asset', async (_case, qr) => {
         await scanOnly(qr)
 

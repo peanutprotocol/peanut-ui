@@ -24,6 +24,7 @@ import {
     takeScannedDestination,
     withdrawScanEntryUrl,
     withdrawTokenForChain,
+    withdrawTokenForRequest,
 } from '../destination'
 
 const SOLANA_ADDRESS = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM'
@@ -110,6 +111,18 @@ describe('the scanned-destination hand-off', () => {
         const id = stashScannedDestination(SOLANA_ADDRESS, 'solana')
         expect(stashScannedDestination(EVM_ADDRESS, 'solana')).toBeNull()
         expect(takeScannedDestination(id)?.address).toBe(SOLANA_ADDRESS)
+    })
+
+    it('hands over the exact contract a payment request names', () => {
+        const BASE_USDC = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+        const id = stashScannedDestination(EVM_ADDRESS, '8453', { tokenSymbol: 'USDC', tokenAddress: BASE_USDC })
+        expect(takeScannedDestination(id)).toEqual({
+            address: EVM_ADDRESS,
+            chainId: '8453',
+            tokenSymbol: 'USDC',
+            tokenAddress: BASE_USDC,
+            networkPending: false,
+        })
     })
 
     it('drops a pending hand-off when the user picks a destination by hand', () => {
@@ -241,12 +254,57 @@ describe('withdrawTokenForChain', () => {
     })
 
     it('takes the token a payment request asks for when the chain has it', () => {
-        expect(withdrawTokenForChain([usdc, usdt], 'usdt')).toBe(usdt)
+        expect(withdrawTokenForChain([usdc, usdt], { symbol: 'usdt' })).toBe(usdt)
     })
 
     // A request is paid in its asset or not at all, never in another one.
     it('has no token when the chain lacks the one a payment request asks for', () => {
-        expect(withdrawTokenForChain([usdt, usdc], 'DAI')).toBeUndefined()
+        expect(withdrawTokenForChain([usdt, usdc], { symbol: 'DAI' })).toBeUndefined()
+    })
+
+    // Several contracts can share a symbol (Optimism lists two USDC).
+    it('takes the exact contract a request names, whatever its case', () => {
+        const bridgedUsdc = { symbol: 'USDC', address: '0xBRIDGED' } as never
+        expect(withdrawTokenForChain([usdc, bridgedUsdc], { address: '0xbridged' })).toBe(bridgedUsdc)
+    })
+
+    it('has no token for a contract the chain list lacks', () => {
+        expect(withdrawTokenForChain([usdc, usdt], { address: '0xdead' })).toBeUndefined()
+    })
+})
+
+// An EIP-681 request names its asset by contract (an ERC-20 transfer) or as the
+// chain's native token (a value). It is paid in exactly that or refused.
+describe('withdrawTokenForRequest', () => {
+    const NATIVE = '0x0000000000000000000000000000000000000000'
+    const USDC = '0x0b2c639c533813f4aa9d7837caf62653d097ff85'
+    const BRIDGED_USDC = '0x7F5c764cBc14f9669B88837ca1490cCa17c31607'
+    const native = { symbol: 'ETH', address: NATIVE } as never
+    const usdc = { symbol: 'USDC', address: USDC } as never
+    const bridgedUsdc = { symbol: 'USDC', address: BRIDGED_USDC } as never
+    const tokens = [native, usdc, bridgedUsdc]
+
+    it('is the contract the request names when the withdrawal selects that one, whatever its case', () => {
+        expect(withdrawTokenForRequest(tokens, { tokenSymbol: 'USDC', tokenAddress: USDC.toUpperCase() })).toBe(usdc)
+    })
+
+    it('is the native token for a value', () => {
+        expect(withdrawTokenForRequest(tokens, { tokenSymbol: 'ETH' })).toBe(native)
+    })
+
+    it.each([
+        [
+            'a contract that shares its symbol with the one the withdrawal selects',
+            { tokenSymbol: 'USDC', tokenAddress: BRIDGED_USDC },
+        ],
+        ['a token the chain lacks', { tokenSymbol: 'DAI', tokenAddress: '0xdead' }],
+        ['a token we cannot name', { tokenAddress: '0xdead' }],
+    ])('refuses %s rather than pay with another contract', (_case, request) => {
+        expect(withdrawTokenForRequest(tokens, request)).toBeUndefined()
+    })
+
+    it('refuses every request while the chain list has not arrived', () => {
+        expect(withdrawTokenForRequest(undefined, { tokenSymbol: 'USDC', tokenAddress: USDC })).toBeUndefined()
     })
 
     it.each([

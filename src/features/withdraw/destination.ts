@@ -11,12 +11,14 @@ export interface WithdrawDestination {
     name?: string
     /** The token a payment request (EIP-681) asks for, by symbol: one the chain pays out. */
     tokenSymbol?: string
+    /** The exact contract that request names: several contracts can share a symbol. */
+    tokenAddress?: string
     /** The user has to pick the network before the withdrawal can continue. */
     networkPending: boolean
 }
 
 /** What a scan knows beyond the address and its chain. */
-type ScannedDestinationDetails = Pick<WithdrawDestination, 'name' | 'tokenSymbol'>
+type ScannedDestinationDetails = Pick<WithdrawDestination, 'name' | 'tokenSymbol' | 'tokenAddress'>
 
 /** A payment request's token and amount, the amount in token units. */
 interface ScannedPaymentRequest {
@@ -136,16 +138,39 @@ export function clearScannedDestination(): void {
  * The token a withdrawal to a chosen destination defaults to: USDC where the
  * chain has it, otherwise the chain's only token (Tron delivers USDT and no
  * USDC). The token a payment request asks for is taken as asked or not at all:
- * a request is never paid in another asset. Undefined while the chain's token
- * list has not arrived — a destination with no token to send is not one the
- * recipient step can open.
+ * by the exact contract when the request names one, else by symbol, and never
+ * another asset in its place. Undefined while the chain's token list has not
+ * arrived — a destination with no token to send is not one the recipient step
+ * can open.
  */
 export function withdrawTokenForChain(
     tokens: readonly TokenMeta[] | undefined,
-    requestedSymbol?: string
+    requested: { symbol?: string; address?: string } = {}
 ): TokenMeta | undefined {
     if (!tokens) return undefined
-    const bySymbol = (symbol: string) => tokens.find((token) => token.symbol.toUpperCase() === symbol.toUpperCase())
-    if (requestedSymbol) return bySymbol(requestedSymbol)
+    const { symbol, address } = requested
+    const bySymbol = (wanted: string) => tokens.find((token) => token.symbol.toUpperCase() === wanted.toUpperCase())
+    if (address) return tokens.find((token) => token.address.toLowerCase() === address.toLowerCase())
+    if (symbol) return bySymbol(symbol)
     return bySymbol('USDC') ?? tokens[0]
+}
+
+/**
+ * The token an EIP-681 payment request may be paid in on its chain, or undefined
+ * when the request has to be refused. A request names its asset through an
+ * ERC-20 transfer (a contract) or a native value (the chain's native token,
+ * which the parser names by symbol). The withdrawal selects a token by symbol,
+ * and several contracts can share one (Optimism lists two USDC), so an ERC-20
+ * request has to name the contract that selection yields. Any other contract
+ * would be paid with a different one in its place.
+ */
+export function withdrawTokenForRequest(
+    tokens: readonly TokenMeta[] | undefined,
+    request: { tokenSymbol?: string; tokenAddress?: string }
+): TokenMeta | undefined {
+    if (!request.tokenSymbol) return undefined
+    const token = withdrawTokenForChain(tokens, { symbol: request.tokenSymbol })
+    if (!token) return undefined
+    if (request.tokenAddress && token.address.toLowerCase() !== request.tokenAddress.toLowerCase()) return undefined
+    return token
 }

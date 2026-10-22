@@ -23,7 +23,8 @@ import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
 import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
 import { recipientPayUrl, qrClaimUrl, deepLinkToNativePath } from '@/utils/native-routes'
 import { qrTelemetry, reportQrScanError } from '@/components/Global/QRScanner/utils'
-import { stashScannedDestination, withdrawScanEntryUrl } from '@/features/withdraw/destination'
+import { stashScannedDestination, withdrawScanEntryUrl, withdrawTokenForRequest } from '@/features/withdraw/destination'
+import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -361,21 +362,35 @@ export default function QRScannerOverlay() {
                         if (isLoggedIn) {
                             // A request asks for an asset through an ERC-20 transfer or
                             // a native value; a plain `ethereum:` address asks for none.
-                            // It is paid in that asset or refused, never in another one,
-                            // so the asset has to be a token we can name and one the
-                            // chain pays out. An unsupported chain, and any chain while
+                            // It is paid in that asset or refused, never in another one:
+                            // the token has to be one the chain pays out, and an ERC-20
+                            // request has to name the contract the withdrawal selects
+                            // for that symbol. An unsupported chain, and any chain while
                             // the ops kill-switch is on, are refused the same way.
                             const asksForAsset = !!tokenAddress || amount !== undefined
-                            const requestedToken = asksForAsset ? tokenSymbol : undefined
+                            const chainTokens =
+                                asksForAsset && chainId
+                                    ? (await getSupportedChainsAndTokens())[chainId]?.tokens
+                                    : undefined
+                            const requested = asksForAsset
+                                ? withdrawTokenForRequest(chainTokens, { tokenSymbol, tokenAddress })
+                                : undefined
                             const scanId =
-                                asksForAsset && !requestedToken
+                                asksForAsset && !requested
                                     ? null
-                                    : stashScannedDestination(address, chainId, { tokenSymbol: requestedToken })
+                                    : stashScannedDestination(
+                                          address,
+                                          chainId,
+                                          requested && {
+                                              tokenSymbol: requested.symbol,
+                                              tokenAddress: requested.address,
+                                          }
+                                      )
                             if (!scanId) {
                                 showModal(EModalType.QR_NOT_SUPPORTED)
                                 return { success: true }
                             }
-                            toConfirmUrl = withdrawScanEntryUrl(scanId, { tokenSymbol: requestedToken, amount })
+                            toConfirmUrl = withdrawScanEntryUrl(scanId, { tokenSymbol: requested?.symbol, amount })
                             break
                         }
                         // build the recipient PATH (no leading slash), then route it
