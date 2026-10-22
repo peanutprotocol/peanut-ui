@@ -29,10 +29,9 @@ import { useContext, useMemo, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import Divider from '../../0_Bruddle/Divider'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PEANUT_LOGO_BLACK } from '@/assets/logos'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO, WORDMARK } from '@/assets/brand'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
@@ -255,8 +254,8 @@ export default function SendLinkActionList({
                 >
                     {showDevconnectMethod ? <div>{t('actions.claimOn')}</div> : <div>{t('actions.createAccount')}</div>}
                     <div className="flex items-center gap-1">
-                        <Image src={PEANUTMAN} alt={tNav('peanutLogoAlt')} className="size-5" />
-                        <Image src={PEANUT_LOGO_BLACK} alt={tNav('peanutLogoAlt')} />
+                        <Image src={LOGO} alt={tNav('peanutLogoAlt')} className="size-5" />
+                        <Image src={WORDMARK} alt={tNav('peanutLogoAlt')} className="h-3 w-auto" />
                     </div>
                 </Button>
             )}

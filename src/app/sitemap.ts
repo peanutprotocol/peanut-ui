@@ -1,22 +1,22 @@
 import { type MetadataRoute } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
 import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
-import {
-    COUNTRIES_SEO,
-    CORRIDORS,
-    RECEIVE_SOURCES,
-    SEND_TO_COUNTRIES,
-    COMPETITORS,
-    EXCHANGES,
-    DEPOSIT_RAILS,
-    PAYMENT_METHOD_SLUGS,
-} from '@/data/seo'
+import { COUNTRIES_SEO, CORRIDORS, RECEIVE_SOURCES, SEND_TO_COUNTRIES } from '@/data/seo/corridors'
+import { COMPETITORS } from '@/data/seo/comparisons'
+import { EXCHANGES } from '@/data/seo/exchanges'
+import { DEPOSIT_RAILS } from '@/data/seo/deposit-rails'
+import { PAYMENT_METHOD_SLUGS } from '@/data/seo/payment-methods'
 import { SUPPORTED_LOCALES } from '@/i18n/config'
+import { listContentTopics } from '@/lib/content-topics'
+import { isPermanentRedirectPath } from '@/lib/seo/redirects'
+import { STAR_LP_ROUTES } from '@/components/Marketing/StarLp/starLp.consts'
+import { MERCHANT_SLUGS } from '@/app/m/[slug]/merchants'
 import {
     contentGeneratedAt,
     hasCorridorContent,
     hasPageContent,
     hasSingletonContent,
+    isPublished,
     listContentSlugs,
     listPublishedSlugs,
     readCorridorContent,
@@ -72,9 +72,18 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
 
         // Public pages
         { path: '/careers', priority: 0.7, changeFrequency: 'monthly' },
-        // The only card landing URL left — /lp/card is a 308 to it, so the
-        // target has to be listed.
+        // The legacy /lp/card URL redirects here.
         { path: '/shhhhh', priority: 0.7, changeFrequency: 'weekly' },
+        ...Object.values(STAR_LP_ROUTES).map((path) => ({
+            path,
+            priority: 0.8,
+            changeFrequency: 'weekly' as const,
+        })),
+        ...MERCHANT_SLUGS.map((slug) => ({
+            path: `/m/${slug}`,
+            priority: 0.7,
+            changeFrequency: 'monthly' as const,
+        })),
 
         // Legal — the bare /privacy and /terms are redirects; list the real URLs.
         { path: '/en/privacy', priority: 0.5, changeFrequency: 'yearly' },
@@ -100,6 +109,17 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         // Localized landing page (English lives at '/', already listed above)
         if (!isDefault) {
             pages.push({ path: `/${locale}`, priority: 1.0 * basePriority, changeFrequency: 'weekly' })
+        }
+
+        pages.push({ path: `/${locale}/status`, priority: 0.5 * basePriority, changeFrequency: 'weekly' })
+
+        if (hasSingletonContent('press', locale)) {
+            pages.push({
+                path: `/${locale}/press`,
+                priority: 0.5 * basePriority,
+                changeFrequency: 'monthly',
+                lastModified: singletonDate('press', locale),
+            })
         }
 
         // Country hub pages
@@ -276,9 +296,16 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
             priority: 0.7 * basePriority,
             changeFrequency: 'weekly',
         })
+        for (const topic of listContentTopics(locale)) {
+            pages.push({
+                path: `/${locale}/content/${topic}`,
+                priority: 0.7 * basePriority,
+                changeFrequency: 'weekly',
+            })
+        }
         for (const slug of listContentSlugs('blog')) {
             if (slug === 'index') continue
-            if (!hasPageContent('blog', slug, locale)) continue
+            if (!isPublished(readPageContent('blog', slug, locale))) continue
             pages.push({
                 path: `/${locale}/blog/${slug}`,
                 priority: 0.6 * basePriority,
@@ -290,9 +317,10 @@ async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
         // Team pages excluded from production sitemap (not yet launched)
     }
 
-    // A retired page answers 410 even while its content files still exist.
+    // Retired URLs may still have content files during the mirror's migration.
+    // Only list terminal pages, not their old 410 or permanent-redirect URLs.
     return pages
-        .filter((page) => !isGoneMarketingPath(page.path))
+        .filter((page) => !isGoneMarketingPath(page.path) && !isPermanentRedirectPath(page.path))
         .map((page) => ({
             url: `${BASE_URL}${page.path}`,
             lastModified: page.lastModified ?? BUILD_DATE,

@@ -31,6 +31,9 @@ type Status = 'required' | 'migration_required' | 'pending' | 'ready' | 'tempora
 
 const mockGrant = jest.fn()
 const mockRecheck = jest.fn()
+const mockContinueSetup = jest.fn()
+let mockOwesReturn = false
+let mockReturnError: RainFundingError | null = null
 let mockStatus: Status
 let mockRetired = false
 let mockLastError: RainFundingError | null
@@ -64,6 +67,9 @@ jest.mock('@/hooks/wallet/useRainFunding', () => ({
             step: mockStep,
             lastError: mockLastError,
             isWithdrawalInFlight: mockInFlight,
+            owesReturn: mockOwesReturn,
+            returnError: mockReturnError,
+            continueSetup: mockContinueSetup,
         }
     },
 }))
@@ -128,6 +134,9 @@ beforeEach(() => {
     mockFundingEnabledArg = undefined
     mockGrant.mockResolvedValue({ ok: false, error: { kind: 'user-cancelled' } })
     mockRecheck.mockResolvedValue(undefined)
+    mockContinueSetup.mockResolvedValue({ ok: true, status: 'ready' })
+    mockOwesReturn = false
+    mockReturnError = null
     mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: true }]
     mockSpendingPower = null
     mockBalanceUnavailable = false
@@ -288,7 +297,7 @@ describe('FundingSetupPrompt — one confirmation or two', () => {
     })
 })
 
-describe('FundingSetupPrompt — card balance moves back first', () => {
+describe('FundingSetupPrompt — card balance moves back after setup is confirmed', () => {
     const description = () => screen.getByTestId('description')
 
     it.each<[Status]>([['required'], ['migration_required']])(
@@ -298,7 +307,7 @@ describe('FundingSetupPrompt — card balance moves back first', () => {
             mockStatus = status
             render(<FundingSetupPrompt />)
             expect(description()).toHaveTextContent(
-                'First, $12.34 of card balance moves back to your wallet. This may take more than one passkey confirmation.'
+                'When setup is confirmed, $12.34 of card balance moves back to your wallet. This may take more than one passkey confirmation.'
             )
             expect(description()).not.toHaveTextContent(/One passkey tap|twice|\d+ times/)
             expect(boxes()).toHaveLength(1)
@@ -379,6 +388,90 @@ describe('FundingSetupPrompt — card balance moves back first', () => {
         fireEvent.click(screen.getByText('Skip for now'))
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
         expect(mockGrant).not.toHaveBeenCalled()
+    })
+
+    describe('funding is ready and this setup still owes the move', () => {
+        beforeEach(() => {
+            mockStatus = 'ready'
+            mockOwesReturn = true
+            mockSpendingPower = 500
+        })
+
+        it('stays open with one explicit move step: no consent box, no new grant', async () => {
+            render(<FundingSetupPrompt />)
+            expect(description()).toHaveTextContent(
+                'Your card is set up. Move $5.00 of card balance to your wallet now, or later from the card screen.'
+            )
+            expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
+            expect(screen.getByText('Skip for now')).toBeInTheDocument()
+            await act(async () => {
+                fireEvent.click(screen.getByRole('button', { name: 'Move card balance to wallet' }))
+            })
+            expect(mockContinueSetup).toHaveBeenCalledTimes(1)
+            expect(mockGrant).not.toHaveBeenCalled()
+        })
+
+        it('shows the move as the button state while it runs', () => {
+            mockIsSubmitting = true
+            mockStep = 'returning-balance'
+            render(<FundingSetupPrompt />)
+            expect(screen.getByRole('button', { name: 'Moving card balance…' })).toBeDisabled()
+        })
+
+        it.each([
+            ['return-failed', /your card is set up, but moving your card balance didn't finish/i],
+            ['return-pending', /not confirmed yet/],
+            ['return-wait', /cannot move right now/],
+            ['balance-unavailable', /couldn't read your card balance/i],
+        ])('a %s move explains it and offers Try again (no new grant) and Skip', async (kind, text) => {
+            mockReturnError = { kind } as RainFundingError
+            render(<FundingSetupPrompt />)
+            expect(description()).toHaveTextContent(text)
+            await act(async () => {
+                fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+            })
+            expect(mockContinueSetup).toHaveBeenCalledTimes(1)
+            expect(mockGrant).not.toHaveBeenCalled()
+            expect(screen.getByText('Skip for now')).toBeInTheDocument()
+        })
+
+        it('a cancelled move simply offers the move again', () => {
+            mockReturnError = { kind: 'user-cancelled' }
+            render(<FundingSetupPrompt />)
+            expect(description()).toHaveTextContent(/^Your card is set up\. Move \$5\.00/)
+            expect(screen.getByRole('button', { name: 'Move card balance to wallet' })).toBeEnabled()
+        })
+
+        it('Skip for now closes without moving or granting', () => {
+            render(<FundingSetupPrompt />)
+            fireEvent.click(screen.getByText('Skip for now'))
+            expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+            expect(mockContinueSetup).not.toHaveBeenCalled()
+            expect(mockGrant).not.toHaveBeenCalled()
+        })
+
+        it('with no card balance to move there is no extra step', () => {
+            mockSpendingPower = 0
+            render(<FundingSetupPrompt />)
+            expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        })
+    })
+
+    it('a ready state this session did not set up never prompts a move, even with card balance', () => {
+        mockStatus = 'ready'
+        mockSpendingPower = 500
+        render(<FundingSetupPrompt />)
+        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(mockContinueSetup).not.toHaveBeenCalled()
+    })
+
+    it('an owed move is never offered before the backend reports ready', () => {
+        mockStatus = 'pending'
+        mockOwesReturn = true
+        mockSpendingPower = 500
+        render(<FundingSetupPrompt />)
+        expect(screen.queryByRole('button', { name: 'Move card balance to wallet' })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Working…' })).toBeDisabled()
     })
 })
 

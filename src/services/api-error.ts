@@ -45,6 +45,11 @@ export const API_ERROR_CODES = {
      *  file. Deterministic, never retried. */
     MANTECA_SENDER_REJECTED: 'MANTECA_SENDER_REJECTED',
     MANTECA_TEMPORARILY_UNAVAILABLE: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+    /** The provider refused a Manteca deposit or withdrawal for a reason of the
+     *  user's account (a document it still needs, a bank account it does not
+     *  accept). Sent with 422 before any money moved. Deterministic: a retry
+     *  gets the same answer. */
+    PROVIDER_REJECTED: 'PROVIDER_REJECTED',
     QR_PAYMENT_CANCELLED: 'QR_PAYMENT_CANCELLED',
     /** The payment destination (e.g. a PIX key) does not exist at the provider. */
     PAYMENT_DESTINATION_NOT_FOUND: 'PAYMENT_DESTINATION_NOT_FOUND',

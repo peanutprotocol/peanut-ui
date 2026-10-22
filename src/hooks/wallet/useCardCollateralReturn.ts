@@ -25,6 +25,7 @@ import { runCollateralSpendPreflight } from './spendPreflight'
  * Moves the provider-withdrawable card balance back to the user's own wallet
  * (see `cardCollateralReturn.ts`). Shared by managed funding setup and the card
  * screen. Never locks or cancels the card and never grants a permission.
+ * `reconcileOnly` settles an earlier unknown return and sends nothing new.
  *
  * While a return runs it holds the kernel signing guard, so a permission
  * migration cannot start under it. Opens no dialog of its own: callers show
@@ -48,7 +49,7 @@ export const useCardCollateralReturn = () => {
     }, [userId, connectedAddress])
 
     const returnCollateral = useCallback(
-        async (opts: { onStart?: () => void } = {}): Promise<CollateralReturnOutcome> => {
+        async (opts: { onStart?: () => void; reconcileOnly?: boolean } = {}): Promise<CollateralReturnOutcome> => {
             const startedFor = identityRef.current
             const isChanged = () =>
                 identityRef.current.userId !== startedFor.userId ||
@@ -122,6 +123,7 @@ export const useCardCollateralReturn = () => {
                             ),
                         isChanged,
                         onStart: opts.onStart,
+                        reconcileOnly: opts.reconcileOnly,
                     })
                 )
                 if (outcome.kind === 'returned') {

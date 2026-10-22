@@ -623,6 +623,51 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
 })
 
 /**
+ * The provider refuses for a reason of the user's account (a document it still
+ * needs, a bank account it does not accept). The API answers a typed 422
+ * PROVIDER_REJECTED before any money moved; the screen shows that instead of
+ * "Failed to lock price" or the provider's English prose (TASK-20344).
+ */
+describe('manteca withdraw — provider refusal', () => {
+    it('a refused price lock shows the refusal copy and stays on the amount step', async () => {
+        mockStepper.step = 'bank-details'
+        const view = render(<MantecaWithdrawFlow />)
+        fireEvent.change(screen.getByTestId('destination-input'), { target: { value: '0000003100010000000009' } })
+        fireEvent.click(screen.getByText('common.continue'))
+        mockStepper.step = 'amount'
+        view.rerender(<MantecaWithdrawFlow />)
+        mockInitiateWithdraw.mockResolvedValue({
+            error: 'Failed to lock price',
+            code: API_ERROR_CODES.PROVIDER_REJECTED,
+        })
+
+        fireEvent.click(screen.getByText('common.continue'))
+
+        expect(await screen.findByText('errors.providerRejected')).toBeInTheDocument()
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('review')
+    })
+
+    it('a refused order shows the refusal copy, not the provider prose', async () => {
+        mockSignSpend.mockResolvedValue({
+            strategy: 'smart-only',
+            signedUserOp: { signedUserOp: '0xsigned', chainId: '42161', entryPointAddress: '0xep' },
+        })
+        mockWithdrawWithSignedTx.mockResolvedValue({
+            error: 'Manteca withdraw failed',
+            message: 'User needs extra doc.',
+            code: API_ERROR_CODES.PROVIDER_REJECTED,
+        })
+
+        await reachReview()
+        clickConfirm()
+
+        expect(await screen.findByText('errors.providerRejected')).toBeInTheDocument()
+        expect(screen.queryByText('User needs extra doc.')).not.toBeInTheDocument()
+        expect(mockWithdrawWithSignedTx).toHaveBeenCalledTimes(1)
+    })
+})
+
+/**
  * Collateral that covers the withdrawal signs DIRECTLY: the artifact goes to the
  * backend as `kind: 'rainWithdrawal'`. Recovery is the real shared engine; a
  * direct artifact only ever replays after the backend's proven pre-effect

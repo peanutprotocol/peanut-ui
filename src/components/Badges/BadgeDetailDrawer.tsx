@@ -20,6 +20,7 @@ type BadgeDetailDrawerProps = {
     code?: string
     title: string
     description: string
+    shareLine?: string
     logo: string | StaticImageData
     earned?: boolean
     unlockText?: string
@@ -34,6 +35,7 @@ export const BadgeDetailDrawer = ({
     code,
     title,
     description,
+    shareLine,
     logo,
     earned = true,
     unlockText,
@@ -50,6 +52,8 @@ export const BadgeDetailDrawer = ({
     const shareText = getBadgeShareText(code, title, shareLink, {
         locale,
         localizedFallback: t('shareText', { badge: title, link: shareLink }),
+        shareLine,
+        joinLine: t('shareJoin', { link: shareLink }),
     })
 
     // What holding the badge gives: the avatars it unlocks, counted from the

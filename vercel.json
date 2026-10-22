@@ -1,4 +1,5 @@
 {
+    "buildCommand": "git -c url.\"https://x-access-token:${SUBMODULE_TOKEN}@github.com/\".insteadOf=https://github.com/ submodule update --init --recursive && pnpm generate:signup-attribution-paths && pnpm exec next build --webpack",
     "rewrites": [
         {
             "source": "/",

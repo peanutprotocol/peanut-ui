@@ -188,6 +188,46 @@ describe('returnCardCollateral — the amount', () => {
     })
 })
 
+describe('returnCardCollateral — settle only (before a funding setup)', () => {
+    it('with nothing unknown on record it reads no balance and sends nothing', async () => {
+        const deps = setup({ reconcileOnly: true })
+        await expect(returnCardCollateral(deps)).resolves.toEqual({ kind: 'nothing' })
+        expect(deps.readOverview).not.toHaveBeenCalled()
+        expect(deps.prepare).not.toHaveBeenCalled()
+        expect(deps.onStart).not.toHaveBeenCalled()
+    })
+
+    it('an earlier return still unknown keeps blocking, and nothing new is sent', async () => {
+        const deps = setup({ reconcileOnly: true })
+        deps.pending.set(OWNER, { via: 'grant', preparationId: 'prep-0' })
+        expect(await failure(returnCardCollateral(deps))).toBe('pending')
+        expect(deps.pending.get(OWNER)).toEqual({ via: 'grant', preparationId: 'prep-0' })
+        expect(deps.prepare).not.toHaveBeenCalled()
+    })
+
+    it('an earlier return the backend reports done settles, without a second send', async () => {
+        const deps = setup({
+            reconcileOnly: true,
+            readStatus: jest.fn(async () => status('completed', 'receipt_confirmed', TX)),
+        })
+        deps.pending.set(OWNER, { via: 'grant', preparationId: 'prep-0' })
+        await expect(returnCardCollateral(deps)).resolves.toEqual(
+            expect.objectContaining({ kind: 'returned', preparationId: 'prep-0' })
+        )
+        expect(deps.pending.get(OWNER)).toBeUndefined()
+        expect(deps.prepare).not.toHaveBeenCalled()
+        expect(deps.readOverview).not.toHaveBeenCalled()
+    })
+
+    it('an earlier return that moved nothing settles, and still nothing new is sent', async () => {
+        const deps = setup({ reconcileOnly: true, readStatus: jest.fn(async () => status('failed', 'rejected')) })
+        deps.pending.set(OWNER, { via: 'grant', preparationId: 'prep-0' })
+        await expect(returnCardCollateral(deps)).resolves.toEqual({ kind: 'nothing' })
+        expect(deps.pending.get(OWNER)).toBeUndefined()
+        expect(deps.prepare).not.toHaveBeenCalled()
+    })
+})
+
 describe('returnCardCollateral — with a stored withdrawal permission', () => {
     it('prepares, signs once and lets the backend submit; no root UserOp and nothing left recorded', async () => {
         const deps = setup()

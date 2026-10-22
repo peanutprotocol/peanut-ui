@@ -1,5 +1,5 @@
-// TODO: consolidate these with public/badges - we have duplicate badge systems
-// These tier badges should probably move to public/badges and use CODE_TO_PATH in badge.utils.ts
+// Points-tier medals for the rewards page (src/features/rewards). Distinct from public/badges,
+// whose art is the backend badge catalog's BADGE_ASSET_FALLBACKS (badge.utils.ts).
 export { default as TIER_0_BADGE } from './tier0.svg'
 export { default as TIER_1_BADGE } from './tier1.svg'
 export { default as TIER_2_BADGE } from './tier2.svg'

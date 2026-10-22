@@ -63,11 +63,10 @@
     --color-background-page: #faf4f0;
     --color-background-disabled: #efeff0;
     --color-background-brand: #ff90e8;
-    /* The sign-up hero: blue-300, the colour the hero art is drawn for (Hugo, 2026-10-10). */
+    /* The sign-up hero: blue-300, the colour the hero art is drawn for. */
     --color-background-setup-hero: var(--color-blue-300);
     /* The lavender marketing band ground — the sky fill under the no-fees,
-       qr-pay, drop-link and exchange-widget bands (RULED 2026-10-14 konrad:
-       lavender is a permitted marketing ground). Marketing bands only. */
+       qr-pay, drop-link and exchange-widget bands. Marketing bands only. */
     --color-background-marketing-sky: var(--color-blue-300);
 
     --color-background-icon-bubble-green: #29cc6a;
@@ -1369,10 +1368,10 @@ input::placeholder {
     letter-spacing: -1px;
 }
 
-/* display-ramp leading (RULED 2026-09-17, enforced 2026-10-14):
+/* display-ramp leading:
    .font-roboto-flex-extrabold is unlayered, so its line-height: 100% beats the
    layered text-headingLarge/headingMedium/heading/headingSmall utilities and
-   the ruled 112/104, 80/64, 60/46, 42/36 leading never rendered. These
+   the 112/104, 80/64, 60/46, 42/36 leading never rendered. These
    compound rules re-assert the ramp's leading at the same (unlayered) cascade
    level, scoped to the four display sizes so app-scale pairings
    (text-heading-s, text-body-*) keep the 100% they ship with. The media
@@ -1604,9 +1603,9 @@ input::placeholder {
     animation-delay: var(--aov-delay, 0s);
 }
 
-/* Reduced motion: no rise, no fade — content just shows (design.md law 4,
-   RULED 2026-10-14 K9). The base class hides content until the animation
-   runs, so the guard must restore opacity, not just stop the animation. */
+/* Reduced motion: no rise, no fade — content just shows (design.md law 4).
+   The base class hides content until the animation runs, so the guard must
+   restore opacity, not just stop the animation. */
 @media (prefers-reduced-motion: reduce) {
     .animate-on-view {
         opacity: 1;
@@ -1617,7 +1616,7 @@ input::placeholder {
     }
 }
 
-/* ── Marketing CTA motion layer (ruled 2026-10-16, konrad) ── */
+/* ── Marketing CTA motion layer ── */
 /* The one motion a marketing CTA adds on top of the plain DS Button: a mount
    entrance and a hover drop-and-tilt. Put CTA_MOTION (Marketing/constants.ts)
    on the Button itself; geometry, variant and the 4px press stay the DS
@@ -1688,6 +1687,563 @@ input::placeholder {
     .cta-motion {
         animation: none;
         transform: none;
+    }
+}
+
+/* ── Star-feature LPs: fold titles (Marketing/StarLp/SectionTitle) ── */
+/* Set solid. The ramp's sub-1 leading (42/36, 80/64) drops the comma of a caps
+   line into the next line's glyphs, and fold h2s are sentences. Two classes and
+   later in the file than the display-ramp rules, so it wins at every width. */
+.font-roboto-flex-extrabold.star-lp-section-title {
+    line-height: 1;
+}
+
+/* ── Star-feature LPs: hero h1 fit (Marketing/StarLp/starLpHeroFit) ── */
+/* The hero h1 fills the fold like the peanut.me hero. A Roboto line's size is
+   the smallest of: a cap, the size at which it spans --fit-fill of the column
+   (--fit-em is its width in em, set inline from its text), and a share of
+   the screen height, to limit the heading height on short screens.
+   Set solid, and over the Knerd's top edge, as on peanut.me. */
+.font-roboto-flex-extrabold.star-lp-fit-display {
+    --fit-w: var(--psh-col-w, min(100vw - 2rem, 80rem));
+    --fit-fill: 0.98;
+    --fit-cap: 3.5rem;
+    --fit-vh: 8svh;
+    position: relative;
+    z-index: 1;
+    line-height: 0.92;
+    font-size: min(
+        var(--fit-cap),
+        calc(var(--fit-w) * var(--fit-fill) / var(--fit-em, 8)),
+        calc(var(--fit-vh) / var(--fit-lines, 1))
+    );
+}
+
+/* Keep the black lead readable where the Knerd overlaps its lower edge. */
+.psh-fit h1 > .star-lp-fit-display {
+    z-index: 2;
+}
+
+.psh-fit h1 > [data-knerd-pull] {
+    position: relative;
+    z-index: 1;
+    margin-top: -8px;
+}
+
+@media (min-width: 768px) {
+    .font-roboto-flex-extrabold.star-lp-fit-display {
+        --fit-cap: 7rem;
+        --fit-vh: 12svh;
+    }
+
+    .psh-fit h1 > [data-knerd-pull] {
+        margin-top: -22px;
+    }
+}
+
+/* The centred hero's column, the width its lines fit to (hero.js measures
+   title.clientWidth): the viewport less the hero's side padding, 24px a side
+   below md and 16px from md (ProductSplitHero), in the 1280 container. */
+.psh-fit {
+    --psh-col-w: min(100vw - 2rem, 80rem);
+}
+
+@media (max-width: 767px) {
+    .psh-fit {
+        --psh-col-w: calc(100vw - 3rem);
+    }
+}
+
+/* Follow the pull (KnerdPullHeadline), fitted like its reference: the wide
+   phrase above 600px at 92% of the column, the stacked lines at 600px and
+   below at 90% (public/dev/knerd/hero.js). The reference fits the height of
+   a hero that holds only the headline; this fold also holds the art and the
+   CTA, so a share of the screen height stands in for it. The widths in em
+   are set inline (knerdPullFitStyle). The hero column carries the same
+   properties, so the art tucks under the Knerd by a share of its size. */
+.star-lp-knerd-fit {
+    --knerd-cap: 10rem;
+    --knerd-vh: 34svh;
+    --knerd-size: min(
+        var(--knerd-cap),
+        calc(var(--knerd-w, var(--psh-col-w, min(100vw - 2rem, 80rem))) * 0.92 / var(--knerd-em-wide, 8)),
+        var(--knerd-vh)
+    );
+}
+
+/* md+: the wide line stops at 28svh. */
+@media (min-width: 768px) {
+    .star-lp-knerd-fit {
+        --knerd-cap: min(18.75rem, 28svh);
+        --knerd-vh: 42svh;
+    }
+}
+
+@media (max-width: 600px) {
+    .star-lp-knerd-fit {
+        --knerd-size: min(
+            var(--knerd-cap),
+            calc(var(--knerd-w, var(--psh-col-w, min(100vw - 2rem, 80rem))) * 0.9 / var(--knerd-em-stacked, 8)),
+            calc(var(--knerd-vh) / var(--knerd-lines-stacked, 2))
+        );
+    }
+}
+
+/* The headline box of the reference: room for the Knerd ink above and below
+   its 0.68 line box. */
+.star-lp-knerd-copy {
+    display: block;
+    font-size: var(--knerd-size);
+    padding: 0.2em 0.04em 0.06em;
+}
+
+.star-lp-knerd-stacked {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .star-lp-knerd-wide {
+        display: none;
+    }
+
+    .star-lp-knerd-stacked {
+        display: block;
+    }
+}
+
+/* A Follow the pull letter (and the join word) paints its text from
+   data-knerd-char (Title), so the heading's text holds the phrase once, in
+   its sr-only copy. */
+[data-knerd-char]::before {
+    content: attr(data-knerd-char);
+}
+
+/* Until the entrance starts, the glyphs and the join word wait unseen in
+   their place, so nothing shifts and the title appears as one, as in hero.js
+   (which hides the headline until its fonts load). The controller starts the
+   entrance once the fonts are in; this timeout is only for a script that
+   never runs: the title then shows at rest and the entrance is skipped
+   (knerdPullController). */
+@media (prefers-reduced-motion: no-preference) {
+    [data-knerd-pull='pending'] [data-knerd-glyph],
+    [data-knerd-pull='pending'] [data-knerd-join] {
+        opacity: 0;
+        animation: star-lp-knerd-reveal 0s linear 3s forwards;
+    }
+}
+
+@keyframes star-lp-knerd-reveal {
+    to {
+        opacity: 1;
+    }
+}
+
+/* The art tucks up under the Knerd by a share of the Knerd's size (the hero
+   column carries .star-lp-knerd-fit); the Knerd paints over it. */
+.psh-art-tuck {
+    margin-top: calc(var(--knerd-size, 4rem) * -0.25);
+}
+
+@media (min-width: 768px) {
+    .psh-art-tuck {
+        margin-top: calc(var(--knerd-size, 10rem) * -0.32);
+    }
+
+    /* rim: only the art's top edge meets the Knerd's ink, so the row under
+       that edge (a window's title bar) stays readable. */
+    .psh-art-tuck-rim {
+        margin-top: calc(var(--knerd-size, 10rem) * -0.1);
+    }
+}
+
+/* Drawn hero UI (HTML, not a capture) is set at app type sizes; from md it
+   scales up as a whole, so its text grows with the box. */
+@media (min-width: 768px) {
+    .star-lp-hero-ui {
+        zoom: 1.3;
+    }
+}
+
+/* The tail, lead and CTA: plain items of the hero column. */
+.psh-below-fit {
+    display: contents;
+}
+
+/* Art on the edge: it stands on the hero's bottom edge after the CTA. */
+.psh-art-edge {
+    width: 100%;
+    max-width: 26rem;
+}
+
+/* lg, art on the edge: the Knerd spans the column; the tail, lead and CTA
+   take the column left of the art, which stands at the right. */
+@media (min-width: 1024px) {
+    .psh-fit-edge {
+        --psh-edge-art-w: clamp(28rem, 40vw, 36rem);
+    }
+
+    /* The Knerd stays at the top; the copy column fills the height left
+       beside the art and starts right under the Knerd, so the tail line
+       reads as the end of the h1. The copy column is left-aligned; the Knerd
+       keeps knerdTitle's centring in its full-width row (design.md § knerd
+       display title: call sites never set alignment of their own). */
+    .psh-fit-edge .psh-fit-grid {
+        justify-content: flex-start;
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .psh-fit-edge .psh-below-fit {
+        display: flex;
+        width: 100%;
+        flex: 1;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        padding-right: var(--psh-edge-art-w);
+    }
+
+    .psh-fit-edge .psh-lead-fit {
+        margin-left: 0;
+    }
+
+    .psh-fit-edge .psh-below-fit .font-roboto-flex-extrabold.star-lp-fit-display {
+        --fit-w: calc(var(--psh-col-w) - var(--psh-edge-art-w));
+    }
+
+    .psh-fit-edge .psh-art-edge {
+        width: var(--psh-edge-art-w);
+        max-width: none;
+    }
+}
+
+/* ── Star-feature LPs: hero fit (ProductSplitHero align="center") ── */
+/* The primary CTA sits under the hero art, so on short screens the drawn art
+   shrinks (zoom shrinks its layout box, unlike transform) and the hero's
+   padding tightens until the CTA lands in the first screen. The h1 already
+   shrinks with the screen height (above). Art on the edge comes after the
+   CTA, so it never needs to shrink for it. */
+@media (max-width: 767px) and (max-height: 760px) {
+    .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.85;
+    }
+}
+
+@media (max-width: 767px) and (max-height: 700px) {
+    .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.72;
+    }
+
+    .psh-fit {
+        padding-top: 4rem;
+    }
+}
+
+@media (max-width: 767px) and (max-height: 640px) {
+    .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.6;
+    }
+}
+
+/* A tail line under the art ("can send it.") costs another line of height:
+   its art takes one more step on short phones. */
+@media (max-width: 767px) and (max-height: 760px) {
+    .psh-fit-grid:has(.psh-tail-fit) .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.75;
+    }
+}
+
+@media (max-width: 767px) and (max-height: 700px) {
+    .psh-fit-grid:has(.psh-tail-fit) .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.6;
+    }
+
+    /* The stacked Knerd keeps its lines and gives up size, so the CTA stays on screen. */
+    .star-lp-knerd-fit {
+        --knerd-vh: 30svh;
+    }
+}
+
+@media (max-width: 767px) and (max-height: 640px) {
+    .psh-fit-grid:has(.psh-tail-fit) .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.45;
+    }
+}
+
+/* Laptop landscape: the wide Knerd stops at 26svh. */
+@media (min-width: 768px) and (max-height: 760px) {
+    .star-lp-knerd-fit {
+        --knerd-cap: min(18.75rem, 26svh);
+    }
+}
+
+/* Under 360px the h1's first line runs to the column edge, where the lead
+   star sits; it would land on the line's last glyph. */
+@media (max-width: 359px) {
+    .psh-star-fit {
+        display: none;
+    }
+}
+
+/* md+: the art between the Knerd and the CTA shrinks on laptop heights,
+   one step further when a tail line also sits under it. */
+@media (min-width: 768px) and (max-height: 1000px) {
+    .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.9;
+    }
+
+    .psh-fit-grid:has(.psh-tail-fit) .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.85;
+    }
+}
+
+@media (min-width: 768px) and (max-height: 860px) {
+    .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.75;
+    }
+
+    .psh-fit-grid:has(.psh-tail-fit) .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.65;
+    }
+}
+
+@media (min-width: 768px) and (max-height: 760px) {
+    .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.6;
+    }
+
+    .psh-fit-grid:has(.psh-tail-fit) .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.5;
+    }
+}
+
+/* md+ short landscape. Top padding stays clear of the floating back button. */
+@media (min-width: 768px) and (max-height: 560px) {
+    .psh-art-fit:not(.psh-art-edge) {
+        zoom: 0.5;
+    }
+
+    .psh-fit {
+        padding-top: 4rem;
+    }
+
+    /* The top padding no longer clears the floating back button (40px circle
+       at 16,16), so the lead star moves to the copy's right end. */
+    .psh-star-fit {
+        left: auto;
+        right: 0;
+    }
+}
+
+/* Phone landscape under md (667x375, 640x360): one column puts the CTA below
+   the screen, so the copy, tail and CTA take the left half and the art the
+   right half. The h1 fits the half column. */
+@media (max-width: 767px) and (max-height: 430px) and (orientation: landscape) {
+    .psh-fit {
+        padding-top: 3.5rem;
+        padding-bottom: 1.5rem;
+    }
+
+    .psh-fit-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 1.5rem;
+        align-items: center;
+    }
+
+    .psh-fit-grid {
+        --knerd-w: calc(50vw - 2.75rem);
+    }
+
+    .psh-fit-grid .font-roboto-flex-extrabold.star-lp-fit-display {
+        --fit-w: calc(50vw - 2.75rem);
+    }
+
+    .psh-copy-fit {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .psh-tail-fit {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    /* Too short for headline, subtitle and CTA at a legible size: the
+       subtitle goes, the headline and CTA stay. */
+    .psh-lead-fit {
+        display: none;
+    }
+
+    .psh-cta-fit {
+        grid-column: 1;
+        grid-row: 3;
+        justify-self: center;
+    }
+
+    .psh-art-fit {
+        grid-column: 2;
+        grid-row: 1 / span 3;
+        margin-top: 0;
+        justify-self: center;
+        zoom: 0.45;
+    }
+}
+
+/* ── Star-feature LPs: drawn phone geometry (PhoneFrame and the page phones) ── */
+/* A phone drawn in code needs a device-sized corner, and the DS radius scale
+   (xs, sm, card) has none: the same case as --radius-card for the physical
+   card. One pair of classes so every drawn phone shares it. Flagged for DS
+   review: if it earns a token, these become rounded-* utilities. */
+.star-lp-phone {
+    border-radius: 2rem;
+}
+
+.star-lp-phone-screen {
+    border-radius: 1.5rem;
+}
+
+/* ── Star-feature LPs: animation kit (Marketing/StarLp) ── */
+/* Story beats (StorySequence / useStoryStep): a hidden beat keeps its space,
+   so the fold never jumps. Opacity and transform only, on the DS tokens. */
+.star-lp-beat {
+    transition:
+        opacity var(--transition-duration-slow) var(--ease-spring),
+        transform var(--transition-duration-slow) var(--ease-spring);
+}
+
+.star-lp-beat[data-shown='false'] {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+}
+
+/* Own entrances: a beat whose child carries .star-lp-own-entrance only fades;
+   the child moves (UsEu timeline push and Pix stamp). Keyframes replay each
+   time the beat turns shown. Transforms and opacity only. */
+.star-lp-beat:has(.star-lp-own-entrance)[data-shown='false'] {
+    transform: none;
+}
+
+/* A push notification drops in from above, then its logo shakes once. */
+.star-lp-beat[data-shown='true'] .star-lp-push-drop {
+    animation: star-lp-push-drop 520ms var(--ease-spring) both;
+}
+
+.star-lp-beat[data-shown='true'] .star-lp-push-ding {
+    animation: star-lp-push-ding 400ms ease-in-out 420ms both;
+}
+
+/* A sticker stamps down onto its resting tilt (-3deg, the tile's rotate-3). */
+.star-lp-beat[data-shown='true'] .star-lp-stamp {
+    animation: star-lp-stamp 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes star-lp-push-drop {
+    from {
+        transform: translateY(-20px) scale(0.96);
+    }
+    60% {
+        transform: translateY(2px) scale(1.01);
+    }
+    to {
+        transform: none;
+    }
+}
+
+@keyframes star-lp-push-ding {
+    0%,
+    100% {
+        rotate: 0deg;
+    }
+    30% {
+        rotate: -8deg;
+    }
+    65% {
+        rotate: 6deg;
+    }
+}
+
+@keyframes star-lp-stamp {
+    from {
+        scale: 1.15;
+        rotate: -8deg;
+    }
+    to {
+        scale: 1;
+        rotate: -3deg;
+    }
+}
+
+.star-lp-beat[data-shown='true'] .star-lp-check-pop {
+    animation: star-lp-check-pop 300ms var(--ease-spring) 200ms both;
+}
+
+@keyframes star-lp-check-pop {
+    0% {
+        transform: scale(0);
+    }
+    60% {
+        transform: scale(1.25);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Wiggle: a slow sticker rock, and a glove hop every 2.4s. */
+.star-lp-wobble {
+    animation: star-lp-wobble 2.4s ease-in-out var(--wiggle-delay, 0s) infinite alternate;
+}
+
+.star-lp-bounce {
+    animation: star-lp-bounce 2.4s var(--ease-spring) var(--wiggle-delay, 0s) infinite;
+}
+
+@keyframes star-lp-wobble {
+    from {
+        transform: rotate(-3deg);
+    }
+    to {
+        transform: rotate(3deg);
+    }
+}
+
+@keyframes star-lp-bounce {
+    0%,
+    40%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    15% {
+        transform: translateY(-8px) rotate(-6deg);
+    }
+    28% {
+        transform: translateY(0) rotate(2deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .star-lp-beat,
+    .star-lp-beat[data-shown='false'] {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+
+    .star-lp-wobble,
+    .star-lp-bounce,
+    .star-lp-beat[data-shown] .star-lp-push-drop,
+    .star-lp-beat[data-shown] .star-lp-push-ding,
+    .star-lp-beat[data-shown] .star-lp-stamp,
+    .star-lp-beat[data-shown] .star-lp-check-pop {
+        animation: none;
+    }
+
+    /* StarLpMarquee: the strip stands still and the thumbs-up stops waving. */
+    .star-lp-marquee .rfm-marquee,
+    .star-lp-marquee .rfm-initial-child-container,
+    .star-lp-marquee .animation-thumbsUp {
+        animation: none;
     }
 }
 

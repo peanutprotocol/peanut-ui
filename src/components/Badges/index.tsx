@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import Badge from '@/components/Global/Badges/Badge'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -24,6 +24,7 @@ import { useBadgeCopy } from './useBadgeCopy'
 export const Badges = () => {
     const t = useTranslations('badges')
     const badgeCopy = useBadgeCopy()
+    const locale = useLocale()
     const onBack = useSafeBack('/profile')
     const { user: authUser, fetchUser } = useAuth()
     const [selectedBadge, setSelectedBadge] = useState<BadgeView | null>(null)
@@ -33,8 +34,9 @@ export const Badges = () => {
     }, [fetchUser])
 
     const catalog = useQuery({
-        queryKey: [BADGE_CATALOG],
-        queryFn: getBadgeCatalog,
+        // the api localizes the catalog, so a language switch must refetch it
+        queryKey: [BADGE_CATALOG, locale],
+        queryFn: () => getBadgeCatalog(locale),
         enabled: !!authUser,
         staleTime: 15 * 60 * 1000,
     })
@@ -154,6 +156,7 @@ export const Badges = () => {
                     code={selectedBadge.code}
                     title={selectedBadge.name}
                     description={selectedBadge.description}
+                    shareLine={selectedBadge.shareLine}
                     logo={selectedBadge.logo!}
                     earned={selectedBadge.earned}
                     unlockText={selectedBadge.earned ? undefined : unlockText(selectedBadge.unlock)}

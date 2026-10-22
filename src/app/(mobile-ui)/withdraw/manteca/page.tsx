@@ -455,7 +455,9 @@ function MantecaBankWithdrawFlow() {
                 setErrorMessage(
                     result.code === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE
                         ? tErrors('transferTemporarilyUnavailable')
-                        : result.error
+                        : result.code === API_ERROR_CODES.PROVIDER_REJECTED
+                          ? tErrors('providerRejected')
+                          : result.error
                 )
                 return
             }
@@ -766,6 +768,11 @@ function MantecaBankWithdrawFlow() {
                     setErrorMessage(tErrors('transferTemporarilyUnavailable'))
                     return
                 }
+                // Refused before anything was sent; the message is the provider's prose.
+                if (result.code === API_ERROR_CODES.PROVIDER_REJECTED) {
+                    setErrorMessage(tErrors('providerRejected'))
+                    return
+                }
 
                 // Wrong-passkey session: backend rejected the signed UserOp with
                 // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
@@ -1072,8 +1079,10 @@ function MantecaBankWithdrawFlow() {
                 title={tNav(isFromSendFlow ? 'send' : 'withdraw')}
                 onPrev={() => {
                     if (step === 'review') {
-                        // clear price lock and restore original amount when going back
+                        // clear price lock and restore original amount when going back;
+                        // the review's error goes with its quote
                         setPriceLock(null)
+                        setErrorMessage(null)
                         if (originalCurrencyAmount) {
                             setCurrencyAmount(originalCurrencyAmount)
                             setOriginalCurrencyAmount(undefined)
@@ -1148,6 +1157,13 @@ function MantecaBankWithdrawFlow() {
                     >
                         {tCommon('continue')}
                     </Button>
+                    {/* The price lock runs from this step, so its failure shows here.
+                        An amount error already shows under the input. */}
+                    {errorMessage && !amountError && (
+                        <Callout priority="error">
+                            <CooldownErrorText message={errorMessage} />
+                        </Callout>
+                    )}
                 </div>
             )}
 

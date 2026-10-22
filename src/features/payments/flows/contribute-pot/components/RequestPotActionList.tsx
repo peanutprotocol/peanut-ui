@@ -298,24 +298,6 @@ export function RequestPotActionList({
         <PayByBankTransferDrawer requestId={requestId} {...bankRowProps} />
     )
 
-    // A request asked in euros is paid in dollars on the Peanut and crypto
-    // rails. Say so once, with the asked amount, instead of leaving the payer
-    // to wonder why the screen shows dollars.
-    const otherCurrencyNote = useMemo(() => {
-        if (!payAmounts || payAmounts.requestCurrency.toUpperCase() === 'USD') return undefined
-        const currency = payAmounts.requestCurrency.toUpperCase()
-        const show = (value: number) => formatBankAmount(value, currency)
-        const asked = Number(payAmounts.requestAmount)
-        const left = Number(payAmounts.remainingAmount)
-        if (!(asked > 0)) return undefined
-        // A part-paid request states what is left: that is what a payer can still
-        // send. Not where the API's remainder missed a payment: the screen has
-        // no figure of its own in this currency, so it states none.
-        return serverCountsAllPayments && left > 0 && left < asked
-            ? t('requestCurrencyNotePartPaid', { amount: show(asked), remaining: show(left) })
-            : t('requestCurrencyNote', { amount: show(asked) })
-    }, [payAmounts, serverCountsAllPayments, t])
-
     if (isGeoLoading) {
         return (
             <div className="flex w-full items-center justify-center py-8">
@@ -338,8 +320,6 @@ export function RequestPotActionList({
 
     return (
         <div className="space-y-2">
-            {otherCurrencyNote && <Callout priority="helper">{otherCurrencyNote}</Callout>}
-
             {/* pay with peanut button */}
             <SendWithPeanutCta
                 onClick={onPayWithPeanut}

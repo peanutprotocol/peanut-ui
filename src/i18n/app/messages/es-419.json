@@ -141,7 +141,9 @@
             "descriptionMigration": "Primero hay que actualizar el permiso de tu tarjeta. Confirma dos veces con tu passkey: una para actualizar y otra para el nuevo permiso.",
             "descriptionPending": "Autorización enviada, aún sin confirmar. Revisa el estado en un momento. No autorices dos veces.",
             "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intenta de nuevo u omítelo por ahora. Te lo volveremos a pedir la próxima vez que abras Inicio.",
-            "descriptionReturn": "Primero, {amount} del saldo de la tarjeta vuelve a tu billetera. Puede requerir más de una confirmación con tu passkey.",
+            "descriptionReturn": "Cuando se confirme la configuración, {amount} del saldo de la tarjeta vuelve a tu billetera. Puede requerir más de una confirmación con tu passkey.",
+            "descriptionReadyReturn": "Tu tarjeta está lista. {amount} del saldo de la tarjeta se puede pasar a tu billetera ahora o más tarde desde la pantalla de la tarjeta.",
+            "descriptionReturnRetry": "Tu tarjeta está lista, pero el saldo de la tarjeta no se terminó de mover. Se puede reintentar ahora o más tarde desde la pantalla de la tarjeta.",
             "descriptionWithdrawalInFlight": "Un retiro de la tarjeta aún se está confirmando. Revisa de nuevo en un momento u omítelo por ahora.",
             "descriptionReturnPending": "El movimiento del saldo de tu tarjeta a tu billetera aún no está confirmado. Revisa de nuevo en un momento u omítelo por ahora.",
             "descriptionReturnWait": "El saldo de tu tarjeta no se puede mover ahora. Intenta más tarde u omítelo por ahora.",
@@ -966,7 +968,8 @@
                 "noWalletAddress": "No se encontró la dirección de la billetera. Intenta recargar la página.",
                 "userNotLoaded": "Tus datos no se han cargado. Recarga la página.",
                 "setupFailed": "No pudimos completar la configuración de tu cuenta. Inténtalo de nuevo con el botón de abajo.",
-                "supportNeeded": "Estamos teniendo problemas para configurar tu cuenta. Nuestro equipo ya fue notificado. Contacta a soporte para recibir ayuda."
+                "supportNeeded": "Estamos teniendo problemas para configurar tu cuenta. Nuestro equipo ya fue notificado. Contacta a soporte para recibir ayuda.",
+                "passkeyProviderUnsupported": "El gestor de contraseñas de este teléfono guardó una passkey que Peanut no puede verificar. Regístrate en otro dispositivo."
             }
         },
         "finish": {
@@ -1312,10 +1315,9 @@
             "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pide a quien lo envió que lo comparta de nuevo.",
             "requestNotFoundTitle": "Solicitud no encontrada",
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió.",
-            "requestClosedTitle": "Esta solicitud está cerrada"
+            "requestClosedTitle": "Esta solicitud está cerrada",
+            "externalPaymentNotConfirmed": "No se pudo confirmar este pago. Si el dinero salió de tu billetera, contacta a soporte."
         },
-        "requestCurrencyNote": "Esta solicitud pide {amount}. Con Peanut, cripto o una transferencia bancaria en dólares pagas su monto en dólares, que quedó fijado al crear la solicitud.",
-        "requestCurrencyNotePartPaid": "Esta solicitud pide {amount} y faltan {remaining} por pagar. Con Peanut, cripto o una transferencia bancaria en dólares pagas el monto en dólares, que quedó fijado al crear la solicitud.",
         "bankTransfer": {
             "title": "Pagar por transferencia bancaria",
             "description": "Envía desde tu banco a la cuenta de quien te pide el pago.",
@@ -1337,6 +1339,14 @@
         },
         "requestAsksFor": "Se piden {amount}",
         "requestAsksForDollars": "{amount} en dólares, fijado al crear la solicitud",
+        "partialContribution": {
+            "title": "{received} de {asked} recibidos",
+            "description": "Todavía faltan {remaining}. Envíalos a la dirección de abajo."
+        },
+        "confirmingPayment": {
+            "title": "Confirmando pago",
+            "description": "Todavía estamos confirmando tu pago. Puede tardar unos minutos y aparecerá en Actividad. Si no llega, contacta a soporte."
+        },
         "requestAlreadyCovered": "Esta solicitud ya está cubierta. No queda nada por pagar."
     },
     "claim": {
@@ -1476,7 +1486,9 @@
             "fixableDescription": "Necesitamos un documento actualizado para habilitar los pagos con QR. Sube una foto más clara de tu identificación.",
             "restartDescription": "Los pagos con QR necesitan un documento de un país compatible. Puedes verificarte con otra identificación.",
             "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contacta a soporte para recibir ayuda.",
-            "uploadDocument": "Subir documento"
+            "uploadDocument": "Subir documento",
+            "verifyAgainTitle": "Verificar identidad de nuevo",
+            "verifyAgainDescription": "Los pagos con QR están en pausa hasta que vuelvas a verificarte."
         },
         "info": {
             "exchangeRate": "Tipo de cambio",
@@ -1880,8 +1892,9 @@
             "navTitle": "Obtener tarjeta",
             "lookingUpTitle": "Buscándote…",
             "lookingUpBody": "Nos estamos ubicando.",
-            "availableTitle": "Ya estás dentro.",
-            "fundingBody": "Necesitas un saldo de al menos $10 en Peanut para obtener tu tarjeta.",
+            "availableTitle": "Ya estás dentro. Falta un paso.",
+            "fundingBody": "Necesitas al menos USD 10 en tu saldo de Peanut para obtener tu tarjeta. La tarjeta es gratis y el dinero sigue siendo tuyo para gastarlo con ella.",
+            "fundedBody": "Tu saldo ya alcanza. Continúa para pedir tu tarjeta.",
             "addFunds": "Agregar dinero",
             "issuedTitle": "Conoce tu tarjeta Peanut.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
@@ -1905,7 +1918,8 @@
             "cryptoDescription": "Deposita desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
             "kycRequired": "Requiere verificación",
-            "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
+            "bankTransferDescription": "Datos bancarios reutilizables para cobrar",
+            "mercadoPagoOrBank": "Mercado Pago o Banco"
         },
         "networkDrawer": {
             "title": "Elegir red",
@@ -1941,6 +1955,7 @@
             "supportedNetworks": "Redes compatibles",
             "supportedTokens": "Tokens compatibles",
             "supportedTokensInline": "Tokens compatibles:",
+            "sendExtraForFees": "Envía un poco más si tu billetera o la red cobra una comisión.",
             "supportedEvmNetworks": "Redes EVM compatibles",
             "evmNetworks": "redes EVM",
             "selectNetworkType": "Selecciona el tipo de red",
@@ -2291,6 +2306,7 @@
         "noGoalSet": "Sin meta definida",
         "amountCollected": "${amount} recaudados",
         "contributors": "Contribuyentes ({count})",
+        "requestedInCurrency": "Se piden {amount}",
         "pendingLinkDeviceNote": "Usa el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
         "type": {
             "send": "Envío",
@@ -2396,6 +2412,7 @@
             "txId": "ID de transacción",
             "fee": "Comisión",
             "bankReceives": "El banco recibe",
+            "recipientReceives": "El destinatario recibe",
             "transferId": "ID de transferencia",
             "senderNote": "Nota del remitente",
             "paymentReference": "Referencia que enviamos",
@@ -2433,6 +2450,12 @@
             "cancelling": "Cancelando",
             "cancelled": "Cancelado",
             "closeRequest": "Cerrar solicitud",
+            "closeRequestConfirm": {
+                "title": "¿Cerrar esta solicitud?",
+                "descriptionUnpaid": "No se pagaron {remaining} de {total}. Nadie podrá pagarlos después de cerrarla.",
+                "description": "Nadie podrá pagar esta solicitud después de cerrarla.",
+                "keepOpen": "Mantener abierta"
+            },
             "cancelRequest": "Cancelar solicitud",
             "pay": "Pagar",
             "rejectRequest": "Rechazar solicitud",
@@ -2661,6 +2684,7 @@
         "iconAlt": "Ícono de {name}",
         "shareAchievement": "Compartir logro",
         "shareText": "¡Gané la insignia {badge} en Peanut!\n\nÚnete a Peanut y empieza a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}",
+        "shareJoin": "Únete a Peanut conmigo: {link}",
         "toastSingle": "Insignia desbloqueada: {name}",
         "toastMultiple": "{count, plural, one {# insignia desbloqueada} other {# insignias desbloqueadas}}",
         "unlock": {
@@ -3790,7 +3814,8 @@
             "goalAchieved": "¡Meta alcanzada!",
             "belowGoal": "{percentage}% por debajo de la meta",
             "contributed": "{amount} aportado",
-            "remaining": "{amount} restante"
+            "remaining": "{amount} restante",
+            "notPaid": "{amount} sin pagar"
         },
         "mantecaMaintenance": {
             "title": "Servicio temporalmente no disponible",
@@ -3938,6 +3963,7 @@
         "xchainPaymentDisabled": "Las transferencias a otras redes están limitadas en tu cuenta. Contacta a soporte para recibir ayuda.",
         "rainInsufficientCollateral": "Tu tarjeta no tiene suficiente colateral para este retiro.",
         "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
+        "providerRejected": "Nuestro socio de pagos no pudo aceptar esta operación para tu cuenta. No se movió dinero. Contacta a soporte.",
         "bankAccountNotUsable": "Esta cuenta bancaria ya no se puede usar. Agrégala de nuevo.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualiza la página e inténtalo de nuevo.",

@@ -13,7 +13,7 @@
  * based on existing contributions (e.g. suggests 1/3 for split bills)
  */
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { type Address } from 'viem'
 import { useContributePotFlowContext } from './ContributePotFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
@@ -27,6 +27,8 @@ import { useTranslations } from 'next-intl'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 import { remainingToPay } from './collected'
+import { readChargeUntilFinal } from '@/features/payments/shared/utils/charge-receipt.utils'
+import { isPartialContribution } from '@/utils/request-pot.utils'
 
 export function useContributePotFlow() {
     const t = useTranslations('payment')
@@ -34,6 +36,8 @@ export function useContributePotFlow() {
     const {
         amount,
         setAmount,
+        lastSuggestedAmount,
+        setLastSuggestedAmount,
         usdAmount,
         setUsdAmount,
         currentView,
@@ -60,10 +64,11 @@ export function useContributePotFlow() {
         resetContributePotFlow,
         isExternalWalletPayment,
         setIsExternalWalletPayment,
+        refetchRequestPot,
     } = useContributePotFlowContext()
 
     const { user } = useAuth()
-    const { createCharge, isCreating: isCreatingCharge } = useChargeManager()
+    const { createCharge, fetchCharge, isCreating: isCreatingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
     const {
         isConnected,
@@ -182,6 +187,31 @@ export function useContributePotFlow() {
             setIsLoading(true)
             clearError()
 
+            // A second tap on External wallet for the same amount opens the same
+            // deposit address. Each tap used to create a charge with its own live
+            // address, and every one of them could still take money (TASK-23856).
+            // The charge in hand is a snapshot from its creation, so it is read
+            // again: only a charge still PENDING is reused, never one the reaper
+            // failed or one that already took money, and only while it does not
+            // ask more than the request still needs. A changed amount, a failed
+            // read, or an API that sends no status gets a new charge. The payer
+            // cannot cancel the old one: DELETE /charges/:id answers only the
+            // requester.
+            if (
+                shouldReturnAfterCreatingCharge &&
+                charge &&
+                charge.requestLink?.uuid === request.uuid &&
+                Number(charge.tokenAmount) === Number(amount) &&
+                Number(amount) <= remainingAmount
+            ) {
+                const live = await fetchCharge(charge.uuid).catch(() => null)
+                if (live?.status === 'PENDING') {
+                    setCharge(live)
+                    setIsLoading(false)
+                    return { success: true }
+                }
+            }
+
             try {
                 // step 1: create charge for this contribution
                 const chargeResult = await createCharge({
@@ -233,6 +263,8 @@ export function useContributePotFlow() {
                 setIsSuccess(true)
                 setCurrentView('STATUS')
                 setIsLoading(false)
+                // the contributors and the remainder changed with this payment
+                void refetchRequestPot()
                 return { success: true }
             } catch (err) {
                 // Card re-approval dismissed, or the screen left, before
@@ -260,9 +292,13 @@ export function useContributePotFlow() {
             attachment,
             walletAddress,
             request,
+            charge,
+            remainingAmount,
+            fetchCharge,
             createCharge,
             sendMoney,
             recordPayment,
+            refetchRequestPot,
             setCharge,
             setTxHash,
             setPayment,
@@ -276,9 +312,74 @@ export function useContributePotFlow() {
         ]
     )
 
+    // The read-back below belongs to the screen that started it (each screen
+    // calls this hook). Leaving that screen ends it, so a result that comes in
+    // later never moves the payer from wherever they went.
+    const hasLeftScreenRef = useRef(false)
+    useEffect(() => {
+        hasLeftScreenRef.current = false
+        return () => {
+            hasLeftScreenRef.current = true
+        }
+    }, [])
+
+    /**
+     * The external-wallet poll saw the deposit bridged. Rhino reports that
+     * whatever amount arrived, and before the API has booked it, so the charge
+     * is read until it is final before any screen states an amount or a status
+     * (TASK-23856). Meanwhile `isLoading` keeps the deposit screen on its
+     * confirming state.
+     *
+     * - completed in full: the success screen.
+     * - completed short: the payer stays on the deposit card, which states
+     *   what arrived and watches the address for the rest.
+     * - failed or cancelled: back to the amount screen with an error.
+     * - still open after a minute: the success screen in its confirming form,
+     *   which states only what the charge asked.
+     */
+    const completeExternalWalletPayment = useCallback(async () => {
+        let shortDeposit = false
+        if (charge) {
+            setIsLoading(true)
+            // A top-up on a charge that already completed short: Rhino reports
+            // the transfer before the API books it, so a COMPLETED read counts
+            // only once the settled amount has moved.
+            const settledBefore = charge.status === 'COMPLETED' ? (charge.settledAmount ?? null) : undefined
+            const { charge: booked, outcome } = await readChargeUntilFinal(() => fetchCharge(charge.uuid), {
+                isCancelled: () => hasLeftScreenRef.current,
+                settledBefore,
+            })
+            setIsLoading(false)
+            // the payer left the deposit screen meanwhile: a late result navigates nowhere
+            if (outcome === 'cancelled') return
+            if (booked) setCharge(booked)
+            if (outcome === 'failed') {
+                setError({ showError: true, errorMessage: t('errors.externalPaymentNotConfirmed') })
+                setCurrentView('INITIAL')
+                return
+            }
+            shortDeposit = booked !== null && isPartialContribution(booked)
+        }
+        void refetchRequestPot()
+        setIsExternalWalletPayment(true)
+        if (shortDeposit) return
+        setCurrentView('STATUS')
+    }, [
+        charge,
+        fetchCharge,
+        setCharge,
+        setIsLoading,
+        setError,
+        t,
+        refetchRequestPot,
+        setIsExternalWalletPayment,
+        setCurrentView,
+    ])
+
     return {
         // state
         amount,
+        lastSuggestedAmount,
         usdAmount,
         currentView,
         request,
@@ -311,11 +412,14 @@ export function useContributePotFlow() {
 
         // actions
         setAmount: handleSetAmount,
+        setLastSuggestedAmount,
         setAttachment,
         clearError,
         executeContribution,
         resetContributePotFlow,
         setCurrentView,
         setIsExternalWalletPayment,
+        refetchRequestPot,
+        completeExternalWalletPayment,
     }
 }

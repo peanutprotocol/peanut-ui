@@ -1,4 +1,4 @@
-import { QrKycState } from '@/constants/kyc.consts'
+import { IDENTITY_DOCUMENT_MISSING_CODE, QR_IDENTITY_MISSING_CODE, QrKycState } from '@/constants/kyc.consts'
 import type { KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
@@ -105,6 +105,16 @@ export function selectQrKycGate(input: {
     const fixable = candidates.find((candidate) => candidate.verdict.status === 'fixable')
     if (fixable) {
         const action = fixable.verdict.nextAction
+        // The legacy fallback reads a requires-info rail with a restart action
+        // as fixable. Its fix is the identity restart: the document resubmit
+        // the fixable screen opens has no rejection to act on.
+        if (action?.kind === 'restart-identity') {
+            return {
+                kycGateState: QrKycState.PROVIDER_RESTART_IDENTITY,
+                qrKycUserMessage: railUserMessage(fixable.rail),
+                qrKycActionKey: noAction,
+            }
+        }
         return {
             kycGateState: QrKycState.PROVIDER_REJECTION_FIXABLE,
             qrKycUserMessage: railUserMessage(fixable.rail),
@@ -123,6 +133,31 @@ export function selectQrKycGate(input: {
         qrKycUserMessage: noAction,
         qrKycActionKey: noAction,
     }
+}
+
+/** Causes whose verification step is the identity restart, not a new check. */
+const IDENTITY_RESTART_REASONS: ReadonlySet<string> = new Set([
+    IDENTITY_DOCUMENT_MISSING_CODE,
+    QR_IDENTITY_MISSING_CODE,
+])
+
+/**
+ * Whether the QR verification step must restart the identity check. In both
+ * causes the user is approved, so the start route answers "already approved"
+ * and opens nothing (TASK-22698). The rail reason is read as well as the action
+ * purpose: the backend shares one `restart-identity` action between causes and
+ * names it after the first one.
+ */
+export function qrVerificationNeedsRestart(input: {
+    mantecaRails: RailCapability[]
+    nextActions: NextAction[]
+}): boolean {
+    const isRestartAction = (action: NextAction) =>
+        action.kind === 'restart-identity' && IDENTITY_RESTART_REASONS.has(action.purpose)
+    if (input.nextActions.some(isRestartAction)) return true
+    return input.mantecaRails.some((rail) =>
+        IDENTITY_RESTART_REASONS.has(rail.resolved?.blocking?.code ?? rail.reason?.code ?? '')
+    )
 }
 
 /**

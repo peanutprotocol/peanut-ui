@@ -217,7 +217,10 @@ describe("other native SDK outcomes keep today's behaviour", () => {
         await openAndSettle(p)
 
         expect(await screen.findByText(/failed to load verification/i)).toBeInTheDocument()
-        expect(capture).toHaveBeenCalledWith('kyc_sdk_init_failed', expect.objectContaining({ platform: 'native' }))
+        expect(capture).toHaveBeenCalledWith(
+            'kyc_sdk_init_failed',
+            expect.objectContaining({ reason: expect.any(String) })
+        )
         expect(captureException).toHaveBeenCalled()
         expect(webInit).not.toHaveBeenCalled()
         expect(webLaunch).not.toHaveBeenCalled()

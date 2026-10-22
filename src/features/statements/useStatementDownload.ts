@@ -84,7 +84,6 @@ export function useStatementDownload({ format, from, to, fromIso, toIso, preset,
         // one shape for all four events, so a funnel can be built on it
         const event = {
             format,
-            platform: isCapacitor() ? 'native' : 'web',
             ...periodAnalytics({ preset, from, to }),
         }
         try {

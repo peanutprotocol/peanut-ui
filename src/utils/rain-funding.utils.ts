@@ -36,7 +36,7 @@ export type RainFundingError =
     | { kind: 'busy' }
     /** The card balance could not be read, so it is not known whether there is money to move first. Nothing was sent. */
     | { kind: 'balance-unavailable' }
-    /** Moving the card balance to the wallet was sent and has not settled. No permission is changed until it has. */
+    /** Moving the card balance to the wallet was sent and has not settled. Nothing else is sent until it has. */
     | { kind: 'return-pending' }
     /** The provider does not allow moving the card balance right now. Nothing moved. */
     | { kind: 'return-wait' }
@@ -47,7 +47,8 @@ export type RainFundingError =
     | { kind: 'unexpected'; message: string }
 
 export type RainFundingResult =
-    | { ok: true; status: RainFundingManagementStatus }
+    /** `returnError`: funding is ready, but moving the card balance back did not finish. */
+    | { ok: true; status: RainFundingManagementStatus; returnError?: RainFundingError }
     | { ok: false; error: RainFundingError }
 
 /** What the user ticked. The authorization box is required and never implied. */

@@ -60,7 +60,13 @@ jest.mock('@/components/Invites/badge-campaign-context', () => ({
 jest.mock('@/utils/invite-stash', () => ({ clearInvite: jest.fn(), readInviteCode: () => '' }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { identify: jest.fn(), reset: jest.fn(), register: jest.fn() },
+    default: {
+        identify: jest.fn(),
+        get_distinct_id: jest.fn(),
+        setPersonProperties: jest.fn(),
+        reset: jest.fn(),
+        register: jest.fn(),
+    },
 }))
 
 import { AuthProvider, useAuth } from '../authContext'

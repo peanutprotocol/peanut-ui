@@ -33,8 +33,11 @@ const PENDING_WAIT_MS = 60_000
  * keeps running), and the prompt returns on the next Home visit.
  *
  * A legacy user confirms twice (the old permission is retired first). Card
- * balance moving back to the wallet first adds confirmations too; the copy
- * says so instead of promising one tap. A card withdrawal still confirming
+ * balance moves back to the wallet only after the backend confirms the new
+ * permission ready, which adds confirmations; the copy says so instead of
+ * promising one tap. If ready comes after the attempt ended, or the move did
+ * not finish, the dialog stays with one explicit "Move card balance to wallet"
+ * step (funding is not touched again). A card withdrawal still confirming
  * keeps this dialog as a wait, never as done.
  *
  * The card this modal keys off MUST be `findActiveCard(overview)`, never
@@ -45,12 +48,14 @@ const PENDING_WAIT_MS = 60_000
 export default function FundingSetupPrompt() {
     const t = useTranslations('home.fundingSetup')
     const tFunding = useTranslations('card.funding')
+    const tCard = useTranslations('card.yourCard')
     const tCommon = useTranslations('common')
     const { overview } = useRainCardOverview()
     const card = findActiveCard(overview)
     const hasActiveCard = card?.status === 'ACTIVE'
     const {
         funding,
+        status,
         needsGrant,
         isMigration,
         isPending,
@@ -60,6 +65,9 @@ export default function FundingSetupPrompt() {
         isSubmitting,
         step,
         lastError,
+        owesReturn,
+        returnError,
+        continueSetup,
     } = useRainFunding({ enabled: hasActiveCard })
     // Card id the user chose "Skip for now" for — per card, so skipping a
     // stuck card A never suppresses the prompt for a different card B that
@@ -89,8 +97,21 @@ export default function FundingSetupPrompt() {
     // A grant that ended as retired or paused also ends the prompt: the person
     // can do nothing more, and it is never offered again.
     const endedForGood = lastError?.kind === 'scope-retired' || lastError?.kind === 'unavailable'
+
+    // Card balance the provider can release moves back to the wallet once
+    // funding is confirmed ready, which can take more than one confirmation. An
+    // unreadable balance shows the usual copy; the return itself reads fresh.
+    const returnCents =
+        isRainBalanceKnown(overview) && !overview?.balanceUnavailable && overview?.balance
+            ? Math.max(0, Math.floor(overview.balance.spendingPower))
+            : 0
+    // Funding is ready and the setup started here still owes that move: one
+    // explicit step (a tap, never a render), and funding stays as it is.
+    const finishingReturn = owesReturn && status === 'ready' && (returnCents > 0 || !!returnError)
+
     // A card withdrawal still confirming is unfinished setup, never done.
-    const shouldShow = hasActiveCard && !endedForGood && (needsGrant === true || isPending || isWithdrawalInFlight)
+    const shouldShow =
+        hasActiveCard && !endedForGood && (needsGrant === true || isPending || isWithdrawalInFlight || finishingReturn)
 
     // Only honor the hook's error if the attempt it came from was for THIS
     // card. `lastAttemptFor === null` (error with no recorded attempt) can't
@@ -125,34 +146,50 @@ export default function FundingSetupPrompt() {
         void grant({ authorizationAccepted, authorizationText }).then(() => setLastAttemptFor(cardId))
     }
 
+    const returnRetryable = !!returnError && returnError.kind !== 'user-cancelled'
+
     const ctas: ActionModalButtonProps[] = [
-        stalled
+        finishingReturn
             ? {
-                  text: t('checkStatus'),
-                  variant: 'primary',
-                  shadowSize: '4',
-                  onClick: () => void recheck(),
-              }
-            : {
-                  text: busy
-                      ? isSubmitting && step === 'updating-permission'
-                          ? t('confirmUpdate')
-                          : isSubmitting && step === 'returning-balance'
-                            ? t('returningBalance')
-                            : t('working')
-                      : hardError
+                  text: isSubmitting
+                      ? step === 'returning-balance'
+                          ? t('returningBalance')
+                          : t('working')
+                      : returnRetryable
                         ? tCommon('tryAgain')
-                        : tCommon('continue'),
+                        : tCard('moveToWallet'),
                   variant: 'primary',
                   shadowSize: '4',
-                  disabled: busy || !authorizationAccepted,
-                  onClick: onContinue,
-              },
+                  disabled: isSubmitting,
+                  onClick: () => void continueSetup(),
+              }
+            : stalled
+              ? {
+                    text: t('checkStatus'),
+                    variant: 'primary',
+                    shadowSize: '4',
+                    onClick: () => void recheck(),
+                }
+              : {
+                    text: busy
+                        ? isSubmitting && step === 'updating-permission'
+                            ? t('confirmUpdate')
+                            : isSubmitting && step === 'returning-balance'
+                              ? t('returningBalance')
+                              : t('working')
+                        : hardError
+                          ? tCommon('tryAgain')
+                          : tCommon('continue'),
+                    variant: 'primary',
+                    shadowSize: '4',
+                    disabled: busy || !authorizationAccepted,
+                    onClick: onContinue,
+                },
     ]
     // Escape hatch after a failure or a stalled wait, so the non-dismissible
     // modal never traps the user.
     const tertiaryCta: ActionModalTertiaryCta | undefined =
-        errorForThisCard || stalled
+        finishingReturn || errorForThisCard || stalled
             ? {
                   text: tCommon('skipForNow'),
                   disabled: busy,
@@ -162,36 +199,33 @@ export default function FundingSetupPrompt() {
 
     const dismissed = dismissedFor !== null && dismissedFor === cardId
 
-    // Card balance goes back to the wallet first, which can take more than one
-    // confirmation. An unreadable balance shows the usual copy; the attempt
-    // itself stops before any prompt in that case.
-    const returnCents =
-        isRainBalanceKnown(overview) && !overview?.balanceUnavailable && overview?.balance
-            ? Math.max(0, Math.floor(overview.balance.spendingPower))
-            : 0
-
-    const failureDescription =
-        lastError?.kind === 'return-pending'
+    const amount = `$${(returnCents / 100).toFixed(2)}`
+    const failureDescription = (error: typeof lastError, fallback: string) =>
+        error?.kind === 'return-pending'
             ? t('descriptionReturnPending')
-            : lastError?.kind === 'return-wait'
+            : error?.kind === 'return-wait'
               ? t('descriptionReturnWait')
-              : lastError?.kind === 'balance-unavailable'
+              : error?.kind === 'balance-unavailable'
                 ? t('descriptionBalanceUnavailable')
-                : t('descriptionError')
+                : fallback
 
-    const description = isWithdrawalInFlight
-        ? t('descriptionWithdrawalInFlight')
-        : stalled
-          ? t('descriptionPending')
-          : termsChanged
-            ? tFunding('termsChanged')
-            : hardError
-              ? failureDescription
-              : returnCents > 0
-                ? t('descriptionReturn', { amount: `$${(returnCents / 100).toFixed(2)}` })
-                : isMigration
-                  ? t('descriptionMigration')
-                  : t('description')
+    const description = finishingReturn
+        ? returnRetryable
+            ? failureDescription(returnError, t('descriptionReturnRetry'))
+            : t('descriptionReadyReturn', { amount })
+        : isWithdrawalInFlight
+          ? t('descriptionWithdrawalInFlight')
+          : stalled
+            ? t('descriptionPending')
+            : termsChanged
+              ? tFunding('termsChanged')
+              : hardError
+                ? failureDescription(lastError, t('descriptionError'))
+                : returnCents > 0
+                  ? t('descriptionReturn', { amount })
+                  : isMigration
+                    ? t('descriptionMigration')
+                    : t('description')
 
     return (
         <ActionModal
@@ -203,7 +237,8 @@ export default function FundingSetupPrompt() {
             title={t('title')}
             description={description}
             content={
-                stalled ? undefined : (
+                // The move after setup needs no new consent: nothing is granted.
+                stalled || finishingReturn ? undefined : (
                     <CardFundingConsent
                         authorizationText={authorizationText}
                         showDisclosure

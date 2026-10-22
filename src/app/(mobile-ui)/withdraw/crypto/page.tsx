@@ -997,6 +997,9 @@ export default function WithdrawCryptoPage() {
                         // Only the title needs the send framing.
                         isWithdrawFlow={true}
                         isFromSendFlow={isFromSendFlow}
+                        // the quote the review screen showed, read as an estimate
+                        // until the history entry states the settled fee
+                        quotedNetworkFeeUsd={isCrossChainWithdrawal ? networkFee : undefined}
                         redirectTo="/home"
                         chargeDetails={chargeDetails}
                         paymentDetails={paymentDetails}

@@ -18,8 +18,10 @@
  *     first and the new permission is signed only after the backend confirms
  *  6. an account or wallet switch mid-flow stops the grant before anything is sent
  *  7. pending waits and rechecks; cancel and failure are typed; one grant at a time
- *  8. card balance goes back to the wallet before any retirement or grant, and
- *     any return outcome other than done or nothing stops the setup there
+ *  8. card balance moves back only after the backend confirms the new permission
+ *     ready; an unknown earlier return is settled first and blocks; a cancel,
+ *     refusal or pending state moves nothing; a failed move keeps funding and
+ *     retries without a new grant
  */
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -89,7 +91,7 @@ jest.mock('../useCardCollateralReturn', () => ({
     }),
 }))
 
-import { CollateralReturnError } from '../cardCollateralReturn'
+import { CollateralReturnError, collateralReturnOwner, pendingCollateralReturns } from '../cardCollateralReturn'
 import { useRainFunding } from '../useRainFunding'
 
 type Status = 'required' | 'migration_required' | 'pending' | 'ready' | 'temporarily_unavailable'
@@ -132,6 +134,7 @@ const mockSubmitFundingGrant = rainApi.submitFundingGrant as jest.Mock
 
 beforeEach(() => {
     jest.clearAllMocks()
+    window.localStorage.clear()
     mockUserId = 'user-a'
     mockConnectedAddress = WALLET
     client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -159,6 +162,12 @@ const nothingSigned = () => {
     expect(mockSubmitFundingGrant).not.toHaveBeenCalled()
     expect(mockHandleSendUserOpEncoded).not.toHaveBeenCalled()
 }
+
+// Settling an earlier unknown return sends nothing new; only these calls can move card balance.
+const moves = () =>
+    mockReturnCollateral.mock.calls.filter(([opts]) => !(opts as { reconcileOnly?: boolean })?.reconcileOnly)
+const reconciles = () =>
+    mockReturnCollateral.mock.calls.filter(([opts]) => (opts as { reconcileOnly?: boolean })?.reconcileOnly)
 
 describe('useRainFunding.grant — the signed permission', () => {
     it('signs one approve-only policy capped at the backend ceiling, posts it with the consent, and reports pending', async () => {
@@ -273,7 +282,7 @@ describe('useRainFunding.grant — consent gates', () => {
             expect(out).toEqual({ ok: true, status })
             expect(mockEnsureClientForChain).not.toHaveBeenCalled()
             // no card balance is moved for a state with nothing to sign
-            expect(mockReturnCollateral).not.toHaveBeenCalled()
+            expect(moves()).toHaveLength(0)
             nothingSigned()
         }
     )
@@ -382,6 +391,8 @@ describe('useRainFunding.grant — wrong chain, token, spender, wallet or bounds
 describe('useRainFunding.grant — the backend decides what is granted', () => {
     it('reports ready only when the backend answers ready, and caches that answer', async () => {
         mockSubmitFundingGrant.mockResolvedValue(funding('ready'))
+        // the move after ready confirms it once more with a fresh read
+        mockGetCardFunding.mockResolvedValueOnce(funding('required')).mockResolvedValue(funding('ready'))
         const { out } = await runGrant()
         expect(out).toEqual({ ok: true, status: 'ready' })
         expect(
@@ -655,8 +666,8 @@ describe('useRainFunding.grant — a legacy grant (migration_required)', () => {
         mockGetCardFunding.mockResolvedValue(funding('migration_required', {}, payload))
         const { out } = await runGrant()
         expect(out).toEqual({ ok: false, error: { kind: 'config-mismatch' } })
-        // not even the card balance return is asked for
-        expect(mockReturnCollateral).not.toHaveBeenCalled()
+        // no card balance is moved
+        expect(moves()).toHaveLength(0)
         expect(mockRetireLegacyGrants).not.toHaveBeenCalled()
         expect(mockSignKernelPermission).not.toHaveBeenCalled()
         expect(mockSubmitFundingGrant).not.toHaveBeenCalled()
@@ -687,13 +698,24 @@ describe('useRainFunding.grant — a legacy grant (migration_required)', () => {
     })
 })
 
-describe('useRainFunding.grant — card balance goes back to the wallet first', () => {
+describe('useRainFunding.grant — card balance moves back only after the backend confirms ready', () => {
     const legacy = () => funding('migration_required', {}, MIGRATION)
-    const track = (order: string[]) => {
-        mockReturnCollateral.mockImplementation(async (opts: { onStart?: () => void }) => {
-            opts.onStart?.()
+    const RETURNED = { kind: 'returned', via: 'root', preparationId: 'prep-1', txHash: '0xabc' }
+    // Records the order of every step; reads report the given states in turn.
+    const track = (order: string[], reads: ReturnType<typeof funding>[], posted: ReturnType<typeof funding>) => {
+        mockReturnCollateral.mockImplementation(async (opts: { onStart?: () => void; reconcileOnly?: boolean }) => {
+            if (opts?.reconcileOnly) {
+                order.push('reconcile')
+                return { kind: 'nothing' }
+            }
+            opts?.onStart?.()
             order.push('return')
-            return { kind: 'returned', via: 'grant', preparationId: 'prep-1', txHash: '0xabc' }
+            return RETURNED
+        })
+        let next = 0
+        mockGetCardFunding.mockImplementation(async () => {
+            order.push('read')
+            return reads[Math.min(next++, reads.length - 1)]
         })
         mockRetireLegacyGrants.mockImplementation(async () => order.push('retire'))
         mockSignKernelPermission.mockImplementation(async () => {
@@ -702,87 +724,92 @@ describe('useRainFunding.grant — card balance goes back to the wallet first', 
         })
         mockSubmitFundingGrant.mockImplementation(async () => {
             order.push('post')
-            return funding('pending')
+            return posted
         })
     }
+    const continueSetup = async (hook: { result: { current: ReturnType<typeof useRainFunding> } }) => {
+        let out!: Awaited<ReturnType<ReturnType<typeof useRainFunding>['continueSetup']>>
+        await act(async () => {
+            out = await hook.result.current.continueSetup()
+        })
+        return out
+    }
 
-    it('legacy: the return is confirmed, then the old grant is retired, then the new one is granted', async () => {
+    it('legacy: settle earlier returns, retire, sign and post, and only on a confirmed ready move the balance', async () => {
         const order: string[] = []
-        track(order)
-        mockGetCardFunding
-            .mockResolvedValueOnce(legacy())
-            .mockResolvedValueOnce(legacy())
-            .mockResolvedValueOnce(funding('required'))
-        const { out } = await runGrant()
-        expect(order).toEqual(['return', 'retire', 'sign', 'post'])
-        expect(out).toEqual({ ok: true, status: 'pending' })
-    })
-
-    it('after a return, retirement uses a fresh read, never the batch read before it', async () => {
-        const order: string[] = []
-        track(order)
-        const FRESH_ID = `0x02${'cd'.repeat(20)}`
-        mockGetCardFunding
-            .mockResolvedValueOnce(legacy())
-            .mockResolvedValueOnce(
-                funding(
-                    'migration_required',
-                    {},
-                    { uninstall: [{ validationId: FRESH_ID, deinitData: '0x99' }], invalidateNonceFloor: 9 }
-                )
-            )
-            .mockResolvedValueOnce(funding('required'))
-        await runGrant()
-        expect(mockRetireLegacyGrants).toHaveBeenCalledTimes(1)
-        expect(mockRetireLegacyGrants).toHaveBeenCalledWith(
-            expect.objectContaining({
-                migration: { uninstalls: [{ validationId: FRESH_ID, deinitData: '0x99' }], invalidateNonceFloor: 9 },
-            })
-        )
-    })
-
-    it('a card withdrawal still confirming after the return: nothing is retired or signed, and setup waits', async () => {
-        const order: string[] = []
-        track(order)
-        mockGetCardFunding.mockResolvedValueOnce(legacy()).mockResolvedValueOnce(inFlight())
+        track(order, [legacy(), funding('required'), funding('ready')], funding('ready'))
         const { out, hook } = await runGrant()
-        expect(out).toEqual({ ok: false, error: { kind: 'withdrawal-in-flight' } })
-        expect(order).toEqual(['return'])
-        expect(mockRetireLegacyGrants).not.toHaveBeenCalled()
-        nothingSigned()
-        // the fresh state is what the dialog now shows: a wait, not done
-        expect(hook.result.current.isWithdrawalInFlight).toBe(true)
-    })
-
-    it('a card withdrawal still confirming before anything: no return, no retirement, not reported as done', async () => {
-        mockGetCardFunding.mockResolvedValue(inFlight())
-        const { out } = await runGrant()
-        expect(out).toEqual({ ok: false, error: { kind: 'withdrawal-in-flight' } })
-        expect(mockReturnCollateral).not.toHaveBeenCalled()
-        expect(mockRetireLegacyGrants).not.toHaveBeenCalled()
-        nothingSigned()
-    })
-
-    it('a return that finds the permission already in place signs nothing more', async () => {
-        const order: string[] = []
-        track(order)
-        mockGetCardFunding.mockResolvedValueOnce(legacy()).mockResolvedValueOnce(funding('ready'))
-        const { out } = await runGrant()
+        expect(order).toEqual(['reconcile', 'read', 'retire', 'read', 'sign', 'post', 'read', 'return'])
         expect(out).toEqual({ ok: true, status: 'ready' })
-        expect(order).toEqual(['return'])
+        expect(hook.result.current.owesReturn).toBe(false)
+        // the return reads its own fresh balance: no amount is handed to it
+        expect(moves()).toEqual([[{ onStart: expect.any(Function) }]])
     })
 
-    it('a new permission alone: the return comes before the signature', async () => {
+    it('a new permission alone: reconcile, sign, post, then the move once ready', async () => {
         const order: string[] = []
-        track(order)
+        track(order, [funding('required'), funding('ready')], funding('ready'))
         await runGrant()
-        expect(order).toEqual(['return', 'sign', 'post'])
+        expect(order).toEqual(['reconcile', 'read', 'sign', 'post', 'read', 'return'])
     })
 
-    it('nothing to move asks for nothing extra', async () => {
-        await runGrant()
-        expect(mockReturnCollateral).toHaveBeenCalledTimes(1)
+    it('an accepted but unconfirmed grant moves nothing; the move waits for ready, then runs on the explicit continue', async () => {
+        const order: string[] = []
+        track(order, [funding('required'), funding('pending')], funding('pending'))
+        const { out, hook } = await runGrant()
+        expect(out).toEqual({ ok: true, status: 'pending' })
+        expect(moves()).toHaveLength(0)
+        expect(hook.result.current.owesReturn).toBe(true)
+
+        // still pending on the fresh read: nothing moves, and it stays owed
+        expect(await continueSetup(hook)).toEqual({ ok: true, status: 'pending' })
+        expect(moves()).toHaveLength(0)
+        expect(hook.result.current.owesReturn).toBe(true)
+
+        mockGetCardFunding.mockResolvedValue(funding('ready'))
+        expect(await continueSetup(hook)).toEqual({ ok: true, status: 'ready' })
+        expect(moves()).toHaveLength(1)
+        expect(hook.result.current.owesReturn).toBe(false)
+        // continuing never signs or posts again
         expect(mockSignKernelPermission).toHaveBeenCalledTimes(1)
+        expect(mockSubmitFundingGrant).toHaveBeenCalledTimes(1)
+    })
+
+    it('a grant already in flight (grant_in_progress) is owed the move but moves nothing yet', async () => {
+        mockSubmitFundingGrant.mockRejectedValue(new ApiError('busy', { status: 409, code: 'grant_in_progress' }))
+        const { out, hook } = await runGrant()
+        expect(out).toEqual({ ok: true, status: 'pending' })
+        expect(moves()).toHaveLength(0)
+        expect(hook.result.current.owesReturn).toBe(true)
+    })
+
+    const cancel = () => Object.assign(new Error('x'), { name: 'NotAllowedError' })
+    it.each([
+        ['the retirement is cancelled', () => mockRetireLegacyGrants.mockRejectedValue(cancel())],
+        [
+            'the retirement is not confirmed yet',
+            () =>
+                mockRetireLegacyGrants.mockRejectedValue(
+                    Object.assign(new Error('slow'), { name: 'KernelNonceRepairPendingError' })
+                ),
+        ],
+        ['the new signature is cancelled', () => mockSignKernelPermission.mockRejectedValue(cancel())],
+        ['the backend refuses the grant', () => mockSubmitFundingGrant.mockResolvedValue(funding('required'))],
+        [
+            'the backend rejects the permission',
+            () =>
+                mockSubmitFundingGrant.mockRejectedValue(
+                    new ApiError('bad', { status: 400, code: 'invalid_permission' })
+                ),
+        ],
+        ['the approve is not confirmed yet', () => mockSubmitFundingGrant.mockResolvedValue(funding('pending'))],
+        ['funding is paused', () => mockSubmitFundingGrant.mockResolvedValue(funding('temporarily_unavailable'))],
+    ])('no card balance moves when %s', async (_case, arrange) => {
+        mockGetCardFunding.mockResolvedValueOnce(legacy()).mockResolvedValue(funding('required'))
+        arrange()
+        const { out } = await runGrant()
+        expect(out.ok && out.status === 'ready').toBe(false)
+        expect(moves()).toHaveLength(0)
     })
 
     it.each([
@@ -792,66 +819,194 @@ describe('useRainFunding.grant — card balance goes back to the wallet first', 
         ['balance-unavailable', 'balance-unavailable'],
         ['failed', 'return-failed'],
         ['busy', 'busy'],
-        ['account-changed', 'account-changed'],
-    ] as const)('a %s return stops the whole setup: nothing is retired or granted', async (kind, error) => {
+    ] as const)(
+        'ready but a %s move keeps funding, stays owed and retries without a new grant',
+        async (kind, error) => {
+            mockSubmitFundingGrant.mockResolvedValue(funding('ready'))
+            mockGetCardFunding.mockResolvedValueOnce(funding('required')).mockResolvedValue(funding('ready'))
+            mockReturnCollateral.mockImplementation(async (opts: { reconcileOnly?: boolean }) => {
+                if (opts?.reconcileOnly) return { kind: 'nothing' }
+                throw new CollateralReturnError(kind)
+            })
+            const { out, hook } = await runGrant()
+            expect(out).toEqual({ ok: true, status: 'ready', returnError: { kind: error } })
+            expect(hook.result.current.owesReturn).toBe(true)
+            expect(hook.result.current.returnError).toEqual({ kind: error })
+            // a failed move is not a failed setup
+            expect(hook.result.current.lastError).toBeNull()
+
+            mockReturnCollateral.mockResolvedValue(RETURNED)
+            expect(await continueSetup(hook)).toEqual({ ok: true, status: 'ready' })
+            expect(moves()).toHaveLength(2)
+            expect(hook.result.current.owesReturn).toBe(false)
+            expect(mockSignKernelPermission).toHaveBeenCalledTimes(1)
+            expect(mockSubmitFundingGrant).toHaveBeenCalledTimes(1)
+            expect(mockRetireLegacyGrants).not.toHaveBeenCalled()
+        }
+    )
+
+    it('an earlier return whose outcome is still unknown blocks before anything is read, retired or signed', async () => {
+        mockReturnCollateral.mockRejectedValue(new CollateralReturnError('pending'))
         mockGetCardFunding.mockResolvedValue(legacy())
-        mockReturnCollateral.mockRejectedValue(new CollateralReturnError(kind))
         const { out } = await runGrant()
-        expect(out).toEqual({ ok: false, error: { kind: error } })
+        expect(out).toEqual({ ok: false, error: { kind: 'return-pending' } })
+        expect(reconciles()).toHaveLength(1)
+        expect(moves()).toHaveLength(0)
+        expect(mockGetCardFunding).not.toHaveBeenCalled()
         expect(mockRetireLegacyGrants).not.toHaveBeenCalled()
         nothingSigned()
     })
 
-    it('shows the return step while it runs', async () => {
-        const hook = renderHook(() => useRainFunding({ enabled: false }), { wrapper })
-        const gate = deferred()
-        mockReturnCollateral.mockImplementation(async (opts: { onStart?: () => void }) => {
-            opts.onStart?.()
-            await gate.promise
-            return { kind: 'nothing' }
+    it('an earlier return settled as done lets the setup go on without a second send', async () => {
+        const order: string[] = []
+        track(order, [funding('required'), funding('pending')], funding('pending'))
+        mockReturnCollateral.mockImplementationOnce(async () => {
+            order.push('reconcile')
+            return RETURNED
         })
-        const pending = startGrant(hook)
-        await waitFor(() => expect(hook.result.current.step).toBe('returning-balance'))
-        gate.release()
-        expect(await finish(pending)).toEqual({ ok: true, status: 'pending' })
+        await runGrant()
+        expect(order).toEqual(['reconcile', 'read', 'sign', 'post'])
+        expect(moves()).toHaveLength(0)
     })
 
-    it('a state with nothing to sign moves nothing', async () => {
-        mockGetCardFunding.mockResolvedValue(funding('ready'))
+    it('after the old grant is retired, this wallet returns through the wallet itself (root path)', async () => {
+        const owner = collateralReturnOwner('user-a', WALLET)
+        mockGetCardFunding.mockResolvedValueOnce(legacy()).mockResolvedValue(funding('required'))
         await runGrant()
+        expect(pendingCollateralReturns.isRootOnly(owner)).toBe(true)
+    })
+
+    it('the root path is recorded before the retirement attempt: a lost or cancelled answer still never picks the retired path', async () => {
+        const owner = collateralReturnOwner('user-a', WALLET)
+        mockGetCardFunding.mockResolvedValue(legacy())
+        mockRetireLegacyGrants.mockImplementation(async () => {
+            expect(pendingCollateralReturns.isRootOnly(owner)).toBe(true)
+            throw new Error('network lost')
+        })
+        const { out } = await runGrant()
+        expect(out).toEqual({ ok: false, error: { kind: 'unexpected', message: 'network lost' } })
+        expect(mockRetireLegacyGrants).toHaveBeenCalledTimes(1)
+        expect(pendingCollateralReturns.isRootOnly(owner)).toBe(true)
+        expect(moves()).toHaveLength(0)
+    })
+
+    it('a backend-held top-up (collateral_top_up_in_flight) signs, retires and moves nothing', async () => {
+        const held = funding('temporarily_unavailable')
+        mockGetCardFunding.mockResolvedValue({
+            ...held,
+            management: { ...held.management, reason: 'collateral_top_up_in_flight' },
+        })
+        const { out } = await runGrant()
+        expect(out).toEqual({ ok: true, status: 'temporarily_unavailable' })
+        expect(mockRetireLegacyGrants).not.toHaveBeenCalled()
+        expect(moves()).toHaveLength(0)
+        nothingSigned()
+    })
+
+    it('a new permission without retirement keeps the stored withdrawal path', async () => {
+        await runGrant()
+        expect(pendingCollateralReturns.isRootOnly(collateralReturnOwner('user-a', WALLET))).toBe(false)
+    })
+
+    it('an already-ready state never starts a move by itself, and keeps a move this setup still owes', async () => {
+        mockSubmitFundingGrant.mockResolvedValue(funding('pending'))
+        const { hook } = await runGrant()
+        expect(hook.result.current.owesReturn).toBe(true)
+        mockGetCardFunding.mockResolvedValue(funding('ready'))
+        await act(async () => {
+            expect(await hook.result.current.grant(CONSENT)).toEqual({ ok: true, status: 'ready' })
+        })
+        expect(moves()).toHaveLength(0)
+        expect(hook.result.current.owesReturn).toBe(true)
+    })
+
+    it('a page with no setup of its own has nothing to continue and moves nothing', async () => {
+        mockGetCardFunding.mockResolvedValue(funding('ready'))
+        const hook = renderHook(() => useRainFunding({ enabled: false }), { wrapper })
+        const out = await continueSetup(hook)
+        expect(out.ok).toBe(false)
         expect(mockReturnCollateral).not.toHaveBeenCalled()
     })
 
-    it('re-checks the wallet after the return: a different client wallet retires and signs nothing', async () => {
-        mockGetCardFunding.mockResolvedValue(legacy())
-        mockEnsureClientForChain
-            .mockResolvedValueOnce({ account: { address: WALLET } })
-            .mockResolvedValueOnce({ account: { address: OTHER_WALLET } })
-        const { out } = await runGrant()
-        expect(out).toEqual({ ok: false, error: { kind: 'wallet-mismatch' } })
-        expect(mockEnsureClientForChain).toHaveBeenCalledTimes(2)
-        expect(mockRetireLegacyGrants).not.toHaveBeenCalled()
-        nothingSigned()
+    it('a wallet change forgets the owed move: the stale continuation moves nothing', async () => {
+        mockSubmitFundingGrant.mockResolvedValue(funding('pending'))
+        const { hook } = await runGrant()
+        expect(hook.result.current.owesReturn).toBe(true)
+        switchIdentity(hook, () => {
+            mockConnectedAddress = OTHER_WALLET
+        })
+        expect(hook.result.current.owesReturn).toBe(false)
+        mockGetCardFunding.mockResolvedValue(funding('ready', { walletAddress: OTHER_WALLET }))
+        expect((await continueSetup(hook)).ok).toBe(false)
+        expect(moves()).toHaveLength(0)
     })
 
-    it('an account switch during the return retires and signs nothing', async () => {
-        const hook = renderHook(() => useRainFunding({ enabled: false }), { wrapper })
-        mockGetCardFunding.mockResolvedValue(legacy())
+    it('an account switch while ready is confirmed moves nothing', async () => {
+        mockSubmitFundingGrant.mockResolvedValue(funding('pending'))
+        const { hook } = await runGrant()
         const gate = deferred()
-        mockReturnCollateral.mockImplementation(async () => {
+        mockGetCardFunding.mockImplementation(async () => {
             await gate.promise
-            return { kind: 'returned', via: 'root', preparationId: 'prep-1' }
+            return funding('ready')
         })
-        const pending = startGrant(hook)
-        await waitFor(() => expect(mockReturnCollateral).toHaveBeenCalled())
+        const pending = hook.result.current.continueSetup()
+        await waitFor(() => expect(mockGetCardFunding).toHaveBeenCalledTimes(2))
         switchIdentity(hook, () => {
             mockUserId = 'user-b'
         })
         gate.release()
-
         expect(await finish(pending)).toEqual({ ok: false, error: { kind: 'account-changed' } })
+        expect(moves()).toHaveLength(0)
+    })
+
+    it('a ready state for a different wallet moves nothing', async () => {
+        mockSubmitFundingGrant.mockResolvedValue(funding('pending'))
+        const { hook } = await runGrant()
+        mockGetCardFunding.mockResolvedValue(funding('ready'))
+        mockEnsureClientForChain.mockResolvedValue({ account: { address: OTHER_WALLET } })
+        expect(await continueSetup(hook)).toEqual({ ok: false, error: { kind: 'wallet-mismatch' } })
+        expect(moves()).toHaveLength(0)
+        expect(hook.result.current.returnError).toEqual({ kind: 'wallet-mismatch' })
+    })
+
+    it('a double tap on continue moves once', async () => {
+        mockSubmitFundingGrant.mockResolvedValue(funding('pending'))
+        const { hook } = await runGrant()
+        mockGetCardFunding.mockResolvedValue(funding('ready'))
+        mockReturnCollateral.mockResolvedValue(RETURNED)
+        await act(async () => {
+            const [a, b] = await Promise.all([hook.result.current.continueSetup(), hook.result.current.continueSetup()])
+            expect(b).toBe(a)
+        })
+        expect(moves()).toHaveLength(1)
+    })
+
+    it('a card withdrawal still confirming: nothing is retired, signed or moved, and setup waits', async () => {
+        mockGetCardFunding.mockResolvedValue(inFlight())
+        const { out, hook } = await runGrant()
+        expect(out).toEqual({ ok: false, error: { kind: 'withdrawal-in-flight' } })
+        expect(moves()).toHaveLength(0)
         expect(mockRetireLegacyGrants).not.toHaveBeenCalled()
         nothingSigned()
+        expect(hook.result.current.isWithdrawalInFlight).toBe(true)
+    })
+
+    it('shows the move step while it runs', async () => {
+        const hook = renderHook(() => useRainFunding({ enabled: false }), { wrapper })
+        mockSubmitFundingGrant.mockResolvedValue(funding('ready'))
+        mockGetCardFunding.mockResolvedValueOnce(funding('required')).mockResolvedValue(funding('ready'))
+        const gate = deferred()
+        mockReturnCollateral.mockImplementation(async (opts: { onStart?: () => void; reconcileOnly?: boolean }) => {
+            if (opts?.reconcileOnly) return { kind: 'nothing' }
+            opts?.onStart?.()
+            await gate.promise
+            return RETURNED
+        })
+        const pending = startGrant(hook)
+        await waitFor(() => expect(hook.result.current.step).toBe('returning-balance'))
+        gate.release()
+        expect(await finish(pending)).toEqual({ ok: true, status: 'ready' })
+        expect(hook.result.current.step).toBe('idle')
     })
 })
 

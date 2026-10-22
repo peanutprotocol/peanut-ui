@@ -322,6 +322,8 @@ export interface paths {
                                     iconUrl: string;
                                     name: string;
                                     publicDescription: string;
+                                    /** @description First-person share text in the request language, without the link. */
+                                    shareLine: string;
                                 };
                                 /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
                                 badgeCampaign: string;
@@ -373,6 +375,8 @@ export interface paths {
                                 iconUrl: string;
                                 name: string;
                                 publicDescription: string;
+                                /** @description First-person share text in the request language, without the link. */
+                                shareLine: string;
                             } & {
                                 earnable: boolean;
                                 unlock: {
@@ -464,6 +468,8 @@ export interface paths {
                                     iconUrl: string;
                                     name: string;
                                     publicDescription: string;
+                                    /** @description First-person share text in the request language, without the link. */
+                                    shareLine: string;
                                 };
                                 /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
                                 badgeCampaign: string;
@@ -5472,6 +5478,8 @@ export interface paths {
                                     iconUrl: string;
                                     name: string;
                                     publicDescription: string;
+                                    /** @description First-person share text in the request language, without the link. */
+                                    shareLine: string;
                                 };
                                 /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
                                 badgeCampaign: string;
@@ -5526,6 +5534,8 @@ export interface paths {
                                     iconUrl: string;
                                     name: string;
                                     publicDescription: string;
+                                    /** @description First-person share text in the request language, without the link. */
+                                    shareLine: string;
                                 };
                                 /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
                                 badgeCampaign: string;

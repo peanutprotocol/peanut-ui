@@ -1,115 +1,139 @@
+'use client'
+
 import { ViewportFrame } from '@/app/dev/ds-marketing-preview/_components/ViewportFrame'
+import { CodeBlock } from '../../_components/CodeBlock'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocPage } from '../../_components/DocPage'
 import { DocSection } from '../../_components/DocSection'
-import { CONTAINER_SET, CTA_MOTION_RULES, CTA_RULES, HERO_RECIPES, SECTION_PADDING } from './landing-data'
+import { WhenToUse } from '../../_components/WhenToUse'
+import { CONTAINER_SET, CTA_SNIPPET, HERO_RECIPES, SECTION_PADDING } from './landing-data'
 
 export default function MarketingLandingPage() {
     return (
         <DocPage>
             <DocHeader
                 title="Landing"
-                description="The LP recipe book (ruled 2026-10-15, q4): two LP heroes — the key visual on the main LP, the promoted product split on sub-LPs — plus the one content hero, the FAQ fold, the Knerd closing fold, the on-band CTA, the marketing CTA motion, and the landing containers."
+                description="How to build a landing page: pick one hero, use the DS Button, keep the three containers. Every frame renders the real component."
             />
 
             <DesignNote type="info">
-                Every framed demo renders the real components in an iframe at a TRUE viewport width — toggle Phone 390 /
-                Desktop 1440 on each frame. Tablet is explicitly ignored: the rulings pin phone and desktop, and between
-                them the bands interpolate.
+                Toggle Phone 390 / Desktop 1440 on each frame. Those two widths are the spec; tablet interpolates.
             </DesignNote>
 
-            {/* The three heroes */}
             <DocSection
-                title="The three heroes"
-                description="Two LP heroes and one content hero — the whole set. A page gets exactly one, picked by the placement rule under each frame; /shhhhh itself stays exempt as a deliberate one-off."
+                title="Pick one hero"
+                description="A page gets exactly one. /shhhhh keeps its own look as a one-off."
             >
-                <div className="grid gap-6 xl:grid-cols-3">
+                <div className="grid gap-6 xl:grid-cols-2">
                     {HERO_RECIPES.map((hero) => (
                         <div key={hero.demo} className="space-y-2 min-w-0">
                             <p className="text-body-m-semibold">{hero.name}</p>
                             <p className="text-body-s text-foreground-secondary">{hero.useWhen}</p>
+                            <CodeBlock code={hero.component} />
                             <ViewportFrame demo={hero.demo} label={`${hero.name} hero`} heights={hero.heights} />
-                            {hero.note && <p className="text-label-m text-foreground-secondary">{hero.note}</p>}
                         </div>
                     ))}
                 </div>
+                <WhenToUse
+                    use={[
+                        'h1: one short clause, four words or fewer',
+                        'Subtitle: the descriptor, qualifiers and corridor',
+                        'The long keyworded title stays in the meta title',
+                    ]}
+                    dontUse={['A colon descriptor in the h1 ("Peanut vs Wise: compare…")', 'hyphens-auto on a hero h1']}
+                />
             </DocSection>
 
-            {/* FAQ fold */}
             <DocSection
-                title="FAQ fold"
-                description="One FAQ fold (ruled 2026-10-14): Global/FAQs on the cream page ground, the ruled heading pair — headingSmall 42 at 390, headingMedium 80 at 1440 — and the copy is 'FAQ.' everywhere, /shhhhh included."
+                title="CTA"
+                description="The app's Button, large, hugging its label. Nothing marketing-specific except the motion class."
             >
-                <ViewportFrame demo="faq-fold" label="FAQ fold" heights={{ phone: 640, desktop: 720 }} />
+                <DocSection.Content>
+                    <WhenToUse
+                        use={[
+                            'Pink or yellow band: variant="secondary"',
+                            'Cream or the black band: variant="primary"',
+                            'Always size="large", w-fit and CTA_MOTION',
+                            'Sentence case labels',
+                            'Sticky mobile CTA: w-full, no CTA_MOTION (pinned-footer recipe)',
+                        ]}
+                        dontUse={[
+                            'w-full, min-w-*, px-* or another size on a CTA',
+                            'A hover colour, lift, scale or shadow change',
+                            'A Button inside <a> or <Link> — pass href instead',
+                            'A primary next to a secondary on a band',
+                        ]}
+                    />
+                    <ViewportFrame demo="cta-bands" label="On-band CTA" heights={{ phone: 1000, desktop: 1000 }} />
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock label="cta" code={CTA_SNIPPET} />
+                </DocSection.Code>
             </DocSection>
 
-            {/* Closing fold */}
+            <DocSection
+                title="CTA motion"
+                description="CTA_MOTION is the only motion a marketing CTA has: fade in on mount, drop 6px and tilt 0.75° on hover. Off under reduced motion. Hover the frame; Replay remounts."
+            >
+                <ViewportFrame demo="cta-motion" label="Marketing CTA motion" heights={{ phone: 560, desktop: 560 }} />
+            </DocSection>
+
+            <DocSection title="FAQ fold" description="Global/FAQs on cream. The heading is “FAQ.” on every page.">
+                <DocSection.Content>
+                    <ViewportFrame demo="faq-fold" label="FAQ fold" heights={{ phone: 640, desktop: 720 }} />
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="faq"
+                        code={`import { FAQsPanel } from '@/components/Global/FAQs'\n\n<FAQsPanel heading="FAQ." questions={items} />`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
             <DocSection
                 title="Closing fold"
-                description="Done RIGHT (ruled 2026-10-14, composition 2026-10-15): the opening 1–3 words stand as a Title lockup, last word on its own line, the rest of the headline sits under it in the display ramp — the hero LP composition. Never Knerd inline in a sentence, never hand-rolled font-knerd layers."
+                description="Title for the 1–3 accent words, the rest of the headline in the display ramp under it, one secondary CTA on the band."
             >
                 <ViewportFrame demo="closing-fold" label="Closing fold" heights={{ phone: 480, desktop: 560 }} />
             </DocSection>
 
-            {/* On-band CTA */}
-            <DocSection
-                title="On-band CTA"
-                description="The CTA hierarchy (ruled 2026-10-14): which pill goes on which ground, with no per-site visual overrides."
-            >
-                <ul className="space-y-1 text-body-s">
-                    {CTA_RULES.map((rule) => (
-                        <li key={rule}>{rule}</li>
-                    ))}
-                </ul>
-                <ViewportFrame demo="cta-bands" label="On-band CTA" heights={{ phone: 1000, desktop: 1000 }} />
-            </DocSection>
-
-            {/* Marketing CTA motion */}
-            <DocSection
-                title="Marketing CTA motion"
-                description="The one motion a marketing CTA adds to the DS Button (ruled 2026-10-16, konrad): a mount entrance and a hover drop-and-tilt. Hover the buttons in the frame; Replay entrance remounts them."
-            >
-                <ul className="space-y-1 text-body-s">
-                    {CTA_MOTION_RULES.map((rule) => (
-                        <li key={rule}>{rule}</li>
-                    ))}
-                </ul>
-                <ViewportFrame demo="cta-motion" label="Marketing CTA motion" heights={{ phone: 560, desktop: 560 }} />
-            </DocSection>
-
-            {/* Containers */}
-            <DocSection
-                title="Containers"
-                description="Three containers, always centred (ruled 2026-10-14): 1280 for LP folds, 720 for content hubs, 640 for prose. Bars at quarter scale."
-            >
-                <div className="space-y-2 rounded-sm border border-border-default bg-background-page p-4">
-                    {CONTAINER_SET.map((container) => (
-                        <div key={container.label} className="space-y-1">
-                            <p className="font-mono text-label-m text-foreground-secondary">
-                                {container.label} · {container.px}px — {container.role}
-                            </p>
-                            <div className="flex justify-center">
-                                <div className={`h-4 rounded-sm bg-background-brand ${container.barClass}`} />
+            <DocSection title="Containers and rhythm" description="Three widths, one gutter, one section step.">
+                <DocSection.Content>
+                    <div className="space-y-2 rounded-sm border border-border-default bg-background-page p-4">
+                        {CONTAINER_SET.map((container) => (
+                            <div key={container.label} className="space-y-1">
+                                <p className="font-mono text-label-m text-foreground-secondary">
+                                    {container.label} · {container.px}px · {container.className}
+                                </p>
+                                <div className="flex justify-center">
+                                    <div className={`h-4 rounded-sm bg-background-brand ${container.barClass}`} />
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            </DocSection>
-
-            {/* Section rhythm */}
-            <DocSection
-                title="Section rhythm"
-                description="One section spacing step (ruled 2026-10-14): 64 at 390, 96 at 1440 — band padding never picks other values. Blocks at full scale."
-            >
-                <div className="flex items-end gap-6 rounded-sm border border-border-default bg-background-page p-4">
-                    {SECTION_PADDING.map((step) => (
-                        <div key={step.label} className="space-y-1">
-                            <div className={`w-16 rounded-sm bg-action-secondary ${step.barClass}`} />
-                            <p className="font-mono text-label-m text-foreground-secondary">{step.label}</p>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                    <div className="flex items-end gap-6 rounded-sm border border-border-default bg-background-page p-4">
+                        {SECTION_PADDING.map((step) => (
+                            <div key={step.label} className="space-y-1">
+                                <div className={`w-16 rounded-sm bg-action-secondary ${step.barClass}`} />
+                                <p className="font-mono text-label-m text-foreground-secondary">{step.label}</p>
+                            </div>
+                        ))}
+                    </div>
+                    <WhenToUse
+                        use={[
+                            'Side gutter px-6 (24px) at 390 on bands, prose and footer',
+                            'Spacing steps 16 / 24 / 32 only',
+                        ]}
+                        dontUse={['The yellow marquee anywhere but home', 'A padded column inside a padded column']}
+                    />
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="section"
+                        code={`import { HUB_WIDTH, PROSE_WIDTH } from '@/components/Marketing/constants'\n\n<section className="px-6 py-16 md:py-24">\n    <div className={\`mx-auto \${PROSE_WIDTH}\`}>…</div>\n</section>`}
+                    />
+                </DocSection.Code>
             </DocSection>
         </DocPage>
     )

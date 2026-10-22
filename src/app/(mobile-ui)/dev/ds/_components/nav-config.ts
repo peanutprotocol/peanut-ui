@@ -503,39 +503,43 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             usages: 1,
         },
     ],
-    // the marketing surfaces' chapter of the doc site (drift-audit rulings of
-    // 2026-10-14/15, Konrad): what the live site ships is the ratified brand.
+    // the marketing surfaces' chapter of the doc site: what the live site ships is the brand.
     marketing: [
         {
             label: 'Brand',
             icon: Stamp,
             href: '/dev/ds/marketing/brand',
-            description:
-                'The ratified brand reality: palette, corner + border rules, body weight, the display ramp, the Knerd rule, and brand-book errata',
+            description: 'Grounds, buttons and panels, body and display type, Knerd — the classes to copy',
             status: 'production',
+        },
+        {
+            label: 'Knerd',
+            icon: Type,
+            href: '/dev/ds/marketing/knerd',
+            description:
+                'Display lettering and the exact Follow the pull hero animation: live reference, sizing and motion specs',
+            status: 'limited',
         },
         {
             label: 'Assets',
             icon: Images,
             href: '/dev/ds/marketing/assets',
             description:
-                'Mascot pose gallery with recolour status, doodle and glove inventory with the ruled art direction, and where-used notes',
+                'The art you may use: mascot, doodles, gloves, logo set, easter eggs, avatars, badges. Not here = not approved',
             status: 'production',
         },
         {
             label: 'Landing',
             icon: AppWindow,
             href: '/dev/ds/marketing/landing',
-            description:
-                'The LP recipes at true 390/1440 viewports: the three heroes with placement rules, FAQ and closing folds, the on-band CTA, containers and section rhythm',
+            description: 'Pick a hero, build the CTA, keep the containers. Real components at 390 and 1440',
             status: 'production',
         },
         {
             label: 'Content',
             icon: FileText,
             href: '/dev/ds/marketing/content',
-            description:
-                'Content-page visual rules at true 390/1440 viewports: plain pink hero, single-heading FAQ, plain-token tables, the 24px gutter + 640 prose measure, and the page header',
+            description: 'Hero, FAQ, tables, gutter, page header — one rule each, with the mdx to copy',
             status: 'production',
         },
     ],

@@ -452,6 +452,10 @@
 														},
 														"publicDescription": {
 															"type": "string"
+														},
+														"shareLine": {
+															"description": "First-person share text in the request language, without the link.",
+															"type": "string"
 														}
 													},
 													"required": [
@@ -459,6 +463,7 @@
 														"name",
 														"description",
 														"publicDescription",
+														"shareLine",
 														"iconUrl"
 													],
 													"type": "object"
@@ -582,6 +587,10 @@
 															},
 															"publicDescription": {
 																"type": "string"
+															},
+															"shareLine": {
+																"description": "First-person share text in the request language, without the link.",
+																"type": "string"
 															}
 														},
 														"required": [
@@ -589,6 +598,7 @@
 															"name",
 															"description",
 															"publicDescription",
+															"shareLine",
 															"iconUrl"
 														],
 														"type": "object"
@@ -840,6 +850,10 @@
 															},
 															"publicDescription": {
 																"type": "string"
+															},
+															"shareLine": {
+																"description": "First-person share text in the request language, without the link.",
+																"type": "string"
 															}
 														},
 														"required": [
@@ -847,6 +861,7 @@
 															"name",
 															"description",
 															"publicDescription",
+															"shareLine",
 															"iconUrl"
 														],
 														"type": "object"
@@ -9389,6 +9404,10 @@
 															},
 															"publicDescription": {
 																"type": "string"
+															},
+															"shareLine": {
+																"description": "First-person share text in the request language, without the link.",
+																"type": "string"
 															}
 														},
 														"required": [
@@ -9396,6 +9415,7 @@
 															"name",
 															"description",
 															"publicDescription",
+															"shareLine",
 															"iconUrl"
 														],
 														"type": "object"
@@ -9584,6 +9604,10 @@
 															},
 															"publicDescription": {
 																"type": "string"
+															},
+															"shareLine": {
+																"description": "First-person share text in the request language, without the link.",
+																"type": "string"
 															}
 														},
 														"required": [
@@ -9591,6 +9615,7 @@
 															"name",
 															"description",
 															"publicDescription",
+															"shareLine",
 															"iconUrl"
 														],
 														"type": "object"

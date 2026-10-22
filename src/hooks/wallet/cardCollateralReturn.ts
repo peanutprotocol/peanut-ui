@@ -23,8 +23,9 @@ const isUserCancellation = (e: unknown) => isDismissedCeremony(e) || isDismissed
 
 /**
  * Moves the card balance the provider says can be withdrawn back to the user's
- * own smart wallet. Used when managed card funding is set up (before any old
- * permission is retired) and by the card screen's "Move card balance to wallet".
+ * own smart wallet. Used when managed card funding is set up (after the backend
+ * confirms the new permission ready) and by the card screen's "Move card
+ * balance to wallet".
  *
  * Every withdrawal carries a fresh passkey signature over the provider's admin
  * withdrawal. The old permissions' wider signing ability is never used, and no
@@ -246,6 +247,8 @@ export interface CollateralReturnDeps {
     isChanged: () => boolean
     /** Right before the first prompt of a return that has something to move. */
     onStart?: () => void
+    /** Settle an earlier unknown return only; never read the balance or send a new one. */
+    reconcileOnly?: boolean
     nowMs?: () => number
 }
 
@@ -424,6 +427,7 @@ export async function returnCardCollateral(deps: CollateralReturnDeps): Promise<
         if (settled) return settled
     }
     stopIfChanged(deps)
+    if (deps.reconcileOnly) return { kind: 'nothing' }
 
     let overview: RainCardOverview
     try {

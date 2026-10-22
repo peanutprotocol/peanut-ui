@@ -1,7 +1,7 @@
 import { PROSE_WIDTH } from '@/components/Marketing/constants'
 
 /**
- * The content measure (mobile-gutter A + container-grid A, ruled 2026-10-14):
+ * The content measure:
  * one 24px side inset at 390 — bands, prose and footer share it — and the 640
  * prose container, always centred. The pink strips ARE the inset: at 390 they
  * are the whole margin; at 1440 the margin grows but the strips stay 24px, the

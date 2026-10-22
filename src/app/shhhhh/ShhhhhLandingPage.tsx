@@ -226,7 +226,7 @@ export default function ShhhhhLandingPage() {
 
             <Marquee message={marqueeWords} />
 
-            {/* §6 — FAQ: the shared marketing fold on cream (ruled 2026-10-14).
+            {/* §6 — FAQ: the shared marketing fold on cream.
                 The page exemption covers its grounds and look, not a hand-rolled
                 FAQ widget — the bespoke one shipped without a focus ring. */}
             <FAQsPanel

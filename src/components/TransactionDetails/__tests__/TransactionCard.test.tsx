@@ -402,6 +402,31 @@ describe('TransactionCard — secondary currency line requires a valid amount', 
     })
 })
 
+// TASK-23856: a request asked in euros showed only its dollar figures, so the
+// requester never saw the currency they asked in.
+describe('TransactionCard — a request asked in another currency', () => {
+    function potTx(extra: Record<string, string>): TransactionDetails {
+        const base = eligibleTx()
+        return {
+            ...base,
+            amount: 99.16,
+            totalAmountCollected: 73.65,
+            isRequestPotLink: true,
+            extraDataForDrawer: { ...base.extraDataForDrawer, ...extra },
+        } as TransactionDetails
+    }
+
+    it('adds the asked amount under the dollar figures', () => {
+        renderCard(potTx({ requestedAmount: '88', requestCurrency: 'EUR' }))
+        expect(screen.getByText('€88 requested')).toBeInTheDocument()
+    })
+
+    it('adds nothing for a dollar request, or an API that sends no currency', () => {
+        renderCard(potTx({ requestedAmount: '99.16', requestCurrency: 'USD' }))
+        expect(screen.queryByText(/requested/)).toBeNull()
+    })
+})
+
 // TASK-22625: the counterparty's picked avatar reaches the feed row. Only the
 // person branch — a merchant logo still wins, and a bank row keeps its icon.
 describe('TransactionCard — counterparty avatar', () => {
