@@ -24,7 +24,7 @@ export function PersonaFold({ cards }: PersonaFoldProps) {
                 {cards.map((card, i) => (
                     <li key={card.who} className="flex">
                         <PopIn delay={i * 0.1} tilt={TILTS[i % TILTS.length]} className="flex w-full">
-                            <article className="flex w-full flex-col gap-5 rounded-card border-2 border-border-default bg-background-default p-6 shadow-4">
+                            <article className="flex w-full flex-col gap-4 rounded-card border-2 border-border-default bg-background-default p-6 shadow-4">
                                 <header className="flex items-center gap-3">
                                     <Image
                                         src={avatarSrc(card.avatar)!}
