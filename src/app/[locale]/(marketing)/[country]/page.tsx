@@ -6,6 +6,7 @@ import { SUPPORTED_LOCALES, isValidLocale, getBareAlternatesFor } from '@/i18n/c
 import { getTranslations, t } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import {
+    contentArticleMetadata,
     availableContentLocales,
     contentLocaleFor,
     readPageContentLocalized,
@@ -75,16 +76,7 @@ export default async function CountryHubPage({ params }: PageProps) {
                 { name: i18n.home, href: `/${locale}` },
                 { name: countryName, href: url },
             ]}
-            article={
-                mdxSource.frontmatter.generated_at
-                    ? {
-                          title: mdxSource.frontmatter.title,
-                          description: mdxSource.frontmatter.description,
-                          url,
-                          datePublished: mdxSource.frontmatter.generated_at,
-                      }
-                    : undefined
-            }
+            article={contentArticleMetadata(mdxSource, url)}
         >
             {content}
             <ContentGuideList
