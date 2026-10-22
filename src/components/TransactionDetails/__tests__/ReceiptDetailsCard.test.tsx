@@ -179,3 +179,50 @@ describe('ReceiptDetailsCard — the provider row (TASK-23295)', () => {
         expect(screen.queryByText('Provider')).not.toBeInTheDocument()
     })
 })
+
+describe('ReceiptDetailsCard — network fee (TASK-23487)', () => {
+    const withdraw = (networkFeeDetails: Record<string, unknown>, recipientReceivesUsd?: number) =>
+        vaDeposit(
+            {
+                direction: 'withdraw',
+                userName: '0x1f9a04c7d',
+                amount: 64.5,
+                currency: undefined,
+                sourceView: 'status',
+                networkFeeDetails,
+                recipientReceivesUsd,
+            },
+            {
+                kind: 'CRYPTO_WITHDRAW',
+                originalUserRole: EHistoryUserRole.SENDER,
+                isDepositAccountDeposit: undefined,
+                receipt: undefined,
+            }
+        )
+
+    it('prints Pending while the fee settles', () => {
+        renderWithIntl(<Card transaction={withdraw({ state: 'pending' })} />)
+        expect(screen.getByText('Network fee')).toBeInTheDocument()
+        expect(screen.getByText('Pending')).toBeInTheDocument()
+        expect(screen.queryByText('Recipient receives')).not.toBeInTheDocument()
+    })
+
+    it('prints Sponsored by Peanut! for a settled zero fee', () => {
+        renderWithIntl(<Card transaction={withdraw({ state: 'sponsored' })} />)
+        expect(screen.getByText('Network fee')).toBeInTheDocument()
+        expect(screen.getByText('Sponsored by Peanut!')).toBeInTheDocument()
+    })
+
+    it('prints the charged fee and what the recipient received, never a $0 placeholder', () => {
+        renderWithIntl(<Card transaction={withdraw({ state: 'charged', amountDisplay: '$1.43' }, 63.067329)} />)
+        expect(screen.getByText('Network fee')).toBeInTheDocument()
+        expect(screen.getByText('$1.43')).toBeInTheDocument()
+        expect(screen.getByText('Recipient receives')).toBeInTheDocument()
+        expect(screen.getByText('$63.07')).toBeInTheDocument()
+        expect(screen.queryByText('$0')).not.toBeInTheDocument()
+        const fee = screen.getByText('Network fee')
+        expect(
+            fee.compareDocumentPosition(screen.getByText('Recipient receives')) & Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy()
+    })
+})

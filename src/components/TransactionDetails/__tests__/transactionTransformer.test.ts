@@ -548,6 +548,92 @@ describe('mapTransactionDataForDrawer', () => {
         })
     })
 
+    // The API states three numbers for a crypto withdrawal: the gross that left
+    // the wallet (`usdAmount`), the settled fee and what was delivered. The
+    // receipt adds nothing to them (TASK-23487).
+    describe('crypto withdrawal network fee (TASK-23487)', () => {
+        const withdraw = (status: EHistoryStatus, extraData: Record<string, unknown>) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    status,
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: externalEoa,
+                    extraData: { kind: 'CRYPTO_WITHDRAW', usdAmount: '64.50', ...extraData },
+                })
+            ).transactionDetails
+
+        it('a pending fee reads pending, with no received amount', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, { networkFeeStatus: 'pending', networkFeeUsd: null })
+            expect(result.networkFeeDetails).toEqual({ state: 'pending' })
+            expect(result.recipientReceivesUsd).toBeUndefined()
+        })
+
+        it('a settled zero fee reads sponsored', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, { networkFeeStatus: 'settled', networkFeeUsd: 0 })
+            expect(result.networkFeeDetails).toEqual({ state: 'sponsored' })
+            expect(result.recipientReceivesUsd).toBeUndefined()
+        })
+
+        it('a settled fee states the fee and what the recipient received', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, {
+                networkFeeStatus: 'settled',
+                networkFeeUsd: 1.432671,
+                deliveredUsd: '63.067329',
+            })
+            expect(result.networkFeeDetails).toEqual({ state: 'charged', amountDisplay: '$1.43' })
+            expect(result.recipientReceivesUsd).toBe(63.067329)
+        })
+
+        it('a fee under a cent reads < $0.01', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, {
+                networkFeeStatus: 'settled',
+                networkFeeUsd: 0.004,
+                deliveredUsd: '64.496',
+            })
+            expect(result.networkFeeDetails).toEqual({ state: 'charged', amountDisplay: '< $0.01' })
+        })
+
+        it('an unknown fee states nothing', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, { networkFeeStatus: 'unknown', networkFeeUsd: null })
+            expect(result.networkFeeDetails).toBeUndefined()
+            expect(result.recipientReceivesUsd).toBeUndefined()
+        })
+
+        it('a failed withdrawal states nothing', () => {
+            const result = withdraw(EHistoryStatus.FAILED, { networkFeeStatus: 'unknown', networkFeeUsd: null })
+            expect(result.networkFeeDetails).toBeUndefined()
+            expect(result.recipientReceivesUsd).toBeUndefined()
+        })
+
+        it('an API without the fee status states nothing, even with a fee number', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, { networkFeeUsd: 1.43 })
+            expect(result.networkFeeDetails).toBeUndefined()
+        })
+
+        it.each([
+            ['pending', { networkFeeStatus: 'pending', networkFeeUsd: null }],
+            ['charged', { networkFeeStatus: 'settled', networkFeeUsd: 1.432671, deliveredUsd: '63.067329' }],
+        ])('the amount is the gross the API sent, never gross plus fee (%s)', (_state, extraData) => {
+            expect(withdraw(EHistoryStatus.COMPLETED, extraData).amount).toBe(64.5)
+        })
+
+        it('no other kind gets fee rows from the transformer', () => {
+            const result = mapTransactionDataForDrawer(
+                baseEntry({
+                    extraData: {
+                        kind: 'DIRECT_TRANSFER',
+                        usdAmount: '5',
+                        networkFeeStatus: 'settled',
+                        networkFeeUsd: 1,
+                        deliveredUsd: '4',
+                    },
+                })
+            ).transactionDetails
+            expect(result.networkFeeDetails).toBeUndefined()
+            expect(result.recipientReceivesUsd).toBeUndefined()
+        })
+    })
+
     describe('unknown-kind default arm (forward-compat / regression guard)', () => {
         it('routes an unhandled kind to the fallback (undefined kind on output)', () => {
             // Per `isIntentKind` runtime guard — an unknown kind is NOT
