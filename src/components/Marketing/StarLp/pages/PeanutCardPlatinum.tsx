@@ -4,10 +4,10 @@ import { PopIn } from '@/components/Marketing/StarLp/PopIn'
 import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
 import { CARD_PLATINUM_COPY, CARD_STATS } from './peanutCard.consts'
 
-/** Yellow fold: "Platinum. But it's pink.", how money gets in, and /shhhhh's four tiles. */
+/** Pink fold: "Platinum. But it's pink.", how money gets in, and /shhhhh's four tiles. */
 export function PeanutCardPlatinum() {
     return (
-        <Band ground="yellow" align="center">
+        <Band ground="pink" align="center">
             <PopIn>
                 <SectionTitle size="display">
                     {CARD_PLATINUM_COPY.titleLines.map((line) => (
