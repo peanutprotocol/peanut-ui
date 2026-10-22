@@ -36,7 +36,9 @@ export function FooterStoreLinks({ locale = DEFAULT_LOCALE }: { locale?: Locale 
                     <a
                         onClick={() => trackStoreClick(store, MIGRATION_SURFACES.LANDING_FOOTER)}
                         key={store}
-                        className="flex"
+                        // the badge stays at the 40px the store guidelines set; the
+                        // link around it is the 44px touch target design.md asks for
+                        className="flex min-h-11 items-center"
                         href={STORE_URL[store]}
                         target="_blank"
                         rel="noopener noreferrer"
