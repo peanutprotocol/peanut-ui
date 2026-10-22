@@ -7,7 +7,7 @@ import { Hero } from '@/components/Marketing/mdx/Hero'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { Breadcrumb } from '@/components/0_Bruddle/Breadcrumb'
 import { SUPPORTED_LOCALES, HREFLANG_MAP, isValidLocale } from '@/i18n/config'
-import { getLocaleFallbacks, isPublished, readPageContent } from '@/lib/content'
+import { contentArticleMetadata, getLocaleFallbacks, isPublished, readPageContent } from '@/lib/content'
 import { BASE_URL } from '@/constants/general.consts'
 import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
@@ -83,12 +83,14 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
 
     const i18n = getTranslations(locale)
 
-    const blogPostSchema = {
+    const article = contentArticleMetadata(post, `/${contentLocale}/blog/${slug}`)
+    const blogPostSchema = article && {
         '@context': 'https://schema.org',
-        '@type': 'BlogPosting',
+        '@type': article.schemaType,
         headline: post.frontmatter.title,
         description: post.frontmatter.description,
-        datePublished: post.frontmatter.date,
+        ...(article.datePublished ? { datePublished: article.datePublished } : {}),
+        ...(article.dateModified ? { dateModified: article.dateModified } : {}),
         inLanguage: contentLocale,
         author: { '@type': 'Organization', name: post.frontmatter.author ?? 'Peanut' },
         publisher: { '@type': 'Organization', name: 'Peanut', url: 'https://peanut.me' },
@@ -133,7 +135,7 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
 
     return (
         <>
-            <JsonLd data={blogPostSchema} />
+            {blogPostSchema && <JsonLd data={blogPostSchema} />}
             <JsonLd data={breadcrumbSchema} />
             {faqSchema && <JsonLd data={faqSchema} />}
             {/* The post title opens the page as the content hero band, like every
