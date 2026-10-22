@@ -3,6 +3,7 @@ import { render } from '@testing-library/react'
 import BlogPostPage, { generateMetadata, generateStaticParams } from '../page'
 import * as blog from '@/lib/blog'
 import { SUPPORTED_LOCALES } from '@/i18n/types'
+import { isContentTopic } from '@/lib/content-topics'
 
 jest.mock('@/lib/mdx', () => ({
     renderContent: async (body: string) => ({ content: body }),
@@ -67,7 +68,9 @@ it('keeps locale-only published posts available through their actual fallback ch
               ]
             : []
     )
-    expect(await generateStaticParams()).toEqual([
+    // The hub topics share this route and are generated for every locale; only the posts are under test here.
+    const posts = (await generateStaticParams()).filter(({ slug }) => !isContentTopic(slug))
+    expect(posts).toEqual([
         { locale: 'es-419', slug: 'spanish-only' },
         { locale: 'es-ar', slug: 'spanish-only' },
     ])
