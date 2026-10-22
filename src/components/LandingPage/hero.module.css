@@ -2,6 +2,8 @@
     --hero-accent-size: clamp(48px, 17.435vw, 68px);
     --hero-label-size: clamp(27px, 9.744vw, 38px);
     --hero-mascot-size: min(290px, 34svh);
+    --hero-row-gap: 5px;
+    --hero-word-gap: -10px;
     --hero-overlap: 40px;
     position: relative;
     isolation: isolate;
@@ -25,8 +27,11 @@
     width: max-content;
     flex-direction: column;
     align-items: center;
-    gap: 18px;
     margin: 0 auto;
+}
+
+.phrase + .phrase {
+    margin-top: var(--hero-row-gap);
 }
 
 .phrase {
@@ -34,7 +39,6 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
     white-space: nowrap;
 }
 
@@ -45,7 +49,7 @@
 }
 
 .accentWrap {
-    margin-top: calc(var(--hero-accent-size) * 0.18);
+    margin-top: calc(var(--hero-accent-size) * 0.18 + var(--hero-word-gap));
 }
 
 .accent {
@@ -119,20 +123,22 @@
 
 @media (min-width: 768px) {
     .hero {
-        --hero-accent-size: min(13.056vw, 210px);
-        --hero-label-size: min(6.944vw, 112px);
+        --hero-accent-size: calc(min(13.055556vw, 210px) * 1.02 * 0.98);
+        --hero-label-size: calc(min(6.944444vw, 112px) * 1.02);
         --hero-mascot-size: min(340px, 38svh);
-        --hero-overlap: 60px;
+        --hero-row-gap: -11px;
+        --hero-word-gap: 22px;
+        --hero-overlap: 70px;
         padding: 72px 24px 40px;
     }
 
     .phrase {
         flex-direction: row;
-        gap: 22px;
     }
 
     .accentWrap {
         margin-top: 0;
+        margin-left: var(--hero-word-gap);
     }
 
     .copy {

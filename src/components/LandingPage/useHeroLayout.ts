@@ -20,8 +20,8 @@ export function useHeroLayout(headline: string) {
             const viewportWidth = window.innerWidth
             const viewportHeight = window.innerHeight
             const mobile = viewportWidth < 768
-            const accentSize = mobile ? 68 : Math.min(210, (viewportWidth * 188) / 1440)
-            const labelSize = mobile ? 38 : Math.min(112, (viewportWidth * 100) / 1440)
+            const accentSize = mobile ? 68 : Math.min(210, (viewportWidth * 188) / 1440) * 1.02 * 0.98
+            const labelSize = mobile ? 38 : Math.min(112, (viewportWidth * 100) / 1440) * 1.02
             const mascotSize = mobile ? Math.min(290, viewportHeight * 0.34) : Math.min(340, viewportHeight * 0.38)
             const setTypeScale = (scale: number) => {
                 hero.style.setProperty('--hero-accent-size', `${accentSize * scale}px`)
