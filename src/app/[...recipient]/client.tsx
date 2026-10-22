@@ -8,6 +8,7 @@ import PublicProfile from '@/components/Profile/components/PublicProfile'
 import { useAuth } from '@/context/authContext'
 import { ValidatedUsernameWrapper } from '@/components/Username/ValidatedUsernameWrapper'
 import { sendUrl } from '@/utils/native-routes'
+import { SignedInEvmLinkRedirect } from '@/features/withdraw/components/SignedInEvmLinkRedirect'
 
 // kept for backward compatibility with old payment form
 export type PaymentFlow = 'request_pay' | 'external_wallet' | 'direct_pay' | 'withdraw'
@@ -47,9 +48,14 @@ export default function PaymentPage({ recipient }: Props) {
         return <SemanticRequestPageWrapper recipient={recipient} />
     }
 
-    // semantic request for address/ens recipients
+    // address/ens recipients: a signed-in visit goes into the crypto withdrawal,
+    // a guest gets the semantic request flow
     if (isAddressRecipient || isEnsRecipient) {
-        return <SemanticRequestPageWrapper recipient={recipient} />
+        return (
+            <SignedInEvmLinkRedirect recipient={recipient}>
+                <SemanticRequestPageWrapper recipient={recipient} />
+            </SignedInEvmLinkRedirect>
+        )
     }
 
     // semantic request for username with amount or chain specified

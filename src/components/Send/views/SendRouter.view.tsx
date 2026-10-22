@@ -20,6 +20,7 @@ import { useMemo } from 'react'
 import ContactsView from './Contacts.view'
 import { ValidatedUsernameWrapper } from '@/components/Username/ValidatedUsernameWrapper'
 import { DirectSendPageWrapper } from '@/features/payments/flows/direct-send/DirectSendPageWrapper'
+import { SignedInEvmLinkRedirect } from '@/features/withdraw/components/SignedInEvmLinkRedirect'
 import { ChatAppsLine } from '@/components/Global/PeanutActionCard/ChatAppsLine'
 import { isAddress } from 'viem'
 import dynamic from 'next/dynamic'
@@ -165,12 +166,22 @@ export const SendRouterView = () => {
     // Mirrors the web [...recipient] dispatch: an EVM address / ENS / a recipient
     // carrying a chain (@) or amount segment (/) goes to the semantic-request flow
     // (token + chain selection, cross-chain); a plain username goes to direct send.
+    // A signed-in user's address / ENS link goes into the crypto withdrawal
+    // instead, unless it pays an existing charge.
     if (recipientUsername) {
         const segments = recipientUsername.split('/')
         const firstSegment = segments[0]
         const identifier = firstSegment.includes('@') ? firstSegment.split('@')[0] : firstSegment
-        const isSemanticRecipient =
-            isAddress(identifier) || identifier.endsWith('.eth') || segments.length > 1 || firstSegment.includes('@')
+        const isEvmRecipient = isAddress(identifier) || identifier.endsWith('.eth')
+        const isSemanticRecipient = isEvmRecipient || segments.length > 1 || firstSegment.includes('@')
+
+        if (isEvmRecipient && !searchParams.get('chargeId')) {
+            return (
+                <SignedInEvmLinkRedirect recipient={segments}>
+                    <SemanticRequestPageWrapper recipient={segments} />
+                </SignedInEvmLinkRedirect>
+            )
+        }
 
         if (isSemanticRecipient) {
             return <SemanticRequestPageWrapper recipient={segments} />

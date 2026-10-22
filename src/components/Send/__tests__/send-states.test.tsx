@@ -8,7 +8,7 @@
  * per-test via mockReturnValue / mockImplementation.
  */
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
@@ -177,6 +177,15 @@ jest.mock('@/features/payments/flows/semantic-request/SemanticRequestPageWrapper
     SemanticRequestPageWrapper: () => <div data-testid="semantic-request" />,
 }))
 
+// session — an address link sends a signed-in user into the crypto withdrawal
+let mockAuthUser: { user: { userId: string } } | null = null
+let mockIsFetchingUser = false
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: mockAuthUser, isFetchingUser: mockIsFetchingUser }),
+}))
+jest.mock('@/app/actions/ens', () => ({ resolveEns: jest.fn() }))
+jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
+
 // withdraw-flow context — SendRouterView resets it when a click enters the withdraw flow
 
 // ---------- import component under test AFTER all mocks ----------
@@ -246,6 +255,8 @@ beforeEach(() => {
     mockSearchParams.clear()
     safeBackTesting.reset()
     applyDefaults()
+    mockAuthUser = null
+    mockIsFetchingUser = false
 })
 
 // ============================================================
@@ -454,13 +465,57 @@ describe('GROUP 4: Method Selection', () => {
     })
 })
 
-// A scanned EVM address now goes into the crypto withdrawal (TASK-23974), but a
-// shared payment link to one (the native form of /<address>) still opens the
-// payment page.
+// A signed-in visit to an address link (the native form of /<address>) is the
+// user's own payout, so it goes into the crypto withdrawal, as a scan of one
+// does (TASK-23974). The address never enters the URL. Guests keep the payment
+// page.
 describe('GROUP 5: Address recipient link', () => {
-    test('/send?recipient=<address> opens the payment page', async () => {
-        renderSend({ recipient: '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed' })
+    const ADDRESS = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'
+
+    test('/send?recipient=<address> opens the payment page for a guest', async () => {
+        renderSend({ recipient: ADDRESS })
 
         expect(await screen.findByTestId('semantic-request')).toBeInTheDocument()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+    })
+
+    test('/send?recipient=<address> sends a signed-in user into the crypto withdrawal', async () => {
+        mockAuthUser = { user: { userId: 'u-1' } }
+
+        renderSend({ recipient: ADDRESS })
+
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledTimes(1))
+        const entryUrl: string = mockRouterReplace.mock.calls[0][0]
+        expect(entryUrl).toMatch(/^\/withdraw\?step=amount&method=crypto&scan=/)
+        expect(entryUrl.toLowerCase()).not.toContain(ADDRESS.toLowerCase())
+        expect(screen.queryByTestId('semantic-request')).not.toBeInTheDocument()
+    })
+
+    test('shows neither page while the session loads', () => {
+        mockIsFetchingUser = true
+
+        renderSend({ recipient: ADDRESS })
+
+        expect(screen.getByRole('status')).toBeInTheDocument()
+        expect(screen.queryByTestId('semantic-request')).not.toBeInTheDocument()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+    })
+
+    test('keeps the payment page for an existing charge', async () => {
+        mockAuthUser = { user: { userId: 'u-1' } }
+
+        renderSend({ recipient: ADDRESS, chargeId: 'charge-1' })
+
+        expect(await screen.findByTestId('semantic-request')).toBeInTheDocument()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+    })
+
+    test('keeps the payment page for a username with an amount', async () => {
+        mockAuthUser = { user: { userId: 'u-1' } }
+
+        renderSend({ recipient: 'alice/10USDC' })
+
+        expect(await screen.findByTestId('semantic-request')).toBeInTheDocument()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
     })
 })

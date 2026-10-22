@@ -42,6 +42,34 @@ export function parseAmountAndToken(amountString: string): { amount?: string; to
     }
 }
 
+/**
+ * The recipient and the chain a payment URL's first segment names, as
+ * `<recipient>@<chain>`. The chain is as written, an id or a name, and
+ * undefined when the segment names none.
+ */
+export function parseRecipientAndChain(segment: string): { recipient: string; chainId?: string } {
+    const firstSegment = decodeURIComponent(segment)
+    let recipient = firstSegment
+    let chainId: string | undefined = undefined
+    if (firstSegment.includes('@')) {
+        const parts = firstSegment.split('@')
+        if (parts.length > 2) {
+            // handle multiple @'s - take first part as recipient, last part as chain
+            recipient = parts.slice(0, -1).join('@')
+            chainId = parts[parts.length - 1]
+        } else {
+            const [recipientPart, chainPart] = parts
+            recipient = recipientPart
+            chainId = chainPart
+        }
+        // handle empty chain part after @
+        if (!chainId || chainId.trim() === '') {
+            chainId = undefined
+        }
+    }
+    return { recipient, chainId }
+}
+
 export enum EParseUrlError {
     INVALID_URL_FORMAT = 'Invalid URL format',
     INVALID_RECIPIENT = 'Invalid recipient',
@@ -67,25 +95,7 @@ export async function parsePaymentURL(
     }
 
     // 2. Extract recipient and chain from first segment
-    const firstSegment = decodeURIComponent(segments[0])
-    let recipient = firstSegment
-    let chainId: string | undefined = undefined
-    if (firstSegment.includes('@')) {
-        const parts = firstSegment.split('@')
-        if (parts.length > 2) {
-            // handle multiple @'s - take first part as recipient, last part as chain
-            recipient = parts.slice(0, -1).join('@')
-            chainId = parts[parts.length - 1]
-        } else {
-            const [recipientPart, chainPart] = parts
-            recipient = recipientPart
-            chainId = chainPart
-        }
-        // handle empty chain part after @
-        if (!chainId || chainId.trim() === '') {
-            chainId = undefined
-        }
-    }
+    const { recipient, chainId } = parseRecipientAndChain(segments[0])
 
     // 3. Fetch and validate recipient and chains/tokens data
     const [recipientResult, chainsAndTokensResult] = await Promise.allSettled([
