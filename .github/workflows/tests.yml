@@ -1029,9 +1029,37 @@ jobs:
                   node-version: '20'
                   cache: 'pnpm'
             - run: pnpm install --frozen-lockfile
+            - name: Get Playwright version
+              id: pw
+              run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+            - name: Cache Playwright browsers
+              id: pw-cache
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
             - name: Install Chromium
+              if: steps.pw-cache.outputs.cache-hit != 'true'
               timeout-minutes: 6
-              run: pnpm exec playwright install --with-deps chromium
+              run: pnpm exec playwright install chromium
+            # Use the same bounded apt retry as the other browser contracts.
+            - name: Install Playwright system deps
+              timeout-minutes: 9
+              run: |
+                  for attempt in 1 2 3; do
+                      if timeout --kill-after=15s 150 pnpm exec playwright install-deps chromium; then
+                          exit 0
+                      fi
+                      echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
+                      sudo rm -rf /var/lib/apt/lists/partial/* || true
+                      if [ "${attempt}" = 1 ]; then
+                          sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' \
+                              /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
+                      fi
+                      sleep 5
+                  done
+                  echo "::error::playwright install-deps failed after 3 attempts"
+                  exit 1
             - name: Build with production indexing policy
               env:
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
