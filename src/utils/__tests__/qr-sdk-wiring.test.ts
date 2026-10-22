@@ -59,7 +59,7 @@ it.each([false, true])('installs QR privacy for PostHog pageviews, replay and na
     expect(config.opt_out_capturing_by_default).toBe(!native)
     // `loaded` runs before the initial $pageview: platform must be registered there
     const register = jest.fn()
-    config.loaded({ register })
+    config.loaded({ register, onFeatureFlags: jest.fn() })
     expect(register).toHaveBeenCalledWith(expect.objectContaining({ platform: 'web', app_release: expect.any(String) }))
     expect(
         config.before_send({ event: '$pageview', properties: { $current_url: window.location.href } }).properties
