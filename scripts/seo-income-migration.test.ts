@@ -15,9 +15,9 @@ describe('approved SEO corpus transition', () => {
     it('accepts the complete final corpus with only its exact removal allowance', () => {
         expect(checkIncomeMigration(finalFiles(), finalPublished())).toEqual({
             errors: [],
-            retirementAllowance: 499,
+            retirementAllowance: 352,
         })
-        expect(finalPublished().size).toBe(291)
+        expect(finalPublished().size).toBe(438)
     })
 
     it.each(['help/verification/en.md', 'legal/privacy/en.md'])('rejects a missing protected file: %s', (file) => {
@@ -59,5 +59,34 @@ describe('approved SEO corpus transition', () => {
         expect(checkIncomeMigration(oldFiles(), published).errors).toContain(
             `Retirement requires removing the file, not unpublishing it: ${inventory.retired[0]}`
         )
+    })
+
+    it('preserves the Yape explainer and deferred consolidation guides', () => {
+        for (const topic of [
+            'pay-with/yape',
+            'deposit/crypto-com',
+            'deposit/lemon',
+            'deposit/polygon',
+            'deposit/solana',
+            'receive-from/spain',
+            'receive-from/united-states',
+            'withdraw/arbitrum',
+            'withdraw/polygon',
+        ]) {
+            expect(inventory.retainedPublished).toContain(`${topic}/en.md`)
+            expect(inventory.retired.some((file) => file.startsWith(`${topic}/`))).toBe(false)
+        }
+    })
+
+    it('rejects each single-file partial retirement', () => {
+        for (const file of inventory.retired) {
+            const files = oldFiles()
+            const published = oldPublished()
+            files.delete(file)
+            published.delete(file)
+            const result = checkIncomeMigration(files, published)
+            expect(result.errors).toEqual([expect.stringContaining('Incomplete SEO retirement')])
+            expect(result.retirementAllowance).toBe(0)
+        }
     })
 })
