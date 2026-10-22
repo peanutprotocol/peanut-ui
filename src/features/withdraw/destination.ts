@@ -9,7 +9,7 @@ export interface WithdrawDestination {
     chainId?: string
     /** The ENS name the address was resolved from, shown beside it. */
     name?: string
-    /** The token a payment request (EIP-681) asks for, by symbol. */
+    /** The token a payment request (EIP-681) asks for, by symbol: one the chain pays out. */
     tokenSymbol?: string
     /** The user has to pick the network before the withdrawal can continue. */
     networkPending: boolean
@@ -61,14 +61,18 @@ export function withdrawScanEntryUrl(scanId: string, request: ScannedPaymentRequ
  * The destination an address and chain name, or null when they name none we can
  * pay out to: the chain has to be one Rhino delivers to, and the address has to
  * be valid for that chain's address family. With no chain, the address has to
- * be an EVM one, and the user picks its network in the flow.
+ * be an EVM one, and the user picks its network in the flow. The token a payment
+ * request asks for has to be one Rhino delivers to that chain.
  */
 export function readWithdrawDestination(
     address: string | null | undefined,
-    chainId?: string | null
+    chainId?: string | null,
+    tokenSymbol?: string
 ): WithdrawDestination | null {
     if (!address) return null
     if (!chainId) {
+        // A requested token cannot be checked against a chain nobody named.
+        if (tokenSymbol) return null
         if (!isValidAddressForFamily(address, 'evm')) return null
         // The ops kill-switch locks withdrawals to USDC on Arbitrum and disables
         // the network pick, so a pending network could never be confirmed.
@@ -80,9 +84,16 @@ export function readWithdrawDestination(
     // asks for. The kill-switch would move it to USDC on Arbitrum, so it
     // refuses them all instead.
     if (underMaintenanceConfig.disableXchainWithdraw) return null
-    if (!CHAIN_REGISTRY.some((chain) => chain.id === chainId && chain.withdraw)) return null
+    const withdraw = CHAIN_REGISTRY.find((entry) => entry.id === chainId)?.withdraw
+    if (!withdraw) return null
+    // A payment request is paid in the token it asks for or not at all, so the
+    // token has to be one Rhino delivers to that chain. A fallback to USDC would
+    // change the asset behind the user's back.
+    if (tokenSymbol && !withdraw.tokens.some((symbol) => symbol.toUpperCase() === tokenSymbol.toUpperCase())) {
+        return null
+    }
     if (!isValidAddressForFamily(address, addressFamilyForChainId(chainId))) return null
-    return { address, chainId, networkPending: false }
+    return { address, chainId, tokenSymbol, networkPending: false }
 }
 
 let scanned: (WithdrawDestination & { id: string }) | null = null
@@ -98,7 +109,7 @@ export function stashScannedDestination(
     chainId?: string,
     details: ScannedDestinationDetails = {}
 ): string | null {
-    const destination = readWithdrawDestination(address, chainId)
+    const destination = readWithdrawDestination(address, chainId, details.tokenSymbol)
     if (!destination) return null
     scanned = { ...destination, ...details, id: `scan-${++scanCount}` }
     return scanned.id
@@ -122,11 +133,12 @@ export function clearScannedDestination(): void {
 }
 
 /**
- * The token a withdrawal to a chosen destination defaults to: the one a payment
- * request asks for when the chain has it, then USDC where the chain has it,
- * otherwise the chain's only token (Tron delivers USDT and no USDC). Undefined
- * while the chain's token list has not arrived — a destination with no token
- * to send is not one the recipient step can open.
+ * The token a withdrawal to a chosen destination defaults to: USDC where the
+ * chain has it, otherwise the chain's only token (Tron delivers USDT and no
+ * USDC). The token a payment request asks for is taken as asked or not at all:
+ * a request is never paid in another asset. Undefined while the chain's token
+ * list has not arrived — a destination with no token to send is not one the
+ * recipient step can open.
  */
 export function withdrawTokenForChain(
     tokens: readonly TokenMeta[] | undefined,
@@ -134,5 +146,6 @@ export function withdrawTokenForChain(
 ): TokenMeta | undefined {
     if (!tokens) return undefined
     const bySymbol = (symbol: string) => tokens.find((token) => token.symbol.toUpperCase() === symbol.toUpperCase())
-    return (requestedSymbol ? bySymbol(requestedSymbol) : undefined) ?? bySymbol('USDC') ?? tokens[0]
+    if (requestedSymbol) return bySymbol(requestedSymbol)
+    return bySymbol('USDC') ?? tokens[0]
 }

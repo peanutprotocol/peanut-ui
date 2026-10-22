@@ -211,6 +211,36 @@ describe('a signed-in scan of an EIP-681 payment request', () => {
         expect(destination).toEqual(expect.objectContaining({ address: LOWERCASE, networkPending: true }))
         expect(destination?.chainId).toBeUndefined()
     })
+
+    it('with a chain and no asset starts on that chain with its default token', async () => {
+        const { params, destination } = withdrawEntry(await scanAndConfirm(`ethereum:${CHECKSUMMED}@8453`))
+
+        expect(params.get('amount')).toBeNull()
+        expect(destination).toEqual({ address: LOWERCASE, chainId: '8453', networkPending: false })
+    })
+
+    it('for native ETH on a chain that pays it out keeps ETH and leaves the amount to the user', async () => {
+        const { params, destination } = withdrawEntry(await scanAndConfirm(`ethereum:${CHECKSUMMED}@8453?value=1e17`))
+
+        expect(params.get('amount')).toBeNull()
+        expect(destination).toEqual({ address: LOWERCASE, chainId: '8453', tokenSymbol: 'ETH', networkPending: false })
+    })
+
+    // A request is paid in the asset it asks for or not at all. Falling back to
+    // USDC would change the asset behind the user's back (Chip, #3796).
+    it.each([
+        ['a native value on a chain whose native token is not paid out', `ethereum:${CHECKSUMMED}@137?value=1e18`],
+        [
+            'an ERC-20 we cannot name',
+            `ethereum:0x000000000000000000000000000000000000dead@8453/transfer?address=${CHECKSUMMED}&uint256=1e7`,
+        ],
+        ['an asset on no chain', `ethereum:${CHECKSUMMED}?value=1e18`],
+    ])('is not supported for %s, never paid in another asset', async (_case, qr) => {
+        await scanOnly(qr)
+
+        expect(screen.getByText('Ethereum payment request not supported yet.')).toBeInTheDocument()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
 })
 
 // The scanner is signed-in only, so a guest reaches these through a shared

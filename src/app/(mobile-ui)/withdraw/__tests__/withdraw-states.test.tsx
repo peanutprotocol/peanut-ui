@@ -1003,6 +1003,19 @@ describe('GROUP 3: Amount Validation', () => {
             expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(BASE_ETH)
             expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto')
         })
+
+        // A request is paid in the token it asks for or not at all: a token the
+        // chain's list lacks seeds nothing, instead of USDC in its place.
+        test('an EIP-681 request for a token the chain list lacks seeds no destination', () => {
+            const id = stashScannedDestination(EVM_ADDRESS, '8453', { tokenSymbol: 'USDT' })!
+
+            renderWithdraw(entryParams(withdrawScanEntryUrl(id, { tokenSymbol: 'USDT', amount: '10' })))
+
+            expect(mockSetSelectedTokenAddress).not.toHaveBeenCalled()
+            expect(mockSetRecipient).not.toHaveBeenCalled()
+            expect(mockSetIsValidRecipient).not.toHaveBeenCalledWith(true)
+            expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=10')
+        })
     })
 
     test('Manteca method carries the amount into the manteca flow (TASK-21664)', () => {

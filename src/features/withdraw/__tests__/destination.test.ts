@@ -202,6 +202,32 @@ describe('readWithdrawDestination', () => {
     })
 })
 
+// A payment request (EIP-681) is paid in the token it asks for or not at all:
+// the token has to be one Rhino delivers to the requested chain.
+describe("a payment request's token", () => {
+    beforeEach(() => {
+        mockConfig.disableXchainWithdraw = false
+    })
+
+    it('is kept when the chain pays it out, whatever its case', () => {
+        expect(readWithdrawDestination(EVM_ADDRESS, '8453', 'usdc')).toEqual({
+            address: EVM_ADDRESS,
+            chainId: '8453',
+            tokenSymbol: 'usdc',
+            networkPending: false,
+        })
+    })
+
+    it.each([
+        ['a token the chain does not pay out', '8453', 'DAI'],
+        ['the native token where Rhino does not bridge it', '137', 'ETH'],
+        ['a token on no chain, which nothing can check it against', undefined, 'USDC'],
+    ])('refuses %s rather than pay in another asset', (_case, chainId, tokenSymbol) => {
+        expect(readWithdrawDestination(EVM_ADDRESS, chainId, tokenSymbol)).toBeNull()
+        expect(stashScannedDestination(EVM_ADDRESS, chainId, { tokenSymbol })).toBeNull()
+    })
+})
+
 describe('withdrawTokenForChain', () => {
     const usdc = { symbol: 'USDC', address: 'usdc' } as never
     const usdt = { symbol: 'USDT', address: 'usdt' } as never
@@ -218,8 +244,9 @@ describe('withdrawTokenForChain', () => {
         expect(withdrawTokenForChain([usdc, usdt], 'usdt')).toBe(usdt)
     })
 
-    it('falls back to USDC when the chain lacks the requested token', () => {
-        expect(withdrawTokenForChain([usdt, usdc], 'DAI')).toBe(usdc)
+    // A request is paid in its asset or not at all, never in another one.
+    it('has no token when the chain lacks the one a payment request asks for', () => {
+        expect(withdrawTokenForChain([usdt, usdc], 'DAI')).toBeUndefined()
     })
 
     it.each([

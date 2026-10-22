@@ -357,16 +357,25 @@ export default function QRScannerOverlay() {
             case EQrType.EIP_681:
                 {
                     try {
-                        const { address, chainId, amount, tokenSymbol } = parseEip681(normalized)
+                        const { address, chainId, amount, tokenSymbol, tokenAddress } = parseEip681(normalized)
                         if (isLoggedIn) {
-                            // Refused when the chain is not a withdraw destination,
-                            // and while the ops kill-switch is on.
-                            const scanId = stashScannedDestination(address, chainId, { tokenSymbol })
+                            // A request asks for an asset through an ERC-20 transfer or
+                            // a native value; a plain `ethereum:` address asks for none.
+                            // It is paid in that asset or refused, never in another one,
+                            // so the asset has to be a token we can name and one the
+                            // chain pays out. An unsupported chain, and any chain while
+                            // the ops kill-switch is on, are refused the same way.
+                            const asksForAsset = !!tokenAddress || amount !== undefined
+                            const requestedToken = asksForAsset ? tokenSymbol : undefined
+                            const scanId =
+                                asksForAsset && !requestedToken
+                                    ? null
+                                    : stashScannedDestination(address, chainId, { tokenSymbol: requestedToken })
                             if (!scanId) {
                                 showModal(EModalType.QR_NOT_SUPPORTED)
                                 return { success: true }
                             }
-                            toConfirmUrl = withdrawScanEntryUrl(scanId, { tokenSymbol, amount })
+                            toConfirmUrl = withdrawScanEntryUrl(scanId, { tokenSymbol: requestedToken, amount })
                             break
                         }
                         // build the recipient PATH (no leading slash), then route it
