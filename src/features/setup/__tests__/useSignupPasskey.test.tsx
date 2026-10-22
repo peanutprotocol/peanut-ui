@@ -25,7 +25,7 @@ jest.mock('@/hooks/useZeroDev', () => ({
 }))
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/hooks/useSetupFlow', () => ({
-    SETUP_POST_REGISTRATION_SCREEN: 'residence',
+    postRegistrationScreen: () => 'residence',
     useSetupFlow: () => ({ isLoading: false, handleNext: mockHandleNext }),
 }))
 jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: mockDeviceType }) }))
@@ -34,7 +34,7 @@ jest.mock('@/utils/capacitor', () => ({
     isIOSNativeBridge: () => mockIOSNativeBridge,
 }))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
-    useSetupFlowContext: () => ({ setNoBackLockScreenId: mockSetNoBackLock }),
+    useSetupFlowContext: () => ({ setNoBackLockScreenId: mockSetNoBackLock, steps: [] }),
 }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
 jest.mock('@/utils/passkeyPreflight', () => ({ checkPasskeySupport: () => mockSupport() }))

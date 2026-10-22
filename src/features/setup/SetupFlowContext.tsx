@@ -37,6 +37,13 @@ interface SetupFlowContextType {
     setDirection: (direction: number) => void
     username: string
     setUsername: (username: string) => void
+    /**
+     * The country the sell screens were chosen for, fixed once the account exists so
+     * the screens do not change under the person. Undefined until then: the layout
+     * follows the live country suggestion.
+     */
+    sellScreensCountry: string | null | undefined
+    setSellScreensCountry: (country: string | null | undefined) => void
     residenceCountry: string
     setResidenceCountry: (country: string) => void
     secondResidenceCountry: string
@@ -71,6 +78,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
     const [isLoading, setIsLoading] = useState(false)
     const [direction, setDirection] = useState(0)
     const [username, setUsername] = useState('')
+    const [sellScreensCountry, setSellScreensCountry] = useState<string | null | undefined>(undefined)
     const [residenceCountry, setResidenceCountry] = useState('')
     const [secondResidenceCountry, setSecondResidenceCountry] = useState('')
     const [signupEntryFlow, setSignupEntryFlow] = useState<SignupEntryFlow>('default')
@@ -87,6 +95,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
         setSignupCompleted(false)
         setDirection(0)
         setUsername('')
+        setSellScreensCountry(undefined)
         setResidenceCountry('')
         setSecondResidenceCountry('')
         setNoBackLockScreenId(null)
@@ -113,6 +122,8 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             setDirection,
             username,
             setUsername,
+            sellScreensCountry,
+            setSellScreensCountry,
             residenceCountry,
             setResidenceCountry,
             secondResidenceCountry,
@@ -134,6 +145,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             isLoading,
             direction,
             username,
+            sellScreensCountry,
             residenceCountry,
             secondResidenceCountry,
             signupEntryFlow,

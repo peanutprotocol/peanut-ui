@@ -1,11 +1,14 @@
 import { setupSteps } from '@/components/Setup/Setup.consts'
 import {
+    filterSetupStepsForCountry,
     filterSetupStepsForInvite,
-    filterSetupStepsForResidence,
-    setupFeatureScreensForResidence,
+    setupFeatureScreensForCountry,
 } from '../filterSetupSteps'
 
 const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
+const ids = (country: string | null) =>
+    filterSetupStepsForCountry(setupSteps, restrictions, country).map((step) => step.screenId)
+
 it.each([
     ['PT', ['advantage-fees', 'advantage-card']],
     ['AR', ['advantage-fees', 'advantage-card']],
@@ -13,24 +16,26 @@ it.each([
     ['IN', ['advantage-fees']],
     ['JP', ['advantage-card']],
     ['RU', []],
-    ['', []],
-])('keeps only the sell screens offered in %s, between the inviter and the payment plan', (residence, expected) => {
-    expect(setupFeatureScreensForResidence(restrictions, residence as string)).toEqual(expected)
-    const ids = filterSetupStepsForResidence(setupSteps, restrictions, residence as string).map((step) => step.screenId)
-    expect(ids.slice(ids.indexOf('invite') + 1, ids.indexOf('payment-plan'))).toEqual(expected)
-    expect(new Set(ids).size).toBe(ids.length)
-    expect(ids).not.toContain('sign-test-transaction')
+])('keeps only the sell screens offered in %s, between the inviter and residence', (country, expected) => {
+    expect(setupFeatureScreensForCountry(restrictions, country)).toEqual(expected)
+    const list = ids(country)
+    expect(list.slice(list.indexOf('invite') + 1, list.indexOf('residence'))).toEqual(expected)
+    expect(new Set(list).size).toBe(list.length)
+    expect(list).not.toContain('sign-test-transaction')
 })
 
-it('keeps the sign-up order: the username first, the inviter after registration, the sell screens before the payment plan', () => {
-    const ids = filterSetupStepsForResidence(setupSteps, restrictions, 'PT').map((step) => step.screenId)
-    expect(ids).toEqual([
+it.each([null, '', '  '])('shows both sell screens when no country is suggested (%p)', (country) => {
+    expect(setupFeatureScreensForCountry(restrictions, country)).toEqual(['advantage-fees', 'advantage-card'])
+})
+
+it('keeps the sign-up order: username, inviter, sell screens, then residence and the plan', () => {
+    expect(ids('PT')).toEqual([
         'landing',
         'signup',
-        'residence',
         'invite',
         'advantage-fees',
         'advantage-card',
+        'residence',
         'payment-plan',
         'notification-email',
         'notification-permission',
@@ -38,18 +43,9 @@ it('keeps the sign-up order: the username first, the inviter after registration,
     ])
 })
 
-it.each([
-    ['PT', ['residence', 'invite', 'advantage-fees', 'advantage-card', 'payment-plan']],
-    ['IN', ['residence', 'invite', 'advantage-fees', 'payment-plan']],
-    ['RU', ['residence', 'invite', 'payment-plan']],
-])('shows the card before the plan asks how to spend (%s)', (residence, expected) => {
-    const ids = filterSetupStepsForResidence(setupSteps, restrictions, residence).map((step) => step.screenId)
-    expect(ids.slice(ids.indexOf('residence'), ids.indexOf('payment-plan') + 1)).toEqual(expected)
-})
-
 it('asks for an inviter only when the signup has none', () => {
-    const ids = (hasInvite: boolean) => filterSetupStepsForInvite(setupSteps, hasInvite).map((step) => step.screenId)
-    expect(ids(false)).toContain('invite')
-    expect(ids(true)).not.toContain('invite')
-    expect(ids(true)).toEqual(ids(false).filter((id) => id !== 'invite'))
+    const list = (hasInvite: boolean) => filterSetupStepsForInvite(setupSteps, hasInvite).map((step) => step.screenId)
+    expect(list(false)).toContain('invite')
+    expect(list(true)).not.toContain('invite')
+    expect(list(true)).toEqual(list(false).filter((id) => id !== 'invite'))
 })

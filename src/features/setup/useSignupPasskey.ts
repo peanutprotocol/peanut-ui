@@ -8,7 +8,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useLogin } from '@/hooks/useLogin'
-import { SETUP_POST_REGISTRATION_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
+import { postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { isCapacitor, isIOSNativeBridge } from '@/utils/capacitor'
 import { apiFetch } from '@/utils/api-fetch'
@@ -64,7 +64,7 @@ const isProbablyPrivateMode = () => {
  */
 export function useSignupPasskey(username: string) {
     const t = useTranslations('setup')
-    const { setNoBackLockScreenId } = useSetupFlowContext()
+    const { setNoBackLockScreenId, steps } = useSetupFlowContext()
     const { handleNext } = useSetupFlow()
     const { handleRegister, address, isRegistering } = useZeroDev()
     const { handleLoginClick, isLoggingIn } = useLogin()
@@ -258,10 +258,10 @@ export function useSignupPasskey(username: string) {
         if (address && registrationInitiatedRef.current) {
             registrationInitiatedRef.current = false
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_SUCCEEDED, { device_type: deviceType })
-            setNoBackLockScreenId(SETUP_POST_REGISTRATION_SCREEN)
+            setNoBackLockScreenId(postRegistrationScreen(steps.map((step) => step.screenId)))
             void handleNext()
         }
-    }, [address, handleNext, deviceType, setNoBackLockScreenId])
+    }, [address, handleNext, deviceType, setNoBackLockScreenId, steps])
 
     return {
         claim,

@@ -3,10 +3,10 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
 import { act, renderHook } from '@testing-library/react'
 import { NuqsTestingAdapter, type OnUrlUpdateFunction } from 'nuqs/adapters/testing'
 import { useState, type ReactNode } from 'react'
-import { SETUP_DEFAULT_SCREEN, SETUP_POST_REGISTRATION_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
+import { SETUP_DEFAULT_SCREEN, postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
 import { SetupFlowProvider, useSetupFlowContext } from '../SetupFlowContext'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
-import { filterSetupStepsForResidence } from '../filterSetupSteps'
+import { filterSetupStepsForCountry, filterSetupStepsForInvite } from '../filterSetupSteps'
 
 // native detection is mocked so the history-mode contract below can flip it
 let mockIsNativeBridge = false
@@ -58,10 +58,10 @@ describe('useSetupFlow (URL stepper)', () => {
         ['IN', ['advantage-fees']],
         ['JP', ['advantage-card']],
         ['RU', []],
-    ])('walks the sell screens offered between the inviter and the payment plan for %s', async (country, features) => {
+    ])('walks the sell screens offered between the inviter and residence for %s', async (country, features) => {
         const { result } = renderFlow({ screen: 'invite' })
         const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
-        await seedSteps(result, filterSetupStepsForResidence(setupSteps, restrictions, country as string))
+        await seedSteps(result, filterSetupStepsForCountry(setupSteps, restrictions, country as string))
         for (const expected of features) {
             await act(async () => {
                 await result.current.flow.handleNext()
@@ -71,7 +71,7 @@ describe('useSetupFlow (URL stepper)', () => {
         await act(async () => {
             await result.current.flow.handleNext()
         })
-        expect(result.current.flow.step?.screenId).toBe('payment-plan')
+        expect(result.current.flow.step?.screenId).toBe('residence')
         for (const expected of [...features].reverse()) {
             await act(async () => result.current.flow.handleBack())
             expect(result.current.flow.step?.screenId).toBe(expected)
@@ -160,20 +160,20 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.flow.step?.screenId).toBe('advantage-control')
     })
 
-    it('walks every post-registration screen backward to residence without reopening the username', async () => {
+    it('walks every post-registration screen backward to the inviter without reopening the username', async () => {
         const { result } = renderFlow({ screen: 'advantage-control' })
         await seedSteps(result, setupSteps)
         await act(async () => {
-            result.current.context.setNoBackLockScreenId(SETUP_POST_REGISTRATION_SCREEN)
+            result.current.context.setNoBackLockScreenId(postRegistrationScreen(setupScreenIds))
         })
         for (const expected of [
             'notification-permission',
             'notification-email',
             'payment-plan',
+            'residence',
             'advantage-card',
             'advantage-fees',
             'invite',
-            'residence',
         ]) {
             await act(async () => {
                 result.current.flow.handleBack()
@@ -184,13 +184,26 @@ describe('useSetupFlow (URL stepper)', () => {
         await act(async () => {
             result.current.flow.handleBack()
         })
-        expect(result.current.flow.step?.screenId).toBe('residence')
+        expect(result.current.flow.step?.screenId).toBe('invite')
         for (const target of ['signup', 'landing'] as const) {
             await act(async () => {
                 result.current.flow.setScreenId(target)
             })
-            expect(result.current.flow.step?.screenId).toBe('residence')
+            expect(result.current.flow.step?.screenId).toBe('invite')
         }
+    })
+
+    it.each([
+        ['the inviter question', false, 'PT', 'invite'],
+        ['the first sell screen when the signup has an invite', true, 'PT', 'advantage-fees'],
+        ['residence when nothing else is offered', true, 'RU', 'residence'],
+    ])('locks the way back at %s', (_label, hasInvite, country, expected) => {
+        const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
+        const steps = filterSetupStepsForInvite(
+            filterSetupStepsForCountry(setupSteps, restrictions, country),
+            hasInvite
+        )
+        expect(postRegistrationScreen(steps.map((step) => step.screenId))).toBe(expected)
     })
 
     it('derives backward and forward arrival direction for external URL changes', async () => {
@@ -213,9 +226,9 @@ describe('useSetupFlow (URL stepper)', () => {
         )
         await seedSteps(result, setupSteps)
         await act(async () => {
-            navigate('residence')
+            navigate('advantage-fees')
         })
-        expect(result.current.flow.step?.screenId).toBe('residence')
+        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
         expect(result.current.flow.direction).toBe(-1)
         expect(result.current.context.direction).toBe(-1)
         await act(async () => {
@@ -263,15 +276,15 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.flow.step?.screenId).toBe(SETUP_DEFAULT_SCREEN)
     })
 
-    it('creates the account on the username step, then residence, inviter, sell screens, plan, contact and finish', () => {
-        expect(SETUP_POST_REGISTRATION_SCREEN).toBe('residence')
+    it('creates the account on the username step, then inviter, sell screens, residence, plan, contact and finish', () => {
+        expect(postRegistrationScreen(setupScreenIds)).toBe('invite')
         expect(setupScreenIds).toEqual([
             'landing',
             'signup',
-            'residence',
             'invite',
             'advantage-fees',
             'advantage-card',
+            'residence',
             'payment-plan',
             'notification-email',
             'notification-permission',
