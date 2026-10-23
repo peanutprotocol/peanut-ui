@@ -42,7 +42,7 @@ const IDENTIFIER =
 
 export const MARKETING_QR_REGISTRATIONS: readonly MarketingQrRegistration[] = Object.entries(PAGE_SLOTS).flatMap(
     ([page, slots]) =>
-        LOCALES.flatMap((locale) =>
+        (page === 'home' ? LOCALES : (['en'] as const)).flatMap((locale) =>
             slots.map((placement) => {
                 const qr_id = `${page}-${placement}-${locale}`
                 const inline = ['hero-sticker', 'close-sticker', 'ways-in'].includes(placement)

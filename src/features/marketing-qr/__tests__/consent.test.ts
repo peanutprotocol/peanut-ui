@@ -52,6 +52,11 @@ it('lets either cookie or localStorage denial win', () => {
     expect(marketingQrAnalyticsAllowed('test-key')).toBe(false)
 })
 
+it('uses the same trimmed project key as the app SDK', () => {
+    localStorage.setItem(key, '0')
+    expect(marketingQrAnalyticsAllowed(' test-key ')).toBe(false)
+})
+
 it('denies unreadable storage, absent configuration, DNT and GPC', () => {
     const spy = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
         throw new Error('blocked')

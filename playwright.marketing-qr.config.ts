@@ -13,7 +13,7 @@ export default defineConfig({
     expect: { timeout: 12_000 },
     reporter: [['list']],
     use: {
-        baseURL: process.env.MARKETING_QR_BASE_URL ?? 'http://127.0.0.1:8765',
+        baseURL: process.env.MARKETING_QR_BASE_URL ?? 'http://localhost:8765',
         serviceWorkers: 'block',
         trace: 'retain-on-failure',
         screenshot: 'only-on-failure',

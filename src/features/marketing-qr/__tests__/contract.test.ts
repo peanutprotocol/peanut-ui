@@ -26,6 +26,7 @@ it('is disabled by default and never registers payment or account surfaces', () 
     expect(getMarketingQrRegistration('send-hero-en')).toBeNull()
     expect(getMarketingQrRegistration('peanut-card-hero-en')).toBeNull()
     expect(getMarketingQrRegistration('__proto__')).toBeNull()
+    expect(getMarketingQrRegistration('qr-brazil-hero-sticker-pt-br')).toBeNull()
 })
 
 it('keeps every registered default within the QR URL budget and canonicalizes locale', () => {
@@ -84,6 +85,36 @@ it('uses a whole saved tuple or defaults, and does not recover campaign state af
         attributionOrigin: 'saved_campaign',
     })
     expect(buildMarketingQrUrl({ ...input, analyticsEnabled: false })).toBe('https://peanut.me/q/home-hero-en')
+})
+
+it.each([
+    'blog',
+    'compare',
+    'countries',
+    'country-hub',
+    'deposit-account',
+    'deposit-from',
+    'pay-with-method',
+    'pricing',
+    'receive-from-country',
+    'send-to-country',
+    'send-to-country-from',
+    'stories',
+    'supported-networks',
+    'use-cases',
+    'withdraw',
+])('preserves the existing content source %s when a visitor later scans an LP QR', (source) => {
+    const url = buildMarketingQrUrl({
+        origin: 'https://peanut.me',
+        context,
+        analyticsEnabled: true,
+        savedCampaign: { source, medium: 'content', campaign: 'wise', content: 'hero' },
+    })!
+    expect(parseMarketingQrQuery(registration, new URL(url).searchParams)).toMatchObject({
+        valid: true,
+        campaign: { source, medium: 'content', campaign: 'wise', content: 'hero' },
+        attributionOrigin: 'saved_campaign',
+    })
 })
 
 it.each(['&next=https://evil.test', '&wid=person', '&gclid=click', '&s=meta', '&a=bogus'])(

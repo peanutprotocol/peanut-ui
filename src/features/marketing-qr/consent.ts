@@ -5,7 +5,10 @@
  */
 export function marketingQrAnalyticsAllowed(projectKey = process.env.NEXT_PUBLIC_POSTHOG_KEY): boolean {
     try {
-        if (!projectKey || typeof window === 'undefined' || typeof navigator === 'undefined') return false
+        projectKey = projectKey?.trim()
+        if (!projectKey) return false
+        // Next folds `typeof window` in server bundles. Keep browser access
+        // inside this try so the serialized function still runs in the scanner.
         const privacyNavigator = navigator as Navigator & { globalPrivacyControl?: boolean; msDoNotTrack?: string }
         const privacyWindow = window as Window & { doNotTrack?: string }
         if (

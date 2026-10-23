@@ -183,6 +183,7 @@ test.describe('marketing QR browser handoff', () => {
             const held = new Promise<void>((resolve) => (release = resolve))
             try {
                 await isolateContinuation(context)
+                const requests = openingRequests(context)
                 await context.route(`**${capturePath}`, async (route) => {
                     if (behavior === 'pending') await held
                     await route.abort('failed').catch(() => {})
@@ -190,6 +191,7 @@ test.describe('marketing QR browser handoff', () => {
                 const page = await context.newPage()
                 await page.goto(qrPath)
                 await expect(page).toHaveURL(/\/home\?app_entry=1/, { timeout: 5000 })
+                await expect.poll(() => requests.length, { timeout: 5000 }).toBe(1)
             } finally {
                 release?.()
                 await context.close()
@@ -364,6 +366,47 @@ test.describe('rendered marketing QR', () => {
         }
     })
 
+    test('established SEO campaign source survives rendered QR and fresh scanner opening', async ({
+        browser,
+        baseURL,
+    }) => {
+        const desktop = await guardedContext(browser, baseURL!)
+        let scanner: BrowserContext | undefined
+        try {
+            await desktop.addInitScript((key) => {
+                localStorage.setItem('pwa-sunset', 'true')
+                localStorage.setItem(key, '1')
+            }, preferenceKey)
+            const page = await desktop.newPage()
+            await page.goto('/?utm_source=compare&utm_medium=content&utm_campaign=wise&utm_content=hero')
+            await page.getByTestId('landing-download-cta').getByRole('link').click()
+            const qr = page.getByRole('dialog').locator('[data-qr-url]')
+            await expect(qr).toBeVisible()
+            const decoded = await decodeQr(desktop, qr, baseURL!)
+            const url = new URL(decoded)
+            expect(url.searchParams.get('s')).toBe('compare')
+            expect(url.searchParams.get('m')).toBe('content')
+            expect(url.searchParams.get('c')).toBe('wise')
+            scanner = await guardedContext(browser, baseURL!)
+            await isolateContinuation(scanner)
+            const events = openingRequests(scanner)
+            const phone = await scanner.newPage()
+            await phone.goto(decoded)
+            await expect(phone).toHaveURL(/\/home\?app_entry=1/)
+            await expect.poll(() => events.length).toBe(1)
+            expect(events[0].postDataJSON()).toMatchObject({
+                utm_source: 'compare',
+                utm_medium: 'content',
+                utm_campaign: 'wise',
+                utm_content: 'hero',
+                attribution_origin: 'current_url',
+            })
+        } finally {
+            await scanner?.close()
+            await desktop.close()
+        }
+    })
+
     test('long labels produce a scannable QR within the all-in byte budget', async ({ browser, baseURL }) => {
         const context = await guardedContext(browser, baseURL!)
         try {
@@ -372,7 +415,8 @@ test.describe('rendered marketing QR', () => {
                 localStorage.setItem(key, '1')
             }, preferenceKey)
             const campaign = `${'autumn-'.repeat(8)}campaign`
-            const content = `creative-${'z'.repeat(55)}`
+            // '+' is a valid label character and percent-encodes to three bytes.
+            const content = `creative+${'z+'.repeat(27)}z`
             const page = await context.newPage()
             await page.goto(`/?utm_source=google&utm_medium=cpc&utm_campaign=${campaign}&utm_content=${content}`)
             await page.getByTestId('landing-download-cta').getByRole('link').click()
@@ -410,12 +454,39 @@ test.describe('rendered marketing QR', () => {
                     await qr.scrollIntoViewIfNeeded()
                     const decoded = await decodeQr(context, qr, baseURL!)
                     const url = new URL(decoded)
-                    expect(url.pathname).toMatch(/^\/q\//)
-                    expect(url.searchParams.get('s')).toBe('star-lp')
-                    expect(url.searchParams.get('m')).toBe('content')
-                    expect(url.searchParams.get('c')).toBe(campaign)
-                    decodedSlots.add(url.searchParams.get('n')!)
                     expect(Buffer.byteLength(decoded)).toBeLessThanOrEqual(200)
+                    const expectedIdPrefix = route.endsWith('argentina') ? 'qr-argentina' : 'qr-brazil'
+                    expect(url.pathname).toMatch(
+                        new RegExp(`^/q/${expectedIdPrefix}-(hero-sticker|close-sticker|ways-in)-en$`)
+                    )
+                    const expectedSlot = url.pathname.includes('hero-sticker')
+                        ? 'h'
+                        : url.pathname.includes('close-sticker')
+                          ? 'c'
+                          : 'w'
+                    // Defaults may be encoded by registration alone. Prove their
+                    // effective meaning in a separate scanner, without importing
+                    // the production URL parser into the test oracle.
+                    const scanner = await guardedContext(browser, baseURL!)
+                    try {
+                        await isolateContinuation(scanner)
+                        const events = openingRequests(scanner)
+                        const phone = await scanner.newPage()
+                        await phone.goto(decoded)
+                        await expect(phone).toHaveURL(/\/home\?app_entry=1/)
+                        await expect.poll(() => events.length).toBe(1)
+                        expect(events[0].postDataJSON()).toMatchObject({
+                            qr_id: url.pathname.slice(3),
+                            utm_source: 'star-lp',
+                            utm_medium: 'content',
+                            utm_campaign: campaign,
+                            utm_content: expectedSlot,
+                            attribution_origin: 'placement_default',
+                        })
+                    } finally {
+                        await scanner.close()
+                    }
+                    decodedSlots.add(expectedSlot)
                 }
                 expect([...decodedSlots].sort()).toEqual([...slots].sort())
             } finally {
