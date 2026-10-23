@@ -23,7 +23,7 @@ import {
 } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
-import { VERIFY_ONCE_FIXTURES } from './verify-once'
+import { PAPERWORK_VERIFICATION_FIXTURES } from './paperwork-verification'
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
@@ -2881,5 +2881,5 @@ export const FIXTURES: Record<string, Fixture> = {
         fails: ['GET /users/limits'],
     },
 
-    ...VERIFY_ONCE_FIXTURES,
+    ...PAPERWORK_VERIFICATION_FIXTURES,
 }

@@ -86,7 +86,7 @@
             "locales": ["es-419", "es-AR", "pt-BR"],
             "reason": "brand line, kept in English (Konrad 24 Sep 2026)"
         },
-        "kyc.verifyOnce.tax.label.cc": {
+        "kyc.paperworkVerification.tax.label.cc": {
             "locales": ["es-419", "es-AR", "pt-BR"],
             "reason": "Colombia's ID document, an official Spanish name used as is in every locale"
         }

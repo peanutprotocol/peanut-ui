@@ -3383,7 +3383,7 @@
             "identityDocumentInsufficient": "{feature}: this needs a different ID document than the one you verified with.",
             "unavailable": "{feature}: this feature isn’t available with the current verification."
         },
-        "verifyOnce": {
+        "paperworkVerification": {
             "back": "Go back",
             "progress": "Step {current} of {total}",
             "continue": "Continue",

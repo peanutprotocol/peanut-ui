@@ -147,9 +147,9 @@ jest.mock('@/features/payments/flows/qr-pay/useQrIdentityCheck', () => ({
     useQrIdentityCheck: () => ({ start: mockStartQrCheck, modals: null }),
 }))
 
-let mockVerifyOnce = false
-jest.mock('@/features/verify-once/useVerifyOnceStart', () => ({
-    useVerifyOnceStart: () => mockVerifyOnce,
+let mockPaperworkVerification = false
+jest.mock('@/features/paperwork-verification/usePaperworkVerificationStart', () => ({
+    usePaperworkVerificationStart: () => mockPaperworkVerification,
 }))
 
 import ActivationCTAs from '../ActivationCTAs'
@@ -211,13 +211,13 @@ describe('ActivationCTAs — the Verify row starts the ID check in place', () =>
         expect(mockPush).not.toHaveBeenCalled()
     })
 
-    it('a verify-once user goes straight to the question screens', () => {
-        mockVerifyOnce = true
+    it('a Smart Paperwork Verification user goes straight to the question screens', () => {
+        mockPaperworkVerification = true
         render(<ActivationCTAs onboarding={NEW_USER} />)
         fireEvent.click(screen.getByText('start-identity-check'))
         expect(mockPush).toHaveBeenCalledWith('/verify')
         expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
-        mockVerifyOnce = false
+        mockPaperworkVerification = false
     })
 
     it('closes the start modal when the SDK opens, so the SDK is the only modal in front', () => {

@@ -3,11 +3,13 @@ import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import VerifyRoute from '../page'
 
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
-jest.mock('@/features/verify-once/VerifyOnceFlow', () => ({ VerifyOnceFlow: () => <div>verify-once</div> }))
-jest.mock('@/features/verify-once/AddFeatureFlow', () => ({
+jest.mock('@/features/paperwork-verification/PaperworkVerificationFlow', () => ({
+    PaperworkVerificationFlow: () => <div>paperwork-verification</div>,
+}))
+jest.mock('@/features/paperwork-verification/AddFeatureFlow', () => ({
     AddFeatureFlow: ({ feature }: { feature: string }) => <div>add-{feature}</div>,
 }))
-jest.mock('@/features/verify-once/IdentityRestartFlow', () => ({
+jest.mock('@/features/paperwork-verification/IdentityRestartFlow', () => ({
     IdentityRestartFlow: () => <div>identity-restart</div>,
 }))
 
@@ -21,9 +23,9 @@ const renderAt = (search: string) =>
 describe('/verify', () => {
     it.each([
         ['?step=id&restart=1', 'identity-restart'],
-        ['?step=id', 'verify-once'],
+        ['?step=id', 'paperwork-verification'],
         ['?feature=bank', 'add-bank'],
-        ['?restart=yes', 'verify-once'],
+        ['?restart=yes', 'paperwork-verification'],
     ])('%s opens %s', async (search, shown) => {
         renderAt(search)
         expect(await screen.findByText(shown)).toBeInTheDocument()

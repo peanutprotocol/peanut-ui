@@ -67,7 +67,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // /profile/* sub-pages keep the nav.
     const isProfileMenu = pathName === '/profile' || pathName === '/profile/'
     const isDev = pathName?.startsWith('/dev') ?? false
-    // The verify-once flow is a full-screen setup-style flow: no bottom nav, its own insets.
+    // Smart Paperwork Verification is a full-screen setup-style flow: no bottom nav, its own insets.
     const isVerify = pathName === '/verify' || pathName === '/verify/'
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()

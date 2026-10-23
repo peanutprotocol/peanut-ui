@@ -157,7 +157,7 @@ describe('useCardFlow', () => {
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
     })
 
-    it('asks the verify-once card questions on questions-required, then applies again once they are saved', async () => {
+    it('asks the Smart Paperwork Verification card questions on questions-required, then applies again once they are saved', async () => {
         mockApplyForCard.mockResolvedValueOnce({ status: 'questions-required', step: 'purpose' })
         const { result } = renderHook(() => useCardFlow())
         await act(async () => {

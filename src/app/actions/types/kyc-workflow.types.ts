@@ -7,6 +7,8 @@ export type KycDocumentPlan = Omit<
 > &
     Partial<Pick<DocumentPlanResponse, 'flow' | 'proofOfAddress' | 'proofOfAddressIdCountries' | 'temporaryProtection'>>
 export type KycFeatures = KycDocumentPlan['features']
+/** Smart Paperwork Verification's stored `flow` value; the API keeps it on existing attempts. */
+export const PAPERWORK_VERIFICATION_FLOW = 'verify-once' satisfies NonNullable<KycDocumentPlan['flow']>
 type AttemptResponse = paths['/users/kyc/attempts']['post']['responses'][200]['content']['application/json']
 export type KycDocumentConfig = AttemptResponse['sdkConfig']
 // A usable SDK session has a real applicant. The action validates that boundary before returning it.

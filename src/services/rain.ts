@@ -16,7 +16,7 @@ import { getAuthToken } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
 import type { SignedRainWithdrawal } from '@/hooks/wallet/useSignSpendBundle'
 import { API_ERROR_CODES, ApiError } from './api-error'
-import { verifyOnceHeaders } from '@/features/verify-once/verifyOnceFlag'
+import { paperworkVerificationHeaders } from '@/features/paperwork-verification/paperworkVerificationHeaders'
 import type { AcceptedLegalDocument } from '@/services/consent'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -416,7 +416,7 @@ export type ApplyForCardResponse =
           message: string
       }
     | {
-          // Verify-once: the card answers (purpose, job, income, spend,
+          // Smart Paperwork Verification: the card answers (purpose, job, income, spend,
           // phone) are not all in Sumsub yet, or Rain refused the job title
           // (step 'work'). Ask them, then apply again.
           status: 'questions-required'
@@ -454,7 +454,7 @@ interface RequestOpts {
     stepUp?: boolean
     /** Use an already-cached proof without opening a new ceremony. */
     stepUpToken?: string
-    /** Extra request headers (the verify-once flag header on the application). */
+    /** Extra request headers (the Smart Paperwork Verification header on the application). */
     headers?: Record<string, string>
     /**
      * Suppress the GLOBAL cooldown explainer for a 425 (the typed
@@ -766,7 +766,7 @@ export const rainApi = {
                 method: 'POST',
                 path: '/rain/cards',
                 body,
-                headers: verifyOnceHeaders(),
+                headers: paperworkVerificationHeaders(),
                 // The first-time-application path runs 7 sequential Sumsub calls, a
                 // deliberate 2.5s readiness sleep, the Rain createApplication call,
                 // and an optional inline issueCard — routinely 7-13s. The default

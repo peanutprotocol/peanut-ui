@@ -120,7 +120,7 @@ export function useCardFlow() {
     // The send gate's refusal of Rain for this plan (POST /rain/cards 403
     // provider-not-in-plan), when the app has copy and a step for it.
     const [planRefusal, setPlanRefusal] = useState<string | null>(null)
-    // Verify-once: POST /rain/cards answered `questions-required` with the step to ask; the card questions come first.
+    // Smart Paperwork Verification: POST /rain/cards answered `questions-required` with the step to ask; the card questions come first.
     const [pendingQuestions, setPendingQuestions] = useState<string | null>(null)
     const [pendingApplication, setPendingApplication] = useState<'pending-identity' | 'pending' | null>(null)
     useEffect(() => {

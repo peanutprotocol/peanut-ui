@@ -24,7 +24,7 @@ import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdentityCheck'
-import { useVerifyOnceStart } from '@/features/verify-once/useVerifyOnceStart'
+import { usePaperworkVerificationStart } from '@/features/paperwork-verification/usePaperworkVerificationStart'
 
 interface ActivationCTAsProps {
     onboarding: OnboardingState
@@ -93,9 +93,9 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
     // The checklist's Verify row opens the same start modal the bank and
     // deposit gates use: its outage, region and residence checks run here too.
     const [showInitiateKyc, setShowInitiateKyc] = useState(false)
-    // verify-once users go straight to the question screens
-    const verifyOnce = useVerifyOnceStart()
-    const startIdentityCheck = () => (verifyOnce ? router.push('/verify') : setShowInitiateKyc(true))
+    // Smart Paperwork Verification users go straight to the question screens
+    const paperworkVerification = usePaperworkVerificationStart()
+    const startIdentityCheck = () => (paperworkVerification ? router.push('/verify') : setShowInitiateKyc(true))
     // the SDK takes over the screen; the modal that opened it should not stay behind it
     useEffect(() => {
         if (kycFlow.showWrapper) setShowInitiateKyc(false)
