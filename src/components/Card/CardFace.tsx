@@ -96,9 +96,9 @@ const CardFace: FC<Props> = ({
                 // physical-card geometry token — value lives in globals.css.
                 // intentionally off the ds radius scale, same exemption class
                 // as the aspect ratio (visual-qa verdict ui#3201).
-                // the id-1 ratio is the minimum height (spacer below); larger
-                // text grows the face instead of being clipped.
-                'relative grid w-full overflow-hidden rounded-card bg-action-primary text-foreground-primary',
+                // Keep the ratio as a minimum height and constrain the column
+                // to the card width so larger text can wrap and grow.
+                'relative grid w-full grid-cols-[minmax(0,1fr)] overflow-hidden rounded-card bg-action-primary text-foreground-primary',
                 isLocked && 'grayscale',
                 className
             )}
@@ -123,12 +123,13 @@ const CardFace: FC<Props> = ({
                  * black master; the footer tints it white with CSS invert) and a
                  * dark VISA with a "Platinum" tier line — not the old inverted-white
                  * Visa with no tier. */}
-                <div className="flex items-start justify-between">
+                <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
                     <div className="flex items-center gap-2">
                         <Image src={LOGO} alt="" aria-hidden className="h-8 w-auto" />
                         <Image src={WORDMARK} alt="Peanut" className="h-3 w-auto" />
                     </div>
-                    <div className="flex flex-col items-end leading-none">
+                    {/* ml-auto keeps it right-aligned if large text wraps it to its own line */}
+                    <div className="ml-auto flex flex-col items-end leading-none">
                         <Image src={VISA_BRAND_MARK} alt="Visa" className="h-6 w-auto brightness-0" />
                         {/* Card-tier brand lockup, not copy — stays English in every locale. */}
                         <span className="mt-0.5 text-label-m tracking-wide">{'Platinum'}</span>
