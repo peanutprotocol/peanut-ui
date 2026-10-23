@@ -10,6 +10,8 @@ import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Link from 'next/link'
 import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
+import type { ReactNode } from 'react'
+import { formatUnits } from 'viem'
 import { homeDrawerOptions } from '../home-drawer-options'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 
@@ -21,6 +23,10 @@ interface BalanceSectionProps {
     isStale?: boolean
     isHidden: boolean
     onToggleVisibility: () => void
+    currencySymbol?: '$' | '€'
+    decimals?: number
+    /** A currency-specific action surface replaces all dollar-only actions. */
+    actions?: ReactNode
 }
 
 // home IA (figma section 17609:2334): add, send and request each open a bottom
@@ -37,7 +43,16 @@ const SUBMENU_ACTIONS: Array<{ key: HomeDrawer; icon: IconName }> = [
  * visibility toggle, plus the add / send / request submenu underneath.
  * submenu states per component 17533:117867 (default / pressed).
  */
-export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggleVisibility }: BalanceSectionProps) {
+export function BalanceSection({
+    balance,
+    isFetching,
+    isStale,
+    isHidden,
+    onToggleVisibility,
+    currencySymbol = '$',
+    decimals,
+    actions,
+}: BalanceSectionProps) {
     const t = useAppTranslations('home')
     const tNav = useTranslations('navigation')
     const { triggerHaptic } = useAppHaptic()
@@ -57,9 +72,15 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
                     <Loading />
                 ) : (
                     <span className={twMerge('flex items-center gap-2', isStale && 'opacity-50')}>
-                        <span className="text-heading-s text-foreground-primary">$</span>
+                        <span className="text-heading-s text-foreground-primary">{currencySymbol}</span>
                         <span className="text-heading-xl text-foreground-primary">
-                            {isHidden ? '****' : formatExtendedNumber(printableUsdc(balance))}
+                            {isHidden
+                                ? '****'
+                                : formatExtendedNumber(
+                                      decimals === undefined
+                                          ? printableUsdc(balance)
+                                          : Number(formatUnits(balance, decimals))
+                                  )}
                         </span>
                     </span>
                 )}
@@ -79,54 +100,58 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
                     </button>
                 )}
             </div>
-            <div className="flex items-start justify-between px-10">
-                {SUBMENU_ACTIONS.map((action) => {
-                    // a drawer with one row is a pointless extra tap: link to
-                    // that row's destination instead (request, while standing
-                    // bank details are not offered)
-                    const options = homeDrawerOptions(action.key, depositAccounts)
-                    const directHref = options.length === 1 ? options[0].href : undefined
-                    const inner = (
-                        <>
-                            <span
-                                className={twMerge(
-                                    'flex size-12 items-center justify-center rounded-full border border-border-default transition-colors duration-instant',
-                                    // pressed = action-primary per button board 17308:13973
-                                    // ("buttons turn primary when pressed"); the submenu
-                                    // board's ghost-hover binding resolves to the same pink
-                                    // in figma, but the code token is the dark ghost-text
-                                    // tint — see PR body token note
-                                    !directHref && openDrawer === action.key
-                                        ? 'border-border-button bg-action-primary'
-                                        : 'active:border-border-button active:bg-action-primary'
-                                )}
+            {actions !== undefined ? (
+                actions
+            ) : (
+                <div className="flex items-start justify-between px-10">
+                    {SUBMENU_ACTIONS.map((action) => {
+                        // a drawer with one row is a pointless extra tap: link to
+                        // that row's destination instead (request, while standing
+                        // bank details are not offered)
+                        const options = homeDrawerOptions(action.key, depositAccounts)
+                        const directHref = options.length === 1 ? options[0].href : undefined
+                        const inner = (
+                            <>
+                                <span
+                                    className={twMerge(
+                                        'flex size-12 items-center justify-center rounded-full border border-border-default transition-colors duration-instant',
+                                        // pressed = action-primary per button board 17308:13973
+                                        // ("buttons turn primary when pressed"); the submenu
+                                        // board's ghost-hover binding resolves to the same pink
+                                        // in figma, but the code token is the dark ghost-text
+                                        // tint — see PR body token note
+                                        !directHref && openDrawer === action.key
+                                            ? 'border-border-button bg-action-primary'
+                                            : 'active:border-border-button active:bg-action-primary'
+                                    )}
+                                >
+                                    <Icon name={action.icon} size={24} className="text-foreground-primary" />
+                                </span>
+                                <span className="text-button-m text-foreground-primary">{tNav(action.key)}</span>
+                            </>
+                        )
+                        const shared = {
+                            className: 'flex w-14 cursor-pointer flex-col items-center gap-2',
+                            'data-testid': `home-submenu-${action.key}`,
+                        }
+                        return directHref ? (
+                            <Link key={action.key} href={directHref} onClick={() => triggerHaptic()} {...shared}>
+                                {inner}
+                            </Link>
+                        ) : (
+                            <button
+                                key={action.key}
+                                type="button"
+                                onClick={() => openActionDrawer(action.key)}
+                                aria-expanded={openDrawer === action.key}
+                                {...shared}
                             >
-                                <Icon name={action.icon} size={24} className="text-foreground-primary" />
-                            </span>
-                            <span className="text-button-m text-foreground-primary">{tNav(action.key)}</span>
-                        </>
-                    )
-                    const shared = {
-                        className: 'flex w-14 cursor-pointer flex-col items-center gap-2',
-                        'data-testid': `home-submenu-${action.key}`,
-                    }
-                    return directHref ? (
-                        <Link key={action.key} href={directHref} onClick={() => triggerHaptic()} {...shared}>
-                            {inner}
-                        </Link>
-                    ) : (
-                        <button
-                            key={action.key}
-                            type="button"
-                            onClick={() => openActionDrawer(action.key)}
-                            aria-expanded={openDrawer === action.key}
-                            {...shared}
-                        >
-                            {inner}
-                        </button>
-                    )
-                })}
-            </div>
+                                {inner}
+                            </button>
+                        )
+                    })}
+                </div>
+            )}
         </div>
     )
 }

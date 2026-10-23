@@ -34,6 +34,15 @@ function setup(props: Partial<React.ComponentProps<typeof AmountInput>> = {}) {
 }
 
 describe('AmountInput full-balance fill', () => {
+    it('keeps a converted total below the selected balance without changing the fill amount', () => {
+        const { useFullBalance, field } = setup({
+            balanceSupplement: <p>Total across accounts: ≈ 32.00 USD</p>,
+        })
+        const total = screen.getByText('Total across accounts: ≈ 32.00 USD')
+        expect(useFullBalance()!.compareDocumentPosition(total) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        fireEvent.click(useFullBalance()!)
+        expect(field.value).toBe('12.34')
+    })
     it('fills the balance floored to cents', () => {
         const { field, useFullBalance, lastReported } = setup()
 

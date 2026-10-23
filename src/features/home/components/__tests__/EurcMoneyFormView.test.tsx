@@ -1,0 +1,161 @@
+import React from 'react'
+import { randomUUID } from 'node:crypto'
+Object.defineProperty(globalThis.crypto, 'randomUUID', { value: randomUUID, configurable: true })
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { NextIntlClientProvider } from 'next-intl'
+import { parseUnits } from 'viem'
+import { AppLocaleContext } from '@/i18n/app/locale-context'
+import type { AppLocale } from '@/i18n/app/config'
+import { EurcMoneyFormView } from '../EurcMoneyFormView'
+import { currencyAccountsApi, type CurrencyOperationKind } from '@/services/currency-accounts'
+jest.mock('@/services/currency-accounts', () => ({
+    currencyAccountsApi: { prepare: jest.fn(), bankAccounts: jest.fn(), exchangeRate: jest.fn() },
+}))
+jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
+jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
+jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
+jest.mock('../EurcBankAccountView', () => ({ EurcBankAccountView: () => <div>bank form</div> }))
+jest.mock('@/components/0_Bruddle/BaseSelect', () => ({
+    BaseSelect: ({ options, onValueChange, ...props }: any) => (
+        <select {...props} onChange={(e) => onValueChange(e.target.value)}>
+            <option value="" />
+            {options.map((o: any) => (
+                <option key={o.value} value={o.value}>
+                    {o.label}
+                </option>
+            ))}
+        </select>
+    ),
+}))
+function setup(kind: CurrencyOperationKind) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    const prepared = jest.fn()
+    const view = render(
+        <QueryClientProvider client={client}>
+            <EurcMoneyFormView userId="alice" kind={kind} onPrepared={prepared} onClose={() => {}} />
+        </QueryClientProvider>
+    )
+    return { client, prepared, ...view }
+}
+// The app's locale reaches components through both next-intl and AppLocaleContext.
+function setupInLocale(kind: CurrencyOperationKind, locale: AppLocale) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    const view = render(
+        <NextIntlClientProvider locale={locale} messages={{}} timeZone="UTC" onError={() => {}}>
+            <AppLocaleContext.Provider value={{ locale, setLocale: async () => {} }}>
+                <QueryClientProvider client={client}>
+                    <EurcMoneyFormView userId="alice" kind={kind} onPrepared={jest.fn()} onClose={() => {}} />
+                </QueryClientProvider>
+            </AppLocaleContext.Provider>
+        </NextIntlClientProvider>
+    )
+    return { client, ...view }
+}
+beforeEach(() => {
+    jest.clearAllMocks()
+    jest.mocked(currencyAccountsApi.bankAccounts).mockResolvedValue({ accounts: [{ id: 'bank', label: 'Euro bank' }] })
+    jest.mocked(currencyAccountsApi.exchangeRate).mockResolvedValue({
+        midmarket_rate: '1.1',
+        buy_rate: '1.11',
+        sell_rate: '1.09',
+        updated_at: new Date().toISOString(),
+        indicative: true,
+        developerFeePercent: '0',
+    })
+    jest.mocked(currencyAccountsApi.prepare).mockRejectedValue(new Error('lost response'))
+})
+it('keeps the idempotency key for retries and replaces it when a failed request is edited', async () => {
+    const { client } = setup('SEND')
+    fireEvent.change(screen.getByLabelText(/amount/), { target: { value: '1.000001' } })
+    fireEvent.change(screen.getByLabelText('recipient'), { target: { value: `0x${'22'.repeat(20)}` } })
+    fireEvent.click(screen.getByRole('button', { name: 'review' }))
+    await screen.findByRole('alert')
+    const first = jest.mocked(currencyAccountsApi.prepare).mock.calls[0][0]
+    fireEvent.click(screen.getByRole('button', { name: 'review' }))
+    await waitFor(() => expect(currencyAccountsApi.prepare).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'review' })).toBeEnabled())
+    expect(jest.mocked(currencyAccountsApi.prepare).mock.calls[1][0].requestKey).toBe(first.requestKey)
+    fireEvent.change(screen.getByLabelText(/amount/), { target: { value: '2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'review' }))
+    await waitFor(() => expect(currencyAccountsApi.prepare).toHaveBeenCalledTimes(3))
+    expect(jest.mocked(currencyAccountsApi.prepare).mock.calls[2][0].requestKey).not.toBe(first.requestKey)
+    client.clear()
+})
+it('rejects a seventh decimal and exponent notation on token amounts', () => {
+    const { client } = setup('SEND')
+    fireEvent.change(screen.getByLabelText('recipient'), { target: { value: `0x${'22'.repeat(20)}` } })
+    for (const amount of ['0', '1.1234567', '0.0000001', '1e3']) {
+        fireEvent.change(screen.getByLabelText(/amount/), { target: { value: amount } })
+        expect(screen.getByRole('button', { name: 'review' })).toBeDisabled()
+    }
+    fireEvent.change(screen.getByLabelText(/amount/), { target: { value: '1.123456' } })
+    expect(screen.getByRole('button', { name: 'review' })).toBeEnabled()
+    client.clear()
+})
+it('takes whole cents only for bank funding, including amounts that would round to whole cents', () => {
+    const { client } = setup('BANK_DEPOSIT')
+    for (const amount of ['1.001', '1.000001', '1.0000001']) {
+        fireEvent.change(screen.getByLabelText(/amount/), { target: { value: amount } })
+        expect(screen.getByRole('button', { name: 'review' })).toBeDisabled()
+    }
+    fireEvent.change(screen.getByLabelText(/amount/), { target: { value: '1.23' } })
+    expect(screen.getByRole('button', { name: 'review' })).toBeEnabled()
+    client.clear()
+})
+it('requires an owned bank selection before preparing a withdrawal', async () => {
+    const { client } = setup('BANK_WITHDRAW')
+    await screen.findByRole('option', { name: 'Euro bank' })
+    fireEvent.change(screen.getByLabelText(/amount/), { target: { value: '1' } })
+    expect(screen.getByRole('button', { name: 'review' })).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('bankAccount'), { target: { value: 'bank' } })
+    fireEvent.click(screen.getByRole('button', { name: 'review' }))
+    await screen.findByRole('alert')
+    expect(currencyAccountsApi.prepare).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'BANK_WITHDRAW', externalAccountId: 'bank', sourceAsset: 'EURC' })
+    )
+    client.clear()
+})
+it('labels exchange prices as indicative and prepares the selected USDC source', async () => {
+    const { client } = setup('EXCHANGE')
+    await screen.findByText(/referenceRate/)
+    fireEvent.change(screen.getByLabelText('from'), { target: { value: 'USDC' } })
+    fireEvent.change(screen.getByLabelText(/amount/), { target: { value: '1.000001' } })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'review' })).toBeEnabled())
+    fireEvent.click(screen.getByRole('button', { name: 'review' }))
+    await screen.findByRole('alert')
+    expect(currencyAccountsApi.prepare).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'EXCHANGE', sourceAsset: 'USDC', amount: '1.000001' })
+    )
+    client.clear()
+})
+it.each<AppLocale>(['es-419', 'es-AR', 'pt-BR'])(
+    'in %s, 1,23 enables Review and prepares 1230000 base units, while seven decimals and exponents stay rejected',
+    async (locale) => {
+        const { client } = setupInLocale('SEND', locale)
+        fireEvent.change(screen.getByLabelText('recipient'), { target: { value: `0x${'22'.repeat(20)}` } })
+        fireEvent.change(screen.getByLabelText(/amount/), { target: { value: '1,23' } })
+        expect(screen.getByRole('button', { name: 'review' })).toBeEnabled()
+        fireEvent.click(screen.getByRole('button', { name: 'review' }))
+        await screen.findByRole('alert')
+        const sent = jest.mocked(currencyAccountsApi.prepare).mock.calls[0][0].amount
+        expect(sent).toMatch(/^\d+(?:\.\d+)?$/)
+        expect(parseUnits(sent, 6)).toBe(1_230_000n)
+
+        for (const amount of ['1,1234567', '1e3', '1,2e1']) {
+            fireEvent.change(screen.getByLabelText(/amount/), { target: { value: amount } })
+            expect(screen.getByRole('button', { name: 'review' })).toBeDisabled()
+        }
+        client.clear()
+    }
+)
+it.each<AppLocale>(['es-419', 'pt-BR'])('in %s, bank funding with a comma still takes whole cents only', (locale) => {
+    const { client } = setupInLocale('BANK_DEPOSIT', locale)
+    fireEvent.change(screen.getByLabelText(/amount/), { target: { value: '1,23' } })
+    expect(screen.getByRole('button', { name: 'review' })).toBeEnabled()
+    for (const amount of ['1,001', '1,0000001']) {
+        fireEvent.change(screen.getByLabelText(/amount/), { target: { value: amount } })
+        expect(screen.getByRole('button', { name: 'review' })).toBeDisabled()
+    }
+    client.clear()
+})

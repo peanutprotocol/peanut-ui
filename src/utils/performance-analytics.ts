@@ -10,6 +10,11 @@ type ApiRoutePattern = readonly [pattern: RegExp, template: string | ((match: Re
 // such as the username "bank" leaking as if it were syntax, and real endpoint
 // words such as bridge/onramp/create collapsing into anonymous ids.
 const API_ROUTE_PATTERNS: readonly ApiRoutePattern[] = [
+    [/^\/users\/currency-accounts\/EURC\/operations\/[^/]+$/, '/users/currency-accounts/EURC/operations/:operationId'],
+    [
+        /^\/users\/currency-accounts\/EURC\/operations\/[^/]+\/(submit|resume)$/,
+        (match) => `/users/currency-accounts/EURC/operations/:operationId/${match[1]}`,
+    ],
     [/^\/users\/username\/[^/]+$/, '/users/username/:username'],
     [/^\/users\/identity\/sessions\/[^/]+$/, '/users/identity/sessions/:sessionId'],
     [/^\/users\/saved-addresses\/[^/]+$/, '/users/saved-addresses/:addressId'],
@@ -108,6 +113,12 @@ const API_STATIC_ROUTES = new Set([
     '/update-user',
     '/user/crisp-token',
     '/users/accounts',
+    '/users/currency-accounts',
+    '/users/currency-accounts/EURC/capabilities',
+    '/users/currency-accounts/EURC/history',
+    '/users/currency-accounts/EURC/bank-accounts',
+    '/users/currency-accounts/EURC/exchange-rate',
+    '/users/currency-accounts/EURC/operations',
     '/users/bridge-tos-confirm',
     '/users/bridge-tos-link',
     '/users/capabilities',

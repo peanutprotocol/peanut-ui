@@ -45,6 +45,7 @@ interface AmountInputProps {
     hideCurrencyToggle?: boolean
     hideBalance?: boolean
     infoContent?: React.ReactNode
+    balanceSupplement?: React.ReactNode
 
     showSlider?: boolean
     maxAmount?: number
@@ -74,6 +75,7 @@ const AmountInput = ({
     hideCurrencyToggle,
     hideBalance,
     infoContent,
+    balanceSupplement,
 
     showSlider = false,
     maxAmount,
@@ -464,6 +466,7 @@ const AmountInput = ({
                             </div>
                         )
                     })()}
+                {!hideBalance && balanceSupplement}
             </div>
             {/* Conversion toggle */}
             {showConversion && (
