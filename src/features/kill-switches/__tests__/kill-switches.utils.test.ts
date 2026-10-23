@@ -62,7 +62,8 @@ describe('maintenanceRedirectTarget', () => {
         expect(maintenanceRedirectTarget('/home', true, true, false)).toBeNull()
     })
 
-    it('lets demo mode leave /maintenance without waiting for the API', () => {
-        expect(maintenanceRedirectTarget('/maintenance', true, true, false)).toBe('/home')
+    it('never redirects away from /maintenance in demo mode', () => {
+        expect(maintenanceRedirectTarget('/maintenance', true, true, false)).toBeNull()
+        expect(maintenanceRedirectTarget('/maintenance', false, true, true)).toBeNull()
     })
 })
