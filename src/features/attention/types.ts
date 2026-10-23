@@ -28,8 +28,8 @@ export interface MountedSlot {
  * - `pending`: in progress, nothing for the user to do (an ID check in review);
  *   the zone may render its status, never a CTA
  * - `done` / `ineligible`: silent
- * - `unknown`: its data is not loaded. A higher-tier `unknown` holds every
- *   lower-tier interrupt until it settles or the settle deadline passes.
+ * - `unknown`: its data is not loaded. An `unknown` holds every
+ *   lower-priority interrupt until it settles or the settle deadline passes.
  */
 export type Verdict = 'show' | 'pending' | 'done' | 'ineligible' | 'unknown'
 
@@ -245,7 +245,7 @@ export interface Session {
     busy: boolean
     /** offline, locked, backend down: the manager pauses */
     gateUp: boolean
-    /** the settle deadline passed: `unknown` no longer holds lower tiers */
+    /** the settle deadline passed: `unknown` no longer holds lower-priority interrupts */
     settleDeadlinePassed: boolean
 }
 

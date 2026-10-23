@@ -355,8 +355,19 @@ describe('the arrival prompt (TASK-23251, from the Home modal chain)', () => {
         }
         const held = run(pushDue, { count: 3 })
         expect(held.interrupt).toBeNull()
-        expect(held.trace.reasons['push-home-fallback']).toBe('higher tier unsettled')
+        expect(held.trace.reasons['push-home-fallback']).toBe('higher priority unsettled')
         expect(run(pushDue, { count: 3, settleDeadlinePassed: true }).interrupt).toBe('push-home-fallback')
+    })
+
+    test('terms still loading: the arrival waits for them, however fast its own check was', () => {
+        const consentLoading: Partial<JourneyState> = {
+            arrival: 'raised',
+            consent: { status: 'unknown', versions: [], documents: [] },
+        }
+        const held = run(consentLoading)
+        expect(held.interrupt).toBeNull()
+        expect(held.trace.reasons.arrival).toBe('higher priority unsettled')
+        expect(run(consentLoading, { settleDeadlinePassed: true }).interrupt).toBe('arrival')
     })
 
     test('only on Home, and never over a user-opened overlay', () => {

@@ -32,7 +32,7 @@ import type { AskId, AttentionAsk, Decision, JourneyState, Ledger, Session, Surf
 
 export { isAttentionInterruptOpen } from './interruptState'
 
-/** how long an `unknown` higher tier may hold lower-tier interrupts (same ceiling as useFlagsSettled) */
+/** how long an `unknown` ask may hold lower-priority interrupts (same ceiling as useFlagsSettled) */
 export const SETTLE_DEADLINE_MS = 4_000
 
 const DAY_MS = 24 * 60 * 60 * 1000
