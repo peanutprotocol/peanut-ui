@@ -55,15 +55,18 @@ export function isSilenced(ask: AttentionAsk, entry: LedgerEntry | undefined, st
     return false
 }
 
-/** Every ask of a higher tier (lower number) has settled, or the deadline passed. */
-function higherTiersSettled(
+/**
+ * Every ask that outranks this one has settled, or the deadline passed. Rank counts too:
+ * a fast arrival check must not open before the terms because consent status is slower.
+ */
+function higherPrioritySettled(
     ask: AttentionAsk,
     asks: readonly AttentionAsk[],
     verdicts: Partial<Record<AskId, Verdict>>,
     session: Session
 ): boolean {
     if (session.settleDeadlinePassed) return true
-    return !asks.some((other) => other.tier < ask.tier && verdicts[other.id] === 'unknown')
+    return !asks.some((other) => byPriority(other, ask) < 0 && verdicts[other.id] === 'unknown')
 }
 
 function lastInterruptOfTier(tier: Tier, asks: readonly AttentionAsk[], ledger: Ledger): number | null {
@@ -92,7 +95,7 @@ function interruptRefusal(
     const routes = ask.policy.routes ?? 'home'
     if (routes === 'home' && session.route !== 'home') return 'route'
     if ((ask.policy.minSessions ?? 0) > session.count) return 'too early'
-    if (!higherTiersSettled(ask, asks, verdicts, session)) return 'higher tier unsettled'
+    if (!higherPrioritySettled(ask, asks, verdicts, session)) return 'higher priority unsettled'
     const shownT1 = session.interruptsThisSession.some((id) => asks.find((a) => a.id === id)?.tier === 1)
     switch (budgetOf(ask)) {
         case 'always':
