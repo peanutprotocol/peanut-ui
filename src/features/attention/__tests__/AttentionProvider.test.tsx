@@ -259,3 +259,23 @@ test('without a server answer the report says the ranking is local', async () =>
     const reports = mockCapture.mock.calls.filter(([event]) => event === 'attention_decided')
     expect(reports.at(-1)?.[1]).toMatchObject({ ranking_source: 'local', server_next_ask: null })
 })
+
+test('the server answer arriving is reported even when the visible pick stays the same', async () => {
+    const { rerender } = render(
+        <AttentionProvider>
+            <Probe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    mockServer = { version: 1, ranking: [], verdicts: {}, nextAsk: 'legal-reconsent' }
+    rerender(
+        <AttentionProvider>
+            <Probe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    expect(screen.getByTestId('interrupt').textContent).toBe('legal-reconsent')
+    const reports = mockCapture.mock.calls.filter(([event]) => event === 'attention_decided').map(([, p]) => p)
+    expect(reports.map((p) => p.ranking_source)).toEqual(['local', 'server'])
+    expect(reports[1]).toMatchObject({ interrupt: 'legal-reconsent', server_next_ask: 'legal-reconsent' })
+})

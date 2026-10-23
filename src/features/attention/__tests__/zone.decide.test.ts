@@ -248,8 +248,8 @@ describe('each card’s eligibility rule', () => {
 })
 
 describe('no flash of a lower card while a higher one loads', () => {
-    // "decide() holds the zone (returns zone: null) while any ask with a zone surface in a higher tier
-    //  than the best live candidate is still unknown, until the 4 s settle deadline"
+    // "decide() holds the zone (returns zone: null) while any ask with a zone surface that outranks
+    //  the best live candidate is still unknown, until the 4 s settle deadline"
     const inviteOnly = { invitesSent: 0 }
 
     test('the checklist is unknown: the invite card waits, then releases at the deadline', () => {
@@ -264,6 +264,14 @@ describe('no flash of a lower card while a higher one loads', () => {
         const loading = { ...inviteOnly, qr: { ...QR_PAY_NOW, hasMadeQrPayment: undefined } }
         expect(run(loading).zone).toBeNull()
         expect(run(loading, { settleDeadlinePassed: true }).zone).toEqual({ id: 'invite', mode: 'ask' })
+    })
+
+    test('a higher rank in the same tier holds too: QR waits while deposit accounts load', () => {
+        // virtual-account (T3·1) is unknown, qr-payment (T3·2) is live
+        const loading = { qr: QR_PAY_NOW, depositAccounts: { enabled: true, loaded: false, claimable: 0, active: 0 } }
+        expect(run(loading).trace.verdicts['virtual-account']).toBe('unknown')
+        expect(run(loading).zone).toBeNull()
+        expect(run(loading, { settleDeadlinePassed: true }).zone).toEqual({ id: 'qr-payment', mode: 'ask' })
     })
 
     test('a lower-tier unknown never holds a higher card', () => {
