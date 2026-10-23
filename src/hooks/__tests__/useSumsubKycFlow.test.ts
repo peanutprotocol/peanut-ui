@@ -1,6 +1,11 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
-import { getKycDocumentStatus, getKycDocumentPlan, resumeKycDocumentAttempt } from '@/app/actions/kyc-workflow'
+import {
+    findKycReplacementPlan,
+    getKycDocumentStatus,
+    getKycDocumentPlan,
+    resumeKycDocumentAttempt,
+} from '@/app/actions/kyc-workflow'
 import { act, waitFor } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
@@ -20,6 +25,7 @@ jest.mock('@/app/actions/kyc-workflow', () => {
         getKycDocumentPlan,
         findKycDocumentPlan: jest.fn(() => getKycDocumentPlan().catch(() => null)),
         resumeKycDocumentAttempt: jest.fn(),
+        findKycReplacementPlan: jest.fn(async () => null),
     }
 })
 
@@ -1568,16 +1574,20 @@ describe('a published document plan keeps the legacy flow', () => {
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
-    it('restarts identity through the legacy restart without reading the plan', async () => {
+    it('restarts an identity that did not come from a verification attempt through the legacy restart', async () => {
         jest.mocked(getKycDocumentPlan).mockClear()
+        jest.mocked(findKycReplacementPlan).mockClear()
         mockRestart.mockResolvedValue({ data: { token: 'restart-token', applicantId: 'a-1', levelName: 'general' } })
         const { result } = renderHook(() => useSumsubKycFlow({}))
         await act(async () => {
             await result.current.handleRestartIdentity()
         })
+        expect(findKycReplacementPlan).toHaveBeenCalledTimes(1)
         expect(mockRestart).toHaveBeenCalledTimes(1)
+        expect(mockRestart).toHaveBeenCalledWith(undefined)
         expect(getKycDocumentPlan).not.toHaveBeenCalled()
         expect(result.current.accessToken).toBe('restart-token')
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
     it('still syncs the current status on mount', async () => {
@@ -1764,6 +1774,108 @@ describe('an API without a readable document plan keeps the legacy flow', () => 
         } as never)
         renderHook(() => useSumsubKycFlow({ regionIntent: 'STANDARD' }))
         await waitFor(() => expect(mockInitiate).toHaveBeenCalledWith({ regionIntent: 'STANDARD' }))
+    })
+})
+
+describe('useSumsubKycFlow — restarting an identity verified through a verification attempt', () => {
+    const replacementPlan = {
+        available: true,
+        activeAttemptId: null,
+        policyVersion: 'v1',
+        flow: 'verify-once' as const,
+        features: { qr: true, bank: true, local: false, card: false },
+        routes: [
+            {
+                id: 'base',
+                documents: [
+                    {
+                        key: 'identity',
+                        code: 'IDENTITY' as const,
+                        types: ['PASSPORT'] as never[],
+                        countries: ['PT'],
+                        requiredBy: ['SUMSUB' as const],
+                    },
+                ],
+            },
+        ],
+    }
+    const frozen = {
+        attemptId: 'replacement-1',
+        token: 'replacement-token',
+        applicantId: 'applicant-1',
+        levelName: 'base',
+        status: 'COLLECTING',
+        sdkConfig: {
+            documentDefinitions: { IDENTITY: { country: 'PRT', idDocType: 'PASSPORT' } },
+            autoSelectDocumentDefinitions: true as const,
+        },
+    }
+    beforeEach(() => {
+        mockRestart.mockReset()
+        mockRouterPush.mockReset()
+        mockStartAction.mockReset()
+        jest.mocked(resumeKycDocumentAttempt).mockReset()
+        jest.mocked(findKycReplacementPlan).mockResolvedValue(replacementPlan)
+    })
+    afterEach(() => jest.mocked(findKycReplacementPlan).mockResolvedValue(null))
+
+    it('sends the user to the verify-once ID screen in restart mode instead of the legacy restart', async () => {
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleRestartIdentity()
+        })
+        expect(mockRouterPush).toHaveBeenCalledWith('/verify?step=id&restart=1')
+        expect(mockRestart).not.toHaveBeenCalled()
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isLoading).toBe(false)
+        expect(result.current.error).toBeNull()
+    })
+
+    it('the restart-identity fallback of a supplement takes the same way', async () => {
+        mockStartAction.mockResolvedValue({
+            error: 'Failed to start verification',
+            code: 'supplement_not_required' as const,
+            reason: 'identity_document_insufficient',
+            fallback: 'restart-identity' as const,
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleStartAction('supplement:bridge')
+        })
+        expect(mockRouterPush).toHaveBeenCalledWith('/verify?step=id&restart=1')
+        expect(mockRestart).not.toHaveBeenCalled()
+    })
+
+    it('reopens a replacement already under way on its frozen documents, and refreshes through it', async () => {
+        jest.mocked(findKycReplacementPlan).mockResolvedValue({ ...replacementPlan, activeAttemptId: 'replacement-1' })
+        jest.mocked(resumeKycDocumentAttempt).mockResolvedValue(frozen)
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleRestartIdentity()
+        })
+        expect(resumeKycDocumentAttempt).toHaveBeenCalledWith('replacement-1')
+        expect(result.current.accessToken).toBe('replacement-token')
+        expect(result.current.documentConfig).toEqual(frozen.sdkConfig)
+        expect(result.current.showWrapper).toBe(true)
+        expect(mockRestart).not.toHaveBeenCalled()
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        await act(async () => {
+            await result.current.refreshToken()
+        })
+        expect(resumeKycDocumentAttempt).toHaveBeenLastCalledWith('replacement-1')
+    })
+
+    it('a replacement that cannot be reopened shows the restart error and opens nothing', async () => {
+        jest.mocked(findKycReplacementPlan).mockResolvedValue({ ...replacementPlan, activeAttemptId: 'replacement-1' })
+        jest.mocked(resumeKycDocumentAttempt).mockRejectedValue(new Error('KYC request failed'))
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleRestartIdentity()
+        })
+        expect(result.current.error).toBe('Could not restart identity verification. Please try again.')
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isLoading).toBe(false)
+        expect(mockRestart).not.toHaveBeenCalled()
     })
 })
 

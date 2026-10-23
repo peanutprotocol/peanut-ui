@@ -22,6 +22,8 @@ export interface VerifyOnceTrackingContext {
     feature?: VerifyOnceFeature
     /** the lead step of the screen in view */
     step?: string
+    /** a verified user's new identity check */
+    restart?: boolean
 }
 
 const Context = createContext<VerifyOnceTrackingContext | null>(null)
@@ -35,6 +37,7 @@ const baseProperties = (ctx: VerifyOnceTrackingContext | null) =>
               residence: ctx.residence,
               ...(ctx.feature && { feature: ctx.feature }),
               ...(ctx.step && { step: ctx.step }),
+              ...(ctx.restart && { restart: true }),
               ...(ctx.features &&
                   Object.fromEntries(Object.entries(ctx.features).map(([k, on]) => [`feature_${k}`, !!on]))),
           }

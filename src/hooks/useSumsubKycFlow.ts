@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { findKycDocumentPlan, getKycDocumentStatus, resumeKycDocumentAttempt } from '@/app/actions/kyc-workflow'
+import {
+    findKycDocumentPlan,
+    findKycReplacementPlan,
+    getKycDocumentStatus,
+    resumeKycDocumentAttempt,
+} from '@/app/actions/kyc-workflow'
 import type { KycDocumentPlan, KycAttemptSession, KycFeatures } from '@/app/actions/types/kyc-workflow.types'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -30,6 +35,7 @@ import {
     verifyOnceRoute,
     verifyOnceFeaturePath,
     verifyOnceDocumentPath,
+    verifyOnceRestartPath,
 } from '@/features/verify-once/verifyOnceEntry'
 
 interface UseSumsubKycFlowOptions {
@@ -888,6 +894,26 @@ export const useSumsubKycFlow = ({
             residenceChangeRef.current = false
 
             try {
+                const replacement = await findKycReplacementPlan()
+                if (replacement?.activeAttemptId) {
+                    // A replacement already under way keeps the documents it froze.
+                    try {
+                        acceptDocumentSession(
+                            await resumeKycDocumentAttempt(replacement.activeAttemptId),
+                            replacement.features
+                        )
+                    } catch {
+                        userInitiatedRef.current = false
+                        setError(t('errorRestartFailed'))
+                    }
+                    return
+                }
+                if (replacement) {
+                    // The API restarts this identity only on documents picked in Peanut.
+                    userInitiatedRef.current = false
+                    router.push(verifyOnceRestartPath())
+                    return
+                }
                 // Only an EXPLICIT override is forwarded, never the local ref.
                 // `resolveRestartIntent` on the route returns the intent canonical
                 // to the DECLARED residence in every non-null branch and never the
@@ -935,7 +961,7 @@ export const useSumsubKycFlow = ({
                 setIsLoading(false)
             }
         },
-        [t, actionErrorMessage, setError]
+        [t, actionErrorMessage, setError, acceptDocumentSession, router]
     )
 
     // Open the applicant action associated with the current pending residence.

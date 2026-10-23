@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
-import Loading from '@/components/Global/Loading'
 import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
@@ -22,11 +21,10 @@ import type {
 } from '@/app/actions/types/kyc-verify-once.types'
 import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
-import { Button } from '@/components/0_Bruddle/Button'
 import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
 import { QuestionStepScreen } from './components/QuestionStepScreen'
+import { LoadFailed, VerifyLoading } from './components/LoadScreens'
 import { ProofOfAddressScreen, ReviewScreen, VerifiedScreen } from './components/StatusScreens'
-import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
 import { trackVerifyOnce, VerifyOnceTrackingProvider, type VerifyOnceTrackingContext } from './analytics'
 import { useVerifyOnceIdentity } from './useVerifyOnceIdentity'
 import {
@@ -46,31 +44,6 @@ import type { AnswerFormError } from './useAnswerForm'
 const STATUS_POLL_MS = 15_000
 
 type Loaded = { questions: VerifyOnceQuestions; plan: KycDocumentPlan | null; status: SumsubKycStatus | undefined }
-
-function LoadFailed({ onRetry, onHome }: { onRetry: () => void; onHome: () => void }) {
-    const t = useTranslations('kyc.verifyOnce')
-    return (
-        <VerifyHeroLayout
-            pose="sad"
-            title={t('loadFailed.title')}
-            description={t('loadFailed.description')}
-            footer={
-                <VerifyFooter
-                    actions={
-                        <Button shadowSize="4" className="w-full" onClick={onRetry} data-testid="verify-retry-load">
-                            {t('loadFailed.retry')}
-                        </Button>
-                    }
-                    secondary={
-                        <Button variant="secondary" shadowSize="4" className="w-full" onClick={onHome}>
-                            {t('review.cta')}
-                        </Button>
-                    }
-                />
-            }
-        />
-    )
-}
 
 /**
  * /verify: the verify-once identity check. Peanut asks the questions the
@@ -113,12 +86,7 @@ export function VerifyOnceFlow() {
         void load()
     }, [load])
 
-    if (state.kind === 'loading')
-        return (
-            <div className="flex h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] w-full items-center justify-center bg-white">
-                <Loading variant="mascot" />
-            </div>
-        )
+    if (state.kind === 'loading') return <VerifyLoading />
     if (state.kind === 'failed') return <LoadFailed onRetry={() => void load()} onHome={() => router.push('/home')} />
     return <VerifyOnceSteps key={generation} initial={state} reload={load} />
 }

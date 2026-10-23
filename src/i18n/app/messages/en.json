@@ -3627,6 +3627,8 @@
             "midpoint": {
                 "title": "That’s the hard part done",
                 "description": "Last step: photos of your ID and a quick selfie. Pick the ID you’ll use.",
+                "restartTitle": "Verify with a different document",
+                "restartDescription": "Pick the ID you’ll use now. Then take photos of it and a quick selfie.",
                 "document": "Document type",
                 "issuedBy": "Issuing country",
                 "cta": "Continue to ID check",

@@ -126,11 +126,13 @@ function OptionDrawer({
  * The midpoint: the questions are done, the user picks the ID and who issued
  * it, and Sumsub opens on that document for the photos and the selfie. The
  * list is the plan's identity catalogue; signup already chose the features.
+ * `restart`: a verified user picks the ID of a new identity check.
  */
 export function IdentityDocumentScreen({
     plan,
     residence,
     progress,
+    restart = false,
     busy,
     error,
     onBack,
@@ -138,7 +140,8 @@ export function IdentityDocumentScreen({
 }: {
     plan: KycDocumentPlan | null
     residence: string | null
-    progress: { current: number; total: number }
+    progress?: { current: number; total: number }
+    restart?: boolean
     busy: boolean
     error: string | null
     onBack: () => void
@@ -244,7 +247,11 @@ export function IdentityDocumentScreen({
                 </VerifyFooter>
             }
         >
-            <SetupTitleBlock title={t('midpoint.title')} description={t('midpoint.description')} size="m" />
+            <SetupTitleBlock
+                title={t(restart ? 'midpoint.restartTitle' : 'midpoint.title')}
+                description={t(restart ? 'midpoint.restartDescription' : 'midpoint.description')}
+                size="m"
+            />
             {document && (
                 <ListGroup>
                     <ListItem

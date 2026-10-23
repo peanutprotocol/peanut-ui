@@ -1,4 +1,9 @@
-import { findKycProviderRefusals, findKycSetup } from '@/app/actions/kyc-workflow'
+import {
+    findKycProviderRefusals,
+    findKycReplacementPlan,
+    findKycSetup,
+    getKycReplacementPlan,
+} from '@/app/actions/kyc-workflow'
 import { serverFetch } from '@/utils/api-fetch'
 
 // A returning user sees the setup status only when the current identity was
@@ -78,5 +83,45 @@ describe('findKycProviderRefusals', () => {
     it('a failed read has none, so the rails alone decide', async () => {
         mockFetch.mockResolvedValue(answer(null, false))
         await expect(findKycProviderRefusals()).resolves.toBeNull()
+    })
+})
+
+describe('getKycReplacementPlan', () => {
+    const restartPlan = {
+        ...plan,
+        available: true,
+        routes: [
+            { id: 'base', documents: [{ key: 'identity', code: 'IDENTITY', types: ['PASSPORT'], countries: ['BR'] }] },
+        ],
+    }
+    const restartAnswers = (profileBody: unknown, planBody: unknown = restartPlan) =>
+        mockFetch.mockImplementation(async (path) =>
+            String(path).startsWith('/users/kyc/profile') ? answer(profileBody) : answer(planBody)
+        )
+
+    it('reads the restart plan of an identity verified through a verification attempt', async () => {
+        restartAnswers(profile([attempt({})]))
+        await expect(getKycReplacementPlan()).resolves.toEqual(restartPlan)
+        expect(mockFetch).toHaveBeenCalledWith('/users/kyc/plan?restart=true', expect.anything())
+    })
+
+    it('an identity verified any other way keeps the legacy restart', async () => {
+        restartAnswers(profile([]))
+        await expect(getKycReplacementPlan()).resolves.toBeNull()
+        restartAnswers(profile([attempt({ status: 'SUPERSEDED' })]))
+        await expect(getKycReplacementPlan()).resolves.toBeNull()
+    })
+
+    it('without a published policy, or with nothing the API would take, the legacy restart stays', async () => {
+        restartAnswers(profile([attempt({})]), { ...restartPlan, policyVersion: null })
+        await expect(getKycReplacementPlan()).resolves.toBeNull()
+        restartAnswers(profile([attempt({})]), { ...restartPlan, available: false, routes: [] })
+        await expect(getKycReplacementPlan()).resolves.toBeNull()
+    })
+
+    it('a failed read throws for the restart screen and is null for the restart button', async () => {
+        mockFetch.mockResolvedValue(answer(null, false))
+        await expect(getKycReplacementPlan()).rejects.toThrow('KYC request failed')
+        await expect(findKycReplacementPlan()).resolves.toBeNull()
     })
 })

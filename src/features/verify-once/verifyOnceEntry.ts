@@ -9,6 +9,9 @@ const NEEDS_TODAYS_FIX = new Set(['REJECTED', 'FAILED'])
 
 export const verifyOnceFeaturePath = (feature: VerifyOnceFeature) => `/verify?${new URLSearchParams({ feature })}`
 export const verifyOnceDocumentPath = () => `/verify?${new URLSearchParams({ step: 'id' })}`
+export const VERIFY_RESTART_PARAM = 'restart'
+/** The ID screen for a verified user's new identity check, on the documents the restart plan offers. */
+export const verifyOnceRestartPath = () => `/verify?${new URLSearchParams({ step: 'id', [VERIFY_RESTART_PARAM]: '1' })}`
 
 /** The feature an entry point unlocks, for the add-later screen: Bridge bank accounts or Manteca local transfers. */
 export function entryFeature({

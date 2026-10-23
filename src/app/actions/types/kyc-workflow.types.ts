@@ -11,6 +11,11 @@ type AttemptResponse = paths['/users/kyc/attempts']['post']['responses'][200]['c
 export type KycDocumentConfig = AttemptResponse['sdkConfig']
 // A usable SDK session has a real applicant. The action validates that boundary before returning it.
 export type KycAttemptSession = Omit<AttemptResponse, 'applicantId'> & { applicantId: string }
+type IdentityRestartBody = NonNullable<
+    paths['/users/identity/restart']['post']['requestBody']
+>['content']['application/json']
+/** The documents a restart of an attempt-based identity names, as the restart route validates them. */
+export type KycReplacementChoices = NonNullable<IdentityRestartBody['replacement']>
 type SavedKycFeatures = NonNullable<
     paths['/users/kyc-intents']['put']['responses'][200]['content']['application/json']['features']
 >

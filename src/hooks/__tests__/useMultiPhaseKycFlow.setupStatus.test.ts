@@ -9,6 +9,7 @@ jest.mock('@/app/actions/kyc-workflow', () => ({
     findKycDocumentPlan: jest.fn(),
     getKycDocumentStatus: jest.fn(async () => 'IN_REVIEW'),
     resumeKycDocumentAttempt: jest.fn(),
+    findKycReplacementPlan: jest.fn(async () => null),
     findKycProviderRefusals: jest.fn(async () => ({ refusals: {}, recorded: true })),
 }))
 import { act } from '@testing-library/react'
@@ -18,10 +19,11 @@ import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import {
     findKycDocumentPlan,
     findKycProviderRefusals,
+    findKycReplacementPlan,
     getKycDocumentStatus,
     resumeKycDocumentAttempt,
 } from '@/app/actions/kyc-workflow'
-import { initiateSumsubKyc, startKycAction } from '@/app/actions/sumsub'
+import { initiateSumsubKyc, restartIdentityVerification, startKycAction } from '@/app/actions/sumsub'
 import { confirmBridgeTos } from '@/app/actions/users'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import type { UserCapabilities } from '@/types/capabilities'
@@ -47,7 +49,8 @@ jest.mock('@/hooks/useWebSocket', () => ({
         mockWs.handler = opts.onSumsubKycStatusUpdate
     },
 }))
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), replace: jest.fn() }) }))
+const mockPush = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, replace: jest.fn() }) }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, isAndroidNative: () => false }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ fetchUser: mockFetchUser, user: { user: { username: 'test' }, ...mockUser } }),
@@ -340,6 +343,20 @@ describe('useMultiPhaseKycFlow — a returning user opens the status from the id
         act(() => view.result.current.handleSetupContinue())
         expect(onKycSuccess).not.toHaveBeenCalled()
         expect(captured(ANALYTICS_EVENTS.KYC_APPROVED)).toHaveLength(0)
+    })
+
+    it('Verify again picks the new ID on the verify-once ID screen, not through the legacy restart', async () => {
+        mockUser = verifiedUser(parked)
+        mockCapabilities = parked
+        jest.mocked(findKycReplacementPlan).mockResolvedValueOnce(plan)
+        const view = renderHook(() => useMultiPhaseKycFlow({}))
+        act(() => view.result.current.openSetupStatus(features))
+        await act(async () => {
+            await view.result.current.handleSetupRestart()
+        })
+        expect(mockPush).toHaveBeenCalledWith('/verify?step=id&restart=1')
+        expect(restartIdentityVerification).not.toHaveBeenCalled()
+        expect(view.result.current.showWrapper).toBe(false)
     })
 })
 

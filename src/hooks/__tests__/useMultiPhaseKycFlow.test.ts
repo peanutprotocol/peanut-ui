@@ -5,6 +5,7 @@ jest.mock('@/app/actions/kyc-workflow', () => ({
     findKycDocumentPlan: jest.fn(async () => ({ available: false, routes: [] })),
     getKycDocumentStatus: jest.fn(),
     resumeKycDocumentAttempt: jest.fn(),
+    findKycReplacementPlan: jest.fn(async () => null),
 }))
 import { act } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'

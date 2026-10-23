@@ -1553,6 +1553,8 @@
             },
             "midpoint": {
                 "description": "Último paso: fotos de tu documento y una selfie rápida. Elegí el documento que vas a usar.",
+                "restartTitle": "Verificate con otro documento",
+                "restartDescription": "Elegí el documento que vas a usar ahora. Después tomá fotos de él y una selfie rápida.",
                 "failed": "No pudimos iniciar la verificación. Intentá de nuevo.",
                 "unavailable": "No podemos mostrar los documentos ahora. Intentá más tarde.",
                 "proofOfAddressBody": "Para cuentas bancarias, los documentos de este país también piden una factura o un resumen de cuenta reciente con tu domicilio.",

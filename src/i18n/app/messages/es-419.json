@@ -3627,6 +3627,8 @@
             "midpoint": {
                 "title": "Ya hiciste la parte difícil",
                 "description": "Último paso: fotos de tu documento y una selfie rápida. Elige el documento que usarás.",
+                "restartTitle": "Verifícate con otro documento",
+                "restartDescription": "Elige el documento que usarás ahora. Luego toma fotos de él y una selfie rápida.",
                 "document": "Tipo de documento",
                 "issuedBy": "País de emisión",
                 "cta": "Continuar a la verificación",

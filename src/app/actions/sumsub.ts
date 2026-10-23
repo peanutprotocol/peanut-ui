@@ -5,6 +5,7 @@ import {
 } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
 import type { paths } from '@/types/api.generated'
+import type { KycDocumentConfig, KycReplacementChoices } from './types/kyc-workflow.types'
 
 /**
  * Stable discriminant for the English fallback errors below. Server actions
@@ -182,6 +183,10 @@ export interface RestartIdentityResponse {
      * Optional so a response from an older backend still parses.
      */
     regionIntent?: KYCRegionIntent
+    /** Set when the restart replaced an attempt-based identity's documents. */
+    attemptId?: string
+    status?: string
+    sdkConfig?: KycDocumentConfig
 }
 
 /**
@@ -194,7 +199,8 @@ export interface RestartIdentityResponse {
 const RESTART_REGION_INTENTS: ReadonlySet<string> = new Set(['LATAM', 'ROW', 'EU', 'NA'])
 
 export const restartIdentityVerification = async (
-    regionIntent?: KYCRegionIntent
+    regionIntent?: KYCRegionIntent,
+    replacement?: KycReplacementChoices
 ): Promise<{
     data?: RestartIdentityResponse
     error?: string
@@ -206,7 +212,7 @@ export const restartIdentityVerification = async (
         const response = await serverFetch('/users/identity/restart', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(intent ? { regionIntent: intent } : {}),
+            body: JSON.stringify({ ...(intent && { regionIntent: intent }), ...(replacement && { replacement }) }),
         })
         const responseJson = await response.json()
         if (!response.ok) {
