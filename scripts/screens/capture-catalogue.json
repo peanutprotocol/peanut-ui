@@ -874,12 +874,32 @@
         "route": "/card"
     },
     {
+        "id": "fixture-card-holder-collateral-legacy",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
         "id": "fixture-card-reissue",
         "flow": "Card",
         "route": "/card"
     },
     {
+        "id": "fixture-card-reissue-legacy",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
         "id": "fixture-card-funding-needed",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-card-funding-enrollment",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-card-funding-legacy",
         "flow": "Card",
         "route": "/home"
     },
@@ -915,6 +935,11 @@
     },
     {
         "id": "fixture-card-funding-error",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-card-funding-access-error",
         "flow": "Card",
         "route": "/home"
     },
