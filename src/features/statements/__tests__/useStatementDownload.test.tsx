@@ -2,7 +2,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
 
 import { act, renderHook } from '@testing-library/react'
 import { useStatementDownload } from '../useStatementDownload'
-import { StatementDownloadError, prepareStatement, saveStatement } from '../statementDownload.utils'
+import { StatementDownloadError, downloadStatement, prepareStatement, saveStatement } from '../statementDownload.utils'
 import { isCapacitor } from '@/utils/capacitor'
 
 const mockCapture = jest.fn()
@@ -21,10 +21,12 @@ jest.mock('../statementDownload.utils', () => ({
     ...jest.requireActual('../statementDownload.utils'),
     prepareStatement: jest.fn(),
     saveStatement: jest.fn(),
+    downloadStatement: jest.fn(),
 }))
 
 const prepare = prepareStatement as jest.Mock
 const save = saveStatement as jest.Mock
+const saveToDevice = downloadStatement as jest.Mock
 const native = isCapacitor as jest.Mock
 const FILE = { blob: new Blob(['%PDF']), fileName: 'peanut-activity_2026-08-03_2026-08-14.pdf', byYear: false }
 
@@ -48,12 +50,14 @@ beforeEach(() => {
     native.mockReturnValue(false)
     prepare.mockResolvedValue(FILE)
     save.mockResolvedValue('saved')
+    saveToDevice.mockResolvedValue('documents')
 })
 
 describe('useStatementDownload', () => {
     it('asks for the chosen format and period in the app locale, and saves on the same tap on the web', async () => {
         const { result, onSaved } = renderDownload()
-        await act(() => result.current.download())
+        expect(result.current.isNative).toBe(false)
+        await act(() => result.current.generate())
 
         expect(prepare).toHaveBeenCalledWith({
             format: 'csv',
@@ -63,9 +67,9 @@ describe('useStatementDownload', () => {
         })
         expect(save).toHaveBeenCalledWith(FILE)
         expect(onSaved).toHaveBeenCalledTimes(1)
-        expect(onSaved).toHaveBeenCalledWith(FILE)
+        expect(onSaved).toHaveBeenCalledWith(FILE, false)
         expect(result.current.isPrepared).toBe(false)
-        const event = { format: 'csv', platform: 'web', range_preset: 'custom', range_days: 12 }
+        const event = { format: 'csv', range_preset: 'custom', range_days: 12 }
         expect(mockCapture).toHaveBeenCalledWith('activity_export_started', event)
         expect(mockCapture).toHaveBeenCalledWith('activity_export_saved', event)
     })
@@ -78,49 +82,95 @@ describe('useStatementDownload', () => {
             toIso: undefined,
             preset: 'allTime',
         })
-        await act(() => result.current.download())
+        await act(() => result.current.generate())
         expect(prepare).toHaveBeenCalledWith({ format: 'csv', locale: 'es-AR', fromIso: undefined, toIso: undefined })
         expect(mockCapture).toHaveBeenCalledWith('activity_export_started', {
             format: 'csv',
-            platform: 'web',
             range_preset: 'allTime',
             range_days: null,
         })
     })
 
-    it('prepares on the first native tap and opens the share sheet on the second', async () => {
+    it('fetches on Generate in the app, then shares on Share and saves on Download, from the one file', async () => {
         native.mockReturnValue(true)
         const { result, onSaved } = renderDownload()
+        expect(result.current.isNative).toBe(true)
 
-        await act(() => result.current.download())
+        await act(() => result.current.generate())
         expect(prepare).toHaveBeenCalledTimes(1)
         expect(save).not.toHaveBeenCalled()
+        expect(saveToDevice).not.toHaveBeenCalled()
+        expect(result.current.isPrepared).toBe(true)
+
+        save.mockResolvedValue('saved')
+        await act(() => result.current.share())
+        expect(save).toHaveBeenCalledWith(FILE)
+        expect(saveToDevice).not.toHaveBeenCalled()
+        expect(onSaved).toHaveBeenLastCalledWith(FILE, false)
+        // the file stays ready, so Download needs no second fetch
         expect(result.current.isPrepared).toBe(true)
 
         await act(() => result.current.download())
+        expect(saveToDevice).toHaveBeenCalledWith(FILE)
+        expect(onSaved).toHaveBeenLastCalledWith(FILE, true)
         expect(prepare).toHaveBeenCalledTimes(1)
-        expect(save).toHaveBeenCalledWith(FILE)
-        expect(onSaved).toHaveBeenCalledTimes(1)
-        expect(result.current.isPrepared).toBe(false)
+        expect(result.current.isPrepared).toBe(true)
+        // `platform` comes from the super property, never the event
+        expect(mockCapture).toHaveBeenCalledWith(
+            'activity_export_saved',
+            expect.not.objectContaining({ platform: expect.anything() })
+        )
+    })
+
+    it('says which button is working, so the page shows its spinner', async () => {
+        native.mockReturnValue(true)
+        const { result } = renderDownload()
+        await act(() => result.current.generate())
+
+        let finish: (outcome: string) => void = () => {}
+        saveToDevice.mockReturnValue(new Promise<string>((resolve) => (finish = resolve)))
+        let pending: Promise<void> = Promise.resolve()
+        act(() => {
+            pending = result.current.download()
+        })
+        expect(result.current.busy).toBe('download')
+        // a Share tap while Download runs does nothing
+        await act(() => result.current.share())
+        expect(save).not.toHaveBeenCalled()
+
+        await act(async () => {
+            finish('documents')
+            await pending
+        })
+        expect(result.current.busy).toBeNull()
+    })
+
+    it('reports a Download that fell back to the share sheet as a plain save', async () => {
+        native.mockReturnValue(true)
+        saveToDevice.mockResolvedValue('saved')
+        const { result, onSaved } = renderDownload()
+        await act(() => result.current.generate())
+        await act(() => result.current.download())
+        expect(onSaved).toHaveBeenCalledWith(FILE, false)
     })
 
     it('saves a statement that came as one file per year like any other, and hands it to the page', async () => {
         const zip = { blob: new Blob(['PK']), fileName: 'peanut-activity_2025-03-01_2026-02-28.zip', byYear: true }
         prepare.mockResolvedValue(zip)
         const { result, onSaved } = renderDownload({ format: 'pdf' })
-        await act(() => result.current.download())
+        await act(() => result.current.generate())
         expect(save).toHaveBeenCalledWith(zip)
-        expect(onSaved).toHaveBeenCalledWith(zip)
+        expect(onSaved).toHaveBeenCalledWith(zip, false)
         expect(result.current.periodTooLong).toBe(false)
         expect(result.current.error).toBeNull()
 
-        // native: prepared on the first tap, shared and reported on the second
+        // native: prepared on Generate, shared and reported on Share
         native.mockReturnValue(true)
         const second = renderDownload({ format: 'xlsx' })
-        await act(() => second.result.current.download())
+        await act(() => second.result.current.generate())
         expect(second.onSaved).not.toHaveBeenCalled()
-        await act(() => second.result.current.download())
-        expect(second.onSaved).toHaveBeenCalledWith(zip)
+        await act(() => second.result.current.share())
+        expect(second.onSaved).toHaveBeenCalledWith(zip, false)
     })
 
     it('keeps the prepared file when the native share sheet is dismissed', async () => {
@@ -128,8 +178,8 @@ describe('useStatementDownload', () => {
         save.mockResolvedValue('cancelled')
         const { result, onSaved } = renderDownload()
 
-        await act(() => result.current.download())
-        await act(() => result.current.download())
+        await act(() => result.current.generate())
+        await act(() => result.current.share())
         expect(result.current.isPrepared).toBe(true)
         expect(onSaved).not.toHaveBeenCalled()
         expect(mockCapture).not.toHaveBeenCalledWith('activity_export_saved', expect.anything())
@@ -138,7 +188,7 @@ describe('useStatementDownload', () => {
     it('shows a period that is too long as a period error, not a flow error', async () => {
         prepare.mockRejectedValue(new StatementDownloadError('EXPORT_TOO_LARGE'))
         const { result } = renderDownload()
-        await act(() => result.current.download())
+        await act(() => result.current.generate())
 
         expect(result.current.periodTooLong).toBe(true)
         expect(result.current.error).toBeNull()
@@ -148,14 +198,13 @@ describe('useStatementDownload', () => {
     it('shows an unverified period as a flow error and reports which check refused it', async () => {
         prepare.mockRejectedValue(new StatementDownloadError('EXPORT_UNVERIFIED', 'reward-credit-missing'))
         const { result, onSaved } = renderDownload()
-        await act(() => result.current.download())
+        await act(() => result.current.generate())
 
         expect(result.current.error).toBe('unverified')
         expect(result.current.periodTooLong).toBe(false)
         expect(onSaved).not.toHaveBeenCalled()
         expect(mockCapture).toHaveBeenCalledWith('activity_export_failed', {
             format: 'csv',
-            platform: 'web',
             range_preset: 'custom',
             range_days: 12,
             reason: 'EXPORT_UNVERIFIED',
@@ -170,7 +219,7 @@ describe('useStatementDownload', () => {
     ])('shows %s as the %s flow error', async (code, error) => {
         prepare.mockRejectedValue(new StatementDownloadError(code))
         const { result } = renderDownload()
-        await act(() => result.current.download())
+        await act(() => result.current.generate())
         expect(result.current.error).toBe(error)
     })
 
@@ -178,22 +227,22 @@ describe('useStatementDownload', () => {
         native.mockReturnValue(true)
         save.mockRejectedValue(new StatementDownloadError('EXPORT_SAVE_UNAVAILABLE'))
         const { result } = renderDownload()
-        await act(() => result.current.download())
-        await act(() => result.current.download())
+        await act(() => result.current.generate())
+        await act(() => result.current.share())
         expect(result.current.error).toBe('saveUnavailable')
     })
 
     it('drops a failure and a prepared file when the period or format changes', async () => {
         native.mockReturnValue(true)
         const { result, rerender, onSaved } = renderDownload()
-        await act(() => result.current.download())
+        await act(() => result.current.generate())
         expect(result.current.isPrepared).toBe(true)
 
         rerender({ format: 'xlsx', ...AUGUST, preset: undefined, onSaved })
         expect(result.current.isPrepared).toBe(false)
 
         prepare.mockRejectedValueOnce(new StatementDownloadError('EXPORT_BUSY'))
-        await act(() => result.current.download())
+        await act(() => result.current.generate())
         expect(result.current.error).toBe('busy')
 
         rerender({ format: 'xlsx', ...AUGUST, fromIso: '2026-08-04T03:00:00.000Z', preset: undefined, onSaved })
@@ -207,17 +256,17 @@ describe('useStatementDownload', () => {
 
         let first: Promise<void> = Promise.resolve()
         act(() => {
-            first = result.current.download()
+            first = result.current.generate()
         })
-        expect(result.current.isDownloading).toBe(true)
-        await act(() => result.current.download())
+        expect(result.current.busy).toBe('generate')
+        await act(() => result.current.generate())
         expect(prepare).toHaveBeenCalledTimes(1)
 
         await act(async () => {
             finish(FILE)
             await first
         })
-        expect(result.current.isDownloading).toBe(false)
+        expect(result.current.busy).toBeNull()
         expect(save).toHaveBeenCalledTimes(1)
     })
 })

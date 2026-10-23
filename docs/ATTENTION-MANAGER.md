@@ -23,7 +23,7 @@ Tiers rank urgency among asks eligible at the same moment. Journey dependencies 
 
 | Tier | Who                                                                          | Interrupt budget                                             |
 | ---- | ---------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| 1    | terms, unprotected balance, verification due, half-done action, half-done card | any session                                                  |
+| 1    | terms, arrival in a new country, unprotected balance, verification due, half-done action, half-done card | any session                                                  |
 | 2    | the checklist (install, verify, add money, card, first payment), blocked card  | never (the download prompt opts into `session`)              |
 | 3    | repeat use                                                                   | one per session, none after a T1                             |
 | 4    | backup passkey, push, email, saved recipient                                 | one per session, none after a T1 (contextual moments later)  |
@@ -50,7 +50,7 @@ One file in `asks/` (eligibility, policy, version) registered in `registry.ts`, 
 
 ## Surfaces and presentation
 
-- Interrupt: one self-opening overlay. Its registry presentation is modal or drawer; AskShell renders it. Legal consent, post-verification action, card setup, install app, and Home push use modals; balance backup and early user use drawers.
+- Interrupt: one self-opening overlay. Its registry presentation is modal or drawer; AskShell renders it. Legal consent, post-verification action, card setup, install app, and Home push use modals; arrival, balance backup and early user use drawers.
 - Zone: one Home card with its existing bespoke component and fatigue policy.
 - Inline: one notice across the mounted bank-transfer and limits slots. Tier/rank wins, then mounted-slot order; slot context supplies the deadline. No budget, rotation, or settle hold. A picked interrupt cannot also be the inline notice.
 - Banner: the first live banner ask by tier/rank, independent of the other picks. Maintenance keeps the existing feature/global copy and evaluates locally on routes without a provider.

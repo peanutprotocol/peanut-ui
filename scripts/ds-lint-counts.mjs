@@ -25,20 +25,23 @@ import {
     RAW_ERROR_TEXT_RE,
     hasHandRolledCloseGlyph,
     BARE_LIST_LEADING_RE,
+    HEX_RE,
+    FONT_KNERD_RE,
+    countOffFocusColorClasses,
+    countOffFocusColorCss,
 } from './ds-lint-rules.cjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SRC = join(ROOT, 'src')
 const BASELINE_PATH = join(ROOT, 'scripts', 'ds-lint-baseline.json')
 
-// allowlist for every metric: image-generation surfaces render standalone html
+// allowlist for every metric: the OG image surfaces render standalone html
 // with no tailwind, raw values are the tool there, not debt. the /dev/devices
 // harness sizes its panes from measured pixel values and keeps its chrome
 // deliberately colorless, so the app inside the panes is what you judge.
 const GLOBAL_ALLOW = [
     'components/og/',
     'app/api/og/',
-    'ImageGeneration/',
     'dev/_components/',
     'dev/devices/',
     'dev/fixtures/', // fixture tooling incl. the on-camera banner — dev-only, DEV_TOOLS_ENABLED-gated
@@ -83,7 +86,8 @@ const INLINE_STYLE_ALLOW = [
     'Global/ValidatedInput/', // -webkit tap-highlight/text-fill — no utility
 ]
 
-const HEX_RE = /#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g
+// HEX_RE lives in ds-lint-rules.cjs since the marketing ratchet, so its tests
+// exercise the exact matcher.
 const INLINE_STYLE_RE = /style=\{\{/g
 // stock tailwind text sizes that the DS type scale replaces
 const STOCK_TEXT_RE = /\btext-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|8xl|9xl)\b/g
@@ -330,6 +334,32 @@ counts.bareListLeading = files
     .filter((f) => isTsx(f) && !allowed(f.path))
     .reduce((sum, f) => sum + countMatches(f.text, BARE_LIST_LEADING_RE), 0)
 
+// marketing ratchet. LEGACY_ALLOW keeps
+// the marketing surfaces out of the app-wide hex metric (DS 17), but hand-typed
+// hex drifted exactly there (#F9F4F0 vs cream #faf4f0), so the same list now
+// also SCOPES marketing-side ratchets instead of leaving the drift uncounted.
+// knerdOutsideTitle is app-wide: the Knerd display face renders through
+// 0_Bruddle/Title.tsx alone.
+const inMarketing = (path) => LEGACY_ALLOW.some((a) => path.includes(a))
+counts.rawHexMarketing = files
+    .filter((f) => isTsx(f) && inMarketing(f.path) && !allowed(f.path, HEX_ALLOW))
+    .reduce((sum, f) => sum + countMatches(f.text, HEX_RE), 0)
+counts.arbitraryFontSizeMarketing = files
+    .filter((f) => inMarketing(f.path) && !allowed(f.path))
+    .reduce((sum, f) => sum + countMatches(f.text, ARBITRARY_FONT_SIZE_RE), 0)
+counts.knerdOutsideTitle = files
+    .filter((f) => !allowed(f.path) && !f.path.includes('components/0_Bruddle/Title.tsx'))
+    .reduce((sum, f) => sum + countMatches(f.text, FONT_KNERD_RE), 0)
+
+// TASK-23368: focus is one colour, action-focus (design.md law 8). class
+// strings in every scanned file, plus the stylesheets under src/styles — the
+// pink pointer-focus border shipped as raw css in globals.css, where the tsx
+// scan cannot see it.
+const cssFiles = [...walk(join(SRC, 'styles'))].filter((p) => p.endsWith('.css')).map((p) => readFileSync(p, 'utf8'))
+counts.offFocusColor =
+    files.filter((f) => !allowed(f.path)).reduce((sum, f) => sum + countOffFocusColorClasses(f.text), 0) +
+    cssFiles.reduce((sum, t) => sum + countOffFocusColorClasses(t) + countOffFocusColorCss(t), 0)
+
 // dsTextScale and nuqsFiles are adoption counts (should go UP) — everything
 // else is debt (must only go DOWN). the ratchet only enforces the debt keys.
 const DEBT_KEYS = [
@@ -356,6 +386,10 @@ const DEBT_KEYS = [
     'rawErrorText',
     'handRolledCloseGlyphFiles',
     'bareListLeading',
+    'rawHexMarketing',
+    'arbitraryFontSizeMarketing',
+    'knerdOutsideTitle',
+    'offFocusColor',
 ]
 
 const mode = process.argv[2] ?? ''

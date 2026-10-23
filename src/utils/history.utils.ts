@@ -116,16 +116,42 @@ export interface HistoryEntryExtraData {
     // that summarises a request pot's contributors rather than an
     // individual fulfilment.
     isRequestPotRollup?: boolean
+    /** Request-pot rollups only: USD received by bank deposit, as a decimal
+     *  string. Already inside `totalAmountCollected`; sent apart so a rollup
+     *  repeated across history pages adds it once (`mergeRepeatedEntry`). */
+    receivedAmount?: string
+    /** Request rollups only: the requester opted in to payment by bank
+     *  transfer. Written by the API request rollup; the requester's drawer
+     *  gates on it before asking for the bank details. */
+    bankInstructionsShared?: boolean
+    /** Request rollups only: the amount the requester asked, in `requestCurrency`
+     *  (decimal string). The USD figures stay the money truth. */
+    requestedAmount?: string
+    /** Request rollups only: the currency the requester asked in (EUR, BRL…). */
+    requestCurrency?: string
 
     // Common fields
     link?: string
     fulfillmentType?: 'bridge' | 'wallet'
     bridgeTransferId?: string
     usdAmount?: string
-    /** Cross-chain (Rhino) bridge fee in USD the user paid on top of the
-     *  principal — set only for CRYPTO_WITHDRAW that booked a matching FEE
-     *  entry (SDA path). Baked into the displayed amount in the transformer. */
+    /** CRYPTO_WITHDRAW only: whether the network fee is known yet.
+     *  `pending` until the delivery settles, `settled` once it has, `unknown`
+     *  when the ledger booked no fee it could stand behind (and on any failed
+     *  or cancelled row). Absent on every other kind. */
+    networkFeeStatus?: 'pending' | 'settled' | 'unknown'
+    /** CRYPTO_WITHDRAW only: the network fee deducted from the withdrawal, in
+     *  USD — the same number as the ledger FEE entry. A number only when
+     *  `networkFeeStatus` is `settled` (`0` when nothing was deducted). Already
+     *  inside `usdAmount`, which is the gross that left the wallet. */
     networkFeeUsd?: number | null
+    /** CRYPTO_WITHDRAW only: what the destination received, as a decimal
+     *  string. Set when the fee settled and something was deducted. */
+    deliveredUsd?: string | null
+    /** CRYPTO_WITHDRAW only: Rhino's quoted fee in USD while the fee is
+     *  `pending`, shown as an estimate until it settles; null once settled or
+     *  unknown, and on a same-chain withdrawal. */
+    quotedFeeUsd?: number | null
     /** Flat fee a paid USD payout rail (wire) withheld, in USD; absent when free. */
     payoutFeeUsd?: number | null
     /** The rail a Bridge payout went out on ('ach_same_day', 'wire', …). */
@@ -155,6 +181,19 @@ export interface HistoryEntryExtraData {
     /** Why a standing-account deposit went back to the payer, once the API
      *  knows. Owner-only. `text` is the provider's wording, for support. */
     returnReason?: { code: DepositReturnReasonCode; text: string | null } | null
+    /** A Bridge deposit that never reaches the balance (TASK-23245):
+     *  `verification` is a bank's account-check micro-deposit the user reads
+     *  and types into the other app; `below_minimum` is under the rail
+     *  minimum. Absent on every normal deposit. */
+    depositKind?: 'verification' | 'below_minimum'
+    /** The sender as the provider reported it, e.g. "CHARLES SCHWAB". */
+    senderName?: string | null
+    /** The exact amount and ISO currency the bank sent, shown instead of the
+     *  converted USD amount on the two deposit kinds above. */
+    depositAmount?: string | null
+    depositCurrency?: string | null
+    /** `below_minimum` only: the rail minimum, in `depositCurrency`. */
+    minimumAmount?: string | null
     /** What the payer wrote on a bank transfer into a deposit account.
      *  Third-party text, so the API sends it to the account owner only. */
     senderReference?: string | null
@@ -286,6 +325,23 @@ export type HistoryEntry = {
 
 export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean {
     return FINAL_STATES.includes(transaction.status)
+}
+
+/** How long a completed withdrawal waits for its network fee to settle before
+ *  a receipt stops asking. Some legacy routes never report the delivery. */
+const NETWORK_FEE_SETTLE_WINDOW_MS = 10 * 60_000
+
+/**
+ * True while an entry can still change what its receipt says: it is not in a
+ * final state yet, or it completed less than ten minutes ago and its network
+ * fee is still pending. Legacy cross-chain withdrawals complete before the
+ * bridge reports the delivery, so the fee lands on an already-completed row.
+ */
+export function isSettling(entry: Pick<HistoryEntry, 'status' | 'completedAt' | 'extraData'>, now: number): boolean {
+    if (!isFinalState(entry)) return true
+    if (entry.extraData?.networkFeeStatus !== 'pending' || !entry.completedAt) return false
+    const completedAt = new Date(entry.completedAt).getTime()
+    return Number.isFinite(completedAt) && now - completedAt < NETWORK_FEE_SETTLE_WINDOW_MS
 }
 
 export function getReceiptUrl(transaction: TransactionDetails, origin?: string): string | undefined {

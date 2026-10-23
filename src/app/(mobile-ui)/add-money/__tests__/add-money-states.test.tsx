@@ -93,8 +93,6 @@ jest.mock('posthog-js', () => ({
 
 // Assets
 jest.mock('@/assets', () => ({
-    SOLANA_ICON: '/solana.png',
-    TRON_ICON: '/tron.png',
     MERCADO_PAGO: '/mercado-pago.png',
     PIX: '/pix.png',
 }))

@@ -130,6 +130,7 @@ const DEMO_BADGE_CATALOG = [
         name: 'First Swipe',
         description: 'You put your card to work.',
         publicDescription: 'They put their card to work.',
+        shareLine: 'Just put my Peanut card to work for the first time 💳',
         iconUrl: '/badges/happy_card.svg',
         unlock: { kind: 'card_purchase' },
         earnable: true,
@@ -139,6 +140,7 @@ const DEMO_BADGE_CATALOG = [
         name: '$1K Club',
         description: '$1K swiped.',
         publicDescription: '$1K swiped.',
+        shareLine: 'Crossed $1K on the Peanut card 💳',
         iconUrl: '/badges/money_stack.svg',
         unlock: { kind: 'card_spend', targetUsd: 1000 },
         earnable: true,
@@ -148,6 +150,7 @@ const DEMO_BADGE_CATALOG = [
         name: 'Name Dropper',
         description: 'You paid at a name. Or got paid at yours.',
         publicDescription: 'They moved money with an ENS name.',
+        shareLine: 'One ENS name, no address to copy 🔷',
         iconUrl: '/badges/ens.svg',
         unlock: { kind: 'ens_payment' },
         earnable: true,
@@ -157,6 +160,7 @@ const DEMO_BADGE_CATALOG = [
         name: 'Tron Native',
         description: 'Found on Tron. Where the dollars actually move.',
         publicDescription: 'Found on Tron. Where the dollars actually move.',
+        shareLine: 'Peanut × Tron 🔺',
         iconUrl: '/badges/tron.svg',
         unlock: { kind: 'campaign' },
         earnable: true,
@@ -475,6 +479,9 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // which is what the form fixtures exist to show. A fixture that wants the
     // prefilled form overrides this key with a synthetic address.
     { method: 'GET', pattern: '/users/me/verified-address', handler: () => ({}) },
+    // every avatar asks for the served art map; empty keeps the bundled art,
+    // which is what prod serves while it has no art bucket
+    { method: 'GET', pattern: '/avatars/art', handler: () => ({}) },
     {
         method: 'GET',
         pattern: '/users/contacts',
@@ -488,6 +495,8 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
     { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
     { method: 'POST', pattern: '/users/interaction-status', handler: () => ({}) },
+    // No arrival prompt by default: the drawer shows only in the arrival-* fixtures.
+    { method: 'POST', pattern: '/users/me/arrival', handler: () => ({ prompt: null }) },
     {
         method: 'POST',
         pattern: '/users/username/check',
@@ -598,6 +607,20 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             requestAmount: null,
             remainingAmount: null,
             rails: [{ kind: 'peanut_balance', payerAmount: { amount: null, currency: 'USD', isEstimate: false } }],
+        }),
+    },
+
+    // The requester's bank details, read only for a request that shares them.
+    // The demo request shares none, so no demo screen reads this; the fixtures
+    // that turn sharing on read it under the strict capture harness and lay
+    // their own account over it. The answer is a 200 because the harness keeps
+    // this status for the fixture's override.
+    {
+        method: 'GET',
+        pattern: '/requests/:uuid/deposit-instructions',
+        handler: ({ params }) => ({
+            depositAccount: DEMO_DEPOSIT_ACCOUNT_EUR,
+            paymentReference: params.uuid.slice(0, 8),
         }),
     },
 

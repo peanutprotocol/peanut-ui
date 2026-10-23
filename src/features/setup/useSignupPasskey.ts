@@ -10,13 +10,14 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { useLogin } from '@/hooks/useLogin'
 import { SETUP_POST_REGISTRATION_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
-import { isCapacitor } from '@/utils/capacitor'
+import { isCapacitor, isIOSNativeBridge } from '@/utils/capacitor'
 import { apiFetch } from '@/utils/api-fetch'
 import { checkPasskeySupport } from '@/utils/passkeyPreflight'
-import { nativePasskeyFailure } from '@/utils/native-passkey-errors'
+import { nativeErrorCode, nativePasskeyFailure } from '@/utils/native-passkey-errors'
 import { reportPasskeyFailure } from '@/utils/passkey-failure-reporting'
 import { isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
 import {
+    PASSKEY_NOT_SAVED_HELP,
     WebAuthnErrorName,
     classifyPasskeyError,
     getPasskeyErrorSetupKey,
@@ -40,6 +41,9 @@ const isUsernameTaken = async (username: string): Promise<boolean> => {
         return false
     }
 }
+
+// The first cancel is usually deliberate; the second on the same step usually means iOS refused to save.
+const IOS_CANCELS_BEFORE_HELP = 2
 
 const isProbablyPrivateMode = () => {
     try {
@@ -85,6 +89,7 @@ export function useSignupPasskey(username: string) {
      * drawer's retry re-enters the handler directly.
      */
     const inFlightRef = useRef(false)
+    const iosCancelsRef = useRef(0)
     // Covers those same awaits in the UI, so the button reads as busy, not dead.
     const [isPreparing, setIsPreparing] = useState(false)
 
@@ -140,6 +145,7 @@ export function useSignupPasskey(username: string) {
                 device_type: deviceType,
                 error_name: err.name,
                 error_code: err.name === 'UsernameTaken' ? 'USERNAME_TAKEN' : classifyPasskeyError(err).code,
+                native_error_code: nativeErrorCode(err),
             })
 
             if (err.name === 'UsernameTaken') {
@@ -166,7 +172,25 @@ export function useSignupPasskey(username: string) {
                 return
             }
 
-            if (nativePasskeyFailure(err)) {
+            // The iOS app ends the ceremony as a plain cancel when iCloud
+            // Passwords is off, even after its own prompt sent the user to
+            // Settings. iPhone Safari keeps the browser path below.
+            const nativeReason = nativePasskeyFailure(err)
+            const cancelled =
+                nativeReason === 'canceled' || (!nativeReason && err.name === WebAuthnErrorName.NotAllowed)
+            if (cancelled && isIOSNativeBridge()) {
+                if (nativeReason) reportPasskeyFailure(err, 'registration')
+                iosCancelsRef.current += 1
+                if (iosCancelsRef.current >= IOS_CANCELS_BEFORE_HELP) {
+                    setHelpErrorName(PASSKEY_NOT_SAVED_HELP)
+                    setIsHelpOpen(true)
+                } else {
+                    setInlineError(t('passkey.notCompleted'))
+                }
+                return
+            }
+
+            if (nativeReason) {
                 reportPasskeyFailure(err, 'registration')
                 setInlineError(t(getPasskeySetupKey(classifyPasskeyError(err).code)))
                 return

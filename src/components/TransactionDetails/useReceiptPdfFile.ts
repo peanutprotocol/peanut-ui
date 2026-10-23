@@ -7,6 +7,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
 import { authReady, getAuthHeaders } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
+import { saveToDocuments } from '@/utils/native-file.utils'
 import { NativeReceiptShareUnavailable, shareNativeReceipt } from '@/utils/native-receipt-share'
 import { shareableUrl } from '@/utils/url.utils'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
@@ -79,6 +80,7 @@ export function useReceiptPdfFile({
     version?: string
 }) {
     const t = useAppTranslations('transaction')
+    const tCommon = useAppTranslations('common')
     const toast = useToast()
     const locale = useLocale()
     const [pdf, setPdf] = useState<ReceiptPdfFile | null>(null)
@@ -188,6 +190,11 @@ export function useReceiptPdfFile({
     const download = () =>
         runFileAction('download', async (_file, receipt) => {
             if (isCapacitor()) {
+                // Android keeps the file in Documents; iOS, and a failed write, share it
+                if ((await saveToDocuments({ blob: receipt.blob, fileName: receipt.filename })) === 'saved') {
+                    toast.success(tCommon('savedToDocuments'))
+                    return
+                }
                 await shareNativeReceipt(
                     receipt.blob,
                     receipt.filename,

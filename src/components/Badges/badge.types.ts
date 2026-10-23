@@ -9,6 +9,7 @@ export type BadgeHistoryEntry = {
     code: string
     name: string
     description?: string | null
+    shareLine?: string
     iconUrl?: string | null
 }
 
@@ -21,6 +22,7 @@ export type BadgeView = {
     code: string
     name: string
     description: string
+    shareLine?: string
     iconUrl: string | null
     earned: boolean
     earnedAt?: string | Date
@@ -50,6 +52,7 @@ export function buildBadgeCollection(
                 code: badge.code,
                 name: badge.name || definition?.name || badge.code,
                 description: badge.description || definition?.description || '',
+                shareLine: badge.shareLine,
                 iconUrl: badge.iconUrl || definition?.iconUrl || null,
                 earned: true,
                 earnedAt: badge.earnedAt,

@@ -12,6 +12,7 @@ type Surface = LazyExoticComponent<ComponentType<AskSurfaceProps>>
  */
 export const INTERRUPT_SURFACES: Partial<Record<AskId, Surface>> = {
     'legal-reconsent': lazy(() => import('./surfaces/LegalReconsentSurface')),
+    arrival: lazy(() => import('@/features/home/components/ArrivalDrawer')),
     'balance-backup': lazy(() => import('./surfaces/BalanceBackupSurface')),
     'post-verification-action': lazy(() => import('@/components/Global/PostSignupActionManager')),
     'finish-card-setup': lazy(() => import('@/components/Home/EnableAutoBalanceBanner')),

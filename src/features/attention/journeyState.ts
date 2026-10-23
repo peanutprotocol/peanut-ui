@@ -12,6 +12,7 @@ import { useCapabilities } from '@/hooks/useCapabilities'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
+import { useArrivalPrompt } from '@/features/home/useArrivalPrompt'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useNotifications } from '@/hooks/useNotifications'
@@ -139,6 +140,7 @@ export interface JourneyInputs {
     hasFullName: boolean
     rewardsPendingUsd: number | undefined
     serverLedger: unknown
+    arrival: JourneyState['arrival']
 }
 
 /** Pure, so a test (and later the API) can build the state without React. */
@@ -202,6 +204,7 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
         hasFullName: input.hasFullName,
         rewardsPendingUsd: input.rewardsPendingUsd,
         serverLedger: input.serverLedger,
+        arrival: input.arrival,
     }
 }
 
@@ -225,6 +228,8 @@ export function useJourneyState(): JourneyState {
     const { oneSignalInitialized, isPermissionGranted, isPermissionDenied, isPushOptedIn, promptShownThisSession } =
         useNotifications()
     const { countryCode: geoCountry } = useGeoLocation()
+    // the check runs once Home opens, as it did before the manager
+    const { arrival, checked: arrivalChecked } = useArrivalPrompt(isSameRoute(pathname, '/home'))
     const flagEnabled = useFeatureFlags()
     // shares the React Query cache key with HomeHistory, so this read is free while Home is mounted
     const { data: latestHistory } = useTransactionHistory({ mode: 'latest', limit: 50, enabled: !!userId })
@@ -368,6 +373,7 @@ export function useJourneyState(): JourneyState {
                 // a failed request is no card, not a card held forever
                 rewardsPendingUsd: cashStatus.isError ? 0 : cashStatus.data?.data?.rewards?.pendingUsd,
                 serverLedger: user?.attention,
+                arrival: !arrivalChecked ? 'unknown' : arrival ? 'raised' : 'none',
             }),
         [
             capNudge,
@@ -406,6 +412,8 @@ export function useJourneyState(): JourneyState {
             latestHistory,
             cashStatus.isError,
             cashStatus.data,
+            arrival,
+            arrivalChecked,
             epoch,
         ]
     )

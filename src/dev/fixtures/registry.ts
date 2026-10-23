@@ -171,6 +171,74 @@ const PIX_KEY_PAYMENT_ENTRY = {
     extraData: { kind: 'QR_PAY', provider: 'MANTECA', usdAmount: '10' },
 }
 
+// An in-person card tap at a coffee shop, settled in USD (same currency, so
+// no Visa conversion). Shape follows peanut-api-ts transaction-intent/history.ts
+// for CARD_SPEND_CLEAR: the user sends, the merchant receives.
+const CARD_SPEND_ENTRY = {
+    uuid: 'fixture-card-spend',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-10-20T09:12:00.000Z'),
+    amount: '4.5',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    recipientAccount: { identifier: 'Corner Coffee', type: 'merchant', isUser: false },
+    currency: { amount: '4.50', code: 'USD' },
+    extraData: {
+        kind: 'CARD_SPEND_CLEAR',
+        provider: 'RAIN',
+        usdAmount: '4.5',
+        merchantName: 'Corner Coffee',
+        merchantCategory: 'Coffee shop',
+        merchantMcc: '5814',
+        cardAuthAmount: '4.50',
+        cardSettledAmount: '4.50',
+        settlementAdjusted: false,
+    },
+}
+
+// Two earlier taps, so the Activity list behind the receipt holds only card rows.
+const EARLIER_CARD_SPENDS = [
+    { merchant: 'Daily Bread', amount: '7.20', timestamp: '2026-10-19T08:40:00.000Z' },
+    { merchant: 'City Books', amount: '18.00', timestamp: '2026-10-18T16:05:00.000Z' },
+].map(({ merchant, amount, timestamp }, i) => ({
+    ...CARD_SPEND_ENTRY,
+    uuid: `fixture-card-spend-earlier-${i + 1}`,
+    timestamp: new Date(timestamp),
+    amount,
+    recipientAccount: { identifier: merchant, type: 'merchant', isUser: false },
+    currency: { amount, code: 'USD' },
+    extraData: {
+        ...CARD_SPEND_ENTRY.extraData,
+        usdAmount: amount,
+        merchantName: merchant,
+        merchantCategory: null,
+        merchantMcc: null,
+        cardAuthAmount: amount,
+        cardSettledAmount: amount,
+    },
+}))
+
+// A $400 request link paid from an exchange: the payer has no Peanut
+// account, so Activity names the sending address (star LP /request-links).
+const REQUEST_PAID_EXTERNAL_ENTRY = {
+    uuid: 'fixture-request-paid-external',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-10-20T17:34:00.000Z'),
+    amount: '400',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: 'RECIPIENT',
+    senderAccount: { identifier: '0x7a3f9c41d2e8b05a6f13c47e92d0ab58e1f491c2', type: 'evm-address', isUser: false },
+    recipientAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    extraData: { kind: 'P2P_REQUEST_FULFILL', usdAmount: '400' },
+}
+
 // A USD wire withdrawal (TASK-23054): $100 sent, a $20 wire fee withheld.
 const WIRE_WITHDRAWAL_ENTRY = {
     uuid: 'fixture-wire-withdrawal',
@@ -210,6 +278,180 @@ const RECEIPT_ATTACHMENT_ENTRY = {
     extraData: { kind: 'P2P_REQUEST_FULFILL', usdAmount: '25.00' },
     // synthetic url; the focused browser spec supplies the file without contacting s3.
     attachmentUrl: 'https://peanut-notes.s3.eu-north-1.amazonaws.com/fixture-receipt.pdf',
+}
+
+// A request paid by bank deposit (TASK-23729): no charge, the deposit matcher
+// closed it. €5 asked = $5.64, 5.57 USDC arrived, and it settled in euros, so
+// the API sends `completedAt` (the request's `paidAt`) and no `cancelledAt`.
+const BANK_PAID_REQUEST_ENTRY = {
+    uuid: 'fixture-bank-paid-request',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-08-12T10:00:00.000Z'),
+    createdAt: new Date('2026-08-11T09:00:00.000Z'),
+    completedAt: new Date('2026-08-12T10:00:00.000Z'),
+    amount: '5.64',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'CLOSED',
+    userRole: 'RECIPIENT',
+    recipientAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    memo: 'Concert ticket',
+    extraData: {
+        provider: 'PEANUT',
+        kind: 'P2P_REQUEST_FULFILL',
+        isRequestPotRollup: true,
+        source: 'EXTERNAL',
+        fulfilledChargeCount: 0,
+        totalChargeCount: 0,
+        receivedAmount: '5.57',
+    },
+    isRequestLink: true,
+    totalAmountCollected: 5.57,
+    charges: [],
+}
+
+// A pending request link that accepts bank transfer (TASK-23727): the
+// requester's receipt shows the reference and the bank details behind a tap.
+const PENDING_BANK_REQUEST_ENTRY = {
+    ...BANK_PAID_REQUEST_ENTRY,
+    uuid: 'fixture-bank-request',
+    timestamp: new Date('2026-10-15T10:00:00.000Z'),
+    createdAt: new Date('2026-10-15T10:00:00.000Z'),
+    completedAt: null,
+    amount: '250',
+    status: 'PENDING',
+    memo: 'Flat deposit',
+    extraData: {
+        provider: 'PEANUT',
+        kind: 'P2P_REQUEST_FULFILL',
+        isRequestPotRollup: true,
+        fulfilledChargeCount: 0,
+        totalChargeCount: 0,
+        bankInstructionsShared: true,
+        link: 'https://peanut.me/request/fixture-bank-request',
+    },
+    totalAmountCollected: 0,
+}
+
+// A request pot asked in euros, part paid by two contributors (TASK-23856):
+// €88 = $99.16. Hugo paid $40.65 from his balance. A second payer's $58.51
+// charge received 33 USDC from an external wallet, so it completed short and
+// carries the API's partialPayment flag.
+const POT_PAYMENT = (
+    chargeUuid: string,
+    paidAmountInRequestedToken: string,
+    payer: string,
+    username: string | null
+) => ({
+    uuid: `${chargeUuid}-payment`,
+    chargeUuid,
+    payerTransactionHash: `0x${chargeUuid}`,
+    payerChainId: '42161',
+    paidTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    paidAmountInRequestedToken,
+    payerAddress: payer,
+    fulfillmentTransactionHash: null,
+    status: 'SUCCESSFUL',
+    reason: null,
+    createdAt: '2026-10-19T19:36:10.000Z',
+    verifiedAt: '2026-10-19T19:36:10.000Z',
+    payerAccount: {
+        userId: username ? `fixture-${username}` : null,
+        identifier: username ?? payer,
+        type: username ? 'peanut-wallet' : 'evm-address',
+        user: username ? { username, bridgeKycStatus: 'approved', avatarKey: null } : null,
+    },
+})
+
+const POT_CHARGE = (
+    uuid: string,
+    tokenAmount: string,
+    settledAmount: string,
+    payment: ReturnType<typeof POT_PAYMENT>
+) => ({
+    uuid,
+    createdAt: '2026-10-19T19:34:13.000Z',
+    tokenAmount,
+    tokenDecimals: 6,
+    settledAmount,
+    status: 'COMPLETED',
+    partialPayment: Number(settledAmount) < Number(tokenAmount),
+    payments: [payment],
+    fulfillmentPayment: payment,
+})
+
+const HUGO_CHARGE = POT_CHARGE(
+    'fixture-pot-charge-hugo',
+    '40.65',
+    '40.65',
+    POT_PAYMENT('fixture-pot-charge-hugo', '40650000', '0x00000000000000000000000000000000000a11ce', 'hugo')
+)
+const SHORT_CHARGE = POT_CHARGE(
+    'fixture-pot-charge-short',
+    '58.51',
+    '33',
+    POT_PAYMENT('fixture-pot-charge-short', '33000000', '0x00000000000000000000000000000000000b0b0b', null)
+)
+
+const PARTIAL_POT_ENTRY = {
+    uuid: 'fixture-request-pot-partial',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-10-19T19:36:10.000Z'),
+    createdAt: new Date('2026-10-19T19:32:52.000Z'),
+    completedAt: null,
+    amount: '99.16',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'OPEN',
+    userRole: 'RECIPIENT',
+    recipientAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    memo: 'Dinner',
+    extraData: {
+        provider: 'PEANUT',
+        kind: 'P2P_REQUEST_FULFILL',
+        isRequestPotRollup: true,
+        fulfilledChargeCount: 2,
+        totalChargeCount: 2,
+        requestedAmount: '88',
+        requestCurrency: 'EUR',
+        link: 'https://peanut.me/request/fixture-request-pot-partial',
+    },
+    isRequestLink: true,
+    totalAmountCollected: 73.65,
+    charges: [HUGO_CHARGE, SHORT_CHARGE],
+}
+
+// The same pot after the requester closed it: CLOSED with no `completedAt`,
+// so $25.51 was never paid.
+const CLOSED_SHORT_POT_ENTRY = {
+    ...PARTIAL_POT_ENTRY,
+    uuid: 'fixture-request-pot-closed-short',
+    timestamp: new Date('2026-10-19T19:37:20.000Z'),
+    cancelledAt: new Date('2026-10-19T19:37:20.000Z'),
+    status: 'CLOSED',
+    extraData: { ...PARTIAL_POT_ENTRY.extraData, link: 'https://peanut.me/request/fixture-request-pot-closed-short' },
+}
+
+// The payer side of the same pot, as GET /requests/:uuid answers a payer.
+// Read through `demo-request`, the uuid demo-api answers every request read
+// with; the requester is someone else, so the demo user can pay it.
+const PAYER_POT_REQUEST = {
+    uuid: 'demo-request',
+    status: 'OPEN',
+    tokenAmount: '99.16',
+    currency: 'EUR',
+    requestedAmount: '88',
+    reference: 'Dinner',
+    recipientAccount: {
+        userId: 'fixture-ana',
+        identifier: '0x00000000000000000000000000000000000a11ce',
+        type: 'peanut-wallet',
+        user: { username: 'ana' },
+    },
+    charges: [HUGO_CHARGE],
+    totalCollectedAmount: 40.65,
 }
 
 // Peers who have picked an avatar (TASK-22625). The demo cast has none, so the
@@ -496,6 +738,26 @@ const QR_PAY_BLOCKED_RAIL = {
     reason: { code: 'provider_rejected', userMessage: 'QR payments are not available for this account.' },
 }
 
+/**
+ * QR rails the API paused because the identity evidence behind the approval is
+ * gone (`SUMSUB_IDENTITY_MISSING`): the fix is the identity restart.
+ */
+const QR_IDENTITY_MISSING_CAPABILITIES = {
+    rails: [
+        {
+            ...QR_PAY_BLOCKED_RAIL,
+            blockingActions: ['restart-identity'],
+            reason: { code: 'identity_missing', userMessage: 'Verify your identity again to restore QR payments.' },
+        },
+    ],
+    nextActions: [{ key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_missing' }],
+    restrictions: [],
+}
+
+/** A static Pix QR with no amount: the scan screen's own route. */
+const PIX_QR_ROUTE =
+    '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1'
+
 /** An Argentine user: one Manteca bank rail, and no Bridge corridor at all. */
 const MANTECA_AR_CAPABILITIES = {
     rails: [
@@ -608,6 +870,24 @@ const REVIEW_CAUSE_RESPONSE = {
 /** Every verified-user deposit-account fixture answers the gate the same way, rollout included. */
 const VA_READY_RESPONSE = {
     'GET /users/me': { capabilities: VA_READY_CAPABILITIES, depositAccounts: { enabled: true } },
+}
+
+/**
+ * A UK top-up as the API returns it: GBP over Faster Payments, so the bank
+ * details are a sort code and an account number, not an IBAN and a BIC.
+ */
+const GBP_ONRAMP = {
+    transferId: 'fixture-onramp-gbp',
+    depositInstructions: {
+        amount: '7.00',
+        currency: 'gbp',
+        depositMessage: 'BRGFIXTURE7GBP',
+        bankName: 'Clear Junction Limited',
+        bankAddress: '1 Fixture Street, London EC1A 1AA',
+        accountHolderName: 'Fixture Payments Ltd',
+        sortCode: '04-00-53',
+        accountNumber: '00000001',
+    },
 }
 
 /**
@@ -747,6 +1027,27 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
+    // TASK-21375: Argentina's bank transfer and Mercado Pago open the same
+    // screen, so the country offers one row.
+    'add-money-argentina': {
+        route: '/add-money/argentina',
+        about: 'Add money, Argentina: one row for bank or Mercado Pago.',
+        responses: { 'GET /users/me': { capabilities: MANTECA_AR_CAPABILITIES } },
+    },
+    // TASK-23924: Liechtenstein banks in CHF, and a top-up pays EUR, so the
+    // amount screen asks for a euro account, as it does for Switzerland.
+    'add-money-bank-liechtenstein': {
+        route: '/add-money/liechtenstein/bank?step=inputAmount&amount=100',
+        about: 'Add money by bank, Liechtenstein: the amount screen asks for a euro account.',
+        responses: VA_READY_RESPONSE,
+    },
+    // TASK-23924: tap Continue, then confirm. The bank details show the sort
+    // code, the account number and pounds, read from the API answer.
+    'add-money-bank-uk': {
+        route: '/add-money/united-kingdom/bank?step=inputAmount&amount=7',
+        about: 'Add money by bank, UK: continue to the GBP bank details (sort code and account number).',
+        responses: { ...VA_READY_RESPONSE, 'POST /bridge/onramp/create': GBP_ONRAMP },
+    },
     // Open /add-money/spain?__fixture=add-money-country-provider-wait and tap
     // "From Bank". The euro rail is under provider review (waiting-on-provider),
     // so the tap opens the "We're reviewing your details" modal (TASK-22153).
@@ -991,11 +1292,48 @@ export const FIXTURES: Record<string, Fixture> = {
             'POST /manteca/pix-key/owner': { name: 'MARIA DA SILVA', legalIdMasked: '12*******09' },
         },
     },
+    // The capabilities let the user pay, but the API refuses the scan for
+    // identity (TASK-23747): the card starts the verification.
+    'qr-pay-kyc-required': {
+        route: PIX_QR_ROUTE,
+        about: 'A scan the API refuses with MANTECA_KYC_REQUIRED: the error card offers Verify identity.',
+        rejects: {
+            'POST /manteca/qr-payment/init': {
+                status: 400,
+                body: {
+                    error: 'User KYC not approved',
+                    message: 'User KYC not approved',
+                    code: 'MANTECA_KYC_REQUIRED',
+                },
+            },
+        },
+    },
+    // TASK-22698: the restart, not the start route that answers "already approved".
+    'qr-pay-identity-missing': {
+        route: PIX_QR_ROUTE,
+        about: 'QR rails paused for missing identity evidence: the gate restarts the identity check.',
+        responses: { 'GET /users/me': { capabilities: QR_IDENTITY_MISSING_CAPABILITIES } },
+    },
     // Activity after a PIX-key payment: the owner's name, not the key.
     'history-pix-key-owner': {
         route: '/history',
         about: 'Activity row for a PIX-key payment, named after the key owner.',
         responses: { 'GET /users/history': { entries: [PIX_KEY_PAYMENT_ENTRY], hasMore: false } },
+    },
+    // Activity after a request link is paid from an exchange (star LP /request-links capture).
+    'history-request-paid-external': {
+        route: '/history',
+        about: 'Activity row for a request paid from an external wallet, named by its address.',
+        responses: { 'GET /users/history': { entries: [REQUEST_PAID_EXTERNAL_ENTRY], hasMore: false } },
+    },
+    // Activity after an in-person card tap (star LP /peanut-card capture).
+    'history-card-spend': {
+        route: '/history',
+        about: 'Activity after in-person Peanut Card purchases in USD: card rows only, no badge rows.',
+        responses: {
+            'GET /users/history': { entries: [CARD_SPEND_ENTRY, ...EARLIER_CARD_SPENDS], hasMore: false },
+            'GET /users/me': { user: { badges: [] } },
+        },
     },
     // Named bank accounts beside the named address book: destinationLabel on
     // every row, masked identifier underneath.
@@ -1281,6 +1619,44 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    'history-bank-paid-request': {
+        route: '/history',
+        about: 'A request paid by bank deposit a few cents short in USD. Reads Completed, nothing remaining.',
+        waitFor: '[data-testid="transaction-card"]',
+        responses: {
+            'GET /users/history': { entries: [BANK_PAID_REQUEST_ENTRY], hasMore: false },
+            'GET /history/fixture-bank-paid-request': BANK_PAID_REQUEST_ENTRY,
+        },
+    },
+    'history-request-pot-partial': {
+        route: '/history?tx=fixture-request-pot-partial',
+        about: 'A €88 request part paid: one contribution arrived short of its charge. Rows show what each paid; Close request asks first.',
+        responses: {
+            'GET /users/history': { entries: [PARTIAL_POT_ENTRY], hasMore: false },
+            'GET /history/fixture-request-pot-partial': PARTIAL_POT_ENTRY,
+        },
+    },
+    'history-request-pot-closed-short': {
+        route: '/history?tx=fixture-request-pot-closed-short',
+        about: 'The same request closed by the requester with $25.51 unpaid: neutral Closed badge, "not paid".',
+        responses: {
+            'GET /users/history': { entries: [CLOSED_SHORT_POT_ENTRY], hasMore: false },
+            'GET /history/fixture-request-pot-closed-short': CLOSED_SHORT_POT_ENTRY,
+        },
+    },
+    'history-request-bank-details': {
+        route: '/history?tx=fixture-bank-request',
+        about: 'A pending request that accepts bank transfer: its receipt shows the payment reference and the bank details.',
+        responses: {
+            'GET /users/history': { entries: [PENDING_BANK_REQUEST_ENTRY], hasMore: false },
+            'GET /history/fixture-bank-request': PENDING_BANK_REQUEST_ENTRY,
+            'GET /requests/fixture-bank-request/deposit-instructions': {
+                depositAccount: DEPOSIT_ACCOUNT_EUR,
+                paymentReference: 'demo-req',
+                payerAmount: REQUEST_PAY_EUR,
+            },
+        },
+    },
     'empty-history': {
         route: '/history',
         about: 'Nothing on the timeline yet: no transaction, no badge, no ID check.',
@@ -1403,6 +1779,28 @@ export const FIXTURES: Record<string, Fixture> = {
                         { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_missing' },
                     ],
                     restrictions: [],
+                },
+            },
+        },
+    },
+    // TASK-20344: the provider refuses the ARS top-up for the account. Tap
+    // Continue: the screen shows the refusal copy, not "Unexpected error".
+    'add-money-provider-rejected': {
+        route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
+        about: 'ARS top-up the provider refuses (PROVIDER_REJECTED): Continue shows the refusal copy.',
+        responses: {
+            'GET /users/me': {
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                capabilities: MANTECA_AR_CAPABILITIES,
+            },
+        },
+        rejects: {
+            'POST /manteca/deposit': {
+                status: 422,
+                body: {
+                    error: 'Unexpected error',
+                    message: 'Failed to create price lock: User needs extra doc.',
+                    code: 'PROVIDER_REJECTED',
                 },
             },
         },
@@ -1533,6 +1931,24 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/home',
         about: 'Early-user reward drawer over home, opened by the user flag.',
         responses: { 'GET /users/me': { showEarlyUserModal: true } },
+    },
+
+    // Arrival prompt (TASK-23251). The app must resolve a country first (the
+    // edge, else ipapi); with none it makes no call and shows nothing.
+    'arrival-qr-ar': {
+        route: '/home',
+        about: 'Arrival drawer over home: in Argentina, pay a Mercado Pago QR.',
+        responses: { 'POST /users/me/arrival': { prompt: 'qr_ar' } },
+    },
+    'arrival-pix-br': {
+        route: '/home',
+        about: 'Arrival drawer over home: in Brazil, pay a Pix QR.',
+        responses: { 'POST /users/me/arrival': { prompt: 'pix_br' } },
+    },
+    'arrival-card': {
+        route: '/home',
+        about: 'Arrival drawer over home: abroad with an active card.',
+        responses: { 'POST /users/me/arrival': { prompt: 'card' } },
     },
 
     // ---------------------------------------------------------------------
@@ -2427,6 +2843,20 @@ export const FIXTURES: Record<string, Fixture> = {
         // The alternative sits under the keypad, below the fold on a small phone.
         fullPage: true,
     },
+    'request-created-bank-details': {
+        // Tap Create request: demo-api creates every request as `demo-request`.
+        route: '/request?amount=50',
+        about: 'A new request that accepts bank transfer: the created screen shows the payment reference and the bank details.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] },
+            'GET /requests/demo-request/deposit-instructions': {
+                depositAccount: DEPOSIT_ACCOUNT_EUR,
+                paymentReference: 'demo-req',
+                payerAmount: REQUEST_PAY_EUR,
+            },
+        },
+    },
     'request-pay-open-amount': {
         // The override keys on this charge id, so the route names it.
         route: '/pay-request?chargeId=demo-open-charge',
@@ -2447,6 +2877,39 @@ export const FIXTURES: Record<string, Fixture> = {
                 },
             },
         },
+    },
+    'pay-request-pot-partial-success': {
+        // The pay screen of a part-paid €88 pot. Tap External wallet: about
+        // 15 s later the deposit poll answers completed and the charge reads
+        // back 33 USDC booked of $58.51, so the deposit card states what
+        // arrived and what is still needed.
+        route: '/pay-request?id=demo-request',
+        about: 'Paying a part-paid pot from an external wallet when the deposit arrives short (tap External wallet, wait ~15 s).',
+        responses: {
+            'GET /requests/demo-request': PAYER_POT_REQUEST,
+            'GET /requests/demo-request/pay-amounts': {
+                requestCurrency: 'EUR',
+                requestAmount: '88.00',
+                remainingAmount: '51.93',
+                rails: [{ kind: 'peanut_balance', payerAmount: { ...REQUEST_PAY_USD, amount: '58.51' } }],
+            },
+            // demo-api names every new charge at random; the read-back below keys on this one
+            'POST /charges': { data: { id: 'fixture-partial-charge' } },
+            'GET /request-charges/fixture-partial-charge': {
+                tokenAmount: '58.51',
+                currencyAmount: '58.51',
+                transactionType: 'REQUEST',
+                status: 'COMPLETED',
+                settledAmount: '33',
+                partialPayment: true,
+                requestLink: { uuid: 'demo-request' },
+            },
+            'GET /rhino/status/0xdec0debad1dec0debad1dec0debad1dec0debad1': { status: 'completed', amount: 33 },
+        },
+        // The card then clears the address status to watch for the rest. The
+        // status above always answers completed, so the clear has to fail here
+        // or the card would read the same deposit again every few seconds.
+        fails: ['POST /rhino/reset-status/0xdec0debad1dec0debad1dec0debad1dec0debad1'],
     },
     'request-pay-by-bank': {
         // `demo-request` is the uuid demo-api answers every request read with,

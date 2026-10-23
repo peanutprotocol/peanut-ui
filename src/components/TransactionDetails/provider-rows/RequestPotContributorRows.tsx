@@ -11,6 +11,10 @@ import { formatCurrency, printableUserHandle } from '@/utils/general.utils'
  * 17835:83962): "Contributors (N)" then avatar + name + amount per row.
  * Renders inside ReceiptDetailsCard's `divide-y` as one dashed-divided
  * section.
+ *
+ * The amount is what the contributor paid, which can be less than their own
+ * charge asked (TASK-23856). What the charge asked is the payer's figure, so
+ * the requester's receipt does not show it.
  */
 export function RequestPotContributorRows({ vm }: { vm: ReceiptViewModel }) {
     const t = useTranslations('transaction')

@@ -38,6 +38,7 @@ export type AskId =
     | 'cap-nudge'
     | 'maintenance'
     | 'legal-reconsent'
+    | 'arrival'
     | 'balance-backup'
     | 'verification-due'
     | 'post-verification-action'
@@ -212,6 +213,8 @@ export interface JourneyState {
     rewardsPendingUsd: number | undefined
     /** the profile's copy of the ledger (unknown shape until sanitised); undefined on an older API */
     serverLedger: unknown
+    /** the arrival prompt (TASK-23251): `unknown` until this app session's check has answered */
+    arrival: 'unknown' | 'none' | 'raised'
 }
 
 export interface LedgerEntry {

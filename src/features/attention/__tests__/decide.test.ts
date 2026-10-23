@@ -62,6 +62,7 @@ const baseState: JourneyState = {
     hasFullName: true,
     rewardsPendingUsd: 0,
     serverLedger: undefined,
+    arrival: 'none',
 }
 
 const baseSession: Session = {
@@ -316,5 +317,55 @@ describe('isSilenced', () => {
         }
         const entry = { snoozedUntil: new Date(NOW + 30 * DAY_MS).toISOString(), version: '2026-10-01' }
         expect(isSilenced(legalReconsent, entry, state)).toBe(false)
+    })
+})
+
+describe('the arrival prompt (TASK-23251, from the Home modal chain)', () => {
+    const OVER_THRESHOLD: Partial<JourneyState> = { balance: { loaded: true, usd: 900 } }
+
+    test('it outranks the balance warning; both are tier 1, so the warning still opens after it', () => {
+        const first = run({ ...OVER_THRESHOLD, arrival: 'raised' })
+        expect(first.interrupt).toBe('arrival')
+        expect(first.trace.reasons['balance-backup']).toBe('an interrupt is open')
+        const after = run({ ...OVER_THRESHOLD, arrival: 'none' }, { interruptsThisSession: ['arrival'] })
+        expect(after.interrupt).toBe('balance-backup')
+    })
+
+    test('with no arrival the balance warning opens', () => {
+        expect(run({ ...OVER_THRESHOLD, arrival: 'none' }).interrupt).toBe('balance-backup')
+    })
+
+    test('terms go first, then the arrival', () => {
+        expect(run({ ...TERMS_NEEDED, arrival: 'raised' }).interrupt).toBe('legal-reconsent')
+        const after = run({ arrival: 'raised' }, { interruptsThisSession: ['legal-reconsent'] })
+        expect(after.interrupt).toBe('arrival')
+    })
+
+    test('it opens over the to-do list, as it did before the manager', () => {
+        const d = run({ arrival: 'raised', onboarding: onboarding('add_money') })
+        expect(d.interrupt).toBe('arrival')
+        expect(d.zone).toEqual({ id: 'checklist', mode: 'ask' })
+    })
+
+    test('an unanswered check holds lower-tier interrupts until the settle deadline', () => {
+        const pushDue: Partial<JourneyState> = {
+            arrival: 'unknown',
+            onboarding: onboarding('completed'),
+            push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: true },
+        }
+        const held = run(pushDue, { count: 3 })
+        expect(held.interrupt).toBeNull()
+        expect(held.trace.reasons['push-home-fallback']).toBe('higher tier unsettled')
+        expect(run(pushDue, { count: 3, settleDeadlinePassed: true }).interrupt).toBe('push-home-fallback')
+    })
+
+    test('only on Home, and never over a user-opened overlay', () => {
+        expect(run({ arrival: 'raised', route: 'other' }, { route: 'other' }).interrupt).toBeNull()
+        expect(run({ arrival: 'raised' }, { busy: true }).interrupt).toBeNull()
+    })
+
+    test('a dismissal never silences the next arrival', () => {
+        const dismissed: Ledger = { arrival: { dismissedAt: new Date(NOW - 60_000).toISOString() } }
+        expect(run({ arrival: 'raised' }, {}, dismissed).interrupt).toBe('arrival')
     })
 })

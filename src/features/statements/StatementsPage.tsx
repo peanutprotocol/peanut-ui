@@ -25,22 +25,27 @@ import { useStatementPeriod } from './useStatementPeriod'
  * them chosen. "Custom period" opens the range calendar on the page, under
  * the Period field (Aleks, 2026-10-01, over a drawer): the page grows and
  * Download moves down with it, and waits until a first day is picked.
+ *
+ * In the app the one button is Generate; once the file is ready it gives way
+ * to Share (primary) and Download (secondary) (Aleks, 2026-10-12).
  */
 export function StatementsPage() {
     const t = useTranslations('statements')
+    const tCommon = useTranslations('common')
     const formatter = useFormatter()
     const toast = useToast()
     const onBack = useSafeBack('/profile', { replace: true })
     const period = useStatementPeriod()
     const { format, setFormat } = useStatementFormat()
-    const { download, isDownloading, isPrepared, periodTooLong, error } = useStatementDownload({
+    const { generate, share, download, busy, isNative, isPrepared, periodTooLong, error } = useStatementDownload({
         format,
         from: period.from,
         to: period.to,
         fromIso: period.fromIso,
         toIso: period.toIso,
         preset: period.preset,
-        onSaved: ({ byYear }) => toast.success(t(byYear ? 'downloadedByYear' : 'downloaded')),
+        onSaved: ({ byYear }, inDocuments) =>
+            toast.success(inDocuments ? tCommon('savedToDocuments') : t(byYear ? 'downloadedByYear' : 'downloaded')),
     })
 
     const periodOptions = useMemo(
@@ -61,16 +66,16 @@ export function StatementsPage() {
           : undefined
 
     // the calendar makes the page longer than the screen, and the fixed bottom
-    // nav then covers Download. When a tap gives the custom period a last day,
-    // the page moves just far enough to show the button; when a failure
-    // appears under the button, just far enough to show the failure.
+    // nav then covers the buttons. When a tap gives the custom period a last
+    // day, the page moves just far enough to show the last button; when a
+    // failure appears under the buttons, just far enough to show the failure.
     // A deep link that opens on a period does not scroll: nothing changed.
-    const downloadRef = useRef<HTMLButtonElement>(null)
+    const lastButtonRef = useRef<HTMLButtonElement>(null)
     const errorRef = useRef<HTMLDivElement>(null)
     const lastDay = period.isCustom ? days?.to?.getTime() : undefined
     const shownLastDay = useRef(lastDay)
     useEffect(() => {
-        if (lastDay !== undefined && lastDay !== shownLastDay.current) scrollClearOfBottomNav(downloadRef.current)
+        if (lastDay !== undefined && lastDay !== shownLastDay.current) scrollClearOfBottomNav(lastButtonRef.current)
         shownLastDay.current = lastDay
     }, [lastDay])
     useEffect(() => {
@@ -116,16 +121,40 @@ export function StatementsPage() {
                     bottom-nav clearance lands on the failure when there is one.
                     The refused-file error keeps its line short and asks for
                     support through the link alone. */}
-                <Button
-                    ref={downloadRef}
-                    variant="primary"
-                    className="w-full"
-                    loading={isDownloading}
-                    disabled={!period.isComplete}
-                    onClick={download}
-                >
-                    {t(isPrepared ? 'save' : 'download')}
-                </Button>
+                {isPrepared ? (
+                    <>
+                        <Button
+                            variant="primary"
+                            className="w-full"
+                            loading={busy === 'share'}
+                            disabled={busy === 'download'}
+                            onClick={share}
+                        >
+                            {t('share')}
+                        </Button>
+                        <Button
+                            ref={lastButtonRef}
+                            variant="secondary"
+                            className="w-full"
+                            loading={busy === 'download'}
+                            disabled={busy === 'share'}
+                            onClick={download}
+                        >
+                            {t('download')}
+                        </Button>
+                    </>
+                ) : (
+                    <Button
+                        ref={lastButtonRef}
+                        variant="primary"
+                        className="w-full"
+                        loading={busy === 'generate'}
+                        disabled={!period.isComplete}
+                        onClick={generate}
+                    >
+                        {t(isNative ? 'generate' : 'download')}
+                    </Button>
+                )}
                 {error && (
                     <div ref={errorRef}>
                         <Callout priority="error" offerSupport={error === 'unverified'}>

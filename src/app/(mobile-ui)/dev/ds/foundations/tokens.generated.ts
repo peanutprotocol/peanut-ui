@@ -94,6 +94,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "previewClass": "bg-background-setup-hero"
     },
     {
+        "name": "background-marketing-sky",
+        "value": "var(--color-blue-300)",
+        "section": "semantic",
+        "previewClass": "bg-background-marketing-sky"
+    },
+    {
         "name": "background-icon-bubble-green",
         "value": "#29cc6a",
         "section": "semantic",
@@ -206,6 +212,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "value": "#ffffff",
         "section": "semantic",
         "previewClass": "bg-foreground-inverse"
+    },
+    {
+        "name": "foreground-inverse-secondary",
+        "value": "#ffffff99",
+        "section": "semantic",
+        "previewClass": "bg-foreground-inverse-secondary"
     },
     {
         "name": "foreground-error",
@@ -894,19 +906,6 @@ export const FONT_TOKENS: FontToken[] = [
         "section": "parity",
         "previewClass": "font-sans",
         "stack": "var(--font-roboto), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'"
-    },
-    {
-        "name": "display",
-        "section": "parity",
-        "previewClass": "font-display",
-        "stack": "var(--font-sniglet), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'"
-    },
-    {
-        "name": "condensed",
-        "section": "parity",
-        "previewClass": "font-condensed",
-        "stack": "var(--font-roboto)",
-        "fontVariationSettings": "'wdth' 50"
     }
 ]
 

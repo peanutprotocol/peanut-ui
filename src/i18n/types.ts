@@ -126,14 +126,17 @@ export interface Translations {
 
     // Landing page — send-in-seconds section (closing CTA)
     landingClosingHeadline: string
+    /** The opening 1-3 headline words, set as the Knerd lockup. Must open the headline exactly. */
+    landingClosingAccent: string
     landingClosingSubline: string
 
     // Landing page — hero
-    landingHeroTapScan: string
-    landingHeroNoLocalId: string
-    landingHeroCityNewYork: string
-    landingHeroCityMadrid: string
-    landingHeroCityMexicoCity: string
+    landingHeroHeadline: string
+    landingHeroSubline: string
+    landingHeroGetPaid: string
+    landingHeroGlobally: string
+    landingHeroSpend: string
+    landingHeroLocally: string
 
     // Landing page — zero-fees section
     landingZeroFees: string
@@ -335,6 +338,20 @@ export interface Translations {
     contentHubTitle: string
     contentHubSubtitle: string
     contentSearchPlaceholder: string
+    contentBrowseTopics: string
+    contentCountryGuides: string
+    contentTopicCountriesTitle: string
+    contentTopicCountriesDescription: string
+    contentTopicDepositTitle: string
+    contentTopicDepositDescription: string
+    contentTopicReceiveTitle: string
+    contentTopicReceiveDescription: string
+    contentTopicSendTitle: string
+    contentTopicSendDescription: string
+    contentTopicPayTitle: string
+    contentTopicPayDescription: string
+    contentTopicWithdrawTitle: string
+    contentTopicWithdrawDescription: string
     inEnglish: string // label on a hub item the fallback serves in English ("En inglés")
     filterAll: string
     filterBlog: string

@@ -16,6 +16,7 @@
         "somethingWentWrong": "Algo salió mal",
         "genericError": "Algo salió mal. Intenta de nuevo o contacta soporte.",
         "copiedToClipboard": "Copiado al portapapeles",
+        "savedToDocuments": "Guardado en Documentos",
         "maybeLater": "Quizás más tarde",
         "tryAgain": "Intentar de nuevo",
         "skipForNow": "Omitir por ahora",
@@ -111,6 +112,7 @@
         "xchainPaymentDisabled": "Las transferencias a otras redes están limitadas en tu cuenta. Contacta a soporte para recibir ayuda.",
         "rainInsufficientCollateral": "Tu tarjeta no tiene suficiente colateral para este retiro.",
         "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
+        "providerRejected": "Nuestro socio de pagos no pudo aceptar esta operación para tu cuenta. No se movió dinero. Contacta a soporte.",
         "bankAccountNotUsable": "Esta cuenta bancaria ya no se puede usar. Agrégala de nuevo.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualiza la página e inténtalo de nuevo.",
@@ -219,7 +221,7 @@
             "noMonthlyFee": "SIN CUOTA MENSUAL"
         },
         "faq": {
-            "title": "Preguntas.",
+            "title": "FAQ.",
             "q1": {
                 "question": "¿Qué es Peanut Card?",
                 "answer": "Peanut Card es una tarjeta Visa virtual para usar tu saldo de Peanut en línea y con billeteras móviles compatibles."

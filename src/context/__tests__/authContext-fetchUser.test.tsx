@@ -16,12 +16,18 @@ const mockRefetch = jest.fn()
 
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
+const mockUserData = { user: { userId: 'u1', username: 'probe' }, accounts: [] }
+const mockQueryClient = {
+    clear: jest.fn(),
+    cancelQueries: jest.fn().mockResolvedValue(undefined),
+    getQueryData: () => mockUserData,
+}
 jest.mock('@tanstack/react-query', () => ({
-    useQueryClient: () => ({ clear: jest.fn(), cancelQueries: jest.fn().mockResolvedValue(undefined) }),
+    useQueryClient: () => mockQueryClient,
 }))
 jest.mock('@/hooks/query/user', () => ({
     useUserQuery: () => ({
-        data: { user: { userId: 'u1', username: 'probe' }, accounts: [] },
+        data: mockUserData,
         isLoading: false,
         refetch: mockRefetch,
         error: null,
@@ -54,7 +60,13 @@ jest.mock('@/components/Invites/badge-campaign-context', () => ({
 jest.mock('@/utils/invite-stash', () => ({ clearInvite: jest.fn(), readInviteCode: () => '' }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { identify: jest.fn(), reset: jest.fn(), register: jest.fn() },
+    default: {
+        identify: jest.fn(),
+        get_distinct_id: jest.fn(),
+        setPersonProperties: jest.fn(),
+        reset: jest.fn(),
+        register: jest.fn(),
+    },
 }))
 
 import { AuthProvider, useAuth } from '../authContext'

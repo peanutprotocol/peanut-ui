@@ -46,7 +46,7 @@ import type { PushSubscriptionChange } from '@/services/onesignal'
 import { useNotifications } from '../useNotifications'
 
 describe('useNotifications initial login', () => {
-    it('joins the in-flight login, and a late-settling older login keeps the newer id guarded', async () => {
+    it('joins the in-flight login, then links the latest account after the older login settles', async () => {
         const rendered = renderHook(() => useNotifications())
         await waitFor(() => expect(rendered.result.current.oneSignalInitialized).toBe(true))
         await waitFor(() => expect(mockAdapter.login).toHaveBeenCalledWith('user-1'))
@@ -63,16 +63,15 @@ describe('useNotifications initial login', () => {
         // switch accounts while that first login is STILL pending
         userId = 'user-2'
         rendered.rerender()
-        await waitFor(() => expect(mockAdapter.login).toHaveBeenCalledWith('user-2'))
-        expect(mockAdapter.login).toHaveBeenCalledTimes(2)
-
-        // the newer login lands first, then the older one settles: neither the
-        // guard nor the bookkeeping may end up naming the account we left
-        await act(async () => {
-            pendingLogins.get('user-2')!.resolve()
-        })
+        // Complete A before waiting for B: serialized SDK calls prevent an
+        // older completion from overwriting the actual SDK account identity.
         await act(async () => {
             pendingLogins.get('user-1')!.resolve()
+        })
+        await waitFor(() => expect(mockAdapter.login).toHaveBeenCalledWith('user-2'))
+        expect(mockAdapter.login).toHaveBeenCalledTimes(2)
+        await act(async () => {
+            pendingLogins.get('user-2')!.resolve()
         })
         await act(async () => {
             onSubscriptionChange({ optedIn: false, previousOptedIn: true })

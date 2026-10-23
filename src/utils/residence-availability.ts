@@ -3,7 +3,7 @@ import { type ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSe
 import { regionIntentForResidence } from '@/utils/regions.utils'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 
-/** i18n keys under setup.residenceStep.compare.items */
+/** What a residence can make available: a bank rail, bank transfers where supported, the card, P2P. */
 export type AvailabilityItemKey = 'p2p' | 'pix' | 'arQr' | 'spei' | 'usdAch' | 'eurSepa' | 'gbpFps' | 'bank' | 'card'
 
 export type AvailabilityRailKey = Exclude<AvailabilityItemKey, 'p2p' | 'card' | 'bank'>

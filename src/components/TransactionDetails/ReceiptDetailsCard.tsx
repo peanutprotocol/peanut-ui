@@ -94,7 +94,12 @@ export function ReceiptDetailsCard({
     const statusDate = receiptStatusDate(transaction)
     const statusDateLabel = (kind: ReceiptStatusDateKind) => {
         if (kind === 'claimed') return t('rows.claimed')
-        if (kind === 'cancelled') return t('rows.cancelled')
+        if (kind === 'cancelled') {
+            // a verification deposit went back to the sender: Returned, not Cancelled
+            return transaction.extraDataForDrawer?.depositKind === 'verification'
+                ? t('returnedStatus')
+                : t('rows.cancelled')
+        }
         // a deposit the bank sent back is Returned everywhere on the receipt,
         // never Refunded (design.md status words)
         if (kind === 'refunded') {
@@ -200,11 +205,26 @@ export function ReceiptDetailsCard({
                     <DataRow label={tCommon('exchangeRate')} value={exchangeRate} />
                 )}
 
-                {rowVisibilityConfig.networkFee && (
+                {rowVisibilityConfig.networkFee && transaction.networkFeeDetails && (
                     <DataRow
                         label={t('rows.networkFee')}
-                        value={transaction.networkFeeDetails!.amountDisplay}
-                        moreInfoText={transaction.networkFeeDetails!.moreInfoText}
+                        value={
+                            transaction.networkFeeDetails.state === 'charged'
+                                ? transaction.networkFeeDetails.amountDisplay
+                                : transaction.networkFeeDetails.state === 'pending'
+                                  ? // the quote, as an estimate, until the fee settles
+                                    transaction.networkFeeDetails.amountDisplay
+                                      ? `≈ ${transaction.networkFeeDetails.amountDisplay}`
+                                      : tCommon('pending')
+                                  : tCommon('sponsoredByPeanut')
+                        }
+                    />
+                )}
+
+                {rowVisibilityConfig.recipientReceives && (
+                    <DataRow
+                        label={t('rows.recipientReceives')}
+                        value={`$${formatAmount(transaction.recipientReceivesUsd as number)}`}
                     />
                 )}
 

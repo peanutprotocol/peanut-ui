@@ -52,6 +52,7 @@ const state = (overrides: Record<string, unknown> = {}): JourneyState =>
         hasFullName: true,
         rewardsPendingUsd: 0,
         serverLedger: undefined,
+        arrival: 'none',
         capNudge: null,
         maintenance: 'none',
         ...overrides,

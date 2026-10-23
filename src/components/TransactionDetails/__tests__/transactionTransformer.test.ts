@@ -548,6 +548,133 @@ describe('mapTransactionDataForDrawer', () => {
         })
     })
 
+    // The API states three numbers for a crypto withdrawal: the gross that left
+    // the wallet (`usdAmount`), the settled fee and what was delivered. The
+    // receipt adds nothing to them (TASK-23487).
+    describe('crypto withdrawal network fee (TASK-23487)', () => {
+        const withdraw = (status: EHistoryStatus, extraData: Record<string, unknown>) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    status,
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: externalEoa,
+                    extraData: { kind: 'CRYPTO_WITHDRAW', usdAmount: '64.50', ...extraData },
+                })
+            ).transactionDetails
+
+        it('a pending fee reads pending, with no received amount', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, { networkFeeStatus: 'pending', networkFeeUsd: null })
+            expect(result.networkFeeDetails).toEqual({ state: 'pending' })
+            expect(result.recipientReceivesUsd).toBeUndefined()
+        })
+
+        it('a pending fee with a quote reads the quote as the estimate', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, {
+                networkFeeStatus: 'pending',
+                networkFeeUsd: null,
+                quotedFeeUsd: 1.43,
+            })
+            expect(result.networkFeeDetails).toEqual({ state: 'pending', amountDisplay: '$1.43' })
+            expect(result.recipientReceivesUsd).toBeUndefined()
+        })
+
+        it('a zero quote is a plain pending, never "≈ $0"', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, {
+                networkFeeStatus: 'pending',
+                networkFeeUsd: null,
+                quotedFeeUsd: 0,
+            })
+            expect(result.networkFeeDetails).toEqual({ state: 'pending' })
+        })
+
+        it('a settled zero fee reads sponsored', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, { networkFeeStatus: 'settled', networkFeeUsd: 0 })
+            expect(result.networkFeeDetails).toEqual({ state: 'sponsored' })
+            expect(result.recipientReceivesUsd).toBeUndefined()
+        })
+
+        it('a settled fee states the fee and what the recipient received', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, {
+                networkFeeStatus: 'settled',
+                networkFeeUsd: 1.432671,
+                deliveredUsd: '63.067329',
+            })
+            expect(result.networkFeeDetails).toEqual({ state: 'charged', amountDisplay: '$1.43' })
+            expect(result.recipientReceivesUsd).toBe(63.067329)
+        })
+
+        it('a fee under a cent reads < $0.01', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, {
+                networkFeeStatus: 'settled',
+                networkFeeUsd: 0.004,
+                deliveredUsd: '64.496',
+            })
+            expect(result.networkFeeDetails).toEqual({ state: 'charged', amountDisplay: '< $0.01' })
+        })
+
+        it('an unknown fee states nothing', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, { networkFeeStatus: 'unknown', networkFeeUsd: null })
+            expect(result.networkFeeDetails).toBeUndefined()
+            expect(result.recipientReceivesUsd).toBeUndefined()
+        })
+
+        it('a failed withdrawal states nothing', () => {
+            const result = withdraw(EHistoryStatus.FAILED, { networkFeeStatus: 'unknown', networkFeeUsd: null })
+            expect(result.networkFeeDetails).toBeUndefined()
+            expect(result.recipientReceivesUsd).toBeUndefined()
+        })
+
+        it('an API without the fee status states nothing, even with a fee number', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, { networkFeeUsd: 1.43 })
+            expect(result.networkFeeDetails).toBeUndefined()
+        })
+
+        // An API that predates `networkFeeStatus` sends a v2 withdrawal's net as
+        // `usdAmount` and the fee beside it. Until it deploys, the receipt adds
+        // them back, so the headline never drops by the fee.
+        it('an API before the fee status: net plus fee, and no fee rows', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, { usdAmount: '9.50', networkFeeUsd: 0.5 })
+            expect(result.amount).toBe(10)
+            expect(result.networkFeeDetails).toBeUndefined()
+            expect(result.recipientReceivesUsd).toBeUndefined()
+        })
+
+        it('an API with the fee status: the stated gross, never added to', () => {
+            const result = withdraw(EHistoryStatus.COMPLETED, {
+                usdAmount: '9.50',
+                networkFeeStatus: 'settled',
+                networkFeeUsd: 0.5,
+                deliveredUsd: '9.00',
+            })
+            expect(result.amount).toBe(9.5)
+            expect(result.networkFeeDetails).toEqual({ state: 'charged', amountDisplay: '$0.50' })
+            expect(result.recipientReceivesUsd).toBe(9)
+        })
+
+        it.each([
+            ['pending', { networkFeeStatus: 'pending', networkFeeUsd: null }],
+            ['charged', { networkFeeStatus: 'settled', networkFeeUsd: 1.432671, deliveredUsd: '63.067329' }],
+        ])('the amount is the gross the API sent, never gross plus fee (%s)', (_state, extraData) => {
+            expect(withdraw(EHistoryStatus.COMPLETED, extraData).amount).toBe(64.5)
+        })
+
+        it('no other kind gets fee rows from the transformer', () => {
+            const result = mapTransactionDataForDrawer(
+                baseEntry({
+                    extraData: {
+                        kind: 'DIRECT_TRANSFER',
+                        usdAmount: '5',
+                        networkFeeStatus: 'settled',
+                        networkFeeUsd: 1,
+                        deliveredUsd: '4',
+                    },
+                })
+            ).transactionDetails
+            expect(result.networkFeeDetails).toBeUndefined()
+            expect(result.recipientReceivesUsd).toBeUndefined()
+        })
+    })
+
     describe('unknown-kind default arm (forward-compat / regression guard)', () => {
         it('routes an unhandled kind to the fallback (undefined kind on output)', () => {
             // Per `isIntentKind` runtime guard — an unknown kind is NOT
@@ -624,6 +751,71 @@ describe('mapTransactionDataForDrawer', () => {
             })
             const result = mapTransactionDataForDrawer(returned).transactionDetails
             expect(result.extraDataForDrawer?.returnReasonCode).toBe('third_party')
+        })
+    })
+
+    // TASK-23245: deposits that never reach the balance
+    describe('bank verification deposits and deposits under the minimum', () => {
+        const bankSender: Account = { identifier: '', type: 'ach', isUser: false, fullName: 'Schwab Bank' }
+        const bridgeDeposit = (status: EHistoryStatus, extraData: HistoryEntry['extraData']) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount: bankSender,
+                    recipientAccount: aliceUser,
+                    status,
+                    extraData: { kind: 'ONRAMP', provider: 'BRIDGE', usdAmount: '0.07', ...extraData },
+                })
+            ).transactionDetails
+
+        it('names a verification deposit, keeps the exact amount and the sender, and has no sign', () => {
+            const tx = bridgeDeposit(EHistoryStatus.CANCELLED, {
+                depositKind: 'verification',
+                senderName: ' CHARLES SCHWAB ',
+                depositAmount: '0.07',
+                depositCurrency: 'usd',
+            })
+            expect(tx.nameKey).toBe('name.verificationDeposit')
+            expect(tx.userName).toBe('Verification deposit')
+            expect(tx.status).toBe('cancelled')
+            expect(getTransactionSign(tx)).toBe('')
+            expect(tx.extraDataForDrawer?.depositKind).toBe('verification')
+            expect(tx.extraDataForDrawer?.depositAmountDisplay).toBe('$0.07')
+            // the provider's sender name wins over the bank account's
+            expect(tx.extraDataForDrawer?.payerName).toBe('CHARLES SCHWAB')
+            expect(tx.extraDataForDrawer?.isDepositAccountDeposit).toBe(true)
+            expect(tx.extraDataForDrawer?.minimumAmountDisplay).toBeUndefined()
+        })
+
+        it('carries the native amount and the minimum of a deposit under the minimum', () => {
+            const tx = bridgeDeposit(EHistoryStatus.PAYMENT_SUBMITTED, {
+                depositKind: 'below_minimum',
+                depositAmount: '0.05',
+                depositCurrency: 'EUR',
+                minimumAmount: '1',
+            })
+            expect(tx.nameKey).toBe('name.bankAccount')
+            expect(tx.extraDataForDrawer?.depositKind).toBe('below_minimum')
+            expect(tx.extraDataForDrawer?.depositAmountDisplay).toBe('€0.05')
+            expect(tx.extraDataForDrawer?.minimumAmountDisplay).toBe('€1')
+        })
+
+        it('leaves a deposit with no kind exactly as before', () => {
+            const tx = bridgeDeposit(EHistoryStatus.CANCELLED, { depositAmount: '0.07', depositCurrency: 'USD' })
+            expect(tx.nameKey).toBe('name.bankAccount')
+            expect(tx.extraDataForDrawer?.depositKind).toBeUndefined()
+            expect(tx.extraDataForDrawer?.depositAmountDisplay).toBeUndefined()
+            expect(tx.extraDataForDrawer?.payerName).toBe('Schwab Bank')
+        })
+
+        it('ignores a kind it does not know', () => {
+            const tx = bridgeDeposit(EHistoryStatus.CANCELLED, {
+                depositKind: 'something_new' as 'verification',
+                depositAmount: '0.07',
+                depositCurrency: 'USD',
+            })
+            expect(tx.extraDataForDrawer?.depositKind).toBeUndefined()
+            expect(tx.nameKey).toBe('name.bankAccount')
         })
     })
 
@@ -714,6 +906,93 @@ describe('mapTransactionDataForDrawer', () => {
         it('an unpaid open request stays pending', () => {
             const result = mapTransactionDataForDrawer(openRequest('100', 0)).transactionDetails
             expect(result.status).toBe('pending')
+        })
+
+        it('an open request part paid by bank stays pending', () => {
+            const result = mapTransactionDataForDrawer(openRequest('10', 2.5)).transactionDetails
+            expect(result.status).toBe('pending')
+        })
+    })
+
+    describe('request-link CLOSED status (TASK-23729)', () => {
+        // The API stamps `completedAt` (the request's `paidAt`) only on a request
+        // that was paid off, and `cancelledAt` only on one closed unpaid. A
+        // bank-paid request used to read "Cancelled" because it has no charge.
+        const closedRequest = (amount: string, totalAmountCollected: number, overrides: Partial<HistoryEntry> = {}) =>
+            baseEntry({
+                userRole: EHistoryUserRole.RECIPIENT,
+                status: EHistoryStatus.CLOSED,
+                extraData: { kind: 'P2P_REQUEST_FULFILL' },
+                isRequestLink: true,
+                amount,
+                totalAmountCollected,
+                ...overrides,
+            })
+
+        it('a request paid by bank only maps to completed, though short in USD', () => {
+            // €5 asked = $5.64; the deposit delivered 5.57 USDC and settled it
+            const result = mapTransactionDataForDrawer(
+                closedRequest('5.64', 5.57, { completedAt: '2026-10-14T10:00:00Z' })
+            ).transactionDetails
+            expect(result.status).toBe('completed')
+            expect(result.completedAt).toBe('2026-10-14T10:00:00Z')
+            expect(result.cancelledDate).toBeUndefined()
+        })
+
+        it('a request paid partly by bank and partly by a charge maps to completed', () => {
+            const result = mapTransactionDataForDrawer(
+                closedRequest('100', 100.01, { completedAt: '2026-10-14T10:00:00Z' })
+            ).transactionDetails
+            expect(result.status).toBe('completed')
+        })
+
+        it('a request closed unpaid by the requester stays cancelled', () => {
+            const result = mapTransactionDataForDrawer(
+                closedRequest('100', 0, { cancelledAt: '2026-10-14T10:00:00Z' })
+            ).transactionDetails
+            expect(result.status).toBe('cancelled')
+        })
+
+        it('a request closed with money collected but never settled stays closed', () => {
+            const result = mapTransactionDataForDrawer(
+                closedRequest('100', 40, { cancelledAt: '2026-10-14T10:00:00Z' })
+            ).transactionDetails
+            expect(result.status).toBe('closed')
+        })
+
+        // TASK-23856: the requester never saw the currency they asked in, nor
+        // what each charge had booked.
+        it('passes the asked currency and the per-charge booking through to the receipt', () => {
+            const charge = {
+                uuid: 'charge-short',
+                tokenAmount: '58.51',
+                settledAmount: '33',
+                status: 'COMPLETED',
+                partialPayment: true,
+                payments: [],
+                fulfillmentPayment: null,
+            }
+            const result = mapTransactionDataForDrawer(
+                closedRequest('99.16', 73.65, {
+                    extraData: { kind: 'P2P_REQUEST_FULFILL', requestedAmount: '88', requestCurrency: 'EUR' },
+                    charges: [charge as unknown as NonNullable<HistoryEntry['charges']>[number]],
+                })
+            ).transactionDetails
+            expect(result.extraDataForDrawer?.requestedAmount).toBe('88')
+            expect(result.extraDataForDrawer?.requestCurrency).toBe('EUR')
+            expect(result.requestPotPayments?.[0]).toMatchObject({
+                settledAmount: '33',
+                status: 'COMPLETED',
+                partialPayment: true,
+            })
+            // no status-mapping change: closed short still reads closed
+            expect(result.status).toBe('closed')
+        })
+
+        it('leaves the asked currency out on an API that does not send it', () => {
+            const result = mapTransactionDataForDrawer(closedRequest('99.16', 73.65)).transactionDetails
+            expect(result.extraDataForDrawer?.requestedAmount).toBeUndefined()
+            expect(result.extraDataForDrawer?.requestCurrency).toBeUndefined()
         })
     })
 

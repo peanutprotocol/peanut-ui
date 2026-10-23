@@ -19,6 +19,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { IS_DEV } from '@/constants/general.consts'
 import { getUserPreferences } from '@/utils/general.utils'
 import { useAnyOverlayOpen } from '@/utils/overlay-visibility'
+import { useModalsContextOptional } from '@/context/ModalsContext'
 import { decide } from './decide'
 import { getSessionInterrupts, setSessionInterrupts } from './interruptState'
 import { ledgerActions, noteServerLedger, readLedger, subscribeLedger } from './ledger'
@@ -79,7 +80,10 @@ export function resetAttentionSessionForTests(): void {
 let surfacesShownThisSession: { userId: string | null; keys: string[] } = { userId: null, keys: [] }
 
 function useSession(state: JourneyState, openInterrupt: AskId | null): Session {
-    const busy = useAnyOverlayOpen()
+    const overlayOpen = useAnyOverlayOpen()
+    const modals = useModalsContextOptional()
+    // the scanner and the passkey interstitial are full-screen flows outside the drawer/modal registry
+    const busy = overlayOpen || !!modals?.isQRScannerOpen || !!modals?.isSecurityVerificationOpen
     const slots = useMountedSlots()
     const [settleDeadlinePassed, setSettleDeadlinePassed] = useState(false)
 

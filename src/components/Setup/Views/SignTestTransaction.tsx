@@ -22,7 +22,7 @@ import posthog from 'posthog-js'
 import { setupCountrySignalProperties } from '@/features/setup/country-signals'
 import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { getFromCookie } from '@/utils/general.utils'
+import { readInviteCode } from '@/utils/invite-stash'
 import {
     clearSignupAttribution,
     hasPendingSignupAttribution,
@@ -33,6 +33,14 @@ import { useTranslations } from 'next-intl'
 import type en from '@/i18n/app/messages/en.json'
 import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
 import { confettiPresets } from '@/utils/confetti'
+import { isAa24Error } from '@/utils/walletCredential.utils'
+import { classifyPasskeyError, getPasskeySetupKey } from '@/utils/webauthn.utils'
+import { latestCeremony } from '@/utils/webauthn-ceremony-telemetry'
+
+/** A `setup` catalog key: the finish screen's own errors or the shared passkey copy. */
+type FinishErrorKey =
+    | `testTransaction.errors.${keyof typeof en.setup.testTransaction.errors}`
+    | ReturnType<typeof getPasskeySetupKey>
 
 export function SetupConfirmationView({
     onConfirm,
@@ -77,9 +85,6 @@ export function SetupConfirmationView({
         <PageStack className="flex-1">
             <PageStack.Center>
                 {showTitle && <h1 className="text-heading-s">{t('testTransaction.confirmTitle')}</h1>}
-                <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
-                    {t('steps.sign-test-transaction.description')}
-                </p>
                 {error && <Callout priority="error">{error}</Callout>}
             </PageStack.Center>
             <SetupFooter actions={button} secondary={secondary}>
@@ -121,7 +126,7 @@ const SignTestTransaction = ({
     } = useSetupFlowContext()
     // the key, not the text: translated at render, so the message follows a
     // language change made after it appeared (Release 164 smoke test)
-    const [errorKey, setErrorKey] = useState<keyof typeof en.setup.testTransaction.errors | null>(null)
+    const [errorKey, setErrorKey] = useState<FinishErrorKey | null>(null)
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
     const creatingAccountRef = useRef(false)
@@ -151,7 +156,7 @@ const SignTestTransaction = ({
             completionCelebratedRef.current = true
             confettiPresets.celebration()
         }
-        const inviteCode = getFromCookie('inviteCode')
+        const inviteCode = readInviteCode()
         // Native Preferences can be the only surviving copy after a WebView
         // process restart, so load the durable context before emitting the
         // terminal event or deleting it.
@@ -243,7 +248,7 @@ const SignTestTransaction = ({
                     tags: { feature: 'signup-test-transaction' },
                     extra: { context: 'user-fetch-on-mount' },
                 })
-                setErrorKey('loadUserFailed')
+                setErrorKey('testTransaction.errors.loadUserFailed')
             })
         } else if (user) {
             console.log('[SignTestTransaction] User loaded successfully:', {
@@ -274,15 +279,16 @@ const SignTestTransaction = ({
 
     const handleTestTransaction = async () => {
         if (redirectingRef.current) return
+        const attemptStartedAt = Date.now()
 
         if (!address) {
-            setErrorKey('noWalletAddress')
+            setErrorKey('testTransaction.errors.noWalletAddress')
             return
         }
 
         if (!user) {
             console.error('[SignTestTransaction] Cannot proceed without user data')
-            setErrorKey('userNotLoaded')
+            setErrorKey('testTransaction.errors.userNotLoaded')
             return
         }
 
@@ -341,7 +347,7 @@ const SignTestTransaction = ({
                     // The request layer already recorded the concrete failure;
                     // avoid another console-captured wrapper event here.
                     console.info('[SignTestTransaction] Account setup remains retryable')
-                    setErrorKey('setupFailed')
+                    setErrorKey('testTransaction.errors.setupFailed')
                     setIsSigning(false)
                     setSetupLoading(false)
                     return
@@ -382,15 +388,31 @@ const SignTestTransaction = ({
                 },
             })
 
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED, { error_name: (e as Error).name })
-            setErrorKey('supportNeeded')
+            // viem wraps a signer or bundler rejection in UserOperationExecutionError with the
+            // real failure in `cause`; the login path's stale-session wrapper does the same.
+            const rootCause = e instanceof Error && e.cause instanceof Error ? e.cause : (e as Error)
+            const isAa24 = isAa24Error(rootCause)
+            // classify first: it renames the capgo shim's plain `Error('User cancelled the selector')`
+            // to NotAllowedError in place, so read error_name after it
+            const errorCode = isAa24 ? undefined : classifyPasskeyError(rootCause).code
+            const assertion = latestCeremony('get', 'user_op', attemptStartedAt)
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED, {
+                error_name: rootCause.name,
+                error_code: errorCode,
+                is_aa24: isAa24,
+                backup_eligible: assertion?.backupEligible,
+                challenge_offset: assertion?.challengeOffset,
+            })
+            if (isAa24) setErrorKey('testTransaction.errors.passkeyProviderUnsupported')
+            else if (errorCode && errorCode !== 'LOGIN_ERROR') setErrorKey(getPasskeySetupKey(errorCode))
+            else setErrorKey('testTransaction.errors.supportNeeded')
             setIsSigning(false)
             setSetupLoading(false)
         }
     }
 
     const isLoading = isSigning || isProcessing || isFetchingUser || !user
-    const displayError = (errorKey && t(`testTransaction.errors.${errorKey}`)) || setupError
+    const displayError = (errorKey && t(errorKey)) || setupError
 
     // determine button text based on state
     const getButtonText = () => {

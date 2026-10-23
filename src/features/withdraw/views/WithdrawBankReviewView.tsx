@@ -238,7 +238,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                             label={tCommon('exchangeRate')}
                             value={
                                 payout.rate
-                                    ? `1 USD = ${Number(payout.rate).toFixed(4)} ${payout.currency.toUpperCase()}`
+                                    ? `1 USD ≈ ${Number(payout.rate).toFixed(4)} ${payout.currency.toUpperCase()}`
                                     : '-'
                             }
                             moreInfoText={tRate('approximate')}

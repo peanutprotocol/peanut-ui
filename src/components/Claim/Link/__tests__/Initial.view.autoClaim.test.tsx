@@ -4,8 +4,9 @@
  *
  * After an auth redirect the URL is the only carrier of the tapped intent:
  * `?step=claim` must fire the claim exactly once for a peanut-wallet user,
- * `?step=regional-claim&method=pix` must restore the regional method, and the
- * trigger must not re-fire across a re-render. The REAL useInitialClaimFlow
+ * `?step=regional-claim&method=pix` must claim to that same wallet and keep the
+ * method for the success screen's withdraw (TASK-23648), and the trigger must
+ * not re-fire across a re-render. The REAL useInitialClaimFlow
  * runs (params via withNuqsTestingAdapter); the claim is observed at the
  * service boundary (useClaimLink's claimLink), since handleClaimLink's own
  * (false, true) call args are internal to the hook.
@@ -109,7 +110,6 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 }))
 
 const mockSetRegionalMethodType = jest.fn()
-const mockSetClaimToMercadoPago = jest.fn()
 jest.mock('@/context/ClaimBankFlowContext', () => ({
     ClaimBankFlowStep: { BankCountryList: 'BankCountryList' },
     useClaimBankFlow: () => ({
@@ -121,8 +121,6 @@ jest.mock('@/context/ClaimBankFlowContext', () => ({
         setVerificationPromptReason: jest.fn(),
         setClaimToExternalWallet: jest.fn(),
         resetFlow: jest.fn(),
-        claimToMercadoPago: false,
-        setClaimToMercadoPago: (...args: unknown[]) => mockSetClaimToMercadoPago(...args),
         setRegionalMethodType: (...args: unknown[]) => mockSetRegionalMethodType(...args),
         hideTokenSelector: false,
         setHideTokenSelector: jest.fn(),
@@ -196,10 +194,6 @@ jest.mock('../views/BankFlowManager.view', () => ({
 }))
 jest.mock('../views/ClaimAddressConfirmationModal.view', () => ({
     ClaimAddressConfirmationModal: () => null,
-}))
-jest.mock('../MantecaFlowManager', () => ({
-    __esModule: true,
-    default: () => <div data-testid="manteca-flow" />,
 }))
 jest.mock('@/components/Global/GuestVerificationModal', () => ({
     GuestVerificationModal: () => null,
@@ -298,14 +292,36 @@ describe('InitialClaimLinkView post-auth auto-claim trigger', () => {
         expect(mockAcceptInvite).not.toHaveBeenCalled()
     })
 
-    test('?step=regional-claim&method=pix restores the regional method and opens the regional flow', async () => {
+    test('?step=regional-claim&method=pix claims to the own wallet and keeps the method', async () => {
         renderView('?step=regional-claim&method=pix')
 
-        await waitFor(() => expect(mockSetClaimToMercadoPago).toHaveBeenCalledWith(true))
+        // the money goes to the user's own wallet, never a provider address:
+        // a claim straight to Manteca stranded it when the payout was refused
+        await waitFor(() => expect(mockClaimLink).toHaveBeenCalledTimes(1))
+        expect(mockClaimLink).toHaveBeenCalledWith(
+            expect.objectContaining({
+                address: '0x2222222222222222222222222222222222222222',
+                link: claimLinkData.link,
+            })
+        )
         expect(mockSetRegionalMethodType).toHaveBeenCalledWith('pix')
         expect(mockRemoveParamStep).toHaveBeenCalled()
-        // regional path must not touch the on-chain claim boundary
-        expect(mockClaimLink).not.toHaveBeenCalled()
+        await waitFor(() => expect(baseProps.onCustom).toHaveBeenCalledWith('SUCCESS'))
+    })
+
+    test('?step=regional-claim with an unknown method still claims to the own wallet, with no method', async () => {
+        renderView('?step=regional-claim&method=bogus')
+
+        await waitFor(() => expect(mockClaimLink).toHaveBeenCalledTimes(1))
+        expect(mockSetRegionalMethodType).toHaveBeenCalledWith(null)
+        expect(mockSetRegionalMethodType).not.toHaveBeenCalledWith('bogus')
+    })
+
+    test('?step=claim clears a regional method left by an earlier claim', async () => {
+        renderView('?step=claim')
+
+        await waitFor(() => expect(mockClaimLink).toHaveBeenCalledTimes(1))
+        expect(mockSetRegionalMethodType).toHaveBeenCalledWith(null)
     })
 
     test('the claim is not re-fired across a re-render, and a cleared step param fires nothing', async () => {
@@ -333,7 +349,7 @@ describe('InitialClaimLinkView post-auth auto-claim trigger', () => {
         // but with no step it must not claim
         await waitFor(() => expect(mockRemoveParamStep).toHaveBeenCalled())
         expect(mockClaimLink).not.toHaveBeenCalled()
-        expect(mockSetClaimToMercadoPago).not.toHaveBeenCalled()
+        expect(mockSetRegionalMethodType).toHaveBeenCalledWith(null)
     })
 
     test('a user refetch mid-claim (new user identity) does not fire a second claim POST', async () => {

@@ -1,6 +1,6 @@
 import { FooterStoreLinks } from './FooterStoreLinks'
 import GITHUB_WHITE_ICON from '@/assets/icons/github-white.png'
-import PEANUT_LOGO from '@/assets/logos/peanut-logo.svg'
+import { LOGO, WORDMARK } from '@/assets/brand'
 import X_ICON from '@/assets/icons/x-logo.svg'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -63,15 +63,17 @@ const SocialLinks = ({ i18n }: { i18n: Translations }) => (
 export const FooterChrome = ({
     locale = DEFAULT_LOCALE,
     securityDisclosureHref,
+    showLocaleSwitcher = true,
 }: {
     locale?: Locale
     securityDisclosureHref: string
+    showLocaleSwitcher?: boolean
 }) => {
     const i18n = getTranslations(locale)
 
     return (
         // Nav is on its own row because translated labels have different widths.
-        <footer className="bg-black px-8 py-8 md:px-20">
+        <footer className="bg-black px-6 py-8 md:px-20">
             <div className="mb-6 flex justify-center md:hidden">
                 <HandSigns i18n={i18n} />
             </div>
@@ -82,7 +84,12 @@ export const FooterChrome = ({
                         (see src/app/lp/page.tsx). Localized landings aren't in the
                         proxy matcher, so /{locale} is already auth-proof. */}
                     <Link prefetch={false} href={locale === DEFAULT_LOCALE ? '/lp' : `/${locale}`} className="flex">
-                        <Image src={PEANUT_LOGO} alt="Peanut" width={110} height={40} />
+                        {/* the band is black, so the black wordmark master is tinted white with the
+                            invert filter; the icon is a separate image and keeps its yellow */}
+                        <span className="flex items-center gap-2">
+                            <Image src={LOGO} alt="" aria-hidden className="h-10 w-auto" />
+                            <Image src={WORDMARK} alt="Peanut" className="h-5 w-auto invert" />
+                        </span>
                     </Link>
                     <p className="text-body-xs text-white">
                         {i18n.footerMadeWithLove}{' '}
@@ -90,7 +97,7 @@ export const FooterChrome = ({
                             Squirrel Labs
                         </a>
                     </p>
-                    <p className="text-body-xs text-white/70">{i18n.footerLegalEntity}</p>
+                    <p className="text-body-xs text-foreground-inverse-secondary">{i18n.footerLegalEntity}</p>
                 </section>
 
                 <div className="hidden md:block">
@@ -103,7 +110,7 @@ export const FooterChrome = ({
                 the nav row. */}
             <div className="mt-6 flex items-center justify-between md:hidden">
                 <SocialLinks i18n={i18n} />
-                <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />
+                {showLocaleSwitcher && <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />}
             </div>
 
             {/* Nav on its own row rather than the brand row: the nav labels
@@ -132,7 +139,7 @@ export const FooterChrome = ({
                     </Link>
                 </div>
                 <div className="hidden items-center gap-6 md:flex">
-                    <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />
+                    {showLocaleSwitcher && <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />}
                     <HandSigns i18n={i18n} />
                 </div>
             </nav>

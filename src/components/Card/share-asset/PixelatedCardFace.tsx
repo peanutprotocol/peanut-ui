@@ -25,12 +25,12 @@
 
 import { type FC, type CSSProperties } from 'react'
 import { CARD_W, CARD_H } from './shareAssetLayout'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO } from '@/assets/brand'
 import PEANUT_CARD_HAND_PIXEL_ASSET from '@/assets/cards/peanut-card-hand-pixel.png'
 import PEANUT_CARD_HAND_ASSET from '@/assets/cards/peanut-card-hand.svg'
 import VISA_BRAND_MARK_ASSET from '@/assets/cards/visa-brand-mark.png'
 
-const ASSET_PEANUTMAN = PEANUTMAN.src
+const ASSET_LOGO = LOGO.src
 const ASSET_VISA_BRAND = VISA_BRAND_MARK_ASSET.src
 const ASSET_CARD_HAND_PIXEL = PEANUT_CARD_HAND_PIXEL_ASSET.src
 const ASSET_CARD_HAND = PEANUT_CARD_HAND_ASSET.src
@@ -74,7 +74,7 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
     style,
     blurAll = false,
     hideVisa = false,
-    shadowColor = '#000',
+    shadowColor = 'var(--color-shadow-primary)',
     onReady,
 }) => (
     // The drop-shadow is an offset sibling, NOT a CSS box-shadow: html-to-image
@@ -91,7 +91,7 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
             data-decorative-clip
             className={`relative h-full w-full overflow-hidden rounded-3xl border-[4px] border-black ${className ?? ''}`}
             style={{
-                background: '#FF90E8',
+                background: 'var(--color-background-brand)',
                 ...style,
             }}
         >
@@ -103,9 +103,9 @@ export const PixelatedCardFace: FC<PixelatedCardFaceProps> = ({
                 style={{ top: 24, left: 28, right: 28, zIndex: 2 }}
             >
                 {blurAll ? (
-                    <PixelatedImg src={ASSET_PEANUTMAN} displayW={52} displayH={52} />
+                    <PixelatedImg src={ASSET_LOGO} displayW={52} displayH={52} />
                 ) : (
-                    <img src={ASSET_PEANUTMAN} alt="" aria-hidden style={{ height: 52, width: 'auto' }} />
+                    <img src={ASSET_LOGO} alt="" aria-hidden style={{ height: 52, width: 'auto' }} />
                 )}
                 {!hideVisa &&
                     (blurAll ? (

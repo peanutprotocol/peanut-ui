@@ -16,6 +16,7 @@ import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 export type Contributor = {
     uuid: string
     payments: Payment[]
+    /** What the contributor paid, which can be less than their charge asked. */
     amount: string
     username: string | undefined
     fulfillmentPayment: Payment | null

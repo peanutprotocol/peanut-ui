@@ -203,6 +203,7 @@ export interface User {
         name: string
         description: string | null
         publicDescription?: string | null
+        shareLine?: string
         iconUrl: string | null
         color: string | null
         earnedAt: string | Date

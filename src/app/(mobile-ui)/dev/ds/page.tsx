@@ -32,6 +32,8 @@ const stats = [
 // tier titles, hrefs and icons come from nav-config so this index matches the sidebar
 const TIER_DESCRIPTIONS: Record<string, string> = {
     foundations: 'Color tokens, typography, spacing, shadows, icons, and borders',
+    marketing:
+        'The ratified marketing reality: brand palette + display ramp, mascot/doodle inventory, landing and content page recipes',
     primitives: 'Building blocks under the patterns: Button, Card, Input, Select, Checkbox, Toast',
     patterns: 'Composed components: Modal, Drawer, Navigation, Loading, Feedback, Layouts',
     audit: 'Three lenses: Code Audit (DRY consolidation) · App Divergences (live vs showcase-only vs dead in product) · Big Components (modals, drawers, lists)',

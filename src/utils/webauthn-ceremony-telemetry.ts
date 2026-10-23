@@ -3,7 +3,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { classifyPasskeyError } from '@/utils/webauthn.utils'
-import { nativePasskeyFailure, type NativePasskeyFailure } from './native-passkey-errors'
+import { nativeErrorCode, nativePasskeyFailure, type NativePasskeyFailure } from './native-passkey-errors'
 
 /**
  * Counts every WebAuthn ceremony the app actually asks for, and attributes each
@@ -52,6 +52,7 @@ export type CeremonyRecord = {
     outcome: 'ok' | 'error'
     errorName?: string
     errorCode?: string
+    nativeErrorCode?: string
     nativeReason?: NativePasskeyFailure
     allowCredentials?: number
     rpId?: string
@@ -59,6 +60,20 @@ export type CeremonyRecord = {
     /** True when another ceremony was already in flight — attribution is unreliable for this row. */
     overlapped: boolean
     openFlows: number
+    /**
+     * Index of `"challenge":"` in the decoded clientDataJSON of a successful
+     * ceremony. The on-chain WebAuthn validator reads the challenge at a fixed
+     * byte, so the standard layout gives 23 for `get` and 26 for `create`; a
+     * provider that sorts the keys gives 41 on both, and its signatures fail as
+     * AA24 (TASK-23931). Unset when clientDataJSON is empty or has no challenge.
+     */
+    challengeOffset?: number
+    /**
+     * The authenticator's backup-eligible flag (BE, bit 3 of the flags byte);
+     * false means a device-bound passkey. Unset when no authenticator data
+     * arrived, which is always the case for `create` on native.
+     */
+    backupEligible?: boolean
 }
 
 type FlowFrame = { id: string; name: string; startedAt: number; fromSeq: number }
@@ -121,6 +136,47 @@ export function clearCeremonyLog(): void {
     persist()
 }
 
+// authenticatorData: rpIdHash (32 bytes) | flags (1 byte) | signCount (4 bytes)
+const AUTHENTICATOR_DATA_MIN_LENGTH = 37
+const AUTHENTICATOR_FLAGS_INDEX = 32
+const BACKUP_ELIGIBLE_FLAG = 0x08
+
+function bytesOf(value: unknown): Uint8Array {
+    if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
+    return new Uint8Array(value as ArrayBuffer)
+}
+
+/**
+ * Reads the layout facts of a successful ceremony: the challenge offset and
+ * the backup-eligible flag. Offset and flag only, never the content, which
+ * holds the challenge. The capgo shim turns a missing field into a 0-byte
+ * buffer, so short authenticator data records no flag instead of a false
+ * "device-bound". Same contract as `commit`: nothing here may throw into the
+ * ceremony.
+ */
+function describeResult(result: unknown): Pick<CeremonyRecord, 'challengeOffset' | 'backupEligible'> {
+    try {
+        const response = (result as { response?: Record<string, unknown> } | null | undefined)?.response
+        if (!response) return {}
+        const layout: Pick<CeremonyRecord, 'challengeOffset' | 'backupEligible'> = {}
+        const challengeOffset = new TextDecoder().decode(bytesOf(response.clientDataJSON)).indexOf('"challenge":"')
+        if (challengeOffset >= 0) layout.challengeOffset = challengeOffset
+        // assertions carry authenticatorData; attestations expose it through a
+        // method on real browsers only (the native shim has no such method)
+        const getAuthenticatorData = response.getAuthenticatorData
+        const authenticatorData = bytesOf(
+            response.authenticatorData ??
+                (typeof getAuthenticatorData === 'function' ? getAuthenticatorData.call(response) : undefined)
+        )
+        if (authenticatorData.length >= AUTHENTICATOR_DATA_MIN_LENGTH) {
+            layout.backupEligible = (authenticatorData[AUTHENTICATOR_FLAGS_INDEX] & BACKUP_ELIGIBLE_FLAG) !== 0
+        }
+        return layout
+    } catch {
+        return {}
+    }
+}
+
 function describeOptions(kind: 'get' | 'create', options?: CredentialCreationOptions | CredentialRequestOptions) {
     if (kind === 'get') {
         const publicKey = (options as CredentialRequestOptions | undefined)?.publicKey
@@ -152,11 +208,14 @@ function commit(record: CeremonyRecord): void {
             outcome: record.outcome,
             error_name: record.errorName,
             error_code: record.errorCode,
+            native_error_code: record.nativeErrorCode,
             native_reason: record.nativeReason,
             allow_credentials: record.allowCredentials,
             overlapped: record.overlapped,
             open_flows: record.openFlows,
             native: record.native,
+            challenge_offset: record.challengeOffset,
+            backup_eligible: record.backupEligible,
         })
         Sentry.addBreadcrumb({
             category: 'webauthn.ceremony',
@@ -180,6 +239,14 @@ function capture(event: string, properties: Record<string, unknown>): void {
 function safeErrorCode(error: unknown): string | undefined {
     try {
         return classifyPasskeyError(error)?.code
+    } catch {
+        return undefined
+    }
+}
+
+function safeNativeErrorCode(error: unknown): string | undefined {
+    try {
+        return nativeErrorCode(error)
     } catch {
         return undefined
     }
@@ -227,7 +294,7 @@ async function trace<T>(
 
     try {
         const result = await run()
-        commit({ ...base, durationMs: Date.now() - startedAt, outcome: 'ok' })
+        commit({ ...base, ...describeResult(result), durationMs: Date.now() - startedAt, outcome: 'ok' })
         return result
     } catch (error) {
         commit({
@@ -236,6 +303,7 @@ async function trace<T>(
             outcome: 'error',
             errorName: error instanceof Error ? error.name : 'unknown',
             errorCode: safeErrorCode(error),
+            nativeErrorCode: safeNativeErrorCode(error),
             nativeReason: safeNativeReason(error),
         })
         throw error
@@ -243,6 +311,27 @@ async function trace<T>(
         inFlight -= 1
         openCallStarts.delete(base.seq)
     }
+}
+
+/**
+ * The newest ceremony of `kind` whose innermost purpose is `purpose` and that
+ * started at or after `sinceMs`. The bound keeps a caller from reading an
+ * earlier attempt: the log survives reloads, and a failure before the OS
+ * prompt (prepare, paymaster, a ceremony timeout) records nothing.
+ */
+export function latestCeremony(
+    kind: 'get' | 'create',
+    purpose: CeremonyPurpose,
+    sinceMs: number
+): CeremonyRecord | undefined {
+    hydrate()
+    for (let index = log.length - 1; index >= 0; index--) {
+        const record = log[index]
+        if (record.kind === kind && record.startedAt >= sinceMs && record.purpose.split('>').pop() === purpose) {
+            return record
+        }
+    }
+    return undefined
 }
 
 /**

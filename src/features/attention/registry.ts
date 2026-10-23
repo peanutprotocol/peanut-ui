@@ -35,10 +35,28 @@ export const legalReconsent: AttentionAsk = {
     analyticsKey: MODAL_TYPES.RE_CONSENT,
 }
 
+export const arrival: AttentionAsk = {
+    id: 'arrival',
+    tier: 1,
+    // TASK-23251 put it above the balance warning; it is only true while the user is in that country
+    rank: 2,
+    presentation: 'drawer',
+    surfaces: ['interrupt'],
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        if (s.arrival === 'unknown') return 'unknown'
+        return s.arrival === 'raised' ? 'show' : 'ineligible'
+    },
+    // the backend raises each arrival once; the next trip must not inherit this one's dismissal
+    policy: { expiryDays: 0 },
+    analyticsKey: 'arrival_prompt',
+}
+
 export const balanceBackup: AttentionAsk = {
     id: 'balance-backup',
     tier: 1,
-    rank: 2, // N14, urgent variant
+    rank: 3, // N14, urgent variant
     presentation: 'drawer',
     surfaces: ['interrupt'],
     eligible: (s) => {
@@ -59,7 +77,7 @@ export const NEXT_PAYMENT_AFTER_DAYS = 14
 export const verificationDue: AttentionAsk = {
     id: 'verification-due',
     tier: 1,
-    rank: 3, // N4, a check already started
+    rank: 4, // N4, a check already started
     surfaces: ['zone'],
     eligible: (s) => {
         const gate = loggedIn(s)
@@ -73,7 +91,7 @@ export const verificationDue: AttentionAsk = {
 export const postVerificationAction: AttentionAsk = {
     id: 'post-verification-action',
     tier: 1,
-    rank: 4, // not on the page
+    rank: 5, // not on the page
     presentation: 'modal',
     surfaces: ['interrupt'],
     eligible: (s) => {
@@ -89,7 +107,7 @@ export const postVerificationAction: AttentionAsk = {
 export const finishCardSetup: AttentionAsk = {
     id: 'finish-card-setup',
     tier: 1,
-    rank: 5, // not on the page; needs an active card, so never live before verify
+    rank: 6, // not on the page; needs an active card, so never live before verify
     presentation: 'modal',
     surfaces: ['interrupt'],
     eligible: (s) => {
@@ -424,6 +442,7 @@ export const ASKS: readonly AttentionAsk[] = [
     verificationDeadline,
     capNudge,
     legalReconsent,
+    arrival,
     balanceBackup,
     verificationDue,
     postVerificationAction,

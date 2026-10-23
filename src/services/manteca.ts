@@ -1,6 +1,5 @@
 import {
     type MantecaDepositResponseData,
-    type MantecaWithdrawData,
     type MantecaWithdrawResponse,
     type CreateMantecaOnrampParams,
 } from '@/types/manteca.types'
@@ -137,6 +136,17 @@ export type MantecaPrice = {
 /** Owner of a PIX key. `legalIdMasked` keeps the first 2 and last 2 digits. Read from the API schema, so a contract change fails typecheck. */
 export type PixKeyOwner = paths['/manteca/pix-key/owner']['post']['responses'][200]['content']['application/json']
 
+/** Body of /manteca/withdraw/init. */
+export type WithdrawInitRequest = {
+    /** USD (USDC) amount. With `fiatAmount` it is only the fallback for an API
+     *  that predates `fiatAmount` and ignores it. */
+    amount: string
+    /** The local amount the user typed, at most 2 decimals. The API ignores
+     *  `amount` and prices the exact USDC for this amount (TASK-23997). */
+    fiatAmount?: string
+    currency: string
+}
+
 // withdraw init response - contains locked price for withdraw flow
 export type WithdrawPriceLock = {
     priceLockCode: string
@@ -145,6 +155,8 @@ export type WithdrawPriceLock = {
     /** Milliseconds the lock had left when the API answered. Read this, not
      *  `expiresAt`, against the device clock (see receiveLock). */
     expiresInMs?: number
+    /** The exact USDC to sign and order, up to 6 decimals. For a `fiatAmount`
+     *  request the API prices it so the bank receives that amount (TASK-23997). */
     usdAmount: string
     fiatAmount: string
     currency: string
@@ -283,7 +295,7 @@ export const mantecaApi = {
     },
     deposit: async (
         params: CreateMantecaOnrampParams
-    ): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {
+    ): Promise<{ data?: MantecaDepositResponseData; error?: string; code?: string }> => {
         try {
             const response = await serverFetch('/manteca/deposit', {
                 method: 'POST',
@@ -299,7 +311,12 @@ export const mantecaApi = {
 
             if (!response.ok) {
                 console.log('error', response)
-                return { error: data.error || 'Failed to create on-ramp transfer for guest.' }
+                // A refusal's `error` is the generic "Unexpected error"; what
+                // it means is in `code` (PROVIDER_REJECTED).
+                return {
+                    error: data.error || 'Failed to create on-ramp transfer for guest.',
+                    ...(typeof data.code === 'string' ? { code: data.code } : {}),
+                }
             }
 
             return { data }
@@ -353,43 +370,13 @@ export const mantecaApi = {
         }
     },
 
-    withdraw: async (data: MantecaWithdrawData): Promise<MantecaWithdrawResponse> => {
-        try {
-            const response = await serverFetch('/manteca/withdraw', {
-                method: 'POST',
-                timeoutMs: 120_000, // Funding can precede Manteca accounting; match the signed withdrawal budget.
-                body: jsonStringify(data),
-            })
-
-            const result = await response.json()
-            if (!response.ok) {
-                return {
-                    error: result.error || 'Failed to create manteca withdraw.',
-                    message: result.message,
-                    ...(typeof result.code === 'string' ? { code: result.code } : {}),
-                }
-            }
-
-            return { data: result }
-        } catch (error) {
-            console.log('error', error)
-            console.error('Error calling create manteca withdraw API:', error)
-            if (error instanceof Error) {
-                return { error: error.message }
-            }
-            return { error: 'An unexpected error occurred.' }
-        }
-    },
-
     /**
      * Initialize withdraw with a locked price.
      * This locks the exchange rate for ~120 seconds so user sees the exact amount they'll receive.
-     * The priceLockCode should be passed to withdraw() to use the locked price.
      */
-    initiateWithdraw: async (params: {
-        amount: string
-        currency: string
-    }): Promise<{ data?: WithdrawPriceLock; error?: string; code?: string }> => {
+    initiateWithdraw: async (
+        params: WithdrawInitRequest
+    ): Promise<{ data?: WithdrawPriceLock; error?: string; code?: string }> => {
         try {
             const response = await serverFetch('/manteca/withdraw/init', {
                 method: 'POST',

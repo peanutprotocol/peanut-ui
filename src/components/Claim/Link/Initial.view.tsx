@@ -16,10 +16,8 @@ import { BankFlowManager } from './views/BankFlowManager.view'
 import { ClaimAddressConfirmationModal } from './views/ClaimAddressConfirmationModal.view'
 import { Button } from '@/components/0_Bruddle/Button'
 import Image from 'next/image'
-import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO, WORDMARK } from '@/assets/brand'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
-import MantecaFlowManager from './MantecaFlowManager'
 import { useInitialClaimFlow } from './useInitialClaimFlow'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 import { useSearchParams } from 'next/navigation'
@@ -56,7 +54,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         claimBankFlowStep,
         claimToExternalWallet,
         setClaimToExternalWallet,
-        claimToMercadoPago,
         hideTokenSelector,
         showVerificationModal,
         setShowVerificationModal,
@@ -80,8 +77,8 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 <div className="flex items-center gap-1">
                     <div>{t('initial.receiveOn')} </div>
                     <div className="flex items-center gap-1">
-                        <Image src={PEANUTMAN} alt={tNav('peanutLogoAlt')} className="size-5" />
-                        <Image src={PEANUT_LOGO_BLACK} alt={tNav('peanutLogoAlt')} />
+                        <Image src={LOGO} alt={tNav('peanutLogoAlt')} className="size-5" />
+                        <Image src={WORDMARK} alt={tNav('peanutLogoAlt')} className="h-3 w-auto" />
                     </div>
                 </div>
             )
@@ -104,22 +101,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
 
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
-    }
-
-    if (claimToMercadoPago && !!user) {
-        return (
-            <MantecaFlowManager
-                claimLinkData={claimLinkData}
-                attachment={attachment}
-                amount={
-                    isReward
-                        ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!
-                        : (formatTokenAmount(
-                              Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
-                          ) ?? '')
-                }
-            />
-        )
     }
 
     return (
@@ -235,7 +216,9 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 description={
                     verificationPromptReason === 'sender-unverified'
                         ? t('guestVerification.senderUnverifiedDescription')
-                        : t('guestVerification.accountRequiredDescription')
+                        : verificationPromptReason === 'regional-account-required'
+                          ? t('guestVerification.regionalAccountRequiredDescription')
+                          : t('guestVerification.accountRequiredDescription')
                 }
                 inviterUsername={claimLinkData?.sender?.username}
             />

@@ -9,16 +9,16 @@ describe('RelatedPages retired marketing links', () => {
                 <RelatedLink href="/en/united-kingdom">United Kingdom guide</RelatedLink>
                 <RelatedLink href="/send-money-from/united-kingdom/to/argentina">UK to Argentina</RelatedLink>
                 <RelatedLink href="/send-money-from/united-kingdom/to/brazil">UK to Brazil</RelatedLink>
-                <RelatedLink href="/send-money-to/united-kingdom">Send to the UK</RelatedLink>
-                <RelatedLink href="/receive-money-from/united-kingdom">Receive from the UK</RelatedLink>
+                <RelatedLink href="/withdraw/faster-payments">Withdraw to the UK</RelatedLink>
+                <RelatedLink href="/deposit/from-gbp-account">Receive pounds</RelatedLink>
                 <RelatedLink href="/deposit/via-faster-payments">Faster Payments</RelatedLink>
             </RelatedPages>
         )
 
         const links = [...container.querySelectorAll('a')]
         expect(links.map((link) => link.textContent)).toEqual([
-            'Send to the UK',
-            'Receive from the UK',
+            'Withdraw to the UK',
+            'Receive pounds',
             'Faster Payments',
         ])
         expect(

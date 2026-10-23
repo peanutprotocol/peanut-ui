@@ -43,7 +43,7 @@ export interface LandingContent {
 // Mirrors the original landingPageData.ts shape — empty content is safer than
 // crashing the landing page.
 const DEFAULTS: LandingContent = {
-    heroConfig: { primaryCta: { label: 'SIGN UP', href: '/setup' } },
+    heroConfig: { primaryCta: { label: 'Sign up', href: '/setup' } },
     faqData: { heading: 'FAQ.', questions: [], marquee: { visible: false, message: 'Peanut' } },
     marqueeMessages: [],
 }

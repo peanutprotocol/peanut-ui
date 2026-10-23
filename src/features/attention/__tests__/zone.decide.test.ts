@@ -97,7 +97,7 @@ const QR_LOCKED = { canPayNow: false, hasMadeQrPayment: false, verifyOpensQr: tr
 describe('registry: the zone asks follow the approved ranked list', () => {
     // spec §2 table: "Ask id | Tier · rank | Surfaces"
     test.each([
-        ['verification-due', 1, 3, ['zone']],
+        ['verification-due', 1, 4, ['zone']],
         ['blocked-card', 2, 2, ['zone']],
         ['checklist', 2, 3, ['zone']],
         ['install-app', 1, 0, ['interrupt', 'zone']],

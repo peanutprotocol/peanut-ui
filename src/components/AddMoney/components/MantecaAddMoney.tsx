@@ -15,6 +15,7 @@ import { countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
 import { mantecaApi } from '@/services/manteca'
+import { API_ERROR_CODES } from '@/services/api-error'
 import { parseUnits } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCapabilities } from '@/hooks/useCapabilities'
@@ -51,6 +52,7 @@ const MantecaAddMoney: FC = () => {
     const queryClient = useQueryClient()
     const locale = useLocale()
     const t = useTranslations('addMoney')
+    const tErrors = useTranslations('errors')
     // rewinds to home past every entry the flow pushed; a replace kept the
     // earlier entries, so back from home re-entered the flow
     const leaveToHome = useReturnTo(readReturnTo(searchParams) ?? '/home')
@@ -259,7 +261,11 @@ const MantecaAddMoney: FC = () => {
                     country: selectedCountryPath,
                     error_message: depositData.error,
                 })
-                setError(depositData.error)
+                setError(
+                    depositData.code === API_ERROR_CODES.PROVIDER_REJECTED
+                        ? tErrors('providerRejected')
+                        : depositData.error
+                )
                 return
             }
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_CONFIRMED, {
@@ -296,6 +302,7 @@ const MantecaAddMoney: FC = () => {
         setUrlState,
         usdAmount,
         selectedCountryPath,
+        tErrors,
     ])
 
     // Redirect to inputAmount if depositDetails is accessed without required data (deep link / back navigation)

@@ -452,6 +452,10 @@
                                                         },
                                                         "publicDescription": {
                                                             "type": "string"
+                                                        },
+                                                        "shareLine": {
+                                                            "description": "First-person share text in the request language, without the link.",
+                                                            "type": "string"
                                                         }
                                                     },
                                                     "required": [
@@ -459,6 +463,7 @@
                                                         "name",
                                                         "description",
                                                         "publicDescription",
+                                                        "shareLine",
                                                         "iconUrl"
                                                     ],
                                                     "type": "object"
@@ -582,6 +587,10 @@
                                                             },
                                                             "publicDescription": {
                                                                 "type": "string"
+                                                            },
+                                                            "shareLine": {
+                                                                "description": "First-person share text in the request language, without the link.",
+                                                                "type": "string"
                                                             }
                                                         },
                                                         "required": [
@@ -589,6 +598,7 @@
                                                             "name",
                                                             "description",
                                                             "publicDescription",
+                                                            "shareLine",
                                                             "iconUrl"
                                                         ],
                                                         "type": "object"
@@ -840,6 +850,10 @@
                                                             },
                                                             "publicDescription": {
                                                                 "type": "string"
+                                                            },
+                                                            "shareLine": {
+                                                                "description": "First-person share text in the request language, without the link.",
+                                                                "type": "string"
                                                             }
                                                         },
                                                         "required": [
@@ -847,6 +861,7 @@
                                                             "name",
                                                             "description",
                                                             "publicDescription",
+                                                            "shareLine",
                                                             "iconUrl"
                                                         ],
                                                         "type": "object"
@@ -9241,6 +9256,10 @@
                                                             },
                                                             "publicDescription": {
                                                                 "type": "string"
+                                                            },
+                                                            "shareLine": {
+                                                                "description": "First-person share text in the request language, without the link.",
+                                                                "type": "string"
                                                             }
                                                         },
                                                         "required": [
@@ -9248,6 +9267,7 @@
                                                             "name",
                                                             "description",
                                                             "publicDescription",
+                                                            "shareLine",
                                                             "iconUrl"
                                                         ],
                                                         "type": "object"
@@ -9436,6 +9456,10 @@
                                                             },
                                                             "publicDescription": {
                                                                 "type": "string"
+                                                            },
+                                                            "shareLine": {
+                                                                "description": "First-person share text in the request language, without the link.",
+                                                                "type": "string"
                                                             }
                                                         },
                                                         "required": [
@@ -9443,6 +9467,7 @@
                                                             "name",
                                                             "description",
                                                             "publicDescription",
+                                                            "shareLine",
                                                             "iconUrl"
                                                         ],
                                                         "type": "object"
@@ -11264,7 +11289,7 @@
         },
         "/manteca/withdraw/init": {
             "post": {
-                "description": "Creates a price lock for withdraw. Returns the locked exchange rate valid for ~120 seconds. Use this before showing the user the final amount.",
+                "description": "Creates a price lock for withdraw. Returns the locked exchange rate valid for ~120 seconds. Use this before showing the user the final amount. With `fiatAmount`, `usdAmount` is the exact USDC (6 decimals) to sign so the bank receives `fiatAmount`.",
                 "parameters": [
                     {
                         "in": "header",
@@ -11281,7 +11306,7 @@
                             "schema": {
                                 "properties": {
                                     "amount": {
-                                        "description": "Amount to withdraw in USD (USDC)",
+                                        "description": "Amount to withdraw in USD (USDC). Ignored when `fiatAmount` is set.",
                                         "type": "string"
                                     },
                                     "currency": {
@@ -11348,10 +11373,14 @@
                                             }
                                         ],
                                         "description": "Target fiat currency (e.g. ARS, BRL)"
+                                    },
+                                    "fiatAmount": {
+                                        "description": "Amount the bank must receive, in `currency`, as the user typed it (at most 2 decimals). The response prices the USDC for it.",
+                                        "pattern": "^(?=.*[1-9])\\d{1,12}(\\.\\d{1,2})?$",
+                                        "type": "string"
                                     }
                                 },
                                 "required": [
-                                    "amount",
                                     "currency"
                                 ],
                                 "type": "object"
@@ -22926,6 +22955,99 @@
                                         "residence",
                                         "depositAccounts",
                                         "signupPreferences"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/me/arrival": {
+            "post": {
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "country": {
+                                        "pattern": "^[A-Z]{2}$",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "country"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "prompt": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "qr_ar"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "pix_br"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "card"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "prompt"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
                                     ],
                                     "type": "object"
                                 }

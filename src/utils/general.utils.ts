@@ -18,6 +18,7 @@ import * as wagmiChains from 'wagmi/chains'
  */
 import { type ChainId } from '@/app/actions/clients'
 import { type ChargeEntry } from '@/services/services.types'
+import { contributedAmount } from '@/utils/request-pot.utils'
 import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS } from '@/constants/tokens.consts'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/userop.consts'
@@ -1328,7 +1329,8 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
             return {
                 uuid: charge.uuid,
                 payments: charge.payments,
-                amount: charge.tokenAmount,
+                // what the contributor paid, which can be less than the charge asked
+                amount: contributedAmount(charge),
                 username,
                 fulfillmentPayment: charge.fulfillmentPayment,
                 // FOLLOW-UP (tracked, not in this PR pair): the charges/payments BE flow

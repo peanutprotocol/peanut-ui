@@ -42,3 +42,25 @@ test('retains the primary amount when its conversion rounds to zero and through 
     expect(Number(field.value)).toBe(0.05)
     expect(Number(primary.mock.lastCall?.[0])).toBe(0.05)
 })
+
+test('typing reports the denomination typed in; the toggle itself reports nothing (TASK-23997)', () => {
+    const onAmountTyped = jest.fn()
+    renderWithIntl(
+        <AmountInput
+            primaryDenomination={{ symbol: 'BRL', price: 1, decimals: 2 }}
+            secondaryDenomination={{ symbol: 'USD', price: 0.18, decimals: 2 }}
+            setPrimaryAmount={jest.fn()}
+            setSecondaryAmount={jest.fn()}
+            onAmountTyped={onAmountTyped}
+        />
+    )
+    const field = screen.getByRole('textbox') as HTMLInputElement
+    fireEvent.change(field, { target: { value: '100' } })
+    expect(onAmountTyped).toHaveBeenLastCalledWith('BRL')
+
+    fireEvent.click(screen.getByRole('button', { name: /switch currency/i }))
+    expect(onAmountTyped).toHaveBeenCalledTimes(1)
+
+    fireEvent.change(field, { target: { value: '20' } })
+    expect(onAmountTyped).toHaveBeenLastCalledWith('USD')
+})

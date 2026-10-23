@@ -8,7 +8,7 @@ name: App Release Android
 # Prereq: fix/native-build-reliability must be merged (card-comparison static-export
 #         fix) or `native:release` will fail to build.
 #
-# Required repo secrets (see docs/NATIVE-RELEASE.md §Ops):
+# Required repo secrets (see https://github.com/peanutprotocol/mono/blob/main/ops/releases.md#appendix-native-reference):
 #   ANDROID_KEYSTORE_BASE64      base64 of the upload keystore
 #   ANDROID_KEYSTORE_PASSWORD    store password
 #   ANDROID_KEY_ALIAS            key alias (e.g. peanut)
@@ -22,6 +22,10 @@ on:
         inputs:
             versionName:
                 description: 'Resolved <major>.<build>.0 version to ship'
+                required: true
+                type: string
+            sourceSha:
+                description: 'Main commit to build: the commit the OTA shipped, which can trail the main tip by content publishes'
                 required: true
                 type: string
             track:
@@ -39,6 +43,10 @@ on:
                 required: false
                 default: false
                 type: boolean
+        outputs:
+            needs_ota:
+                description: 'true when the caller must promote the uploaded .0 bundle to this platform channel'
+                value: ${{ jobs.release.outputs.needs_ota }}
 
 permissions:
     contents: read
@@ -55,16 +63,18 @@ concurrency:
 
 jobs:
     release:
-        if: ${{ github.workflow == 'App Release Android & iOS' && github.event_name == 'workflow_run' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.event.workflow_run.run_attempt == 1 && github.event.workflow_run.event == 'push' }}
+        if: ${{ github.workflow == 'App Release Android & iOS' && github.ref == 'refs/heads/main' && github.run_attempt == 1 && ((github.event_name == 'workflow_run' && github.event.workflow_run.run_attempt == 1 && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')) || github.event_name == 'workflow_dispatch') }}
         runs-on: ubuntu-latest
         outputs:
             version: ${{ steps.version.outputs.name }}
             rebuild: ${{ steps.version.outputs.rebuild }}
+            needs_ota: ${{ steps.version.outputs.profile != 'true' && steps.ota_floor.outputs.needs_ota || 'false' }}
         # Protect with required reviewers in repo Settings → Environments → Production.
         environment: Production
         steps:
             - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
               with:
+                  ref: ${{ inputs.sourceSha }}
                   # Direct replacement builds resolve and compare against the
                   # current native tag, so a shallow checkout is not sufficient.
                   fetch-depth: 0
@@ -260,6 +270,7 @@ jobs:
                   fi
 
             - name: Build signed AAB
+              id: build
               env:
                   SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
                   SENTRY_NATIVE_UPLOAD_REQUIRED: 'true'
@@ -289,6 +300,7 @@ jobs:
                   # the two schemes this replaces.
                   ANDROID_VERSION_CODE="$(node scripts/android-version-code.mjs)"
                   export ANDROID_VERSION_CODE
+                  echo "code=$ANDROID_VERSION_CODE" >> "$GITHUB_OUTPUT"
                   echo "versionCode $ANDROID_VERSION_CODE (version $ANDROID_VERSION_NAME, run $GITHUB_RUN_NUMBER attempt $GITHUB_RUN_ATTEMPT)"
                   pnpm native:release
 
@@ -388,7 +400,12 @@ jobs:
                   path: android/app/build/outputs/mapping/release/
                   if-no-files-found: error
 
+            # Play rejects a second upload of the same versionCode, so a retry can
+            # never publish twice: it either uploads a build that did not land, or
+            # fails on the duplicate.
             - name: Upload to Google Play
+              id: play_upload
+              continue-on-error: true
               uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1
               with:
                   serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
@@ -399,13 +416,46 @@ jobs:
                   # Staged production rollout: set status: inProgress + userFraction: 0.1,
                   # then promote in Play Console once crash/error rates look clean.
 
-            # Publish a matching .0 only when this platform has no active legacy
-            # bridge. The shared record is verified before promotion.
-            - name: Publish matching production OTA bundle
+            - name: Wait before retrying the Google Play upload
+              if: steps.play_upload.outcome == 'failure'
+              run: sleep 30
+
+            - name: Retry upload to Google Play
+              if: steps.play_upload.outcome == 'failure'
+              uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1
+              with:
+                  serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+                  packageName: me.peanut.wallet
+                  releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+                  tracks: ${{ inputs.track || 'internal' }}
+                  status: completed
+
+            # The bundle is on its Play track now. Promotion to production is
+            # still done by hand; this records when the build reached the store,
+            # the start of the "What is live" store clock. Never fails the release.
+            - name: Record the store upload in PostHog
+              if: steps.version.outputs.profile != 'true'
+              continue-on-error: true
+              env:
+                  PLATFORM: android
+                  VERSION: ${{ steps.version.outputs.name }}
+                  BUILD: ${{ steps.build.outputs.code }}
+                  COMMIT: ${{ inputs.sourceSha }}
+                  TRACK: ${{ inputs.track || 'internal' }}
+                  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+                  POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+              run: node scripts/store-build-event.mjs
+
+            # Upload a matching .0 only when this platform has no active legacy
+            # bridge. No channel moves here: release-native.yml promotes both
+            # platforms in one final job, only after both store uploads passed.
+            - name: Upload matching OTA bundle to the candidate channel
               if: steps.ota_floor.outputs.needs_ota == 'true' && steps.version.outputs.profile != 'true'
               env:
                   CAPGO_APP_ID: me.peanut.wallet
                   PLATFORM: android
+                  PUBLISH_STAGE: upload
+                  OTA_SOURCE_SHA: ${{ inputs.sourceSha }}
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
                   VERSION: ${{ steps.version.outputs.name }}
@@ -433,6 +483,7 @@ jobs:
         steps:
             - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
               with:
+                  ref: ${{ inputs.sourceSha }}
                   fetch-depth: 0
 
             - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
@@ -442,25 +493,26 @@ jobs:
             - name: Record attested Android replacement
               env:
                   VERSION: ${{ needs.release.outputs.version }}
+                  SOURCE_SHA: ${{ inputs.sourceSha }}
               run: |
-                  node scripts/check-native-change-scope.cjs "v$VERSION" android --legacy-compatible --ref "$GITHUB_SHA"
-                  FINGERPRINT="$(node scripts/native-fingerprint.mjs --ref "$GITHUB_SHA")"
-                  TAG="android-v${VERSION}-replacement-${GITHUB_SHA:0:12}"
+                  node scripts/check-native-change-scope.cjs "v$VERSION" android --legacy-compatible --ref "$SOURCE_SHA"
+                  FINGERPRINT="$(node scripts/native-fingerprint.mjs --ref "$SOURCE_SHA")"
+                  TAG="android-v${VERSION}-replacement-${SOURCE_SHA:0:12}"
                   ATTESTATION="peanut-native-replacement-v3: platform=android base=v$VERSION native-compatible=true js-guard=android-capacitor-permissions-v1 fingerprint=$FINGERPRINT"
 
                   if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
                       EXISTING_COMMIT="$(git rev-parse "$TAG^{commit}")"
-                      if [ "$EXISTING_COMMIT" != "$GITHUB_SHA" ]; then
-                          echo "::error::$TAG points at $EXISTING_COMMIT, expected $GITHUB_SHA" >&2
+                      if [ "$EXISTING_COMMIT" != "$SOURCE_SHA" ]; then
+                          echo "::error::$TAG points at $EXISTING_COMMIT, expected $SOURCE_SHA" >&2
                           exit 1
                       fi
-                      node scripts/check-native-ota-surface.mjs "v$VERSION" --platform android --ref "$GITHUB_SHA"
+                      node scripts/check-native-ota-surface.mjs "v$VERSION" --platform android --ref "$SOURCE_SHA"
                       echo "$TAG already records this replacement"
                   else
                       git config user.name "github-actions[bot]"
                       git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                      git tag -a "$TAG" "$GITHUB_SHA" -m "Android $VERSION replacement" -m "$ATTESTATION"
-                      node scripts/check-native-ota-surface.mjs "v$VERSION" --platform android --ref "$GITHUB_SHA"
+                      git tag -a "$TAG" "$SOURCE_SHA" -m "Android $VERSION replacement" -m "$ATTESTATION"
+                      node scripts/check-native-ota-surface.mjs "v$VERSION" --platform android --ref "$SOURCE_SHA"
                       git push origin "$TAG"
-                      echo "Recorded $TAG at ${GITHUB_SHA:0:12}"
+                      echo "Recorded $TAG at ${SOURCE_SHA:0:12}"
                   fi

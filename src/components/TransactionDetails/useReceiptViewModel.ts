@@ -189,16 +189,20 @@ export function useReceiptViewModel(
         const showsConversion = !!receiptConvertedAmount(transaction) && transaction.status !== 'cancelled'
         const foldsRateIntoConversion = showsConversion && isSettledConversion(transaction)
 
-        const showsNetworkFee = !!(
-            transaction.networkFeeDetails &&
-            transaction.sourceView === 'status' &&
-            transaction.status !== 'cancelled'
-        )
+        // A failed, cancelled or refunded transfer delivered nothing, so it
+        // states no network fee and no received amount.
+        const feeRowsApply = !['cancelled', 'failed', 'refunded'].includes(transaction.status ?? '')
+        const networkFee = transaction.networkFeeDetails
+        // Activity leaves out a sponsored fee: it is the default, and every
+        // row would say it. The success screen still says it once.
+        const showsNetworkFee =
+            !!networkFee && feeRowsApply && (transaction.sourceView === 'status' || networkFee.state !== 'sponsored')
         // "Fee" and "Network fee" are one charge when they print one number.
         const feeRepeatsNetworkFee =
             showsNetworkFee &&
+            networkFee?.state === 'charged' &&
             transaction.fee !== undefined &&
-            parseWireAmount(transaction.networkFeeDetails!.amountDisplay) === Number(transaction.fee)
+            parseWireAmount(networkFee.amountDisplay) === Number(transaction.fee)
 
         // "Show the user's own data even when the tx is in a cancelled state"
         // gate. True for everything that isn't cancelled, plus the
@@ -278,6 +282,8 @@ export function useReceiptViewModel(
             // recipient. Bank/onramp cancellations hide these as before.
             comment: !!(transaction.memo?.trim() && allowCancelledSenderFields),
             networkFee: showsNetworkFee,
+            recipientReceives:
+                transaction.recipientReceivesUsd !== undefined && networkFee?.state === 'charged' && feeRowsApply,
             attachment: !!(transaction.attachmentUrl && allowCancelledSenderFields),
             // Provider isn't plumbed through to the FE, so this branch lights
             // up for any FIAT_ONRAMP. Bridge onramps with a deposit_instructions
@@ -300,6 +306,9 @@ export function useReceiptViewModel(
             !isPendingSentLink &&
             !isPendingRequester &&
             !isPendingRequestee &&
+            // a verification deposit only confirms an account elsewhere: no
+            // PDF, no share and no public link (TASK-23245)
+            transaction.extraDataForDrawer?.depositKind !== 'verification' &&
             // no document affordance where the document cannot be fetched
             hasResolvableReceiptDocument(transaction),
         [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee]

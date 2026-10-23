@@ -21,18 +21,6 @@ import { readStoredValue } from '@/utils/safe-storage'
  */
 
 // Module-level: hide exactly once per document, across remounts.
-let finishNativeSplashHide: (() => void) | undefined
-const newNativeSplashHide = () =>
-    new Promise<void>((resolve) => {
-        finishNativeSplashHide = resolve
-    })
-let nativeSplashHide = newNativeSplashHide()
-
-/** Resolves after native hide settles, so a visible intro receives its full five seconds. */
-export function whenNativeSplashHidden(): Promise<void> {
-    return nativeSplashHide
-}
-
 let splashHidden = false
 let hardTimeoutArmed = false
 let finishOtaLaunchDecision: (() => void) | undefined
@@ -96,8 +84,6 @@ async function hideSplash() {
         await SplashScreen.hide()
     } catch (e) {
         console.warn('failed to hide splash screen:', e)
-    } finally {
-        finishNativeSplashHide?.()
     }
 }
 
@@ -113,7 +99,6 @@ export function isSplashVisible(): boolean {
 export function resetSplashGateForTests(): void {
     splashHidden = false
     hardTimeoutArmed = false
-    nativeSplashHide = newNativeSplashHide()
     otaLaunchDecision = newOtaLaunchDecision()
 }
 

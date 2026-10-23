@@ -12,6 +12,7 @@
 import React from 'react'
 import { act, render as rtlRender, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+import en from '@/i18n/app/messages/en.json'
 // jest.mock calls are hoisted above this import, so the mocks below apply to it
 import MantecaAddMoney from '../MantecaAddMoney'
 
@@ -103,7 +104,8 @@ jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
     useLimitsValidation: () => ({ isBlocking: false, isWarning: false, currency: 'USD' }),
 }))
 
-jest.mock('@/services/manteca', () => ({ mantecaApi: { deposit: jest.fn() } }))
+const mockDeposit = jest.fn()
+jest.mock('@/services/manteca', () => ({ mantecaApi: { deposit: (...args: unknown[]) => mockDeposit(...args) } }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
@@ -137,6 +139,7 @@ type InputStepProps = {
     initialDenomination?: string
     setCurrentDenomination: (denomination: string) => void
     onSubmit: () => Promise<void>
+    error?: string | null
     providerFinePrint?: React.ReactElement<{ providerId: string }>
 }
 let lastInputStepProps: InputStepProps | null = null
@@ -433,5 +436,36 @@ describe('residence gate — a rail that already works', () => {
         render(<MantecaAddMoney />)
 
         expect(screen.queryByText(/only legal residents/i)).not.toBeInTheDocument()
+    })
+})
+
+/**
+ * The provider refuses the top-up for the account (a document it still needs).
+ * The API answers a typed 422 PROVIDER_REJECTED whose `error` is the generic
+ * "Unexpected error"; the screen shows what happened instead (TASK-20344).
+ */
+describe('provider refusal', () => {
+    afterEach(() => mockDeposit.mockReset())
+
+    test('a PROVIDER_REJECTED answer shows the refusal copy, not "Unexpected error"', async () => {
+        setCountry('argentina')
+        mockQueryState.amount = '10000'
+        mockDeposit.mockResolvedValue({ error: 'Unexpected error', code: 'PROVIDER_REJECTED' })
+        render(<MantecaAddMoney />)
+
+        await act(() => lastInputStepProps!.onSubmit())
+
+        expect(lastInputStepProps!.error).toBe(en.errors.providerRejected)
+    })
+
+    test('an untyped failure keeps the API text', async () => {
+        setCountry('argentina')
+        mockQueryState.amount = '10000'
+        mockDeposit.mockResolvedValue({ error: 'Failed to create on-ramp transfer for guest.' })
+        render(<MantecaAddMoney />)
+
+        await act(() => lastInputStepProps!.onSubmit())
+
+        expect(lastInputStepProps!.error).toBe('Failed to create on-ramp transfer for guest.')
     })
 })

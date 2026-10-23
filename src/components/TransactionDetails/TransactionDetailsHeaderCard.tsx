@@ -22,7 +22,7 @@ import React from 'react'
 import { VerifiedUserLabel } from '../UserHeader'
 import { useRouter } from 'next/navigation'
 import { twMerge } from '@/utils/tw'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO } from '@/assets/brand'
 import { profileUrl } from '@/utils/native-routes'
 
 import type { TransactionDetails } from './transactionTransformer'
@@ -66,6 +66,9 @@ interface TransactionDetailsHeaderCardProps {
     statusNote?: string
     /** Identifies the counterparty beside its name in the title, e.g. a PIX key. */
     nameDetail?: string
+    /** A bank's verification micro-deposit: cancelled on the wire, but the
+     *  amount stays readable and the badge says Returned. */
+    isVerificationDeposit?: boolean
 }
 
 type TransactionTranslator = ReturnType<typeof useTranslations<'transaction'>>
@@ -249,6 +252,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     countryCode,
     statusNote,
     nameDetail,
+    isVerificationDeposit = false,
 }) => {
     const router = useRouter()
     const t = useTranslations('transaction')
@@ -309,12 +313,16 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     return (
         <div className="flex flex-col items-center gap-3 text-center">
             {isTest ? (
-                <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-12" />
+                <Image src={LOGO} alt="Peanut Logo" width={64} height={64} className="size-12" />
             ) : (
                 <div
+                    // ph-sensitive: its aria-label can be the counterparty's real name
                     className={twMerge(
+                        'ph-sensitive',
                         isAvatarClickable &&
-                            'cursor-pointer rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus'
+                            'cursor-pointer rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                        // a full name in the accessible name is a legal name; a username is not
+                        nameForAvatar !== userName && 'ph-mask'
                     )}
                     onClick={isAvatarClickable ? handleUserProfileClick : undefined}
                     role={isAvatarClickable ? 'button' : undefined}
@@ -392,7 +400,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         <h1
                             className={twMerge(
                                 'text-heading-m text-foreground-primary',
-                                amountStateClasses(status, isOpenRequest)
+                                !isVerificationDeposit && amountStateClasses(status, isOpenRequest)
                             )}
                         >
                             {sign}
@@ -401,7 +409,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     )}
                 </div>
                 {showBadge &&
-                    (actionLabelKey === 'type.returnedToSender' ? (
+                    (actionLabelKey === 'type.returnedToSender' || isVerificationDeposit ? (
                         // A bank deposit sent back to the payer is a fact with no
                         // success tone, so `neutral`, in the heading's word.
                         <Badge status="neutral" size="medium" customText={t('returnedStatus')} />

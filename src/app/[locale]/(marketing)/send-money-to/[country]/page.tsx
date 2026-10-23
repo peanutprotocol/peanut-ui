@@ -6,6 +6,7 @@ import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale, localizedPath } fro
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import {
+    contentArticleMetadata,
     readPageContentLocalized,
     type ContentFrontmatter,
     contentLocaleFor,
@@ -70,16 +71,7 @@ export default async function SendMoneyToCountryPageLocalized({ params }: PagePr
                 { name: i18n.home, href: `/${locale}` },
                 { name: countryName, href: url },
             ]}
-            article={
-                mdxSource.frontmatter.generated_at
-                    ? {
-                          title: mdxSource.frontmatter.title,
-                          description: mdxSource.frontmatter.description,
-                          url,
-                          datePublished: mdxSource.frontmatter.generated_at,
-                      }
-                    : undefined
-            }
+            article={contentArticleMetadata(mdxSource, url)}
         >
             {content}
         </ContentPage>

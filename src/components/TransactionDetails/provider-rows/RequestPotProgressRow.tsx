@@ -16,6 +16,15 @@ export function RequestPotProgressRow({ transaction }: { transaction: Transactio
     const potGoal = transaction.isRequestPotLink ? Number(transaction.amount) : 0
     const potCollected = Number(transaction.totalAmountCollected ?? 0)
     if (!transaction.isRequestPotLink || potGoal <= 0) return null
+    // A settled request has nothing left to pay, even when it closed a few cents
+    // short in USD: a request asked in another currency settles on what was sent.
+    const isSettled = transaction.status === 'completed'
+    // in whole cents: $99.16 − $73.65 is 25.509999… in floating point, and the
+    // label truncates, so it read "$25.50"
+    const potRemaining = isSettled ? 0 : Math.max(Math.round((potGoal - potCollected) * 100) / 100, 0)
+    // A closed request takes no more money: what is left is not "remaining",
+    // nobody can pay it any more (TASK-23856).
+    const isClosedShort = transaction.status === 'closed'
 
     return (
         <div className="flex w-full flex-col gap-2 py-3">
@@ -24,8 +33,8 @@ export function RequestPotProgressRow({ transaction }: { transaction: Transactio
                     {tGlobal('progressBar.contributed', { amount: `$${formatCurrency(potCollected.toString())}` })}
                 </span>
                 <span className="text-foreground-secondary">
-                    {tGlobal('progressBar.remaining', {
-                        amount: `$${formatCurrency(Math.max(potGoal - potCollected, 0).toString())}`,
+                    {tGlobal(isClosedShort ? 'progressBar.notPaid' : 'progressBar.remaining', {
+                        amount: `$${formatCurrency(potRemaining.toString())}`,
                     })}
                 </span>
             </div>
@@ -34,7 +43,7 @@ export function RequestPotProgressRow({ transaction }: { transaction: Transactio
                 ProgressBar is off-board for receipts */}
             <progress
                 className="h-1 w-full appearance-none overflow-hidden rounded-full bg-background-disabled [&::-moz-progress-bar]:bg-action-primary [&::-webkit-progress-bar]:bg-background-disabled [&::-webkit-progress-value]:bg-action-primary"
-                value={Math.min(potCollected, potGoal)}
+                value={isSettled ? potGoal : Math.min(potCollected, potGoal)}
                 max={potGoal}
             />
         </div>

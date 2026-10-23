@@ -1,7 +1,7 @@
 // platform detection and api routing for capacitor native app
 
 import { isStandalonePwa } from '@/utils/cache.utils'
-import { withNativeHelpContext } from '@/utils/native-help-context'
+import { withNativeHelpContext, withoutTrailingSlash } from '@/utils/native-help-context'
 
 // env var baked in at build time — set in vercel preview for this branch
 const IS_CAPACITOR_BUILD = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true'
@@ -91,6 +91,11 @@ export function isAndroidNativeBridge(): boolean {
  */
 export function isIOSNative(): boolean {
     return getPlatform() === 'ios-native'
+}
+
+/** iOS counterpart of {@link isAndroidNativeBridge}: false in iPhone Safari, even on capacitor-flavoured web builds. */
+export function isIOSNativeBridge(): boolean {
+    return isNativeBridge() && window.Capacitor?.getPlatform?.() === 'ios'
 }
 
 /**
@@ -236,7 +241,7 @@ export async function openExternalUrl(url: string, signal?: AbortSignal): Promis
         const { Browser } = await import('@capacitor/browser')
         if (signal?.aborted) throw new DOMException('Browser navigation cancelled', 'AbortError')
         inAppBrowserOpen = true
-        await Browser.open({ url: withNativeHelpContext(url) })
+        await Browser.open({ url: withNativeHelpContext(withoutTrailingSlash(url)) })
     } else if (!window.open(url, '_blank')) {
         // WhatsApp/Instagram in-app browsers block window.open — the guest
         // store bounce was a silent dead tap there. Navigate in place instead.

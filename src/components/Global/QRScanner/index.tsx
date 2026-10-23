@@ -5,13 +5,14 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO } from '@/assets/brand'
 import { ETHEREUM_ICON } from '@/assets/icons'
 import { QR_DRAWER_PASTE_GAP_PX, QR_DRAWER_PEEK_PX } from '@/constants/qr-drawer.consts'
 import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
 import Loading from '../Loading'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
+import { useBackHandler } from '@/hooks/useBackHandler'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CameraPermissionDrawer from './CameraPermissionDrawer'
 import { Clipboard } from '@capacitor/clipboard'
@@ -29,7 +30,7 @@ import { reportQrScanError } from './utils'
 // row is the odd one out: its label and alt text are descriptive prose, so it
 // carries a key instead and is resolved at render.
 const PAYMENT_METHODS = [
-    { src: PEANUTMAN, alt: 'Peanut', name: 'Peanut' },
+    { src: LOGO, alt: 'Peanut', name: 'Peanut' },
     { src: MERCADO_PAGO, alt: 'Mercado Pago', name: 'Mercado Pago' },
     { src: PIX, alt: 'PIX', name: 'PIX' },
     { src: ETHEREUM_ICON, alt: null, name: null },
@@ -299,6 +300,11 @@ function ErrorView({
 export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen = true }: QRScannerProps) {
     const { error, isPermissionDenied, isScanning, isCameraReady, videoRef, close, toggleCamera, retryCamera } =
         useQRScanner(onScan, onClose, isOpen)
+    // The scanner is an overlay, not a route: unhandled, Android back falls through to minimizeApp on Home.
+    useBackHandler(() => {
+        close()
+        return true
+    }, isScanning)
     useEffect(() => {
         onPermissionDenied?.(isPermissionDenied)
         return () => onPermissionDenied?.(false)

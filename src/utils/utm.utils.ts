@@ -59,6 +59,8 @@ export const UTM_SOURCES = {
     GOOGLE: 'google',
     /** Meta ads (Facebook + Instagram). */
     META: 'meta',
+    /** QR codes drawn on the star-feature landing pages (a scan is a new device with no attribution). */
+    STAR_LP: 'star-lp',
 } as const
 
 export type UtmMedium = (typeof UTM_MEDIUMS)[keyof typeof UTM_MEDIUMS]

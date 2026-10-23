@@ -98,6 +98,7 @@ const state = (patch: Partial<JourneyState> = {}): JourneyState => ({
     hasFullName: true,
     rewardsPendingUsd: 0,
     serverLedger: undefined,
+    arrival: 'none',
     ...patch,
 })
 

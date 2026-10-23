@@ -27,7 +27,10 @@ jest.mock('next/image', () => ({
 jest.mock('use-haptic', () => ({ useHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 
 jest.mock('@/components/Global/ActionModal', () => ({ __esModule: true, default: () => null }))
-jest.mock('../../../Global/ConfirmInviteModal', () => ({ __esModule: true, default: () => null }))
+jest.mock('../../../Global/ConfirmInviteModal', () => ({
+    __esModule: true,
+    default: ({ isOpen }: { isOpen: boolean }) => (isOpen ? <div>invite prompt</div> : null),
+}))
 jest.mock('../../../Global/SupportCTA', () => ({ __esModule: true, default: () => null }))
 
 let mockClaimType = 'guest-kyc-needed'
@@ -60,14 +63,16 @@ jest.mock('@/context/ClaimBankFlowContext', () => ({
         setFlowStep: jest.fn(),
         setShowVerificationModal: mockSetShowVerificationModal,
         setVerificationPromptReason: mockSetVerificationPromptReason,
-        setClaimToMercadoPago: jest.fn(),
-        setRegionalMethodType: jest.fn(),
         setHideTokenSelector: jest.fn(),
     }),
 }))
 
 jest.mock('@/hooks/useSavedAccounts', () => ({ __esModule: true, default: () => [] }))
-jest.mock('../../useClaimLink', () => ({ __esModule: true, default: () => ({ addParamStep: jest.fn() }) }))
+const mockAddParamStep = jest.fn()
+jest.mock('../../useClaimLink', () => ({
+    __esModule: true,
+    default: () => ({ addParamStep: (...args: unknown[]) => mockAddParamStep(...args) }),
+}))
 jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ canDo: () => true }) }))
 
 // logged OUT — the state that makes the regional path raise the modal
@@ -100,10 +105,10 @@ const claimLinkData = {
     sender: { userId: 'sender-123', username: 'alice' },
 } as any
 
-function renderList() {
+function renderList({ isInviteLink = false }: { isInviteLink?: boolean } = {}) {
     return render(
         <IntlWrapper>
-            <SendLinkActionList claimLinkData={claimLinkData} isLoggedIn={false} isInviteLink={false} />
+            <SendLinkActionList claimLinkData={claimLinkData} isLoggedIn={false} isInviteLink={isInviteLink} />
         </IntlWrapper>
     )
 }
@@ -136,15 +141,39 @@ describe('guest-verification prompt reason', () => {
         expect(mockSetVerificationPromptReason).toHaveBeenCalledWith('account-required')
     })
 
-    test('a logged-out regional claim blames the missing account, not the sender', () => {
-        // mercadopago/pix never consult the sender's rails at all
+    test('a regional claim asks for an account and carries the method across the sign-up', () => {
+        // mercadopago/pix never consult the sender's rails at all, and the link
+        // goes to the new account before any withdraw (TASK-23648)
         mockSenderCanReceiveBankOfframp = false
         renderList()
 
         fireEvent.click(screen.getByText('Mercado Pago'))
 
-        expect(mockSetVerificationPromptReason).toHaveBeenCalledWith('account-required')
+        expect(mockAddParamStep).toHaveBeenCalledWith('regional-claim', { method: 'mercadopago' })
+        expect(mockSetVerificationPromptReason).toHaveBeenCalledWith('regional-account-required')
         expect(mockSetVerificationPromptReason).not.toHaveBeenCalledWith('sender-unverified')
+        expect(mockSetShowVerificationModal).toHaveBeenCalledWith(true)
+    })
+})
+
+describe('invite prompt on an invite link', () => {
+    test('Mercado Pago skips it: the method needs an account, so "continue without signing up" would be false', () => {
+        renderList({ isInviteLink: true })
+
+        fireEvent.click(screen.getByText('Mercado Pago'))
+
+        expect(screen.queryByText('invite prompt')).not.toBeInTheDocument()
+        expect(mockAddParamStep).toHaveBeenCalledWith('regional-claim', { method: 'mercadopago' })
+        expect(mockSetVerificationPromptReason).toHaveBeenCalledWith('regional-account-required')
+    })
+
+    test('bank still asks first, since a bank claim can go ahead without an account', () => {
+        renderList({ isInviteLink: true })
+
+        fireEvent.click(screen.getByText('Bank transfer'))
+
+        expect(screen.getByText('invite prompt')).toBeInTheDocument()
+        expect(mockSetShowVerificationModal).not.toHaveBeenCalled()
     })
 })
 

@@ -1,6 +1,6 @@
 import { ClientProviders } from './ClientProviders'
 import { type Viewport } from 'next'
-import { Roboto_Flex, Sniglet } from 'next/font/google'
+import { Roboto_Flex } from 'next/font/google'
 import localFont from 'next/font/local'
 import Script from 'next/script'
 import '../styles/globals.css'
@@ -99,20 +99,11 @@ const roboto = Roboto_Flex({
     subsets: ['latin'],
     display: 'swap',
     variable: '--font-roboto',
-    axes: ['wdth'],
 })
 
 // preload: false on the decorative faces — next/font preloads every declared
-// family at High priority, and these three render below the fold (2-3 call
+// family at High priority, and these two render below the fold (2-3 call
 // sites each) while competing with the hero image for bandwidth.
-const sniglet = Sniglet({
-    weight: ['400', '800'],
-    subsets: ['latin'],
-    display: 'swap',
-    variable: '--font-sniglet',
-    preload: false,
-})
-
 // The .woff2 files are latin + latin-ext subsets of the .ttf sources (built
 // with fonttools; roboto-flex additionally instanced down to just the wght
 // axis the CSS uses — the full 13-axis variable TTF was 1.6 MB, this is 53 KB).
@@ -158,7 +149,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             lang="en"
             style={{ colorScheme: 'light' }}
             data-theme="light"
-            className={`${roboto.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable}`}
+            className={`${roboto.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${robotoFlexBold.variable}`}
         >
             <head>
                 <meta name="color-scheme" content="light" />

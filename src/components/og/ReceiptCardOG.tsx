@@ -1,5 +1,5 @@
 import { type PaymentLink } from '@/interfaces/interfaces'
-import { knerdTitle } from '@/components/0_Bruddle/Title'
+import { knerdTitle } from '@/components/0_Bruddle/Title.consts'
 
 function formatTokenAmount(amount: string, token?: string) {
     return token && token.toLowerCase() !== 'usdc' ? `${amount} ${token}` : `$${amount}`
@@ -112,33 +112,42 @@ export function ReceiptCardOG({
                             />
                         )}
 
-                        {/* White fill */}
+                        {/* fill + outline lean together by the Knerd line-1 tilt, as Title does */}
                         <span
                             style={{
-                                fontFamily: 'Knerd Filled',
-                                color: '#fff',
-                                letterSpacing: knerdTitle.letterSpacing,
+                                position: 'relative',
+                                display: 'flex',
+                                transform: `rotate(${knerdTitle.lineTilt[0]}deg)`,
                             }}
                         >
-                            {formatTokenAmount(link.amount.toString(), link.token)}
-                        </span>
+                            {/* White fill */}
+                            <span
+                                style={{
+                                    fontFamily: 'Knerd Filled',
+                                    color: '#fff',
+                                    letterSpacing: knerdTitle.letterSpacing,
+                                }}
+                            >
+                                {formatTokenAmount(link.amount.toString(), link.token)}
+                            </span>
 
-                        {/* Black outline */}
-                        <span
-                            aria-hidden="true"
-                            style={{
-                                position: 'absolute',
-                                top: knerdTitle.outlineOffset.y,
-                                left: knerdTitle.outlineOffset.x,
-                                fontFamily: 'Knerd Outline',
-                                color: '#000',
-                                pointerEvents: 'none',
-                                transformOrigin: 'top left',
-                                transform: `scale(${knerdTitle.outlineScale})`,
-                                letterSpacing: knerdTitle.letterSpacing,
-                            }}
-                        >
-                            {formatTokenAmount(link.amount.toString(), link.token)}
+                            {/* Black outline */}
+                            <span
+                                aria-hidden="true"
+                                style={{
+                                    position: 'absolute',
+                                    top: knerdTitle.outlineOffset.y,
+                                    left: knerdTitle.outlineOffset.x,
+                                    fontFamily: 'Knerd Outline',
+                                    color: '#000',
+                                    pointerEvents: 'none',
+                                    transformOrigin: 'top left',
+                                    transform: `scale(${knerdTitle.outlineScale})`,
+                                    letterSpacing: knerdTitle.letterSpacing,
+                                }}
+                            >
+                                {formatTokenAmount(link.amount.toString(), link.token)}
+                            </span>
                         </span>
 
                         {/* Bottom-left arrow */}

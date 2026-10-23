@@ -28,6 +28,8 @@ jest.mock('../serverAttention', () => ({
     useServerAttention: () => mockServer,
 }))
 jest.mock('@/utils/overlay-visibility', () => ({ useAnyOverlayOpen: () => mockOverlayOpen }))
+let mockModals: { isQRScannerOpen: boolean; isSecurityVerificationOpen: boolean } | undefined
+jest.mock('@/context/ModalsContext', () => ({ useModalsContextOptional: () => mockModals }))
 
 import { AttentionProvider, resetAttentionSessionForTests, useAttention } from '../AttentionProvider'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
@@ -81,6 +83,7 @@ const state = (overrides: Partial<JourneyState> = {}): JourneyState => ({
     hasFullName: true,
     rewardsPendingUsd: 0,
     serverLedger: undefined,
+    arrival: 'none',
     ...overrides,
 })
 
@@ -121,6 +124,7 @@ beforeEach(() => {
     mockCapture.mockClear()
     resetAttentionSessionForTests()
     mockOverlayOpen = false
+    mockModals = undefined
     mockServer = undefined
     mockThrow = null
     mockSentry.mockClear()
@@ -196,6 +200,25 @@ test('a user-opened overlay stops new interrupts, keeps the zone, and reports su
     const reports = mockCapture.mock.calls.filter(([event]) => event === 'attention_decided')
     expect(reports).toHaveLength(1)
     expect(reports[0][1]).toMatchObject({ interrupt: null, zone: 'checklist', suspended: true, overlay_open: true })
+})
+
+test.each([
+    ['the QR scanner', { isQRScannerOpen: true, isSecurityVerificationOpen: false }],
+    ['the passkey interstitial', { isQRScannerOpen: false, isSecurityVerificationOpen: true }],
+])('%s counts as busy: no interrupt opens over it (the arrival CTA opens the scanner)', async (_, modals) => {
+    mockModals = modals
+    mockState = state({
+        consent: { status: 'clear', versions: [], documents: [] },
+        balance: { loaded: true, usd: 900 },
+    })
+    render(
+        <AttentionProvider>
+            <Probe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    expect(screen.getByTestId('interrupt').textContent).toBe('none')
+    expect(screen.getByTestId('zone').textContent).toBe('checklist')
 })
 
 test('a throw inside the manager never takes the app down', async () => {

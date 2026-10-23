@@ -9,6 +9,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
+import { RequestBankTransferCard } from '@/features/deposit-accounts/components/RequestBankTransferCard'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { RequestFulfillmentNotice } from './RequestFulfillmentNotice'
 
@@ -60,7 +61,14 @@ export function RequestCreatedView({
 
                 <QRCodeWrapper url={generatedLink} />
 
-                <RequestFulfillmentNotice requestId={requestId} bankPayable={bankPayable} />
+                {/* what a payer is told to pay by bank transfer, before the link goes out */}
+                {bankPayable && (
+                    <div className="w-full text-left">
+                        <RequestBankTransferCard requestId={requestId} title={t('paidByBank.rowLabel')} canShare />
+                    </div>
+                )}
+
+                <RequestFulfillmentNotice requestId={requestId} />
             </PageStack.Center>
 
             {/* ds button rule: at most two buttons, primary first. "create another" was

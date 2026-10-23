@@ -6,6 +6,17 @@ import type { RecipientState } from '@/components/Global/GeneralRecipientInput/t
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 import type { WithdrawData, WithdrawMethod } from './types'
 import type { FlowErrorState } from '@/interfaces/interfaces'
+import type { WithdrawAddressFamily } from '@/lib/validation/addressFamily'
+
+/**
+ * The recipient came from a scanned QR code, so the crypto flow opens on the
+ * pay screen (address shown, amount and pickers on one screen) instead of the
+ * destination form. The family is the scanned address's, which the pickers
+ * keep to: an EVM address is never offered Solana.
+ */
+export interface ScannedRecipient {
+    addressFamily: WithdrawAddressFamily
+}
 
 /**
  * Withdraw flow memory that cannot live in the URL: the selected method and
@@ -42,6 +53,17 @@ interface WithdrawFlowContextType {
     setInputChanging: (isChanging: boolean) => void
     recipient: RecipientState
     setRecipient: (recipient: RecipientState) => void
+    /**
+     * The destination arrived without a network the user chose: a scanned EVM
+     * address names none, and an auto-corrected one was moved. The recipient
+     * step asks for a network pick before it continues. Flow state, not view
+     * state, because a scan is consumed before that step mounts.
+     */
+    networkUnconfirmed: boolean
+    setNetworkUnconfirmed: (unconfirmed: boolean) => void
+    /** Set by the flow when it consumes a scan; null for a typed or address-book recipient. */
+    scannedRecipient: ScannedRecipient | null
+    setScannedRecipient: (scanned: ScannedRecipient | null) => void
     error: FlowErrorState
     setError: (error: FlowErrorState) => void
     selectedBankAccount: Account | null
@@ -68,6 +90,8 @@ export const WithdrawFlowProvider: React.FC<{ children: ReactNode }> = ({ childr
     const [isValidRecipient, setIsValidRecipient] = useState<boolean>(false)
     const [inputChanging, setInputChanging] = useState<boolean>(false)
     const [recipient, setRecipient] = useState<RecipientState>({ address: '', name: '' })
+    const [networkUnconfirmed, setNetworkUnconfirmed] = useState<boolean>(false)
+    const [scannedRecipient, setScannedRecipient] = useState<ScannedRecipient | null>(null)
     const [error, setError] = useState<FlowErrorState>({ showError: false, errorMessage: '' })
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
     const [selectedMethod, setSelectedMethod] = useState<WithdrawMethod | null>(null)
@@ -82,6 +106,8 @@ export const WithdrawFlowProvider: React.FC<{ children: ReactNode }> = ({ childr
         setWithdrawData(null)
         setSelectedBankAccount(null)
         setRecipient({ address: '', name: '' })
+        setNetworkUnconfirmed(false)
+        setScannedRecipient(null)
         setError({ showError: false, errorMessage: '' })
         setPaymentError(null)
         setSelectedMethod(null)
@@ -109,6 +135,10 @@ export const WithdrawFlowProvider: React.FC<{ children: ReactNode }> = ({ childr
             setInputChanging,
             recipient,
             setRecipient,
+            networkUnconfirmed,
+            setNetworkUnconfirmed,
+            scannedRecipient,
+            setScannedRecipient,
             error,
             setError,
             selectedBankAccount,
@@ -132,6 +162,8 @@ export const WithdrawFlowProvider: React.FC<{ children: ReactNode }> = ({ childr
             isValidRecipient,
             inputChanging,
             recipient,
+            networkUnconfirmed,
+            scannedRecipient,
             error,
             selectedBankAccount,
             selectedMethod,
