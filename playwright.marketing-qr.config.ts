@@ -1,8 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const baseUrlInput = process.env.MARKETING_QR_BASE_URL ?? 'http://localhost:8765'
+const baseUrlInput = process.env.MARKETING_QR_BASE_URL
 const baseUrlError =
-    'MARKETING_QR_BASE_URL must be an HTTP loopback origin without credentials, paths, query or fragments'
+    'Set MARKETING_QR_BASE_URL to the coordinated HTTP loopback origin without credentials, paths, query or fragments'
+if (!baseUrlInput) throw new Error(baseUrlError)
 let baseUrl: URL
 try {
     baseUrl = new URL(baseUrlInput)
