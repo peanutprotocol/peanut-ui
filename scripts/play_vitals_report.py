@@ -158,13 +158,13 @@ def summarize(issues, rates, now):
 
 def collect(now=None):
     now = now or datetime.now(timezone.utc)
-    raw = os.environ.get("PLAY_SERVICE_ACCOUNT_JSON")
+    raw = os.environ.get("PLAY_VITALS_SERVICE_ACCOUNT_JSON")
     if not raw:
-        raise RuntimeError("PLAY_SERVICE_ACCOUNT_JSON is missing")
+        raise RuntimeError("PLAY_VITALS_SERVICE_ACCOUNT_JSON is missing")
     try:
         credentials = json.loads(raw)
         access_token = token(credentials, now)
     except (ValueError, KeyError, TypeError):
-        raise RuntimeError("PLAY_SERVICE_ACCOUNT_JSON is invalid") from None
+        raise RuntimeError("PLAY_VITALS_SERVICE_ACCOUNT_JSON is invalid") from None
     app = app_name(access_token)
     return summarize(issue_rows(access_token, app, now), rate_rows(access_token, app, now), now)
