@@ -80,7 +80,7 @@ export async function QrBrazilLanding() {
                 subtitle="Pay shops and people with Pix in Brazil, from your dollars."
                 art={<QrBrazilHeroScene />}
                 cta={
-                    <StarLpCta href={STAR_LP_HREF.signup} ground="pink">
+                    <StarLpCta qrPlacement="hero" href={STAR_LP_HREF.signup} ground="pink">
                         Create an account
                     </StarLpCta>
                 }

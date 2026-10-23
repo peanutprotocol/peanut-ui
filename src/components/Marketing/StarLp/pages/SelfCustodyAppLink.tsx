@@ -30,7 +30,7 @@ export function SelfCustodyAppLink({ children, className }: SelfCustodyAppLinkPr
                 className
             )}
             onClick={(event) => {
-                if (interceptAppCta(MIGRATION_SURFACES.STAR_LP)) event.preventDefault()
+                if (interceptAppCta(MIGRATION_SURFACES.STAR_LP, 'artwork')) event.preventDefault()
             }}
         >
             {children}

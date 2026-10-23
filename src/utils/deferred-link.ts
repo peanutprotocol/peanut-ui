@@ -298,17 +298,24 @@ function latestCampaignTouch(
  * `invite` overrides the stash for surfaces that know the code before anything
  * is stashed (the claim page's invite-link CTA).
  */
-export function buildDeferredPayload(dest?: string, invite?: string, store: 'android' | 'ios' = 'android'): string {
+export function buildDeferredPayload(
+    dest?: string,
+    invite?: string,
+    store: 'android' | 'ios' = 'android',
+    options: { includeInviteAndBadgeContext?: boolean } = {}
+): string {
     const params = new URLSearchParams({ [MARKER]: '1' })
 
     const firstSegment = window.location.pathname.split('/').filter(Boolean)[0]
     if (firstSegment && isValidLocale(firstSegment)) params.set('lang', firstSegment)
 
-    const inviteCode = invite || readInviteCode()
-    if (inviteCode) params.set('invite', inviteCode)
+    if (options.includeInviteAndBadgeContext !== false) {
+        const inviteCode = invite || readInviteCode()
+        if (inviteCode) params.set('invite', inviteCode)
 
-    for (const badgeCampaign of getPendingBadgeCampaigns()) {
-        params.append(BADGE_CAMPAIGN_QUERY_PARAM, badgeCampaign)
+        for (const badgeCampaign of getPendingBadgeCampaigns()) {
+            params.append(BADGE_CAMPAIGN_QUERY_PARAM, badgeCampaign)
+        }
     }
 
     const attribution = readSignupAttribution()

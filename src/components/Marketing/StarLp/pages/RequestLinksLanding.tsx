@@ -88,7 +88,7 @@ export function RequestLinksLanding() {
                 // the mail's title bar stays readable under the wide Knerd
                 artTuck="rim"
                 cta={
-                    <StarLpCta href={STAR_LP_HREF.signup} ground="pink">
+                    <StarLpCta qrPlacement="hero" href={STAR_LP_HREF.signup} ground="pink">
                         {CTA_LABEL}
                     </StarLpCta>
                 }
@@ -205,7 +205,7 @@ export function RequestLinksLanding() {
                     </PopIn>
                 </div>
                 <div className="mx-auto mt-10 w-fit">
-                    <StarLpCta href={STAR_LP_HREF.signup} ground="pink">
+                    <StarLpCta qrPlacement="close" href={STAR_LP_HREF.signup} ground="pink">
                         {CTA_LABEL}
                     </StarLpCta>
                 </div>

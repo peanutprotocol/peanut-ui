@@ -61,6 +61,8 @@ export const UTM_SOURCES = {
     META: 'meta',
     /** QR codes drawn on the star-feature landing pages (a scan is a new device with no attribution). */
     STAR_LP: 'star-lp',
+    /** Registered landing-page download QR codes. */
+    MARKETING_QR: 'marketing-qr',
 } as const
 
 export type UtmMedium = (typeof UTM_MEDIUMS)[keyof typeof UTM_MEDIUMS]

@@ -235,6 +235,24 @@ describe('compatibility with installed native decoders', () => {
 })
 
 describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
+    it.each(['android', 'ios'] as const)(
+        'omits ambient invitations and badges only for the explicit marketing option (%s)',
+        (store) => {
+            stashInvite('alice', EInviteType.DIRECT)
+            saveToCookie('campaignTag', 'card-benefit')
+            const regular = parseDeferredPayload(buildDeferredPayload('/home', undefined, store))
+            expect(regular).toMatchObject({ invite: 'alice', badgeCampaigns: ['card-benefit'], dest: '/home' })
+
+            const marketing = parseDeferredPayload(
+                buildDeferredPayload('/home', undefined, store, { includeInviteAndBadgeContext: false })
+            )
+            expect(marketing?.dest).toBe('/home')
+            expect(marketing?.invite).toBeUndefined()
+            expect(marketing?.badgeCampaigns).toBeUndefined()
+            expect(readInviteCode()).toBe('alice')
+        }
+    )
+
     it.each([
         ['android', '/en/deposit/from-usd-account'],
         ['ios', '/en/deposit/from-usd-account'],
