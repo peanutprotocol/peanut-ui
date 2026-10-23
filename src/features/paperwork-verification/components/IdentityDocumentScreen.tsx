@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { usePaperworkVerificationTrack } from '../analytics'
 import { useLocale, useTranslations } from 'next-intl'
@@ -9,17 +9,22 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
-import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
+import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
+import { SetupLanguageSwitcher } from '@/components/Setup/components/SetupLanguageSwitcher'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import type { PaperworkVerificationDocument } from '@/app/actions/types/kyc-paperwork-verification.types'
 import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
-import { VerifyFooter, VerifyQuestionLayout } from './VerifyLayout'
+import { twMerge } from '@/utils/tw'
+import { IdCardScanAnimation } from './IdCardScanAnimation'
+
+const SCREEN_HEIGHT = 'min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]'
 
 const DOCUMENT_KEYS = {
     PASSPORT: 'passport',
@@ -28,6 +33,9 @@ const DOCUMENT_KEYS = {
     RESIDENCE_PERMIT: 'residencePermit',
     TEMPORARY_PROTECTION: 'temporaryProtection',
 } as const
+
+/** The list's order: what a resident most likely holds first. */
+const MAIN_TYPES = ['RESIDENCE_PERMIT', 'PASSPORT', 'ID_CARD'] as const
 
 function Flag({ country }: { country: string }) {
     return (
@@ -44,11 +52,7 @@ function Flag({ country }: { country: string }) {
 // A list this long gets a search box (the issuing countries of a catalogue).
 const SEARCH_FROM = 12
 
-const normalize = (text: string) =>
-    text
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
+const normalize = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
 function OptionDrawer({
     open,
@@ -56,7 +60,6 @@ function OptionDrawer({
     title,
     searchLabel,
     options,
-    value,
     label,
     leading,
     onChoose,
@@ -66,7 +69,6 @@ function OptionDrawer({
     title: string
     searchLabel?: string
     options: string[]
-    value: string
     label: (option: string) => string
     leading?: (option: string) => React.ReactNode
     onChoose: (option: string) => void
@@ -105,13 +107,10 @@ function OptionDrawer({
                                 key={option}
                                 title={label(option)}
                                 leading={leading?.(option)}
-                                trailing={option === value ? <Icon name="check" size={20} /> : undefined}
                                 aria-label={label(option)}
-                                className={option === value ? 'bg-background-selection' : undefined}
                                 onClick={() => {
                                     onChoose(option)
                                     setQuery('')
-                                    onOpenChange(false)
                                 }}
                             />
                         ))}
@@ -122,30 +121,37 @@ function OptionDrawer({
     )
 }
 
+type Choice = PaperworkVerificationDocument
+
 /**
- * The midpoint: the questions are done, the user picks the ID and who issued
- * it, and Sumsub opens on that document for the photos and the selfie. The
- * list is the plan's identity catalogue; signup already chose the features.
- * `restart`: a verified user picks the ID of a new identity check.
+ * The midpoint: the questions are done and the user picks the ID they hold.
+ * Each row is a document and the country that issued it (the residence for a
+ * permit or a licence, the citizenship for a passport or a national ID), and a
+ * tap opens Sumsub on it. Anything else is in "Other document", including any
+ * document the plan accepts from another country. `restart`: a verified user
+ * picks the ID of a new identity check.
  */
 export function IdentityDocumentScreen({
     plan,
     residence,
-    progress,
+    citizenship = null,
     restart = false,
     busy,
     error,
     onBack,
     onContinue,
+    onChangeResidence,
 }: {
     plan: KycDocumentPlan | null
     residence: string | null
-    progress?: { current: number; total: number }
+    /** The citizenship the questions asked, when they did. */
+    citizenship?: string | null
     restart?: boolean
     busy: boolean
     error: string | null
     onBack: () => void
     onContinue: (document: PaperworkVerificationDocument) => void
+    onChangeResidence?: () => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     const tDocuments = useTranslations('kyc.documents')
@@ -161,161 +167,248 @@ export function IdentityDocumentScreen({
         [document, collator, locale]
     )
     const protection = plan?.temporaryProtection ?? null
-    const types = [...(document?.types ?? []), ...(protection ? ['TEMPORARY_PROTECTION'] : [])]
-    // A temporary protection document comes from where the user lives, and only there.
-    const countriesFor = (value: string) =>
-        value === 'TEMPORARY_PROTECTION' ? (protection?.countries ?? []) : countries
-    const [type, setType] = useState(() =>
-        types.length === 1 ? types[0] : (types.find((x) => x === 'PASSPORT') ?? '')
+    const types = document?.types ?? []
+    const allowed = (type: string, country: string | null): country is string =>
+        !!country && types.includes(type as never) && countries.includes(country)
+    const away = citizenship && citizenship !== residence ? citizenship : null
+    const issuerOf = (type: string) =>
+        type === 'RESIDENCE_PERMIT' || type === 'DRIVERS' ? residence : (away ?? residence)
+    const keep = (candidates: { type: string; issuingCountry: string | null }[]) =>
+        candidates.filter((c): c is Choice => allowed(c.type, c.issuingCountry))
+    // A citizen does not hold a residence permit from their own country.
+    const main = keep(
+        MAIN_TYPES.filter((type) => type !== 'RESIDENCE_PERMIT' || citizenship !== residence).map((type) => ({
+            type,
+            issuingCountry: issuerOf(type),
+        }))
     )
-    const [country, setCountry] = useState(() =>
-        residence && countries.includes(residence) ? residence : countries.length === 1 ? countries[0] : ''
-    )
+    const other = keep([
+        { type: 'DRIVERS', issuingCountry: residence },
+        { type: 'DRIVERS', issuingCountry: away },
+        // A dual resident's documents from the residence, when the main list shows the citizenship's.
+        ...(away ? ['PASSPORT', 'ID_CARD'].map((type) => ({ type, issuingCountry: residence })) : []),
+    ])
+    const protectionChoices: Choice[] = (protection?.countries ?? []).map((issuingCountry) => ({
+        type: 'TEMPORARY_PROTECTION',
+        issuingCountry,
+    }))
+
+    const [otherOpen, setOtherOpen] = useState(false)
     const [picking, setPicking] = useState<'type' | 'country' | null>(null)
+    const [pickedType, setPickedType] = useState('')
+    const [chosen, setChosen] = useState<string | null>(null)
     const track = usePaperworkVerificationTrack()
-    const picked = useRef(false)
-    const pick = (next: 'type' | 'country' | null) => {
-        const field = (next ?? picking) === 'type' ? 'document_type' : 'issuing_country'
-        if (next) {
-            picked.current = false
-            track(ANALYTICS_EVENTS.KYC_PV_PICKER_OPENED, { step: 'id', field })
-        } else if (picking) track(ANALYTICS_EVENTS.KYC_PV_PICKER_CLOSED, { step: 'id', field, chose: picked.current })
-        setPicking(next)
-    }
     useEffect(() => {
         track(ANALYTICS_EVENTS.KYC_PV_ID_VIEWED, {
             step: 'id',
             document_type_count: types.length,
             issuing_country_count: countries.length,
+            main_options: main.length,
+            other_options: other.length + protectionChoices.length,
+            citizenship_known: !!citizenship,
             temporary_protection_offered: !!protection,
         })
         // Once per visit to the midpoint.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
-    const chooseType = (next: string) => {
-        picked.current = true
-        setType(next)
-        const allowed = countriesFor(next)
-        if (!allowed.includes(country))
-            setCountry(allowed.length === 1 ? allowed[0] : residence && allowed.includes(residence) ? residence : '')
-    }
+
     const typeName = (value: string) =>
         tDocuments(DOCUMENT_KEYS[value as keyof typeof DOCUMENT_KEYS] ?? 'otherDocument')
-    const needsProofOfAddress =
-        !!country && country !== residence && (plan?.proofOfAddressIdCountries ?? []).includes(country)
-    const permitAvoidsProof =
-        needsProofOfAddress && !!residence && types.includes('RESIDENCE_PERMIT') && countries.includes(residence)
+    const needsProofOfAddress = (country: string) =>
+        country !== residence && (plan?.proofOfAddressIdCountries ?? []).includes(country)
+    const keyOf = (c: Choice) => `${c.type}-${c.issuingCountry}`
+
+    const choose = (c: Choice, source: 'list' | 'other' | 'another_country') => {
+        if (busy) return
+        setChosen(keyOf(c))
+        setOtherOpen(false)
+        setPicking(null)
+        track(ANALYTICS_EVENTS.KYC_PV_ID_SUBMITTED, {
+            step: 'id',
+            document_type: c.type,
+            source,
+            issuing_country_is_residence: c.issuingCountry === residence,
+            proof_of_address_expected: needsProofOfAddress(c.issuingCountry),
+        })
+        onContinue(c)
+    }
+    const row = (c: Choice, source: 'list' | 'other') => {
+        const key = keyOf(c)
+        const issued = needsProofOfAddress(c.issuingCountry)
+            ? t('documentList.issuedByWithProof', { country: countryName(c.issuingCountry) })
+            : t('documentList.issuedBy', { country: countryName(c.issuingCountry) })
+        return (
+            <ListItem
+                key={key}
+                title={typeName(c.type)}
+                body={c.type === 'TEMPORARY_PROTECTION' ? `${issued} ${t('midpoint.temporaryProtectionNote')}` : issued}
+                bodyWrap
+                leading={<Flag country={c.issuingCountry} />}
+                trailing={busy && chosen === key ? <Spinner /> : undefined}
+                chevron={!(busy && chosen === key)}
+                disabled={busy && chosen !== key}
+                onClick={() => choose(c, source)}
+                data-testid={`verify-id-option-${key}`}
+            />
+        )
+    }
+
+    const anotherCountryTypes = [...types, ...(protection ? ['TEMPORARY_PROTECTION'] : [])]
+    const countriesFor = (type: string) => (type === 'TEMPORARY_PROTECTION' ? (protection?.countries ?? []) : countries)
+    const openPicker = (next: 'type' | 'country' | null) => {
+        if (next)
+            track(ANALYTICS_EVENTS.KYC_PV_PICKER_OPENED, {
+                step: 'id',
+                field: next === 'type' ? 'document_type' : 'issuing_country',
+            })
+        setPicking(next)
+    }
 
     return (
-        <VerifyQuestionLayout
-            progress={progress}
-            onBack={onBack}
-            footer={
-                <VerifyFooter
-                    actions={
+        <div className={twMerge('flex w-full flex-col bg-white', SCREEN_HEIGHT)} data-testid="verify-id">
+            <HeroInset />
+            <div className="absolute inset-x-0 top-[calc(var(--safe-top)_+_1rem)] z-20 mx-auto grid w-full max-w-md grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center px-4">
+                <Button
+                    variant="ghost"
+                    onClick={onBack}
+                    className={twMerge(NAV_CIRCLE_BUTTON_CLASSES, 'bg-white')}
+                    aria-label={t('back')}
+                    data-testid="verify-back"
+                >
+                    <Icon name="chevron-up" size={20} className="-rotate-90" />
+                </Button>
+                <div
+                    role="img"
+                    aria-label={t('documentList.stepDots')}
+                    className="flex items-center justify-center gap-2"
+                >
+                    <span className="h-2 w-7 rounded-full bg-black" />
+                    <span className="size-2 rounded-full bg-black/30" />
+                    <span className="size-2 rounded-full bg-black/30" />
+                </div>
+                <SetupLanguageSwitcher />
+            </div>
+            <div className="setup-hero-background relative h-60 w-full shrink-0 short:h-48">
+                <IdCardScanAnimation className="absolute bottom-2.5 left-1/2 h-[10.875rem] w-[13.125rem] -translate-x-1/2 short:h-36" />
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col gap-3 px-6 pt-6 pb-6">
+                <h1 className="text-heading-m whitespace-pre-line text-foreground-primary">
+                    {t(restart ? 'midpoint.restartTitle' : 'documentList.title')}
+                </h1>
+                <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
+                    {t(restart ? 'midpoint.restartDescription' : 'documentList.description')}
+                </p>
+                {document && (
+                    <ListGroup>
+                        {main.map((c) => row(c, 'list'))}
+                        <ListItem
+                            title={t('documentList.other')}
+                            body={t('documentList.otherHint')}
+                            leading={<IconBubble icon="docs" size="s" color="gray" />}
+                            chevron
+                            disabled={busy}
+                            onClick={() => {
+                                track(ANALYTICS_EVENTS.KYC_PV_PICKER_OPENED, { step: 'id', field: 'other_documents' })
+                                setOtherOpen(true)
+                            }}
+                            data-testid="verify-id-other"
+                        />
+                    </ListGroup>
+                )}
+                {(error || !document) && (
+                    <Callout priority="error" className="w-full text-left" data-testid="verify-id-error">
+                        {error ?? t('midpoint.unavailable')}
+                    </Callout>
+                )}
+                {onChangeResidence && (
+                    <p className="flex flex-wrap items-baseline gap-1 text-body-s text-foreground-secondary">
+                        <span>{t('documentList.noneFit')}</span>
+                        <LinkButton onClick={onChangeResidence} data-testid="verify-id-change-residence">
+                            {t('documentList.changeResidence')}
+                        </LinkButton>
+                    </p>
+                )}
+                <p className="mt-auto pt-4 text-center text-body-xs text-foreground-secondary">
+                    {t('midpoint.privacy')}
+                </p>
+            </div>
+            <Drawer open={otherOpen} onOpenChange={setOtherOpen}>
+                <DrawerContent>
+                    <div className="flex flex-col gap-4 pb-4" data-testid="verify-id-other-drawer">
+                        <DrawerTitle>{t('documentList.otherTitle')}</DrawerTitle>
+                        <p className="text-body-s text-foreground-secondary">{t('documentList.otherDescription')}</p>
+                        <ListGroup>
+                            {[...other, ...protectionChoices].map((c) => row(c, 'other'))}
+                            <ListItem
+                                title={t('documentList.anotherCountry')}
+                                body={t('documentList.anotherCountryHint')}
+                                bodyWrap
+                                leading={<IconBubble icon="globe" size="s" color="gray" />}
+                                chevron
+                                disabled={busy}
+                                onClick={() => {
+                                    setOtherOpen(false)
+                                    openPicker('type')
+                                }}
+                                data-testid="verify-id-another-country"
+                            />
+                        </ListGroup>
+                        <p className="flex items-start gap-2 text-body-s text-foreground-secondary">
+                            <Icon name="info" size={16} className="mt-0.5 shrink-0" />
+                            {t('documentList.otherNotAccepted')}
+                        </p>
                         <Button
+                            variant="secondary"
                             shadowSize="4"
                             className="w-full"
-                            disabled={!type || !country || busy || !document}
-                            loading={busy}
-                            onClick={() => {
-                                track(ANALYTICS_EVENTS.KYC_PV_ID_SUBMITTED, {
-                                    step: 'id',
-                                    document_type: type,
-                                    issuing_country_is_residence: country === residence,
-                                    proof_of_address_expected: needsProofOfAddress,
-                                })
-                                onContinue({ type, issuingCountry: country })
-                            }}
-                            data-testid="verify-id-continue"
+                            onClick={() => setOtherOpen(false)}
                         >
-                            {t('midpoint.cta')}
+                            {t('documentList.backToList')}
                         </Button>
-                    }
-                    secondary={
-                        <p className="flex items-center gap-1 text-body-xs text-foreground-secondary">
-                            <Icon name="lock" size={16} />
-                            {t('midpoint.privacy')}
-                        </p>
-                    }
-                >
-                    {(error || !document) && (
-                        <Callout priority="error" className="w-full text-left" data-testid="verify-id-error">
-                            {error ?? t('midpoint.unavailable')}
-                        </Callout>
-                    )}
-                </VerifyFooter>
-            }
-        >
-            <SetupTitleBlock
-                title={t(restart ? 'midpoint.restartTitle' : 'midpoint.title')}
-                description={t(restart ? 'midpoint.restartDescription' : 'midpoint.description')}
-                size="m"
-            />
-            {document && (
-                <ListGroup>
-                    <ListItem
-                        title={type ? typeName(type) : t('choose')}
-                        body={t('midpoint.document')}
-                        leading={<IconBubble icon="user-id" size="s" color={type ? 'blue' : 'gray'} />}
-                        chevron
-                        onClick={() => pick('type')}
-                        data-testid="verify-id-type"
-                    />
-                    <ListItem
-                        title={country ? countryName(country) : t('choose')}
-                        body={t('midpoint.issuedBy')}
-                        leading={
-                            country ? <Flag country={country} /> : <IconBubble icon="globe" size="s" color="gray" />
-                        }
-                        chevron
-                        onClick={() => pick('country')}
-                        data-testid="verify-id-country"
-                    />
-                    {needsProofOfAddress && (
-                        <ListItem
-                            title={t('midpoint.proofOfAddress')}
-                            body={t('midpoint.proofOfAddressWhen')}
-                            leading={<IconBubble icon="docs" size="s" color="blue" />}
-                            data-testid="verify-id-proof-of-address"
-                        />
-                    )}
-                </ListGroup>
-            )}
-            {needsProofOfAddress && (
-                <p className="text-body-s text-foreground-secondary" data-testid="verify-id-proof-of-address-note">
-                    {t('midpoint.proofOfAddressBody')}
-                    {permitAvoidsProof && ` ${t('midpoint.proofOfAddressPermit')}`}
-                </p>
-            )}
-            {type === 'TEMPORARY_PROTECTION' && (
-                <p className="text-body-s text-foreground-secondary" data-testid="verify-id-temporary-protection-note">
-                    {t('midpoint.temporaryProtectionNote')}
-                </p>
-            )}
+                    </div>
+                </DrawerContent>
+            </Drawer>
             <OptionDrawer
                 open={picking === 'type'}
-                onOpenChange={(open) => pick(open ? 'type' : null)}
+                onOpenChange={(open) => openPicker(open ? 'type' : null)}
                 title={t('midpoint.document')}
-                options={types}
-                value={type}
+                options={anotherCountryTypes}
                 label={typeName}
-                onChoose={chooseType}
+                onChoose={(type) => {
+                    setPickedType(type)
+                    openPicker('country')
+                }}
             />
             <OptionDrawer
                 open={picking === 'country'}
-                onOpenChange={(open) => pick(open ? 'country' : null)}
+                onOpenChange={(open) => openPicker(open ? 'country' : null)}
                 title={t('midpoint.issuedBy')}
                 searchLabel={t('search.country')}
-                options={countriesFor(type)}
-                value={country}
+                options={countriesFor(pickedType)}
                 label={countryName}
                 leading={(option) => <Flag country={option} />}
-                onChoose={(next) => {
-                    picked.current = true
-                    setCountry(next)
-                }}
+                onChoose={(issuingCountry) => choose({ type: pickedType, issuingCountry }, 'another_country')}
             />
-        </VerifyQuestionLayout>
+        </div>
     )
+}
+
+function Spinner() {
+    return (
+        <span
+            aria-hidden
+            className="size-5 animate-spin rounded-full border-2 border-black border-r-transparent motion-reduce:animate-none"
+        />
+    )
+}
+
+/** Paints the status-bar strip blue over the hero, like the setup flow. */
+function HeroInset() {
+    useLayoutEffect(() => {
+        document.documentElement.style.setProperty('--setup-hero-background', 'var(--color-background-setup-hero)')
+        return () => {
+            document.documentElement.style.removeProperty('--setup-hero-background')
+        }
+    }, [])
+    return null
 }

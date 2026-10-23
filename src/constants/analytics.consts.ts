@@ -256,6 +256,9 @@ export const ANALYTICS_EVENTS = {
     // review_viewed → verified_viewed.
     KYC_PV_VIEWED: 'kyc_paperwork_viewed',
     KYC_PV_LOAD_FAILED: 'kyc_paperwork_load_failed',
+    KYC_PV_STEPS_VIEWED: 'kyc_paperwork_steps_viewed',
+    KYC_PV_STEPS_CONTINUED: 'kyc_paperwork_steps_continued',
+    KYC_PV_SAVED_VIEWED: 'kyc_paperwork_saved_viewed',
     KYC_PV_STEP_VIEWED: 'kyc_paperwork_step_viewed',
     KYC_PV_STEP_SUBMITTED: 'kyc_paperwork_step_submitted',
     KYC_PV_STEP_SAVED: 'kyc_paperwork_step_saved',

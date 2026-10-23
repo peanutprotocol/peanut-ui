@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -97,8 +97,18 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
     // deposit gates use: its outage, region and residence checks run here too.
     const [showInitiateKyc, setShowInitiateKyc] = useState(false)
     // Smart Paperwork Verification users go straight to the question screens
-    const paperworkVerification = usePaperworkVerificationStart()
-    const startIdentityCheck = () => (paperworkVerification ? router.push('/verify') : setShowInitiateKyc(true))
+    const opensPaperworkVerification = usePaperworkVerificationStart()
+    const startingRef = useRef(false)
+    const startIdentityCheck = async () => {
+        if (startingRef.current) return
+        startingRef.current = true
+        try {
+            if (await opensPaperworkVerification()) router.push('/verify')
+            else setShowInitiateKyc(true)
+        } finally {
+            startingRef.current = false
+        }
+    }
     // the SDK takes over the screen; the modal that opened it should not stay behind it
     useEffect(() => {
         if (kycFlow.showWrapper) setShowInitiateKyc(false)
@@ -226,7 +236,7 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
                 <GettingStartedChecklist
                     onboarding={onboarding}
                     showWelcome={showWelcome}
-                    onStartIdentityCheck={startIdentityCheck}
+                    onStartIdentityCheck={() => void startIdentityCheck()}
                     onStartQrIdentityCheck={qrIdentityCheck.start}
                 />
                 <InitiateKycModal

@@ -12,7 +12,7 @@
  * genuinely-fixable bank RFI still surfaces in the /add-money bank flow.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { act, render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
@@ -138,7 +138,7 @@ jest.mock('@/features/payments/flows/qr-pay/useQrIdentityCheck', () => ({
     useQrIdentityCheck: () => ({ start: mockStartQrCheck, modals: null }),
 }))
 
-let mockPaperworkVerification = false
+let mockPaperworkVerification: () => Promise<boolean> = () => Promise.resolve(false)
 jest.mock('@/features/paperwork-verification/usePaperworkVerificationStart', () => ({
     usePaperworkVerificationStart: () => mockPaperworkVerification,
 }))
@@ -176,6 +176,7 @@ beforeEach(() => {
     mockRegionRestricted = false
     mockIdentityReason = undefined
     mockShowWrapper = false
+    mockPaperworkVerification = () => Promise.resolve(false)
 })
 
 describe('ActivationCTAs — residence restrictions', () => {
@@ -193,28 +194,40 @@ describe('ActivationCTAs — residence restrictions', () => {
 })
 
 describe('ActivationCTAs — the Verify row starts the ID check in place', () => {
-    it('opens the shared start modal, whose Verify starts the one ID check (no corridor)', () => {
+    it('opens the shared start modal, whose Verify starts the one ID check (no corridor)', async () => {
         render(<ActivationCTAs onboarding={NEW_USER} />)
         expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText('start-identity-check'))
-        fireEvent.click(screen.getByText('initiate-kyc-modal'))
+        fireEvent.click(await screen.findByText('initiate-kyc-modal'))
         expect(mockInitiateKyc).toHaveBeenCalledWith()
         expect(mockPush).not.toHaveBeenCalled()
     })
 
-    it('a Smart Paperwork Verification user goes straight to the question screens', () => {
-        mockPaperworkVerification = true
+    it('a Smart Paperwork Verification user goes straight to the question screens', async () => {
+        mockPaperworkVerification = () => Promise.resolve(true)
         render(<ActivationCTAs onboarding={NEW_USER} />)
         fireEvent.click(screen.getByText('start-identity-check'))
-        expect(mockPush).toHaveBeenCalledWith('/verify')
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
         expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
-        mockPaperworkVerification = false
     })
 
-    it('closes the start modal when the SDK opens, so the SDK is the only modal in front', () => {
+    it('a tap before the plan loads waits for it instead of opening the start modal', async () => {
+        let answer: (value: boolean) => void = () => {}
+        mockPaperworkVerification = () => new Promise<boolean>((resolve) => (answer = resolve))
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        fireEvent.click(screen.getByText('start-identity-check'))
+        fireEvent.click(screen.getByText('start-identity-check'))
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
+        await act(async () => answer(true))
+        expect(mockPush).toHaveBeenCalledTimes(1)
+        expect(mockPush).toHaveBeenCalledWith('/verify')
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
+    })
+
+    it('closes the start modal when the SDK opens, so the SDK is the only modal in front', async () => {
         const { rerender } = render(<ActivationCTAs onboarding={NEW_USER} />)
         fireEvent.click(screen.getByText('start-identity-check'))
-        fireEvent.click(screen.getByText('initiate-kyc-modal'))
+        fireEvent.click(await screen.findByText('initiate-kyc-modal'))
         expect(screen.getByText('initiate-kyc-modal')).toBeInTheDocument()
         mockShowWrapper = true
         rerender(<ActivationCTAs onboarding={NEW_USER} />)

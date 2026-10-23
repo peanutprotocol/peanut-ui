@@ -3657,26 +3657,23 @@
                 "rateLimited": "Too many tries. Wait a minute and try again."
             },
             "midpoint": {
-                "title": "That’s the hard part done",
-                "description": "Last step: photos of your ID and a quick selfie. Pick the ID you’ll use.",
                 "restartTitle": "Verify with a different document",
                 "restartDescription": "Pick the ID you’ll use now. Then take photos of it and a quick selfie.",
                 "document": "Document type",
                 "issuedBy": "Issuing country",
-                "cta": "Continue to ID check",
                 "privacy": "Your documents are handled securely by Sumsub.",
                 "failed": "We couldn’t start the ID check. Try again.",
                 "unavailable": "We can’t show the documents right now. Try again later.",
-                "proofOfAddress": "Proof of address",
-                "proofOfAddressWhen": "You’ll add it after the ID check",
-                "proofOfAddressBody": "For bank accounts, IDs from this country also need a recent bill or statement with your address.",
-                "proofOfAddressPermit": "A residence permit from where you live doesn’t need one.",
                 "temporaryProtectionNote": "The document you got as a person displaced from Ukraine. A paper certificate is fine; photograph the page with your details."
             },
             "review": {
-                "title": "We’re checking your ID",
-                "description": "Checks usually come back in a few minutes. If a reviewer needs to look, it takes 1 to 3 business days. We’ll let you know.",
-                "cta": "Go to Home"
+                "title": "Checking your ID",
+                "description": "Checks usually come back in a few minutes. If a reviewer needs to look, it takes 1 to 3 business days. You can leave this screen, and we’ll let you know when it’s done.",
+                "cta": "Go to Home",
+                "photos": "Photos received",
+                "reading": "Reading your ID and selfie",
+                "settingUp": "Setting up your {features}",
+                "unlocking": "Unlocking payments"
             },
             "failed": {
                 "title": "We need another look at your ID",
@@ -3685,9 +3682,10 @@
                 "retry": "Try again"
             },
             "verified": {
-                "title": "Your ID is verified",
-                "description": "We're setting up your accounts. We'll let you know when they're ready.",
-                "cta": "Go to Home"
+                "title": "Your ID is confirmed!",
+                "description": "We’re setting up your {features}. It usually takes a few minutes, and we’ll let you know when everything is ready.",
+                "cta": "Go to Home",
+                "descriptionQrOnly": "You can start using Peanut."
             },
             "poa": {
                 "title": "Add a proof of address",
@@ -3739,7 +3737,43 @@
                 "inCountry": "Places in {country}. A name that isn’t listed works too.",
                 "done": "Done"
             },
-            "continueWithoutLocal": "Continue without local bank transfers"
+            "continueWithoutLocal": "Continue without local bank transfers",
+            "steps": {
+                "title": "A few steps to\nverify your ID",
+                "residence": "Set your country of residence",
+                "questions": "Answer a few questions",
+                "photo": "Take a photo of your ID",
+                "selfie": "Take a quick selfie",
+                "review": "Get a secure review",
+                "unlock": "Unlock eligible payments",
+                "done": "Done"
+            },
+            "saved": {
+                "title": "Answers saved!",
+                "description": "Next, a photo of your ID and a quick selfie."
+            },
+            "featureNames": {
+                "bank": "bank accounts",
+                "card": "card",
+                "local": "local transfers"
+            },
+            "documentList": {
+                "title": "Which document\nwill you use?",
+                "description": "Choose one to start verification. You’ll take photos of it and a selfie.",
+                "issuedBy": "Issued by {country}",
+                "issuedByWithProof": "Issued by {country}. You’ll also add a proof of address.",
+                "other": "Other document",
+                "otherHint": "Like a driver’s license",
+                "otherTitle": "Other documents",
+                "otherDescription": "You can also verify with one of these. You’ll take photos of it and a selfie.",
+                "otherNotAccepted": "Visas, work permits and student cards can’t be used to verify your ID.",
+                "anotherCountry": "A document from another country",
+                "anotherCountryHint": "Pick the document, then the country that issued it.",
+                "backToList": "Back to the list",
+                "noneFit": "Don’t have any of those?",
+                "changeResidence": "Change residence",
+                "stepDots": "Verify identity, step 1 of 3"
+            }
         }
     },
     "identity": {

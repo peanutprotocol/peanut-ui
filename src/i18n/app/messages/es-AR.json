@@ -1568,13 +1568,10 @@
                 "usCitizenNotSupported": "Las transferencias locales no están disponibles para ciudadanos o residentes fiscales de EE. UU. Igual podés cobrar con una cuenta en USD o pagar con QR."
             },
             "midpoint": {
-                "description": "Último paso: fotos de tu documento y una selfie rápida. Elegí el documento que vas a usar.",
                 "restartTitle": "Verificate con otro documento",
                 "restartDescription": "Elegí el documento que vas a usar ahora. Después tomá fotos de él y una selfie rápida.",
                 "failed": "No pudimos iniciar la verificación. Intentá de nuevo.",
                 "unavailable": "No podemos mostrar los documentos ahora. Intentá más tarde.",
-                "proofOfAddressBody": "Para cuentas bancarias, los documentos de este país también piden una factura o un resumen de cuenta reciente con tu domicilio.",
-                "proofOfAddressPermit": "Un permiso de residencia del país donde vivís no lo necesita.",
                 "temporaryProtectionNote": "El documento que recibiste como persona desplazada de Ucrania. Sirve un certificado en papel; sacale una foto a la página con tus datos."
             },
             "failed": {
@@ -1596,6 +1593,28 @@
             "place": {
                 "placeholder": "Empezá a escribir la ciudad",
                 "countryFirst": "Elegí primero el país"
+            },
+            "steps": {
+                "residence": "Elegí tu país de residencia",
+                "questions": "Respondé unas preguntas",
+                "photo": "Sacá una foto de tu documento",
+                "selfie": "Sacate una selfie rápida",
+                "review": "Recibí una revisión segura",
+                "unlock": "Desbloqueá los pagos disponibles"
+            },
+            "review": {
+                "description": "La revisión suele tardar unos minutos. Si una persona necesita revisarlo, tarda de 1 a 3 días hábiles. Podés salir de esta pantalla y te vamos a avisar cuando esté listo."
+            },
+            "verified": {
+                "description": "Estamos configurando {features}. Suele tardar unos minutos y te vamos a avisar cuando todo esté listo.",
+                "descriptionQrOnly": "Ya podés empezar a usar Peanut."
+            },
+            "documentList": {
+                "description": "Elegí uno para empezar la verificación. Le vas a sacar fotos y te vas a sacar una selfie.",
+                "issuedByWithProof": "Emitido en {country}. También vas a agregar un comprobante de domicilio.",
+                "otherDescription": "También podés verificarte con uno de estos. Le vas a sacar fotos y te vas a sacar una selfie.",
+                "anotherCountryHint": "Elegí el documento y después el país que lo emitió.",
+                "noneFit": "¿No tenés ninguno de estos?"
             }
         },
         "setup": {
