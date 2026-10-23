@@ -1,8 +1,11 @@
 name: Play Vitals monitor
 
-# Reuses the Play publisher identity already held by this Production environment.
-# This workflow calls only the read-only Play Developer Reporting API. It sends
-# a minimal artifact to Chip's prod-watch; no Google key leaves this environment.
+# Uses its own `play-vitals` environment, which holds only a Play service account
+# with read access to app reports. It is not `Production`: that environment holds
+# the release keys and needs a reviewer's approval, which a 6-hourly check cannot
+# wait for. This workflow calls only the read-only Play Developer Reporting API.
+# It sends a minimal artifact to Chip's prod-watch; no Google key leaves this
+# environment.
 on:
     schedule:
         - cron: '17 */6 * * *'
@@ -24,19 +27,22 @@ jobs:
     check:
         runs-on: ubuntu-latest
         timeout-minutes: 10
-        environment: Production
+        environment: play-vitals
         steps:
             - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
             - name: Restore previous issue state
               uses: actions/cache/restore@v4
+              # The state is encrypted with keys derived from the Play credential.
+              # Change this prefix when the credential changes, or every run fails
+              # to authenticate the old cache.
               with:
                   path: ${{ runner.temp }}/play-vitals-state.json
-                  key: play-vitals-v2-${{ github.run_id }}
+                  key: play-vitals-v3-${{ github.run_id }}
                   restore-keys: |
-                      play-vitals-v2-
+                      play-vitals-v3-
             - name: Check user-perceived Android crashes
               env:
-                  PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+                  PLAY_VITALS_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_VITALS_SERVICE_ACCOUNT_JSON }}
                   STATE_FILE: ${{ runner.temp }}/play-vitals-state.json
                   OUTPUT_FILE: ${{ runner.temp }}/play-vitals-events.json
                   DRY_RUN: ${{ inputs.dry_run }}
@@ -52,7 +58,7 @@ jobs:
               uses: actions/cache/save@v4
               with:
                   path: ${{ runner.temp }}/play-vitals-state.json
-                  key: play-vitals-v2-${{ github.run_id }}
+                  key: play-vitals-v3-${{ github.run_id }}
             - name: Publish minimal signal for Chip
               if: success() && (github.event_name == 'schedule' || inputs.dry_run == false)
               uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
