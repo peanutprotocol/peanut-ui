@@ -209,7 +209,7 @@ function pickZone(
     // no flash of a lower card while a higher one is still loading
     const best = candidates[0]
     const higherUnknown = sorted.some(
-        (ask) => ask.surfaces.includes('zone') && verdicts[ask.id] === 'unknown' && (!best || ask.tier < best.tier)
+        (ask) => ask.surfaces.includes('zone') && verdicts[ask.id] === 'unknown' && (!best || byPriority(ask, best) < 0)
     )
     if (higherUnknown && !session.settleDeadlinePassed) return null
     const fresh = candidates.find((ask) => !isFatigued(ask, ledger[ask.id], session))
