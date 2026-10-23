@@ -85,6 +85,7 @@ export type FriendlyErrorCode =
     | 'passkeyDeviceLocked'
     | 'passkeyBiometryRequired'
     | 'passkeyVerificationIncomplete'
+    | 'passkeyRestartRequired'
     | 'claimLinkFailed'
     | 'sendLinkAlreadyClaimed'
     | 'lowLiquidity'
@@ -330,6 +331,8 @@ const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyErr
     if (text.includes('does not match the target chain for the transaction')) return code('chainMismatch')
     if (text.includes('Insufficient balance')) return code('insufficientBalance')
     if (text.includes('The operation either timed out or was not allowed')) return code('operationTimedOut')
+    // An abandoned Android passkey request still owns the authenticator; retries fail until a restart.
+    if (name === 'PasskeyCleanupPendingError') return code('passkeyRestartRequired')
     // iOS Safari's NotAllowedError copy when the passkey ceremony never
     // completes. Third-party credential providers (1Password) can wedge and
     // refuse every assertion until unlocked or the device restarts

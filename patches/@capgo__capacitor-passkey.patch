@@ -106,7 +106,7 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
          });
      }
 
-@@ -142,30 +156,122 @@
+@@ -142,30 +156,123 @@
                  return;
              }
 
@@ -243,12 +243,13 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
 +    }
 +
 +    private String boundedFact(String value) {
-+        if (value == null || value.isBlank()) return "unknown";
++        // String.isBlank() needs API 33; minSdk is 24.
++        if (value == null || value.trim().isEmpty()) return "unknown";
 +        return value.substring(0, Math.min(value.length(), 80));
      }
 
      @PluginMethod
-@@ -219,6 +325,10 @@
+@@ -219,6 +326,10 @@
      }
 
      private void rejectCreateException(PluginCall call, CreateCredentialException exception) {
@@ -259,7 +260,7 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
          if (exception instanceof CreatePublicKeyCredentialDomException) {
              DomError domError = ((CreatePublicKeyCredentialDomException) exception).getDomError();
              rejectDom(call, domError.getClass().getSimpleName(), messageFor(exception, "Passkey registration failed."), exception);
-@@ -229,6 +339,10 @@
+@@ -229,6 +340,10 @@
      }
 
      private void rejectGetException(PluginCall call, GetCredentialException exception) {
@@ -270,7 +271,7 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
          if (exception instanceof GetPublicKeyCredentialDomException) {
              DomError domError = ((GetPublicKeyCredentialDomException) exception).getDomError();
              rejectDom(call, domError.getClass().getSimpleName(), messageFor(exception, "Passkey authentication failed."), exception);
-@@ -256,6 +370,8 @@
+@@ -256,6 +371,8 @@
      private void rejectDom(PluginCall call, String name, String message, Exception exception) {
          JSObject data = new JSObject();
          data.put("name", name);

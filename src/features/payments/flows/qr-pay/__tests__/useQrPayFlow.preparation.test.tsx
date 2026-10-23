@@ -927,4 +927,20 @@ describe('honest Pay failure copy', () => {
             tags: expect.objectContaining({ qr_pay_step: 'sign', qr_pay_failure: 'passkey_busy' }),
         })
     })
+
+    test('unconfirmed Android passkey cleanup: restart copy, Pay disabled because every retry is refused', async () => {
+        const cleanup = new Error('Passkey cleanup is unconfirmed; restart the app')
+        cleanup.name = 'PasskeyCleanupPendingError'
+        fakeClient.account.signUserOperation.mockRejectedValue(cleanup)
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+
+        expect(surface?.errorMessage).toBe(copy.passkeyRestart)
+        expect(surface?.isBlockingError).toBe(true)
+        expect(mockCaptureNetworkTriagedFailure).toHaveBeenCalledWith(cleanup, {
+            tags: expect.objectContaining({ qr_pay_step: 'sign', qr_pay_failure: 'passkey_cleanup_pending' }),
+        })
+    })
 })

@@ -93,6 +93,18 @@ export function isPasskeyBusyError(error: unknown): boolean {
     return false
 }
 
+/**
+ * true when an abandoned Android passkey request never confirmed cancellation.
+ * Unlike a busy prompt, every retry is refused until that request settles or
+ * the app restarts, so callers must not offer "try again".
+ */
+export function isPasskeyCleanupPendingError(error: unknown): boolean {
+    for (let e: unknown = error, depth = 0; e instanceof Error && depth < 2; e = e.cause, depth++) {
+        if (e.name === 'PasskeyCleanupPendingError' || /passkey cleanup is unconfirmed/i.test(e.message)) return true
+    }
+    return false
+}
+
 export type PasskeyErrorClassification = { code: PasskeyErrorCode; message: string }
 
 // Curated copy keyed by code. Never surface raw error.message / server bodies to

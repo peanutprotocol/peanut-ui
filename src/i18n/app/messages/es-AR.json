@@ -829,6 +829,7 @@
             "signFailed": "No pudimos confirmar este pago. No se te cobró nada. Intentalo de nuevo.",
             "preparationFailed": "Algo salió mal. No se te cobró nada. Intentalo de nuevo.",
             "passkeyBusy": "Ya hay otra confirmación abierta. Cerrala y tocá Pagar de nuevo. No se te cobró nada.",
+            "passkeyRestart": "La última confirmación no terminó de cerrarse. Reiniciá la app y tocá Pagar de nuevo. No se te cobró nada.",
             "accountStateChanged": "La transacción falló por un cambio de estado de la cuenta. Intentalo de nuevo. Si el problema persiste, contactá a soporte.",
             "sessionExpired": "La sesión de pago expiró. Escaneá el código QR de nuevo.",
             "restartScan": "No pudimos iniciar este pago. Escaneá el código QR de nuevo.",
@@ -1763,7 +1764,8 @@
         "passkeyAssociationMismatch": "Las passkeys no están disponibles en esta app por el momento. Actualizá Peanut o contactá a soporte si el problema continúa.",
         "passkeyDeviceLocked": "Desbloqueá el dispositivo e intentalo de nuevo.",
         "passkeyBiometryRequired": "Usá Face ID o Touch ID para verificar la passkey e intentalo de nuevo.",
-        "passkeyVerificationIncomplete": "No se completó la verificación con passkey. Intentalo de nuevo cuando quieras."
+        "passkeyVerificationIncomplete": "No se completó la verificación con passkey. Intentalo de nuevo cuando quieras.",
+        "passkeyRestartRequired": "La última solicitud de passkey no terminó de cerrarse. Reiniciá la app e intentalo de nuevo."
     },
     "appLock": {
         "prompt": "Desbloqueá para abrir la app.",
