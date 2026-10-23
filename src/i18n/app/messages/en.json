@@ -2943,7 +2943,10 @@
             "descriptionDefault": "Confirm your ID to unlock payments.",
             "ctaUploadDocument": "Upload document",
             "ctaUnlockNow": "Verify identity",
-            "ctaWithdrawFunds": "Withdraw funds"
+            "ctaWithdrawFunds": "Withdraw funds",
+            "ctaAnswerQuestions": "Answer questions",
+            "ctaRetakeId": "Retake ID photo",
+            "descriptionRetakeId": "Our payment partner needs a new, clear photo of your ID. Use a valid document and show all of it."
         },
         "regionRestricted": {
             "title": "We can't verify IDs from this country",
@@ -3010,7 +3013,10 @@
             "later": "Later",
             "continueCard": "Continue card setup",
             "reviewTerms": "Review terms",
-            "termsNeeded": "Terms needed"
+            "termsNeeded": "Terms needed",
+            "documentDescription": "Our payment partner needs one more document to finish opening this account.",
+            "proofOfAddressDescription": "Our payment partner needs a proof of address to finish opening your bank account.",
+            "termsDescription": "Accept the updated terms to keep using bank transfers."
         },
         "bridgeTos": {
             "title": "Accept terms",
@@ -3653,8 +3659,8 @@
                 "retry": "Try again"
             },
             "verified": {
-                "title": "You’re verified!",
-                "description": "Next, add money to start using Peanut.",
+                "title": "Your ID is verified",
+                "description": "We're setting up your accounts. We'll let you know when they're ready.",
                 "cta": "Go to Home"
             },
             "poa": {
@@ -3676,7 +3682,7 @@
                     "card": "For your card",
                     "local": "For local transfers"
                 },
-                "doneTitle": "You’re all set",
+                "doneTitle": "We're setting things up",
                 "doneDescription": {
                     "bank": "We’re setting up your bank account. It usually takes a few minutes, and we’ll let you know when it’s ready.",
                     "card": "We’re setting up your card. It usually takes a few minutes, and we’ll let you know when it’s ready.",
@@ -3747,6 +3753,7 @@
             "tax_identification_number": "We need your tax identification number to continue.",
             "address_of_residence": "We need your residential address to continue.",
             "residence_unresolved": "We still need your home address to finish setting up bank transfers. Add it and we will retry automatically.",
+            "bridge_answers_rejected": "Our payment partner couldn't accept one of your answers. Answer the questions again.",
             "requirements_missing": "To open your bank accounts, our payment partner needs a proof of address, such as a recent bank statement or utility bill. Add it and we'll finish setting them up automatically.",
             "requirements_in_review": "We're checking your proof of address. Bank accounts open once it's approved.",
             "identity_document_insufficient": "The document you verified with can't be used for this account. Verify again with a different ID document.",
@@ -3769,7 +3776,7 @@
             "bridge_processing": "Our payment partner is finishing your verification. This usually takes a few minutes.",
             "verification_blocked": "Verification issue — contact support for help.",
             "terminal_rejection": "Verification issue — contact support for help.",
-            "bridge_terminal_rejection": "We couldn't verify your account for bank transfers. Message support if you think this is a mistake.",
+            "bridge_terminal_rejection": "Our payment partner didn't approve bank transfers for this account, and Peanut can't change that decision. Your funds on Peanut are not affected. If you think this is a mistake, message support.",
             "duplicate_customer_detected": "Our payment partner flagged your account as a possible duplicate — message support to verify and unlock.",
             "region_block": "Peanut cards aren't available in your region yet.",
             "compliance_block": "We couldn't approve your card application after a compliance review.",
@@ -3787,7 +3794,8 @@
             "document_country_unsupported": "Needs an ID issued by {country}",
             "card_unavailable_for_verification": "Not available with the current verification",
             "local_tax_id_missing": "Needs a tax ID: CPF in Brazil, CUIT or CUIL in Argentina",
-            "under_minimum_age": "Only from age 18"
+            "under_minimum_age": "Only from age 18",
+            "bridge_processing_slow": "This is taking longer than usual. Our payment partner is still reviewing your details. Contact support and we'll check on it."
         }
     },
     "recoverFunds": {

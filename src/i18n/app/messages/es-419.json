@@ -2943,7 +2943,10 @@
             "descriptionDefault": "Confirma tu identidad para desbloquear los pagos.",
             "ctaUploadDocument": "Subir documento",
             "ctaUnlockNow": "Verificar identidad",
-            "ctaWithdrawFunds": "Retirar fondos"
+            "ctaWithdrawFunds": "Retirar fondos",
+            "ctaAnswerQuestions": "Responder preguntas",
+            "ctaRetakeId": "Volver a fotografiar el documento",
+            "descriptionRetakeId": "Nuestro socio de pagos necesita una foto nueva y clara de tu documento de identidad. Usa un documento vigente y que se vea completo."
         },
         "regionRestricted": {
             "title": "No podemos verificar documentos de este país",
@@ -3010,7 +3013,10 @@
             "later": "Más tarde",
             "continueCard": "Continuar con la tarjeta",
             "reviewTerms": "Revisar términos",
-            "termsNeeded": "Faltan los términos"
+            "termsNeeded": "Faltan los términos",
+            "documentDescription": "Nuestro socio de pagos necesita un documento más para terminar de abrir esta cuenta.",
+            "proofOfAddressDescription": "Nuestro socio de pagos necesita un comprobante de domicilio para terminar de abrir tu cuenta bancaria.",
+            "termsDescription": "Acepta los términos actualizados para seguir usando las transferencias bancarias."
         },
         "bridgeTos": {
             "description": "Acepta los términos del proveedor para activar las transferencias bancarias.",
@@ -3653,8 +3659,8 @@
                 "retry": "Intentar de nuevo"
             },
             "verified": {
-                "title": "¡Verificación lista!",
-                "description": "Ahora agrega dinero para empezar a usar Peanut.",
+                "title": "Tu documento de identidad está verificado",
+                "description": "Estamos configurando tus cuentas. Te avisaremos cuando estén listas.",
                 "cta": "Ir al inicio"
             },
             "poa": {
@@ -3676,7 +3682,7 @@
                     "card": "Para tu tarjeta",
                     "local": "Para transferencias locales"
                 },
-                "doneTitle": "Todo listo",
+                "doneTitle": "Estamos preparando todo",
                 "doneDescription": {
                     "bank": "Estamos configurando tu cuenta bancaria. Suele tardar unos minutos y te avisaremos cuando esté lista.",
                     "card": "Estamos configurando tu tarjeta. Suele tardar unos minutos y te avisaremos cuando esté lista.",
@@ -3747,6 +3753,7 @@
             "tax_identification_number": "Necesitamos tu número de identificación fiscal para continuar.",
             "address_of_residence": "Necesitamos tu dirección de residencia para continuar.",
             "residence_unresolved": "Todavía necesitamos tu domicilio para terminar de configurar las transferencias bancarias. Agrégalo y lo reintentaremos automáticamente.",
+            "bridge_answers_rejected": "Nuestro socio de pagos no pudo aceptar una de tus respuestas. Responde las preguntas de nuevo.",
             "requirements_missing": "Para abrir tus cuentas bancarias, nuestro socio de pagos necesita un comprobante de domicilio, como un estado de cuenta bancario o una factura de servicios reciente. Agrégalo y terminaremos de configurarlas automáticamente.",
             "requirements_in_review": "Estamos revisando tu comprobante de domicilio. Tus cuentas bancarias se abrirán cuando esté aprobado.",
             "identity_document_insufficient": "El documento con el que te verificaste no se puede usar para esta cuenta. Verifícate de nuevo con otro documento de identidad.",
@@ -3769,7 +3776,7 @@
             "bridge_processing": "Nuestro socio de pagos está finalizando tu verificación. Esto suele tomar unos minutos.",
             "verification_blocked": "Problema de verificación: contacta a soporte para recibir ayuda.",
             "terminal_rejection": "Problema de verificación: contacta a soporte para recibir ayuda.",
-            "bridge_terminal_rejection": "No pudimos verificar tu cuenta para transferencias bancarias. Escríbele a soporte si crees que es un error.",
+            "bridge_terminal_rejection": "Nuestro socio de pagos no aprobó las transferencias bancarias para esta cuenta, y Peanut no puede cambiar esa decisión. Tus fondos en Peanut no se ven afectados. Si crees que es un error, escribe a soporte.",
             "duplicate_customer_detected": "Nuestro socio de pagos marcó tu cuenta como posible duplicado. Escríbele a soporte para verificarla y desbloquearla.",
             "region_block": "Las tarjetas Peanut todavía no están disponibles en tu región.",
             "compliance_block": "No pudimos aprobar tu solicitud de tarjeta después de una revisión de cumplimiento.",
@@ -3787,7 +3794,8 @@
             "document_country_unsupported": "Necesita un documento emitido por {country}",
             "card_unavailable_for_verification": "No disponible con la verificación actual",
             "local_tax_id_missing": "Necesita un número fiscal: CPF en Brasil, CUIT o CUIL en Argentina",
-            "under_minimum_age": "Solo a partir de los 18 años"
+            "under_minimum_age": "Solo a partir de los 18 años",
+            "bridge_processing_slow": "Está tardando más de lo normal. Nuestro socio de pagos todavía está revisando tus datos. Contacta a soporte y lo revisamos."
         }
     },
     "recoverFunds": {

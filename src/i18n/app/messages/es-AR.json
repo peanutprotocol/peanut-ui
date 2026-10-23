@@ -1256,7 +1256,8 @@
             "descriptionCountryPayments": "Confirmá tu identidad para activar las transferencias bancarias y los pagos en {region}.",
             "descriptionRegionUnavailable": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
             "descriptionBankUnavailable": "Las transferencias bancarias no están disponibles en tu país, así que verificar tu identidad no las desbloquearía. Tus fondos están seguros y podés seguir enviando y recibiendo dinero con otras personas.",
-            "descriptionDefault": "Confirmá tu identidad para desbloquear los pagos."
+            "descriptionDefault": "Confirmá tu identidad para desbloquear los pagos.",
+            "descriptionRetakeId": "Nuestro socio de pagos necesita una foto nueva y clara de tu documento de identidad. Usá un documento vigente y que se vea completo."
         },
         "regionRestricted": {
             "title": "No podemos verificar documentos de este país",
@@ -1564,9 +1565,6 @@
             "failed": {
                 "description": "Tu verificación necesita algo de vos. En el inicio vas a ver qué hacer."
             },
-            "verified": {
-                "description": "Ahora agregá dinero para empezar a usar Peanut."
-            },
             "poa": {
                 "title": "Agregá un comprobante de domicilio",
                 "skipNote": "Podés omitirlo. Tu cuenta bancaria se abre igual, y nuestro socio podría pedirlo más adelante."
@@ -1584,6 +1582,9 @@
                 "placeholder": "Empezá a escribir la ciudad",
                 "countryFirst": "Elegí primero el país"
             }
+        },
+        "setup": {
+            "termsDescription": "Aceptá los términos actualizados para seguir usando las transferencias bancarias."
         }
     },
     "identity": {
@@ -1593,6 +1594,7 @@
         "reasons": {
             "eea_tin_reupload": "Volvé a subir tu número de identificación fiscal.",
             "residence_unresolved": "Todavía necesitamos tu domicilio para terminar de configurar las transferencias bancarias. Agregalo y lo reintentaremos automáticamente.",
+            "bridge_answers_rejected": "Nuestro socio de pagos no pudo aceptar una de tus respuestas. Respondé las preguntas de nuevo.",
             "requirements_missing": "Para abrir tus cuentas bancarias, nuestro socio de pagos necesita un comprobante de domicilio, como un estado de cuenta bancario o una factura de servicios reciente. Agregalo y terminaremos de configurarlas automáticamente.",
             "identity_document_insufficient": "El documento con el que te verificaste no se puede usar para esta cuenta. Verificate de nuevo con otro documento de identidad.",
             "requirements_uncollectable": "Nuestro socio de pagos necesita algo que no podemos recopilar en la app. Escribile a soporte y terminaremos la configuración con vos.",
@@ -1602,7 +1604,7 @@
             "bridge_tos_v2_required": "Aceptá los Términos de Servicio actualizados del proveedor de transferencias bancarias para habilitar transferencias en euros y libras esterlinas.",
             "verification_blocked": "Problema de verificación: contactá a soporte para recibir ayuda.",
             "terminal_rejection": "Problema de verificación: contactá a soporte para recibir ayuda.",
-            "bridge_terminal_rejection": "No pudimos verificar tu cuenta para transferencias bancarias. Escribile a soporte si creés que es un error.",
+            "bridge_terminal_rejection": "Nuestro socio de pagos no aprobó las transferencias bancarias para esta cuenta, y Peanut no puede cambiar esa decisión. Tus fondos en Peanut no se ven afectados. Si creés que es un error, escribile a soporte.",
             "duplicate_customer_detected": "Nuestro socio de pagos marcó tu cuenta como posible duplicado. Escribile a soporte para verificarla y desbloquearla.",
             "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escribile a soporte si creés que es un error.",
             "country_not_supported": "Este método necesita un documento de un país compatible. Podés verificarte con otro documento.",

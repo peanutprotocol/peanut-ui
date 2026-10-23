@@ -42,6 +42,7 @@ export function useProviderRejection(onboarding: OnboardingState) {
         hasFixableRejection,
         fixableProvider,
         fixableActionKey,
+        fixableAction,
         hasBlockedRejection,
         primaryRejectionMessage,
         primaryRejectionCode,
@@ -67,6 +68,10 @@ export function useProviderRejection(onboarding: OnboardingState) {
         const blocked =
             emailBlocked ?? rejectableRails.find((rail) => railVerdict(rail, actionByKey).status === 'blocked')
         const fixableAction = fixableRail ? railVerdict(fixableRail, actionByKey).nextAction : undefined
+        const restartBlocked =
+            !emailBlocked && blocked && railVerdict(blocked, actionByKey).blocking?.selfHealKind === 'restart-identity'
+                ? blocked
+                : undefined
         return {
             hasFixableRejection: !!fixableRail,
             fixableProvider:
@@ -74,14 +79,15 @@ export function useProviderRejection(onboarding: OnboardingState) {
                     ? (fixableRail.provider.toUpperCase() as 'BRIDGE' | 'MANTECA')
                     : null,
             fixableActionKey: fixableAction?.kind === 'sumsub' ? fixableAction.key : null,
+            fixableAction,
             hasBlockedRejection: !!blocked,
             // Same precedence the copy/onClick use: email-blocked → fixable → terminal.
             primaryRejectionMessage: (() => {
-                const surfaced = emailBlocked ?? fixableRail ?? blocked
+                const surfaced = emailBlocked ?? restartBlocked ?? fixableRail ?? blocked
                 return surfaced ? railUserMessage(surfaced) : null
             })(),
             primaryRejectionCode: (() => {
-                const surfaced = emailBlocked ?? fixableRail ?? blocked
+                const surfaced = emailBlocked ?? restartBlocked ?? fixableRail ?? blocked
                 return surfaced ? (surfaced.reason?.code ?? surfaced.resolved?.blocking?.code ?? null) : null
             })(),
             blockedRail: blocked,
@@ -147,8 +153,8 @@ export function useProviderRejection(onboarding: OnboardingState) {
         if (hasIdentityFailure) return card('verification-issue', identityFailureCode)
         if (!hasProviderRejection) return null
         if (isEmailBlocked) return card('add-email', primaryRejectionCode)
-        if (hasFixableRejection) return card('complete-setup', primaryRejectionCode)
         if (isRestartBlocked) return card('restart-identity', primaryRejectionCode)
+        if (hasFixableRejection) return card('complete-setup', primaryRejectionCode)
         return card('verification-issue', primaryRejectionCode)
     }, [
         isRegionRestricted,
@@ -168,6 +174,7 @@ export function useProviderRejection(onboarding: OnboardingState) {
         hasFixableRejection,
         fixableProvider,
         fixableActionKey,
+        fixableAction,
         hasBlockedRejection,
         primaryRejectionMessage,
         primaryRejectionCode,

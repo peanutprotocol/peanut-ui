@@ -14,6 +14,8 @@ import { useDocumentRequestFlow } from '@/hooks/useDocumentRequestFlow'
 import type { NextAction } from '@/types/capabilities'
 import {
     bridgeTaskDismissalKey,
+    bridgeDocumentActionKey,
+    isBridgeDocumentTask,
     isCardDocumentTask,
     selectBridgeTasks,
     selectHomeTasks,
@@ -21,6 +23,9 @@ import {
 import { formatEffectiveDate } from '@/utils/format.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
+import { railVerdict } from '@/utils/capability-gate'
+import { isIdRetake, kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 
 // Currencies whose corridor a hosted-verification task can NAME. The backend
 // sets `NextAction.currency` on the bridge-hosted catch-all; anything outside
@@ -78,6 +83,7 @@ export default function PendingVerificationTasks({
     placement = 'profile',
     whenEmpty = null,
     whenEmptyShowsDocumentRequest = false,
+    prioritizeIdentityRestart = false,
 }: {
     placement?: 'home' | 'profile'
     /** rendered in place of the card when no task is visible (Home: the carousel or the activation card) */
@@ -88,9 +94,12 @@ export default function PendingVerificationTasks({
      * card hides it, this card carries the request instead, so it stays reachable.
      */
     whenEmptyShowsDocumentRequest?: boolean
+    prioritizeIdentityRestart?: boolean
 }) {
     const dismissible = placement === 'home'
     const t = useTranslations('home')
+    const tKyc = useTranslations('kyc')
+    const tIdentity = useTranslations('identity')
     const { nextActions, rails } = useCapabilities()
     const { user } = useAuth()
     const [activeTosTask, setActiveTosTask] = useState<NextAction | null>(null)
@@ -105,7 +114,8 @@ export default function PendingVerificationTasks({
     const [storedDismissals, setStoredDismissals] = useState<{ forUserId: string; keys: string[] } | null>(null)
 
     const userId = user?.user?.userId
-    const homeTasks = placement === 'home' ? selectHomeTasks(nextActions, rails ?? []) : null
+    const homeTasks =
+        placement === 'home' ? selectHomeTasks(nextActions, rails ?? [], undefined, prioritizeIdentityRestart) : null
     const tasks = homeTasks ? homeTasks.largeTasks : selectBridgeTasks(nextActions, rails ?? [])
     useEffect(() => {
         if (!dismissible || !userId) return
@@ -158,6 +168,22 @@ export default function PendingVerificationTasks({
             ? [...visibleLargeTasks, documentSlide]
             : visibleLargeTasks
 
+    const taskReason = useCallback(
+        (task: NextAction) => {
+            if (!isBridgeDocumentTask(task)) return undefined
+            const byKey = new Map(nextActions.map((action) => [action.key, action]))
+            const rail = rails.find(
+                (rail) =>
+                    rail.provider === 'bridge' &&
+                    rail.status === 'requires-info' &&
+                    railVerdict(rail, byKey).status === 'fixable' &&
+                    railVerdict(rail, byKey).nextAction?.key === bridgeDocumentActionKey(task)
+            )
+            return rail?.reason ?? rail?.resolved?.blocking
+        },
+        [rails, nextActions]
+    )
+
     const handleOpenTask = useCallback(
         (task: NextAction) => {
             if (isCardDocumentTask(task)) {
@@ -169,7 +195,7 @@ export default function PendingVerificationTasks({
                 return
             }
             if (task.kind === 'sumsub') {
-                documentFlow.start(task)
+                documentFlow.start(task, taskReason(task)?.code)
                 return
             }
             // The hosted flow gets its own screen first. It runs at the vendor,
@@ -178,7 +204,7 @@ export default function PendingVerificationTasks({
             // one. That is a page's worth of prep, and it owns the handoff.
             router.push('/profile/accounts/additional')
         },
-        [router, documentFlow]
+        [router, documentFlow, taskReason]
     )
 
     const closeTos = useCallback(() => setActiveTosTask(null), [])
@@ -212,6 +238,18 @@ export default function PendingVerificationTasks({
             }
         }
         if (task.kind === 'sumsub') {
+            if (isBridgeDocumentTask(task)) {
+                const reason = taskReason(task)
+                const key = reasonCodeKey(reason?.code)
+                return {
+                    title: tKyc('initiate.titleProviderRejection'),
+                    description: isIdRetake(task)
+                        ? tKyc('initiate.descriptionRetakeId')
+                        : key
+                          ? tIdentity(key)
+                          : reason?.userMessage || tKyc('setup.documentDescription'),
+                }
+            }
             return { title: t('pendingTasks.documentTitle'), description: t('pendingTasks.documentDescription') }
         }
         if (task.kind === 'accept-tos') {
@@ -310,7 +348,14 @@ export default function PendingVerificationTasks({
                                             {isCard
                                                 ? t('pendingTasks.cardDocumentCta')
                                                 : isDocument
-                                                  ? t('pendingTasks.documentCta')
+                                                  ? isBridgeDocumentTask(task)
+                                                      ? tKyc(
+                                                            kycActionCtaKey(
+                                                                { ...task, key: bridgeDocumentActionKey(task) },
+                                                                taskReason(task)?.code
+                                                            )
+                                                        )
+                                                      : t('pendingTasks.documentCta')
                                                   : isHosted
                                                     ? 'Complete verification'
                                                     : 'Review terms'}

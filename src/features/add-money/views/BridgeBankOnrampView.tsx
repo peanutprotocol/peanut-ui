@@ -142,6 +142,8 @@ export function BridgeBankOnrampView() {
                     variant={resolveKycModalVariant(gate)}
                     providerMessage={getGateUserMessage(gate)}
                     reasonCode={getGateReasonCode(gate)}
+                    nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
+                    pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
                     regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                     providerId={kycProviderId}
                 />
@@ -258,6 +260,8 @@ export function BridgeBankOnrampView() {
                     variant={resolveKycModalVariant(gate)}
                     providerMessage={getGateUserMessage(gate)}
                     reasonCode={getGateReasonCode(gate)}
+                    nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
+                    pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
                     regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                     providerId={kycProviderId}
                 />
@@ -266,6 +270,7 @@ export function BridgeBankOnrampView() {
                     isOpen={pendingModal.isOpen}
                     onClose={pendingModal.close}
                     message={pendingModal.message}
+                    onContactSupport={pendingModal.onContactSupport}
                 />
 
                 <SumsubKycModals

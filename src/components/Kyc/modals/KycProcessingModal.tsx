@@ -1,3 +1,5 @@
+import { KYC_PROCESSING_STALE_AFTER_MS } from '@/constants/kyc.consts'
+import { isBridgeProcessingSlow } from '@/utils/kyc-processing.utils'
 import { useTranslations } from 'next-intl'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import type { CapabilityReason } from '@/types/capabilities'
@@ -19,13 +21,6 @@ interface KycProcessingModalProps {
     onContactSupport?: () => void
 }
 
-/**
- * Past this, "less than a minute" is a lie. A rail pending for a day is one the
- * user walked away from before the provider's questionnaire (the awaiting-action
- * ghost, 189 users in prod on 2026-09-22) or one stuck in provider review.
- */
-const STALE_AFTER_MS = 24 * 60 * 60 * 1000
-
 // shown when user clicks a locked region while their kyc is pending/in review
 export const KycProcessingModal = ({
     visible,
@@ -40,13 +35,18 @@ export const KycProcessingModal = ({
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
     const supplementInReview = reason?.code === 'requirements_in_review'
-    const reasonKey = supplementInReview ? reasonCodeKey(reason.code) : undefined
+    const slow = isBridgeProcessingSlow(reason?.code, pendingSince)
+    const reasonKey = slow
+        ? 'reasons.bridge_processing_slow'
+        : supplementInReview
+          ? reasonCodeKey(reason.code)
+          : undefined
 
     const pendingSinceMs = pendingSince ? Date.parse(pendingSince) : NaN
-    const isStale = Number.isFinite(pendingSinceMs) && Date.now() - pendingSinceMs > STALE_AFTER_MS
+    const isStale = Number.isFinite(pendingSinceMs) && Date.now() - pendingSinceMs > KYC_PROCESSING_STALE_AFTER_MS
     // Only an unfinished verification has something the user can continue; a
     // provider review does not, so that branch offers support and nothing else.
-    const canResume = isStale && !waitingOnProvider && !supplementInReview && !!onResume
+    const canResume = isStale && !slow && !waitingOnProvider && !supplementInReview && !!onResume
 
     return (
         <Drawer

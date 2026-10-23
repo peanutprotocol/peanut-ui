@@ -114,6 +114,7 @@ export function useDepositGateRemediation(): {
                 variant={kycModalGate ? resolveKycModalVariant(kycModalGate) : undefined}
                 providerMessage={(kycModalGate && getGateUserMessage(kycModalGate)) || undefined}
                 reasonCode={(kycModalGate && getGateReasonCode(kycModalGate)) || undefined}
+                nextAction={kycModalGate?.kind === 'fixable-rejection' ? kycModalGate.nextAction : undefined}
                 providerId={
                     kycCorridor && DEPOSIT_RAILS[kycCorridor].provider === 'bridge' ? bridgeProviderId : undefined
                 }

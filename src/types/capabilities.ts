@@ -96,8 +96,8 @@ export interface RailCapability {
      */
     resolved?: ResolvedRail
     /**
-     * ISO timestamp of the last change to a `pending` rail; absent on every
-     * other status, and on an API deployed before the field. A pending rail
+     * ISO timestamp of the last change to a pending or Bridge-review rail;
+     * absent on an API deployed before the field. A pending rail
      * untouched for a day is stuck, not provisioning — the processing drawer
      * stops promising a quick setup past that.
      */
@@ -175,8 +175,9 @@ export interface NextAction {
      * absent on current/blocking actions. The FE renders a skippable "complete before {date}" pre-empt.
      */
     effectiveDate?: string
-    /** Advisory actions only — the provider requirement key, for telemetry / FE branching. */
+    /** The provider requirement key, for telemetry / FE branching. */
     requirementKey?: string
+    requirementKeys?: string[]
     /**
      * The rail currency this action unlocks (e.g. 'USD' | 'EUR' | 'GBP' | 'MXN'),
      * set on the `bridge-hosted` catch-all so the task copy can NAME the corridor

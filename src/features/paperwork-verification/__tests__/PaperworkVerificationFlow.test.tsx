@@ -361,10 +361,10 @@ describe('PaperworkVerificationFlow', () => {
         await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
     })
 
-    it('an approved user lands on "You’re verified!", or on the proof-of-address suggestion', async () => {
+    it('an approved user lands on "Your ID is verified", or on the proof-of-address suggestion', async () => {
         mockStatus.mockResolvedValue('APPROVED')
         const { unmount } = renderFlow()
-        expect(await screen.findByText('You’re verified!')).toBeInTheDocument()
+        expect(await screen.findByText('Your ID is verified')).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-verified-home'))
         expect(mockPush).toHaveBeenCalledWith('/home')
         unmount()
@@ -382,7 +382,7 @@ describe('PaperworkVerificationFlow', () => {
         expect(mockStartAction).toHaveBeenCalledWith('supplement:bridge')
         fireEvent.click(screen.getByTestId('verify-poa-skip'))
         expect(skipProofOfAddress).toHaveBeenCalledTimes(1)
-        expect(await screen.findByText('You’re verified!')).toBeInTheDocument()
+        expect(await screen.findByText('Your ID is verified')).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
     })
 })

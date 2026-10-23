@@ -106,3 +106,10 @@ export const getKycStatusCategory = (status: string): KycStatusCategory => {
     if (ACTION_REQUIRED_STATUSES.has(status)) return 'action_required'
     return 'processing'
 }
+
+/**
+ * Past this, "less than a minute" is a lie. A rail pending for a day is one the
+ * user walked away from before the provider's questionnaire (the awaiting-action
+ * ghost, 189 users in prod on 2026-09-22) or one stuck in provider review.
+ */
+export const KYC_PROCESSING_STALE_AFTER_MS = 24 * 60 * 60 * 1000

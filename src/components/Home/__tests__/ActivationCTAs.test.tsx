@@ -409,7 +409,7 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
             },
         ]
         render(<ActivationCTAs onboarding={VERIFIED} />)
-        fireEvent.click(screen.getByText('Upload document'))
+        fireEvent.click(screen.getByText('Answer questions'))
         expect(mockHeal).toHaveBeenCalledWith({
             provider: 'MANTECA',
             actionKey: 'sumsub:source_of_funds',

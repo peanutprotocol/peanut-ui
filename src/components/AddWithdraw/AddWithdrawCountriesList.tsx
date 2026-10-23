@@ -570,6 +570,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 variant={resolveKycModalVariant(gate)}
                 providerMessage={getGateUserMessage(gate)}
                 reasonCode={getGateReasonCode(gate)}
+                nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
+                pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
                 regionName={currentCountry && localizedCountryTitle(locale, currentCountry)}
                 providerId={
                     providerForRegionIntent(bankRegionIntent(currentCountry)) === 'bridge'
@@ -597,6 +599,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 isOpen={pendingModal.isOpen}
                 onClose={pendingModal.close}
                 message={pendingModal.message}
+                onContactSupport={pendingModal.onContactSupport}
             />
             <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setIsKycModalOpen(false)} />
         </>
