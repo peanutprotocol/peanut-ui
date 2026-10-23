@@ -226,6 +226,21 @@ describe('selectCardDocumentTask — a card application waiting on the user', ()
         expect(isCardDocumentTask(rainPoa)).toBe(false)
     })
 
+    it('a Rain selfie-and-ID ask (needsVerification) becomes a card task', () => {
+        const rainIdentity = action({
+            key: 'sumsub:rain_identity_verification',
+            kind: 'sumsub',
+            purpose: 'rain-card',
+            levelKey: 'rain_identity_verification',
+        })
+        const task = selectCardDocumentTask(
+            [rainIdentity],
+            [cardRail({ blockingActions: ['sumsub:rain_identity_verification'] })]
+        )
+        expect(task).toMatchObject({ kind: 'sumsub', levelKey: 'rain_identity_verification' })
+        expect(isCardDocumentTask(task!)).toBe(true)
+    })
+
     it('an identity re-upload in Rain’s portal becomes a card task', () => {
         expect(selectCardDocumentTask([rainHosted], [cardRail({ blockingActions: ['rain-hosted'] })])).toMatchObject({
             kind: 'rain-hosted',

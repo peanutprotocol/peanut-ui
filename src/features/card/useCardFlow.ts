@@ -195,6 +195,10 @@ export function useCardFlow() {
     // Optimistic "we got your document" until the backend webhook flips the
     // rail reason to its own review-wait state (may lag the SDK by seconds).
     const [poaSubmitted, setPoaSubmitted] = useState(false)
+    // The same Sumsub surface also takes the selfie and ID Rain asks for on needsVerification.
+    const [rainDocumentKind, setRainDocumentKind] = useState<'proofOfAddress' | 'identity'>('proofOfAddress')
+    const rainDocumentReceivedCode =
+        rainDocumentKind === 'identity' ? 'identity_verification_received' : 'proof_of_address_received'
 
     // The rain rail's self-serve proof-of-address action, when the backend
     // classified the application as PoA-fixable (kind 'sumsub' + levelKey
@@ -209,10 +213,13 @@ export function useCardFlow() {
     // create-action idempotency into minting two Sumsub actions (the id
     // collision path deliberately mints a suffixed fresh action).
     const poaStartingRef = useRef(false)
-    const startPoaUpload = useCallback(async () => {
+    const startRainDocumentUpload = useCallback(async (kind: 'proofOfAddress' | 'identity') => {
         if (poaStartingRef.current) return
         poaStartingRef.current = true
-        posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { source: 'poa-self-heal' })
+        posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, {
+            source: kind === 'identity' ? 'identity-self-heal' : 'poa-self-heal',
+        })
+        setRainDocumentKind(kind)
         setPoaError(null)
         try {
             const response = await initiateSelfHealResubmission('RAIN')
@@ -227,7 +234,8 @@ export function useCardFlow() {
             poaStartingRef.current = false
         }
     }, [])
-    const onUploadProofOfAddress = poaAction && !poaSubmitted ? () => void startPoaUpload() : undefined
+    const onUploadProofOfAddress =
+        poaAction && !poaSubmitted ? () => void startRainDocumentUpload('proofOfAddress') : undefined
 
     // The rain rail's identity-document re-upload action, emitted when Rain
     // rejected the card application on a proof-of-identity document. Rather than
@@ -238,7 +246,17 @@ export function useCardFlow() {
         ? nextActionsForRail(cardRail.id).find((action) => action.kind === 'rain-hosted')
         : undefined
     const { start: startIdentityUpload, error: identityUploadError } = useHostedVerification('rain-hosted')
-    const onUploadIdentity = identityAction ? () => void startIdentityUpload() : undefined
+    // needsVerification: Rain asks for a selfie and an ID, collected in a Sumsub action we own.
+    const identityVerificationAction = cardRail
+        ? nextActionsForRail(cardRail.id).find(
+              (action) => action.kind === 'sumsub' && action.levelKey === 'rain_identity_verification'
+          )
+        : undefined
+    const onUploadIdentity = identityAction
+        ? () => void startIdentityUpload()
+        : identityVerificationAction && !poaSubmitted
+          ? () => void startRainDocumentUpload('identity')
+          : undefined
 
     const informationActions = cardRail
         ? nextActionsForRail(cardRail.id).filter(
@@ -699,6 +717,7 @@ export function useCardFlow() {
         poaError,
         poaSubmitted,
         setPoaSubmitted,
+        rainDocumentReceivedCode,
         onUploadProofOfAddress,
         // identity re-upload
         onUploadIdentity,
