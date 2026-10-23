@@ -78,6 +78,7 @@ const PRE_ASSERTION_PLATFORM_CODES: ReadonlySet<PasskeyErrorCode> = new Set([
     'PASSKEY_UNSUPPORTED',
     'PASSKEY_ORIGIN',
     'PASSKEY_STATE',
+    'PASSKEY_NOT_FOUND',
 ])
 
 let loginTransitionInFlight = false
@@ -225,7 +226,7 @@ export const useZeroDev = () => {
 
             setWebAuthnKey(webAuthnKey)
         } catch (e) {
-            if ((e as Error).message.includes('pending')) {
+            if (!isCeremonyGuardError(e) && e instanceof Error && e.message.includes('pending')) {
                 // the concurrent-request bail must still release the button
                 zeroDevFlowActions.setIsRegistering(false)
                 return

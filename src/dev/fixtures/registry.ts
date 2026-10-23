@@ -1019,6 +1019,11 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': null },
     },
     home: { route: '/home', about: 'Home: balance, activity and CTAs for a verified user.' },
+    'full-maintenance': {
+        route: '/maintenance',
+        about: 'Full maintenance is on: every app page sends the user to the maintenance screen.',
+        responses: { 'GET /config/kill-switches': { enableFullMaintenance: true } },
+    },
     'home-verification-needed': {
         route: '/home',
         about: 'Home: Add, Send and Request beside an additional bank-transfer verification task.',

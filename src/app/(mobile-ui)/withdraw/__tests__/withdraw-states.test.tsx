@@ -289,7 +289,7 @@ import {
     withdrawScanEntryUrl,
 } from '@/features/withdraw/destination'
 import { PEANUT_WALLET_TOKEN } from '@/constants/wallet-token.consts'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
 import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 
 // ---------- helpers ----------
@@ -970,7 +970,7 @@ describe('GROUP 3: Amount Validation', () => {
 
         // The kill-switch locks the pickers to USDC on Arbitrum; the scan still opens the pay screen.
         test('under the kill-switch the scan still opens the pay screen on Arbitrum', () => {
-            const lock = jest.replaceProperty(underMaintenanceConfig, 'disableXchainWithdraw', true)
+            const lock = jest.replaceProperty(getKillSwitches(), 'disableXchainWithdraw', true)
             try {
                 const id = stashScannedDestination(EVM_ADDRESS)!
 

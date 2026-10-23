@@ -1,4 +1,4 @@
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
 import { CHAIN_REGISTRY } from '@/constants/chainRegistry.consts'
 import type { TokenMeta } from '@/interfaces/chain-meta'
 import { addressFamilyForChainId, isValidAddressForFamily } from '@/lib/validation/addressFamily'
@@ -79,7 +79,7 @@ export function readWithdrawDestination(
     // A destination that names its chain keeps that chain and the token it
     // asks for. The kill-switch would move it to USDC on Arbitrum, so it
     // refuses them all instead.
-    if (underMaintenanceConfig.disableXchainWithdraw) return null
+    if (getKillSwitches().disableXchainWithdraw) return null
     const withdraw = CHAIN_REGISTRY.find((entry) => entry.id === chainId)?.withdraw
     if (!withdraw) return null
     // A payment request is paid in the token it asks for or not at all, so the

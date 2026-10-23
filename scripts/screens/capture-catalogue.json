@@ -185,6 +185,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-full-maintenance",
+        "flow": "Home and shared states",
+        "route": "/maintenance"
+    },
+    {
         "id": "fixture-home-verification-needed",
         "flow": "Home and shared states",
         "route": "/home"

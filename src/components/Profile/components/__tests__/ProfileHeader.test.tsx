@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
-import type { ReactNode } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 import posthog from 'posthog-js'
 import ProfileHeader from '../ProfileHeader'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
@@ -10,6 +10,12 @@ let mockAuthAvatarKey: string | null
 const mockShareButton = jest.fn()
 const mockCopyToClipboard = jest.fn()
 const mockToast = { info: jest.fn(), error: jest.fn() }
+
+// real next/image resets src on mount when onError is set, which makes it absolute
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: ({ unoptimized, ...rest }: ComponentProps<'img'> & { unoptimized?: boolean }) => <img {...rest} />,
+}))
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({

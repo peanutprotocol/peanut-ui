@@ -38,18 +38,9 @@ let mockRails: Array<{
 let mockUser: { user?: { isActivated?: boolean; userId?: string } } | null = null
 let mockHasCardAccess: boolean | undefined = false
 let mockDisableCardPromotion = false
-jest.mock('@/config/underMaintenance.config', () => {
-    const actual = jest.requireActual('@/config/underMaintenance.config').default
-    return {
-        __esModule: true,
-        default: {
-            ...actual,
-            get disableCardPromotion() {
-                return mockDisableCardPromotion
-            },
-        },
-    }
-})
+jest.mock('@/hooks/useFeatureFlag', () => ({
+    useFeatureFlags: () => (flagKey: string) => flagKey === 'card-promotion-disabled' && mockDisableCardPromotion,
+}))
 const mockHeal = jest.fn()
 const mockRestartIdentity = jest.fn()
 const mockInitiateKyc = jest.fn()

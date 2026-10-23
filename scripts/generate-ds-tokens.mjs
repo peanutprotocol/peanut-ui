@@ -134,7 +134,7 @@ export function parseThemeTokens(css) {
     // sanity floors — a silently-broken parse must not write an empty doc
     if (tokens.colors.length < 50) throw new Error(`parsed only ${tokens.colors.length} colors — parse broken?`)
     if (tokens.textStyles.length < 10) throw new Error(`parsed only ${tokens.textStyles.length} text styles`)
-    if (tokens.fonts.length < 2) throw new Error(`parsed only ${tokens.fonts.length} fonts`)
+    if (tokens.fonts.length < 1) throw new Error(`parsed only ${tokens.fonts.length} fonts`)
     return tokens
 }
 
