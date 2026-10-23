@@ -19,7 +19,6 @@ jest.mock('@/components/LandingPage/CloudsCss', () => ({ CloudsCss: () => null }
 jest.mock('@/components/0_Bruddle/Button', () => ({
     Button: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a>,
 }))
-jest.mock('@/components/Marketing/JsonLd', () => ({ JsonLd: () => null }))
 jest.mock('@/components/0_Bruddle/Breadcrumb', () => ({ Breadcrumb: () => null }))
 jest.mock('next/navigation', () => ({
     notFound: () => {
@@ -31,6 +30,69 @@ const ENGLISH_ONLY_SLUG = 'stablecoin-balance-visa-merchants'
 const params = (locale: string, slug = ENGLISH_ONLY_SLUG) => ({ params: Promise.resolve({ locale, slug }) })
 
 afterEach(() => jest.restoreAllMocks())
+
+const articleSchema = (container: HTMLElement) =>
+    [...container.querySelectorAll('script[type="application/ld+json"]')]
+        .map((node) => JSON.parse(node.innerHTML))
+        .find((schema) => ['Article', 'BlogPosting'].includes(schema['@type']))
+
+it('uses the authored blog date while keeping regeneration separate', async () => {
+    jest.spyOn(blog, 'getPostBySlug').mockResolvedValue({
+        frontmatter: {
+            title: 'Article',
+            description: 'Description',
+            schema_types: ['Article', 'BlogPosting'],
+            date: '2026-03-20',
+            last_updated: new Date('2026-04-15'),
+            generated_at: '2026-10-22',
+        },
+        content: 'Article body',
+        locale: 'en',
+    })
+    const { container } = render(await BlogPostPage(params('pt-br')))
+    expect(articleSchema(container)).toMatchObject({
+        '@type': 'BlogPosting',
+        datePublished: '2026-03-20T00:00:00.000Z',
+        dateModified: '2026-04-15T00:00:00.000Z',
+        inLanguage: 'en',
+        mainEntityOfPage: `https://peanut.me/en/blog/${ENGLISH_ONLY_SLUG}`,
+    })
+})
+
+it('keeps a declared Article and omits unknown dates on the blog route', async () => {
+    jest.spyOn(blog, 'getPostBySlug').mockResolvedValue({
+        frontmatter: {
+            title: 'Article',
+            description: 'Description',
+            schema_types: ['Article'],
+            date: '',
+            generated_at: '2026-10-22',
+        },
+        content: 'Article body',
+        locale: 'en',
+    })
+    const { container } = render(await BlogPostPage(params('en')))
+    const schema = articleSchema(container)
+    expect(schema['@type']).toBe('Article')
+    expect(schema).not.toHaveProperty('datePublished')
+    expect(schema).not.toHaveProperty('dateModified')
+})
+
+it('omits article schema when the blog source declares another type', async () => {
+    jest.spyOn(blog, 'getPostBySlug').mockResolvedValue({
+        frontmatter: {
+            title: 'Page',
+            description: 'Description',
+            schema_types: ['WebPage'],
+            date: '2026-03-20',
+        },
+        content: 'Page body',
+        locale: 'en',
+    })
+    const { container } = render(await BlogPostPage(params('en')))
+    expect(articleSchema(container)).toBeUndefined()
+    expect(container.querySelector('article')).toHaveTextContent('Page body')
+})
 
 it('keeps articles without an authored Hero action unchanged', async () => {
     const post = {

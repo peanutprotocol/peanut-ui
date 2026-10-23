@@ -1,12 +1,30 @@
 import sitemap from '../sitemap'
+import { getIndexablePages } from '@/lib/seo/url-inventory'
 import redirects from '../../../redirects.json'
 import { STAR_LP_ROUTES } from '@/components/Marketing/StarLp/starLp.consts'
-import { MERCHANT_SLUGS } from '@/app/m/[slug]/merchants'
+import { MERCHANT_SLUGS } from '@/data/merchants'
 import { SUPPORTED_LOCALES } from '@/i18n/types'
 import { availableSingletonLocales } from '@/lib/content'
 import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 
 describe('public sitemap', () => {
+    it('contains the shared inventory without inventing lastmod dates for static pages', async () => {
+        const entries = await sitemap()
+        expect(entries.map(({ url }) => new URL(url).pathname)).toEqual(getIndexablePages().map(({ path }) => path))
+        for (const path of ['/', '/careers', '/en/status', '/en/content']) {
+            expect(entries.find(({ url }) => new URL(url).pathname === path)).not.toHaveProperty('lastModified')
+        }
+    })
+
+    it('uses authored dates and omits regeneration-only dates', async () => {
+        const entries = await sitemap()
+        const authored = entries.find(({ url }) => url.endsWith('/en/blog/stablecoin-balance-visa-merchants'))
+        expect(authored?.lastModified).toEqual(new Date('2026-05-21'))
+        const generatedOnly = entries.find(({ url }) => url.endsWith('/en/help/delete-account'))
+        expect(generatedOnly).toBeDefined()
+        expect(generatedOnly?.lastModified).toBeUndefined()
+    })
+
     it('lists every feature landing page and localized status page exactly once', async () => {
         const paths = (await sitemap()).map(({ url }) => new URL(url).pathname)
         for (const path of [

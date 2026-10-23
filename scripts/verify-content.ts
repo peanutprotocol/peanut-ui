@@ -27,14 +27,16 @@
 import fs from 'fs'
 import path from 'path'
 import { RAIL_SLUGS } from '../src/data/seo/deposit-rails'
-import { LOCALE_NEUTRAL_APP_ROUTES } from '../src/lib/content'
+import { getIndexablePages } from '../src/lib/seo/url-inventory'
+import { listContentTopics } from '../src/lib/content-topics'
+import { SUPPORTED_LOCALES } from '../src/i18n/types'
+import { MERCHANT_SLUGS } from '../src/data/merchants'
 import { checkIncomeMigration } from './seo-income-migration'
 
 const ROOT = path.join(process.cwd(), 'src/content')
 const CONTENT_DIR = path.join(ROOT, 'content')
 const APP_DIR = path.join(process.cwd(), 'src/app/[locale]/(marketing)')
 
-const SUPPORTED_LOCALES = ['en', 'es-419', 'es-ar', 'es-es', 'pt-br']
 const PRIMARY_LOCALES = ['en', 'es-419', 'pt-br']
 
 // `content/deposit/` mixes two URL families on the same dynamic route:
@@ -152,15 +154,27 @@ function isPublished(content: string): boolean {
 function discoverRoutes(): Set<string> {
     const routes = new Set<string>()
 
-    // Static pages + the locale-neutral app routes the resolver passes
-    // through bare (shared with generate-valid-links.ts so a link the
-    // generator advertises can't fail validation here — /card did).
-    for (const p of ['/', '/privacy', '/terms']) {
-        routes.add(p)
+    // Discover literal page routes independently of the inventory. Dynamic
+    // content parameters below still need their own registries and route file.
+    function addStaticRoutes(dir: string, segments: string[] = []) {
+        if (fs.existsSync(path.join(dir, 'page.tsx'))) routes.add(`/${segments.join('/')}`)
+        for (const name of listDirs(dir)) {
+            if (name === '[locale]') {
+                for (const locale of SUPPORTED_LOCALES) addStaticRoutes(path.join(dir, name), [...segments, locale])
+            } else if (!name.startsWith('[') && !name.startsWith('_') && !name.startsWith('@')) {
+                const next = name.startsWith('(') ? segments : [...segments, name]
+                addStaticRoutes(path.join(dir, name), next)
+            }
+        }
     }
-    for (const r of LOCALE_NEUTRAL_APP_ROUTES) {
-        routes.add(`/${r}`)
+    addStaticRoutes(path.join(process.cwd(), 'src/app'))
+    if (fs.existsSync(path.join(process.cwd(), 'src/app/m/[slug]/page.tsx'))) {
+        for (const slug of MERCHANT_SLUGS) routes.add(`/m/${slug}`)
     }
+
+    // Bare legal URLs redirect to their localized pages and remain valid links.
+    routes.add('/privacy')
+    routes.add('/terms')
 
     // App routes (mobile-ui)
     for (const p of [
@@ -300,6 +314,15 @@ function discoverRoutes(): Set<string> {
 
         // Content hub (cross-type landing)
         if (hasRoute('content')) routes.add(`/${locale}/content`)
+        if (hasRoute('content/[topic]')) {
+            for (const topic of listContentTopics(locale)) routes.add(`/${locale}/content/${topic}`)
+        }
+    }
+
+    // The retired es-es prefix redirects to es-419. Content links may still
+    // use it even though those redirect URLs must never enter the inventory.
+    for (const route of [...routes]) {
+        if (route === '/es-419' || route.startsWith('/es-419/')) routes.add(route.replace('/es-419', '/es-es'))
     }
 
     return routes
@@ -692,69 +715,20 @@ function checkPageCountRegression() {
 }
 
 // --- Pass 11: Sitemap URL coverage ---
-// Mirrors the URL families emitted by src/app/sitemap.ts and asserts each
-// expected URL resolves to a generated static page. Catches the failure mode
-// where a parametric route's data source is empty at build time — so
-// `generateStaticParams` returns [] and Next 404s every URL in that family
-// (the bug behind the May 2026 SEO-loader regression). Also catches drift
-// between sitemap.ts patterns and actual route paths (e.g. renamed segments).
-//
-// When sitemap.ts changes which URL families it emits, mirror the change here.
+// Use the shared inventory, but compare it against the route files and content
+// directories discovered above. This catches missing routes without another
+// URL builder that can drift away from the sitemap.
 
 function expectedSitemapUrls(): string[] {
-    const urls: string[] = []
-
-    const countrySlugs = listDirs(path.join(CONTENT_DIR, 'countries'))
-    const competitorSlugs = listDirs(path.join(CONTENT_DIR, 'compare'))
-    const payWithSlugs = listDirs(path.join(CONTENT_DIR, 'pay-with'))
-    const helpSlugs = listDirs(path.join(CONTENT_DIR, 'help'))
-    const blogSlugs = listDirs(path.join(CONTENT_DIR, 'blog')).filter((s) => s !== 'index')
-    const storySlugs = listDirs(path.join(CONTENT_DIR, 'stories')).filter((s) => s !== 'index')
-    const useCaseSlugs = listDirs(path.join(CONTENT_DIR, 'use-cases'))
-    const withdrawSlugs = listDirs(path.join(CONTENT_DIR, 'withdraw'))
-
-    // Corridors (send-to/{dst}/from/{origin}/{lang}.md)
-    const corridors: Array<{ from: string; to: string }> = []
-    for (const dest of listDirs(path.join(CONTENT_DIR, 'send-to'))) {
-        const fromDir = path.join(CONTENT_DIR, 'send-to', dest, 'from')
-        for (const origin of listDirs(fromDir)) corridors.push({ from: origin, to: dest })
-    }
-    const receiveSources = publishedSlugs('receive-from')
-    const sendDestinations = publishedSlugs('send-to')
-
-    for (const locale of SUPPORTED_LOCALES) {
-        for (const slug of countrySlugs) urls.push(`/${locale}/${slug}`)
-        for (const slug of sendDestinations) urls.push(`/${locale}/send-money-to/${slug}`)
-        for (const c of corridors) urls.push(`/${locale}/send-money-from/${c.from}/to/${c.to}`)
-        for (const source of receiveSources) urls.push(`/${locale}/receive-money-from/${source}`)
-        for (const slug of competitorSlugs) urls.push(`/${locale}/compare/peanut-vs-${slug}`)
-        for (const slug of exchangeSlugs) urls.push(`/${locale}/deposit/from-${slug}`)
-        for (const slug of publishedSlugs('deposit').filter((slug) => RAIL_SLUGS.has(slug))) {
-            urls.push(`/${locale}/deposit/via-${slug}`)
-        }
-        for (const slug of payWithSlugs) urls.push(`/${locale}/pay-with/${slug}`)
-        urls.push(`/${locale}/help`)
-        for (const slug of helpSlugs) urls.push(`/${locale}/help/${slug}`)
-        for (const slug of useCaseSlugs) urls.push(`/${locale}/use-cases/${slug}`)
-        urls.push(`/${locale}/stories`)
-        for (const slug of storySlugs) urls.push(`/${locale}/stories/${slug}`)
-        for (const slug of withdrawSlugs) urls.push(`/${locale}/withdraw/${slug}`)
-        urls.push(`/${locale}/supported-networks`)
-        urls.push(`/${locale}/pricing`)
-        urls.push(`/${locale}/content`)
-        // No /{locale}/blog index — it is a 308 to /{locale}/content. Posts stay.
-        for (const slug of blogSlugs) urls.push(`/${locale}/blog/${slug}`)
-    }
-
     // Asymmetry guard: if a whole family has zero slugs, the sitemap will emit
     // nothing for it and every product link to those pages 404s in prod. We
     // can't rely on the per-URL check below to catch this because there's
     // nothing to iterate. Fail loudly per family.
     const families: Array<{ name: string; count: number }> = [
-        { name: 'countries', count: countrySlugs.length },
-        { name: 'compare', count: competitorSlugs.length },
+        { name: 'countries', count: publishedSlugs('countries').length },
+        { name: 'compare', count: publishedSlugs('compare').length },
         { name: 'exchanges (deposit/from-)', count: exchangeSlugs.length },
-        { name: 'pay-with', count: payWithSlugs.length },
+        { name: 'pay-with', count: publishedSlugs('pay-with').length },
     ]
     for (const f of families) {
         if (f.count === 0) {
@@ -765,7 +739,7 @@ function expectedSitemapUrls(): string[] {
         }
     }
 
-    return urls
+    return getIndexablePages().map(({ path }) => path)
 }
 
 function checkSitemapCoverage(validPaths: Set<string>) {

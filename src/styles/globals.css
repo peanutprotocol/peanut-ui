@@ -324,8 +324,6 @@
     --font-sans:
         var(--font-roboto), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-condensed: var(--font-roboto);
-    --font-condensed--font-variation-settings: 'wdth' 50;
 
     /* v3 fontSize overrides + the text-h* scale */
     --text-0: 0px;
