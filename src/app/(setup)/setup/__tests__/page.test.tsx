@@ -11,6 +11,8 @@ import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-
 let mockNoBackLock: string | null = null
 let mockSignupCompleted = false
 const mockSetNoBackLock = jest.fn()
+const mockSetSellScreensCountry = jest.fn()
+let mockSellScreensCountry: string | null | undefined = undefined
 const mockSupport = jest.fn()
 const mockResolve = jest.fn()
 const mockRouter = { replace: jest.fn(), push: jest.fn() }
@@ -54,6 +56,8 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
         noBackLockScreenId: mockNoBackLock,
         signupCompleted: mockSignupCompleted,
         setNoBackLockScreenId: mockSetNoBackLock,
+        sellScreensCountry: mockSellScreensCountry,
+        setSellScreensCountry: mockSetSellScreensCountry,
         setSignupEntryFlow: jest.fn(),
     }),
 }))
@@ -67,11 +71,16 @@ jest.mock('@/services/badge-campaigns', () => ({
     claimAndSettlePendingBadgeCampaigns: (campaigns: readonly string[]) =>
         mockClaimAndSettlePendingBadgeCampaigns(campaigns),
 }))
-jest.mock('@/hooks/useSetupFlow', () => ({ SETUP_POST_REGISTRATION_SCREEN: 'residence', useSetupFlow: () => mockFlow }))
+jest.mock('@/hooks/useSetupFlow', () => ({ postRegistrationScreen: () => 'residence', useSetupFlow: () => mockFlow }))
 jest.mock('@/features/setup/useSetupStepAnalytics', () => ({ useSetupStepAnalytics: jest.fn() }))
 jest.mock('@/hooks/useSetupBackHandler', () => ({ useSetupBackHandler: jest.fn() }))
 jest.mock('@/hooks/useGeoLocation', () => ({ useGeoLocation: jest.fn() }))
-jest.mock('@/features/setup/useSetupCountrySignals', () => ({ useSetupCountrySignals: jest.fn() }))
+jest.mock('@/features/setup/useSetupCountrySignals', () => ({
+    useSetupCountrySignals: () => ({
+        ...jest.requireActual('@/features/setup/country-signals').EMPTY_SETUP_COUNTRY_SIGNALS,
+        vercelIpCountry: 'PT',
+    }),
+}))
 jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { WEB: 'web' },
     useDeviceType: () => ({ deviceType: 'android' }),
@@ -139,6 +148,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockNoBackLock = null
     mockSignupCompleted = false
+    mockSellScreensCountry = undefined
     mockResolve.mockReset().mockReturnValue('landing')
     mockStore.steps = [landing]
     mockFlow.step = landing
@@ -621,6 +631,7 @@ it('hides Logout on the final ready-to-start confirmation screen', async () => {
 })
 
 it.each([
+    'invite',
     'payment-plan',
     'advantage-fees',
     'advantage-card',
@@ -638,7 +649,17 @@ it.each([
     expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument()
     expect(mockSetNoBackLock).toHaveBeenCalledWith('residence')
 })
-it.each(['landing', 'invite', 'signup'] as const)('does not arm the registration lock on %s', async (screenId) => {
+it('fixes the sell screens to the suggested country once the account exists', async () => {
+    const step = { ...landing, screenId: 'invite' as const, showBackButton: true }
+    mockStore.steps = [step]
+    mockFlow.step = step
+    mockResolve.mockReturnValue(step.screenId)
+    mockSellScreensCountry = undefined
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(mockSetSellScreensCountry).toHaveBeenCalledWith('PT')
+})
+it.each(['landing', 'signup'] as const)('does not arm the registration lock on %s', async (screenId) => {
     const step = { ...landing, screenId, showBackButton: true }
     mockStore.steps = [step]
     mockFlow.step = step

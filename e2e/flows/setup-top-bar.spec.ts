@@ -85,14 +85,14 @@ for (const viewport of VIEWPORTS) {
         await expect(signUp).toBeVisible({ timeout: 60_000 })
         await page.waitForTimeout(1500)
 
-        const toInvite = await sampleDuring(page, 900, () => signUp.click())
-        await expect(page).toHaveURL(/screen=invite/)
-        const toUsername = await sampleDuring(page, 900, () => page.getByRole('button', { name: 'Skip' }).click())
+        const toUsername = await sampleDuring(page, 900, () => signUp.click())
         await expect(page).toHaveURL(/screen=signup/)
-        const backToInvite = await sampleDuring(page, 900, () => page.getByRole('button', { name: 'Go back' }).click())
-        await expect(page).toHaveURL(/screen=invite/)
+        const backToLanding = await sampleDuring(page, 900, () => page.getByRole('button', { name: 'Go back' }).click())
+        await expect(page).toHaveURL(/screen=landing|\/setup$/)
+        const toUsernameAgain = await sampleDuring(page, 900, () => signUp.click())
+        await expect(page).toHaveURL(/screen=signup/)
 
-        const samples = [...toInvite, ...toUsername, ...backToInvite]
+        const samples = [...toUsername, ...backToLanding, ...toUsernameAgain]
         expect(samples.length).toBeGreaterThan(30)
         // One hero on every frame, with one box: it neither slides nor changes height.
         expect(samples.every((s) => s.heroes.length === 1)).toBe(true)

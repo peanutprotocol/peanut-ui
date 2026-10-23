@@ -4,7 +4,8 @@ import { useHydrationSnapshot } from '@/utils/native-platform'
 import Loading from '@/components/Global/Loading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import { type ScreenId } from '@/components/Setup/Setup.types'
-import { SETUP_POST_REGISTRATION_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
+import { postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
+import { setupCountrySuggestion } from '@/features/setup/country-signals'
 import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
 import { dispatchBackPress } from '@/utils/back-handler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -44,6 +45,7 @@ import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
 // The steps after registration; reaching any of them arms the no-back lock.
 const POST_REGISTRATION_SCREENS: readonly ScreenId[] = [
     'residence',
+    'invite',
     'advantage-fees',
     'advantage-card',
     'payment-plan',
@@ -77,6 +79,8 @@ function SetupPageContent() {
         steps,
         noBackLockScreenId,
         setNoBackLockScreenId,
+        sellScreensCountry,
+        setSellScreensCountry,
         setSignupEntryFlow,
         setSignupCompleted,
         signupCompleted,
@@ -114,7 +118,7 @@ function SetupPageContent() {
     // Warm the geo cache at entry, not when the residence step mounts: the
     // lookup is a network round trip, and asking for it three steps early is
     // what lets that select render its suggestion already filled in.
-    useSetupCountrySignals()
+    const countrySignals = useSetupCountrySignals()
     const searchParams = useSearchParams()
     // The init effect must key on the VALUES it reads, not the searchParams
     // object: the stepper rewrites ?screen= on every step, and a dep on the
@@ -208,13 +212,27 @@ function SetupPageContent() {
         !showBrowserNotSupportedModal
 
     // Registration happens on the username step and is irreversible: every
-    // later step locks the way back at residence, while the steps after it stay
-    // revisitable. This also restores the boundary for a resumed later step.
+    // later step locks the way back at the first step after it, while the steps
+    // after that stay revisitable. This also restores the boundary for a resumed
+    // later step, and follows the list when it changes. The sell screens' country
+    // is fixed here too, so they do not change under the person.
     useEffect(() => {
         if (stepRendered && !signupCompleted && step && POST_REGISTRATION_SCREENS.includes(step.screenId)) {
-            setNoBackLockScreenId(SETUP_POST_REGISTRATION_SCREEN)
+            setNoBackLockScreenId(postRegistrationScreen(steps.map((entry) => entry.screenId)))
+            if (sellScreensCountry === undefined) {
+                setSellScreensCountry(setupCountrySuggestion(countrySignals)?.country ?? null)
+            }
         }
-    }, [stepRendered, step, signupCompleted, setNoBackLockScreenId])
+    }, [
+        stepRendered,
+        step,
+        steps,
+        signupCompleted,
+        setNoBackLockScreenId,
+        sellScreensCountry,
+        setSellScreensCountry,
+        countrySignals,
+    ])
     const showBackButton =
         !!step?.showBackButton && step.screenId !== noBackLockScreenId && !signupCompleted && !flowLoading
 

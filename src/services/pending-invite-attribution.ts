@@ -29,8 +29,11 @@ const inFlight = new Map<string, Promise<PendingInviteAttributionOutcome>>()
  */
 const consumedOutcomes = new Map<string, PendingInviteAttributionOutcome>()
 
-/** Registration settles once per account; a session start retries a durable invite. */
-export type InviteAttributionTrigger = 'registration' | 'session'
+/**
+ * Registration settles once per account; a session start retries a durable
+ * invite; the setup invite step settles an inviter typed after registration.
+ */
+export type InviteAttributionTrigger = 'registration' | 'session' | 'setup_invite_step'
 
 /**
  * Records a stashed inviter after authentication. The invite stash is only

@@ -468,7 +468,11 @@
             "noPasskey": "No se encontró ninguna passkey. Primero creá una billetera."
         },
         "signupStep": {
+            "usernameRules": "De 4 a 12 caracteres. Empezá con una letra. Solo letras y números.",
             "errors": {
+                "tooShort": "Usá al menos 4 caracteres.",
+                "tooLong": "Usá 12 caracteres o menos.",
+                "invalidFormat": "Empezá con una letra. Usá solo letras y números.",
                 "invalid": "El nombre de usuario no es válido, usá uno diferente",
                 "checkFailed": "No pudimos verificar la disponibilidad del usuario. Intentalo de nuevo.",
                 "checkFailedSupport": "No pudimos verificar la disponibilidad del usuario. Intentalo de nuevo o contactá a soporte."
