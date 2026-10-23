@@ -68,8 +68,12 @@ export interface UnlockRow {
     bankChip?: Exclude<BankRegionChip, 'active'>
     /** bank rows: the deposit corridor the row adds money through */
     corridor?: DepositCorridor
-    /** why a `notAvailable` bank row is closed: the residence country, or the rail's own country rule */
-    unavailableBecause?: 'restricted-country' | 'residence'
+    /**
+     * why a `notAvailable` bank row is closed: the residence country, the
+     * rail's own country rule, or the provider not offering this one account
+     * in the user's residence (the paperwork engine)
+     */
+    unavailableBecause?: 'restricted-country' | 'residence' | 'account-residence'
 }
 
 /** The two lists beside the bank rows: the always-on Peanut rows and the spending methods. */
@@ -95,6 +99,8 @@ export interface BankRowsInput {
     secondResidenceIso2?: string | null
     /** whether the residence country is served by Bridge's Europe coverage */
     isEuropeResidence: boolean
+    /** corridors the paperwork engine refuses this residence (`usePaperworkClosures`) */
+    paperworkClosed?: ReadonlySet<DepositCorridor>
 }
 
 export interface BuildUnlockGroupsInput extends Pick<BankRowsInput, 'bankChips' | 'restrictions'> {
@@ -205,7 +211,7 @@ export const BANK_ROW_COUNTRIES: Record<BankRowKey, string> = Object.fromEntries
  * would claim it for Manteca.
  */
 export function buildBankRows(input: BankRowsInput): UnlockRow[] {
-    const { bankChips, restrictions, residenceIso2, secondResidenceIso2, isEuropeResidence } = input
+    const { bankChips, restrictions, residenceIso2, secondResidenceIso2, isEuropeResidence, paperworkClosed } = input
     const residences = new Set([residenceIso2, secondResidenceIso2].filter(Boolean) as string[])
     // `residenceIso2` is already verified-else-declared; the same derivation
     // the top-up gates read (`useResidenceIso2s`), so the row and the flow
@@ -232,7 +238,10 @@ export function buildBankRows(input: BankRowsInput): UnlockRow[] {
         // residence gate (all-users replay W3: VE residents with working ARS
         // rails, once VE is banking-restricted).
         const bankingClosed = restrictions.banking && railChip !== 'active'
-        const chip: UnlockChip = bankingClosed || residenceGated ? 'notAvailable' : railChip
+        // An Unlock here would verify the user for an account the provider
+        // does not open in their residence; a working rail stays a fact.
+        const accountClosed = !!paperworkClosed?.has(spec.corridor) && railChip !== 'active'
+        const chip: UnlockChip = bankingClosed || residenceGated || accountClosed ? 'notAvailable' : railChip
         return {
             id: `${spec.key}-bank`,
             labelKey: spec.key,
@@ -246,7 +255,9 @@ export function buildBankRows(input: BankRowsInput): UnlockRow[] {
                 ? {
                       unavailableBecause: restrictions.banking
                           ? ('restricted-country' as const)
-                          : ('residence' as const),
+                          : residenceGated
+                            ? ('residence' as const)
+                            : ('account-residence' as const),
                   }
                 : {}),
             // active and unavailable rows are facts, not actions

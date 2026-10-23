@@ -58,18 +58,23 @@ export function useDepositCountryRouting({
     // the tap, or the user has not done Bridge's verification yet), and one it
     // withholds until identity is verified. Each screen behind them names the
     // verification the corridor needs. Left out, Colombia had no route at all
-    // and the country pick sent a Colombian to the waitlist.
+    // and the country pick sent a Colombian to the waitlist. A corridor closed
+    // to the user's residence leads to the screen that says so.
     const railCorridors = useOfferedCorridors()
+    const residenceClosed = (corridor: DepositCorridor) => unavailable?.[corridor]?.cause === 'residence-restricted'
     const offeredCorridors = [
         ...railCorridors,
         ...DEPOSIT_CORRIDORS.filter(
             (corridor) =>
                 !railCorridors.includes(corridor) &&
-                (claimable?.[corridor] || unavailable?.[corridor]?.reason === 'identity-required')
+                (claimable?.[corridor] ||
+                    unavailable?.[corridor]?.reason === 'identity-required' ||
+                    residenceClosed(corridor))
         ),
     ]
 
-    const openCountry = (country: CountryData) => {
+    /** false when the country opened in place, on the account screens over the list */
+    const openCountry = (country: CountryData): boolean => {
         posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, {
             method_type: 'bank',
             country: country.path,
@@ -86,17 +91,20 @@ export function useDepositCountryRouting({
             !!standing &&
             (isLoading || prefersStandingAccount(accounts?.[standing.corridor], claimable?.[standing.corridor]))
 
-        if (standing && (standingWorks || !topUp)) {
+        // A top-up rides the same rail, so a residence that closes the account
+        // closes it too: the account screen explains, the top-up would not.
+        if (standing && (standingWorks || !topUp || residenceClosed(standing.corridor))) {
             void setParams({ corridor: standing.corridor, step: 'details' })
-            return
+            return false
         }
         if (topUp) {
             router.push(rewriteMethodPath(topUp.href))
-            return
+            return true
         }
 
         const rail = soleLiveRailForCountry(country.id, 'add')
         router.push(rail?.path ? rewriteMethodPath(rail.path) : addMoneyCountryUrl(country.path))
+        return true
     }
 
     return {

@@ -369,6 +369,30 @@
                 }
             }
         },
+        "/avatars/art": {
+            "get": {
+                "description": "Maps each avatar key to its art url on the badge art route. Empty when no art bucket is configured.",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "Avatar art urls",
+                "tags": [
+                    "badges"
+                ]
+            }
+        },
         "/badge/award": {
             "post": {
                 "parameters": [
@@ -974,6 +998,48 @@
                         "description": "Default Response"
                     }
                 }
+            }
+        },
+        "/badges/art/{file}": {
+            "get": {
+                "description": "Redirects to the badge art file in the configured bucket. Unknown names get 404.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "file",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Redirect; the Location header holds the bucket url"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "summary": "Redirect to badge art",
+                "tags": [
+                    "badges"
+                ]
             }
         },
         "/bridge/customers/{customerId}/external-accounts/{externalAccountId}": {
@@ -4011,6 +4077,57 @@
                 },
                 "responses": {
                     "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/config/kill-switches": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "disableXchainSend": {
+                                            "type": "boolean"
+                                        },
+                                        "disableXchainWithdraw": {
+                                            "type": "boolean"
+                                        },
+                                        "disabledMantecaCurrencies": {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "disabledPaymentProviders": {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "enableFullMaintenance": {
+                                            "type": "boolean"
+                                        },
+                                        "enableMaintenanceBanner": {
+                                            "type": "boolean"
+                                        },
+                                        "maintenanceBannerPaths": {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "pixBrazilOnrampMaintenance": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }
@@ -7838,114 +7955,6 @@
                 }
             }
         },
-        "/dev/cheats/sweep-perk-to-kernel": {
-            "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "amount": {
-                                        "description": "6-decimal USDC base units; defaults to entire EOA balance",
-                                        "type": "string"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "eoaAddress": {
-                                            "type": "string"
-                                        },
-                                        "kernelAddress": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                true
-                                            ],
-                                            "type": "boolean"
-                                        },
-                                        "txHash": {
-                                            "type": "string"
-                                        },
-                                        "usdcSwept": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "txHash",
-                                        "eoaAddress",
-                                        "kernelAddress",
-                                        "usdcSwept"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                false
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                false
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
         "/dev/cheats/userid-by-username": {
             "get": {
                 "parameters": [
@@ -8875,62 +8884,63 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
-                                    "harnessLabel": {
-                                        "type": "string"
+                                    "fund": {
+                                        "description": "false skips the harness-wallet top-up of a funded persona. Default true.",
+                                        "type": "boolean"
                                     },
-                                    "scenario": {
+                                    "persona": {
                                         "anyOf": [
                                             {
                                                 "enum": [
-                                                    "send-link-pending"
+                                                    "verified-ar"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "send-link-claimed"
+                                                    "verified-ar-funded"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "request-pot-open"
+                                                    "verified-us"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "kyc-matrix"
+                                                    "verified-us-funded"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "user-with-bank-accounts"
+                                                    "alice-ar-verified"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "withdraw-ready"
+                                                    "bob-us-verified"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "manteca-qr-payment"
+                                                    "carol-us-unverified"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "multi-user-send"
+                                                    "diana-us-kyc-recently-approved"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "points-and-perks"
+                                                    "eve-us-kyc-long-approved"
                                                 ],
                                                 "type": "string"
                                             }
@@ -8938,7 +8948,7 @@
                                     }
                                 },
                                 "required": [
-                                    "scenario"
+                                    "persona"
                                 ],
                                 "type": "object"
                             }
@@ -8952,32 +8962,38 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "data": {},
-                                        "scenario": {
+                                        "jwt": {
+                                            "type": "string"
+                                        },
+                                        "persona": {
+                                            "type": "string"
+                                        },
+                                        "signerPk": {
+                                            "type": "string"
+                                        },
+                                        "userId": {
+                                            "type": "string"
+                                        },
+                                        "username": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "walletAddr": {
                                             "type": "string"
                                         }
                                     },
                                     "required": [
-                                        "scenario",
-                                        "data"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
+                                        "persona",
+                                        "userId",
+                                        "username",
+                                        "walletAddr",
+                                        "jwt"
                                     ],
                                     "type": "object"
                                 }
@@ -19968,22 +19984,37 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "properties": {
-                                        "code": {
-                                            "enum": [
-                                                "STEP_UP_REQUIRED"
+                                    "anyOf": [
+                                        {
+                                            "properties": {
+                                                "code": {
+                                                    "enum": [
+                                                        "STEP_UP_REQUIRED"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                "error": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "error",
+                                                "code"
                                             ],
-                                            "type": "string"
+                                            "type": "object"
                                         },
-                                        "error": {
-                                            "type": "string"
+                                        {
+                                            "properties": {
+                                                "error": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "error"
+                                            ],
+                                            "type": "object"
                                         }
-                                    },
-                                    "required": [
-                                        "error",
-                                        "code"
-                                    ],
-                                    "type": "object"
+                                    ]
                                 }
                             }
                         },
@@ -23244,22 +23275,37 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "properties": {
-                                        "code": {
-                                            "enum": [
-                                                "STEP_UP_REQUIRED"
+                                    "anyOf": [
+                                        {
+                                            "properties": {
+                                                "code": {
+                                                    "enum": [
+                                                        "STEP_UP_REQUIRED"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                "error": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "error",
+                                                "code"
                                             ],
-                                            "type": "string"
+                                            "type": "object"
                                         },
-                                        "error": {
-                                            "type": "string"
+                                        {
+                                            "properties": {
+                                                "error": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "error"
+                                            ],
+                                            "type": "object"
                                         }
-                                    },
-                                    "required": [
-                                        "error",
-                                        "code"
-                                    ],
-                                    "type": "object"
+                                    ]
                                 }
                             }
                         },
@@ -25331,6 +25377,12 @@
                                                             },
                                                             {
                                                                 "enum": [
+                                                                    "bridge.brl"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
                                                                     "rain.card"
                                                                 ],
                                                                 "type": "string"
@@ -25593,6 +25645,12 @@
                                                                 },
                                                                 {
                                                                     "enum": [
+                                                                        "bridge.brl"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
                                                                         "rain.card"
                                                                     ],
                                                                     "type": "string"
@@ -25841,6 +25899,12 @@
                                                 }
                                             ]
                                         },
+                                        "proofOfAddressIdCountries": {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
                                         "routes": {
                                             "items": {
                                                 "properties": {
@@ -25955,6 +26019,31 @@
                                                 "type": "object"
                                             },
                                             "type": "array"
+                                        },
+                                        "temporaryProtection": {
+                                            "anyOf": [
+                                                {
+                                                    "properties": {
+                                                        "countries": {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        "until": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "countries",
+                                                        "until"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -25964,7 +26053,9 @@
                                         "features",
                                         "routes",
                                         "flow",
-                                        "proofOfAddress"
+                                        "proofOfAddress",
+                                        "proofOfAddressIdCountries",
+                                        "temporaryProtection"
                                     ],
                                     "type": "object"
                                 }

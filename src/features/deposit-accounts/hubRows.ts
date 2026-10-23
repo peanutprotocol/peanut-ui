@@ -267,6 +267,8 @@ export function otherWaysRows(
  */
 export function closedBankRow(row: UnlockRow, isKycDegraded: boolean): ClosedRow | null {
     if (row.chip === 'notAvailable') {
+        if (row.unavailableBecause === 'account-residence' && row.corridor)
+            return { kind: 'residence-restricted', corridor: row.corridor }
         return row.unavailableBecause === 'residence' &&
             (row.corridor === 'PIX_BR' || row.corridor === 'BANK_TRANSFER_AR')
             ? { kind: 'residence', corridor: row.corridor }
