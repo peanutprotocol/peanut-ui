@@ -1,4 +1,6 @@
-import { expect, test, type Browser, type BrowserContext, type Request } from '@playwright/test'
+import { expect, test, type Browser, type BrowserContext, type Page, type Request } from '@playwright/test'
+import { mkdir, readFile } from 'node:fs/promises'
+import path from 'node:path'
 import { decodeQr } from '../marketing-qr-decode'
 
 const token = process.env.MARKETING_QR_TEST_TOKEN ?? 'phc_marketing_qr_test_only'
@@ -12,6 +14,17 @@ const iphoneUA =
 const qrPath = '/q/home-hero-en?s=google&m=cpc&c=accounts-launch&n=creative-a&o=current_url&a=none'
 const capturePath = '/api/marketing-qr/open'
 
+async function captureReviewShot(page: Page, name: string) {
+    if (process.env.MARKETING_QR_SHOTS !== 'true') return
+    const directory = path.resolve(__dirname, '../__shots__/marketing-qr')
+    await mkdir(directory, { recursive: true })
+    await page.screenshot({
+        path: path.join(directory, `${test.info().project.name}-${name}.png`),
+        fullPage: false,
+        animations: 'disabled',
+    })
+}
+
 async function guardedContext(browser: Browser, baseURL: string, options: Parameters<Browser['newContext']>[0] = {}) {
     const context = await browser.newContext({
         baseURL,
@@ -22,32 +35,37 @@ async function guardedContext(browser: Browser, baseURL: string, options: Parame
         ...options,
     })
     const origin = new URL(baseURL).origin
-    await context.route('**/*', async (route) => {
-        const url = new URL(route.request().url())
-        if (url.origin === origin) {
-            if (url.pathname.startsWith('/api/') && url.pathname !== capturePath) {
-                await route.abort('blockedbyclient')
+    // Leave the real keepalive POST unintercepted. Routing it through CDP can
+    // cancel it when its initiating document immediately navigates away.
+    await context.route(
+        (url) => !(url.origin === origin && url.pathname === capturePath),
+        async (route) => {
+            const url = new URL(route.request().url())
+            if (url.origin === origin) {
+                if (url.pathname.startsWith('/api/') && url.pathname !== capturePath) {
+                    await route.abort('blockedbyclient')
+                    return
+                }
+                if (url.pathname.startsWith('/relay/')) {
+                    await route.fulfill({ json: { featureFlags: {}, featureFlagPayloads: {} } })
+                    return
+                }
+                if (url.pathname.startsWith('/monitoring')) {
+                    await route.fulfill({ status: 200, body: '{}' })
+                    return
+                }
+                await route.continue()
                 return
             }
-            if (url.pathname.startsWith('/relay/')) {
-                await route.fulfill({ json: { featureFlags: {}, featureFlagPayloads: {} } })
+            // The suite may observe a store navigation, but never visits a store,
+            // an account service, an analytics collector or a third-party script.
+            if (url.hostname === 'apps.apple.com' || url.hostname === 'play.google.com') {
+                await route.fulfill({ contentType: 'text/html', body: '<p>Store navigation intercepted by QA.</p>' })
                 return
             }
-            if (url.pathname.startsWith('/monitoring')) {
-                await route.fulfill({ status: 200, body: '{}' })
-                return
-            }
-            await route.continue()
-            return
+            await route.abort('blockedbyclient')
         }
-        // The suite may observe a store navigation, but never visits a store,
-        // an account service, an analytics collector or a third-party script.
-        if (url.hostname === 'apps.apple.com' || url.hostname === 'play.google.com') {
-            await route.fulfill({ contentType: 'text/html', body: '<p>Store navigation intercepted by QA.</p>' })
-            return
-        }
-        await route.abort('blockedbyclient')
-    })
+    )
     return context
 }
 
@@ -70,18 +88,41 @@ test.describe('marketing QR browser handoff', () => {
         browser,
         baseURL,
     }) => {
-        const context = await guardedContext(browser, baseURL!)
+        const arrivalLog = process.env.MARKETING_QR_REQUEST_LOG
+        // The observer's explicitly marked /home stub avoids the app layout.
+        // Zero Playwright routes means the keepalive transport is unmodified.
+        const context = arrivalLog
+            ? await browser.newContext({
+                  baseURL,
+                  userAgent: desktopUA,
+                  serviceWorkers: 'block',
+                  extraHTTPHeaders: { 'x-marketing-qr-qa-home-stub': '1' },
+              })
+            : await guardedContext(browser, baseURL!)
         try {
-            await isolateContinuation(context)
+            if (!arrivalLog) await isolateContinuation(context)
             await context.addCookies([{ name: 'qa-account-cookie', value: 'must-not-cross', url: baseURL! }])
             const requests = openingRequests(context)
             const page = await context.newPage()
-            const responsePromise = page.waitForResponse((response) => new URL(response.url()).pathname === capturePath)
+            const responsePromise = arrivalLog
+                ? undefined
+                : page.waitForResponse((response) => new URL(response.url()).pathname === capturePath)
             await page.goto(qrPath)
             await expect(page).toHaveURL(/\/home\?app_entry=1/)
-            expect((await responsePromise).status()).toBe(204)
-            expect(requests).toHaveLength(1)
+            await expect.poll(() => requests.length).toBe(1)
             const request = requests[0]
+            if (arrivalLog) {
+                const eventId = request.postDataJSON().event_id
+                await expect
+                    .poll(async () => {
+                        const rows = (await readFile(arrivalLog, 'utf8'))
+                            .split('\n')
+                            .filter(Boolean)
+                            .map((line) => JSON.parse(line))
+                        return rows.filter((row) => row.event_id === eventId).map((row) => row.status)
+                    })
+                    .toEqual([204])
+            } else expect((await responsePromise!).status()).toBe(204)
             const headers = await request.allHeaders()
             expect(headers.cookie).toBeUndefined()
             expect(headers.referer).toBeUndefined()
@@ -156,7 +197,10 @@ test.describe('marketing QR browser handoff', () => {
         browser,
         baseURL,
     }) => {
-        const context = await guardedContext(browser, baseURL!, { javaScriptEnabled: false })
+        const context = await guardedContext(browser, baseURL!, {
+            javaScriptEnabled: false,
+            viewport: { width: 375, height: 667 },
+        })
         try {
             const requests = openingRequests(context)
             const page = await context.newPage()
@@ -165,6 +209,7 @@ test.describe('marketing QR browser handoff', () => {
             await expect(page.locator('a[href*="play.google.com"]').first()).toBeVisible()
             expect(page.url()).toContain('/q/home-hero-en')
             expect(requests).toHaveLength(0)
+            await captureReviewShot(page, 'no-js-375x667')
             for (const href of await page
                 .locator('a')
                 .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('href') ?? ''))) {
@@ -254,7 +299,9 @@ test.describe('automated marketing QR navigation', () => {
             browser,
             baseURL,
         }) => {
-            const context = await guardedContext(browser, baseURL!, { extraHTTPHeaders: header })
+            const context = await guardedContext(browser, baseURL!, {
+                ...(header['User-Agent'] ? { userAgent: header['User-Agent'] } : { extraHTTPHeaders: header }),
+            })
             try {
                 await isolateContinuation(context)
                 const requests = openingRequests(context)
@@ -339,6 +386,7 @@ test.describe('rendered marketing QR', () => {
             await expect(dialog).toBeVisible()
             const qr = dialog.locator('[data-qr-url]').first()
             await expect(qr).toBeVisible()
+            await captureReviewShot(page, 'home-modal-enabled')
             const decoded = await decodeQr(desktop, qr, baseURL!)
             const url = new URL(decoded)
             expect(url.origin).toBe(new URL(baseURL!).origin)
@@ -418,7 +466,9 @@ test.describe('rendered marketing QR', () => {
             // '+' is a valid label character and percent-encodes to three bytes.
             const content = `creative+${'z+'.repeat(27)}z`
             const page = await context.newPage()
-            await page.goto(`/?utm_source=google&utm_medium=cpc&utm_campaign=${campaign}&utm_content=${content}`)
+            await page.goto(
+                `/?utm_source=google&utm_medium=cpc&utm_campaign=${campaign}&utm_content=${encodeURIComponent(content)}`
+            )
             await page.getByTestId('landing-download-cta').getByRole('link').click()
             const qr = page.getByRole('dialog').locator('[data-qr-url]')
             await expect(qr).toBeVisible()
@@ -464,6 +514,7 @@ test.describe('rendered marketing QR', () => {
                         : url.pathname.includes('close-sticker')
                           ? 'c'
                           : 'w'
+                    if (expectedSlot === 'h') await captureReviewShot(page, `inline-${expectedIdPrefix}`)
                     // Defaults may be encoded by registration alone. Prove their
                     // effective meaning in a separate scanner, without importing
                     // the production URL parser into the test oracle.
@@ -522,7 +573,10 @@ test.describe('marketing store continuation', () => {
     })
 
     test('iOS retains a deliberate tap before clipboard handoff', async ({ browser, baseURL }) => {
-        const context = await guardedContext(browser, baseURL!, { userAgent: iphoneUA })
+        const context = await guardedContext(browser, baseURL!, {
+            userAgent: iphoneUA,
+            viewport: { width: 375, height: 667 },
+        })
         const writes: string[] = []
         try {
             await context.exposeBinding('__marketingQrClipboard', (_, text: string) => writes.push(text))
@@ -544,6 +598,7 @@ test.describe('marketing store continuation', () => {
             await expect(store).toBeVisible()
             expect(new URL(page.url()).pathname).toBe('/app')
             expect(writes).toEqual([])
+            await captureReviewShot(page, 'ios-store-375x667')
             await store.click()
             await expect.poll(() => writes.length).toBe(1)
             expect(writes[0]).toContain('pnutdl=1')
