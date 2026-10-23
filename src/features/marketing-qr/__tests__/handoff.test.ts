@@ -1,12 +1,33 @@
-/** @jest-environment node */
-import { runInNewContext } from 'node:vm'
+/** @jest-environment jsdom */
+import { marketingQrAnalyticsAllowed } from '../consent'
 import { getMarketingQrRegistration, parseMarketingQrQuery } from '../contract'
-import { renderMarketingQrHandoff } from '../handoff'
+import { renderMarketingQrHandoff, runMarketingQrHandoff } from '../handoff'
 
 const registration = getMarketingQrRegistration('home-hero-en')!
 const originalKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
+const browserProperties = [
+    [window, 'location'],
+    [window, 'fetch'],
+    [crypto, 'randomUUID'],
+    [navigator, 'globalPrivacyControl'],
+    [document, 'prerendering'],
+] as const
+const originalProperties = browserProperties.map(([target, name]) => ({
+    target,
+    name,
+    descriptor: Object.getOwnPropertyDescriptor(target, name),
+}))
 beforeEach(() => {
     process.env.NEXT_PUBLIC_POSTHOG_KEY = 'test-key'
+    localStorage.clear()
+    document.cookie = '__ph_opt_in_out_test-key=; Max-Age=0; path=/'
+})
+afterEach(() => {
+    jest.restoreAllMocks()
+    for (const { target, name, descriptor } of originalProperties) {
+        if (descriptor) Object.defineProperty(target, name, descriptor)
+        else Reflect.deleteProperty(target, name)
+    }
 })
 afterAll(() => {
     if (originalKey === undefined) delete process.env.NEXT_PUBLIC_POSTHOG_KEY
@@ -25,37 +46,47 @@ async function browser({
     const { html, csp } = await renderMarketingQrHandoff(registration, attribution, captureEnabled)
     const script = html.match(/<script nonce="([^"]+)">([\s\S]+)<\/script>/)!
     expect(csp).toContain(`'nonce-${script[1]}'`)
+    // Execute the exported helper in Jest's realm so coverage counters retain
+    // their module closure. Browser QA executes the compiled standalone script.
+    // Read the renderer's actual JSON argument without evaluating either body.
+    const prefix = `(${runMarketingQrHandoff.toString()})(`
+    const suffix = `,${marketingQrAnalyticsAllowed.toString()});`
+    expect(script[2].startsWith(prefix)).toBe(true)
+    expect(script[2].endsWith(suffix)).toBe(true)
+    const state = JSON.parse(script[2].slice(prefix.length, -suffix.length)) as Parameters<
+        typeof runMarketingQrHandoff
+    >[0]
     const replace = jest.fn()
-    const fetch = jest.fn((_url: string, _options: RequestInit) => {
+    const fetch = jest.fn((_url: string, _options: RequestInit): Promise<Response> => {
         if (throwingFetch) throw new Error('blocked')
         return new Promise(() => {})
     })
     const callbacks: Array<() => void> = []
-    const document = {
-        cookie: '',
-        prerendering,
-        addEventListener: (_name: string, callback: () => void) => callbacks.push(callback),
-    }
-    runInNewContext(script[2], {
-        window: {
-            localStorage: {
-                getItem: () => {
-                    if (storageThrows) throw new Error('blocked')
-                    return optOut ? '0' : null
-                },
-            },
-            location: { replace },
-        },
-        navigator: { globalPrivacyControl: gpc },
-        document,
-        fetch,
-        crypto: { randomUUID: () => 'ce3055cb-9106-48ef-9c7c-098211fa3e3c' },
-        Date,
+    const doc = document as Document & { prerendering: boolean }
+    Object.defineProperty(window, 'location', { configurable: true, value: { replace } })
+    Object.defineProperty(window, 'fetch', { configurable: true, value: fetch })
+    Object.defineProperty(crypto, 'randomUUID', {
+        configurable: true,
+        value: () => 'ce3055cb-9106-48ef-9c7c-098211fa3e3c',
     })
-    return { replace, fetch, document, callbacks, html }
+    Object.defineProperty(navigator, 'globalPrivacyControl', { configurable: true, value: gpc })
+    Object.defineProperty(doc, 'prerendering', { configurable: true, writable: true, value: prerendering })
+    jest.spyOn(doc, 'addEventListener').mockImplementation((name, callback) => {
+        if (name === 'prerenderingchange' && typeof callback === 'function') {
+            callbacks.push(() => callback.call(doc, new Event(name)))
+        }
+    })
+    if (optOut) localStorage.setItem('__ph_opt_in_out_test-key', '0')
+    if (storageThrows) {
+        jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+            throw new Error('blocked')
+        })
+    }
+    runMarketingQrHandoff(state, marketingQrAnalyticsAllowed)
+    return { replace, fetch, document: doc, callbacks, html }
 }
 
-it('runs its actual inline script without app globals and navigates before analytics resolves', async () => {
+it('runs the exported helper with rendered configuration and navigates before analytics resolves', async () => {
     const result = await browser()
     expect(result.fetch).toHaveBeenCalledTimes(1)
     expect(result.fetch.mock.calls[0][0]).toBe('/api/marketing-qr/open')
