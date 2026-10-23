@@ -38,7 +38,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
-import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
+import { mantecaApi, type WithdrawInitRequest, type WithdrawPriceLock } from '@/services/manteca'
 import { isLockExpired, receiveLock, type ReceivedLock } from '@/utils/price-lock.utils'
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
@@ -92,6 +92,11 @@ import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
 import { shouldShowAmountError } from '@/features/limits/amount-error-gating'
 import { useAmountErrorScroll } from '@/features/withdraw/useAmountErrorScroll'
 import { useMantecaAmountSeed } from '@/features/withdraw/useMantecaAmountSeed'
+import {
+    lockedUsdDisplayAmount,
+    mantecaWithdrawInitRequest,
+    sameWithdrawInitRequest,
+} from '@/features/withdraw/manteca-withdraw-amount'
 import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
 import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
@@ -137,8 +142,10 @@ function MantecaBankWithdrawFlow() {
     const [usdAmount, setUsdAmount] = useState<string | undefined>(undefined)
     // The amount field can toggle to USD; the review and success lead with the currency typed.
     const [isAmountTypedInUsd, setIsAmountTypedInUsd] = useState(false)
-    // store original currency amount before price lock to restore on back navigation
-    const [originalCurrencyAmount, setOriginalCurrencyAmount] = useState<string | undefined>(undefined)
+    // The currency the user last entered the amount in: the lock prices that
+    // amount exactly (TASK-23997). A ?amount= hand-off and a balance fill are
+    // USD; toggling the field's display does not change it.
+    const [amountEnteredIn, setAmountEnteredIn] = useState<'local' | 'usd'>('local')
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     // USD amount handed over by the shared /withdraw amount step (TASK-21664)
     const [urlAmount] = useWithdrawAmount()
@@ -167,6 +174,16 @@ function MantecaBankWithdrawFlow() {
     const [isDestinationAddressChanging, setIsDestinationAddressChanging] = useState(false)
     // price lock state - holds the locked price from /withdraw/init
     const [priceLock, setPriceLock] = useState<ReceivedLock<WithdrawPriceLock> | null>(null)
+    // The request that minted `priceLock`. A re-quote sends it again, so the
+    // new lock prices the same amount in the same currency.
+    const [withdrawInitRequest, setWithdrawInitRequest] = useState<WithdrawInitRequest | null>(null)
+    // A lock that needed more USDC than the balance, and the request that
+    // minted it. The lock itself is dropped; the amount step says why while
+    // the screen would send the same request again.
+    const [unaffordableQuote, setUnaffordableQuote] = useState<{
+        request: WithdrawInitRequest
+        usdAmount: string
+    } | null>(null)
     // Neutral notice shown on review after a controller-rotation re-quote.
     const [quoteUpdatedNotice, setQuoteUpdatedNotice] = useState<string | null>(null)
     /** The replacement quote could not be minted: the review control retries the
@@ -292,11 +309,15 @@ function MantecaBankWithdrawFlow() {
         [balance]
     )
 
+    const setSeededCurrencyAmount = useCallback((local: string) => {
+        setCurrencyAmount(local)
+        setAmountEnteredIn('usd')
+    }, [])
     const { resetSeed } = useMantecaAmountSeed({
         urlAmount,
         currencyPriceSell: currencyPrice?.sell,
         setUsdAmount,
-        setCurrencyAmount,
+        setCurrencyAmount: setSeededCurrencyAmount,
     })
 
     // BR self-service limit increase flow
@@ -444,29 +465,42 @@ function MantecaBankWithdrawFlow() {
         // this ensures user sees the exact amount they'll receive
         if (!usdAmount || !currencyCode) return
 
+        const initRequest = mantecaWithdrawInitRequest({
+            usdAmount,
+            currencyAmount,
+            currency: currencyCode,
+            amountEnteredIn,
+        })
         setIsLockingPrice(true)
         try {
-            const result = await mantecaApi.initiateWithdraw({
-                amount: usdAmount,
-                currency: currencyCode,
-            })
+            const result = await mantecaApi.initiateWithdraw(initRequest)
 
             if (result.error) {
                 if (handleOnboardingError(result.error)) return
                 setErrorMessage(
                     result.code === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE
                         ? tErrors('transferTemporarilyUnavailable')
-                        : result.error
+                        : result.code === API_ERROR_CODES.PROVIDER_REJECTED
+                          ? tErrors('providerRejected')
+                          : result.error
                 )
                 return
             }
 
             if (result.data) {
-                // store original amount before overwriting so we can restore on back navigation
-                setOriginalCurrencyAmount(currencyAmount)
+                // A typed local amount is priced at the locked rate, which can
+                // be worse than the rate this screen converts with, so the lock
+                // can need more USDC than the balance. Drop it and let the
+                // amount step say so.
+                if (!isAmountWithinBalance(result.data.usdAmount, balance)) {
+                    setUnaffordableQuote({ request: initRequest, usdAmount: result.data.usdAmount })
+                    return
+                }
+                setUnaffordableQuote(null)
+                // The field keeps the amount the user entered; review shows
+                // the lock's amounts.
+                setWithdrawInitRequest(initRequest)
                 setPriceLock(receiveLock(result.data))
-                // update the displayed fiat amount to the locked amount
-                setCurrencyAmount(result.data.fiatAmount)
                 void stepper.goTo('review')
             }
         } catch (error) {
@@ -486,6 +520,7 @@ function MantecaBankWithdrawFlow() {
         usdAmount,
         currencyCode,
         currencyAmount,
+        amountEnteredIn,
         isAmountWithinLiveBalance,
         isUserMantecaKycApprovedForCountry,
         isLockingPrice,
@@ -505,11 +540,11 @@ function MantecaBankWithdrawFlow() {
     /*
      * Controller-rotation handoff for the offramp. Nothing was ordered or
      * broadcast: wait out Rain's cooldown (cancellable by leaving the screen),
-     * then re-lock the SAME amount/recipient through the existing rate-lock
+     * then re-lock the SAME request/recipient through the existing rate-lock
      * handler, which returns the user to review to confirm the new quote.
      */
     const runQuoteRecovery = async (recovery: SpendRecoveryQuoteReviewError) => {
-        if (!usdAmount || !currencyCode) return
+        if (!withdrawInitRequest) return
         // One recovery at a time: a second entry would race two quotes.
         if (quoteRecoveryInFlightRef.current) return
         quoteRecoveryInFlightRef.current = true
@@ -519,8 +554,7 @@ function MantecaBankWithdrawFlow() {
         void stepper.goTo('review')
         // The OLD quote stays on screen (disabled by isLockingPrice) until the
         // new one lands: clearing it would trip the review step guard back to
-        // the amount screen, and `originalCurrencyAmount` — the pre-lock value
-        // back-navigation restores — must survive untouched.
+        // the amount screen.
         setIsLockingPrice(true)
         try {
             if (recovery.retryAfterSec) {
@@ -530,7 +564,7 @@ function MantecaBankWithdrawFlow() {
                 )
                 if (!proceed) return
             }
-            const result = await mantecaApi.initiateWithdraw({ amount: usdAmount, currency: currencyCode })
+            const result = await mantecaApi.initiateWithdraw(withdrawInitRequest)
             if (quoteRecoveryCancelledRef.current) return
             if (result.error || !result.data) {
                 // Neutral review/retry state — the payment did not fail. The
@@ -539,12 +573,11 @@ function MantecaBankWithdrawFlow() {
                 setErrorMessage(t('errors.lockRateFailed'))
                 return
             }
-            // Atomic swap of the displayed quote; the USD amount and recipient
-            // the user chose are unchanged.
+            // Atomic swap of the displayed quote; the amount and recipient the
+            // user chose are unchanged.
             setRequoteFailed(false)
             setErrorMessage('')
             setPriceLock(receiveLock(result.data))
-            setCurrencyAmount(result.data.fiatAmount)
         } catch (error) {
             void captureNetworkTriagedFailure(error, {
                 tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'lock-rate' },
@@ -582,6 +615,17 @@ function MantecaBankWithdrawFlow() {
             void stepper.goTo('amount')
             return
         }
+        // The lock's USDC is what leaves the balance, and it can be more than
+        // the amount the screen estimated (a typed local amount at the locked
+        // rate). The lock is dropped and the amount step says why.
+        if (!isAmountWithinBalance(priceLock.usdAmount, balance)) {
+            if (withdrawInitRequest)
+                setUnaffordableQuote({ request: withdrawInitRequest, usdAmount: priceLock.usdAmount })
+            setPriceLock(null)
+            setWithdrawInitRequest(null)
+            void stepper.goTo('amount')
+            return
+        }
 
         posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
             amount_usd: usdAmount,
@@ -607,8 +651,10 @@ function MantecaBankWithdrawFlow() {
             // balances and also needs a UserOp signature.
             // Same terms on a recovery re-sign: only the prep and the signature
             // are fresh — amount, recipient and the price lock below are not.
+            // The lock's USDC, signed exactly: for a typed local amount it is
+            // what makes the bank receive that amount (TASK-23997).
             const signSpendInput = () => ({
-                requiredUsdcAmount: parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS),
+                requiredUsdcAmount: parseUnits(priceLock.usdAmount, PEANUT_WALLET_TOKEN_DECIMALS),
                 // Entity-aware deposit address served by /withdraw/init
                 // (per-entity balances from 2026-09-14); the constant is
                 // only the fallback for an older API without the field.
@@ -702,7 +748,7 @@ function MantecaBankWithdrawFlow() {
             const withdrawBody = (artifact: typeof signedArtifact) => {
                 const common = {
                     priceLockCode: priceLock.priceLockCode,
-                    amount: usdAmount,
+                    amount: priceLock.usdAmount,
                     destinationAddress: destinationAddress.toLowerCase(),
                     bankCode: selectedBank?.code,
                     accountType: accountType ?? undefined,
@@ -765,6 +811,11 @@ function MantecaBankWithdrawFlow() {
 
                 if (result.code === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE) {
                     setErrorMessage(tErrors('transferTemporarilyUnavailable'))
+                    return
+                }
+                // Refused before anything was sent; the message is the provider's prose.
+                if (result.code === API_ERROR_CODES.PROVIDER_REJECTED) {
+                    setErrorMessage(tErrors('providerRejected'))
                     return
                 }
 
@@ -849,7 +900,9 @@ function MantecaBankWithdrawFlow() {
         setOutcome(null)
         setCurrencyAmount(undefined)
         setUsdAmount(undefined)
-        setOriginalCurrencyAmount(undefined)
+        setAmountEnteredIn('local')
+        setWithdrawInitRequest(null)
+        setUnaffordableQuote(null)
         setDestinationAddress(paramAddress ?? '')
         setSelectedBank(null)
         setAccountType(null)
@@ -880,17 +933,44 @@ function MantecaBankWithdrawFlow() {
             return
         }
         const paymentAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
+        // A lock for the amount on screen needed more USDC than the estimate (a
+        // typed local amount at the locked rate). It counts only while the
+        // screen would send the same request: any other amount gets a new lock.
+        const unaffordable =
+            unaffordableQuote !== null &&
+            !!currencyCode &&
+            sameWithdrawInitRequest(
+                unaffordableQuote.request,
+                mantecaWithdrawInitRequest({
+                    usdAmount,
+                    currencyAmount,
+                    currency: currencyCode,
+                    amountEnteredIn,
+                })
+            ) &&
+            !isAmountWithinBalance(unaffordableQuote.usdAmount, balance)
         // only check min amount and balance here - max amount is handled by limits validation
         if (paymentAmount < parseUnits(MIN_MANTECA_WITHDRAW_AMOUNT.toString(), PEANUT_WALLET_TOKEN_DECIMALS)) {
             setBalanceErrorMessage(t('errors.minWithdrawAmount', { amount: MIN_MANTECA_WITHDRAW_AMOUNT }))
-        } else if (!isAmountWithinBalance(usdAmount, balance)) {
+        } else if (!isAmountWithinBalance(usdAmount, balance) || unaffordable) {
             // gate on the displayed total; an in-transit shortfall passes here and
             // fails late with the settling message at execution.
             setBalanceErrorMessage(tErrors('notEnoughBalanceAddFunds'))
         } else {
             setBalanceErrorMessage(null)
         }
-    }, [usdAmount, currencyAmount, balance, hasPendingTransactions, isLoading, t, tErrors])
+    }, [
+        usdAmount,
+        currencyAmount,
+        balance,
+        unaffordableQuote,
+        currencyCode,
+        amountEnteredIn,
+        hasPendingTransactions,
+        isLoading,
+        t,
+        tErrors,
+    ])
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // Use flowId as uniqueId to prevent cache collisions between different withdrawal flows
@@ -928,14 +1008,18 @@ function MantecaBankWithdrawFlow() {
         return <Loading variant="mascot" />
     }
 
-    // Locked, both amounts are exact: fiat = USD × locked price, no fee. Before
-    // the lock, the amount the user did not type is an estimate.
+    // Locked, both amounts are the lock's: fiat = USD × locked price, no fee.
+    // The USD shows rounded up to the cent, what a card-funded withdrawal
+    // debits. Before the lock, the amount the user did not type is an estimate.
     const estimate = priceLock ? '' : '≈ '
     const localLine = `${isAmountTypedInUsd ? estimate : ''}${currencyCode} ${formatNumberForDisplay(
         priceLock?.fiatAmount ?? currencyAmount,
         { maxDecimals: 2 }
     )}`
-    const usdLine = `${isAmountTypedInUsd ? '' : estimate}${formatBankAmount(usdAmount ?? '0', 'USD')}`
+    const usdLine = `${isAmountTypedInUsd ? '' : estimate}${formatBankAmount(
+        priceLock ? lockedUsdDisplayAmount(priceLock.usdAmount) : (usdAmount ?? '0'),
+        'USD'
+    )}`
 
     if (step === 'success') {
         return (
@@ -1073,12 +1157,11 @@ function MantecaBankWithdrawFlow() {
                 title={tNav(isFromSendFlow ? 'send' : 'withdraw')}
                 onPrev={() => {
                     if (step === 'review') {
-                        // clear price lock and restore original amount when going back
+                        // clear the price lock; the field still holds the amount the user
+                        // entered, and the review's error goes with its quote
                         setPriceLock(null)
-                        if (originalCurrencyAmount) {
-                            setCurrencyAmount(originalCurrencyAmount)
-                            setOriginalCurrencyAmount(undefined)
-                        }
+                        setWithdrawInitRequest(null)
+                        setErrorMessage(null)
                         void stepper.goTo('amount')
                     } else if (step === 'amount' && !isSavedAccount) {
                         void stepper.goTo('bank-details')
@@ -1108,6 +1191,12 @@ function MantecaBankWithdrawFlow() {
                                 decimals: 2,
                             }}
                             setCurrentDenomination={(symbol) => setIsAmountTypedInUsd(symbol.toUpperCase() === 'USD')}
+                            // a filled balance means "withdraw everything": the USD amount is the one to
+                            // deliver, until the user types
+                            onBalanceFilled={() => setAmountEnteredIn('usd')}
+                            onAmountTyped={(symbol) =>
+                                setAmountEnteredIn(symbol.toUpperCase() === 'USD' ? 'usd' : 'local')
+                            }
                             walletBalance={balance !== undefined ? formattedSpendableBalance : undefined}
                             // the amount field is in the local currency while the balance row is
                             // usd, so the fill converts with currencyPrice.sell — the same
@@ -1149,6 +1238,13 @@ function MantecaBankWithdrawFlow() {
                     >
                         {tCommon('continue')}
                     </Button>
+                    {/* The price lock runs from this step, so its failure shows here.
+                        An amount error already shows under the input. */}
+                    {errorMessage && !amountError && (
+                        <Callout priority="error">
+                            <CooldownErrorText message={errorMessage} />
+                        </Callout>
+                    )}
                 </div>
             )}
 

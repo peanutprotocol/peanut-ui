@@ -67,6 +67,7 @@ export function ContributePotSuccessView() {
             message={attachment.message}
             chargeDetails={charge}
             paymentDetails={payment}
+            isExternalWalletPayment={isExternalWalletPayment}
             onComplete={resetContributePotFlow}
             redirectTo="/home"
             points={pointsData?.estimatedPoints}

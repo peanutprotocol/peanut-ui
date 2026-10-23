@@ -24,7 +24,7 @@ export function QrPayKycGateView() {
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const { gate, methodIcon, targetMantecaCountry, onBack } = useQrPayFlow()
-    const { kycGateState, sumsubFlow, isKycApproved } = gate
+    const { kycGateState, sumsubFlow, isKycApproved, startVerification } = gate
     // A restart cooldown replaces the unlock prompt: the cooldown modal (from
     // SumsubKycModals below) is the one actionable surface, and dismissing it
     // leaves the flow rather than re-offering a verification that cannot start.
@@ -52,13 +52,7 @@ export function QrPayKycGateView() {
                 ctas={[
                     {
                         text: t('kyc.unlockCta'),
-                        onClick: () =>
-                            sumsubFlow.handleInitiateKyc(
-                                QR_IDENTITY_CHECK_INTENT,
-                                undefined,
-                                isKycApproved || undefined,
-                                targetMantecaCountry
-                            ),
+                        onClick: () => startVerification(targetMantecaCountry),
                         variant: 'primary',
                         shadowSize: '4',
                         icon: 'check-circle',

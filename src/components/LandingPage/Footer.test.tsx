@@ -20,6 +20,17 @@ describe('Footer status link', () => {
         expect(screen.queryByRole('link', { name: /^Status$/ })).not.toBeInTheDocument()
     })
 
+    // Card pages (Rain §11): no flags or selectors in the footer.
+    it('drops the language picker when showLocaleSwitcher is false', () => {
+        render(<Footer showSiteDirectory={false} showLocaleSwitcher={false} locale="en" />)
+        expect(screen.queryByRole('button', { name: /^Language:/ })).not.toBeInTheDocument()
+    })
+
+    it('shows the language picker by default', () => {
+        render(<Footer showSiteDirectory={false} locale="en" />)
+        expect(screen.getAllByRole('button', { name: /^Language:/ }).length).toBeGreaterThan(0)
+    })
+
     it('lists Status directly under Supported Networks, with one pricing link', () => {
         render(<Footer showSiteDirectory locale="en" />)
         const labels = screen

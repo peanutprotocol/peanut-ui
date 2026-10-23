@@ -248,12 +248,14 @@ const mockSetSelectedBankAccount = jest.fn()
 const mockSetSelectedMethod = jest.fn()
 const mockSetRecipient = jest.fn()
 const mockSetIsValidRecipient = jest.fn()
+const mockSetNetworkUnconfirmed = jest.fn()
 jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
     useWithdrawFlow: () => ({
         setSelectedBankAccount: mockSetSelectedBankAccount,
         setSelectedMethod: mockSetSelectedMethod,
         setRecipient: mockSetRecipient,
         setIsValidRecipient: mockSetIsValidRecipient,
+        setNetworkUnconfirmed: mockSetNetworkUnconfirmed,
     }),
 }))
 
@@ -404,6 +406,18 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
         fireEvent.click(row())
 
         expect(takeScannedDestination(scanId)).toBeNull()
+    })
+
+    // A scanned EVM address leaves the network pick pending. A destination
+    // chosen by hand instead must not inherit that gate (TASK-23974).
+    it.each([
+        ['an address-book row', () => screen.getByTestId(`saved-address-${mockSavedBaseAddress.id}`)],
+        ['the plain crypto row', () => screen.getByTestId('crypto-row')],
+    ])('%s clears the pending network pick of an abandoned scan', (_case, row) => {
+        renderView()
+        fireEvent.click(row())
+
+        expect(mockSetNetworkUnconfirmed).toHaveBeenCalledWith(false)
     })
 })
 

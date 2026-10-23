@@ -582,7 +582,8 @@
                 "noWalletAddress": "No se encontró la dirección de la billetera. Intentá recargar la página.",
                 "userNotLoaded": "Tus datos no se cargaron. Recargá la página.",
                 "setupFailed": "No pudimos completar la configuración de tu cuenta. Intentalo de nuevo con el botón de abajo.",
-                "supportNeeded": "Estamos teniendo problemas para configurar tu cuenta. Nuestro equipo ya fue notificado. Contactá a soporte para recibir ayuda."
+                "supportNeeded": "Estamos teniendo problemas para configurar tu cuenta. Nuestro equipo ya fue notificado. Contactá a soporte para recibir ayuda.",
+                "passkeyProviderUnsupported": "El gestor de contraseñas de este teléfono guardó una passkey que Peanut no puede verificar. Registrate en otro dispositivo."
             }
         },
         "finish": {
@@ -990,8 +991,9 @@
             "navTitle": "Obtener tarjeta",
             "lookingUpTitle": "Te estamos buscando…",
             "lookingUpBody": "Nos estamos ubicando.",
-            "availableTitle": "Ya estás adentro.",
-            "fundingBody": "Necesitás un saldo de al menos $10 en Peanut para obtener tu tarjeta.",
+            "availableTitle": "Ya estás adentro. Falta un paso.",
+            "fundingBody": "Necesitás al menos USD 10 en tu saldo de Peanut para obtener tu tarjeta. La tarjeta es gratis y el dinero sigue siendo tuyo para gastarlo con ella.",
+            "fundedBody": "Tu saldo ya alcanza. Continuá para pedir tu tarjeta.",
             "addFunds": "Agregar dinero",
             "issuedTitle": "Conocé tu tarjeta Peanut.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
@@ -1755,6 +1757,7 @@
         "xchainWithdrawDisabled": "Los retiros a otras redes están limitados en tu cuenta. Siempre podés retirar en Arbitrum, o contactá a soporte para recibir ayuda.",
         "xchainPaymentDisabled": "Las transferencias a otras redes están limitadas en tu cuenta. Contactá a soporte para recibir ayuda.",
         "staleCardApproval": "Necesitás volver a habilitar tu tarjeta antes de retirar. Solo toma un toque con tu passkey.",
+        "providerRejected": "Nuestro socio de pagos no pudo aceptar esta operación para tu cuenta. No se movió plata. Contactá a soporte.",
         "bankAccountNotUsable": "Esta cuenta bancaria ya no se puede usar. Agregala de nuevo.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Esperá un momento e intentalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualizá la página e intentalo de nuevo.",

@@ -3,7 +3,14 @@ import {
     readChargeUntilFinal,
     receiptKindForCharge,
     receiptStatusForCharge,
+    settledReceiptFields,
+    sponsoredNetworkFee,
 } from '../charge-receipt.utils'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import type { HistoryEntry } from '@/utils/history.utils'
+
+jest.mock('@/assets', () => ({}))
+jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 
 describe('receiptKindForCharge', () => {
     // a P2P_SEND made before 2026-04 reads as DIRECT_SEND, and the inverse 404s
@@ -137,5 +144,69 @@ describe('isChargeAwaitingBooking', () => {
     it('treats a missing status as still booking', () => {
         expect(isChargeAwaitingBooking({})).toBe(true)
         expect(isChargeAwaitingBooking(null)).toBe(true)
+    })
+})
+
+describe('sponsoredNetworkFee', () => {
+    const walletCharge = { chainId: PEANUT_WALLET_CHAIN.id.toString(), tokenAddress: PEANUT_WALLET_TOKEN.toUpperCase() }
+
+    it('a same-chain Peanut-wallet payment reads sponsored', () => {
+        expect(sponsoredNetworkFee(walletCharge, false)).toEqual({ state: 'sponsored' })
+    })
+
+    it('an external wallet paid its own gas: no row', () => {
+        expect(sponsoredNetworkFee(walletCharge, true)).toBeUndefined()
+    })
+
+    it('a charge on another chain or token rides Rhino, whose fee the API does not project here: no row', () => {
+        expect(sponsoredNetworkFee({ ...walletCharge, chainId: '1' }, false)).toBeUndefined()
+        expect(sponsoredNetworkFee({ ...walletCharge, tokenAddress: '0xother' }, false)).toBeUndefined()
+        expect(sponsoredNetworkFee({}, false)).toBeUndefined()
+    })
+})
+
+describe('settledReceiptFields', () => {
+    const entry = (kind: string, extraData: Record<string, unknown> = {}): HistoryEntry =>
+        ({
+            uuid: 'intent-1',
+            type: 'TRANSACTION_INTENT',
+            timestamp: '2026-10-22T10:00:00.000Z',
+            createdAt: '2026-10-22T10:00:00.000Z',
+            completedAt: '2026-10-22T10:00:25.000Z',
+            amount: '64.5',
+            chainId: '42161',
+            tokenSymbol: 'USDC',
+            status: 'COMPLETED',
+            userRole: 'SENDER',
+            recipientAccount: { identifier: '0xrecipient', type: 'WALLET_EXTERNAL', isUser: false },
+            extraData: { kind, usdAmount: '64.5', ...extraData },
+        }) as unknown as HistoryEntry
+
+    it("a withdrawal's entry states its fee and what the recipient received", () => {
+        const fields = settledReceiptFields(
+            entry('CRYPTO_WITHDRAW', {
+                networkFeeStatus: 'settled',
+                networkFeeUsd: 1.432671,
+                deliveredUsd: '63.067329',
+            })
+        )
+        expect(fields.networkFeeDetails).toEqual({ state: 'charged', amountDisplay: '$1.43' })
+        expect(fields.recipientReceivesUsd).toBe(63.067329)
+        expect(fields.amount).toBe(64.5)
+    })
+
+    it("a withdrawal's entry with no fee it can stand behind clears the flow's Pending row", () => {
+        const fields = settledReceiptFields(
+            entry('CRYPTO_WITHDRAW', { networkFeeStatus: 'unknown', networkFeeUsd: null })
+        )
+        expect('networkFeeDetails' in fields).toBe(true)
+        expect(fields.networkFeeDetails).toBeUndefined()
+    })
+
+    it("any other kind's entry leaves the fee row the flow built alone", () => {
+        const fields = settledReceiptFields(entry('P2P_REQUEST_FULFILL'))
+        expect('networkFeeDetails' in fields).toBe(false)
+        expect('recipientReceivesUsd' in fields).toBe(false)
+        expect(fields.amount).toBe(64.5)
     })
 })

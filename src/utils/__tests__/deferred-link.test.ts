@@ -66,11 +66,19 @@ jest.mock('@capacitor/preferences', () => ({
 
 const posthogCapture = jest.fn()
 const posthogRegister = jest.fn()
+const posthogAlias = jest.fn()
+const posthogRegisterOnce = jest.fn()
+const posthogDistinctId = jest.fn<string | undefined, []>()
+const posthogIsIdentified = jest.fn<boolean, []>()
 jest.mock('posthog-js', () => ({
     __esModule: true,
     default: {
         capture: (...args: unknown[]) => posthogCapture(...args),
         register: (...args: unknown[]) => posthogRegister(...args),
+        alias: (...args: unknown[]) => posthogAlias(...args),
+        register_once: (...args: unknown[]) => posthogRegisterOnce(...args),
+        get_distinct_id: () => posthogDistinctId(),
+        _isIdentified: () => posthogIsIdentified(),
     },
 }))
 
@@ -228,10 +236,10 @@ describe('compatibility with installed native decoders', () => {
 
 describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
     it.each([
-        ['android', '/en/deposit/from-coinbase'],
-        ['ios', '/en/deposit/from-coinbase'],
+        ['android', '/en/deposit/from-usd-account'],
+        ['ios', '/en/deposit/from-usd-account'],
         ['android', '/en/argentina'],
-        ['ios', '/es-419/send-money-from/united-states/to/brazil'],
+        ['ios', '/es-419/use-cases/remote-workers'],
     ] as const)('retains the first content landing through the actual %s store handoff: %s', async (store, path) => {
         window.history.replaceState({}, '', path)
         Object.defineProperty(document, 'referrer', { configurable: true, value: 'https://www.google.com/' })
@@ -958,5 +966,102 @@ describe('restore telemetry', () => {
         })
 
         await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
+    })
+})
+
+// The web visitor's anonymous distinct id rides the hand-off and lands on the
+// app's events as a property. Never an alias: the referrer and the clipboard
+// can carry an id somebody else chose, and an alias would merge two people.
+describe('web visitor identity hand-off', () => {
+    const WEB_ID = '0192f3a4-5b6c-7d8e-9f01-23456789abcd'
+    const APP_ID = '0192f3a4-0000-7000-8000-000000000001'
+
+    beforeEach(() => {
+        posthogDistinctId.mockReturnValue(WEB_ID)
+        posthogIsIdentified.mockReturnValue(false)
+    })
+    afterEach(() => {
+        posthogDistinctId.mockReset()
+        posthogIsIdentified.mockReset()
+    })
+
+    it('carries the anonymous web distinct id on both stores', () => {
+        expect(parseDeferredPayload(buildDeferredPayload('/home'))?.webDistinctId).toBe(WEB_ID)
+        expect(parseDeferredPayload(buildDeferredPayload('/home', undefined, 'ios'))?.webDistinctId).toBe(WEB_ID)
+    })
+
+    it('never carries a signed-in user id or a non-UUID distinct id', () => {
+        posthogIsIdentified.mockReturnValue(true)
+        expect(buildDeferredPayload('/home')).not.toContain('wid=')
+
+        posthogIsIdentified.mockReturnValue(false)
+        posthogDistinctId.mockReturnValue('user@example.test')
+        expect(buildDeferredPayload('/home')).not.toContain('wid=')
+    })
+
+    it('rejects a tampered web id on parse', () => {
+        expect(parseDeferredPayload('pnutdl=1&wid=alice%40example.test')?.webDistinctId).toBeUndefined()
+    })
+
+    it('drops the web id after dest and before attribution when the Play referrer is full', () => {
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'android',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: { occurredAt: new Date().toISOString(), utmSource: 'creator', utmCampaign: 'summer' },
+        })
+        const roomy = parseDeferredPayload(buildDeferredPayload('/home'))
+        expect(roomy).toMatchObject({ webDistinctId: WEB_ID, dest: '/home' })
+        expect(roomy?.attribution).toBeDefined()
+
+        // size an invite that leaves room for the attribution token, but not the web id too
+        posthogIsIdentified.mockReturnValue(true)
+        const withoutId = encodeURIComponent(buildDeferredPayload('/', 'y')).length
+        posthogIsIdentified.mockReturnValue(false)
+        const invite = 'y'.repeat(MAX_PLAY_REFERRER_LENGTH - withoutId - 5)
+        const squeezed = buildDeferredPayload('/', invite)
+        expect(encodeURIComponent(squeezed).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+        const parsed = parseDeferredPayload(squeezed)
+        expect(parsed?.webDistinctId).toBeUndefined()
+        expect(parsed?.attribution).toBeDefined()
+        expect(parsed?.invite).toBe(invite)
+    })
+
+    it('records the web id as a property on the first open, and never aliases', async () => {
+        posthogDistinctId.mockReturnValue(APP_ID)
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({ referrer: `pnutdl=1&dest=%2Fhome&wid=${WEB_ID}` })
+
+        await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
+
+        const restored = posthogCapture.mock.calls.filter((c) => c[0] === 'deferred_link_restored').at(-1)?.[1]
+        expect(restored).toMatchObject({ outcome: 'restored', web_distinct_id: WEB_ID })
+        // every later event of this install, $identify included, carries it too
+        expect(posthogRegisterOnce).toHaveBeenCalledWith({ web_distinct_id: WEB_ID })
+        expect(posthogAlias).not.toHaveBeenCalled()
+    })
+
+    it('keeps the restore working when PostHog cannot register the web id', async () => {
+        posthogDistinctId.mockReturnValue(APP_ID)
+        posthogRegisterOnce.mockImplementationOnce(() => {
+            throw new Error('posthog not initialised')
+        })
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({ referrer: `pnutdl=1&dest=%2Fhome&wid=${WEB_ID}` })
+
+        await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
+    })
+
+    it('records no web id for an install without one', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({ referrer: 'pnutdl=1&dest=%2Fhome' })
+
+        await restoreDeferredContext()
+        const restored = posthogCapture.mock.calls.filter((c) => c[0] === 'deferred_link_restored').at(-1)?.[1]
+        expect(restored).not.toHaveProperty('web_distinct_id')
+        expect(posthogRegisterOnce).not.toHaveBeenCalled()
+        expect(posthogAlias).not.toHaveBeenCalled()
     })
 })

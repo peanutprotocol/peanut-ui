@@ -63,9 +63,11 @@ const SocialLinks = ({ i18n }: { i18n: Translations }) => (
 export const FooterChrome = ({
     locale = DEFAULT_LOCALE,
     securityDisclosureHref,
+    showLocaleSwitcher = true,
 }: {
     locale?: Locale
     securityDisclosureHref: string
+    showLocaleSwitcher?: boolean
 }) => {
     const i18n = getTranslations(locale)
 
@@ -108,7 +110,7 @@ export const FooterChrome = ({
                 the nav row. */}
             <div className="mt-6 flex items-center justify-between md:hidden">
                 <SocialLinks i18n={i18n} />
-                <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />
+                {showLocaleSwitcher && <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />}
             </div>
 
             {/* Nav on its own row rather than the brand row: the nav labels
@@ -137,7 +139,7 @@ export const FooterChrome = ({
                     </Link>
                 </div>
                 <div className="hidden items-center gap-6 md:flex">
-                    <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />
+                    {showLocaleSwitcher && <LocaleSwitcher locale={locale} label={i18n.footerLanguage} />}
                     <HandSigns i18n={i18n} />
                 </div>
             </nav>

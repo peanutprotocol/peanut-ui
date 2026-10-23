@@ -479,6 +479,9 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // which is what the form fixtures exist to show. A fixture that wants the
     // prefilled form overrides this key with a synthetic address.
     { method: 'GET', pattern: '/users/me/verified-address', handler: () => ({}) },
+    // every avatar asks for the served art map; empty keeps the bundled art,
+    // which is what prod serves while it has no art bucket
+    { method: 'GET', pattern: '/avatars/art', handler: () => ({}) },
     {
         method: 'GET',
         pattern: '/users/contacts',

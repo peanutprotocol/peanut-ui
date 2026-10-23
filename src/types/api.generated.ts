@@ -6413,7 +6413,7 @@ export interface paths {
         put?: never;
         /**
          * Initialize withdraw with locked price
-         * @description Creates a price lock for withdraw. Returns the locked exchange rate valid for ~120 seconds. Use this before showing the user the final amount.
+         * @description Creates a price lock for withdraw. Returns the locked exchange rate valid for ~120 seconds. Use this before showing the user the final amount. With `fiatAmount`, `usdAmount` is the exact USDC (6 decimals) to sign so the bank receives `fiatAmount`.
          */
         post: {
             parameters: {
@@ -6427,10 +6427,12 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description Amount to withdraw in USD (USDC) */
-                        amount: string;
+                        /** @description Amount to withdraw in USD (USDC). Ignored when `fiatAmount` is set. */
+                        amount?: string;
                         /** @description Target fiat currency (e.g. ARS, BRL) */
                         currency: "ARS" | "BRL" | "CLP" | "COP" | "PUSD" | "CRC" | "GTQ" | "MXN" | "PHP" | "BOB";
+                        /** @description Amount the bank must receive, in `currency`, as the user typed it (at most 2 decimals). The response prices the USDC for it. */
+                        fiatAmount?: string;
                     };
                 };
             };

@@ -25,12 +25,13 @@
  */
 
 import { useEffect } from 'react'
+import { HARNESS_STORAGE_KEYS } from '@/constants/harness.consts'
 
-export const HARNESS_REPLAY_ACTIONS_KEY = '__harness_replay_actions'
+const HARNESS_REPLAY_ACTIONS_KEY = HARNESS_STORAGE_KEYS.replayActions
 // Cursor persists across page navigations so an action list that spans
 // multiple Next.js routes (goto /home → click → goto /withdraw → click) can
 // resume after each navigation's component re-mount. Cleared on completion.
-const HARNESS_REPLAY_INDEX_KEY = '__harness_replay_index'
+const HARNESS_REPLAY_INDEX_KEY = HARNESS_STORAGE_KEYS.replayIndex
 
 type Action =
     | { type: 'goto'; url: string }

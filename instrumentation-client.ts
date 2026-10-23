@@ -1,7 +1,14 @@
-import { redactQrTelemetry, redactQrTelemetryString, maskQrReplayRequest } from '@/utils/qr-telemetry-privacy'
+import { redactQrTelemetry } from '@/utils/qr-telemetry-privacy'
+import { redactLinkSecrets } from '@/utils/link-secret-privacy'
+import { SESSION_RECORDING_PRIVACY } from '@/utils/replay-privacy'
 import { suppressDuplicateLogin } from '@/utils/login-once-per-session'
 import posthog from 'posthog-js'
-import { beforeSendHandler, crossOriginScriptErrorContext, isBrowserHostScriptError } from './sentry.utils'
+import {
+    beforeSendHandler,
+    crossOriginScriptErrorContext,
+    isBrowserHostScriptError,
+    redactSentryTelemetry,
+} from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { withoutBrowserTracing } from '@/utils/sentry-integrations'
 import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
@@ -14,6 +21,12 @@ import { isExpectedExceptionChain } from '@/utils/expected-exception'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 import { captureSignupAttribution, signupAttributionPosthogProperties } from '@/utils/signup-attribution'
 import { initialSuperProperties, isAnalyticsCaptureBuild, posthogProjectKey } from '@/utils/posthog-setup'
+import {
+    AUTOCAPTURE_SETTINGS,
+    redactAutocapture,
+    sampleAutocapture,
+    trackAutocaptureSampleRate,
+} from '@/utils/posthog-autocapture'
 
 // Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
 // there is nothing to guard, and PERF_BARE builds exist to carry no instrumentation.
@@ -67,9 +80,15 @@ if (
             // persisted — so a late register left the first open after an OTA
             // carrying the PREVIOUS bundle's release, and a first visit with no
             // `platform`. `loaded` runs before that first capture.
-            loaded: (ph) =>
-                ph.register({ ...initialSuperProperties(), ...signupAttributionPosthogProperties(signupAttribution) }),
+            loaded: (ph) => {
+                ph.register({ ...initialSuperProperties(), ...signupAttributionPosthogProperties(signupAttribution) })
+                trackAutocaptureSampleRate(ph)
+            },
             capture_pageleave: true,
+            // Send links carry their secret in `#p=`. The SDK drops the fragment
+            // from $current_url, initial and session-entry URLs, web vitals and the
+            // replay page URL; before_send below also catches it when encoded.
+            disable_capture_url_hashes: true,
             // The payment explorer contains team-only identity and relationship data.
             // Drop every event on client navigation; direct loads skip init above.
             // Doubles as the review nudge's friction tap: every money-flow failure
@@ -97,13 +116,13 @@ if (
                 // $session_id — a pre-capture get_session_id() guard misses idle-
                 // resumed sessions and double-counts reloads (TASK-22516).
                 if (suppressDuplicateLogin(event) === null) return null
-                return redactQrTelemetry(event)
+                // Sampling runs last, so every kept event is already redacted.
+                const redacted = redactLinkSecrets(redactQrTelemetry(event))
+                return sampleAutocapture(redactAutocapture(redacted, window.location.href))
             },
-            // Off everywhere since 2026-09-10 (server-side toggle, mirrored here):
-            // $autocapture was 35% of billed event volume with zero saved insights
-            // reading it, and the DOM ancestor walk on every tap costs frames. The
-            // 220+ explicit posthog.capture calls are the taxonomy (TASK-22516).
-            autocapture: false,
+            // Button and link clicks; before_send scrubs their text and attributes.
+            // The `autocapture-sample-rate` flag cuts volume without a release.
+            ...AUTOCAPTURE_SETTINGS,
             /*
              * Session recording is ON everywhere, native included, as a deliberate
              * trial from 1.0.48.
@@ -131,12 +150,9 @@ if (
              * reach for, before switching recording off again.
              */
             disable_session_recording: true,
-            session_recording: {
-                recordBody: false,
-                recordHeaders: false,
-                maskCapturedNetworkRequestFn: maskQrReplayRequest,
-                maskAttributeFn: (_name, value) => redactQrTelemetryString(value),
-            },
+            // Masks amounts, ids, addresses, names in sensitive areas, picked images,
+            // QR payloads and claim-link secrets; drops network bodies and headers.
+            session_recording: SESSION_RECORDING_PRIVACY,
         })
 
         if (ANALYTICS_CAPTURE) whenIdle(() => posthog.startSessionRecording())
@@ -185,7 +201,7 @@ if (
                 beforeSend: (event) =>
                     isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
                 beforeSendTransaction: (event) =>
-                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactQrTelemetry(event),
+                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactSentryTelemetry(event),
                 // A WebView that can't reach the bundler can't reach ingest either,
                 // so the report of the failure died with the session. The offline
                 // transport parks undeliverable envelopes in IndexedDB and flushes

@@ -24,6 +24,16 @@ const ROUTE_EXCLUSIONS = new Map([
     ],
 ])
 
+// The star-feature landing pages (StarLp/starLp.consts.ts STAR_LP_ROUTES): marketing, not app UI.
+const STAR_LP_ROUTES = new Set([
+    '/us-europe-accounts',
+    '/qr-payments/argentina',
+    '/qr-payments/brazil',
+    '/peanut-card',
+    '/request-links',
+    '/self-custody',
+])
+
 // Reviewed v1 boundaries. Product routes without a scenario stay visible as gaps.
 export function inventory(root, catalogue) {
     const patterns = [...new Set(routePatterns(root))].sort()
@@ -44,6 +54,7 @@ export function inventory(root, catalogue) {
                   : route.startsWith('/quests') ||
                       route.startsWith('/[locale]') ||
                       ['/', '/careers', '/lp', '/es-419', '/es-ar', '/pt-br'].includes(route) ||
+                      STAR_LP_ROUTES.has(route) ||
                       route.startsWith('/m/')
                     ? 'Marketing, editorial or legal website, outside app-owned mobile UI'
                     : route === '/app'

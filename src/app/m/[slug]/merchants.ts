@@ -187,7 +187,7 @@ export const MERCHANTS: Record<string, Merchant> = {
                 {
                     id: 'funding',
                     question: 'How do I fund it?',
-                    answer: 'Two ways. Crypto: USDC or USDT on Solana, Arbitrum, Base, Tron, Polygon, or Ethereum, and we cover the network fees. Bank: SEPA, ACH, or wire from any country. No Argentine bank account needed.',
+                    answer: 'Two ways. Crypto: USDC or USDT on Solana, Arbitrum, Base, Tron, Polygon, or Ethereum, with no peanut deposit fee. Bank: SEPA, ACH, or wire from any country. No Argentine bank account needed.',
                 },
                 {
                     id: 'receiving',
@@ -202,7 +202,7 @@ export const MERCHANTS: Record<string, Merchant> = {
                 {
                     id: 'fees',
                     question: 'What are the fees?',
-                    answer: 'No fee from peanut on deposits, withdrawals, links, or requests. Cross-currency conversions carry a small spread embedded in the rate you see, so the amount on the confirmation screen is the final amount. Network fees are on us.',
+                    answer: 'No fee from peanut on deposits, links, requests, or most withdrawals. A USD wire costs $20, and Ethereum, Tron and Solana withdrawals carry a network fee; both are shown before you confirm. Cross-currency conversions carry a small spread embedded in the rate you see. For a Mercado Pago payment, the amount on the confirmation screen is the final amount.',
                 },
                 {
                     id: 'kyc',

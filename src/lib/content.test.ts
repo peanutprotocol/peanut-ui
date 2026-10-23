@@ -1,3 +1,4 @@
+import fs from 'fs'
 import {
     contentGeneratedAt,
     helpArticleTitle,
@@ -72,6 +73,26 @@ describe('listAllContent', () => {
 })
 
 describe('resolveContentHref', () => {
+    beforeEach(() => {
+        const exists = fs.existsSync
+        const read = fs.readFileSync
+        const fixture = (file: unknown) =>
+            typeof file === 'string' &&
+            [
+                '/countries/poland/es-419.md',
+                '/send-to/australia/es-419.md',
+                '/send-to/argentina/from/colombia/es-419.md',
+                '/receive-from/portugal/es-419.md',
+                '/use-cases/families/es-419.md',
+            ].some((suffix) => file.endsWith(suffix))
+        jest.spyOn(fs, 'existsSync').mockImplementation((file) => fixture(file) || exists(file))
+        jest.spyOn(fs, 'readFileSync').mockImplementation(((file: Parameters<typeof read>[0], options: unknown) =>
+            fixture(file)
+                ? '---\ntitle: Resolver fixture\npublished: true\n---\nExample'
+                : read(file, options as never)) as typeof read)
+    })
+    afterEach(() => jest.restoreAllMocks())
+
     it('keeps locale-neutral app routes bare — /{locale}/card would 404 in the country catch-all', () => {
         expect(resolveContentHref('/card', 'es-ar')).toBe('/card')
         expect(resolveContentHref('/shhhhh?campaign=x', 'pt-br')).toBe('/shhhhh?campaign=x')
@@ -84,7 +105,7 @@ describe('resolveContentHref', () => {
         ['/en/poland', '/es-419/poland'],
         ['/en/send-money-to/australia', '/es-419/send-money-to/australia'],
         ['/en/send-money-from/colombia/to/argentina', '/es-419/send-money-from/colombia/to/argentina'],
-        ['/en/receive-money-from/portugal', '/es-419/receive-money-from/portugal'],
+        ['/en/receive-money-from/portugal', '/es-419/deposit/from-eur-account'],
         ['/en/compare/peanut-vs-wise', '/es-ar/compare/peanut-vs-wise'],
         ['/en/deposit/via-spei', '/es-419/deposit/via-spei'],
         ['/en/pay-with/mercadopago', '/es-ar/pay-with/mercadopago'],
@@ -106,6 +127,16 @@ describe('resolveContentHref', () => {
         expect(resolveContentHref('/en/deposit/via-spei?from=footer#limits', 'es-ar')).toBe(
             '/es-419/deposit/via-spei?from=footer#limits'
         )
+    })
+
+    it.each([
+        ['/en/deposit/from-binance?from=guide#fees', 'en', '/en/help/deposit-crypto?from=guide#fees'],
+        ['/en/deposit/from-binance?from=guide#fees', 'es-ar', '/es-419/help/deposit-crypto?from=guide#fees'],
+        ['/en/receive-money-from/france#details', 'pt-br', '/pt-br/deposit/from-eur-account#details'],
+        ['/en/withdraw/solana', 'es-ar', '/es-419/help/withdraw-crypto'],
+    ] as const)('links %s directly to its localized replacement in %s', (href, locale, expected) => {
+        expect(resolveContentHref(href, locale)).toBe(expected)
+        expect(resolveContentHref(`https://peanut.me${href}`, locale)).toBe(`https://peanut.me${expected}`)
     })
 
     it('localizes en-authored absolute URLs without a content owner, like their relative form', () => {

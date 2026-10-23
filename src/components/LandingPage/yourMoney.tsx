@@ -1,55 +1,26 @@
 import Image from 'next/image'
-import Link from 'next/link'
 import LandingCountries from '@/assets/illustrations/landing-countries.svg'
 import { CountriesSignUpCta } from './CountriesSignUpCta'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
-import { linkTerms, type LinkedTerm } from './landingLinks.utils'
-import type { LandingContentHrefs } from './landingContentHrefs'
-import { contentHrefsFor } from './landingContentHrefs.server'
-
-// The three cities named in landingGlobalCashBody, each pointing at its country
-// page. Aliases cover every spelling the catalogs use, so the line stays one
-// translated string per locale.
-const cityTerms = (contentHrefs: LandingContentHrefs): LinkedTerm[] => [
-    { aliases: ['New York', 'Nueva York', 'Nova York'], href: contentHrefs.unitedStates },
-    { aliases: ['Madrid', 'Madri'], href: contentHrefs.spain },
-    { aliases: ['Mexico City', 'Ciudad de México', 'Cidade do México'], href: contentHrefs.mexico },
-]
 
 export function YourMoney({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
     const i18n = getTranslations(locale)
-    const bodyParts = linkTerms(i18n.landingGlobalCashBody, cityTerms(contentHrefsFor(locale)))
 
     return (
         <section id="global-cash" className="bg-yellow-500 px-6 py-16 text-foreground-primary md:px-4 md:py-24">
             <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 md:flex-row">
                 <div className="space-y-6 mt-4 mb-12 w-full text-center md:mt-6 md:mb-20 md:w-1/2 md:text-left">
-                    <h1 className="font-roboto-flex-extrabold text-headingSmall font-extraBlack xs:text-heading md:text-headingMedium">
+                    <h2 className="font-roboto-flex-extrabold text-headingSmall font-extraBlack xs:text-heading md:text-headingMedium">
                         {i18n.landingGlobalCashLine1}
                         <br /> {i18n.landingGlobalCashLine2}
-                    </h1>
+                    </h2>
 
                     <h2 className="font-roboto-flex text-lg md:text-4xl md:font-medium">
                         {i18n.landingGlobalCashStats}
                     </h2>
 
-                    <p className="font-roboto-flex text-left text-body-l md:text-4xl">
-                        {bodyParts.map((part, index) =>
-                            part.href ? (
-                                <Link
-                                    prefetch={false}
-                                    key={index}
-                                    href={part.href}
-                                    className="underline-offset-4 hover:underline"
-                                >
-                                    {part.text}
-                                </Link>
-                            ) : (
-                                part.text
-                            )
-                        )}
-                    </p>
+                    <p className="font-roboto-flex text-left text-body-l md:text-4xl">{i18n.landingGlobalCashBody}</p>
                 </div>
 
                 <div className="relative w-full md:w-1/2">

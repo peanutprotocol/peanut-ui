@@ -28,6 +28,7 @@ import fs from 'fs'
 import path from 'path'
 import { RAIL_SLUGS } from '../src/data/seo/deposit-rails'
 import { LOCALE_NEUTRAL_APP_ROUTES } from '../src/lib/content'
+import { checkIncomeMigration } from './seo-income-migration'
 
 const ROOT = path.join(process.cwd(), 'src/content')
 const CONTENT_DIR = path.join(ROOT, 'content')
@@ -74,18 +75,12 @@ function listDirs(dir: string): string[] {
         .map((d) => d.name)
 }
 
-/**
- * Receive-money-from pages render for every published receive-from article.
- * Mirrors RECEIVE_SOURCES in src/data/seo/corridors.ts (listPublishedSlugs):
- * publication is gated on the article existing, not on corridor membership.
- * Without this gate, both the route index and the sitemap "expected URLs" would
- * agree with each other on a slug that 404s at runtime (e.g. colombia, mexico).
- */
-function gateReceiveSources(): string[] {
-    return listDirs(path.join(CONTENT_DIR, 'receive-from'))
+/** Each routed family needs its own published English source, as in the runtime registries. */
+function publishedSlugs(intent: string): string[] {
+    return listDirs(path.join(CONTENT_DIR, intent))
         .filter((slug) => slug !== 'index')
         .filter((slug) => {
-            const en = path.join(CONTENT_DIR, 'receive-from', slug, 'en.md')
+            const en = path.join(CONTENT_DIR, intent, slug, 'en.md')
             return fs.existsSync(en) && isPublished(fs.readFileSync(en, 'utf-8'))
         })
 }
@@ -207,7 +202,8 @@ function discoverRoutes(): Set<string> {
             corridors.push({ to: dest, from: origin })
         }
     }
-    const receiveSources = gateReceiveSources()
+    const receiveSources = publishedSlugs('receive-from')
+    const sendDestinations = publishedSlugs('send-to')
 
     // Check which routes actually have page.tsx files
     const hasRoute = (routePath: string) => {
@@ -223,7 +219,7 @@ function discoverRoutes(): Set<string> {
 
         // Send money to
         if (hasRoute('send-money-to/[country]')) {
-            for (const slug of countrySlugs) routes.add(`/${locale}/send-money-to/${slug}`)
+            for (const slug of sendDestinations) routes.add(`/${locale}/send-money-to/${slug}`)
         }
 
         // Corridors
@@ -651,10 +647,14 @@ const BASELINE_FILE = path.join(process.cwd(), '.verify-content-baseline')
 
 function checkPageCountRegression() {
     const files = getAllMdFiles(CONTENT_DIR)
-    const publishedCount = files.filter((f) => {
-        const content = fs.readFileSync(f, 'utf-8')
-        return isPublished(content)
-    }).length
+    const publishedFiles = files.filter((file) => isPublished(fs.readFileSync(file, 'utf-8')))
+    const publishedCount = publishedFiles.length
+    const migration = checkIncomeMigration(
+        new Set(files.map((file) => path.relative(CONTENT_DIR, file))),
+        new Set(publishedFiles.map((file) => path.relative(CONTENT_DIR, file)))
+    )
+    for (const message of migration.errors) error('migration-inventory', message)
+    const adjustedCount = publishedCount + migration.retirementAllowance
 
     let baseline = 0
     let hasBaseline = false
@@ -665,29 +665,29 @@ function checkPageCountRegression() {
         hasBaseline = true
     }
 
-    if (hasBaseline && publishedCount < baseline) {
-        const drop = baseline - publishedCount
+    if (hasBaseline && adjustedCount < baseline) {
+        const drop = baseline - adjustedCount
         const pct = Math.round((drop / baseline) * 100)
         error(
             'page-count',
-            `Published page count dropped from ${baseline} to ${publishedCount} (−${drop}, −${pct}%). This may indicate accidental mass-unpublish. If intentional, run: echo ${publishedCount} > .verify-content-baseline`
+            `Published page count dropped from ${baseline} to ${publishedCount} (−${drop}, −${pct}%). This may indicate accidental mass-unpublish. Review the migration inventory and baseline before changing publication scope.`
         )
     }
 
     // Update baseline (only if count went up or file doesn't exist).
     // Use a file descriptor to write — avoids the check-then-write TOCTOU
     // pattern that CodeQL flags (js/file-system-race).
-    if (publishedCount >= baseline) {
+    if (migration.errors.length === 0 && adjustedCount >= baseline) {
         const fd = fs.openSync(BASELINE_FILE, 'w')
         try {
-            fs.writeSync(fd, String(publishedCount) + '\n')
+            fs.writeSync(fd, String(adjustedCount) + '\n')
         } finally {
             fs.closeSync(fd)
         }
     }
 
     console.log(
-        `  Pass 10 — Page count: ${publishedCount} published${hasBaseline ? ` (baseline: ${baseline})` : ' (baseline set)'}`
+        `  Pass 10 — Page count: ${publishedCount} published${hasBaseline ? ` (baseline: ${baseline}, approved retirement allowance: ${migration.retirementAllowance})` : ' (baseline set)'}`
     )
 }
 
@@ -719,18 +719,19 @@ function expectedSitemapUrls(): string[] {
         const fromDir = path.join(CONTENT_DIR, 'send-to', dest, 'from')
         for (const origin of listDirs(fromDir)) corridors.push({ from: origin, to: dest })
     }
-    const receiveSources = gateReceiveSources()
+    const receiveSources = publishedSlugs('receive-from')
+    const sendDestinations = publishedSlugs('send-to')
 
     for (const locale of SUPPORTED_LOCALES) {
-        for (const slug of countrySlugs) {
-            urls.push(`/${locale}/${slug}`)
-            urls.push(`/${locale}/send-money-to/${slug}`)
-        }
+        for (const slug of countrySlugs) urls.push(`/${locale}/${slug}`)
+        for (const slug of sendDestinations) urls.push(`/${locale}/send-money-to/${slug}`)
         for (const c of corridors) urls.push(`/${locale}/send-money-from/${c.from}/to/${c.to}`)
         for (const source of receiveSources) urls.push(`/${locale}/receive-money-from/${source}`)
         for (const slug of competitorSlugs) urls.push(`/${locale}/compare/peanut-vs-${slug}`)
         for (const slug of exchangeSlugs) urls.push(`/${locale}/deposit/from-${slug}`)
-        for (const slug of RAIL_SLUGS) urls.push(`/${locale}/deposit/via-${slug}`)
+        for (const slug of publishedSlugs('deposit').filter((slug) => RAIL_SLUGS.has(slug))) {
+            urls.push(`/${locale}/deposit/via-${slug}`)
+        }
         for (const slug of payWithSlugs) urls.push(`/${locale}/pay-with/${slug}`)
         urls.push(`/${locale}/help`)
         for (const slug of helpSlugs) urls.push(`/${locale}/help/${slug}`)

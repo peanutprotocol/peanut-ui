@@ -31,7 +31,7 @@ describe('MDX components on a pt-br page', () => {
     it('renders the Hero marquee in the page locale', () => {
         render(<Hero title="Título" />)
         expect(screen.getByTestId('marquee').textContent).toBe(
-            [ptBr.heroMarqueeNoFees, ptBr.heroMarqueeInstant, '24/7', ptBr.heroMarqueeDollars, 'USDT/USDC'].join(' | ')
+            [ptBr.heroMarqueeNoFees, ptBr.heroMarqueeInstant, '24/7', ptBr.heroMarqueeDollars].join(' | ')
         )
     })
 
@@ -43,7 +43,7 @@ describe('MDX components on a pt-br page', () => {
 
 const marqueeFor = (locale: 'en' | 'es-ar') => {
     const i18n = getTranslations(locale)
-    return [i18n.heroMarqueeNoFees, i18n.heroMarqueeInstant, '24/7', i18n.heroMarqueeDollars, 'USDT/USDC'].join(' | ')
+    return [i18n.heroMarqueeNoFees, i18n.heroMarqueeInstant, '24/7', i18n.heroMarqueeDollars].join(' | ')
 }
 
 describe('Hero marquee', () => {

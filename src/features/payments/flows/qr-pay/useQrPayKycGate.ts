@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { QrKycState } from '@/constants/kyc.consts'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { selectQrKycGate } from './qrKycGate.utils'
+import { QR_IDENTITY_CHECK_INTENT, qrVerificationNeedsRestart, selectQrKycGate } from './qrKycGate.utils'
 
 // MIGRATION-REVIEW: QR-pay KYC gate, formerly useQrKycGate + useKycStatus.
 // Derived inline from the backend capability model. Mapping:
@@ -68,6 +69,31 @@ export function useQrPayKycGate() {
 
     const sumsubFlow = useMultiPhaseKycFlow({})
 
+    const needsIdentityRestart = useMemo(
+        () => qrVerificationNeedsRestart({ mantecaRails: railsForProvider('manteca'), nextActions }),
+        [railsForProvider, nextActions]
+    )
+    // The one "Verify identity" step of every QR screen. An approved user whose
+    // identity evidence is missing needs the restart: the start route answers
+    // "already approved" for them and opens nothing.
+    const { handleRestartIdentity, handleInitiateKyc } = sumsubFlow
+    const startVerification = useCallback(
+        (targetCountry?: string) => {
+            if (needsIdentityRestart) void handleRestartIdentity()
+            else void handleInitiateKyc(QR_IDENTITY_CHECK_INTENT, undefined, isKycApproved || undefined, targetCountry)
+        },
+        [needsIdentityRestart, isKycApproved, handleRestartIdentity, handleInitiateKyc]
+    )
+
+    // No QR screen has room for an inline error, so a failed start is a toast:
+    // never a tap that does nothing.
+    const toast = useToast()
+    const startError = sumsubFlow.error
+    useEffect(() => {
+        if (startError) toast.error(startError)
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- once per failed start
+    }, [startError])
+
     // Auto-dismiss the Sumsub flow if the user's QR-pool rails become enabled
     // server-side while a flow is mid-air. Two known sources:
     //   1. The `/users/identity` LATAM re-entry path now calls
@@ -91,5 +117,15 @@ export function useQrPayKycGate() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [kycGateState, sumsubFlow.showWrapper, sumsubFlow.isModalOpen, sumsubFlow.completeFlow])
 
-    return { kycGateState, qrKycUserMessage, qrKycActionKey, shouldBlockPay, isKycApproved, sumsubFlow }
+    return {
+        kycGateState,
+        qrKycUserMessage,
+        qrKycActionKey,
+        shouldBlockPay,
+        isKycApproved,
+        isTerminalFailure,
+        needsIdentityRestart,
+        startVerification,
+        sumsubFlow,
+    }
 }

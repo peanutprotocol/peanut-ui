@@ -1,13 +1,9 @@
-import {
-    COUNTRIES_SEO,
-    CORRIDORS,
-    DEPOSIT_RAILS,
-    EXCHANGES,
-    PAYMENT_METHOD_SLUGS,
-    RECEIVE_SOURCES,
-    SEND_TO_COUNTRIES,
-} from '@/data/seo'
+import { COUNTRIES_SEO, CORRIDORS, RECEIVE_SOURCES, SEND_TO_COUNTRIES } from '@/data/seo/corridors'
+import { DEPOSIT_RAILS } from '@/data/seo/deposit-rails'
+import { EXCHANGES } from '@/data/seo/exchanges'
+import { PAYMENT_METHOD_SLUGS } from '@/data/seo/payment-methods'
 import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
+import { isPermanentRedirectPath } from '@/lib/seo/redirects'
 import type { Locale } from '@/i18n/types'
 import {
     getLocaleFallbacks,
@@ -34,7 +30,7 @@ function pageGuide(intent: string, slug: string, route: string, locale: Locale):
     const resolved = readPageContentLocalizedResolved<ContentFrontmatter>(intent, slug, locale)
     if (!resolved) return null
     const href = `/${resolved.lang}/${route}`
-    if (isGoneMarketingPath(href)) return null
+    if (isGoneMarketingPath(href) || isPermanentRedirectPath(href)) return null
     return { ...resolved.content.frontmatter, href, lang: resolved.lang as Locale }
 }
 
@@ -45,7 +41,7 @@ function corridorGuide(from: string, to: string, locale: Locale): ContentGuide |
         const content = readCorridorContent<ContentFrontmatter>(to, from, lang)
         if (!content) continue
         const href = `/${lang}/send-money-from/${from}/to/${to}`
-        if (!isPublished(content) || isGoneMarketingPath(href)) return null
+        if (!isPublished(content) || isGoneMarketingPath(href) || isPermanentRedirectPath(href)) return null
         return { ...content.frontmatter, href, lang: lang as Locale }
     }
     return null
@@ -99,6 +95,11 @@ export function listContentTopic(topic: ContentTopic, locale: Locale): ContentGu
                 locale
             )
     }
+}
+
+/** Empty directories do not get an indexable topic page or navigation link. */
+export function listContentTopics(locale: Locale): ContentTopic[] {
+    return CONTENT_TOPICS.filter((topic) => listContentTopic(topic, locale).length > 0)
 }
 
 /** Country pages connect to their own receiving guide and the corridors that include them. */

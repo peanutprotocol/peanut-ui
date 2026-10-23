@@ -272,7 +272,7 @@ describe('fee rows — one charge, one row', () => {
                 status: 'completed',
                 sourceView: 'status',
                 fee,
-                networkFeeDetails: { amountDisplay: '$0.05' },
+                networkFeeDetails: { state: 'charged', amountDisplay: '$0.05' },
             },
             { kind: 'CRYPTO_WITHDRAW' }
         )
@@ -287,6 +287,69 @@ describe('fee rows — one charge, one row', () => {
         const config = renderConfig(withFees(0.5))
         expect(config.networkFee).toBe(true)
         expect(config.fee).toBe(true)
+    })
+
+    it('a sponsored network fee does not hide the Fee row', () => {
+        const config = renderConfig(
+            withDrawer(
+                { status: 'completed', sourceView: 'status', fee: 0, networkFeeDetails: { state: 'sponsored' } },
+                { kind: 'CRYPTO_WITHDRAW' }
+            )
+        )
+        expect(config.networkFee).toBe(true)
+        expect(config.fee).toBe(true)
+    })
+})
+
+describe('network fee rows (TASK-23487)', () => {
+    const withdraw = (
+        sourceView: 'status' | 'history',
+        status: string,
+        networkFeeDetails: Record<string, unknown> | undefined,
+        recipientReceivesUsd?: number
+    ) =>
+        withDrawer(
+            { status, sourceView, fee: undefined, networkFeeDetails, recipientReceivesUsd },
+            { kind: 'CRYPTO_WITHDRAW' }
+        )
+    const charged = { state: 'charged', amountDisplay: '$1.43' }
+
+    it('Activity shows a charged fee and what the recipient received', () => {
+        const config = renderConfig(withdraw('history', 'completed', charged, 63.07))
+        expect(config.networkFee).toBe(true)
+        expect(config.recipientReceives).toBe(true)
+    })
+
+    it('Activity shows a pending fee', () => {
+        const config = renderConfig(withdraw('history', 'completed', { state: 'pending' }))
+        expect(config.networkFee).toBe(true)
+        expect(config.recipientReceives).toBe(false)
+    })
+
+    it('Activity leaves out a sponsored fee; the success screen says it', () => {
+        expect(renderConfig(withdraw('history', 'completed', { state: 'sponsored' })).networkFee).toBe(false)
+        expect(renderConfig(withdraw('status', 'completed', { state: 'sponsored' })).networkFee).toBe(true)
+    })
+
+    it.each(['failed', 'cancelled', 'refunded'])('a %s withdrawal shows neither row', (status) => {
+        const config = renderConfig(withdraw('history', status, charged, 63.07))
+        expect(config.networkFee).toBe(false)
+        expect(config.recipientReceives).toBe(false)
+    })
+
+    it('Recipient receives shows only beside a charged fee', () => {
+        expect(renderConfig(withdraw('status', 'completed', { state: 'pending' }, 63.07)).recipientReceives).toBe(false)
+        expect(renderConfig(withdraw('status', 'completed', { state: 'sponsored' }, 63.07)).recipientReceives).toBe(
+            false
+        )
+        expect(renderConfig(withdraw('status', 'completed', charged)).recipientReceives).toBe(false)
+        expect(renderConfig(withdraw('status', 'completed', charged, 63.07)).recipientReceives).toBe(true)
+    })
+
+    it('no fee details, no fee rows', () => {
+        const config = renderConfig(withdraw('status', 'completed', undefined))
+        expect(config.networkFee).toBe(false)
+        expect(config.recipientReceives).toBe(false)
     })
 })
 

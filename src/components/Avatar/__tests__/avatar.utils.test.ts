@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import badgeAssets from '@/types/badge-assets.json'
 import en from '@/i18n/app/messages/en.json'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 import {
     avatarPool,
     avatarSrc,
@@ -10,6 +11,7 @@ import {
     dealHand,
     HAND_SIZE,
     letterAvatarSrc,
+    servedAvatarArt,
 } from '../avatar.utils'
 
 describe('avatar catalog', () => {
@@ -123,7 +125,7 @@ describe('dealHand', () => {
         const hand = dealHand('letter.k', unlocked, { random: seeded(8) })
         expect(hand).toHaveLength(1 + HAND_SIZE)
         expect(hand).not.toContain('letter.k')
-        expect(hand.map(avatarSrc)).not.toContain('/avatars/letter/k.webp')
+        expect(hand.map((key) => avatarSrc(key))).not.toContain('/avatars/letter/k.webp')
     })
 
     it('deals only basics to a user with no badges', () => {
@@ -149,7 +151,7 @@ describe('dealHand', () => {
         for (let seed = 1; seed <= 20; seed++) {
             const art = dealHand('basic.sun', twice, { random: seeded(seed) })
                 .slice(1)
-                .map(avatarSrc)
+                .map((key) => avatarSrc(key))
             expect(art).toHaveLength(HAND_SIZE)
             expect(new Set(art).size).toBe(HAND_SIZE)
             expect(art).not.toContain(null)
@@ -196,5 +198,56 @@ describe('avatar artwork geometry', () => {
             const size = webpSize(readFileSync(join(process.cwd(), 'public', path)))
             expect({ path, size }).toEqual({ path, size: { width: STICKER_SIDE, height: STICKER_SIDE } })
         }
+    })
+})
+
+// GET /avatars/art (TASK-23547): bundled file first, served url second, none last
+describe('served avatar art', () => {
+    const served = (file: string) => `${PEANUT_API_URL}/badges/art/${file}`
+    const frog = served('avatar-basic-frog.0123456789ab.webp')
+    const newBadge = served('avatar-badge-NEW_BADGE-owl.0123456789ab.webp')
+    const art = { 'basic.frog': frog, 'badge.NEW_BADGE.owl': newBadge, 'letter.s': served('avatar-letter-s.webp') }
+
+    it('prefers the bundled file, then the served url, then nothing', () => {
+        // known to both: the bundle wins
+        expect(avatarSrc('basic.frog', art)).toBe('/avatars/basic/frog.webp')
+        expect(letterAvatarSrc('satoshi', art)).toBe('/avatars/letter/s.webp')
+        // served only: the map url
+        expect(avatarSrc('badge.NEW_BADGE.owl', art)).toBe(newBadge)
+        expect(avatarSrc('badge.NEW_BADGE.owl')).toBeNull()
+        expect(avatarSrc('badge.NOPE.x', art)).toBeNull()
+        expect(servedAvatarArt('basic.frog', art)).toBe(frog)
+    })
+
+    it.each([
+        ['another host', 'https://evil.example/badges/art/avatar-basic-frog.webp'],
+        ['a host that only starts like the api', `${PEANUT_API_URL}.evil.example/badges/art/avatar-basic-frog.webp`],
+        ['another path', `${PEANUT_API_URL}/uploads/avatar-basic-frog.webp`],
+        ['a non-avatar file', served('badge-BUG_WHISPERER.webp')],
+        ['traversal', served('avatar-../../x.webp')],
+        ['a non-webp file', served('avatar-basic-frog.png')],
+        ['a query string', served('avatar-basic-frog.webp?x=1')],
+        ['a data url', 'data:image/webp;base64,AAAA'],
+        ['a relative path', '/badges/art/avatar-basic-frog.webp'],
+    ])('rejects %s', (_, url) => {
+        expect(servedAvatarArt('badge.NEW_BADGE.owl', { 'badge.NEW_BADGE.owl': url })).toBeNull()
+        expect(avatarSrc('badge.NEW_BADGE.owl', { 'badge.NEW_BADGE.owl': url })).toBeNull()
+    })
+
+    it('does not read a key off Object.prototype', () => {
+        expect(servedAvatarArt('constructor', {})).toBeNull()
+    })
+
+    it('unlocks badge art only the served map knows, for holders only', () => {
+        expect(badgeAvatarKeys(['NEW_BADGE'], art)).toEqual(['badge.NEW_BADGE.owl'])
+        expect(badgeAvatarKeys(['NEW_BADGE'])).toEqual([])
+        expect(badgeAvatarKeys(['BUG_WHISPERER'], art)).toEqual(badgeAvatarKeys(['BUG_WHISPERER']))
+        expect(badgeAvatarKeys(['NEW_BADGE'], { 'badge.NEW_BADGE.owl': 'https://evil.example/x.webp' })).toEqual([])
+    })
+
+    it('deals a served-only badge avatar to its holder', () => {
+        const hand = dealHand(null, badgeAvatarKeys(['NEW_BADGE'], art), { art })
+        expect(hand).toContain('badge.NEW_BADGE.owl')
+        expect(basicAvatarKeys(art)).toEqual(basicAvatarKeys())
     })
 })

@@ -22,7 +22,7 @@ describe('ExchangeRate', () => {
     it('shows the rate when it loaded', () => {
         mockUseGetExchangeRate.mockReturnValue(rateState({ exchangeRate: '0.9200' }))
         renderWithIntl(<ExchangeRate accountType={AccountType.IBAN} />)
-        expect(screen.getByText('1 USD = 0.9200 EUR')).toBeInTheDocument()
+        expect(screen.getByText('1 USD ≈ 0.9200 EUR')).toBeInTheDocument()
     })
 
     it('offers a retry instead of a bare dash when the rate failed', () => {
