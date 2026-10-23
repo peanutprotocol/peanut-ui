@@ -26,8 +26,8 @@ import { clearInvite, readInviteCode, stashInvite } from '@/utils/invite-stash'
  */
 export default function InviteStep() {
     const t = useTranslations('setup')
-    const { username } = useSetupFlowContext()
-    const { user } = useAuth()
+    const { username, setInviterAccepted } = useSetupFlowContext()
+    const { user, fetchUser } = useAuth()
     const { handleNext, isLoading } = useSetupFlow()
     const [draft, setDraft] = useState('')
     const [isValid, setIsValid] = useState(false)
@@ -65,7 +65,13 @@ export default function InviteStep() {
             const outcome = await settlePendingInviteAttribution(userId, 'setup_invite_step')
             if (outcome.status === 'attributed') {
                 posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_ADDED)
-                void handleNext()
+                // The inviter is final. The cursor moves first, then the step leaves the
+                // list, so Back cannot reopen it and offer a second inviter. The profile
+                // refresh brings the server's inviter in, which also hides the step after
+                // a reload.
+                await handleNext()
+                setInviterAccepted(true)
+                void fetchUser().catch(() => {})
                 return
             }
             // A transient failure keeps the stash for the next app start; Skip clears it.

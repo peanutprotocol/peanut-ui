@@ -19,7 +19,7 @@ import { useAuth } from '@/context/authContext'
 import { readInviteCode } from '@/utils/invite-stash'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
-    const { setSteps, sellScreensCountry } = useSetupFlowContext()
+    const { setSteps, sellScreensCountry, inviterAccepted } = useSetupFlowContext()
     const residenceRestrictions = useResidenceRestrictionSets()
     const { user } = useAuth()
     const invitedBy = user?.invitedBy
@@ -65,8 +65,8 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     // registration rebuilds the list before the person can leave that step.
     useEffect(() => {
         const steps = filterSetupStepsForCountry(setupSteps, residenceRestrictions, sellCountry)
-        setSteps(filterSetupStepsForInvite(steps, !!invitedBy || !!readInviteCode()))
-    }, [setSteps, residenceRestrictions, sellCountry, invitedBy])
+        setSteps(filterSetupStepsForInvite(steps, inviterAccepted || !!invitedBy || !!readInviteCode()))
+    }, [setSteps, residenceRestrictions, sellCountry, invitedBy, inviterAccepted])
 
     usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
 

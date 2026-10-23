@@ -37,6 +37,9 @@ interface SetupFlowContextType {
     setDirection: (direction: number) => void
     username: string
     setUsername: (username: string) => void
+    /** An inviter was accepted on the invite step in this session; the step then leaves the list. */
+    inviterAccepted: boolean
+    setInviterAccepted: (accepted: boolean) => void
     /**
      * The country the sell screens were chosen for, fixed once the account exists so
      * the screens do not change under the person. Undefined until then: the layout
@@ -78,6 +81,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
     const [isLoading, setIsLoading] = useState(false)
     const [direction, setDirection] = useState(0)
     const [username, setUsername] = useState('')
+    const [inviterAccepted, setInviterAccepted] = useState(false)
     const [sellScreensCountry, setSellScreensCountry] = useState<string | null | undefined>(undefined)
     const [residenceCountry, setResidenceCountry] = useState('')
     const [secondResidenceCountry, setSecondResidenceCountry] = useState('')
@@ -95,6 +99,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
         setSignupCompleted(false)
         setDirection(0)
         setUsername('')
+        setInviterAccepted(false)
         setSellScreensCountry(undefined)
         setResidenceCountry('')
         setSecondResidenceCountry('')
@@ -122,6 +127,8 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             setDirection,
             username,
             setUsername,
+            inviterAccepted,
+            setInviterAccepted,
             sellScreensCountry,
             setSellScreensCountry,
             residenceCountry,
@@ -145,6 +152,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             isLoading,
             direction,
             username,
+            inviterAccepted,
             sellScreensCountry,
             residenceCountry,
             secondResidenceCountry,

@@ -3,7 +3,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
 import { setupScreenIds } from '@/components/Setup/Setup.consts'
-import { SetupFlowProvider } from '@/features/setup/SetupFlowContext'
+import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { EInviteType } from '@/services/services.types'
 import { disableDemoMode, isDemoMode } from '@/utils/demo'
@@ -13,13 +13,14 @@ import InviteStep from '../Invite'
 const mockHandleNext = jest.fn(async () => {})
 const mockValidateInviter = jest.fn()
 const mockAcceptInvite = jest.fn()
+const mockFetchUser = jest.fn(async () => null)
 
 jest.mock('@/hooks/useSetupFlow', () => ({
     useSetupFlow: () => ({ handleNext: mockHandleNext, isLoading: false }),
 }))
 // The step runs after registration: the person is signed in as @newbie.
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'new-user', username: 'newbie' } } }),
+    useAuth: () => ({ user: { user: { userId: 'new-user', username: 'newbie' } }, fetchUser: mockFetchUser }),
 }))
 jest.mock('@/hooks/useDebounce', () => ({ useDebounce: (value: string) => value }))
 // Only the network is mocked: the stash and the attribution hand-off are the real ones.
@@ -37,12 +38,19 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 
 const ATTRIBUTED = { success: true, attributionResolved: true, onboardingResolved: true, claims: [] }
 
+function AcceptedState() {
+    const { inviterAccepted } = useSetupFlowContext()
+    return <output data-testid="inviter-accepted">{String(inviterAccepted)}</output>
+}
+
 const renderInvite = () =>
     renderWithIntl(
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
             <InviteStep />
+            <AcceptedState />
         </SetupFlowProvider>
     )
+const accepted = () => screen.getByTestId('inviter-accepted').textContent
 const field = () => screen.getByRole('textbox', { name: 'Username of the person who invited you' })
 const continueButton = () => screen.getByRole('button', { name: 'Continue' })
 
@@ -87,6 +95,42 @@ describe('Invited by a friend? (after registration)', () => {
             invite_type: EInviteType.DIRECT,
         })
         expect(readInviteCode()).toBe('')
+    })
+
+    it('makes the accepted inviter final: the step leaves the list after the cursor moves, and the profile refreshes', async () => {
+        let acceptedWhenAdvancing: string | null | undefined
+        mockHandleNext.mockImplementationOnce(async () => {
+            acceptedWhenAdvancing = accepted()
+        })
+        renderInvite()
+        fireEvent.change(field(), { target: { value: 'alice' } })
+        await waitFor(() => expect(continueButton()).toBeEnabled())
+        fireEvent.click(continueButton())
+        // Dropping the step while the cursor is still on it would leave the flow with no step.
+        await waitFor(() => expect(accepted()).toBe('true'))
+        expect(acceptedWhenAdvancing).toBe('false')
+        // The server's inviter reaches the profile, so the step stays hidden after a reload.
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not mark an inviter as accepted when the person skips or the accept fails', async () => {
+        mockAcceptInvite.mockResolvedValue({
+            success: false,
+            retryable: false,
+            status: 400,
+            attributionResolved: false,
+            onboardingResolved: false,
+            claims: [],
+        })
+        renderInvite()
+        fireEvent.change(field(), { target: { value: 'alice' } })
+        await waitFor(() => expect(continueButton()).toBeEnabled())
+        fireEvent.click(continueButton())
+        expect(await screen.findByText('We couldn’t find this user.')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
+        expect(accepted()).toBe('false')
+        expect(mockFetchUser).not.toHaveBeenCalled()
     })
 
     it('says the user was not found when the accept is refused, and stays on the step', async () => {

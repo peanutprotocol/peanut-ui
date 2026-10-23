@@ -195,7 +195,12 @@ describe('useSetupFlow (URL stepper)', () => {
 
     it.each([
         ['the inviter question', false, 'PT', 'invite'],
-        ['the first sell screen when the signup has an invite', true, 'PT', 'advantage-fees'],
+        [
+            'the first sell screen when the signup has an invite or the inviter was just accepted',
+            true,
+            'PT',
+            'advantage-fees',
+        ],
         ['residence when nothing else is offered', true, 'RU', 'residence'],
     ])('locks the way back at %s', (_label, hasInvite, country, expected) => {
         const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
@@ -204,6 +209,59 @@ describe('useSetupFlow (URL stepper)', () => {
             hasInvite
         )
         expect(postRegistrationScreen(steps.map((step) => step.screenId))).toBe(expected)
+    })
+
+    it('an accepted inviter cannot be reopened by Back, a URL move or a history pop', async () => {
+        let navigate!: (screen: string) => void
+        function Wrapper({ children }: { children: ReactNode }) {
+            const [screen, setScreen] = useState('invite')
+            navigate = setScreen
+            return (
+                <NuqsTestingAdapter hasMemory searchParams={{ screen }}>
+                    <SetupFlowProvider masterScreenIds={setupScreenIds}>{children}</SetupFlowProvider>
+                </NuqsTestingAdapter>
+            )
+        }
+        const rendered: (string | undefined)[] = []
+        const { result } = renderHook(
+            () => {
+                const context = useSetupFlowContext()
+                const flow = useSetupFlow()
+                rendered.push(flow.step?.screenId)
+                return { context, flow }
+            },
+            { wrapper: Wrapper }
+        )
+        // As the page does: the lock sits on the first screen after registration.
+        const armLock = async (steps: typeof setupSteps) => {
+            await seedSteps(result, steps)
+            await act(async () => {
+                result.current.context.setNoBackLockScreenId(postRegistrationScreen(steps.map((s) => s.screenId)))
+            })
+        }
+        await armLock(setupSteps)
+        await act(async () => {
+            await result.current.flow.handleNext()
+        })
+        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+
+        // The layout drops the step once the inviter is accepted.
+        await armLock(filterSetupStepsForInvite(setupSteps, true))
+        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+        await act(async () => result.current.flow.handleBack())
+        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+        await act(async () => {
+            result.current.flow.setScreenId('invite')
+        })
+        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+        // The browser still holds ?screen=invite: popping to it lands on the lock, and the
+        // first screen is never shown on the way.
+        rendered.length = 0
+        await act(async () => {
+            navigate('invite')
+        })
+        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+        expect(rendered).not.toContain('landing')
     })
 
     it('derives backward and forward arrival direction for external URL changes', async () => {
