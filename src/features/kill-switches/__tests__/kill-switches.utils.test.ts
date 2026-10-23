@@ -39,27 +39,30 @@ describe('resolveKillSwitches', () => {
 
 describe('maintenanceRedirectTarget', () => {
     it.each(['/home', '/withdraw/manteca', '/send/', '/claim'])('sends %s to /maintenance when it is on', (path) => {
-        expect(maintenanceRedirectTarget(path, true, false)).toBe('/maintenance')
+        expect(maintenanceRedirectTarget(path, true, false, false)).toBe('/maintenance')
     })
 
     it.each(['/', '/maintenance', '/support', '/maintenance/', '/support/'])('leaves %s open when it is on', (path) => {
-        expect(maintenanceRedirectTarget(path, true, false)).toBeNull()
+        expect(maintenanceRedirectTarget(path, true, false, true)).toBeNull()
     })
 
     it('never redirects other pages when it is off', () => {
-        expect(maintenanceRedirectTarget('/home', false, false)).toBeNull()
+        expect(maintenanceRedirectTarget('/home', false, false, true)).toBeNull()
     })
 
-    it.each(['/maintenance', '/maintenance/'])('sends %s back to /home when it is off', (path) => {
-        expect(maintenanceRedirectTarget(path, false, false)).toBe('/home')
+    it.each(['/maintenance', '/maintenance/'])('sends %s back to /home once the API says it is off', (path) => {
+        expect(maintenanceRedirectTarget(path, false, false, true)).toBe('/home')
+    })
+
+    it('stays on /maintenance while "off" is only a default or saved value', () => {
+        expect(maintenanceRedirectTarget('/maintenance', false, false, false)).toBeNull()
     })
 
     it('does not redirect to /maintenance in demo mode', () => {
-        expect(maintenanceRedirectTarget('/home', true, true)).toBeNull()
+        expect(maintenanceRedirectTarget('/home', true, true, false)).toBeNull()
     })
 
-    it('lets demo mode leave /maintenance instead of looping back to it', () => {
-        expect(maintenanceRedirectTarget('/maintenance', true, true)).toBe('/home')
-        expect(maintenanceRedirectTarget('/home', true, true)).toBeNull()
+    it('lets demo mode leave /maintenance without waiting for the API', () => {
+        expect(maintenanceRedirectTarget('/maintenance', true, true, false)).toBe('/home')
     })
 })

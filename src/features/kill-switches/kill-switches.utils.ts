@@ -28,18 +28,23 @@ export function resolveKillSwitches(server: unknown, saved: unknown): KillSwitch
 }
 
 /**
- * Where full maintenance should send this page, or null to stay. Demo mode (the
- * app-store review sandbox) counts as maintenance off, so it never redirects in
- * and is never stuck on /maintenance.
+ * Where full maintenance should send this page, or null to stay.
+ *
+ * Going in is immediate, on saved or default values. Leaving /maintenance waits
+ * for the API to answer (`answered`), so a stale "off" never bounces the user to
+ * /home and back. Demo mode (the app-store review sandbox, no real API) counts
+ * as maintenance off: it never goes in and leaves at once.
  */
 export function maintenanceRedirectTarget(
     pathname: string | null,
     enableFullMaintenance: boolean,
-    demoMode: boolean
+    demoMode: boolean,
+    answered: boolean
 ): '/maintenance' | '/home' | null {
     if (!pathname) return null
     // the native export uses trailing slashes
     const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
-    if (!enableFullMaintenance || demoMode) return path === '/maintenance' ? '/home' : null
+    if (demoMode) return path === '/maintenance' ? '/home' : null
+    if (!enableFullMaintenance) return path === '/maintenance' && answered ? '/home' : null
     return FULL_MAINTENANCE_ALLOWED_PATHS.includes(path) ? null : '/maintenance'
 }

@@ -1,4 +1,5 @@
 import { DEFAULT_KILL_SWITCHES, KILL_SWITCHES_STORAGE_KEY } from '../kill-switches.consts'
+import { maintenanceRedirectTarget } from '../kill-switches.utils'
 
 const mockApiFetch = jest.fn()
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
@@ -90,6 +91,46 @@ describe('kill-switches store', () => {
 
         expect(store.getKillSwitches().enableFullMaintenance).toBe(false)
         expect(saved()).toEqual({})
+    })
+
+    it('keeps a reload on /maintenance there until the fetch answers, then leaves once it says off', async () => {
+        localStorage.setItem(KILL_SWITCHES_STORAGE_KEY, JSON.stringify({ enableFullMaintenance: true }))
+        let answer: (value: unknown) => void = () => {}
+        mockApiFetch.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)))
+        const store = loadStore()
+        const target = () =>
+            maintenanceRedirectTarget(
+                '/maintenance',
+                store.getKillSwitches().enableFullMaintenance,
+                false,
+                store.hasKillSwitchesAnswered()
+            )
+
+        const pending = store.refreshKillSwitches()
+        expect(target()).toBeNull()
+
+        answer({ ok: true, status: 200, json: async () => ({}) })
+        await pending
+        expect(target()).toBe('/home')
+    })
+
+    it('tells subscribers on the first answer even when the values are unchanged', async () => {
+        respond(200, {})
+        const store = loadStore()
+        const listener = jest.fn()
+        store.subscribeKillSwitches(listener)
+
+        await store.refreshKillSwitches()
+
+        expect(store.hasKillSwitchesAnswered()).toBe(true)
+        expect(listener).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not count a failed fetch as an answer', async () => {
+        respond(404, {})
+        const store = loadStore()
+        await store.refreshKillSwitches()
+        expect(store.hasKillSwitchesAnswered()).toBe(false)
     })
 
     it('tells subscribers when the values change', async () => {

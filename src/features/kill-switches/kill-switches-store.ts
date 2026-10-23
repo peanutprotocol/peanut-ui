@@ -27,8 +27,14 @@ let current: KillSwitches =
     typeof window === 'undefined' ? DEFAULT_KILL_SWITCHES : resolveKillSwitches(null, readSaved())
 const listeners = new Set<() => void>()
 
+// true once the API answered in this app session; until then the values are only saved or default
+let answered = false
+
 /** Current values, for code outside React. Components use `useKillSwitches`. */
 export const getKillSwitches = (): KillSwitches => current
+
+/** True once a fetch has answered in this app session. */
+export const hasKillSwitchesAnswered = (): boolean => answered
 
 export function subscribeKillSwitches(listener: () => void): () => void {
     listeners.add(listener)
@@ -53,8 +59,10 @@ async function fetchKillSwitches(): Promise<void> {
         localStorage.setItem(KILL_SWITCHES_STORAGE_KEY, JSON.stringify(sanitized))
     } catch {}
     const next = resolveKillSwitches(sanitized, null)
-    if (JSON.stringify(next) === JSON.stringify(current)) return
-    current = next
+    const firstAnswer = !answered
+    answered = true
+    if (JSON.stringify(next) !== JSON.stringify(current)) current = next
+    else if (!firstAnswer) return
     listeners.forEach((listener) => listener())
 }
 
