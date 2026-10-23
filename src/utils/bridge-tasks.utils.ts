@@ -86,7 +86,8 @@ export function selectCardDocumentTask(nextActions: NextAction[], rails: RailCap
         if (status !== 'fixable' || !nextAction) continue
         if (
             nextAction.kind === 'rain-hosted' ||
-            (nextAction.kind === 'sumsub' && nextAction.levelKey === 'proof_of_address')
+            (nextAction.kind === 'sumsub' &&
+                (nextAction.levelKey === 'proof_of_address' || nextAction.levelKey === 'rain_identity_verification'))
         ) {
             return { ...nextAction, key: `${CARD_DOCUMENT_TASK_PREFIX}${nextAction.key}` }
         }

@@ -66,7 +66,12 @@ const COPY_KEYS = {
 } as const satisfies Record<Variant, { title: string; body: string }>
 
 /** A collected proof of address on its way to, or with, the card partner: nothing for the user to do. */
-const AWAITING_DOCUMENT_REVIEW: ReadonlySet<string> = new Set(['proof_of_address_received', 'proof_of_address_review'])
+const AWAITING_DOCUMENT_REVIEW: ReadonlySet<string> = new Set([
+    'proof_of_address_received',
+    'proof_of_address_review',
+    'identity_verification_received',
+    'identity_verification_review',
+])
 
 export type InformationKind = 'taxId' | 'birthDate'
 type SelfServeKind = 'proofOfAddress' | 'identity' | InformationKind

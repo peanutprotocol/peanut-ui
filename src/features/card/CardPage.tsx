@@ -59,6 +59,7 @@ export const CardPage: FC = () => {
         setPoaToken,
         poaError,
         poaSubmitted,
+        rainDocumentReceivedCode,
         setPoaSubmitted,
         onUploadProofOfAddress,
         onUploadIdentity,
@@ -250,7 +251,7 @@ export const CardPage: FC = () => {
                     )
                 }
                 const cardRail = railsForProvider('rain')[0]
-                const cardRailReasonCode = poaSubmitted ? 'proof_of_address_received' : cardRail?.reason?.code
+                const cardRailReasonCode = poaSubmitted ? rainDocumentReceivedCode : cardRail?.reason?.code
                 const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
@@ -303,7 +304,7 @@ export const CardPage: FC = () => {
                 // on its own (reassurance + support CTA), so show it now and let
                 // the reason fill in once capabilities resolve.
                 const cardRail = capabilitiesLoading ? undefined : railsForProvider('rain')[0]
-                const cardRailReasonCode = poaSubmitted ? 'proof_of_address_received' : cardRail?.reason?.code
+                const cardRailReasonCode = poaSubmitted ? rainDocumentReceivedCode : cardRail?.reason?.code
                 const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
