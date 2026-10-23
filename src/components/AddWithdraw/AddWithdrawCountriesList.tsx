@@ -56,7 +56,8 @@ import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificatio
 import Loading from '@/components/Global/Loading'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { useModalsContext } from '@/context/ModalsContext'
-import underMaintenanceConfig, { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/config/underMaintenance.config'
+import { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/features/kill-switches/kill-switches.consts'
+import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 
@@ -68,6 +69,7 @@ interface AddWithdrawCountriesListProps {
 const SUBMIT_CANCELLED = { error: 'cancelled', silent: true }
 
 const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
+    const { pixBrazilOnrampMaintenance } = useKillSwitches()
     const router = useRouter()
     const params = useParams()
     const searchParams = useSearchParams()
@@ -674,9 +676,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         // BRL-via-PIX onramp is warn-only under maintenance: tag the Pix option but
                         // keep it clickable (do not set isDisabled).
                         const isPixOnrampUnderMaintenance =
-                            flow === 'add' &&
-                            method.id === 'pix-add' &&
-                            underMaintenanceConfig.pixBrazilOnrampMaintenance
+                            flow === 'add' && method.id === 'pix-add' && pixBrazilOnrampMaintenance
                         // the row a tap is held on carries the wait, and takes
                         // no second tap while it does
                         const isHeld = heldMethod?.method.id === method.id

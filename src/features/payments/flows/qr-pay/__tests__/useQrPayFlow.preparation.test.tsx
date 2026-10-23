@@ -60,15 +60,15 @@ jest.mock('@/hooks/usePointsCalculation', () => ({
 }))
 jest.mock('@/hooks/usePointsConfetti', () => ({ usePointsConfetti: jest.fn() }))
 jest.mock('@/hooks/useAppReviewNudge', () => ({ useAppReviewNudge: jest.fn() }))
-jest.mock('@/config/underMaintenance.config', () => ({
-    __esModule: true,
-    default: {
+jest.mock('@/features/kill-switches/kill-switches-store', () => {
+    const killSwitches = {
         disabledPaymentProviders: [] as string[],
         maintenanceBannerPaths: [],
         enableFullMaintenance: false,
         enableMaintenanceBanner: false,
-    },
-}))
+    }
+    return { getKillSwitches: () => killSwitches, subscribeKillSwitches: () => () => {} }
+})
 jest.mock('@/services/services.types', () => ({ PointsAction: { MANTECA_QR_PAYMENT: 'manteca_qr_payment' } }))
 jest.mock('@/app/actions/currency', () => ({ getCurrencyPrice: jest.fn(async () => ({ sell: 1200, buy: 1250 })) }))
 jest.mock('@/components/Global/DirectSendQR/utils', () => ({
