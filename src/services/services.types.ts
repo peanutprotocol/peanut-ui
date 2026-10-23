@@ -539,7 +539,8 @@ export interface TierInfo {
 
 export interface PointsInvite {
     inviteeId: string
-    username: string
+    /** Null for an invitee who never finished signup. */
+    username: string | null
     fullName: string | null
     showFullName?: boolean
     /** Invitee's picked profile avatar; null means the username-letter fallback. */

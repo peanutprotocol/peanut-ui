@@ -164,7 +164,8 @@ const InvitesPage = () => {
                             <Card
                                 key={invite.inviteeId}
                                 position={getCardPosition(i, invites.invitees.length)}
-                                onClick={() => router.push(profileUrl(username))}
+                                // An invitee who never finished signup has no profile to open.
+                                onClick={username ? () => router.push(profileUrl(username)) : undefined}
                                 className="cursor-pointer"
                             >
                                 <div className="flex items-center justify-between gap-4">
@@ -175,7 +176,7 @@ const InvitesPage = () => {
                                             // matches their profile. An invitee without one keeps
                                             // the display name — an empty name reads as "not a
                                             // user" and drops to a wallet icon.
-                                            userName={username || displayName}
+                                            userName={username || displayName || undefined}
                                             avatarKey={invite.avatarKey}
                                             isLinkTransaction={false}
                                             transactionType={'send'}
@@ -184,8 +185,8 @@ const InvitesPage = () => {
                                     </div>
                                     <div className="min-w-0 flex-1 truncate font-roboto text-body-m">
                                         <VerifiedUserLabel
-                                            name={displayName}
-                                            username={username}
+                                            name={displayName ?? ''}
+                                            username={username ?? ''}
                                             isVerified={isVerified}
                                         />
                                     </div>

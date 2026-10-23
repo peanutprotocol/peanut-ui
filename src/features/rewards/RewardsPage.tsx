@@ -276,7 +276,8 @@ export function RewardsPage() {
                                     <Card
                                         key={invite.inviteeId}
                                         position={getCardPosition(i, Math.min(5, invites.invitees.length))}
-                                        onClick={() => router.push(profileUrl(username))}
+                                        // An invitee who never finished signup has no profile to open.
+                                        onClick={username ? () => router.push(profileUrl(username)) : undefined}
                                         className="cursor-pointer focus-visible:outline-[3px] focus-visible:outline-action-focus"
                                     >
                                         <div className="flex items-center justify-between gap-4">
@@ -288,7 +289,7 @@ export function RewardsPage() {
                                                     // invitee without one keeps the display
                                                     // name — an empty name reads as "not a
                                                     // user" and drops to a wallet icon.
-                                                    userName={username || displayName}
+                                                    userName={username || displayName || undefined}
                                                     avatarKey={invite.avatarKey}
                                                     isLinkTransaction={false}
                                                     transactionType={'send'}
@@ -297,8 +298,8 @@ export function RewardsPage() {
                                             </div>
                                             <div className="min-w-0 flex-1 truncate font-roboto text-body-m">
                                                 <VerifiedUserLabel
-                                                    name={displayName}
-                                                    username={username}
+                                                    name={displayName ?? ''}
+                                                    username={username ?? ''}
                                                     isVerified={isVerified}
                                                 />
                                             </div>
