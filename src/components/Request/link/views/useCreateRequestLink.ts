@@ -3,7 +3,7 @@ import { useAppOrigin } from '@/hooks/useAppOrigin'
 import { fetchTokenDetails } from '@/app/actions/tokens'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
-import { HARNESS_ENABLED } from '@/constants/harness.consts'
+import { harnessPasskeyBypass } from '@/constants/harness.consts'
 import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
@@ -156,11 +156,9 @@ export const useCreateRequestLink = () => {
     // Harness-only: when the playwright session sets the passkey-bypass flag,
     // fall back to the user's peanut-wallet identifier (seeded by the harness)
     // so Create doesn't block on wagmi connection state. HARNESS_ENABLED is
-    // inlined at build time — prod bundles tree-shake this entire branch.
+    // inlined at build time, so in prod builds the bypass is always false.
     const harnessFallbackAddress = useMemo(() => {
-        if (!HARNESS_ENABLED) return ''
-        if (typeof window === 'undefined') return ''
-        if (window.localStorage?.getItem('__harness_skip_passkey') !== 'true') return ''
+        if (!harnessPasskeyBypass()) return ''
         const peanutAccount = user?.accounts?.find((a) => a.type === 'peanut-wallet')
         return peanutAccount?.identifier || ''
     }, [user?.accounts])

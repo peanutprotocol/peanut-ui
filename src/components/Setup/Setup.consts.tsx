@@ -16,14 +16,6 @@ export const setupSteps: ISetupStep[] = [
         contentClassName: 'flex flex-col justify-between gap-8',
     },
     {
-        screenId: 'invite',
-        layoutType: 'signup',
-        image: { animation: 'invite' },
-        component: InviteStep,
-        showBackButton: true,
-        contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
-    },
-    {
         screenId: 'signup',
         layoutType: 'signup',
         image: { pose: 'thinking' },
@@ -31,14 +23,18 @@ export const setupSteps: ISetupStep[] = [
         showBackButton: true,
         contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
     },
+    // Asked right after registration, so a new user claims their own username first and
+    // the inviter is accepted on the spot. Hidden when the signup already carries an invite.
     {
-        screenId: 'residence',
+        screenId: 'invite',
         layoutType: 'signup',
-        image: { animation: 'residence' },
-        component: ResidenceStep,
+        image: { animation: 'invite' },
+        component: InviteStep,
         showBackButton: true,
         contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
     },
+    // The sell screens come before residence is asked, so they follow the country the
+    // signup signals suggest (filterSetupSteps.ts); residence then confirms it.
     {
         screenId: 'advantage-fees',
         layoutType: 'signup',
@@ -57,6 +53,14 @@ export const setupSteps: ISetupStep[] = [
         titleSize: 'm',
         descriptionInTitle: true,
         contentClassName: 'flex flex-col gap-6 md:justify-center',
+    },
+    {
+        screenId: 'residence',
+        layoutType: 'signup',
+        image: { animation: 'residence' },
+        component: ResidenceStep,
+        showBackButton: true,
+        contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
     },
     {
         screenId: 'payment-plan',

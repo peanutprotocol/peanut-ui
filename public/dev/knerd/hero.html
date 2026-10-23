@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <meta name="robots" content="noindex,nofollow" />
+        <title>Knerd — Follow the pull reference</title>
+        <link rel="icon" href="data:," />
+        <link rel="preload" href="assets/knerd-filled.woff2" as="font" type="font/woff2" crossorigin />
+        <link rel="preload" href="assets/knerd-outline.woff2" as="font" type="font/woff2" crossorigin />
+        <link rel="stylesheet" href="hero.css" />
+        <script type="module" src="hero.js"></script>
+    </head>
+    <body>
+        <main id="hero">
+            <div class="nav">
+                <img src="assets/wordmark.svg" width="94" height="28" alt="Peanut" /><span id="category"></span
+                ><span aria-hidden="true">☰</span>
+            </div>
+            <div class="hero-body">
+                <p id="lead"></p>
+                <h1 id="headline" tabindex="0" aria-describedby="interaction-help"></h1>
+                <p id="after"></p>
+            </div>
+            <div class="bottom">
+                <p id="subtitle"></p>
+                <span id="cta" class="hero-cta"></span>
+            </div>
+            <div class="seam">
+                <span>PEANUT</span><span aria-hidden="true">✳</span><span>PEANUT</span><span aria-hidden="true">✳</span
+                ><span>PEANUT</span>
+            </div>
+        </main>
+        <p id="interaction-help" class="sr-only">
+            Move your pointer over the letters or tap them. Press Enter or Space when the headline is focused to try the
+            magnetic effect.
+        </p>
+    </body>
+</html>

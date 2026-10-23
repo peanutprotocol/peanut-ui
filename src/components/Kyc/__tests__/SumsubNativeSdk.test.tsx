@@ -130,7 +130,7 @@ describe('SumsubNativeSdk', () => {
         expect(screen.queryByText(/document preselection requires an app update/i)).not.toBeInTheDocument()
         expect(screen.queryByText(/failed to load verification/i)).not.toBeInTheDocument()
         expect(capture).toHaveBeenCalledTimes(1)
-        expect(capture).toHaveBeenCalledWith('kyc_sdk_launched', { platform: 'native' })
+        expect(capture).toHaveBeenCalledWith('kyc_sdk_launched')
         expect(captureException).not.toHaveBeenCalled()
         expect(onError).not.toHaveBeenCalled()
     })
@@ -185,7 +185,7 @@ describe('SumsubNativeSdk', () => {
         })
 
         expect(launch).toHaveBeenCalledTimes(1)
-        expect(capture).toHaveBeenCalledWith('kyc_sdk_launched', { platform: 'native' })
+        expect(capture).toHaveBeenCalledWith('kyc_sdk_launched')
     })
 
     it('does not launch without an access token', async () => {
@@ -320,7 +320,10 @@ describe('SumsubNativeSdk', () => {
         })
 
         expect(await screen.findByText(/failed to load verification/i)).toBeInTheDocument()
-        expect(capture).toHaveBeenCalledWith('kyc_sdk_init_failed', expect.objectContaining({ platform: 'native' }))
+        expect(capture).toHaveBeenCalledWith(
+            'kyc_sdk_init_failed',
+            expect.objectContaining({ reason: expect.any(String) })
+        )
         expect(captureException).toHaveBeenCalled()
     })
 
@@ -574,7 +577,7 @@ describe('SumsubNativeSdk', () => {
             expect(resetSdk).toHaveBeenCalledTimes(1)
             expect(props.onClose).toHaveBeenCalledTimes(1)
             expect(props.onComplete).not.toHaveBeenCalled()
-            expect(capture).toHaveBeenCalledWith('kyc_sdk_orphaned', { platform: 'native' })
+            expect(capture).toHaveBeenCalledWith('kyc_sdk_orphaned')
         })
 
         it('lets a normal close callback win inside the grace period', async () => {

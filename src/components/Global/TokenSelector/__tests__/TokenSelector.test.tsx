@@ -2,14 +2,14 @@ import React, { useState } from 'react'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
 import TokenSelector from '../TokenSelector'
 
-// the shipped config has disableXchainSend ON; pinned OFF here, the lock tests flip it
-jest.mock('@/config/underMaintenance.config', () => ({
-    __esModule: true,
-    default: { disableXchainWithdraw: false, disableXchainSend: false },
-}))
+// the built-in default has disableXchainSend ON; pinned OFF here, the lock tests flip it
+jest.mock('@/features/kill-switches/kill-switches-store', () => {
+    const killSwitches = { disableXchainWithdraw: false, disableXchainSend: false }
+    return { getKillSwitches: () => killSwitches, subscribeKillSwitches: () => () => {} }
+})
 // vaul needs layout apis jsdom lacks; a pass-through renders the drawer only while open
 jest.mock('@/components/Global/Drawer', () => ({
     Drawer: ({ open, children }: { open: boolean; children: React.ReactNode }) => (open ? <div>{children}</div> : null),
@@ -53,6 +53,8 @@ function Harness({
     isLoadingChains = false,
     onAutoCorrect,
     onNetworkSelect,
+    networkHelper,
+    addressFamily,
 }: {
     initialChainID?: string
     initialTokenAddress?: string
@@ -60,6 +62,8 @@ function Harness({
     isLoadingChains?: boolean
     onAutoCorrect?: () => void
     onNetworkSelect?: () => void
+    networkHelper?: string
+    addressFamily?: 'evm' | 'solana' | 'tron'
 }) {
     const [selectedChainID, setSelectedChainID] = useState(initialChainID)
     const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenAddress)
@@ -77,7 +81,13 @@ function Harness({
                     } as never
                 }
             >
-                <TokenSelector viewType={viewType} onAutoCorrect={onAutoCorrect} onNetworkSelect={onNetworkSelect} />
+                <TokenSelector
+                    viewType={viewType}
+                    onAutoCorrect={onAutoCorrect}
+                    onNetworkSelect={onNetworkSelect}
+                    networkHelper={networkHelper}
+                    addressFamily={addressFamily}
+                />
                 <output data-testid="chain-probe">{selectedChainID || 'none'}</output>
                 <output data-testid="token-probe">{selectedTokenAddress || 'none'}</output>
             </tokenSelectorContext.Provider>
@@ -94,14 +104,44 @@ const tokenAddress = () => screen.getByTestId('token-probe').textContent
 
 describe('TokenSelector (TASK-23392)', () => {
     afterEach(() => {
-        ;(underMaintenanceConfig as { disableXchainSend: boolean }).disableXchainSend = false
-        ;(underMaintenanceConfig as { disableXchainWithdraw: boolean }).disableXchainWithdraw = false
+        ;(getKillSwitches() as { disableXchainSend: boolean }).disableXchainSend = false
+        ;(getKillSwitches() as { disableXchainWithdraw: boolean }).disableXchainWithdraw = false
     })
 
     test('two triggers show the selected token and network', () => {
         render(<Harness />)
         expect(tokenTrigger()).toHaveAccessibleName('Token: USDC')
         expect(networkTrigger()).toHaveAccessibleName('Network: Arbitrum')
+    })
+
+    // A scanned address is valid on one family of networks only: the pickers
+    // for it never offer another family (TASK-23974).
+    describe('addressFamily keeps the pickers to the networks the address is valid on', () => {
+        test('an EVM address is offered no Tron', () => {
+            render(<Harness addressFamily="evm" />)
+            fireEvent.click(tokenTrigger())
+            const usdt = optionNamed('USDT')
+            expect(within(usdt).getByText('Arbitrum')).toBeInTheDocument()
+            expect(within(usdt).getByText('Ethereum')).toBeInTheDocument()
+            expect(within(usdt).queryByText('+1')).toBeNull()
+            fireEvent.click(usdt)
+            fireEvent.click(networkTrigger())
+            expect(options().map((o) => o.textContent)).not.toEqual(
+                expect.arrayContaining([expect.stringContaining('Tron')])
+            )
+        })
+
+        test('a Tron address is offered Tron and its USDT only', () => {
+            render(<Harness initialChainID="tron" initialTokenAddress={USDT_TRON} addressFamily="tron" />)
+            expect(tokenTrigger()).toHaveAccessibleName('Token: USDT')
+            expect(networkTrigger()).toHaveAccessibleName('Network: Tron')
+            fireEvent.click(tokenTrigger())
+            expect(options()).toHaveLength(1)
+            fireEvent.click(optionNamed('USDT'))
+            fireEvent.click(networkTrigger())
+            expect(options()).toHaveLength(1)
+            expect(chain()).toBe('tron')
+        })
     })
 
     test('token rows show two network badges and a count for the rest', () => {
@@ -228,8 +268,19 @@ describe('TokenSelector (TASK-23392)', () => {
         expect(tokenAddress()).toBe('0xpolygonUsdt')
     })
 
+    // A screen that needs an explicit network pick says so under the network
+    // picker, as guidance. While a lock is on, the lock hint is what matters.
+    test('guidance under the network picker shows when the screen asks for it; the lock hint wins', () => {
+        const { rerender } = render(<Harness networkHelper="Pick the network for this address" />)
+        expect(screen.getByText('Pick the network for this address')).toBeInTheDocument()
+        ;(getKillSwitches() as { disableXchainWithdraw: boolean }).disableXchainWithdraw = true
+        rerender(<Harness networkHelper="Pick the network for this address" />)
+        expect(screen.queryByText('Pick the network for this address')).toBeNull()
+        expect(screen.getByText('Only USDC on Arbitrum for now')).toBeInTheDocument()
+    })
+
     test('cross-chain send off: claim is locked to USDC on Arbitrum', () => {
-        ;(underMaintenanceConfig as { disableXchainSend: boolean }).disableXchainSend = true
+        ;(getKillSwitches() as { disableXchainSend: boolean }).disableXchainSend = true
         render(<Harness viewType="claim" initialChainID="1" initialTokenAddress={USDT_ETH} />)
         expect(chain()).toBe('42161')
         expect(tokenAddress()).toBe(USDC_ARB)
@@ -239,7 +290,7 @@ describe('TokenSelector (TASK-23392)', () => {
     })
 
     test('cross-chain withdraw off: withdraw is locked too', () => {
-        ;(underMaintenanceConfig as { disableXchainWithdraw: boolean }).disableXchainWithdraw = true
+        ;(getKillSwitches() as { disableXchainWithdraw: boolean }).disableXchainWithdraw = true
         render(<Harness initialChainID="tron" initialTokenAddress={USDT_TRON} />)
         expect(chain()).toBe('42161')
         expect(tokenTrigger()).toBeDisabled()

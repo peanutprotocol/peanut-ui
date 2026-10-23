@@ -510,7 +510,7 @@ module.exports = [
         // Rasterized to PNG by html-to-image (see share-asset/captureShareAsset.ts).
         // next/image's lazy loading and wrapper markup break the capture — the same
         // class of bug as the runtime <canvas> that file already documents.
-        files: ['src/components/Card/share-asset/**', 'src/components/Global/ImageGeneration/**'],
+        files: ['src/components/Card/share-asset/**'],
         rules: { '@next/next/no-img-element': 'off' },
     },
     {

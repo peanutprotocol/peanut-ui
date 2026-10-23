@@ -10,6 +10,7 @@ import { toSumsubLocale } from '@/i18n/app/sumsub-locale'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { SumsubSdkErrorView } from './SumsubSdkErrorView'
 import { clearActiveSumsubInstance, setActiveSumsubInstance } from './sumsubNativeSession.utils'
+import { captureNativeSdkClosed, createSumsubSdkTracker } from './sumsubSdkAnalytics.utils'
 import type { SumsubSdkProps } from './sumsubSdk.types'
 
 /**
@@ -99,7 +100,6 @@ export const SumsubNativeSdk = ({
         const reportFailure = (reason: string, detail: unknown, kind: 'sdk-missing' | 'launch' = 'launch') => {
             console.error('[sumsub] native sdk failure', reason, detail)
             posthog.capture(ANALYTICS_EVENTS.KYC_SDK_INIT_FAILED, {
-                platform: 'native',
                 reason,
                 message: detail instanceof Error ? detail.message : String(detail),
             })
@@ -118,6 +118,8 @@ export const SumsubNativeSdk = ({
         }
 
         let instance: SNSMobileSDKInstance | null = null
+        // The native screen is invisible to session replay; these events are its only trace.
+        const tracker = createSumsubSdkTracker('native')
         let cancelled = false
         let settled = false
         let launched = false
@@ -158,6 +160,10 @@ export const SumsubNativeSdk = ({
                 .withHandlers({
                     onStatusChanged: (event) => {
                         if (event?.newStatus && SUBMITTED_STATES.has(event.newStatus)) hasSubmitted = true
+                        tracker.statusChanged({ newStatus: event?.newStatus, prevStatus: event?.prevStatus })
+                    },
+                    onEvent: (event) => {
+                        tracker.step(event?.eventType, event?.payload?.idDocSetType, event?.payload?.isCancelled)
                     },
                 })
                 .withLocale(sumsubLocaleRef.current)
@@ -194,9 +200,10 @@ export const SumsubNativeSdk = ({
                 // A reset lock lets a stale launch's late callback clear the
                 // wrapper's event route, so route native events to this instance.
                 setActiveSumsubInstance(sumsub, instance!)
-                posthog.capture(ANALYTICS_EVENTS.KYC_SDK_LAUNCHED, { platform: 'native' })
+                posthog.capture(ANALYTICS_EVENTS.KYC_SDK_LAUNCHED)
                 void launchWithStaleLockRecovery().then(
                     (result) => {
+                        captureNativeSdkClosed(result)
                         if (cancelled) {
                             if (SUBMITTED_STATES.has(result?.status ?? '')) hasSubmitted = true
                             reportCancelledSubmission()
@@ -246,7 +253,7 @@ export const SumsubNativeSdk = ({
                                 if (settled || cancelled) return
                                 settled = true
                                 clearActiveSumsubInstance(instance)
-                                posthog.capture(ANALYTICS_EVENTS.KYC_SDK_ORPHANED, { platform: 'native' })
+                                posthog.capture(ANALYTICS_EVENTS.KYC_SDK_ORPHANED)
                                 sumsub.reset?.()
                                 handleExit(undefined)
                             }, ORPHANED_SDK_GRACE_MS)

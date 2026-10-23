@@ -6,8 +6,8 @@
  * never "no QR".
  */
 import { QrKycState } from '@/constants/kyc.consts'
-import type { RailCapability } from '@/types/capabilities'
-import { qrPayIsAPath, selectQrKycGate } from '../qrKycGate.utils'
+import type { NextAction, RailCapability } from '@/types/capabilities'
+import { qrPayIsAPath, qrVerificationNeedsRestart, selectQrKycGate } from '../qrKycGate.utils'
 
 const pix = (overrides: Partial<RailCapability> = {}) =>
     ({
@@ -71,12 +71,58 @@ describe('selectQrKycGate', () => {
         )
     })
 
+    // The legacy fallback reads a requires-info rail with a restart action as
+    // fixable. The fixable screen opens the document resubmit, which has no
+    // rejection to act on for these users (TASK-22698).
+    it('a requires-info rail whose fix is the identity restart → PROVIDER_RESTART_IDENTITY', () => {
+        const rail = pix({ status: 'requires-info', blockingActions: ['restart-identity'] })
+        const nextActions = [{ key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_missing' }]
+        expect(gate({ mantecaRails: [rail], nextActions: nextActions as NextAction[] })).toBe(
+            QrKycState.PROVIDER_RESTART_IDENTITY
+        )
+    })
+
     it('a blocked rail → PROVIDER_REJECTION_BLOCKED', () => {
         expect(gate({ mantecaRails: [pix({ status: 'blocked' })] })).toBe(QrKycState.PROVIDER_REJECTION_BLOCKED)
     })
 
     it('a region refusal outranks even an enabled pay op → REGION_RESTRICTED', () => {
         expect(gate({ isRegionRestricted: true, canPayManteca: true })).toBe(QrKycState.REGION_RESTRICTED)
+    })
+})
+
+/**
+ * An approved user whose identity evidence is missing: the start route answers
+ * "already approved" and opens nothing, so the QR verification step must be
+ * the identity restart (TASK-22698).
+ */
+describe('qrVerificationNeedsRestart', () => {
+    const restart = (purpose: string) => ({ key: 'restart-identity', kind: 'restart-identity', purpose }) as NextAction
+    const needsRestart = (input: Partial<Parameters<typeof qrVerificationNeedsRestart>[0]>) =>
+        qrVerificationNeedsRestart({ mantecaRails: [], nextActions: [], ...input })
+
+    it('an approval with no identity document on file → restart', () => {
+        expect(needsRestart({ nextActions: [restart('identity_document_missing')] })).toBe(true)
+    })
+
+    it('QR rails paused for missing identity evidence → restart', () => {
+        expect(needsRestart({ nextActions: [restart('identity_missing')] })).toBe(true)
+    })
+
+    it('reads the rail reason when the shared action names another cause', () => {
+        const rail = pix({
+            status: 'blocked',
+            reason: { code: 'identity_missing', userMessage: 'Verify your identity again to restore QR payments.' },
+        })
+        expect(needsRestart({ mantecaRails: [rail], nextActions: [restart('country_not_supported')] })).toBe(true)
+    })
+
+    it('a document from an unsupported country → no restart here (the rejection screen owns it)', () => {
+        expect(needsRestart({ nextActions: [restart('country_not_supported')] })).toBe(false)
+    })
+
+    it('nothing to restart → the regular start', () => {
+        expect(needsRestart({ mantecaRails: [pix()] })).toBe(false)
     })
 })
 

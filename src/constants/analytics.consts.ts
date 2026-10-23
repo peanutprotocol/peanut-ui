@@ -26,8 +26,10 @@ export const ANALYTICS_EVENTS = {
     PASSKEY_LOGIN_RETRY: 'passkey_login_retry',
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
     SIGNUP_USERNAME_VALIDATED: 'signup_username_validated',
+    SIGNUP_USERNAME_INVALID: 'signup_username_invalid',
     SIGNUP_INVITER_PROMPT_OPENED: 'signup_inviter_prompt_opened',
     SIGNUP_INVITER_ADDED: 'signup_inviter_added',
+    SIGNUP_INVITE_SKIPPED: 'signup_invite_skipped',
     SIGNUP_EXISTING_SESSION_CONTINUED: 'signup_existing_session_continued',
     SIGNUP_PASSKEY_STARTED: 'signup_passkey_started',
     SIGNUP_PASSKEY_SUCCEEDED: 'signup_passkey_succeeded',
@@ -40,6 +42,7 @@ export const ANALYTICS_EVENTS = {
 
     // ── KYC (Bridge) ──
     KYC_INITIATED: 'kyc_initiated',
+    KYC_TOS_OPENED: 'kyc_tos_opened',
     KYC_TOS_ACCEPTED: 'kyc_tos_accepted',
     KYC_SUBMITTED: 'kyc_submitted',
     KYC_APPROVED: 'kyc_approved',
@@ -296,6 +299,14 @@ export const ANALYTICS_EVENTS = {
     // ── Card: acquisition funnel (Rain virtual card) ──
     // State observed on /card mount or transition. `state` matches CardTopLevelState.
     CARD_STATE_VIEWED: 'card_state_viewed',
+    // The screens inside the `add-card` state (the eligibility gate). `step` ∈
+    // eligibility|available|funding|entry; `funded` = spendable balance at the
+    // $10 minimum; `min_balance_shown` = the screen states that minimum.
+    CARD_GATE_STEP_VIEWED: 'card_gate_step_viewed',
+    // "Add funds" tapped on the gate. `step` as above; `method` ∈ bank|crypto
+    // when a deposit method was picked, else null. The deposit itself is the
+    // server-side `deposit_completion` (peanut-api-ts, every rail).
+    CARD_GATE_ADD_FUNDS_TAPPED: 'card_gate_add_funds_tapped',
     // POST /rain/cards lifecycle. `outcome` ∈
     // pending|terms-required|incomplete|main-kyc-required|enabled|error|already-applied.
     CARD_APPLY_ATTEMPTED: 'card_apply_attempted',
@@ -396,6 +407,7 @@ export const ANALYTICS_EVENTS = {
     // in. `webauthn_ceremony_flow` closes a flow with the total count — that
     // count is what says whether a 2–3 prompt report is our call sites, a retry,
     // or the native shim presenting extra sheets on its own.
+    PASSKEY_NATIVE_DIAGNOSTIC: 'passkey_native_diagnostic',
     WEBAUTHN_CEREMONY: 'webauthn_ceremony',
     WEBAUTHN_CEREMONY_FLOW: 'webauthn_ceremony_flow',
 
@@ -444,6 +456,37 @@ export const ANALYTICS_EVENTS = {
     ACTIVITY_EXPORT_STARTED: 'activity_export_started',
     ACTIVITY_EXPORT_SAVED: 'activity_export_saved',
     ACTIVITY_EXPORT_FAILED: 'activity_export_failed',
+
+    // ── Screens session replay cannot see ──
+    // The native Sumsub SDK, the native Crisp messenger and the Sumsub web
+    // iframe paint outside the recorded DOM, and the camera prompt is an OS
+    // sheet. These events are the only trace those screens leave for journey
+    // reviews. Properties are SDK codes, states and error names, never text a
+    // user typed or a document showed. The `platform` super property already
+    // says web or app, so these events do not send their own.
+    //
+    // KYC: `sdk` is 'native' | 'web' (the web SDK can also run inside the app).
+    // status_changed: prev_status, new_status (SDK status names; web adds
+    // review_answer; snapshot: true marks the status the web SDK reports on
+    // launch, which is the applicant's earlier state). step: event_type (StepInitiated | StepCompleted), step
+    // (the SDK's idDocSetType, e.g. IDENTITY, SELFIE), is_cancelled. closed
+    // (native only, one per launch result): status, success, error_type.
+    KYC_SDK_STATUS_CHANGED: 'kyc_sdk_status_changed',
+    KYC_SDK_STEP: 'kyc_sdk_step',
+    KYC_SDK_CLOSED: 'kyc_sdk_closed',
+    // Support chat: `messenger` is 'native' | 'web', `has_topic` says the
+    // screen passed a prefilled topic (the topic is free text, so it is not
+    // sent). open_failed carries `error_name`. token_failed fires once a
+    // mount gives up on the Crisp session token, with `reason`.
+    SUPPORT_CHAT_OPENED: 'support_chat_opened',
+    SUPPORT_CHAT_OPEN_FAILED: 'support_chat_open_failed',
+    SUPPORT_CHAT_TOKEN_FAILED: 'support_chat_token_failed',
+    // QR camera: opened once per scanner open. camera_permission `state` is
+    // granted | denied | pending (the web prompt outlived its deadline) |
+    // unavailable (no camera or camera busy), with `error_name` when the
+    // camera failed. Scan results stay on qr_scanned.
+    QR_SCANNER_OPENED: 'qr_scanner_opened',
+    QR_CAMERA_PERMISSION: 'qr_camera_permission',
 } as const
 
 /**

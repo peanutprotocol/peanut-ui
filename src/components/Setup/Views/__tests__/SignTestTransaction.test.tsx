@@ -13,6 +13,7 @@ import { AccountSetupError } from '@/services/account-setup'
 import { AccountType } from '@/interfaces/interfaces'
 import { confettiPresets } from '@/utils/confetti'
 import { recordSetupIpCountry } from '@/features/setup/country-signals'
+import { CeremonyTimeoutError } from '@/utils/passkeyCeremony.utils'
 
 const WALLET = '0x1111111111111111111111111111111111111111'
 
@@ -24,6 +25,7 @@ const mockReadSignupAttributionAsync = jest.fn()
 const mockClearSignupAttribution = jest.fn()
 const mockHasPendingSignupAttribution = jest.fn()
 const mockLogoutUser = jest.fn()
+const mockLatestCeremony = jest.fn()
 
 let mockSignupCompleted = false
 let mockFundingChannel: string | undefined
@@ -80,6 +82,10 @@ jest.mock('@/utils/signup-attribution', () => ({
     readSignupAttributionAsync: (...args: unknown[]) => mockReadSignupAttributionAsync(...args),
     clearSignupAttribution: (...args: unknown[]) => mockClearSignupAttribution(...args),
     hasPendingSignupAttribution: (...args: unknown[]) => mockHasPendingSignupAttribution(...args),
+}))
+jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({
+    ...jest.requireActual('@/utils/webauthn-ceremony-telemetry'),
+    latestCeremony: (...args: unknown[]) => mockLatestCeremony(...args),
 }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
 jest.mock('posthog-js', () => ({
@@ -432,6 +438,99 @@ describe('SignTestTransaction — setup completion', () => {
 
         expect(mockRouterReplace).toHaveBeenCalledWith('/receipt?id=abc')
         expect(mockRouterReplace).toHaveBeenCalledTimes(1)
+    })
+
+    // TASK-23931: only an unknown failure asks the person to contact support
+    describe('classifies a Confirm & finish failure', () => {
+        beforeEach(() => {
+            jest.mocked(capturePasskeyDebugInfo).mockResolvedValue(undefined as never)
+            mockLatestCeremony.mockReturnValue({ challengeOffset: 41, backupEligible: false })
+        })
+
+        const failConfirmWith = async (error: unknown, copy: string) => {
+            mockSendUserOp.mockRejectedValueOnce(error)
+            renderWithIntl(<SignTestTransaction />)
+            fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+            await waitFor(() => expect(screen.getByText(copy, { exact: false })).toBeInTheDocument())
+            const failures = jest
+                .mocked(posthog.capture)
+                .mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED)
+            expect(failures).toHaveLength(1)
+            return failures[0][1]
+        }
+        const expectNoSupportCopy = () =>
+            expect(
+                screen.queryByText(en.setup.testTransaction.errors.supportNeeded, { exact: false })
+            ).not.toBeInTheDocument()
+
+        it('shows the passkey copy for a cancel', async () => {
+            const cancel = Object.assign(new Error('The operation either timed out or was not allowed.'), {
+                name: 'NotAllowedError',
+            })
+            const event = await failConfirmWith(cancel, en.setup.passkey.notCompleted)
+            expectNoSupportCopy()
+            expect(event).toMatchObject({ error_name: 'NotAllowedError', error_code: 'LOGIN_CANCELED', is_aa24: false })
+        })
+
+        it('reads the Android shim cancel as a cancel', async () => {
+            const event = await failConfirmWith(new Error('User cancelled the selector'), en.setup.passkey.notCompleted)
+            expectNoSupportCopy()
+            expect(event).toMatchObject({ error_name: 'NotAllowedError', error_code: 'LOGIN_CANCELED' })
+        })
+
+        it('shows the timeout copy for a ceremony that never settled', async () => {
+            const event = await failConfirmWith(new CeremonyTimeoutError(60_000), en.setup.passkey.tookTooLong)
+            expectNoSupportCopy()
+            expect(event).toMatchObject({ error_name: 'CeremonyTimeoutError', error_code: 'CEREMONY_TIMEOUT' })
+        })
+
+        it('names the password manager on AA24 and sends the assertion layout', async () => {
+            // viem repeats the bundler's details line on the inner error
+            const details = 'Details: UserOperation reverted with reason: AA24 signature error'
+            const signatureError = Object.assign(
+                new Error(`Signature provided for the User Operation is invalid.\n\n${details}`),
+                { name: 'UserOperationSignatureError' }
+            )
+            const executionError = Object.assign(
+                new Error(`Signature provided for the User Operation is invalid.\n\n${details}`, {
+                    cause: signatureError,
+                }),
+                { name: 'UserOperationExecutionError' }
+            )
+
+            const event = await failConfirmWith(
+                executionError,
+                en.setup.testTransaction.errors.passkeyProviderUnsupported
+            )
+
+            expectNoSupportCopy()
+            expect(event).toEqual({
+                error_name: 'UserOperationSignatureError',
+                error_code: undefined,
+                is_aa24: true,
+                backup_eligible: false,
+                challenge_offset: 41,
+            })
+            expect(mockLatestCeremony).toHaveBeenCalledWith('get', 'user_op', expect.any(Number))
+            await waitFor(() => expect(screen.getByRole('button', { name: /confirm/i })).toBeEnabled())
+            expect(mockAddAccount).not.toHaveBeenCalled()
+            expect(mockLogoutUser).not.toHaveBeenCalled()
+        })
+
+        it('keeps support copy for an unrelated failure whose hex request body contains aa24', async () => {
+            const unrelated = Object.assign(
+                new Error(
+                    'HTTP request failed.\n\nStatus: 500\nRequest body: {"method":"pm_sponsorUserOperation","params":[{"callData":"0x51945447aa24f0"}]}'
+                ),
+                { name: 'HttpRequestError' }
+            )
+
+            const event = await failConfirmWith(unrelated, en.setup.testTransaction.errors.supportNeeded)
+            expect(
+                screen.queryByText(en.setup.testTransaction.errors.passkeyProviderUnsupported, { exact: false })
+            ).not.toBeInTheDocument()
+            expect(event).toMatchObject({ error_name: 'HttpRequestError', error_code: 'LOGIN_ERROR', is_aa24: false })
+        })
     })
 })
 

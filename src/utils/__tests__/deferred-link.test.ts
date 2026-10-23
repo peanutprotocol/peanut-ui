@@ -13,9 +13,19 @@ import {
 import { isAndroidNative, isIOSNative } from '../capacitor'
 import { clipboardHasStrings, clipboardHasProbableWebUrl } from '../clipboard-detect'
 import { saveToCookie } from '../cookie-url.utils'
-import { SIGNUP_ATTRIBUTION_COOKIE } from '../signup-attribution'
+import {
+    SIGNUP_ATTRIBUTION_COOKIE,
+    captureSignupAttribution,
+    ensureSignupAttributionForRegistration,
+    readSignupAttribution,
+} from '../signup-attribution'
 import { readInviteCode, stashInvite } from '../invite-stash'
 import { EInviteType } from '@/services/services.types'
+import publicAttributionPaths from '@/constants/signup-attribution-paths.generated.json'
+import {
+    parseDeferredPayload as parseLegacyDeferredPayload,
+    parseSignupAttribution as parseLegacySignupAttribution,
+} from './fixtures/legacy-native-attribution'
 
 const getReferrer = jest.fn()
 
@@ -56,11 +66,19 @@ jest.mock('@capacitor/preferences', () => ({
 
 const posthogCapture = jest.fn()
 const posthogRegister = jest.fn()
+const posthogAlias = jest.fn()
+const posthogRegisterOnce = jest.fn()
+const posthogDistinctId = jest.fn<string | undefined, []>()
+const posthogIsIdentified = jest.fn<boolean, []>()
 jest.mock('posthog-js', () => ({
     __esModule: true,
     default: {
         capture: (...args: unknown[]) => posthogCapture(...args),
         register: (...args: unknown[]) => posthogRegister(...args),
+        alias: (...args: unknown[]) => posthogAlias(...args),
+        register_once: (...args: unknown[]) => posthogRegisterOnce(...args),
+        get_distinct_id: () => posthogDistinctId(),
+        _isIdentified: () => posthogIsIdentified(),
     },
 }))
 
@@ -80,6 +98,8 @@ const clearCookies = () => {
 }
 
 beforeEach(() => {
+    process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'false'
+    Object.defineProperty(document, 'referrer', { configurable: true, value: '' })
     jest.clearAllMocks()
     mockIsAndroidNative.mockReturnValue(false)
     mockIsIOSNative.mockReturnValue(false)
@@ -88,7 +108,187 @@ beforeEach(() => {
     window.history.replaceState({}, '', '/')
 })
 
+describe('compatibility with installed native decoders', () => {
+    const storeHandoff = (payload: string, store: 'android' | 'ios') =>
+        store === 'android'
+            ? new URL(playStoreUrlWithReferrer(payload)).searchParams.get('referrer')!
+            : iosHandoffString(payload)
+    const compactToken = (first: Record<string, unknown>) =>
+        btoa(
+            JSON.stringify({
+                v: 1,
+                j: '33333333-3333-4333-8333-333333333333',
+                p: 'web',
+                f: { t: Date.now(), s: 'newsletter', c: 'fall', ...first },
+            })
+        )
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '')
+
+    it('pins the old decoder failure that would discard an entire tagged journey', () => {
+        const handoff = `pnutdl=1&at=${compactToken({ p: '/en/deposit/from-coinbase' })}`
+        expect(parseLegacyDeferredPayload(handoff)?.attribution).toBeUndefined()
+        expect(parseDeferredPayload(handoff)?.attribution?.firstTouch.path).toBe('/en/deposit/from-coinbase')
+    })
+
+    it.each(['android', 'ios'] as const)(
+        'preserves campaigns on old apps and content on new apps for every public %s landing',
+        (store) => {
+            for (const path of publicAttributionPaths) {
+                clearCookies()
+                window.history.replaceState({}, '', `${path}?utm_source=newsletter&utm_campaign=fall`)
+                Object.defineProperty(document, 'referrer', { configurable: true, value: 'https://www.google.com/' })
+                const web = captureSignupAttribution({ includeDocumentReferrer: true })!
+                const payload = buildDeferredPayload('/home', 'alice', store)
+                if (store === 'android') {
+                    expect(encodeURIComponent(payload).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+                }
+                const handoff = storeHandoff(payload, store)
+                const oldApp = parseLegacyDeferredPayload(handoff)
+                const newApp = parseDeferredPayload(handoff)
+                const oldAcceptedPath = parseLegacySignupAttribution(JSON.stringify(web)) !== null
+                const { path: _path, ...campaignTouch } = web.firstTouch
+                expect({ path, attribution: oldApp?.attribution }).toEqual({
+                    path,
+                    attribution: {
+                        ...web,
+                        captureMethod: 'deferred_link',
+                        firstTouch: { ...campaignTouch, ...(oldAcceptedPath ? { path } : {}) },
+                        firstContentTouch: undefined,
+                        lastTouch: undefined,
+                    },
+                })
+                expect(newApp?.attribution).toEqual({ ...web, captureMethod: 'deferred_link', lastTouch: undefined })
+                expect(oldApp?.invite).toBe('alice')
+                expect(newApp?.invite).toBe('alice')
+            }
+        }
+    )
+
+    it.each(['android', 'ios'] as const)(
+        'keeps distinct first, content and last campaign touches on an old %s app',
+        (store) => {
+            const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString()
+            const context = {
+                schemaVersion: '1',
+                journeyId: '33333333-3333-4333-8333-333333333333',
+                platform: 'web',
+                analyticsState: 'enabled',
+                captureMethod: 'browser',
+                firstTouch: { occurredAt: minutesAgo(30), utmSource: 'a', path: '/home' },
+                firstContentTouch: { occurredAt: minutesAgo(20), utmCampaign: 'b', path: '/en/argentina' },
+                lastTouch: {
+                    occurredAt: minutesAgo(1),
+                    referrerHost: 'news.example',
+                    path: '/en/deposit/from-coinbase',
+                },
+            }
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, context)
+            const handoff = storeHandoff(buildDeferredPayload('/home', undefined, store), store)
+            const oldApp = parseLegacyDeferredPayload(handoff)
+            expect(oldApp?.attribution).toEqual({
+                ...context,
+                captureMethod: 'deferred_link',
+                firstContentTouch: { occurredAt: context.firstContentTouch.occurredAt, utmCampaign: 'b' },
+                lastTouch: { occurredAt: context.lastTouch.occurredAt, referrerHost: 'news.example' },
+            })
+            expect(parseDeferredPayload(handoff)?.attribution).toEqual({ ...context, captureMethod: 'deferred_link' })
+        }
+    )
+
+    it.each([
+        '/en/alice',
+        '/en/profile',
+        '/en/claim/secret',
+        '/en/deposit/from-550e8400-e29b-41d4-a716-446655440000',
+        '/en/deposit/from-0x0000000000000000000000000000000000000001',
+        '/en/blog/alice@example.com',
+        '/en/blog/alice%40example.com',
+        '/en/deposit/../profile',
+        '/zz/argentina',
+        '/en/withdraw/to-bank/private',
+    ])('validates the new path field without accepting private data: %s', (path) => {
+        const handoff = `pnutdl=1&at=${compactToken({ u: path })}`
+        for (const parse of [parseDeferredPayload, parseLegacyDeferredPayload]) {
+            const attribution = parse(handoff)?.attribution
+            expect(attribution?.firstTouch).toMatchObject({ utmSource: 'newsletter', utmCampaign: 'fall' })
+            expect(attribution?.firstTouch.path).toBeUndefined()
+            expect(attribution?.firstContentTouch).toBeUndefined()
+            expect(JSON.stringify(attribution)).not.toContain(path)
+        }
+    })
+
+    it('prefers the new path field, strips its query data, and rejects non-string paths', () => {
+        const handoff = `pnutdl=1&at=${compactToken({
+            p: '/en/content',
+            u: '/en/deposit/from-coinbase?email=private@example.com#secret',
+        })}`
+        const attribution = parseDeferredPayload(handoff)?.attribution
+        expect(attribution?.firstTouch.path).toBe('/en/deposit/from-coinbase')
+        expect(JSON.stringify(attribution)).not.toMatch(/private|secret/)
+        expect(parseLegacyDeferredPayload(handoff)?.attribution?.firstTouch.path).toBe('/en/content')
+        expect(
+            parseDeferredPayload(`pnutdl=1&at=${compactToken({ u: { email: 'private@example.com' } })}`)?.attribution
+        ).toBeUndefined()
+    })
+})
+
 describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
+    it.each([
+        ['android', '/en/deposit/from-usd-account'],
+        ['ios', '/en/deposit/from-usd-account'],
+        ['android', '/en/argentina'],
+        ['ios', '/es-419/use-cases/remote-workers'],
+    ] as const)('retains the first content landing through the actual %s store handoff: %s', async (store, path) => {
+        window.history.replaceState({}, '', path)
+        Object.defineProperty(document, 'referrer', { configurable: true, value: 'https://www.google.com/' })
+        const web = captureSignupAttribution({ includeDocumentReferrer: true })!
+        expect(web.firstContentTouch).toEqual(web.firstTouch)
+        const payload = buildDeferredPayload('/home', undefined, store)
+        const handoff =
+            store === 'android'
+                ? new URL(playStoreUrlWithReferrer(payload)).searchParams.get('referrer')!
+                : iosHandoffString(payload)
+        const parsed = parseDeferredPayload(handoff)!
+        expect(parsed.attribution?.firstContentTouch).toEqual(web.firstContentTouch)
+        expect(parsed.attribution?.journeyId).toBe(web.journeyId)
+
+        clearCookies()
+        process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+        window.history.replaceState({}, '', '/setup')
+        applyDeferredPayload(parsed)
+        const registration = await ensureSignupAttributionForRegistration()
+        expect(registration?.firstContentTouch).toEqual(web.firstContentTouch)
+        expect(readSignupAttribution()?.firstTouch).toEqual(web.firstTouch)
+    })
+
+    it.each([
+        ['/en/deposit/from-coinbase', true],
+        ['/en/privacy', false],
+        ['/careers', false],
+        ['/', false],
+    ] as const)(
+        'decodes older deduplicated handoffs without inventing an administrative content touch: %s',
+        (path, content) => {
+            const occurredAt = new Date().toISOString()
+            const token = btoa(
+                JSON.stringify({
+                    v: 1,
+                    j: '33333333-3333-4333-8333-333333333333',
+                    p: 'web',
+                    f: { t: Date.parse(occurredAt), p: path },
+                })
+            )
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '')
+            const parsed = parseDeferredPayload(`pnutdl=1&at=${token}`)
+            expect(parsed?.attribution?.firstTouch.path).toBe(path)
+            expect(parsed?.attribution?.firstContentTouch?.path).toBe(content ? path : undefined)
+        }
+    )
+
     it('tags the Play referrer with plain utm fields, web campaign by default (TASK-23382)', () => {
         const payload = buildDeferredPayload('/home')
         const params = new URLSearchParams(payload)
@@ -324,8 +524,12 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         expect(playStoreUrlWithReferrer(payload)).toContain('&referrer=')
     })
 
-    it('keeps a fitting badge before marketing attribution on Play and keeps the full journey on iOS', () => {
+    it.each([
+        ['/en/blog/guide', '/en/blog/next'],
+        ['/en/deposit/from-coinbase', '/en/argentina'],
+    ])('keeps referral identities before oversized marketing attribution from %s', (firstPath, lastPath) => {
         const tag = 'x'.repeat(64)
+        stashInvite('alice', EInviteType.DIRECT)
         saveToCookie('campaignTag', 'nita')
         saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
             schemaVersion: '1',
@@ -339,7 +543,7 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
                 utmMedium: tag,
                 utmCampaign: tag,
                 utmContent: tag,
-                path: '/en/blog/guide',
+                path: firstPath,
             },
             lastTouch: {
                 occurredAt: new Date().toISOString(),
@@ -347,7 +551,7 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
                 utmMedium: tag,
                 utmCampaign: tag,
                 utmContent: tag,
-                path: '/en/blog/next',
+                path: lastPath,
             },
         })
 
@@ -355,10 +559,17 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         const iosPayload = buildDeferredPayload('/home', undefined, 'ios')
         expect(encodeURIComponent(playPayload).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
         expect(parseDeferredPayload(playPayload)?.badgeCampaigns).toEqual(['nita'])
+        expect(parseLegacyDeferredPayload(playPayload)?.invite).toBe('alice')
+        expect(parseLegacyDeferredPayload(playPayload)?.badgeCampaigns).toEqual(['nita'])
         expect(parseDeferredPayload(playPayload)?.attribution).toBeUndefined()
         expect(encodeURIComponent(iosPayload).length).toBeGreaterThan(MAX_PLAY_REFERRER_LENGTH)
         expect(parseDeferredPayload(iosPayload)?.badgeCampaigns).toEqual(['nita'])
         expect(parseDeferredPayload(iosPayload)?.attribution?.journeyId).toBe('33333333-3333-4333-8333-333333333333')
+        expect(parseLegacyDeferredPayload(iosPayload)?.attribution?.journeyId).toBe(
+            '33333333-3333-4333-8333-333333333333'
+        )
+        expect(parseDeferredPayload(iosPayload)?.attribution?.firstTouch.path).toBe(firstPath)
+        expect(parseDeferredPayload(iosPayload)?.attribution?.lastTouch?.path).toBe(lastPath)
     })
 
     it('keeps the store handoff usable when even the inviter exceeds the Play limit', () => {
@@ -755,5 +966,102 @@ describe('restore telemetry', () => {
         })
 
         await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
+    })
+})
+
+// The web visitor's anonymous distinct id rides the hand-off and lands on the
+// app's events as a property. Never an alias: the referrer and the clipboard
+// can carry an id somebody else chose, and an alias would merge two people.
+describe('web visitor identity hand-off', () => {
+    const WEB_ID = '0192f3a4-5b6c-7d8e-9f01-23456789abcd'
+    const APP_ID = '0192f3a4-0000-7000-8000-000000000001'
+
+    beforeEach(() => {
+        posthogDistinctId.mockReturnValue(WEB_ID)
+        posthogIsIdentified.mockReturnValue(false)
+    })
+    afterEach(() => {
+        posthogDistinctId.mockReset()
+        posthogIsIdentified.mockReset()
+    })
+
+    it('carries the anonymous web distinct id on both stores', () => {
+        expect(parseDeferredPayload(buildDeferredPayload('/home'))?.webDistinctId).toBe(WEB_ID)
+        expect(parseDeferredPayload(buildDeferredPayload('/home', undefined, 'ios'))?.webDistinctId).toBe(WEB_ID)
+    })
+
+    it('never carries a signed-in user id or a non-UUID distinct id', () => {
+        posthogIsIdentified.mockReturnValue(true)
+        expect(buildDeferredPayload('/home')).not.toContain('wid=')
+
+        posthogIsIdentified.mockReturnValue(false)
+        posthogDistinctId.mockReturnValue('user@example.test')
+        expect(buildDeferredPayload('/home')).not.toContain('wid=')
+    })
+
+    it('rejects a tampered web id on parse', () => {
+        expect(parseDeferredPayload('pnutdl=1&wid=alice%40example.test')?.webDistinctId).toBeUndefined()
+    })
+
+    it('drops the web id after dest and before attribution when the Play referrer is full', () => {
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'android',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: { occurredAt: new Date().toISOString(), utmSource: 'creator', utmCampaign: 'summer' },
+        })
+        const roomy = parseDeferredPayload(buildDeferredPayload('/home'))
+        expect(roomy).toMatchObject({ webDistinctId: WEB_ID, dest: '/home' })
+        expect(roomy?.attribution).toBeDefined()
+
+        // size an invite that leaves room for the attribution token, but not the web id too
+        posthogIsIdentified.mockReturnValue(true)
+        const withoutId = encodeURIComponent(buildDeferredPayload('/', 'y')).length
+        posthogIsIdentified.mockReturnValue(false)
+        const invite = 'y'.repeat(MAX_PLAY_REFERRER_LENGTH - withoutId - 5)
+        const squeezed = buildDeferredPayload('/', invite)
+        expect(encodeURIComponent(squeezed).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+        const parsed = parseDeferredPayload(squeezed)
+        expect(parsed?.webDistinctId).toBeUndefined()
+        expect(parsed?.attribution).toBeDefined()
+        expect(parsed?.invite).toBe(invite)
+    })
+
+    it('records the web id as a property on the first open, and never aliases', async () => {
+        posthogDistinctId.mockReturnValue(APP_ID)
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({ referrer: `pnutdl=1&dest=%2Fhome&wid=${WEB_ID}` })
+
+        await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
+
+        const restored = posthogCapture.mock.calls.filter((c) => c[0] === 'deferred_link_restored').at(-1)?.[1]
+        expect(restored).toMatchObject({ outcome: 'restored', web_distinct_id: WEB_ID })
+        // every later event of this install, $identify included, carries it too
+        expect(posthogRegisterOnce).toHaveBeenCalledWith({ web_distinct_id: WEB_ID })
+        expect(posthogAlias).not.toHaveBeenCalled()
+    })
+
+    it('keeps the restore working when PostHog cannot register the web id', async () => {
+        posthogDistinctId.mockReturnValue(APP_ID)
+        posthogRegisterOnce.mockImplementationOnce(() => {
+            throw new Error('posthog not initialised')
+        })
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({ referrer: `pnutdl=1&dest=%2Fhome&wid=${WEB_ID}` })
+
+        await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
+    })
+
+    it('records no web id for an install without one', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({ referrer: 'pnutdl=1&dest=%2Fhome' })
+
+        await restoreDeferredContext()
+        const restored = posthogCapture.mock.calls.filter((c) => c[0] === 'deferred_link_restored').at(-1)?.[1]
+        expect(restored).not.toHaveProperty('web_distinct_id')
+        expect(posthogRegisterOnce).not.toHaveBeenCalled()
+        expect(posthogAlias).not.toHaveBeenCalled()
     })
 })

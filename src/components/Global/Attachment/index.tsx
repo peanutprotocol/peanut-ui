@@ -16,7 +16,8 @@ const Attachment = ({ message, fileUrl }: AttachmentProps) => {
     return (
         <div className="text-body-s text-foreground-secondary">
             {fileUrl ? (
-                <Link href={fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2">
+                // ph-sensitive: the payment note is free text from a user
+                <Link href={fileUrl} target="_blank" rel="noreferrer" className="ph-sensitive flex items-center gap-2">
                     {message ? `${message}` : t('attachment.viewAttachment')}
                     <Icon name="external-link" className="h-4 w-4" />
                 </Link>

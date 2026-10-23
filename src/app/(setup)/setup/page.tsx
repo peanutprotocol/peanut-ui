@@ -4,7 +4,8 @@ import { useHydrationSnapshot } from '@/utils/native-platform'
 import Loading from '@/components/Global/Loading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import { type ScreenId } from '@/components/Setup/Setup.types'
-import { SETUP_POST_REGISTRATION_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
+import { postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
+import { setupCountrySuggestion } from '@/features/setup/country-signals'
 import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
 import { dispatchBackPress } from '@/utils/back-handler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -19,7 +20,7 @@ import { harnessPasskeyBypass } from '@/constants/harness.consts'
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
-import { getStoredRedirect, toInviteCode } from '@/utils/general.utils'
+import { getStoredRedirect, getValidRedirectUrl, toInviteCode } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
@@ -44,6 +45,7 @@ import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
 // The steps after registration; reaching any of them arms the no-back lock.
 const POST_REGISTRATION_SCREENS: readonly ScreenId[] = [
     'residence',
+    'invite',
     'advantage-fees',
     'advantage-card',
     'payment-plan',
@@ -77,6 +79,8 @@ function SetupPageContent() {
         steps,
         noBackLockScreenId,
         setNoBackLockScreenId,
+        sellScreensCountry,
+        setSellScreensCountry,
         setSignupEntryFlow,
         setSignupCompleted,
         signupCompleted,
@@ -114,7 +118,7 @@ function SetupPageContent() {
     // Warm the geo cache at entry, not when the residence step mounts: the
     // lookup is a network round trip, and asking for it three steps early is
     // what lets that select render its suggestion already filled in.
-    useSetupCountrySignals()
+    const countrySignals = useSetupCountrySignals()
     const searchParams = useSearchParams()
     // The init effect must key on the VALUES it reads, not the searchParams
     // object: the stepper rewrites ?screen= on every step, and a dep on the
@@ -137,12 +141,12 @@ function SetupPageContent() {
     )
     const [sessionChecked, setSessionChecked] = useState(false)
     /*
-     * A completed session is on its way to /home (see the session effect
-     * below), but the soft nav takes a beat and this page keeps rendering and
-     * resolving its entry step meanwhile. Nothing here is a fault the user
-     * should see: an authenticated pop back into /setup — the signup flow
-     * leaves a history entry per step — showed the recovery screen instead of
-     * the bounce it was already performing.
+     * A completed session is on its way to /home or its explicit redirect_uri
+     * (see the session effect below), but the soft nav takes a beat and this
+     * page keeps rendering and resolving its entry step meanwhile. Nothing
+     * here is a fault the user should see: an authenticated pop back into
+     * /setup — the signup flow leaves a history entry per step — showed the
+     * recovery screen instead of the bounce it was already performing.
      */
     const [isLeavingForHome, setIsLeavingForHome] = useState(false)
     const [isSettlingNativeBadgeCampaigns, setIsSettlingNativeBadgeCampaigns] = useState(false)
@@ -208,13 +212,27 @@ function SetupPageContent() {
         !showBrowserNotSupportedModal
 
     // Registration happens on the username step and is irreversible: every
-    // later step locks the way back at residence, while the steps after it stay
-    // revisitable. This also restores the boundary for a resumed later step.
+    // later step locks the way back at the first step after it, while the steps
+    // after that stay revisitable. This also restores the boundary for a resumed
+    // later step, and follows the list when it changes. The sell screens' country
+    // is fixed here too, so they do not change under the person.
     useEffect(() => {
         if (stepRendered && !signupCompleted && step && POST_REGISTRATION_SCREENS.includes(step.screenId)) {
-            setNoBackLockScreenId(SETUP_POST_REGISTRATION_SCREEN)
+            setNoBackLockScreenId(postRegistrationScreen(steps.map((entry) => entry.screenId)))
+            if (sellScreensCountry === undefined) {
+                setSellScreensCountry(setupCountrySuggestion(countrySignals)?.country ?? null)
+            }
         }
-    }, [stepRendered, step, signupCompleted, setNoBackLockScreenId])
+    }, [
+        stepRendered,
+        step,
+        steps,
+        signupCompleted,
+        setNoBackLockScreenId,
+        sellScreensCountry,
+        setSellScreensCountry,
+        countrySignals,
+    ])
     const showBackButton =
         !!step?.showBackButton && step.screenId !== noBackLockScreenId && !signupCompleted && !flowLoading
 
@@ -259,6 +277,15 @@ function SetupPageContent() {
             // Signup is open to every authenticated account. A stale legacy
             // hasAppAccess=false profile must not resurrect the retired
             // waitlist or offer to replace an already-created account.
+            //
+            // A completed account still honours an explicit redirect_uri: a
+            // link that sends it here on the way to a page (/add-money) must
+            // reach that page, not /home. Only the explicit param counts;
+            // stored redirect state is left alone. A redirect back into /setup
+            // would keep this page mounted behind its loader, so it goes home.
+            const explicitRedirect = new URLSearchParams(searchParamsString).get('redirect_uri')
+            const safeRedirect = explicitRedirect ? getValidRedirectUrl(explicitRedirect, '/home') : '/home'
+            const signedInExit = safeRedirect.startsWith('/setup') ? '/home' : safeRedirect
             const nativeClaimDeepLinkGeneration = getDeepLinkGeneration()
             const nativeClaimCampaignsKey = pendingBadgeCampaigns.join('\u0000')
             const shouldSettleNativeBadgeCampaigns =
@@ -302,7 +329,7 @@ function SetupPageContent() {
                     .finally(() => {
                         if (isCurrentNativeClaim()) {
                             setIsSettlingNativeBadgeCampaigns(false)
-                            router.replace('/home')
+                            router.replace(signedInExit)
                         } else if (isSetupMountedRef.current && nativeClaimRunIdRef.current === nativeClaimRunId) {
                             // A newer native link may keep this setup instance
                             // mounted while Next transitions to its new URL.
@@ -315,13 +342,13 @@ function SetupPageContent() {
             }
             if (isNewSetupDeepLink) {
                 setIsSettlingNativeBadgeCampaigns(false)
-                router.replace('/home')
+                router.replace(signedInExit)
                 return
             }
             if (!isInitialSessionCheck) return
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
             setIsLeavingForHome(true)
-            router.replace('/home')
+            router.replace(signedInExit)
             return
         }
     }, [

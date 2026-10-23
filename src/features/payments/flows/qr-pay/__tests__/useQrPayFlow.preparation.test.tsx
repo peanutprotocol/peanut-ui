@@ -60,15 +60,15 @@ jest.mock('@/hooks/usePointsCalculation', () => ({
 }))
 jest.mock('@/hooks/usePointsConfetti', () => ({ usePointsConfetti: jest.fn() }))
 jest.mock('@/hooks/useAppReviewNudge', () => ({ useAppReviewNudge: jest.fn() }))
-jest.mock('@/config/underMaintenance.config', () => ({
-    __esModule: true,
-    default: {
+jest.mock('@/features/kill-switches/kill-switches-store', () => {
+    const killSwitches = {
         disabledPaymentProviders: [] as string[],
         maintenanceBannerPaths: [],
         enableFullMaintenance: false,
         enableMaintenanceBanner: false,
-    },
-}))
+    }
+    return { getKillSwitches: () => killSwitches, subscribeKillSwitches: () => () => {} }
+})
 jest.mock('@/services/services.types', () => ({ PointsAction: { MANTECA_QR_PAYMENT: 'manteca_qr_payment' } }))
 jest.mock('@/app/actions/currency', () => ({ getCurrencyPrice: jest.fn(async () => ({ sell: 1200, buy: 1250 })) }))
 jest.mock('@/components/Global/DirectSendQR/utils', () => ({
@@ -925,6 +925,22 @@ describe('honest Pay failure copy', () => {
         // still reported, so the busy rate stays visible after the fix ships
         expect(mockCaptureNetworkTriagedFailure).toHaveBeenCalledWith(busy, {
             tags: expect.objectContaining({ qr_pay_step: 'sign', qr_pay_failure: 'passkey_busy' }),
+        })
+    })
+
+    test('unconfirmed Android passkey cleanup: restart copy, Pay disabled because every retry is refused', async () => {
+        const cleanup = new Error('Passkey cleanup is unconfirmed; restart the app')
+        cleanup.name = 'PasskeyCleanupPendingError'
+        fakeClient.account.signUserOperation.mockRejectedValue(cleanup)
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+
+        expect(surface?.errorMessage).toBe(copy.passkeyRestart)
+        expect(surface?.isBlockingError).toBe(true)
+        expect(mockCaptureNetworkTriagedFailure).toHaveBeenCalledWith(cleanup, {
+            tags: expect.objectContaining({ qr_pay_step: 'sign', qr_pay_failure: 'passkey_cleanup_pending' }),
         })
     })
 })

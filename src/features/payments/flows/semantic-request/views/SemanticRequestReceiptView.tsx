@@ -53,7 +53,6 @@ export function SemanticRequestReceiptView() {
             ? payLinkUrl(`/${recipientIdentifier}?chargeId=${charge.uuid}`, origin)
             : undefined
 
-        const networkFeeDisplayValue = '$0' // fee is zero for peanut wallet txns
         const peanutFeeDisplayValue = '$0' // peanut doesn't charge fees yet
 
         // determine who paid (payer name for display)
@@ -89,10 +88,8 @@ export function SemanticRequestReceiptView() {
                 tokenIconUrl: tokenIconUrl,
                 chainIconUrl: chainIconUrl,
             },
-            networkFeeDetails: {
-                amountDisplay: networkFeeDisplayValue,
-                moreInfoText: t('confirm.slippageInfo'),
-            },
+            // The payer may be an external wallet that paid its own gas, and
+            // this is the recipient's receipt: no network fee is claimed.
             peanutFeeDetails: {
                 amountDisplay: peanutFeeDisplayValue,
             },
@@ -100,7 +97,7 @@ export function SemanticRequestReceiptView() {
         }
 
         return details as TransactionDetails
-    }, [charge, recipient, parsedUrl, tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol, t, origin])
+    }, [charge, recipient, parsedUrl, tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol, origin])
 
     // show loading if fetching charge
     if (isFetchingCharge || !charge) {

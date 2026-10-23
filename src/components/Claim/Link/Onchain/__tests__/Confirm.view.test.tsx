@@ -51,9 +51,11 @@ jest.mock('@/hooks/useRecipientDisplay', () => ({ useRecipientDisplay: () => ({ 
 jest.mock('@/hooks/useFriendlyError', () => ({ useFriendlyError: () => (e: unknown) => String(e) }))
 jest.mock('@/services/sendLinks', () => ({ sendLinksApi: { associateClaim: jest.fn() } }))
 jest.mock('@/constants/analytics.consts', () => ({ ANALYTICS_EVENTS: {} }))
-jest.mock('@/config/underMaintenance.config', () => ({
-    __esModule: true,
-    default: { disableXchainSend: false },
+jest.mock('@/features/kill-switches/kill-switches-store', () => {
+    const killSwitches = { disableXchainSend: false }
+    return { getKillSwitches: () => killSwitches, subscribeKillSwitches: () => () => {} }
+})
+jest.mock('@/features/kill-switches/kill-switches.consts', () => ({
     CROSS_CHAIN_DISABLED_MESSAGE: '',
 }))
 jest.mock('@/components/Invites/badge-campaign-context', () => ({ badgeCampaignForLegacyWire: () => null }))

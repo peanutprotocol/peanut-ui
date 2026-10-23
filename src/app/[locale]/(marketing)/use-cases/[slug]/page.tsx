@@ -5,6 +5,7 @@ import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/confi
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import {
+    contentArticleMetadata,
     readPageContentLocalized,
     listPublishedSlugs,
     type ContentFrontmatter,
@@ -71,16 +72,7 @@ export default async function UseCasePage({ params }: PageProps) {
                 { name: i18n.filterUseCases, href: hubHref },
                 { name: mdxSource.frontmatter.title, href: url },
             ]}
-            article={
-                mdxSource.frontmatter.generated_at
-                    ? {
-                          title: mdxSource.frontmatter.title,
-                          description: mdxSource.frontmatter.description,
-                          url,
-                          datePublished: mdxSource.frontmatter.generated_at,
-                      }
-                    : undefined
-            }
+            article={contentArticleMetadata(mdxSource, url)}
         >
             {content}
         </ContentPage>

@@ -17,11 +17,9 @@ const mockConfig = {
     enableMaintenanceBanner: false,
     maintenanceBannerPaths: [] as string[],
 }
-jest.mock('@/config/underMaintenance.config', () => ({
-    __esModule: true,
-    get default() {
-        return mockConfig
-    },
+jest.mock('@/features/kill-switches/kill-switches-store', () => ({
+    getKillSwitches: () => mockConfig,
+    subscribeKillSwitches: () => () => {},
 }))
 
 const renderNavHeader = (title = 'Your card') =>

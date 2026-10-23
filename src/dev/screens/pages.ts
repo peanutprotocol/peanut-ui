@@ -110,7 +110,7 @@ PAGE_CAPTURES.push(
     { id: 'p46-card-signature', name: 'Repair card signature', route: '/fix-card-signature' },
     { id: 'p47-pay-request', name: 'Pay a request', route: '/pay-request?id=synthetic-request' },
     { id: 'p52-kyc-success', name: 'Verification success', route: '/kyc/success' },
-    { id: 'p53-maintenance', name: 'Maintenance', route: '/maintenance' },
+    { id: 'p53-maintenance', name: 'Maintenance', route: '/maintenance', fixture: 'full-maintenance' },
     { id: 'p55-send-recipient', name: 'Send to a recipient', route: '/send/demo' },
     { id: 'p56-request-recipient', name: 'Request from a recipient', route: '/request/demo' },
     { id: 'p57-qr-code', name: 'QR payment — invalid code', route: '/qr/synthetic-invalid' },

@@ -42,6 +42,9 @@ jest.mock('@/context/authContext', () => ({
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
+let mockArt: Record<string, string> = {}
+jest.mock('@/components/Avatar/useAvatarArt', () => ({ useAvatarArt: () => mockArt }))
+
 const onClose = jest.fn()
 
 function renderModal(locale: 'en' | 'pt-BR') {
@@ -80,6 +83,7 @@ function renderLockedModal(code = 'FIRST_INVITE') {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockArt = {}
 })
 
 describe('BadgeDetailDrawer', () => {
@@ -139,5 +143,17 @@ describe('BadgeDetailDrawer', () => {
         renderLockedModal()
 
         expect(screen.queryByText(en.badges.whatYouGet)).not.toBeInTheDocument()
+    })
+
+    // TASK-23547: art the API serves but this bundle predates still counts
+    it('counts avatars only the served art map has', () => {
+        mockArt = {
+            'badge.FIRST_INVITE.owl':
+                'https://api.peanut.me/badges/art/avatar-badge-FIRST_INVITE-owl.0123456789ab.webp',
+        }
+        renderLockedModal()
+
+        expect(screen.getByText(en.badges.whatYouGet)).toBeInTheDocument()
+        expect(screen.getByText('1 profile avatar')).toBeInTheDocument()
     })
 })

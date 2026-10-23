@@ -20,6 +20,7 @@ import {
 } from '@/app/actions/sumsub'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
 
 // Pins the KYC_REJECTED capture + user-store refresh effect: it must be
 // edge-triggered on the status (its other deps churn during resubmit rounds)
@@ -804,5 +805,96 @@ describe('useMultiPhaseKycFlow — the proof of address after the identity', () 
         expect(result.current.modalPhase).toBe('verifying')
         expect(onKycSuccess).not.toHaveBeenCalled()
         expect(mockStartAction).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * Bridge's ToS page can record the signature and then move its own frame away
+ * without reporting it (TASK-23881). The wrapper reports that as `returned`,
+ * and Bridge's answer decides. A manual exit stays on the terms step.
+ */
+describe('useMultiPhaseKycFlow — Bridge ToS page close', () => {
+    const mockGetTosLink = getBridgeTosLink as jest.MockedFunction<typeof getBridgeTosLink>
+    const mockConfirm = confirmBridgeTos as jest.MockedFunction<typeof confirmBridgeTos>
+    const enabledBridgeRail = {
+        capabilities: {
+            rails: [
+                {
+                    provider: 'bridge',
+                    channel: 'bank',
+                    country: 'EU',
+                    currency: 'EUR',
+                    status: 'enabled',
+                    operations: { deposit: 'enabled' },
+                },
+            ],
+            nextActions: [],
+            restrictions: [],
+        },
+    }
+
+    beforeEach(() => {
+        jest.useFakeTimers()
+        jest.clearAllMocks()
+        mockGetTosLink.mockResolvedValue({ data: { tosLink: 'https://compliance.test/tos' } })
+        mockFetchUser.mockResolvedValue(enabledBridgeRail)
+    })
+    afterEach(() => jest.useRealTimers())
+
+    const openTerms = async (onKycSuccess = jest.fn()) => {
+        const hook = renderHook(() => useMultiPhaseKycFlow({ onKycSuccess }))
+        await act(async () => {
+            await hook.result.current.handleAcceptTerms()
+        })
+        return { ...hook, onKycSuccess }
+    }
+    const close = async (
+        result: { current: ReturnType<typeof useMultiPhaseKycFlow> },
+        source: 'manual' | 'returned' | 'tos_accepted'
+    ) => {
+        await act(async () => {
+            const pending = result.current.handleTosIframeClose(source)
+            await jest.runAllTimersAsync()
+            await pending
+        })
+    }
+
+    it('records that the terms page opened', async () => {
+        const { result } = await openTerms()
+        expect(result.current.showTosIframe).toBe(true)
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_TOS_OPENED)
+    })
+
+    it('completes the flow when the page moved away after the user signed', async () => {
+        mockConfirm.mockResolvedValue({ data: { accepted: true } })
+        const { result, onKycSuccess } = await openTerms()
+
+        await close(result, 'returned')
+
+        expect(result.current.showTosIframe).toBe(false)
+        expect(onKycSuccess).toHaveBeenCalled()
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED, { source: 'returned' })
+    })
+
+    it('says why when the page closed by itself without a signature', async () => {
+        mockConfirm.mockResolvedValue({ data: { accepted: false } })
+        const { result, onKycSuccess } = await openTerms()
+
+        await close(result, 'returned')
+
+        expect(result.current.modalPhase).toBe('bridge_tos')
+        expect(result.current.tosError).toMatch(/weren't accepted/)
+        expect(onKycSuccess).not.toHaveBeenCalled()
+    })
+
+    it('leaves a manual exit on the terms step without asking Bridge', async () => {
+        const { result, onKycSuccess } = await openTerms()
+
+        await close(result, 'manual')
+
+        expect(result.current.showTosIframe).toBe(false)
+        expect(result.current.tosError).toBeNull()
+        expect(mockConfirm).not.toHaveBeenCalled()
+        expect(onKycSuccess).not.toHaveBeenCalled()
     })
 })

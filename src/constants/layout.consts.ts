@@ -11,3 +11,7 @@ export const PROSE_WIDTH = 'max-w-[640px]'
 /** Content-hub column. Wider than the prose column because the hub lists rows,
  *  not sentences. Two constants, two roles — they are not interchangeable. */
 export const HUB_WIDTH = 'max-w-[720px]'
+
+/** design.md § layout: one section band step, 24px phone gutter and 64/96
+ *  vertical padding. Shared by the marketing FAQ fold and the star-LP bands. */
+export const MARKETING_BAND_PADDING = 'px-6 py-16 md:px-4 md:py-24'

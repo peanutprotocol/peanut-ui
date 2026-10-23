@@ -3,9 +3,6 @@ import { Button } from '@/components/0_Bruddle/Button'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import handWaving from '@/assets/illustrations/hand-waving.svg'
 import handPeace from '@/assets/illustrations/hand-peace.svg'
-import biometricProtection from '@/assets/illustrations/biometric-protection.svg'
-import selfCustodialDesign from '@/assets/illustrations/self-custodial-design.svg'
-import kycOnlyWhenRequired from '@/assets/illustrations/kyc-only-when-required.svg'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 import type { LandingContentHrefs } from './landingContentHrefs'
@@ -15,7 +12,6 @@ import { CTA_MOTION } from '@/components/Marketing/constants'
 interface Feature {
     id: number
     title: string
-    titleSvg: StaticImageData
     description: string
     iconSrc: StaticImageData
     iconAlt: string
@@ -27,7 +23,6 @@ function buildFeatures(i18n: Translations, contentHrefs: LandingContentHrefs): F
         {
             id: 1,
             title: i18n.landingSecurityTotalTitle,
-            titleSvg: biometricProtection,
             description: i18n.landingSecurityTotalDesc,
             iconSrc: handThumbsUp,
             iconAlt: 'Thumbs up',
@@ -36,7 +31,6 @@ function buildFeatures(i18n: Translations, contentHrefs: LandingContentHrefs): F
         {
             id: 2,
             title: i18n.landingSecurityControlTitle,
-            titleSvg: selfCustodialDesign,
             description: i18n.landingSecurityControlDesc,
             iconSrc: handWaving,
             iconAlt: 'Hand waving',
@@ -45,7 +39,6 @@ function buildFeatures(i18n: Translations, contentHrefs: LandingContentHrefs): F
         {
             id: 3,
             title: i18n.landingSecurityHelpTitle,
-            titleSvg: kycOnlyWhenRequired,
             description: i18n.landingSecurityHelpDesc,
             iconSrc: handPeace,
             iconAlt: 'Peace sign',

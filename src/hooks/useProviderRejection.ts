@@ -1,6 +1,7 @@
 'use client'
 
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { CARD_PROMOTION_DISABLED_FLAG } from '@/constants/card-flags.consts'
+import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
@@ -30,9 +31,10 @@ export function useProviderRejection(onboarding: OnboardingState) {
     // canSpendPathViaCard, not showCardSurface: a prohibited residence with
     // only a pending application keeps the /card surface to watch its status,
     // but a card path would promise a card that cannot issue. The Home
-    // card-prompt kill switch mutes it; /card itself stays available.
+    // card-prompt flag mutes it; /card itself stays available.
     const { canSpendPathViaCard } = useCardSurfaceAccess()
-    const canApplyForCard = underMaintenanceConfig.disableCardPromotion ? false : canSpendPathViaCard
+    const cardPromotionDisabled = useFeatureFlags()(CARD_PROMOTION_DISABLED_FLAG)
+    const canApplyForCard = cardPromotionDisabled ? false : canSpendPathViaCard
 
     // The activation funnel gates deposit/outbound, which routes through bank or
     // qr-only channels — never through card. Top-level status (not per-op

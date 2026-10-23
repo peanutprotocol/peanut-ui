@@ -1,5 +1,6 @@
 import { classifyPasskeySentryEvent, isExpectedPasskeyDeviceEvent } from './src/utils/passkey-sentry-event'
 import { redactQrTelemetry } from './src/utils/qr-telemetry-privacy'
+import { redactLinkSecrets } from './src/utils/link-secret-privacy'
 import { isExpectedCancellation, isExpectedCancellationChain } from './src/utils/expected-exception'
 // Shared Sentry utilities for filtering noise across all configs
 // Used by: sentry.client.config.ts, sentry.edge.config.ts, sentry.server.config.ts
@@ -650,10 +651,18 @@ export function cleanSensitiveHeaders(event: ErrorEvent): void {
 }
 
 /**
+ * QR payloads and send-link secrets out of a Sentry event or transaction: the
+ * request URL, breadcrumbs (navigation, fetch), messages and exception values.
+ */
+export function redactSentryTelemetry<T>(event: T): T {
+    return redactLinkSecrets(redactQrTelemetry(event))
+}
+
+/**
  * Standard beforeSend handler for all Sentry configs
  */
 export function beforeSendHandler(event: ErrorEvent): ErrorEvent | null {
-    redactQrTelemetry(event)
+    redactSentryTelemetry(event)
     if (isExpectedPasskeyDeviceEvent(event) || shouldIgnoreError(event)) {
         return null
     }
@@ -673,5 +682,5 @@ export function beforeSendRouteAwareHandler(event: ErrorEvent): ErrorEvent | nul
 }
 
 export function beforeSendRouteAwareTransaction<T extends RoutableSentryEvent>(event: T): T | null {
-    return isPaymentNetworkSentryEvent(event) ? null : redactQrTelemetry(event)
+    return isPaymentNetworkSentryEvent(event) ? null : redactSentryTelemetry(event)
 }

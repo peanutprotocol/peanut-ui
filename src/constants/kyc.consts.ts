@@ -32,6 +32,13 @@ export const IDENTITY_REGION_RESTRICTED_CODE = 'identity_region_restricted'
 export const IDENTITY_DOCUMENT_MISSING_CODE = 'identity_document_missing'
 
 /**
+ * Reason code of a QR pool rail the backend paused because the identity
+ * evidence behind the approval is gone (peanut-api-ts `QR_IDENTITY_MISSING`,
+ * `SUMSUB_IDENTITY_MISSING` on the rail).
+ */
+export const QR_IDENTITY_MISSING_CODE = 'identity_missing'
+
+/**
  * QR-pay KYC gate states. Relocated here from the (now capability-derived)
  * useQrKycGate hook so the qr-pay page keeps a stable import after that hook is
  * deleted. The gate is now computed inline on the page from useCapabilities().

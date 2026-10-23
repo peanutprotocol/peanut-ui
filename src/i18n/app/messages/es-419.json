@@ -813,15 +813,17 @@
         "signupStep": {
             "usernameLabel": "Usuario",
             "usernamePlaceholder": "batman",
+            "usernameRules": "De 4 a 12 caracteres. Empieza con una letra. Solo letras y números.",
             "inviterUsernameLabel": "Usuario de quien te invitó",
-            "inviterUsernamePlaceholder": "batman",
+            "inviterUsernamePlaceholder": "Usuario de quien invita",
             "inviterNotFound": "No encontramos a este usuario.",
+            "inviterIsSelf": "Ese es tu propio usuario.",
             "inviterCheckFailed": "No pudimos revisar este usuario. Inténtalo de nuevo.",
             "errors": {
                 "required": "El nombre de usuario es obligatorio",
-                "tooShort": "El nombre de usuario debe tener al menos 4 caracteres",
-                "tooLong": "El nombre de usuario debe tener como máximo 12 caracteres",
-                "invalidFormat": "El nombre de usuario solo puede tener letras minúsculas y números, y debe empezar con una letra",
+                "tooShort": "Usa al menos 4 caracteres.",
+                "tooLong": "Usa 12 caracteres o menos.",
+                "invalidFormat": "Empieza con una letra. Usa solo letras y números.",
                 "taken": "Ese nombre de usuario ya está en uso",
                 "invalid": "El nombre de usuario no es válido, usa uno diferente",
                 "checkFailed": "No pudimos verificar la disponibilidad del usuario. Inténtalo de nuevo.",
@@ -946,6 +948,7 @@
             "unsupportedDesktop": "Este navegador no pudo conectarse al servicio de passkeys de tu computadora. Reinicia o actualiza el navegador e inténtalo de nuevo, o inicia sesión desde tu teléfono.",
             "origin": "Las passkeys no están disponibles en esta app por el momento. Actualiza Peanut o contacta a soporte si el problema continúa.",
             "loginError": "No pudimos verificar tu passkey. Inténtalo de nuevo o contacta a soporte si sigue pasando.",
+            "notFound": "Esta app no pudo acceder a tu passkey.",
             "notCompleted": "No se completó la verificación con passkey. Inténtalo de nuevo cuando quieras.",
             "associationUnavailable": "La verificación con passkey no está disponible por el momento. Espera unos segundos e inténtalo de nuevo.",
             "deviceLocked": "Desbloquea el dispositivo e inténtalo de nuevo.",
@@ -960,7 +963,8 @@
                 "noWalletAddress": "No se encontró la dirección de la billetera. Intenta recargar la página.",
                 "userNotLoaded": "Tus datos no se han cargado. Recarga la página.",
                 "setupFailed": "No pudimos completar la configuración de tu cuenta. Inténtalo de nuevo con el botón de abajo.",
-                "supportNeeded": "Estamos teniendo problemas para configurar tu cuenta. Nuestro equipo ya fue notificado. Contacta a soporte para recibir ayuda."
+                "supportNeeded": "Estamos teniendo problemas para configurar tu cuenta. Nuestro equipo ya fue notificado. Contacta a soporte para recibir ayuda.",
+                "passkeyProviderUnsupported": "El gestor de contraseñas de este teléfono guardó una passkey que Peanut no puede verificar. Regístrate en otro dispositivo."
             }
         },
         "finish": {
@@ -1306,10 +1310,9 @@
             "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pide a quien lo envió que lo comparta de nuevo.",
             "requestNotFoundTitle": "Solicitud no encontrada",
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió.",
-            "requestClosedTitle": "Esta solicitud está cerrada"
+            "requestClosedTitle": "Esta solicitud está cerrada",
+            "externalPaymentNotConfirmed": "No se pudo confirmar este pago. Si el dinero salió de tu billetera, contacta a soporte."
         },
-        "requestCurrencyNote": "Esta solicitud pide {amount}. Con Peanut, cripto o una transferencia bancaria en dólares pagas su monto en dólares, que quedó fijado al crear la solicitud.",
-        "requestCurrencyNotePartPaid": "Esta solicitud pide {amount} y faltan {remaining} por pagar. Con Peanut, cripto o una transferencia bancaria en dólares pagas el monto en dólares, que quedó fijado al crear la solicitud.",
         "bankTransfer": {
             "title": "Pagar por transferencia bancaria",
             "description": "Envía desde tu banco a la cuenta de quien te pide el pago.",
@@ -1331,6 +1334,14 @@
         },
         "requestAsksFor": "Se piden {amount}",
         "requestAsksForDollars": "{amount} en dólares, fijado al crear la solicitud",
+        "partialContribution": {
+            "title": "{received} de {asked} recibidos",
+            "description": "Todavía faltan {remaining}. Envíalos a la dirección de abajo."
+        },
+        "confirmingPayment": {
+            "title": "Confirmando pago",
+            "description": "Todavía estamos confirmando tu pago. Puede tardar unos minutos y aparecerá en Actividad. Si no llega, contacta a soporte."
+        },
         "requestAlreadyCovered": "Esta solicitud ya está cubierta. No queda nada por pagar."
     },
     "claim": {
@@ -1470,7 +1481,9 @@
             "fixableDescription": "Necesitamos un documento actualizado para habilitar los pagos con QR. Sube una foto más clara de tu identificación.",
             "restartDescription": "Los pagos con QR necesitan un documento de un país compatible. Puedes verificarte con otra identificación.",
             "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contacta a soporte para recibir ayuda.",
-            "uploadDocument": "Subir documento"
+            "uploadDocument": "Subir documento",
+            "verifyAgainTitle": "Verificar identidad de nuevo",
+            "verifyAgainDescription": "Los pagos con QR están en pausa hasta que vuelvas a verificarte."
         },
         "info": {
             "exchangeRate": "Tipo de cambio",
@@ -1514,6 +1527,7 @@
             "signFailed": "No pudimos confirmar este pago. No se te cobró nada. Inténtalo de nuevo.",
             "preparationFailed": "Algo salió mal. No se te cobró nada. Inténtalo de nuevo.",
             "passkeyBusy": "Ya hay otra confirmación abierta. Ciérrala y toca Pagar de nuevo. No se te cobró nada.",
+            "passkeyRestart": "La última confirmación no terminó de cerrarse. Reinicia la app y toca Pagar de nuevo. No se te cobró nada.",
             "accountStateChanged": "La transacción falló por un cambio de estado de la cuenta. Inténtalo de nuevo. Si el problema persiste, contacta a soporte.",
             "sessionExpired": "La sesión de pago expiró. Escanea el código QR de nuevo.",
             "restartScan": "No pudimos iniciar este pago. Escanea el código QR de nuevo.",
@@ -1856,8 +1870,9 @@
             "navTitle": "Obtener tarjeta",
             "lookingUpTitle": "Buscándote…",
             "lookingUpBody": "Nos estamos ubicando.",
-            "availableTitle": "Ya estás dentro.",
-            "fundingBody": "Necesitas un saldo de al menos $10 en Peanut para obtener tu tarjeta.",
+            "availableTitle": "Ya estás dentro. Falta un paso.",
+            "fundingBody": "Necesitas al menos USD 10 en tu saldo de Peanut para obtener tu tarjeta. La tarjeta es gratis y el dinero sigue siendo tuyo para gastarlo con ella.",
+            "fundedBody": "Tu saldo ya alcanza. Continúa para pedir tu tarjeta.",
             "addFunds": "Agregar dinero",
             "issuedTitle": "Conoce tu tarjeta Peanut.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
@@ -1881,7 +1896,8 @@
             "cryptoDescription": "Deposita desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
             "kycRequired": "Requiere verificación",
-            "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
+            "bankTransferDescription": "Datos bancarios reutilizables para cobrar",
+            "mercadoPagoOrBank": "Mercado Pago o Banco"
         },
         "networkDrawer": {
             "title": "Elegir red",
@@ -1917,6 +1933,7 @@
             "supportedNetworks": "Redes compatibles",
             "supportedTokens": "Tokens compatibles",
             "supportedTokensInline": "Tokens compatibles:",
+            "sendExtraForFees": "Envía un poco más si tu billetera o la red cobra una comisión.",
             "supportedEvmNetworks": "Redes EVM compatibles",
             "evmNetworks": "redes EVM",
             "selectNetworkType": "Selecciona el tipo de red",
@@ -2267,6 +2284,7 @@
         "noGoalSet": "Sin meta definida",
         "amountCollected": "${amount} recaudados",
         "contributors": "Contribuyentes ({count})",
+        "requestedInCurrency": "Se piden {amount}",
         "pendingLinkDeviceNote": "Usa el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
         "type": {
             "send": "Envío",
@@ -2372,6 +2390,7 @@
             "txId": "ID de transacción",
             "fee": "Comisión",
             "bankReceives": "El banco recibe",
+            "recipientReceives": "El destinatario recibe",
             "transferId": "ID de transferencia",
             "senderNote": "Nota del remitente",
             "paymentReference": "Referencia que enviamos",
@@ -2409,6 +2428,12 @@
             "cancelling": "Cancelando",
             "cancelled": "Cancelado",
             "closeRequest": "Cerrar solicitud",
+            "closeRequestConfirm": {
+                "title": "¿Cerrar esta solicitud?",
+                "descriptionUnpaid": "No se pagaron {remaining} de {total}. Nadie podrá pagarlos después de cerrarla.",
+                "description": "Nadie podrá pagar esta solicitud después de cerrarla.",
+                "keepOpen": "Mantener abierta"
+            },
             "cancelRequest": "Cancelar solicitud",
             "pay": "Pagar",
             "rejectRequest": "Rechazar solicitud",
@@ -2637,6 +2662,7 @@
         "iconAlt": "Ícono de {name}",
         "shareAchievement": "Compartir logro",
         "shareText": "¡Gané la insignia {badge} en Peanut!\n\nÚnete a Peanut y empieza a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}",
+        "shareJoin": "Únete a Peanut conmigo: {link}",
         "toastSingle": "Insignia desbloqueada: {name}",
         "toastMultiple": "{count, plural, one {# insignia desbloqueada} other {# insignias desbloqueadas}}",
         "unlock": {
@@ -4147,7 +4173,8 @@
             "goalAchieved": "¡Meta alcanzada!",
             "belowGoal": "{percentage}% por debajo de la meta",
             "contributed": "{amount} aportado",
-            "remaining": "{amount} restante"
+            "remaining": "{amount} restante",
+            "notPaid": "{amount} sin pagar"
         },
         "mantecaMaintenance": {
             "title": "Servicio temporalmente no disponible",
@@ -4295,6 +4322,7 @@
         "xchainPaymentDisabled": "Las transferencias a otras redes están limitadas en tu cuenta. Contacta a soporte para recibir ayuda.",
         "rainInsufficientCollateral": "Tu tarjeta no tiene suficiente colateral para este retiro.",
         "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
+        "providerRejected": "Nuestro socio de pagos no pudo aceptar esta operación para tu cuenta. No se movió dinero. Contacta a soporte.",
         "bankAccountNotUsable": "Esta cuenta bancaria ya no se puede usar. Agrégala de nuevo.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualiza la página e inténtalo de nuevo.",
@@ -4309,7 +4337,8 @@
         "passkeyAssociationMismatch": "Las passkeys no están disponibles en esta app por el momento. Actualiza Peanut o contacta a soporte si el problema continúa.",
         "passkeyDeviceLocked": "Desbloquea el dispositivo e inténtalo de nuevo.",
         "passkeyBiometryRequired": "Usa Face ID o Touch ID para verificar la passkey e inténtalo de nuevo.",
-        "passkeyVerificationIncomplete": "No se completó la verificación con passkey. Inténtalo de nuevo cuando quieras."
+        "passkeyVerificationIncomplete": "No se completó la verificación con passkey. Inténtalo de nuevo cuando quieras.",
+        "passkeyRestartRequired": "La última solicitud de passkey no terminó de cerrarse. Reinicia la app e inténtalo de nuevo."
     },
     "appLock": {
         "title": "¡Hola de nuevo!",

@@ -1,5 +1,7 @@
 /** @jest-environment jsdom */
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { renderWithIntl } from '@/test-utils/intl'
 import { setupScreenIds } from '@/components/Setup/Setup.consts'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -92,12 +94,34 @@ describe('Claim username', () => {
         expect(mockSetScreenId).not.toHaveBeenCalled()
     })
 
-    it('explains a too-short username instead of only marking the field red', async () => {
+    it('shows the username rules before any error, and an error in their place', async () => {
         renderSignup()
+        const rules = '4–12 characters. Start with a letter. Letters and numbers only.'
+        expect(screen.getByText(rules)).toBeInTheDocument()
         fireEvent.change(usernameField(), { target: { value: 'abc' } })
-        expect(await screen.findByText('Username must be at least 4 characters long')).toBeInTheDocument()
+        expect(await screen.findByText('Use at least 4 characters.')).toBeInTheDocument()
+        expect(screen.queryByText(rules)).not.toBeInTheDocument()
         expect(mockApiFetch).not.toHaveBeenCalled()
         expect(claimButton()).toBeDisabled()
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, {
+            error_type: 'too_short',
+            username: 'abc',
+        })
+    })
+
+    it.each([
+        ['waytoolongname', 'Use 12 characters or fewer.', 'too_long'],
+        ['1abc', 'Start with a letter. Use only letters and numbers.', 'format'],
+        ['ab.cd', 'Start with a letter. Use only letters and numbers.', 'format'],
+    ])('explains %s against the same rules and records why', async (value, message, errorType) => {
+        renderSignup()
+        fireEvent.change(usernameField(), { target: { value } })
+        expect(await screen.findByText(message)).toBeInTheDocument()
+        expect(mockApiFetch).not.toHaveBeenCalled()
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, {
+            error_type: errorType,
+            username: value,
+        })
     })
 
     it('keeps Claim disabled for a taken username', async () => {

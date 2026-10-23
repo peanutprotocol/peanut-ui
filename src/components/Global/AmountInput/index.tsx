@@ -39,6 +39,9 @@ interface AmountInputProps {
     balanceFillAmount?: number
     /** Called with the amount actually filled when the balance row is tapped. */
     onBalanceFilled?: (value: string) => void
+    /** Called with the denomination symbol the user types in; a balance fill,
+     *  a currency toggle or an `initialAmount` sync does not call it. */
+    onAmountTyped?: (denomination: string) => void
     hideCurrencyToggle?: boolean
     hideBalance?: boolean
     infoContent?: React.ReactNode
@@ -67,6 +70,7 @@ const AmountInput = ({
     walletBalance,
     balanceFillAmount,
     onBalanceFilled,
+    onAmountTyped,
     hideCurrencyToggle,
     hideBalance,
     infoContent,
@@ -103,6 +107,9 @@ const AmountInput = ({
 
     // Track when user is actively editing to prevent feedback loops from initialAmount sync
     const isEditingRef = useRef(false)
+    // The suggestion's own state, see the suggestion effect below
+    const lastSuggestionRef = useRef<string | null>(null)
+    const suggestionArmedRef = useRef(false)
 
     // A positive conversion can display as zero at the currency precision.
     const hasValue = exactValue > 0
@@ -249,6 +256,7 @@ const AmountInput = ({
                     true
                 )
                 if (formattedAmount) {
+                    suggestionArmedRef.current = false
                     setDisplayValue(formattedAmount)
                     setExactValue(Number(formattedAmount) * 10 ** DECIMAL_SCALE)
                 }
@@ -257,15 +265,34 @@ const AmountInput = ({
         [maxAmount, amountCollected, denominations, displaySymbol]
     )
 
-    // Sync default slider suggested amount to the input
+    // The suggestion fills the field only while the field holds nothing of the
+    // payer's: it is empty and untouched, or it still shows the last suggestion
+    // and nobody typed, slid or filled it (isEditingRef), or the payer emptied
+    // it (suggestionArmedRef). An amount the field mounted with is the payer's
+    // too: a flow passes it back as initialAmount when the view remounts. The
+    // suggestion used to overwrite whatever was there, so a typed $33.05 became
+    // a $58.51 charge once the remainder moved (TASK-23856).
+    //
+    // Empty means no text at all: a typed "0." holds no value but is the
+    // payer's. The armed ref is separate from isEditingRef on purpose: clearing
+    // isEditingRef would re-arm the initialAmount sync that the currency toggle
+    // keeps off.
+    // Keyed on the suggestion alone: the field state it reads must not re-run
+    // it on every keystroke.
     useEffect(() => {
-        if (defaultSliderSuggestedAmount) {
-            const formattedAmount = formatTokenAmount(defaultSliderSuggestedAmount.toString(), 2)
-            if (formattedAmount) {
-                setDisplayValue(formattedAmount)
-                setExactValue(Number(formattedAmount) * 10 ** DECIMAL_SCALE)
-            }
+        if (!defaultSliderSuggestedAmount) return
+        const isUntouchedEmpty = displayValue === '' && !isEditingRef.current
+        const holdsOnlySuggestion = !isEditingRef.current && displayValue === lastSuggestionRef.current
+        if (!isUntouchedEmpty && !holdsOnlySuggestion && !suggestionArmedRef.current) return
+        const formattedAmount = formatTokenAmount(defaultSliderSuggestedAmount.toString(), 2)
+        if (formattedAmount) {
+            // an emptied field takes this one suggestion; typing again owns it
+            suggestionArmedRef.current = false
+            lastSuggestionRef.current = formattedAmount
+            setDisplayValue(formattedAmount)
+            setExactValue(Number(formattedAmount) * 10 ** DECIMAL_SCALE)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [defaultSliderSuggestedAmount])
 
     // What tapping the balance row fills in, or undefined when the row stays
@@ -294,6 +321,7 @@ const AmountInput = ({
     const fillBalance = useCallback(() => {
         if (!fillValue) return
         isEditingRef.current = true
+        suggestionArmedRef.current = false
         setDisplayValue(fillValue)
         setExactValue(Number(fillValue) * 10 ** DECIMAL_SCALE)
         // Reported separately from setPrimaryAmount, which cannot tell a filled
@@ -359,6 +387,9 @@ const AmountInput = ({
                                     value = formattedAmount
                                 }
                                 if (value === displayValue) return
+                                onAmountTyped?.(displaySymbol)
+                                // a payer who emptied the field takes the next suggestion
+                                suggestionArmedRef.current = value === ''
                                 setDisplayValue(value)
                                 setExactValue(Number(value) * 10 ** DECIMAL_SCALE)
                             }}

@@ -6,6 +6,7 @@ import AddressLink from '@/components/Global/AddressLink'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import ConfirmWithdrawView from '@/features/withdraw/views/ConfirmWithdrawView'
 import InitialWithdrawView from '@/features/withdraw/views/InitialWithdrawView'
+import ScannedDestinationPayView from '@/features/withdraw/views/ScannedDestinationPayView'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
@@ -74,6 +75,7 @@ export default function WithdrawCryptoPage() {
         setIsPreparingReview,
         paymentError,
         setPaymentError,
+        error: withdrawError,
         setError: setWithdrawError,
         chargeDetails,
         setChargeDetails,
@@ -84,7 +86,17 @@ export default function WithdrawCryptoPage() {
         setRecipient,
         setIsValidRecipient,
         recipient,
+        scannedRecipient,
+        setScannedRecipient,
     } = useWithdrawFlow()
+
+    // A scanned destination opens on the pay screen (address, amount and
+    // pickers together) instead of the destination form and the amount step.
+    // Only while the flow still holds the recipient: a refresh loses both and
+    // falls back to the form. A scanned ENS name that misses on a newly picked
+    // network keeps its name and loses its address, so the name keeps the
+    // screen and the user picks another network there.
+    const scannedEntry = recipient.address || recipient.name ? scannedRecipient : null
 
     // the one typed amount (USD), carried in the URL from the shared amount step
     const [amountToWithdraw, setAmountToWithdraw] = useWithdrawAmount()
@@ -774,10 +786,11 @@ export default function WithdrawCryptoPage() {
 
     const handleBackFromConfirm = useCallback(() => {
         abandonDraft()
-        void stepper.goTo('amount')
+        // the pay screen holds the amount itself; a scan has no amount step to go back to
+        void stepper.goTo(scannedEntry ? 'recipient' : 'amount')
         clearErrors()
         setChargeDetails(null)
-    }, [stepper, clearErrors, setChargeDetails, abandonDraft])
+    }, [stepper, scannedEntry, clearErrors, setChargeDetails, abandonDraft])
 
     // Clear crypto-TRANSIENT flow memory when this page unmounts (charge,
     // route, recipient, token selection) — on unmount rather than in the
@@ -798,6 +811,7 @@ export default function WithdrawCryptoPage() {
             setPaymentDetails(null)
             setRecipient({ address: '', name: '' })
             setIsValidRecipient(false)
+            setScannedRecipient(null)
             setPaymentError(null)
             setWithdrawError({ showError: false, errorMessage: '' })
             setShowCompatibilityModal(false)
@@ -812,6 +826,7 @@ export default function WithdrawCryptoPage() {
         setPaymentDetails,
         setRecipient,
         setIsValidRecipient,
+        setScannedRecipient,
         setPaymentError,
         setWithdrawError,
         setShowCompatibilityModal,
@@ -907,9 +922,49 @@ export default function WithdrawCryptoPage() {
                   : t('errors.invalidAmount')
             : ''
 
+    // the amount field, on the amount step and on the pay screen alike
+    const amountField = {
+        initialAmount: amountToWithdraw,
+        walletBalance: spendableBalance === undefined ? '' : formattedSpendableBalance,
+        balanceFillAmount: Number(formatUnits(spendableBalance ?? 0n, PEANUT_WALLET_TOKEN_DECIMALS)),
+        onBalanceFilled: (value: string) => {
+            filledFromBalance.current = value
+            setIsMaxWithdrawal(true)
+        },
+        onAmountChange: (value: string | undefined) => {
+            if (value !== filledFromBalance.current) {
+                filledFromBalance.current = null
+                setIsMaxWithdrawal(false)
+            }
+            void setAmountToWithdraw(value || null)
+            clearErrors()
+        },
+    }
+
     return (
         <div className="mx-auto flex min-h-inherit w-full max-w-md flex-col gap-4 self-center">
-            {stepper.step === 'recipient' && (
+            {stepper.step === 'recipient' && scannedEntry && (
+                <ScannedDestinationPayView
+                    addressFamily={scannedEntry.addressFamily}
+                    {...amountField}
+                    onBack={onBack}
+                    onContinue={(data) => {
+                        setDestination(data)
+                        clearErrors()
+                        void handleSetupReview(data)
+                    }}
+                    continueDisabled={!amountCheck.ok || isPreparingReview}
+                    isLoading={isPreparingReview}
+                    amountError={amountError || undefined}
+                    // the flow error carries the ENS re-resolution miss; paymentError the preparation failures
+                    error={{
+                        showError: !!paymentError || withdrawError.showError,
+                        errorMessage: paymentError || withdrawError.errorMessage,
+                    }}
+                />
+            )}
+
+            {stepper.step === 'recipient' && !scannedEntry && (
                 <InitialWithdrawView
                     onContinue={(data) => {
                         setDestination(data)
@@ -926,21 +981,7 @@ export default function WithdrawCryptoPage() {
                 <WithdrawAmountView
                     pageTitle={isFromSendFlow ? tNav('send') : tNav('withdraw')}
                     heading={isFromSendFlow ? t('amountToSend') : t('amountToWithdraw')}
-                    initialAmount={amountToWithdraw}
-                    walletBalance={spendableBalance === undefined ? '' : formattedSpendableBalance}
-                    balanceFillAmount={Number(formatUnits(spendableBalance ?? 0n, PEANUT_WALLET_TOKEN_DECIMALS))}
-                    onBalanceFilled={(value) => {
-                        filledFromBalance.current = value
-                        setIsMaxWithdrawal(true)
-                    }}
-                    onAmountChange={(value) => {
-                        if (value !== filledFromBalance.current) {
-                            filledFromBalance.current = null
-                            setIsMaxWithdrawal(false)
-                        }
-                        void setAmountToWithdraw(value || null)
-                        clearErrors()
-                    }}
+                    {...amountField}
                     onBack={() => {
                         abandonDraft()
                         setChargeDetails(null)
@@ -1007,6 +1048,9 @@ export default function WithdrawCryptoPage() {
                         // Only the title needs the send framing.
                         isWithdrawFlow={true}
                         isFromSendFlow={isFromSendFlow}
+                        // the quote the review screen showed, read as an estimate
+                        // until the history entry states the settled fee
+                        quotedNetworkFeeUsd={isCrossChainWithdrawal ? networkFee : undefined}
                         redirectTo="/home"
                         chargeDetails={chargeDetails}
                         paymentDetails={paymentDetails}

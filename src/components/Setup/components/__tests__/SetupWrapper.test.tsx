@@ -435,6 +435,42 @@ describe('SetupWrapper transitions', () => {
         expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-enter-x', '-30%')
     })
 
+    // An accepted inviter drops the step behind the current one, so the same screen gets a
+    // lower index. Reading that as a Back flipped the slide mid-transition, and the
+    // outgoing screen then never left the page.
+    it('keeps the slide direction when the list changes under the current screen', () => {
+        mockReducedMotion.value = false
+        const renderFees = (step: number) => (
+            <SetupWrapper
+                layoutType="signup"
+                screenId="advantage-fees"
+                step={step}
+                direction={1}
+                image={{ pose: 'pointing' }}
+                title="Euros? Dollars? Pesos? Yes."
+            >
+                <div>Fees</div>
+            </SetupWrapper>
+        )
+        const { rerender } = renderWithIntl(
+            <SetupWrapper
+                layoutType="signup"
+                screenId="invite"
+                step={2}
+                direction={1}
+                image={{ pose: 'waving-chill' }}
+                title="Invited by a friend?"
+            >
+                <div>Invite</div>
+            </SetupWrapper>
+        )
+        rerender(renderFees(3))
+        rerender(renderFees(2))
+
+        expect(screen.getByText('Fees').closest('[data-exit-x]')).toHaveAttribute('data-exit-x', '-100%')
+        expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-exit-x', '-30%')
+    })
+
     it('uses an instant transition for reduced motion', () => {
         mockReducedMotion.value = true
         renderWrapper({ image: { pose: 'thinking' } })

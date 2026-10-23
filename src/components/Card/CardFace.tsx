@@ -7,8 +7,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import Badge from '@/components/Global/Badges/Badge'
 import CopyToClipboard, { type CopyToClipboardRef } from '@/components/Global/CopyToClipboard'
 import { PEANUT_CARD_HAND, VISA_BRAND_MARK } from '@/assets/cards'
-import { PEANUTMAN } from '@/assets/mascot'
-import { PEANUT_LOGO_BLACK } from '@/assets/logos'
+import { LOGO, WORDMARK } from '@/assets/brand'
 
 export interface RevealedCardDetails {
     pan: string
@@ -117,14 +116,14 @@ const CardFace: FC<Props> = ({
             <div className="relative flex h-full w-full flex-col p-4">
                 {/* Top row: peanut mascot + wordmark (left) + Visa Platinum (right).
                  * Matches the finalised Rain card art (Apple Wallet): yellow mascot +
-                 * black PEANUT wordmark (PEANUT_LOGO_BLACK is the text-only black
-                 * variant; PEANUT_LOGO bakes in a white wordmark for dark bgs) and a
+                 * black PEANUT wordmark (WORDMARK from @/assets/brand is the text-only
+                 * black master; the footer tints it white with CSS invert) and a
                  * dark VISA with a "Platinum" tier line — not the old inverted-white
                  * Visa with no tier. */}
                 <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                        <Image src={PEANUTMAN} alt="" aria-hidden className="h-8 w-auto" />
-                        <Image src={PEANUT_LOGO_BLACK} alt="Peanut" className="h-3 w-auto" />
+                        <Image src={LOGO} alt="" aria-hidden className="h-8 w-auto" />
+                        <Image src={WORDMARK} alt="Peanut" className="h-3 w-auto" />
                     </div>
                     <div className="flex flex-col items-end leading-none">
                         <Image src={VISA_BRAND_MARK} alt="Visa" className="h-6 w-auto brightness-0" />
