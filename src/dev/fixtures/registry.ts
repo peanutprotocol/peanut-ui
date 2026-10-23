@@ -973,6 +973,62 @@ const PROFILE_ACCOUNTS_MIX = {
     },
 }
 
+/**
+ * An unverified Bangladesh resident who picked bank accounts. Every Bridge
+ * corridor waits on the ID, and the Smart Paperwork Engine (api#1931) refuses
+ * USD to the residence: Bridge publishes no USD rail for Bangladesh.
+ */
+const PAPERWORK_BANGLADESH_RESPONSE = {
+    'GET /users/me': {
+        capabilities: BLOCKED_BANK_CAPABILITIES,
+        depositAccounts: { enabled: true },
+        residence: { declared: 'BD', verified: null, pending: null, declaredSecond: null },
+    },
+    'GET /users/deposit-accounts': {
+        depositAccounts: [],
+        claimable: [],
+        unavailable: [
+            {
+                railId: 'bridge.sepa_eu',
+                method: 'SEPA_EU',
+                country: 'EU',
+                currency: 'EUR',
+                reason: 'identity-required',
+            },
+            {
+                railId: 'bridge.faster_payments_gb',
+                method: 'FASTER_PAYMENTS_GB',
+                country: 'GB',
+                currency: 'GBP',
+                reason: 'identity-required',
+            },
+            { railId: 'bridge.ach_us', method: 'ACH_US', country: 'US', currency: 'USD', reason: 'identity-required' },
+            {
+                railId: 'bridge.spei_mx',
+                method: 'SPEI_MX',
+                country: 'MX',
+                currency: 'MXN',
+                reason: 'identity-required',
+            },
+        ],
+    },
+    'GET /users/kyc/paperwork': {
+        products: [
+            {
+                product: 'bridge.usd',
+                provider: 'BRIDGE',
+                available: false,
+                reason: 'account_unavailable_in_residence',
+                rule: 'bridge.no-usd',
+            },
+            { product: 'bridge.eur', provider: 'BRIDGE', available: true },
+            { product: 'bridge.gbp', provider: 'BRIDGE', available: true },
+            { product: 'bridge.mxn', provider: 'BRIDGE', available: true },
+        ],
+        requirements: [],
+    },
+}
+
 /** A $250 request, as the payer settles it in dollars and by euro bank transfer. */
 const REQUEST_PAY_USD = { amount: '250.00', currency: 'USD', isEstimate: false }
 const REQUEST_PAY_EUR = {
@@ -2347,6 +2403,16 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /users/deposit-accounts': { depositAccounts: [] },
             'GET /users/me': { capabilities: BLOCKED_BANK_CAPABILITIES },
         },
+    },
+    'get-paid-usd-closed-bangladesh': {
+        route: '/add-money?method=bank',
+        about: 'An unverified Bangladesh resident: the paperwork engine refuses USD, so USD reads Not available while EUR, GBP and MXN still ask for the ID.',
+        responses: PAPERWORK_BANGLADESH_RESPONSE,
+    },
+    'get-paid-usd-closed-bangladesh-claim': {
+        route: '/add-money?method=bank&step=claim&corridor=ACH_US',
+        about: 'A link straight to the USD claim for a Bangladesh resident: the drawer says USD is not available where they live, with no ID check offered.',
+        responses: PAPERWORK_BANGLADESH_RESPONSE,
     },
     'get-paid-claim': {
         route: '/add-money?method=bank&step=claim&corridor=ACH_US',

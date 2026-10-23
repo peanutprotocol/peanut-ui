@@ -307,15 +307,22 @@ export function DepositAccountsFlow({
     // is the one that clears it; its identity words would tell a verified user
     // to verify.
     const reviewWaitsOnUser = unavailable?.[corridor]?.cause === 'review-action'
-    const gateNotice = withheldAction
-        ? { kind: gate.kind, message: rawGateNotice?.message ?? null, action: withheldAction }
-        : rawGateNotice?.action === 'verify' && reviewWaitsOnUser
-          ? { ...rawGateNotice, action: 'provider-review' as const }
-          : rawGateNotice?.action === 'account-limit' && slotsHeld === 0
-            ? { ...rawGateNotice, action: 'support' as const }
-            : rawGateNotice?.action === 'finish-review' && !canFinishReview
-              ? { ...rawGateNotice, action: 'finish-review-support' as const }
-              : rawGateNotice
+    // A residence the provider does not serve for this account: no verification
+    // or review opens it, so the drawer states it and closes. The gate's own
+    // residence notice keeps its words (the UK rule has its own).
+    const residenceRestricted =
+        unavailable?.[corridor]?.cause === 'residence-restricted' && rawGateNotice?.action !== 'residence-restricted'
+    const gateNotice = residenceRestricted
+        ? { kind: gate.kind, message: null, action: 'residence-restricted' as const }
+        : withheldAction
+          ? { kind: gate.kind, message: rawGateNotice?.message ?? null, action: withheldAction }
+          : rawGateNotice?.action === 'verify' && reviewWaitsOnUser
+            ? { ...rawGateNotice, action: 'provider-review' as const }
+            : rawGateNotice?.action === 'account-limit' && slotsHeld === 0
+              ? { ...rawGateNotice, action: 'support' as const }
+              : rawGateNotice?.action === 'finish-review' && !canFinishReview
+                ? { ...rawGateNotice, action: 'finish-review-support' as const }
+                : rawGateNotice
     // The gate belongs to this corridor only while the user cannot open it. The
     // drawer stays mounted after it closes (`?step=list`, same corridor), so
     // it slides out instead of vanishing.

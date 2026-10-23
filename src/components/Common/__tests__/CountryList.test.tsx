@@ -120,6 +120,24 @@ describe('CountryList — enforceSupportedCountries (send->bank flow)', () => {
     })
 })
 
+describe('CountryList — the tapped row', () => {
+    const renderList = (onCountryClick: () => void | boolean) =>
+        render(<CountryList inputTitle="How?" viewMode="add-withdraw" flow="add" onCountryClick={onCountryClick} />)
+
+    it('waits while the tap navigates away', () => {
+        renderList(() => true)
+        fireEvent.click(row('Germany'))
+        expect(row('Germany')).toHaveAttribute('aria-disabled', 'true')
+    })
+
+    // a gate drawer over the list: nothing is coming, so the row stays usable
+    it('stays usable when the tap answered in place', () => {
+        renderList(() => false)
+        fireEvent.click(row('Germany'))
+        expect(row('Germany')).not.toHaveAttribute('aria-disabled', 'true')
+    })
+})
+
 describe('CountryList — which country comes first', () => {
     const renderList = () =>
         render(<CountryList inputTitle="How?" viewMode="add-withdraw" flow="withdraw" onCountryClick={jest.fn()} />)

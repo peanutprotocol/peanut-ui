@@ -23,6 +23,7 @@ import {
     isClaimable,
     railIdFor,
 } from './rails'
+import { withPaperworkRefusals } from './paperwork'
 import { holdsSlot } from './resolveScreen'
 import type {
     ClaimableCorridor,
@@ -31,6 +32,7 @@ import type {
     DepositAccountView,
     DepositCorridor,
 } from './types'
+import { usePaperworkClosures } from './usePaperworkClosures'
 
 export const DEPOSIT_ACCOUNTS_QUERY_KEY = ['deposit-accounts'] as const
 
@@ -133,6 +135,7 @@ export function useDepositAccounts({
     const { userId } = useAuth()
     const queryClient = useQueryClient()
     const { gateFor, rails, isLoading: capabilitiesLoading } = useCapabilities()
+    const paperwork = usePaperworkClosures({ enabled })
     const [claimingCorridor, setClaimingCorridor] = useState<DepositCorridor | undefined>()
     const [claimError, setClaimError] = useState<DepositClaimError | undefined>()
 
@@ -252,7 +255,7 @@ export function useDepositAccounts({
         [query.data]
     )
 
-    const claimable = useMemo((): Record<DepositCorridor, ClaimableCorridor | undefined> => {
+    const offeredClaimable = useMemo((): Record<DepositCorridor, ClaimableCorridor | undefined> => {
         const byCorridor = emptyCorridorRecord<ClaimableCorridor>()
         for (const corridorTerms of query.data?.claimable ?? []) {
             const corridor = corridorFromRailId(corridorTerms.railId)
@@ -271,7 +274,7 @@ export function useDepositAccounts({
      * about — the provider read failed — so it is absent here too and the rows
      * keep the gate's own answer.
      */
-    const unavailable = useMemo((): Record<DepositCorridor, UnavailableCorridor | undefined> => {
+    const withheldUnavailable = useMemo((): Record<DepositCorridor, UnavailableCorridor | undefined> => {
         const byCorridor = emptyCorridorRecord<UnavailableCorridor>()
         for (const withheld of query.data?.unavailable ?? []) {
             const corridor = corridorFromRailId(withheld.railId)
@@ -279,6 +282,32 @@ export function useDepositAccounts({
         }
         return byCorridor
     }, [query.data])
+
+    const gates = useMemo((): Record<DepositCorridor, GateState> => {
+        const out = {} as Record<DepositCorridor, GateState>
+        for (const corridor of DEPOSIT_RAIL_ORDER) {
+            // railId, not { channel: 'bank' }: a channel-wide gate answers
+            // "ready" as soon as ANY bank rail is enabled, so one working
+            // Manteca rail was unlocking four Bridge corridors the user has no
+            // rail for at all. A corridor with no rail in the capability block
+            // resolves to needs-identity / needs-enrollment, which is the
+            // honest answer.
+            out[corridor] = gateFor('deposit', { railId: railIdFor(corridor) })
+        }
+        return out
+    }, [gateFor])
+
+    // The engine's per-account refusals win over an offer: a residence the
+    // provider will not serve must not be offered the account, or a
+    // verification that can never open it.
+    const { claimable, unavailable } = useMemo(
+        () =>
+            withPaperworkRefusals(
+                { accounts, claimable: offeredClaimable, unavailable: withheldUnavailable, gates },
+                paperwork.closed
+            ),
+        [accounts, offeredClaimable, withheldUnavailable, gates, paperwork.closed]
+    )
 
     /**
      * The rows this user gets: their own rails, plus any corridor they already
@@ -319,20 +348,6 @@ export function useDepositAccounts({
         [enabled, rails, accounts, query.data, gateFor, claimable, unavailable]
     )
 
-    const gates = useMemo((): Record<DepositCorridor, GateState> => {
-        const out = {} as Record<DepositCorridor, GateState>
-        for (const corridor of DEPOSIT_RAIL_ORDER) {
-            // railId, not { channel: 'bank' }: a channel-wide gate answers
-            // "ready" as soon as ANY bank rail is enabled, so one working
-            // Manteca rail was unlocking four Bridge corridors the user has no
-            // rail for at all. A corridor with no rail in the capability block
-            // resolves to needs-identity / needs-enrollment, which is the
-            // honest answer.
-            out[corridor] = gateFor('deposit', { railId: railIdFor(corridor) })
-        }
-        return out
-    }, [gateFor])
-
     // A review that has come back is worth one event, on the transition alone:
     // the preview repeats the same answer on every poll afterwards.
     const pendingReviews = useRef<Set<DepositCorridor>>(new Set())
@@ -358,7 +373,7 @@ export function useDepositAccounts({
         accountLimit: query.data?.accountLimit,
         gates,
         // a flow that is not asking for accounts is never waiting for them
-        isLoading: enabled && (!userId || query.isLoading || capabilitiesLoading),
+        isLoading: enabled && (!userId || query.isLoading || capabilitiesLoading || paperwork.isLoading),
         isError: query.isError,
         claimingCorridor,
         claimError,

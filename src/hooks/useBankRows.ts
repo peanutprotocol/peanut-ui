@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/context/authContext'
+import { usePaperworkClosures } from '@/features/deposit-accounts/usePaperworkClosures'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
@@ -78,6 +79,7 @@ export function useBankRows() {
     const { user } = useAuth()
     const bankChipFor = useBankChipFor()
     const restrictions = useResidenceRestrictions()
+    const { closed: paperworkClosed } = usePaperworkClosures()
 
     // Server copy first; the localStorage mirror of the signup answer covers
     // reloads before /users/me returns it (or an API without the fields yet).
@@ -119,8 +121,9 @@ export function useBankRows() {
             residenceIso2,
             secondResidenceIso2,
             isEuropeResidence: isEuropeIso2(residenceIso2) || isEuropeIso2(secondResidenceIso2),
+            paperworkClosed,
         }),
-        [bankChipFor, restrictions, residenceIso2, secondResidenceIso2]
+        [bankChipFor, restrictions, residenceIso2, secondResidenceIso2, paperworkClosed]
     )
     const rows = useMemo(() => buildBankRows(input), [input])
 

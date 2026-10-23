@@ -274,6 +274,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/avatars/art": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Avatar art urls
+         * @description Maps each avatar key to its art url on the badge art route. Empty when no art bucket is configured.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/badge/award": {
         parameters: {
             query?: never;
@@ -521,6 +562,56 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/badges/art/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Redirect to badge art
+         * @description Redirects to the badge art file in the configured bucket. Unknown names get 404.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    file: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Redirect; the Location header holds the bucket url */
+                302: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2008,6 +2099,50 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/config/kill-switches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            disableXchainSend?: boolean;
+                            disableXchainWithdraw?: boolean;
+                            disabledMantecaCurrencies?: string[];
+                            disabledPaymentProviders?: string[];
+                            enableFullMaintenance?: boolean;
+                            enableMaintenanceBanner?: boolean;
+                            maintenanceBannerPaths?: string[];
+                            pixBrazilOnrampMaintenance?: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4170,81 +4305,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/dev/cheats/sweep-perk-to-kernel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        /** @description 6-decimal USDC base units; defaults to entire EOA balance */
-                        amount?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            eoaAddress: string;
-                            kernelAddress: string;
-                            /** @enum {boolean} */
-                            ok: true;
-                            txHash: string;
-                            usdcSwept: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            /** @enum {boolean} */
-                            ok: false;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            /** @enum {boolean} */
-                            ok: false;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/dev/cheats/userid-by-username": {
         parameters: {
             query?: never;
@@ -4828,8 +4888,9 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        harnessLabel?: string;
-                        scenario: "send-link-pending" | "send-link-claimed" | "request-pot-open" | "kyc-matrix" | "user-with-bank-accounts" | "withdraw-ready" | "manteca-qr-payment" | "multi-user-send" | "points-and-perks";
+                        /** @description false skips the harness-wallet top-up of a funded persona. Default true. */
+                        fund?: boolean;
+                        persona: "verified-ar" | "verified-ar-funded" | "verified-us" | "verified-us-funded" | "alice-ar-verified" | "bob-us-verified" | "carol-us-unverified" | "diana-us-kyc-recently-approved" | "eve-us-kyc-long-approved";
                     };
                 };
             };
@@ -4841,19 +4902,12 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            data: unknown;
-                            scenario: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
+                            jwt: string;
+                            persona: string;
+                            signerPk?: string;
+                            userId: string;
+                            username: string | null;
+                            walletAddr: string;
                         };
                     };
                 };
@@ -11569,6 +11623,8 @@ export interface paths {
                             /** @enum {string} */
                             code: "STEP_UP_REQUIRED";
                             error: string;
+                        } | {
+                            error: string;
                         };
                     };
                 };
@@ -12662,6 +12718,8 @@ export interface paths {
                             /** @enum {string} */
                             code: "STEP_UP_REQUIRED";
                             error: string;
+                        } | {
+                            error: string;
                         };
                     };
                 };
@@ -13598,7 +13656,7 @@ export interface paths {
                         "application/json": {
                             products: {
                                 available: boolean;
-                                product: "bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "rain.card" | "manteca.local" | "manteca.qr";
+                                product: "bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "bridge.brl" | "rain.card" | "manteca.local" | "manteca.qr";
                                 provider: "BRIDGE" | "RAIN" | "MANTECA";
                                 reason?: string;
                                 rule?: string;
@@ -13607,7 +13665,7 @@ export interface paths {
                                 collect: "before_identity" | "after_identity" | "when_asked";
                                 item: "residential_address" | "phone" | "tax_id" | "country_of_birth" | "city_of_birth" | "nationality" | "account_purpose" | "employment_status" | "occupation" | "source_of_funds" | "expected_monthly_payments" | "acting_as_intermediary" | "card_purpose" | "annual_salary" | "expected_monthly_spend" | "sex" | "marital_status" | "pep" | "fatca" | "fep" | "proof_of_address" | "source_of_funds_document";
                                 kind: "question" | "document";
-                                products: ("bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "rain.card" | "manteca.local" | "manteca.qr")[];
+                                products: ("bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "bridge.brl" | "rain.card" | "manteca.local" | "manteca.qr")[];
                                 requiredBy: ("BRIDGE" | "RAIN" | "MANTECA")[];
                                 rules: string[];
                             }[];
@@ -13708,10 +13766,6 @@ export interface paths {
                             policyVersion: string | null;
                             proofOfAddress: "suggested" | null;
                             proofOfAddressIdCountries: string[];
-                            temporaryProtection: {
-                                countries: string[];
-                                until: string;
-                            } | null;
                             routes: {
                                 documents: {
                                     /** @enum {string} */
@@ -13723,6 +13777,10 @@ export interface paths {
                                 }[];
                                 id: string;
                             }[];
+                            temporaryProtection: {
+                                countries: string[];
+                                until: string;
+                            } | null;
                         };
                     };
                 };

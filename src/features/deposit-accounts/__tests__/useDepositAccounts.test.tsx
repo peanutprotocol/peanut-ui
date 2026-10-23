@@ -22,6 +22,11 @@ jest.mock('@/services/deposit-accounts', () => ({
     claimDepositAccount: (...args: unknown[]) => claimDepositAccount(...args),
 }))
 
+const fetchKycPaperwork = jest.fn()
+jest.mock('@/services/kyc-paperwork', () => ({
+    fetchKycPaperwork: (...args: unknown[]) => fetchKycPaperwork(...args),
+}))
+
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 // the capability block, expressed the way the gate is actually asked: one
@@ -70,9 +75,84 @@ beforeEach(() => {
     mockUserId = 'user-a'
     gatesByRailId = {}
     userRails = [bankRail('bridge.sepa_eu', 'SEPA_EU'), bankRail('bridge.ach_us', 'ACH_US')]
+    fetchKycPaperwork.mockResolvedValue({ products: [], requirements: [] })
 })
 
 describe('useDepositAccounts', () => {
+    /**
+     * Bridge refused USD to 79 of 85 Bangladesh residents. The engine
+     * (`GET /users/kyc/paperwork`) says so before the user verifies, so the
+     * USD corridor is never offered: not as a claim, not as "verify to open".
+     */
+    describe('with the paperwork engine', () => {
+        const identityRequired = (railId: string, method: string, currency: string) => ({
+            railId,
+            method,
+            country: 'US',
+            currency,
+            reason: 'identity-required',
+        })
+        const bangladesh = {
+            products: [
+                {
+                    product: 'bridge.usd',
+                    provider: 'BRIDGE',
+                    available: false,
+                    reason: 'account_unavailable_in_residence',
+                    rule: 'bridge.no-usd',
+                },
+                { product: 'bridge.eur', provider: 'BRIDGE', available: true },
+            ],
+            requirements: [],
+        }
+
+        beforeEach(() => {
+            fetchDepositAccounts.mockResolvedValue({
+                accounts: [],
+                claimable: [{ ...CLAIMABLE_USD_PREVIEW, railId: 'bridge.ach_us', method: 'ACH_US' }],
+                unavailable: [identityRequired('bridge.sepa_eu', 'SEPA_EU', 'EUR')],
+            })
+        })
+
+        it('never offers a Bangladesh resident a USD account', async () => {
+            fetchKycPaperwork.mockResolvedValue(bangladesh)
+
+            const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+            await waitFor(() => expect(result.current.isLoading).toBe(false))
+            expect(result.current.claimable.ACH_US).toBeUndefined()
+            expect(result.current.unavailable.ACH_US).toMatchObject({
+                reason: 'not-offered',
+                cause: 'residence-restricted',
+            })
+            expect(result.current.corridors).toContain('ACH_US')
+            expect(result.current.unavailable.SEPA_EU?.reason).toBe('identity-required')
+        })
+
+        it('waits for the engine before it lists anything', async () => {
+            let answer: (value: unknown) => void = () => {}
+            fetchKycPaperwork.mockReturnValue(new Promise((resolve) => (answer = resolve)))
+
+            const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+            await waitFor(() => expect(fetchDepositAccounts).toHaveBeenCalled())
+            expect(result.current.isLoading).toBe(true)
+            await act(async () => answer(bangladesh))
+            await waitFor(() => expect(result.current.isLoading).toBe(false))
+            expect(result.current.claimable.ACH_US).toBeUndefined()
+        })
+
+        // the claim route still refuses on the server; the app keeps the backend's answer
+        it('keeps the backend answers when the engine cannot be read', async () => {
+            fetchKycPaperwork.mockRejectedValue(new Error('404'))
+
+            const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+            await waitFor(() => expect(result.current.isLoading).toBe(false))
+            expect(result.current.claimable.ACH_US).toBeDefined()
+        })
+    })
+
     /**
      * The corridor rows used to come from a local table, so every user read an
      * unavailable ARS row. They come from the user's own rails now.
