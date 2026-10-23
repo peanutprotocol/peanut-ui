@@ -3657,26 +3657,23 @@
                 "rateLimited": "Muitas tentativas. Espere um minuto e tente de novo."
             },
             "midpoint": {
-                "title": "A parte difícil já foi",
-                "description": "Último passo: fotos do seu documento e uma selfie rápida. Escolha o documento que você vai usar.",
                 "restartTitle": "Verifique com outro documento",
                 "restartDescription": "Escolha o documento que você vai usar agora. Depois tire fotos dele e uma selfie rápida.",
                 "document": "Tipo de documento",
                 "issuedBy": "País de emissão",
-                "cta": "Continuar para a verificação",
                 "privacy": "A Sumsub cuida dos seus documentos com segurança.",
                 "failed": "Não conseguimos iniciar a verificação. Tente de novo.",
                 "unavailable": "Não conseguimos mostrar os documentos agora. Tente mais tarde.",
-                "proofOfAddress": "Comprovante de endereço",
-                "proofOfAddressWhen": "Adicionado depois da verificação",
-                "proofOfAddressBody": "Para contas bancárias, documentos deste país também pedem uma conta ou um extrato recente com seu endereço.",
-                "proofOfAddressPermit": "Uma permissão de residência do país onde você mora não precisa.",
                 "temporaryProtectionNote": "O documento que você recebeu como pessoa deslocada da Ucrânia. Um certificado em papel serve; fotografe a página com seus dados."
             },
             "review": {
-                "title": "Estamos verificando seu documento",
-                "description": "A verificação costuma levar alguns minutos. Se uma pessoa precisar analisar, leva de 1 a 3 dias úteis. Vamos avisar você.",
-                "cta": "Ir para o início"
+                "title": "Verificando seu documento",
+                "description": "A verificação costuma levar alguns minutos. Se uma pessoa precisar revisar, leva de 1 a 3 dias úteis. Você pode sair desta tela, e avisaremos quando terminar.",
+                "cta": "Ir para o início",
+                "photos": "Fotos recebidas",
+                "reading": "Lendo seu documento e sua selfie",
+                "settingUp": "Configurando {features}",
+                "unlocking": "Desbloqueando pagamentos"
             },
             "failed": {
                 "title": "Precisamos ver seu documento de novo",
@@ -3685,9 +3682,10 @@
                 "retry": "Tentar de novo"
             },
             "verified": {
-                "title": "Seu documento de identidade está verificado",
-                "description": "Estamos configurando suas contas. Avisaremos quando estiverem prontas.",
-                "cta": "Ir para o início"
+                "title": "Sua identidade está confirmada!",
+                "description": "Estamos configurando {features}. Costuma levar alguns minutos, e avisaremos quando tudo estiver pronto.",
+                "cta": "Ir para o início",
+                "descriptionQrOnly": "Você já pode começar a usar o Peanut."
             },
             "poa": {
                 "title": "Adicione um comprovante de endereço",
@@ -3739,7 +3737,43 @@
                 "inCountry": "Lugares em {country}. Um nome que não está na lista também vale.",
                 "done": "Concluído"
             },
-            "continueWithoutLocal": "Continuar sem transferências bancárias locais"
+            "continueWithoutLocal": "Continuar sem transferências bancárias locais",
+            "steps": {
+                "title": "Alguns passos para\nverificar sua identidade",
+                "residence": "Defina seu país de residência",
+                "questions": "Responda algumas perguntas",
+                "photo": "Tire uma foto do seu documento",
+                "selfie": "Tire uma selfie rápida",
+                "review": "Passe por uma revisão segura",
+                "unlock": "Desbloqueie os pagamentos disponíveis",
+                "done": "Concluído"
+            },
+            "saved": {
+                "title": "Respostas salvas!",
+                "description": "Agora, uma foto do seu documento e uma selfie rápida."
+            },
+            "featureNames": {
+                "bank": "contas bancárias",
+                "card": "cartão",
+                "local": "transferências locais"
+            },
+            "documentList": {
+                "title": "Qual documento\nvocê vai usar?",
+                "description": "Escolha um para começar a verificação. Você vai tirar fotos dele e uma selfie.",
+                "issuedBy": "Emitido por {country}",
+                "issuedByWithProof": "Emitido por {country}. Você também vai enviar um comprovante de endereço.",
+                "other": "Outro documento",
+                "otherHint": "Como uma carteira de habilitação",
+                "otherTitle": "Outros documentos",
+                "otherDescription": "Você também pode se verificar com um destes. Você vai tirar fotos dele e uma selfie.",
+                "otherNotAccepted": "Vistos, autorizações de trabalho e carteiras de estudante não servem para verificar sua identidade.",
+                "anotherCountry": "Um documento de outro país",
+                "anotherCountryHint": "Escolha o documento e depois o país que o emitiu.",
+                "backToList": "Voltar à lista",
+                "noneFit": "Não tem nenhum destes?",
+                "changeResidence": "Alterar residência",
+                "stepDots": "Verificar identidade, passo 1 de 3"
+            }
         }
     },
     "identity": {

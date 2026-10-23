@@ -17,6 +17,11 @@ import { IdentityRestartFlow } from '../IdentityRestartFlow'
 
 const mockPush = jest.fn()
 const mockReplace = jest.fn()
+jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn() } }))
+jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
+jest.mock('@/features/paperwork-verification/components/IdCardScanAnimation', () => ({
+    IdCardScanAnimation: () => null,
+}))
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, replace: mockReplace, back: jest.fn(), prefetch: jest.fn() }),
 }))
@@ -115,7 +120,7 @@ describe('IdentityRestartFlow', () => {
     it('restarts on the picked ID, opens Sumsub on the returned session, then shows the review', async () => {
         renderFlow()
         expect(await screen.findByText('Verify with a different document')).toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('verify-id-continue'))
+        fireEvent.click(screen.getByTestId('verify-id-option-PASSPORT-PT'))
 
         await waitFor(() => expect(screen.getByTestId('sumsub')).toBeInTheDocument())
         expect(mockReplacement).toHaveBeenCalledWith({
@@ -130,13 +135,13 @@ describe('IdentityRestartFlow', () => {
         expect(sdk).toHaveAttribute('data-document', JSON.stringify({ country: 'PRT', idDocType: 'PASSPORT' }))
 
         fireEvent.click(screen.getByText('sumsub-submit'))
-        expect(await screen.findByText('We’re checking your ID')).toBeInTheDocument()
+        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
         expect(screen.queryByTestId('sumsub')).toBeNull()
     })
 
     it('refreshes the token through the replaced attempt', async () => {
         renderFlow()
-        fireEvent.click(await screen.findByTestId('verify-id-continue'))
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-PT'))
         await screen.findByTestId('sumsub')
         await act(async () => {
             await expect(mockSdk.refresh?.()).resolves.toBe('token-2')
@@ -148,9 +153,8 @@ describe('IdentityRestartFlow', () => {
     it('sends a temporary protection document as the residence permit Sumsub verifies', async () => {
         mockPlan.mockResolvedValue({ ...plan, temporaryProtection: { countries: ['PT'], until: '2028-03-04' } })
         renderFlow()
-        fireEvent.click(await screen.findByTestId('verify-id-type'))
-        fireEvent.click(screen.getByLabelText('Temporary protection (Ukraine)'))
-        fireEvent.click(screen.getByTestId('verify-id-continue'))
+        fireEvent.click(await screen.findByTestId('verify-id-other'))
+        fireEvent.click(screen.getByTestId('verify-id-option-TEMPORARY_PROTECTION-PT'))
         await waitFor(() => expect(mockReplacement).toHaveBeenCalled())
         expect(mockReplacement.mock.calls[0][0].documents).toEqual([
             { key: 'identity', type: 'RESIDENCE_PERMIT', issuingCountry: 'PT' },
@@ -160,12 +164,12 @@ describe('IdentityRestartFlow', () => {
     it('shows the API’s message on the ID screen, keeps the user there, and retries on a new request key', async () => {
         mockReplacement.mockResolvedValueOnce({ kind: 'failed', error: 'Your ID is still being checked.' })
         renderFlow()
-        fireEvent.click(await screen.findByTestId('verify-id-continue'))
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-PT'))
         expect(await screen.findByTestId('verify-id-error')).toHaveTextContent('Your ID is still being checked.')
-        expect(screen.getByTestId('verify-id-continue')).toBeEnabled()
+        expect(screen.getByTestId('verify-id-option-PASSPORT-PT')).not.toHaveAttribute('aria-disabled')
         expect(screen.queryByTestId('sumsub')).toBeNull()
 
-        fireEvent.click(screen.getByTestId('verify-id-continue'))
+        fireEvent.click(screen.getByTestId('verify-id-option-PASSPORT-PT'))
         await screen.findByTestId('sumsub')
         const [first, second] = mockReplacement.mock.calls.map(([choices]) => choices.requestKey)
         expect(second).not.toBe(first)
@@ -178,7 +182,7 @@ describe('IdentityRestartFlow', () => {
             code: 'restart_failed',
         })
         renderFlow()
-        fireEvent.click(await screen.findByTestId('verify-id-continue'))
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-PT'))
         expect(await screen.findByTestId('verify-id-error')).toHaveTextContent(
             'Could not restart identity verification. Please try again.'
         )
@@ -191,7 +195,7 @@ describe('IdentityRestartFlow', () => {
             cooldown: { retryAt: '2026-10-24T10:00:00.000Z' },
         })
         renderFlow()
-        fireEvent.click(await screen.findByTestId('verify-id-continue'))
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-PT'))
         expect(await screen.findByTestId('verify-id-error')).toHaveTextContent(
             /Verification attempts are temporarily limited. You can try again after Oct 24/
         )
@@ -208,7 +212,7 @@ describe('IdentityRestartFlow', () => {
         mockPlan.mockRejectedValueOnce(new Error('KYC request failed'))
         renderFlow()
         fireEvent.click(await screen.findByTestId('verify-retry-load'))
-        expect(await screen.findByTestId('verify-id-continue')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-id')).toBeInTheDocument()
         expect(captured(ANALYTICS_EVENTS.KYC_PV_LOAD_FAILED)).toEqual([
             expect.objectContaining({ flow: 'paperwork_verification', restart: true }),
         ])
@@ -216,7 +220,7 @@ describe('IdentityRestartFlow', () => {
 
     it('tracks the ID screen and its outcome as a restart, without the picked values', async () => {
         renderFlow()
-        fireEvent.click(await screen.findByTestId('verify-id-continue'))
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-PT'))
         await screen.findByTestId('sumsub')
         expect(captured(ANALYTICS_EVENTS.KYC_PV_ID_VIEWED)).toEqual([expect.objectContaining({ restart: true })])
         expect(captured(ANALYTICS_EVENTS.KYC_PV_ID_SUBMITTED)).toEqual([expect.objectContaining({ restart: true })])

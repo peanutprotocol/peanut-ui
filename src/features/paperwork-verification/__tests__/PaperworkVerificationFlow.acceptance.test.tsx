@@ -15,6 +15,11 @@ import { PaperworkVerificationFlow } from '../PaperworkVerificationFlow'
 const mockPush = jest.fn()
 const mockReplace = jest.fn()
 const mockExit = jest.fn()
+jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn() } }))
+jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
+jest.mock('@/features/paperwork-verification/components/IdCardScanAnimation', () => ({
+    IdCardScanAnimation: () => null,
+}))
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, replace: mockReplace, back: jest.fn(), prefetch: jest.fn() }),
 }))
@@ -142,6 +147,12 @@ function renderFlow(search = '') {
     )
 }
 
+async function startFlow(search = '') {
+    const view = renderFlow(search)
+    fireEvent.click(await screen.findByTestId('verify-steps-continue'))
+    return view
+}
+
 const continueButton = () => screen.getByTestId('verify-continue')
 
 const mockStartAction = jest.fn()
@@ -175,7 +186,7 @@ describe('canonical identity recovery acceptance', () => {
         jest.useFakeTimers()
         mockStatus.mockResolvedValue('PENDING')
         renderFlow()
-        expect(await screen.findByText('We’re checking your ID')).toBeInTheDocument()
+        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
         const readsBeforePoll = mockStatus.mock.calls.length
         await act(async () => {
             jest.advanceTimersByTime(30_000)
@@ -210,7 +221,7 @@ describe('canonical identity recovery acceptance', () => {
         mockToken.mockResolvedValue({ kind: 'document-required' } as never)
         renderFlow()
         fireEvent.click(await screen.findByRole('button', { name: /try again/i }))
-        expect(await screen.findByTestId('verify-id-continue')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-id')).toBeInTheDocument()
         expect(screen.queryByText('sumsub-submit')).not.toBeInTheDocument()
     })
 
@@ -249,7 +260,7 @@ describe('US person local-transfer opt-out acceptance', () => {
         })
         mockSave.mockResolvedValue({ kind: 'invalid', errors: { isFatca: 'us_citizen_not_supported' } })
         jest.mocked(savePaperworkVerificationFeatures).mockResolvedValue({ kind: 'saved' })
-        renderFlow()
+        await startFlow()
         await screen.findByTestId('verify-toggle-isFatca')
         fireEvent.click(continueButton())
         const optOut = await screen.findByRole('button', { name: /continue without local bank transfers/i })
@@ -270,7 +281,7 @@ describe('form protocol failure copy acceptance', () => {
         '%s retains answers and explains a form or request issue instead of claiming a network error',
         async (code) => {
             mockSave.mockResolvedValue({ kind: 'blocked', code } as never)
-            renderFlow()
+            await startFlow()
             await screen.findByTestId('verify-pick-annualSalary')
             fireEvent.click(continueButton())
             const error = await screen.findByTestId('verify-form-error')

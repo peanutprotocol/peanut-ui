@@ -15,6 +15,11 @@ import { PaperworkVerificationFlow } from '../PaperworkVerificationFlow'
 const mockPush = jest.fn()
 const mockReplace = jest.fn()
 const mockExit = jest.fn()
+jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn() } }))
+jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
+jest.mock('@/features/paperwork-verification/components/IdCardScanAnimation', () => ({
+    IdCardScanAnimation: () => null,
+}))
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, replace: mockReplace, back: jest.fn(), prefetch: jest.fn() }),
 }))
@@ -125,6 +130,13 @@ function renderFlow(search = '') {
     )
 }
 
+/** A visit with questions or the ID ahead opens on the steps overview; Continue goes on to the open step. */
+async function startFlow(search = '') {
+    const view = renderFlow(search)
+    fireEvent.click(await screen.findByTestId('verify-steps-continue'))
+    return view
+}
+
 const continueButton = () => screen.getByTestId('verify-continue')
 
 const mockStartAction = jest.fn()
@@ -180,13 +192,70 @@ const withAddressAndPhone = (addressAnswered: boolean): PaperworkVerificationQue
     }
 }
 
+describe('PaperworkVerificationFlow: the steps overview', () => {
+    it('opens on the steps, with the questions as the current step, and Continue resumes the open question', async () => {
+        mockQuestions.mockResolvedValue(build({ purpose: false }, 'purpose'))
+        renderFlow()
+        const steps = await screen.findByTestId('verify-steps')
+        expect(screen.getByText(/A few steps to/)).toBeInTheDocument()
+        expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent('Answer a few questions')
+        expect(screen.getByText('Unlock eligible payments')).toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('verify-steps-continue'))
+        expect(await screen.findByRole('progressbar', { name: 'Step 2 of 5' })).toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('verify-back'))
+        expect(await screen.findByTestId('verify-steps')).toBeInTheDocument()
+        expect(mockExit).not.toHaveBeenCalled()
+    })
+
+    it('with every answer saved, the ID photo is the current step and Continue opens the document choice', async () => {
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        renderFlow()
+        const steps = await screen.findByTestId('verify-steps')
+        expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent('Take a photo of your ID')
+        fireEvent.click(screen.getByTestId('verify-steps-continue'))
+        expect(await screen.findByTestId('verify-id')).toBeInTheDocument()
+    })
+
+    it('Back from the steps leaves the flow', async () => {
+        renderFlow()
+        await screen.findByTestId('verify-steps')
+        fireEvent.click(screen.getByTestId('verify-back'))
+        expect(mockExit).toHaveBeenCalled()
+    })
+
+    it('a deep link to a step skips the overview', async () => {
+        renderFlow('?step=tax')
+        expect(await screen.findByText('What’s your Social Security number?')).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-steps')).not.toBeInTheDocument()
+    })
+
+    it('the last answer celebrates before the document choice, and Back from the ID skips the celebration', async () => {
+        mockSave
+            .mockResolvedValueOnce({ kind: 'saved', next: 'tax' })
+            .mockResolvedValueOnce({ kind: 'saved', next: null })
+        await startFlow()
+        await screen.findByTestId('verify-pick-annualSalary')
+        fireEvent.click(continueButton())
+        fireEvent.change(await screen.findByTestId('verify-input-taxId'), { target: { value: '412550198' } })
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        fireEvent.click(continueButton())
+        expect(await screen.findByText('Answers saved!')).toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('verify-saved-continue'))
+        await screen.findByTestId('verify-id')
+        // Let the URL write for the ID screen land before Back writes the next one.
+        await act(async () => new Promise((resolve) => setTimeout(resolve, 100)))
+        fireEvent.click(screen.getByTestId('verify-back'))
+        expect(await screen.findByText('What’s your Social Security number?')).toBeInTheDocument()
+    })
+})
+
 describe('PaperworkVerificationFlow: the phone', () => {
     it('shares the address screen when both are asked, saves both in order and counts as one step', async () => {
         mockQuestions.mockResolvedValue(withAddressAndPhone(false))
         mockSave
             .mockResolvedValueOnce({ kind: 'saved', next: 'phone' })
             .mockResolvedValueOnce({ kind: 'saved', next: 'tax' })
-        renderFlow()
+        await startFlow()
         expect(await screen.findByText('Where do you live?')).toBeInTheDocument()
         expect(screen.getByRole('progressbar', { name: 'Step 4 of 6' })).toBeInTheDocument()
         expect(screen.getByText('For card security. We won’t send you codes.')).toBeInTheDocument()
@@ -206,7 +275,7 @@ describe('PaperworkVerificationFlow: the phone', () => {
 
     it('asked later on its own, keeps its own screen with the no-spam promise', async () => {
         mockQuestions.mockResolvedValue(withAddressAndPhone(true))
-        renderFlow()
+        await startFlow()
         expect(await screen.findByText('What’s your phone number?')).toBeInTheDocument()
         expect(screen.getByText('Your card partner uses it to keep your card secure.')).toBeInTheDocument()
         expect(screen.getByTestId('verify-phone-no-spam')).toHaveTextContent('No spam')
@@ -216,7 +285,7 @@ describe('PaperworkVerificationFlow: the phone', () => {
 
 describe('PaperworkVerificationFlow', () => {
     it('resumes at the first unanswered step the server names (app killed mid-way)', async () => {
-        renderFlow()
+        await startFlow()
         expect(await screen.findByRole('progressbar', { name: 'Step 3 of 5' })).toBeInTheDocument()
         expect(screen.getByTestId('verify-pick-annualSalary')).toHaveTextContent('$25,000–$49,999')
     })
@@ -224,7 +293,7 @@ describe('PaperworkVerificationFlow', () => {
     it('Continue saves the step once even on a double tap, then moves to the next open step', async () => {
         let release: (value: { kind: 'saved'; next: 'tax' }) => void = () => {}
         mockSave.mockImplementation(() => new Promise((resolve) => (release = resolve)))
-        renderFlow()
+        await startFlow()
         await screen.findByTestId('verify-pick-annualSalary')
         fireEvent.click(continueButton())
         fireEvent.click(continueButton())
@@ -236,7 +305,7 @@ describe('PaperworkVerificationFlow', () => {
 
     it('Back shows the previous step with its saved values', async () => {
         mockSave.mockResolvedValue({ kind: 'saved', next: 'tax' })
-        renderFlow()
+        await startFlow()
         await screen.findByTestId('verify-pick-annualSalary')
         fireEvent.click(continueButton())
         await screen.findByText('What’s your Social Security number?')
@@ -247,7 +316,7 @@ describe('PaperworkVerificationFlow', () => {
     it('shows the server’s field error inline and stays on the step', async () => {
         mockQuestions.mockResolvedValue(build({ money: true }, 'tax'))
         mockSave.mockResolvedValue({ kind: 'invalid', errors: { taxId: 'itin_not_accepted' } })
-        renderFlow()
+        await startFlow()
         const input = await screen.findByTestId('verify-input-taxId')
         fireEvent.change(input, { target: { value: '812701234' } })
         expect(input).toHaveValue('812-70-1234')
@@ -258,7 +327,7 @@ describe('PaperworkVerificationFlow', () => {
 
     it('flags an ITIN as it is typed', async () => {
         mockQuestions.mockResolvedValue(build({ money: true }, 'tax'))
-        renderFlow()
+        await startFlow()
         fireEvent.change(await screen.findByTestId('verify-input-taxId'), { target: { value: '912701234' } })
         expect(screen.getByText('That’s an ITIN. Enter your Social Security number.')).toBeInTheDocument()
         expect(continueButton()).toBeDisabled()
@@ -268,7 +337,7 @@ describe('PaperworkVerificationFlow', () => {
         const setItem = jest.spyOn(Storage.prototype, 'setItem')
         mockQuestions.mockResolvedValue(build({ money: true }, 'tax'))
         mockSave.mockResolvedValueOnce({ kind: 'retry' })
-        renderFlow()
+        await startFlow()
         fireEvent.change(await screen.findByTestId('verify-input-taxId'), { target: { value: '412550198' } })
         fireEvent.click(continueButton())
         expect(await screen.findByTestId('verify-form-error')).toHaveTextContent('We couldn’t save that.')
@@ -278,7 +347,9 @@ describe('PaperworkVerificationFlow', () => {
         mockSave.mockResolvedValueOnce({ kind: 'saved', next: null })
         mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         fireEvent.click(continueButton())
-        expect(await screen.findByText('That’s the hard part done')).toBeInTheDocument()
+        expect(await screen.findByText('Answers saved!')).toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('verify-saved-continue'))
+        expect(await screen.findByText(/Which document/)).toBeInTheDocument()
         setItem.mockRestore()
     })
 
@@ -297,29 +368,29 @@ describe('PaperworkVerificationFlow', () => {
                 },
             } as never,
         })
-        renderFlow()
-        fireEvent.click(await screen.findByTestId('verify-id-continue'))
+        await startFlow()
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
         expect(mockToken).toHaveBeenCalledWith('attempt-1', { type: 'PASSPORT', issuingCountry: 'US' })
         fireEvent.click(await screen.findByText('sumsub-submit'))
-        expect(await screen.findByText('We’re checking your ID')).toBeInTheDocument()
+        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
     })
 
     it('a token refused for missing answers goes back to that step', async () => {
         mockQuestions.mockResolvedValueOnce(build({ money: true, tax: true }, null))
         mockToken.mockResolvedValue({ kind: 'questions-missing', step: 'money' })
-        renderFlow()
+        await startFlow()
         mockQuestions.mockResolvedValue(build({ tax: true }, 'money'))
-        fireEvent.click(await screen.findByTestId('verify-id-continue'))
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
         expect(await screen.findByTestId('verify-pick-annualSalary')).toBeInTheDocument()
     })
 
     it('an ID already submitted elsewhere reloads into the review', async () => {
         mockSave.mockResolvedValue({ kind: 'conflict', code: 'identity_submitted' })
-        renderFlow()
+        await startFlow()
         await screen.findByTestId('verify-pick-annualSalary')
         mockStatus.mockResolvedValue('IN_REVIEW')
         fireEvent.click(continueButton())
-        expect(await screen.findByText('We’re checking your ID')).toBeInTheDocument()
+        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
     })
 
     it('a card + bank user picks one job, from one list, shown by its label', async () => {
@@ -340,7 +411,7 @@ describe('PaperworkVerificationFlow', () => {
         })
         questions.firstUnanswered = 'work'
         mockQuestions.mockResolvedValue(questions)
-        renderFlow()
+        await startFlow()
         await waitFor(() =>
             expect(screen.getByTestId('verify-pick-occupation')).toHaveTextContent('Software developer, applications')
         )
@@ -349,7 +420,7 @@ describe('PaperworkVerificationFlow', () => {
 
     it('an answer refused because the user already has today’s verification sends them Home', async () => {
         mockSave.mockResolvedValue({ kind: 'conflict', code: 'existing_verification' })
-        renderFlow()
+        await startFlow()
         await screen.findByTestId('verify-pick-annualSalary')
         fireEvent.click(continueButton())
         await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
@@ -361,10 +432,10 @@ describe('PaperworkVerificationFlow', () => {
         await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
     })
 
-    it('an approved user lands on "Your ID is verified", or on the proof-of-address suggestion', async () => {
+    it('an approved user lands on "Your ID is confirmed!", or on the proof-of-address suggestion', async () => {
         mockStatus.mockResolvedValue('APPROVED')
         const { unmount } = renderFlow()
-        expect(await screen.findByText('Your ID is verified')).toBeInTheDocument()
+        expect(await screen.findByText('Your ID is confirmed!')).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-verified-home'))
         expect(mockPush).toHaveBeenCalledWith('/home')
         unmount()
@@ -382,7 +453,7 @@ describe('PaperworkVerificationFlow', () => {
         expect(mockStartAction).toHaveBeenCalledWith('supplement:bridge')
         fireEvent.click(screen.getByTestId('verify-poa-skip'))
         expect(skipProofOfAddress).toHaveBeenCalledTimes(1)
-        expect(await screen.findByText('Your ID is verified')).toBeInTheDocument()
+        expect(await screen.findByText('Your ID is confirmed!')).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
     })
 })

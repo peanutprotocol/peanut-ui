@@ -27,6 +27,10 @@ export function phoneJoinsAddress(questions: PaperworkVerificationQuestions): bo
     return !!address && !!phone && address.answered === phone.answered
 }
 
+/** The citizenship the questions asked (Bridge's EEA nationality), saved or not; null when they did not ask. */
+export const citizenshipOf = (questions: PaperworkVerificationQuestions): string | null =>
+    questions.steps.flatMap((s) => s.fields).find((f) => f.key === 'nationality')?.value ?? null
+
 /** The steps that get a screen of their own, in the server's order. */
 export const screenIds = (
     questions: PaperworkVerificationQuestions,
@@ -130,7 +134,7 @@ export function formatTaxId(format: PaperworkVerificationTaxFormat | undefined, 
 export const looksLikeItin = (format: PaperworkVerificationTaxFormat | undefined, value: string) =>
     format === 'ssn' && /^9\d{8}$/.test(value.replace(/\D/g, ''))
 
-export type VerifyPhase = 'id' | 'review' | 'verified' | 'address-proof'
+export type VerifyPhase = 'saved' | 'id' | 'review' | 'verified' | 'address-proof'
 export type VerifyStep = PaperworkVerificationStepId | VerifyPhase
 
 export const IN_REVIEW_STATUSES = new Set<string>(['PENDING', 'IN_REVIEW', 'REVERIFYING'])

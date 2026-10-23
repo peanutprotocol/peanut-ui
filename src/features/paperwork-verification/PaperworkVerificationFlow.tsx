@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryState } from 'nuqs'
 import { useLocale, useTranslations } from 'next-intl'
 import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -28,7 +29,13 @@ import { localizedCountryName } from '@/utils/country-name.utils'
 import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
 import { QuestionStepScreen } from './components/QuestionStepScreen'
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
-import { ProofOfAddressScreen, ReviewScreen, VerifiedScreen } from './components/StatusScreens'
+import {
+    ProofOfAddressScreen,
+    ReviewScreen,
+    SavedScreen,
+    StepsScreen,
+    VerifiedScreen,
+} from './components/StatusScreens'
 import {
     trackPaperworkVerification,
     PaperworkVerificationTrackingProvider,
@@ -36,6 +43,7 @@ import {
 } from './analytics'
 import { usePaperworkVerificationIdentity } from './usePaperworkVerificationIdentity'
 import {
+    citizenshipOf,
     entryStep,
     FAILED_STATUSES,
     IN_REVIEW_STATUSES,
@@ -69,6 +77,8 @@ export function PaperworkVerificationFlow() {
         kind: 'loading',
     })
     const [generation, setGeneration] = useState(0)
+    // The steps overview opens a visit once; a reload mid-flow goes straight back to the open step.
+    const introShown = useRef(false)
     // A load must not re-run because the router object changed identity.
     const routerRef = useRef(router)
     routerRef.current = router
@@ -103,10 +113,18 @@ export function PaperworkVerificationFlow() {
 
     if (state.kind === 'loading') return <VerifyLoading />
     if (state.kind === 'failed') return <LoadFailed onRetry={() => void load()} onHome={() => router.push('/home')} />
-    return <PaperworkVerificationSteps key={generation} initial={state} reload={load} />
+    return <PaperworkVerificationSteps key={generation} initial={state} reload={load} introShown={introShown} />
 }
 
-function PaperworkVerificationSteps({ initial, reload }: { initial: Loaded; reload: () => Promise<void> }) {
+function PaperworkVerificationSteps({
+    initial,
+    reload,
+    introShown,
+}: {
+    initial: Loaded
+    reload: () => Promise<void>
+    introShown: React.MutableRefObject<boolean>
+}) {
     const t = useTranslations('kyc.paperworkVerification')
     const locale = useLocale()
     const router = useRouter()
@@ -125,7 +143,7 @@ function PaperworkVerificationSteps({ initial, reload }: { initial: Loaded; relo
 
     const questionIds = useMemo(() => screenIds(questions, phoneJoined), [questions, phoneJoined])
     const steps = useMemo<VerifyStep[]>(
-        () => [...questionIds, 'id', 'review', 'verified', 'address-proof'],
+        () => [...questionIds, 'saved', 'id', 'review', 'verified', 'address-proof'],
         [questionIds]
     )
     const allAnswered = questions.steps.every((s) => s.answered)
@@ -135,21 +153,35 @@ function PaperworkVerificationSteps({ initial, reload }: { initial: Loaded; relo
     const asking = !approved && !reviewing && !failed
     const entry = screenOf(entryStep({ questions, plan, status }, submitted))
 
+    // A visit that still has questions or the ID ahead opens on the steps overview, in front
+    // of the open step; a deep link to a step skips it.
+    const [stepParam] = useQueryState('step')
+    const [intro, setIntro] = useState(() => asking && !introShown.current && !stepParam)
+    const showIntro = intro && asking
+    // While asking, the clean URL keeps meaning the step this visit opened on, so moving on to
+    // a step that has since become the entry (the ID, once every answer is in) still writes it.
+    const [openedOn] = useState(entry)
     const stepper = useFlowStepper<VerifyStep>({
         steps,
-        defaultStep: entry,
+        defaultStep: asking ? openedOn : entry,
         guards: {
             ...Object.fromEntries(questionIds.map((id) => [id, { ok: asking }])),
+            saved: { ok: asking && allAnswered },
             id: { ok: asking && (allAnswered || documentRequired) },
             review: { ok: reviewing || failed },
             verified: { ok: approved },
             'address-proof': { ok: approved && plan?.proofOfAddress === 'suggested' },
         },
+        // Back from the ID skips the saved celebration.
         backMap: questionIds.length ? { id: questionIds[questionIds.length - 1] } : undefined,
-        onExit: exit,
+        // Back from the first screen returns to the overview, when this visit showed it.
+        onExit: () => (asking && introShown.current ? setIntro(true) : exit()),
     })
     const step = stepper.step
     const goToStep = stepper.goTo
+    useEffect(() => {
+        if (showIntro) introShown.current = true
+    }, [showIntro, introShown])
 
     const afterSave = async (
         saved: PaperworkVerificationStepId[],
@@ -172,9 +204,9 @@ function PaperworkVerificationSteps({ initial, reload }: { initial: Loaded; relo
             const fresh = await getKycQuestions()
             setQuestions(fresh)
             const open = resumeStep(fresh)
-            void stepper.goTo(open ? screenOf(open) : 'id')
+            void stepper.goTo(open ? screenOf(open) : 'saved')
         } catch {
-            void stepper.goTo('id')
+            void stepper.goTo('saved')
         }
     }
 
@@ -289,6 +321,11 @@ function PaperworkVerificationSteps({ initial, reload }: { initial: Loaded; relo
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
     useEffect(() => {
+        if (showIntro) track(ANALYTICS_EVENTS.KYC_PV_STEPS_VIEWED, { question_screens: questionIds.length })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showIntro])
+    useEffect(() => {
+        if (step === 'saved') track(ANALYTICS_EVENTS.KYC_PV_SAVED_VIEWED)
         if (step === 'review') track(ANALYTICS_EVENTS.KYC_PV_REVIEW_VIEWED, { status: status ?? null })
         if (step === 'verified') track(ANALYTICS_EVENTS.KYC_PV_VERIFIED_VIEWED)
         if (step === 'address-proof') track(ANALYTICS_EVENTS.KYC_PV_POA_VIEWED)
@@ -307,7 +344,21 @@ function PaperworkVerificationSteps({ initial, reload }: { initial: Loaded; relo
     const current = questions.steps.find((s) => s.id === step)
     const phone = questions.steps.find((s) => s.id === 'phone')
     let screen: React.ReactNode = null
-    if (current) {
+    if (showIntro) {
+        screen = (
+            <StepsScreen
+                hasQuestions={questionIds.length > 0}
+                questionsDone={allAnswered}
+                onBack={exit}
+                onContinue={() => {
+                    track(ANALYTICS_EVENTS.KYC_PV_STEPS_CONTINUED, { next: step })
+                    setIntro(false)
+                }}
+            />
+        )
+    } else if (step === 'saved') {
+        screen = <SavedScreen onContinue={() => void stepper.goTo('id')} />
+    } else if (current) {
         const shown = phoneJoined && current.id === 'address' && phone ? [current, phone] : [current]
         screen = (
             <QuestionStepScreen
@@ -332,22 +383,27 @@ function PaperworkVerificationSteps({ initial, reload }: { initial: Loaded; relo
             />
         )
     } else if (step === 'id') {
-        const total = questionIds.length + 2
         screen = (
             <IdentityDocumentScreen
                 plan={plan}
                 residence={questions.residence}
-                progress={{ current: total, total }}
+                citizenship={citizenshipOf(questions)}
                 busy={identity.busy}
                 error={idError}
                 onBack={() => void stepper.back()}
                 onContinue={(document) => void startIdentity(document)}
+                onChangeResidence={() => {
+                    track(ANALYTICS_EVENTS.KYC_PV_RESIDENCE_CHANGE_OPENED, { step: 'id' })
+                    setResidenceMounted(true)
+                    setResidenceOpen(true)
+                }}
             />
         )
     } else if (step === 'review') {
         screen = (
             <ReviewScreen
                 failed={failed}
+                features={plan?.features}
                 onHome={goHome}
                 onRetry={
                     status === 'ACTION_REQUIRED'
@@ -362,7 +418,7 @@ function PaperworkVerificationSteps({ initial, reload }: { initial: Loaded; relo
             />
         )
     } else if (step === 'verified') {
-        screen = <VerifiedScreen onHome={goHome} />
+        screen = <VerifiedScreen features={plan?.features} onHome={goHome} />
     } else if (step === 'address-proof') {
         screen = (
             <ProofOfAddressStep

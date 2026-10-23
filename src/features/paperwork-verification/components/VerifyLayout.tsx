@@ -1,6 +1,6 @@
 'use client'
 
-import { type ReactNode, useLayoutEffect } from 'react'
+import { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
@@ -10,6 +10,7 @@ import PeanutMascot from '@/components/Global/PeanutMascot'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import SetupFooter from '@/components/Setup/components/SetupFooter'
 import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
+import { confettiPresets } from '@/utils/confetti'
 import { twMerge } from '@/utils/tw'
 
 const SCREEN_HEIGHT = 'min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]'
@@ -127,6 +128,51 @@ export function VerifyHeroLayout({
             <div className={PANEL}>
                 <SetupTitleBlock title={title} description={description} />
                 {children && <div className="flex flex-1 flex-col gap-4">{children}</div>}
+                {footer}
+            </div>
+        </div>
+    )
+}
+
+/**
+ * A full-white moment between steps: the mascot and the title centred, the
+ * footer on the CTA baseline. `celebrate` fires the shared confetti once.
+ */
+export function VerifyCelebrationLayout({
+    pose,
+    title,
+    description,
+    celebrate = false,
+    children,
+    footer,
+}: {
+    pose: MascotPose
+    title: ReactNode
+    description?: ReactNode
+    celebrate?: boolean
+    children?: ReactNode
+    footer: ReactNode
+}) {
+    useInsetColor(false)
+    const celebrated = useRef(false)
+    useEffect(() => {
+        if (!celebrate || celebrated.current) return
+        celebrated.current = true
+        confettiPresets.success()
+    }, [celebrate])
+    return (
+        <div className={twMerge('flex w-full flex-col bg-white', SCREEN_HEIGHT)}>
+            <div className="flex min-h-0 flex-1 flex-col justify-between gap-8 px-6 pt-4 pb-6">
+                <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+                    <PeanutMascot pose={pose} alt="" className="h-52 w-auto" />
+                    <div className="flex max-w-80 flex-col gap-2">
+                        <h1 className="text-heading-s text-foreground-primary">{title}</h1>
+                        {description && (
+                            <p className="text-body-m leading-[1.625rem] text-foreground-secondary">{description}</p>
+                        )}
+                    </div>
+                    {children}
+                </div>
                 {footer}
             </div>
         </div>
