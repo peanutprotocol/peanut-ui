@@ -222,6 +222,7 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
             'The relying party ID is not a registrable domain suffix of the current domain.',
             'PASSKEY_ORIGIN',
         ],
+        ['NotFoundError', 'No credential accessible to this app.', 'PASSKEY_NOT_FOUND'],
         ['InvalidStateError', 'The authenticator is in an invalid state.', 'PASSKEY_STATE'],
     ])(
         'preserves auth state when the authenticator refuses with %s before any assertion',
@@ -238,6 +239,19 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
             expect(mockSetIsLoggingIn).toHaveBeenCalledWith(false)
         }
     )
+
+    it('preserves auth and gives restart guidance when native cleanup is unconfirmed', async () => {
+        const thrown = await loginRejectingWith(
+            Object.assign(new Error('Cleanup unconfirmed.'), { name: 'PasskeyCleanupPendingError' })
+        )
+        expect(thrown).toMatchObject({ name: 'PasskeyError', code: 'PASSKEY_STATE' })
+        expect(clearAuthState).not.toHaveBeenCalled()
+        expect(mockSetIsLoggingIn).toHaveBeenCalledWith(false)
+        expect(mockCaptureException).toHaveBeenCalledWith(
+            expect.any(Error),
+            expect.objectContaining({ tags: { error_type: 'login_cleanup_pending' } })
+        )
+    })
 
     it('shows desktop guidance, not Google Play steps, for a Mac browser NotSupportedError', async () => {
         const ua = jest
@@ -653,4 +667,15 @@ it.each([
     })
     expect(clearAuthState).not.toHaveBeenCalled()
     expect(mockSetIsLoggingIn).toHaveBeenCalledWith(false)
+})
+
+it('propagates abandoned SDK cleanup to signup instead of treating pending as success', async () => {
+    const failure = Object.assign(new Error('A previous passkey flow is still pending'), {
+        name: 'PasskeyCleanupPendingError',
+    })
+    mockToWebAuthnKey.mockRejectedValue(failure)
+    const { result } = renderHook(() => useZeroDev())
+    await expect(result.current.handleRegister('new-user')).rejects.toBe(failure)
+    expect(mockHydrateLoginSession).not.toHaveBeenCalled()
+    expect(mockSetWebAuthnKey).not.toHaveBeenCalled()
 })

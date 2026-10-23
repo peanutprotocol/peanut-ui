@@ -356,6 +356,7 @@ export const ANALYTICS_EVENTS = {
     // in. `webauthn_ceremony_flow` closes a flow with the total count — that
     // count is what says whether a 2–3 prompt report is our call sites, a retry,
     // or the native shim presenting extra sheets on its own.
+    PASSKEY_NATIVE_DIAGNOSTIC: 'passkey_native_diagnostic',
     WEBAUTHN_CEREMONY: 'webauthn_ceremony',
     WEBAUTHN_CEREMONY_FLOW: 'webauthn_ceremony_flow',
 
