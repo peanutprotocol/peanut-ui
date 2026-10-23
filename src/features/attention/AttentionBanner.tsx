@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import maintenanceConfig from '@/config/underMaintenance.config'
 import { IS_PRODUCTION } from '@/constants/general.consts'
 import { isDemoMode } from '@/utils/demo'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import { logRunMode } from '@/utils/mode'
 import { useAttentionOptional } from './AttentionProvider'
 import { SurfaceBoundary } from './AttentionInterrupt'
@@ -20,6 +21,7 @@ export interface AttentionBannerProps {
 export function AttentionBanner({ variant = 'global', className = 'mx-4 mt-2' }: AttentionBannerProps) {
     const attention = useAttentionOptional()
     const pathname = usePathname()
+    const demoMode = useHydrationSnapshot(isDemoMode, () => false)
     const id = attention?.decision.banner
     const Surface = id ? BANNER_SURFACES[id] : undefined
     const openedSurface = attention?.openedSurface
@@ -32,7 +34,7 @@ export function AttentionBanner({ variant = 'global', className = 'mx-4 mt-2' }:
     if (!attention) {
         return (
             <MaintenanceCallout
-                maintenance={selectMaintenance({ pathname, config: maintenanceConfig, demo: isDemoMode() })}
+                maintenance={selectMaintenance({ pathname, config: maintenanceConfig, demo: demoMode })}
                 variant={variant}
                 className={className}
             />
