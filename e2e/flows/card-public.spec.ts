@@ -159,6 +159,45 @@ test('the card screen offers Move card balance to wallet only while there is car
     await expect(page.getByRole('button', { name: 'Move card balance to wallet', exact: true })).toHaveCount(0)
 })
 
+// The server's funding decision picks the surface. These pin the routing with
+// the access fixtures; the signing paths are covered by the hook tests.
+test('an account on the existing card permission sees the production prompt, never the funding authorization', async ({
+    page,
+}) => {
+    await asReturningHomeVisitor(page)
+    await page.goto('/home?__fixture=card-funding-legacy')
+    await expect(page.getByText('Finish setting up the card', { exact: true })).toBeVisible()
+    await expect(page.getByText('One passkey tap to start using your card.')).toBeVisible()
+    await expect(page.getByRole('checkbox')).toHaveCount(0)
+    await expect(page.getByTestId('card-funding-consent')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeEnabled()
+})
+
+test('an account eligible for managed funding is offered it with one unchecked authorization before accepting', async ({
+    page,
+}) => {
+    await asReturningHomeVisitor(page)
+    await page.goto('/home?__fixture=card-funding-enrollment')
+    await expect(page.getByTestId('card-funding-consent')).toBeVisible()
+    await expect(page.getByRole('checkbox')).toHaveCount(1)
+    await expect(page.getByRole('checkbox').first()).not.toBeChecked()
+    await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled()
+})
+
+test('an unreadable funding decision shows neither permission prompt', async ({ page }) => {
+    await asReturningHomeVisitor(page)
+    await page.goto('/home?__fixture=card-funding-access-error')
+    await expect(page.getByText('Activity', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('Finish setting up the card')).toHaveCount(0)
+})
+
+test('on the existing card permission the card screen offers no card balance move', async ({ page }) => {
+    await page.goto('/card?__fixture=card-holder-collateral-legacy')
+    await expect(page.getByText('Card management', { exact: true })).toBeVisible()
+    await expect(page.getByTestId('card-collateral')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Move card balance to wallet', exact: true })).toHaveCount(0)
+})
+
 test('a pending grant waits as a disabled Working… button, then offers Check status and Skip', async ({ page }) => {
     await asReturningHomeVisitor(page)
     // The prompt's wait window is a page timer: control it instead of waiting 60s.
@@ -199,6 +238,15 @@ test('re-issuing a card ends the card terms with one unchecked funding authoriza
     await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled()
     await statement.scrollIntoViewIfNeeded()
     await shot(page, 'reissue-terms')
+})
+
+test('re-issuing on the existing card permission ends the card terms with the card rows only', async ({ page }) => {
+    await page.goto('/card?__fixture=card-reissue-legacy')
+    await page.getByRole('button', { name: 'Get card', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Accept terms', exact: true })).toBeVisible()
+    await expect(page.getByRole('checkbox')).toHaveCount(4)
+    await expect(page.getByTestId('card-funding-consent')).toHaveCount(0)
+    await expect(page.getByText('I authorize transfers according to the Real-Time Funding Terms.')).toHaveCount(0)
 })
 
 test('cancelling a card is an ordinary cancel with no permission-removal step', async ({ page }) => {

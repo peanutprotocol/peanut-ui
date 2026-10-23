@@ -62,6 +62,8 @@ jest.mock('@/components/Card/cardState.utils', () => ({
 jest.mock('@/components/Card/cardApply.utils', () => ({ pollUntilApplyAdvances: jest.fn(), pollUntilReady: jest.fn() }))
 jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => ({ hasSufficientSpendableBalance: () => true }) }))
 jest.mock('@/hooks/wallet/useRainFunding', () => ({ useRainFunding: () => ({ grant: jest.fn() }) }))
+jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({ useGrantSessionKey: () => ({ serializeGrant: jest.fn() }) }))
+jest.mock('@/hooks/useZeroDev', () => ({ useZeroDev: () => ({ address: '0xA' }) }))
 jest.mock('@/hooks/useHostedVerification', () => ({
     useHostedVerification: () => ({ start: mockHostedStart, error: null, isStarting: false }),
 }))

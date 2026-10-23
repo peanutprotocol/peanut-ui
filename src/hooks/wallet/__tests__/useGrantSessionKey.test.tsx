@@ -57,11 +57,16 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 }))
 jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: { readContract: jest.fn(), getCode: jest.fn() } }))
 jest.mock('@/services/rain', () => ({
-    rainApi: { getSessionKeyAddress: jest.fn(), submitWithdrawSessionApproval: jest.fn() },
+    rainApi: { getSessionKeyAddress: jest.fn(), submitWithdrawSessionApproval: jest.fn(), getFundingAccess: jest.fn() },
 }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'user-a' } } }) }))
 const mockHandleSendUserOpEncoded = jest.fn(() => Promise.resolve({ userOpHash: '0xhash', receipt: null }))
 jest.mock('@/hooks/useZeroDev', () => ({
-    useZeroDev: () => ({ handleSendUserOpEncoded: mockHandleSendUserOpEncoded }),
+    // the connected wallet (ACCOUNT): a grant signs only for a known wallet
+    useZeroDev: () => ({
+        handleSendUserOpEncoded: mockHandleSendUserOpEncoded,
+        address: '0xc97fffbf8768ca90cd62fae2e313b084fe13e553',
+    }),
 }))
 // Repair internals are unit-tested in kernelNonceRepair.utils.test.ts — here we
 // only assert the hook routes floored accounts through it and binds the result.
@@ -130,6 +135,8 @@ beforeEach(() => {
         // The grant reads the coordinator off a FRESH refetch (TASK-22734).
         refetch: jest.fn().mockResolvedValue({ isSuccess: true, data: overview }),
     })
+    // a managed account: the withdrawal permission only
+    ;(rainApi.getFundingAccess as jest.Mock).mockResolvedValue({ fundingMode: 'managed', enrollmentAllowed: false })
     ;(rainApi.submitWithdrawSessionApproval as jest.Mock).mockResolvedValue(undefined)
     ;(rainApi.getSessionKeyAddress as jest.Mock).mockResolvedValue({
         address: '0x4300F803a281e257F3C1de001512e68972f8d022',
@@ -149,7 +156,7 @@ beforeEach(() => {
 })
 
 describe('useGrantSessionKey — session-key scope', () => {
-    it('grants withdrawAsset on the coordinator only — no token transfer permission', async () => {
+    it('a managed account gets withdrawAsset on the coordinator only — no token transfer permission', async () => {
         ;(peanutPublicClient.readContract as jest.Mock).mockResolvedValue(1n)
 
         const { result } = renderHook(() => useGrantSessionKey(), { wrapper })

@@ -18,8 +18,11 @@ import Card from '@/components/Global/Card'
 
 interface Props {
     isUsResident: boolean
-    /** Called with the funding authorization after all card agreements are accepted. */
-    onAccept: (consent: RainFundingConsent) => void | Promise<void>
+    /** The account is on (or offered) managed card funding: the funding authorization is part of the agreement. */
+    managedFunding: boolean
+    /** Called after all card agreements are accepted: with the funding authorization on the
+     *  managed path, with null on the existing card path, which has none. */
+    onAccept: (consent: RainFundingConsent | null) => void | Promise<void>
     onPrev?: () => void
     submitError?: string | null
 }
@@ -52,7 +55,7 @@ const ExternalLink: FC<{ href: string; children: ReactNode }> = ({ href, childre
     </a>
 )
 
-const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitError }) => {
+const CardTermsScreen: FC<Props> = ({ isUsResident, managedFunding, onAccept, onPrev, submitError }) => {
     const t = useTranslations('card.terms')
     const tCard = useTranslations('card')
     const tCommon = useTranslations('common')
@@ -107,15 +110,15 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
     }, [isUsResident, terms.length])
 
     const allAccepted = useMemo(
-        () => terms.every((t) => checked[t.id]) && authorizationAccepted,
-        [terms, checked, authorizationAccepted]
+        () => terms.every((t) => checked[t.id]) && (!managedFunding || authorizationAccepted),
+        [terms, checked, authorizationAccepted, managedFunding]
     )
 
     const handleContinue = async () => {
         if (!allAccepted) return
         setSubmitting(true)
         try {
-            await onAccept({ authorizationAccepted, authorizationText: RTF_AUTHORIZATION_TEXT })
+            await onAccept(managedFunding ? { authorizationAccepted, authorizationText: RTF_AUTHORIZATION_TEXT } : null)
         } finally {
             setSubmitting(false)
         }
@@ -151,12 +154,14 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
                 ))}
             </ul>
 
-            <CardFundingConsent
-                authorizationText={RTF_AUTHORIZATION_TEXT}
-                authorizationAccepted={authorizationAccepted}
-                onAuthorizationChange={setAuthorizationAccepted}
-                disabled={submitting}
-            />
+            {managedFunding && (
+                <CardFundingConsent
+                    authorizationText={RTF_AUTHORIZATION_TEXT}
+                    authorizationAccepted={authorizationAccepted}
+                    onAuthorizationChange={setAuthorizationAccepted}
+                    disabled={submitting}
+                />
+            )}
 
             {submitError && <p className="text-body-s text-foreground-error">{submitError}</p>}
 

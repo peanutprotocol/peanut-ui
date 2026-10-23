@@ -26,7 +26,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { maxUint256 } from 'viem'
+import { maxUint256, zeroAddress } from 'viem'
 import { rainApi } from '@/services/rain'
 import { ApiError } from '@/services/api-error'
 
@@ -44,7 +44,22 @@ jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_TOKEN: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
 }))
 jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: { readContract: jest.fn(), getCode: jest.fn() } }))
-jest.mock('@/services/rain', () => ({ rainApi: { getCardFunding: jest.fn(), submitFundingGrant: jest.fn() } }))
+// The real retirement helper (used by one case below) encodes kernel calls,
+// which needs the real kernel ABI; the repo maps `@zerodev/sdk` to a stub.
+jest.mock('@zerodev/sdk', () => ({
+    ...jest.requireActual('@/utils/__mocks__/zerodev-sdk'),
+    KernelV3AccountAbi: jest.requireActual(
+        '../../../../node_modules/@zerodev/sdk/_cjs/accounts/kernel/abi/kernel_v_3_0_0/KernelAccountAbi.js'
+    ).KernelV3AccountAbi,
+}))
+jest.mock('@/services/rain', () => ({
+    rainApi: {
+        getCardFunding: jest.fn(),
+        submitFundingGrant: jest.fn(),
+        getFundingAccess: jest.fn(),
+        enrollFunding: jest.fn(),
+    },
+}))
 let mockUserId = 'user-a'
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { user: { userId: mockUserId } } }),
@@ -131,6 +146,8 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 
 const mockGetCardFunding = rainApi.getCardFunding as jest.Mock
 const mockSubmitFundingGrant = rainApi.submitFundingGrant as jest.Mock
+const mockGetFundingAccess = rainApi.getFundingAccess as jest.Mock
+const mockEnrollFunding = rainApi.enrollFunding as jest.Mock
 
 beforeEach(() => {
     jest.clearAllMocks()
@@ -139,6 +156,9 @@ beforeEach(() => {
     mockConnectedAddress = WALLET
     client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     mockGetCardFunding.mockResolvedValue(funding())
+    // most cases are an account already admitted to managed funding
+    mockGetFundingAccess.mockResolvedValue({ fundingMode: 'managed', enrollmentAllowed: true })
+    mockEnrollFunding.mockResolvedValue({ fundingMode: 'managed', enrollmentAllowed: true })
     mockEnsureClientForChain.mockResolvedValue({ account: { address: WALLET } })
     mockToCallPolicy.mockResolvedValue({ __policy: 'call' })
     mockToSignatureCallerPolicy.mockResolvedValue({ __policy: 'no-signatures' })
@@ -1130,5 +1150,263 @@ describe('useRainFunding — the state the UI reads', () => {
         } finally {
             jest.useRealTimers()
         }
+    })
+})
+
+// Production pilot: the server's funding decision gates everything. A legacy
+// account open to enrollment accepts first (the backend records it for this
+// wallet) and only then sees what to retire; nothing else ever signs.
+describe('useRainFunding.grant — the server decides who may set up managed funding', () => {
+    const legacy = () => funding('migration_required', {}, MIGRATION)
+    const notAdmitted = () => {
+        const f = funding('temporarily_unavailable')
+        return { ...f, management: { ...f.management, reason: 'enrollment_required' } }
+    }
+
+    it('a legacy account open to enrollment accepts first, and only then retires the old grant and signs', async () => {
+        const order: string[] = []
+        mockGetFundingAccess.mockImplementation(async () => {
+            order.push('access')
+            return { fundingMode: 'legacy', enrollmentAllowed: true }
+        })
+        // before acceptance the backend shows no migration payload
+        mockGetCardFunding
+            .mockImplementationOnce(async () => {
+                order.push('read')
+                return notAdmitted()
+            })
+            .mockImplementationOnce(async () => {
+                order.push('read')
+                return legacy()
+            })
+            .mockImplementation(async () => {
+                order.push('read')
+                return funding('required')
+            })
+        mockEnrollFunding.mockImplementation(async () => {
+            order.push('enroll')
+            return { fundingMode: 'managed', enrollmentAllowed: true }
+        })
+        mockRetireLegacyGrants.mockImplementation(async () => order.push('retire'))
+        mockSignKernelPermission.mockImplementation(async () => {
+            order.push('sign')
+            return 'SERIALIZED_PERMISSION'
+        })
+        mockSubmitFundingGrant.mockImplementation(async () => {
+            order.push('post')
+            return funding('pending')
+        })
+
+        const { out } = await runGrant()
+
+        expect(out).toEqual({ ok: true, status: 'pending' })
+        expect(order).toEqual(['access', 'read', 'enroll', 'read', 'retire', 'read', 'sign', 'post'])
+        // the consent is the exact statement and terms version on record
+        expect(mockEnrollFunding).toHaveBeenCalledWith({
+            consent: { termsVersion: 'rtf-2026-09-29', authorizationAccepted: true, authorizationText: AUTHORIZATION },
+        })
+    })
+
+    it('a legacy account not open to enrollment records, retires and signs nothing', async () => {
+        mockGetFundingAccess.mockResolvedValue({ fundingMode: 'legacy', enrollmentAllowed: false })
+        mockGetCardFunding.mockResolvedValue(legacy())
+        const { out, hook } = await runGrant()
+        expect(out).toEqual({ ok: false, error: { kind: 'enrollment-not-allowed' } })
+        expect(hook.result.current.lastError).toEqual({ kind: 'enrollment-not-allowed' })
+        expect(mockEnrollFunding).not.toHaveBeenCalled()
+        expect(mockGetCardFunding).not.toHaveBeenCalled()
+        expect(mockRetireLegacyGrants).not.toHaveBeenCalled()
+        nothingSigned()
+    })
+
+    it('enrollment closed between reading the decision and accepting: the refusal retires and signs nothing', async () => {
+        mockGetFundingAccess.mockResolvedValue({ fundingMode: 'legacy', enrollmentAllowed: true })
+        mockGetCardFunding.mockResolvedValue(notAdmitted())
+        mockEnrollFunding.mockRejectedValue(new ApiError('closed', { status: 403, code: 'enrollment_not_allowed' }))
+        const { out } = await runGrant()
+        expect(out).toEqual({ ok: false, error: { kind: 'enrollment-not-allowed' } })
+        expect(mockRetireLegacyGrants).not.toHaveBeenCalled()
+        nothingSigned()
+    })
+
+    it('a managed account finishes even when new enrollment is closed, without enrolling again', async () => {
+        mockGetFundingAccess.mockResolvedValue({ fundingMode: 'managed', enrollmentAllowed: false })
+        mockGetCardFunding.mockResolvedValueOnce(legacy()).mockResolvedValue(funding('required'))
+        const { out } = await runGrant()
+        expect(out).toEqual({ ok: true, status: 'pending' })
+        expect(mockEnrollFunding).not.toHaveBeenCalled()
+        expect(mockRetireLegacyGrants).toHaveBeenCalledTimes(1)
+        expect(mockSubmitFundingGrant).toHaveBeenCalledTimes(1)
+    })
+
+    it('an unreadable decision is unknown, never legacy: nothing is recorded or signed', async () => {
+        mockGetFundingAccess.mockRejectedValue(
+            new ApiError('down', { status: 503, code: 'funding_access_unavailable' })
+        )
+        const { out } = await runGrant()
+        expect(out).toEqual({ ok: false, error: { kind: 'funding-unavailable', message: 'down' } })
+        expect(mockEnrollFunding).not.toHaveBeenCalled()
+        expect(mockRetireLegacyGrants).not.toHaveBeenCalled()
+        nothingSigned()
+    })
+
+    it('a switch of account while the decision is read records and signs nothing', async () => {
+        const hook = renderHook(() => useRainFunding({ enabled: false }), { wrapper })
+        const gate = deferred()
+        mockGetFundingAccess.mockImplementation(async () => {
+            await gate.promise
+            return { fundingMode: 'legacy', enrollmentAllowed: true }
+        })
+        const pending = startGrant(hook)
+        await waitFor(() => expect(mockGetFundingAccess).toHaveBeenCalled())
+        switchIdentity(hook, () => {
+            mockUserId = 'user-b'
+        })
+        gate.release()
+        expect(await finish(pending)).toEqual({ ok: false, error: { kind: 'account-changed' } })
+        expect(mockEnrollFunding).not.toHaveBeenCalled()
+        nothingSigned()
+    })
+
+    it('a statement that is not the one on record is not accepted for the person', async () => {
+        mockGetFundingAccess.mockResolvedValue({ fundingMode: 'legacy', enrollmentAllowed: true })
+        mockGetCardFunding.mockResolvedValue(notAdmitted())
+        const { out } = await runGrant({ ...CONSENT, authorizationText: 'Something else.' })
+        expect(out).toEqual({ ok: false, error: { kind: 'terms-changed' } })
+        expect(mockEnrollFunding).not.toHaveBeenCalled()
+        nothingSigned()
+    })
+
+    // Consent handed over by the card application flow belongs to the user and
+    // wallet that gave it. For any other it starts nothing: no read, no
+    // enrollment, no retirement, no signature.
+    it.each([
+        ['another account', { userId: 'user-b', connectedAddress: WALLET }],
+        ['another wallet', { userId: 'user-a', connectedAddress: '0x00000000000000000000000000000000000000ff' }],
+    ])('consent handed over for %s starts nothing', async (_n, expected) => {
+        mockGetFundingAccess.mockResolvedValue({ fundingMode: 'legacy', enrollmentAllowed: true })
+        const hook = renderHook(() => useRainFunding({ enabled: false }), { wrapper })
+        let out!: Awaited<ReturnType<typeof hook.result.current.grant>>
+        await act(async () => {
+            out = await hook.result.current.grant(CONSENT, expected)
+        })
+        expect(out).toEqual({ ok: false, error: { kind: 'account-changed' } })
+        expect(hook.result.current.lastError).toBeNull()
+        expect(mockGetFundingAccess).not.toHaveBeenCalled()
+        expect(mockGetCardFunding).not.toHaveBeenCalled()
+        expect(mockEnrollFunding).not.toHaveBeenCalled()
+        expect(mockRetireLegacyGrants).not.toHaveBeenCalled()
+        nothingSigned()
+    })
+
+    it('the signer re-checks this user and wallet before each passkey ceremony', async () => {
+        mockGetFundingAccess.mockResolvedValue({ fundingMode: 'managed', enrollmentAllowed: false })
+        mockGetCardFunding.mockResolvedValue(funding('required'))
+        const { PermissionWalletMismatchError } = jest.requireMock('@/hooks/wallet/signKernelPermission') as {
+            PermissionWalletMismatchError: new () => Error
+        }
+        const hook = renderHook(() => useRainFunding({ enabled: false }), { wrapper })
+        const preparing = deferred()
+        const seen: boolean[] = []
+        mockSignKernelPermission.mockImplementationOnce(async (args: { isCurrent: () => boolean }) => {
+            seen.push(args.isCurrent())
+            await preparing.promise
+            // the signer's own check before the passkey ceremony
+            seen.push(args.isCurrent())
+            throw new PermissionWalletMismatchError()
+        })
+        const pending = startGrant(hook)
+        await waitFor(() => expect(mockSignKernelPermission).toHaveBeenCalled())
+        // the wallet changes while the signer prepares
+        switchIdentity(hook, () => {
+            mockConnectedAddress = '0x00000000000000000000000000000000000000ff'
+        })
+        preparing.release()
+        expect(await finish(pending)).toEqual({ ok: false, error: { kind: 'account-changed' } })
+        expect(seen).toEqual([true, false])
+        expect(mockSubmitFundingGrant).not.toHaveBeenCalled()
+    })
+
+    // The real retirement helper reads the wallet's chain state before it sends
+    // the root userOp; the identity is checked again inside the send itself.
+    describe('with the real retirement helper', () => {
+        const { peanutPublicClient } = jest.requireMock('@/app/actions/clients') as {
+            peanutPublicClient: { getCode: jest.Mock; readContract: jest.Mock }
+        }
+        let chain: { installed: boolean; currentNonce: number; validNonceFrom: number }
+        beforeEach(() => {
+            chain = { installed: true, currentNonce: 2, validNonceFrom: 1 }
+            const actual = jest.requireActual('@/utils/legacyGrantMigration.utils')
+            mockRetireLegacyGrants.mockImplementation((deps: object) =>
+                actual.retireLegacyGrants({ ...deps, intervalMs: 0 })
+            )
+            peanutPublicClient.getCode.mockResolvedValue('0xdeadbeef')
+            peanutPublicClient.readContract.mockImplementation(async ({ functionName }: { functionName: string }) => {
+                if (functionName === 'currentNonce') return BigInt(chain.currentNonce)
+                if (functionName === 'validNonceFrom') return BigInt(chain.validNonceFrom)
+                if (functionName === 'validationConfig') {
+                    return [1, chain.installed ? '0x0000000000000000000000000000000000000001' : zeroAddress]
+                }
+                throw new Error(`unexpected read ${functionName}`)
+            })
+            mockHandleSendUserOpEncoded.mockImplementation(async () => {
+                chain = { installed: false, currentNonce: 3, validNonceFrom: 3 }
+                return { userOpHash: '0xhash', receipt: null }
+            })
+            mockGetCardFunding
+                .mockResolvedValueOnce(funding('migration_required', {}, MIGRATION))
+                .mockResolvedValue(funding('required'))
+        })
+        afterEach(() => {
+            mockHandleSendUserOpEncoded.mockReset()
+            peanutPublicClient.getCode.mockReset()
+            peanutPublicClient.readContract.mockReset()
+        })
+
+        it('retires with one root userOp, then signs', async () => {
+            const { out } = await runGrant()
+            expect(out).toEqual({ ok: true, status: 'pending' })
+            expect(mockHandleSendUserOpEncoded).toHaveBeenCalledTimes(1)
+            // the uninstall and the floor, in one userOp
+            expect(mockHandleSendUserOpEncoded.mock.calls[0][0]).toHaveLength(2)
+            expect(mockSignKernelPermission).toHaveBeenCalledTimes(1)
+        })
+
+        it('a wallet switch while the helper reads the chain sends no root userOp and signs nothing', async () => {
+            const held = deferred()
+            peanutPublicClient.getCode.mockImplementationOnce(async () => {
+                await held.promise
+                return '0xdeadbeef'
+            })
+            const hook = renderHook(() => useRainFunding({ enabled: false }), { wrapper })
+            const pending = startGrant(hook)
+            await waitFor(() => expect(peanutPublicClient.getCode).toHaveBeenCalled())
+            switchIdentity(hook, () => {
+                mockConnectedAddress = OTHER_WALLET
+            })
+            held.release()
+            expect(await finish(pending)).toEqual({ ok: false, error: { kind: 'account-changed' } })
+            expect(mockRetireLegacyGrants).toHaveBeenCalledTimes(1)
+            nothingSigned()
+        })
+    })
+
+    it('a switch while the permission policy is built signs and sends nothing', async () => {
+        mockGetFundingAccess.mockResolvedValue({ fundingMode: 'managed', enrollmentAllowed: false })
+        mockGetCardFunding.mockResolvedValue(funding('required'))
+        const hook = renderHook(() => useRainFunding({ enabled: false }), { wrapper })
+        const gate = deferred()
+        mockToSignatureCallerPolicy.mockImplementationOnce(async () => {
+            await gate.promise
+            return { policy: 'signature-caller' }
+        })
+        const pending = startGrant(hook)
+        await waitFor(() => expect(mockToSignatureCallerPolicy).toHaveBeenCalled())
+        switchIdentity(hook, () => {
+            mockConnectedAddress = '0x00000000000000000000000000000000000000ff'
+        })
+        gate.release()
+        expect(await finish(pending)).toEqual({ ok: false, error: { kind: 'account-changed' } })
+        nothingSigned()
     })
 })

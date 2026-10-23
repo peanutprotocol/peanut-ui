@@ -45,7 +45,7 @@ const renderAt = (locale: AppLocale) => {
             {children}
         </NextIntlClientProvider>
     )
-    return rtlRender(<CardTermsScreen isUsResident onAccept={jest.fn()} />, { wrapper })
+    return rtlRender(<CardTermsScreen isUsResident managedFunding onAccept={jest.fn()} />, { wrapper })
 }
 
 const hrefs = () => screen.getAllByRole('link').map((link) => link.getAttribute('href'))
@@ -121,8 +121,8 @@ describe('CardTermsScreen card provider', () => {
 // they were, and one unchecked funding authorization follows. Every box is required.
 describe('CardTermsScreen managed funding consent', () => {
     const AUTHORIZATION = 'I authorize transfers according to the Real-Time Funding Terms.'
-    const renderTerms = (isUsResident: boolean, onAccept = jest.fn()) => {
-        rtlRender(<CardTermsScreen isUsResident={isUsResident} onAccept={onAccept} />, {
+    const renderTerms = (isUsResident: boolean, onAccept = jest.fn(), managedFunding = true) => {
+        rtlRender(<CardTermsScreen isUsResident={isUsResident} managedFunding={managedFunding} onAccept={onAccept} />, {
             wrapper: ({ children }: { children: ReactNode }) => (
                 <NextIntlClientProvider locale="en" messages={CATALOGS.en as never} timeZone="UTC">
                     {children}
@@ -214,5 +214,24 @@ describe('CardTermsScreen managed funding consent', () => {
     ] as const)('the terms link follows the %s locale', (locale, marketing) => {
         renderAt(locale)
         expect(hrefs()).toContain(`https://peanut.mucu.dev/${marketing}/real-time-funding-terms`)
+    })
+
+    // An account on the existing card permission (managed funding not open to
+    // it) gets the production agreement: the card boxes only.
+    describe('on the existing card path', () => {
+        it('shows only the card rows, no funding authorization and no funding terms link', () => {
+            renderTerms(false, jest.fn(), false)
+            expect(boxes()).toHaveLength(4)
+            expect(screen.queryByTestId('card-funding-consent')).not.toBeInTheDocument()
+            expect(screen.queryByRole('link', { name: 'Real-Time Funding Terms' })).not.toBeInTheDocument()
+        })
+
+        it('continues on the card rows alone and hands over no funding consent', async () => {
+            const onAccept = renderTerms(false, jest.fn(), false)
+            expect(continueButton()).toBeDisabled()
+            boxes().forEach((box) => fireEvent.click(box))
+            fireEvent.click(continueButton())
+            await waitFor(() => expect(onAccept).toHaveBeenCalledWith(null))
+        })
     })
 })

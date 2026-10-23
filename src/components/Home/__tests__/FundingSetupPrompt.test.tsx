@@ -74,7 +74,16 @@ jest.mock('@/hooks/wallet/useRainFunding', () => ({
     },
 }))
 
-type MockCard = { id?: string; status: string; hasWithdrawApproval?: boolean }
+// The server's funding decision; undefined is an unread or failed decision.
+let mockAccess: { fundingMode: 'legacy' | 'managed'; enrollmentAllowed: boolean } | undefined
+jest.mock('@/hooks/useCardFundingAccess', () => {
+    const { fundingSetupPath } = jest.requireActual('@/utils/rain-funding.utils')
+    return {
+        useCardFundingAccess: () => ({ access: mockAccess, setupPath: fundingSetupPath(mockAccess) }),
+    }
+})
+
+type MockCard = { id?: string; status: string; hasWithdrawApproval?: boolean; hasStoredWithdrawApproval?: boolean }
 let mockCards: MockCard[] = []
 let mockSpendingPower: number | null = null
 let mockBalanceUnavailable = false
@@ -141,6 +150,56 @@ beforeEach(() => {
     mockSpendingPower = null
     mockBalanceUnavailable = false
     mockInFlight = false
+    mockAccess = { fundingMode: 'managed', enrollmentAllowed: true }
+})
+
+// Which prompt an account gets is the server's decision, never this client's.
+describe('FundingSetupPrompt — the funding decision', () => {
+    it('an account on the existing permission that managed funding is not open to gets nothing here', () => {
+        mockAccess = { fundingMode: 'legacy', enrollmentAllowed: false }
+        render(<FundingSetupPrompt />)
+        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(mockFundingEnabledArg).toBe(false)
+    })
+
+    it('an unread or failed decision shows nothing and reads no funding state', () => {
+        mockAccess = undefined
+        render(<FundingSetupPrompt />)
+        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(mockFundingEnabledArg).toBe(false)
+    })
+
+    it('a managed account keeps its setup even after new enrollment closed', () => {
+        mockAccess = { fundingMode: 'managed', enrollmentAllowed: false }
+        render(<FundingSetupPrompt />)
+        expect(screen.getByTestId('modal')).toBeInTheDocument()
+        expect(mockFundingEnabledArg).toBe(true)
+    })
+
+    it('a managed account waiting on confirmation keeps the wait after new enrollment closed', () => {
+        mockAccess = { fundingMode: 'managed', enrollmentAllowed: false }
+        mockStatus = 'pending'
+        render(<FundingSetupPrompt />)
+        expect(screen.getByTestId('modal')).toBeInTheDocument()
+    })
+
+    it('an account open to managed funding is offered setup before it has accepted', () => {
+        mockAccess = { fundingMode: 'legacy', enrollmentAllowed: true }
+        // before acceptance the server reports the funding state as not yet available
+        mockStatus = 'temporarily_unavailable'
+        render(<FundingSetupPrompt />)
+        expect(screen.getByTestId('modal')).toBeInTheDocument()
+        expect(mockFundingEnabledArg).toBe(true)
+        expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
+    })
+
+    it('a refused enrollment ends the prompt', () => {
+        mockAccess = { fundingMode: 'legacy', enrollmentAllowed: true }
+        mockStatus = 'temporarily_unavailable'
+        mockLastError = { kind: 'enrollment-not-allowed' }
+        render(<FundingSetupPrompt />)
+        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+    })
 })
 
 describe('FundingSetupPrompt — what is shown', () => {

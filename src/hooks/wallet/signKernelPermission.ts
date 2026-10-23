@@ -65,6 +65,9 @@ export interface SignKernelPermissionArgs {
     sessionKeyAddress: Address
     /** When set, signing aborts unless the connected kernel is exactly this wallet. */
     expectedAccount?: Address
+    /** When set, checked again before every passkey ceremony: false aborts
+     *  (the caller's user or wallet changed while the signer was preparing). */
+    isCurrent?: () => boolean
     kernel: Pick<
         ReturnType<typeof useKernelClient>,
         'ensureClientForChain' | 'getPatchedSudoValidator' | 'rebuildClientForChain'
@@ -98,8 +101,11 @@ export async function signKernelPermission(args: SignKernelPermissionArgs): Prom
 }
 
 async function signKernelPermissionUnguarded(args: SignKernelPermissionArgs): Promise<string> {
-    const { policies, sessionKeyAddress, expectedAccount, kernel, sendUserOp } = args
+    const { policies, sessionKeyAddress, expectedAccount, isCurrent, kernel, sendUserOp } = args
     const { ensureClientForChain, getPatchedSudoValidator, rebuildClientForChain } = kernel
+    const assertCurrent = () => {
+        if (isCurrent && !isCurrent()) throw new PermissionWalletMismatchError()
+    }
 
     const sessionKeySigner = await toECDSASigner({
         signer: remoteSignerByAddress(sessionKeyAddress),
@@ -116,6 +122,7 @@ async function signKernelPermissionUnguarded(args: SignKernelPermissionArgs): Pr
     if (expectedAccount && kernelClient.account?.address?.toLowerCase() !== expectedAccount.toLowerCase()) {
         throw new PermissionWalletMismatchError()
     }
+    assertCurrent()
     // Fired here (not at wrap-entry) so the denominator excludes the early
     // returns that never produce a passkey prompt.
     posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PROMPTED)
@@ -168,6 +175,8 @@ async function signKernelPermissionUnguarded(args: SignKernelPermissionArgs): Pr
                 (error: unknown) => ({ read: false as const, error })
             ),
     ])
+    // A repair below or the enable signature each prompt the passkey.
+    assertCurrent()
 
     // The session-key permission installs on-chain via an "enable" approval the
     // passkey signs here, bound to the account's `currentNonce` — the kernel
@@ -192,7 +201,12 @@ async function signKernelPermissionUnguarded(args: SignKernelPermissionArgs): Pr
             // back a rebuilt client. One extra passkey tap.
             await ensureRootValidatorMigrated({
                 client: kernelClient,
-                sendNoopUserOp: (call) => sendUserOp([call], chainId, { returnRevertedReceipt: true }),
+                // Checked again right before the send: the helper reads chain
+                // state first, and the user or wallet can change meanwhile.
+                sendNoopUserOp: (call) => {
+                    assertCurrent()
+                    return sendUserOp([call], chainId, { returnRevertedReceipt: true })
+                },
                 rebuildClient: () => rebuildClientForChain(chainId),
             })
             // Freshly deployed: read the live nonce; fail loud if unreadable.
@@ -224,7 +238,11 @@ async function signKernelPermissionUnguarded(args: SignKernelPermissionArgs): Pr
                 publicClient: peanutPublicClient as unknown as NoncePublicClient,
                 accountAddress,
                 validNonceFrom: floorRead.floor,
-                sendUserOp: (call) => sendUserOp([call], chainId),
+                // Checked again right before the send, after the helper's own reads.
+                sendUserOp: (call) => {
+                    assertCurrent()
+                    return sendUserOp([call], chainId)
+                },
             })
         ).validatorNonce
         posthog.capture(ANALYTICS_EVENTS.CARD_SESSION_KEY_PREFLIGHT_REPAIR, { mode: 'invalidate' })
@@ -251,6 +269,8 @@ async function signKernelPermissionUnguarded(args: SignKernelPermissionArgs): Pr
         validator: permissionPlugin,
         validatorNonce,
     })
+    // A repair above may have taken a while; check once more before the enable signature.
+    assertCurrent()
     // Same sudo validator + signing path the SDK uses internally, so for
     // healthy nonce=1 accounts this yields an identical approval.
     const enableSignature = await withCeremonyPurpose('session_key_grant', () =>

@@ -29,6 +29,9 @@ jest.mock('@/context/ModalsContext', () => {
 jest.mock('@/hooks/wallet/useCardCollateralReturn', () => ({
     useCardCollateralReturn: () => ({ returnCollateral: jest.fn(), isReturning: false, lastError: null }),
 }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'user-1' } } }) }))
+jest.mock('@/hooks/useCardFundingAccess', () => ({ useCardFundingAccess: () => ({ access: undefined }) }))
+jest.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: undefined }) }))
 jest.mock('next/image', () => ({
     __esModule: true,
     default: ({

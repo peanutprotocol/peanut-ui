@@ -10,6 +10,7 @@ import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { RAIN_CARD_FUNDING_QUERY_KEY } from '@/hooks/useCardStopConfirmation'
+import { fundingAccessQueryKey } from '@/hooks/useCardFundingAccess'
 import { signKernelPermission, PermissionWalletMismatchError } from '@/hooks/wallet/signKernelPermission'
 import {
     CollateralReturnError,
@@ -19,7 +20,7 @@ import {
 } from '@/hooks/wallet/cardCollateralReturn'
 import { useCardCollateralReturn } from '@/hooks/wallet/useCardCollateralReturn'
 import { wireErrorCode } from '@/services/api-error'
-import { rainApi, type RainCardFunding } from '@/services/rain'
+import { rainApi, type RainCardFunding, type RainFundingAccess } from '@/services/rain'
 import type { NoncePublicClient } from '@/utils/kernelNonceRepair.utils'
 import { KernelSigningBusyError } from '@/utils/kernelSigningGuard'
 import {
@@ -34,6 +35,8 @@ import {
     isRainFundingWallet,
     isUserCancellation,
     needsFundingGrant,
+    sameIdentity,
+    type CardFlowIdentity,
     type RainFundingConsent,
     type RainFundingError,
     type RainFundingResult,
@@ -216,14 +219,18 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
     )
 
     const grant = useCallback(
-        (consent: RainFundingConsent): Promise<RainFundingResult> => {
+        (consent: RainFundingConsent, expected?: CardFlowIdentity): Promise<RainFundingResult> => {
+            // Consent handed over from another flow belongs to the account and
+            // wallet it was given for; for any other it starts nothing.
+            if (expected && !sameIdentity(identityRef.current, expected)) {
+                return Promise.resolve({ ok: false, error: { kind: 'account-changed' } })
+            }
             if (inFlightRef.current) return inFlightRef.current
 
             const startedFor = identityRef.current
-            const changed = () =>
-                identityRef.current.userId !== startedFor.userId ||
-                identityRef.current.connectedAddress !== startedFor.connectedAddress
+            const changed = () => !sameIdentity(identityRef.current, startedFor)
             const queryKey = [RAIN_CARD_FUNDING_QUERY_KEY, startedFor.userId]
+            const accessKey = fundingAccessQueryKey(startedFor)
             const owner = identityKey(startedFor.userId, startedFor.connectedAddress)
             const owe = () => {
                 if (owner && !changed()) setOwedReturn({ owner, error: null })
@@ -252,20 +259,70 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
                     }
                     if (changed()) return fail({ kind: 'account-changed' })
 
-                    // Always a fresh read: a cached state must not skip a grant
-                    // or repeat one, and this is what makes a retry idempotent.
-                    let live: RainCardFunding
+                    // The server's funding decision, read fresh. Unknown signs
+                    // nothing. A managed account goes on whatever the rollout
+                    // flag says now; a legacy one has to be admitted first.
+                    let access: RainFundingAccess
                     try {
-                        live = await rainApi.getCardFunding()
+                        access = await rainApi.getFundingAccess()
                     } catch (e) {
-                        const error = classifyFundingApiError(e)
-                        return fail(
-                            error.kind === 'unexpected'
-                                ? { kind: 'funding-unavailable', message: error.message }
-                                : error
-                        )
+                        return fail({ kind: 'funding-unavailable', message: (e as Error).message })
                     }
                     if (changed()) return fail({ kind: 'account-changed' })
+                    queryClient.setQueryData(accessKey, access)
+                    if (access.fundingMode === 'legacy' && !access.enrollmentAllowed) {
+                        return fail({ kind: 'enrollment-not-allowed' })
+                    }
+
+                    // Always a fresh read: a cached state must not skip a grant
+                    // or repeat one, and this is what makes a retry idempotent.
+                    const readFunding = async (): Promise<RainCardFunding | RainFundingResult> => {
+                        try {
+                            return await rainApi.getCardFunding()
+                        } catch (e) {
+                            const error = classifyFundingApiError(e)
+                            return fail(
+                                error.kind === 'unexpected'
+                                    ? { kind: 'funding-unavailable', message: error.message }
+                                    : error
+                            )
+                        }
+                    }
+                    const firstRead = await readFunding()
+                    if ('ok' in firstRead) return firstRead
+                    let live: RainCardFunding = firstRead
+                    if (changed()) return fail({ kind: 'account-changed' })
+
+                    // Accepting comes first, before anything old is retired or
+                    // anything new is signed: the backend records the consent
+                    // for this wallet, and only then shows what to retire.
+                    if (access.fundingMode === 'legacy') {
+                        if (!isRainFundingConfigValid(live)) return fail({ kind: 'config-mismatch' })
+                        if (consent.authorizationText !== live.permission.authorizationText) {
+                            queryClient.setQueryData<RainCardFunding>(queryKey, live)
+                            return fail({ kind: 'terms-changed' })
+                        }
+                        let enrolled: RainFundingAccess
+                        try {
+                            enrolled = await rainApi.enrollFunding({
+                                consent: {
+                                    termsVersion: live.permission.termsVersion,
+                                    authorizationAccepted: true,
+                                    authorizationText: live.permission.authorizationText,
+                                },
+                            })
+                        } catch (e) {
+                            await queryClient.invalidateQueries({ queryKey: accessKey })
+                            return fail(classifyFundingApiError(e))
+                        }
+                        if (changed()) return fail({ kind: 'account-changed' })
+                        queryClient.setQueryData(accessKey, enrolled)
+                        if (enrolled.fundingMode !== 'managed') return fail({ kind: 'enrollment-not-allowed' })
+                        const admittedRead = await readFunding()
+                        if ('ok' in admittedRead) return admittedRead
+                        live = admittedRead
+                        if (changed()) return fail({ kind: 'account-changed' })
+                    }
 
                     // Checks a fresh funding read. A result means there is
                     // nothing to sign now; null means sign against it.
@@ -340,9 +397,16 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
                                 publicClient: peanutPublicClient as unknown as NoncePublicClient,
                                 accountAddress: walletAddress,
                                 migration,
-                                sendUserOp: (calls) => handleSendUserOpEncoded(calls, live.chainId),
+                                // Checked again right before the root passkey: the
+                                // helper reads chain state first, and the user or
+                                // wallet can change meanwhile.
+                                sendUserOp: (calls) => {
+                                    if (changed()) throw new PermissionWalletMismatchError()
+                                    return handleSendUserOpEncoded(calls, live.chainId)
+                                },
                             })
                         } catch (e) {
+                            if (changed()) return fail({ kind: 'account-changed' })
                             if (e instanceof KernelSigningBusyError) return fail({ kind: 'busy' })
                             if (isUserCancellation(e)) return fail({ kind: 'user-cancelled' })
                             if ((e as Error).name === 'KernelNonceRepairPendingError') {
@@ -407,6 +471,7 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
                         ],
                     })
                     const noSignaturesPolicy = await toSignatureCallerPolicy({ allowedCallers: [] })
+                    if (changed()) return fail({ kind: 'account-changed' })
 
                     setStep('signing')
                     // Signed right before the POST: the enable signature binds to
@@ -415,6 +480,7 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
                         policies: [callPolicy, noSignaturesPolicy],
                         sessionKeyAddress: toSign.sessionKeyAddress as Address,
                         expectedAccount: walletAddress,
+                        isCurrent: () => !changed(),
                         kernel: { ensureClientForChain, getPatchedSudoValidator, rebuildClientForChain },
                         sendUserOp: handleSendUserOpEncoded,
                     })
@@ -462,7 +528,9 @@ export const useRainFunding = ({ enabled = true }: { enabled?: boolean } = {}) =
                     }
                     return await returnWhenReady(owner, changed, queryKey)
                 } catch (err) {
-                    if (err instanceof PermissionWalletMismatchError) return fail({ kind: 'wallet-mismatch' })
+                    if (err instanceof PermissionWalletMismatchError) {
+                        return fail(changed() ? { kind: 'account-changed' } : { kind: 'wallet-mismatch' })
+                    }
                     if (err instanceof KernelSigningBusyError) return fail({ kind: 'busy' })
                     if (isUserCancellation(err)) return fail({ kind: 'user-cancelled' })
                     return fail({ kind: 'unexpected', message: (err as Error).message ?? String(err) })

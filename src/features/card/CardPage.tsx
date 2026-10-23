@@ -27,6 +27,9 @@ export const CardPage: FC = () => {
         isCardFunded,
         isBalanceKnown,
         needsFundingBeforeApply,
+        termsFundingPath,
+        fundingAccessLoading,
+        refetchFundingAccess,
         fundingRequired,
         fetchUser,
         cardInfoError,
@@ -158,9 +161,26 @@ export const CardPage: FC = () => {
             )
         }
         if (pendingTerms) {
+            // The terms differ by funding path, so they wait for the server's
+            // decision; an unreadable decision offers a retry, never a guess.
+            if (!termsFundingPath) {
+                return fundingAccessLoading ? (
+                    <div className="flex min-h-inherit w-full items-center justify-center">
+                        <Loading />
+                    </div>
+                ) : (
+                    <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
+                        <p className="text-center text-foreground-primary">{t('page.loadFailed')}</p>
+                        <Button onClick={() => void refetchFundingAccess()} variant="primary" shadowSize="4">
+                            {tCommon('retry')}
+                        </Button>
+                    </div>
+                )
+            }
             return (
                 <CardTermsScreen
                     isUsResident={pendingTerms.isUsResident}
+                    managedFunding={termsFundingPath === 'managed'}
                     onAccept={handleAcceptTerms}
                     onPrev={() => setPendingTerms(null)}
                     submitError={applyError}

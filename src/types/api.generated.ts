@@ -274,6 +274,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/avatars/art": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Avatar art urls
+         * @description Maps each avatar key to its art url on the badge art route. Empty when no art bucket is configured.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/badge/award": {
         parameters: {
             query?: never;
@@ -521,6 +562,56 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/badges/art/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Redirect to badge art
+         * @description Redirects to the badge art file in the configured bucket. Unknown names get 404.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    file: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Redirect; the Location header holds the bucket url */
+                302: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2014,6 +2105,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/config/kill-switches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            disableXchainSend?: boolean;
+                            disableXchainWithdraw?: boolean;
+                            disabledMantecaCurrencies?: string[];
+                            disabledPaymentProviders?: string[];
+                            enableFullMaintenance?: boolean;
+                            enableMaintenanceBanner?: boolean;
+                            maintenanceBannerPaths?: string[];
+                            pixBrazilOnrampMaintenance?: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/config/residence-restrictions": {
         parameters: {
             query?: never;
@@ -2232,6 +2367,130 @@ export interface paths {
                             error: string;
                             /** @enum {boolean} */
                             ok: false;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dev/cheats/bridge-kyc-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        customerId?: string;
+                        customerStatus?: "active" | "not_started" | "incomplete" | "under_review" | "awaiting_questionnaire" | "awaiting_ubo" | "paused" | "offboarded" | "rejected";
+                        endorsements?: {
+                            additionalRequirements?: string[];
+                            complete?: string[];
+                            issues?: string[];
+                            missing?: string[];
+                            name: string;
+                            pending?: string[];
+                            status: "approved" | "incomplete" | "rejected" | "revoked";
+                        }[];
+                        kycStatus: "not_started" | "under_review" | "incomplete" | "approved" | "rejected";
+                        rejectionReasons?: {
+                            developerReason?: string;
+                            reason: string;
+                        }[];
+                        tosAccepted?: boolean;
+                        userId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            customer: unknown;
+                            customerId: string;
+                            kycData: unknown;
+                            linkedCustomerId: boolean;
+                            /** @enum {boolean} */
+                            ok: true;
+                            rails: unknown;
+                            result: unknown;
+                            verification: unknown;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
                         };
                     };
                 };
@@ -3385,6 +3644,119 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/dev/cheats/manteca-user-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        document?: "pep" | "fep";
+                        exchange?: "ARGENTINA" | "BRAZIL" | "CHILE" | "COLOMBIA" | "PANAMA" | "COSTA_RICA" | "GUATEMALA" | "MEXICO" | "PHILIPPINES" | "BOLIVIA";
+                        failedTask?: string;
+                        mantecaUserId?: string;
+                        rejectionReason?: string;
+                        state: "active" | "onboarding" | "inactive" | "rejected" | "documents_requested" | "documents_rejected" | "documents_accepted";
+                        userId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            event: string;
+                            mantecaGeo: string;
+                            mantecaUserId: string;
+                            /** @enum {boolean} */
+                            ok: true;
+                            payload: unknown;
+                            rails: unknown;
+                            result: unknown;
+                            verification: unknown;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dev/cheats/mint-jwt": {
         parameters: {
             query?: never;
@@ -3521,6 +3893,115 @@ export interface paths {
                             error: string;
                             /** @enum {boolean} */
                             ok: false;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dev/cheats/rain-application-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        applicationReason?: string;
+                        applicationStatus: "pending" | "needsVerification" | "needsInformation" | "approved" | "denied" | "locked" | "canceled" | "exempt";
+                        ensureRail?: boolean;
+                        rainUserId?: string;
+                        userId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            ok: true;
+                            payload: unknown;
+                            rail: unknown;
+                            railCreated: boolean;
+                            rainUserId: string;
+                            statusChanged: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
                         };
                     };
                 };
@@ -3713,81 +4194,6 @@ export interface paths {
                             ok: true;
                             simulateResponse: unknown;
                             virtualAccountId: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            /** @enum {boolean} */
-                            ok: false;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            /** @enum {boolean} */
-                            ok: false;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/dev/cheats/sweep-perk-to-kernel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        /** @description 6-decimal USDC base units; defaults to entire EOA balance */
-                        amount?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            eoaAddress: string;
-                            kernelAddress: string;
-                            /** @enum {boolean} */
-                            ok: true;
-                            txHash: string;
-                            usdcSwept: string;
                         };
                     };
                 };
@@ -4408,8 +4814,9 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        harnessLabel?: string;
-                        scenario: "send-link-pending" | "send-link-claimed" | "request-pot-open" | "kyc-matrix" | "user-with-bank-accounts" | "withdraw-ready" | "manteca-qr-payment" | "multi-user-send" | "points-and-perks";
+                        /** @description false skips the harness-wallet top-up of a funded persona. Default true. */
+                        fund?: boolean;
+                        persona: "verified-ar" | "verified-ar-funded" | "verified-us" | "verified-us-funded" | "alice-ar-verified" | "bob-us-verified" | "carol-us-unverified" | "diana-us-kyc-recently-approved" | "eve-us-kyc-long-approved";
                     };
                 };
             };
@@ -4421,19 +4828,12 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            data: unknown;
-                            scenario: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
+                            jwt: string;
+                            persona: string;
+                            signerPk?: string;
+                            userId: string;
+                            username: string | null;
+                            walletAddr: string;
                         };
                     };
                 };
@@ -4598,8 +4998,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Synthesise a Sumsub webhook and run the status-processor
-         * @description Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) — same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub → routing chain without real webhook delivery.
+         * Synthesise a Sumsub webhook and run it through the real handler
+         * @description delivery 'processor' calls processSumsubKycUpdate with the input /sumsub/webhooks builds; delivery 'route' signs the payload and injects it into /sumsub/webhooks, then waits for its audit row. Contract: src/routes/dev/impersonators/README.md.
          */
         post: {
             parameters: {
@@ -4611,16 +5011,27 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** @description payload.applicantActionId */
+                        actionId?: string;
                         /** @description Sumsub applicant id */
                         applicantId: string;
+                        clientComment?: string;
+                        /** @description Event time: epoch ms, or a verbatim Sumsub "YYYY-MM-DD HH:mm:ss.SSS" string */
+                        createdAtMs?: number | string;
+                        delivery?: "processor" | "route";
+                        /** @description payload.externalApplicantActionId */
+                        externalActionId?: string;
                         /** @description Peanut user_id (applicant.externalUserId) */
                         externalUserId: string;
                         levelName?: string;
-                        /** @default GREEN */
+                        moderationComment?: string;
+                        rejectLabels?: string[];
                         reviewAnswer?: "GREEN" | "RED" | "ERROR";
-                        /** @description Sumsub reviewStatus (default: "completed") */
+                        reviewRejectType?: "RETRY" | "FINAL";
+                        /** @description Sumsub reviewStatus (default by webhookType) */
                         reviewStatus?: string;
-                        /** @description e.g. "applicantReviewed" */
+                        waitMs?: number;
+                        /** @description Sumsub event type (default "applicantReviewed") */
                         webhookType?: string;
                     };
                 };
@@ -4633,7 +5044,41 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            ackStatus?: number;
+                            applied?: boolean;
+                            auditError?: string | null;
+                            auditStatus?: string;
+                            delivery?: string;
                             ms: number;
+                            ok: boolean;
+                            payload?: unknown;
+                            settled?: boolean;
+                            webhookEventId?: string;
+                            webhookType?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            ok?: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
                             ok: boolean;
                         };
                     };
@@ -4645,6 +5090,19 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
+                            ok: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            ackStatus: number;
                             error: string;
                             ok: boolean;
                         };
@@ -7434,6 +7892,21 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "CARD_APP_UPDATE_REQUIRED";
+                            message: string;
+                            /** @enum {string} */
+                            status: "error";
+                        };
+                    };
+                };
             };
         };
         delete?: never;
@@ -7684,6 +8157,176 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rain/cards/funding/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            enrollmentAllowed: boolean;
+                            fundingMode: "legacy" | "managed";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/funding/enroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        consent: {
+                            authorizationAccepted: boolean;
+                            authorizationText: string;
+                            termsVersion: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            enrollmentAllowed: boolean;
+                            fundingMode: "legacy" | "managed";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rain/cards/funding/grant": {
         parameters: {
             query?: never;
@@ -7752,6 +8395,18 @@ export interface paths {
                 };
                 /** @description Default Response */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -11568,6 +12223,8 @@ export interface paths {
                             /** @enum {string} */
                             code: "STEP_UP_REQUIRED";
                             error: string;
+                        } | {
+                            error: string;
                         };
                     };
                 };
@@ -12648,6 +13305,8 @@ export interface paths {
                         "application/json": {
                             /** @enum {string} */
                             code: "STEP_UP_REQUIRED";
+                            error: string;
+                        } | {
                             error: string;
                         };
                     };

@@ -369,6 +369,30 @@
 				}
 			}
 		},
+		"/avatars/art": {
+			"get": {
+				"description": "Maps each avatar key to its art url on the badge art route. Empty when no art bucket is configured.",
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": {
+										"type": "string"
+									},
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Avatar art urls",
+				"tags": [
+					"badges"
+				]
+			}
+		},
 		"/badge/award": {
 			"post": {
 				"parameters": [
@@ -974,6 +998,48 @@
 						"description": "Default Response"
 					}
 				}
+			}
+		},
+		"/badges/art/{file}": {
+			"get": {
+				"description": "Redirects to the badge art file in the configured bucket. Unknown names get 404.",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "file",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"302": {
+						"description": "Redirect; the Location header holds the bucket url"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Redirect to badge art",
+				"tags": [
+					"badges"
+				]
 			}
 		},
 		"/bridge/customers/{customerId}/external-accounts/{externalAccountId}": {
@@ -4016,6 +4082,57 @@
 				}
 			}
 		},
+		"/config/kill-switches": {
+			"get": {
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"disableXchainSend": {
+											"type": "boolean"
+										},
+										"disableXchainWithdraw": {
+											"type": "boolean"
+										},
+										"disabledMantecaCurrencies": {
+											"items": {
+												"type": "string"
+											},
+											"type": "array"
+										},
+										"disabledPaymentProviders": {
+											"items": {
+												"type": "string"
+											},
+											"type": "array"
+										},
+										"enableFullMaintenance": {
+											"type": "boolean"
+										},
+										"enableMaintenanceBanner": {
+											"type": "boolean"
+										},
+										"maintenanceBannerPaths": {
+											"items": {
+												"type": "string"
+											},
+											"type": "array"
+										},
+										"pixBrazilOnrampMaintenance": {
+											"type": "boolean"
+										}
+									},
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
 		"/config/residence-restrictions": {
 			"get": {
 				"responses": {
@@ -4332,6 +4449,366 @@
 									},
 									"required": [
 										"ok",
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/dev/cheats/bridge-kyc-status": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"customerId": {
+										"type": "string"
+									},
+									"customerStatus": {
+										"anyOf": [
+											{
+												"enum": [
+													"active"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"not_started"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"incomplete"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"under_review"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"awaiting_questionnaire"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"awaiting_ubo"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"paused"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"offboarded"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"rejected"
+												],
+												"type": "string"
+											}
+										]
+									},
+									"endorsements": {
+										"items": {
+											"properties": {
+												"additionalRequirements": {
+													"items": {
+														"type": "string"
+													},
+													"type": "array"
+												},
+												"complete": {
+													"items": {
+														"type": "string"
+													},
+													"type": "array"
+												},
+												"issues": {
+													"items": {
+														"type": "string"
+													},
+													"type": "array"
+												},
+												"missing": {
+													"items": {
+														"type": "string"
+													},
+													"type": "array"
+												},
+												"name": {
+													"type": "string"
+												},
+												"pending": {
+													"items": {
+														"type": "string"
+													},
+													"type": "array"
+												},
+												"status": {
+													"anyOf": [
+														{
+															"enum": [
+																"approved"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"incomplete"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"rejected"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"revoked"
+															],
+															"type": "string"
+														}
+													]
+												}
+											},
+											"required": [
+												"name",
+												"status"
+											],
+											"type": "object"
+										},
+										"type": "array"
+									},
+									"kycStatus": {
+										"anyOf": [
+											{
+												"enum": [
+													"not_started"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"under_review"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"incomplete"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"approved"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"rejected"
+												],
+												"type": "string"
+											}
+										]
+									},
+									"rejectionReasons": {
+										"items": {
+											"properties": {
+												"developerReason": {
+													"type": "string"
+												},
+												"reason": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"reason"
+											],
+											"type": "object"
+										},
+										"type": "array"
+									},
+									"tosAccepted": {
+										"type": "boolean"
+									},
+									"userId": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"userId",
+									"kycStatus"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"customer": {},
+										"customerId": {
+											"type": "string"
+										},
+										"kycData": {},
+										"linkedCustomerId": {
+											"type": "boolean"
+										},
+										"ok": {
+											"enum": [
+												true
+											],
+											"type": "boolean"
+										},
+										"rails": {},
+										"result": {},
+										"verification": {}
+									},
+									"required": [
+										"ok",
+										"customerId",
+										"linkedCustomerId",
+										"customer",
+										"kycData",
+										"result",
+										"verification",
+										"rails"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"ok": {
+											"enum": [
+												false
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"ok": {
+											"enum": [
+												false
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"ok": {
+											"enum": [
+												false
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"ok": {
+											"enum": [
+												false
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
 										"error"
 									],
 									"type": "object"
@@ -6220,6 +6697,315 @@
 				}
 			}
 		},
+		"/dev/cheats/manteca-user-status": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"document": {
+										"anyOf": [
+											{
+												"enum": [
+													"pep"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"fep"
+												],
+												"type": "string"
+											}
+										]
+									},
+									"exchange": {
+										"anyOf": [
+											{
+												"enum": [
+													"ARGENTINA"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"BRAZIL"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"CHILE"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"COLOMBIA"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"PANAMA"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"COSTA_RICA"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"GUATEMALA"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"MEXICO"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"PHILIPPINES"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"BOLIVIA"
+												],
+												"type": "string"
+											}
+										]
+									},
+									"failedTask": {
+										"type": "string"
+									},
+									"mantecaUserId": {
+										"type": "string"
+									},
+									"rejectionReason": {
+										"type": "string"
+									},
+									"state": {
+										"anyOf": [
+											{
+												"enum": [
+													"active"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"onboarding"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"inactive"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"rejected"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"documents_requested"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"documents_rejected"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"documents_accepted"
+												],
+												"type": "string"
+											}
+										]
+									},
+									"userId": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"userId",
+									"state"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"event": {
+											"type": "string"
+										},
+										"mantecaGeo": {
+											"type": "string"
+										},
+										"mantecaUserId": {
+											"type": "string"
+										},
+										"ok": {
+											"enum": [
+												true
+											],
+											"type": "boolean"
+										},
+										"payload": {},
+										"rails": {},
+										"result": {},
+										"verification": {}
+									},
+									"required": [
+										"ok",
+										"event",
+										"mantecaUserId",
+										"mantecaGeo",
+										"payload",
+										"result",
+										"verification",
+										"rails"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"ok": {
+											"enum": [
+												false
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"ok": {
+											"enum": [
+												false
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"ok": {
+											"enum": [
+												false
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"ok": {
+											"enum": [
+												false
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
 		"/dev/cheats/mint-jwt": {
 			"post": {
 				"requestBody": {
@@ -6428,6 +7214,236 @@
 									},
 									"required": [
 										"ok",
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/dev/cheats/rain-application-status": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"applicationReason": {
+										"type": "string"
+									},
+									"applicationStatus": {
+										"anyOf": [
+											{
+												"enum": [
+													"pending"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"needsVerification"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"needsInformation"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"approved"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"denied"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"locked"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"canceled"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"exempt"
+												],
+												"type": "string"
+											}
+										]
+									},
+									"ensureRail": {
+										"type": "boolean"
+									},
+									"rainUserId": {
+										"type": "string"
+									},
+									"userId": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"applicationStatus"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"ok": {
+											"enum": [
+												true
+											],
+											"type": "boolean"
+										},
+										"payload": {},
+										"rail": {},
+										"railCreated": {
+											"type": "boolean"
+										},
+										"rainUserId": {
+											"type": "string"
+										},
+										"statusChanged": {
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"ok",
+										"rainUserId",
+										"railCreated",
+										"payload",
+										"statusChanged",
+										"rail"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"ok": {
+											"enum": [
+												false
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"ok": {
+											"enum": [
+												false
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"ok": {
+											"enum": [
+												false
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"ok": {
+											"enum": [
+												false
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
 										"error"
 									],
 									"type": "object"
@@ -6694,114 +7710,6 @@
 										"ok",
 										"virtualAccountId",
 										"simulateResponse"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"400": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"error": {
-											"type": "string"
-										},
-										"ok": {
-											"enum": [
-												false
-											],
-											"type": "boolean"
-										}
-									},
-									"required": [
-										"ok",
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"500": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"error": {
-											"type": "string"
-										},
-										"ok": {
-											"enum": [
-												false
-											],
-											"type": "boolean"
-										}
-									},
-									"required": [
-										"ok",
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					}
-				}
-			}
-		},
-		"/dev/cheats/sweep-perk-to-kernel": {
-			"post": {
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"properties": {
-									"amount": {
-										"description": "6-decimal USDC base units; defaults to entire EOA balance",
-										"type": "string"
-									}
-								},
-								"type": "object"
-							}
-						}
-					}
-				},
-				"responses": {
-					"200": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"eoaAddress": {
-											"type": "string"
-										},
-										"kernelAddress": {
-											"type": "string"
-										},
-										"ok": {
-											"enum": [
-												true
-											],
-											"type": "boolean"
-										},
-										"txHash": {
-											"type": "string"
-										},
-										"usdcSwept": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"ok",
-										"txHash",
-										"eoaAddress",
-										"kernelAddress",
-										"usdcSwept"
 									],
 									"type": "object"
 								}
@@ -7791,62 +8699,63 @@
 						"application/json": {
 							"schema": {
 								"properties": {
-									"harnessLabel": {
-										"type": "string"
+									"fund": {
+										"description": "false skips the harness-wallet top-up of a funded persona. Default true.",
+										"type": "boolean"
 									},
-									"scenario": {
+									"persona": {
 										"anyOf": [
 											{
 												"enum": [
-													"send-link-pending"
+													"verified-ar"
 												],
 												"type": "string"
 											},
 											{
 												"enum": [
-													"send-link-claimed"
+													"verified-ar-funded"
 												],
 												"type": "string"
 											},
 											{
 												"enum": [
-													"request-pot-open"
+													"verified-us"
 												],
 												"type": "string"
 											},
 											{
 												"enum": [
-													"kyc-matrix"
+													"verified-us-funded"
 												],
 												"type": "string"
 											},
 											{
 												"enum": [
-													"user-with-bank-accounts"
+													"alice-ar-verified"
 												],
 												"type": "string"
 											},
 											{
 												"enum": [
-													"withdraw-ready"
+													"bob-us-verified"
 												],
 												"type": "string"
 											},
 											{
 												"enum": [
-													"manteca-qr-payment"
+													"carol-us-unverified"
 												],
 												"type": "string"
 											},
 											{
 												"enum": [
-													"multi-user-send"
+													"diana-us-kyc-recently-approved"
 												],
 												"type": "string"
 											},
 											{
 												"enum": [
-													"points-and-perks"
+													"eve-us-kyc-long-approved"
 												],
 												"type": "string"
 											}
@@ -7854,7 +8763,7 @@
 									}
 								},
 								"required": [
-									"scenario"
+									"persona"
 								],
 								"type": "object"
 							}
@@ -7868,32 +8777,38 @@
 							"application/json": {
 								"schema": {
 									"properties": {
-										"data": {},
-										"scenario": {
+										"jwt": {
+											"type": "string"
+										},
+										"persona": {
+											"type": "string"
+										},
+										"signerPk": {
+											"type": "string"
+										},
+										"userId": {
+											"type": "string"
+										},
+										"username": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"walletAddr": {
 											"type": "string"
 										}
 									},
 									"required": [
-										"scenario",
-										"data"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"400": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
+										"persona",
+										"userId",
+										"username",
+										"walletAddr",
+										"jwt"
 									],
 									"type": "object"
 								}
@@ -8162,14 +9077,52 @@
 		},
 		"/dev/trigger-sumsub-webhook": {
 			"post": {
-				"description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) — same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub → routing chain without real webhook delivery.",
+				"description": "delivery 'processor' calls processSumsubKycUpdate with the input /sumsub/webhooks builds; delivery 'route' signs the payload and injects it into /sumsub/webhooks, then waits for its audit row. Contract: src/routes/dev/impersonators/README.md.",
 				"requestBody": {
 					"content": {
 						"application/json": {
 							"schema": {
 								"properties": {
+									"actionId": {
+										"description": "payload.applicantActionId",
+										"type": "string"
+									},
 									"applicantId": {
 										"description": "Sumsub applicant id",
+										"type": "string"
+									},
+									"clientComment": {
+										"type": "string"
+									},
+									"createdAtMs": {
+										"anyOf": [
+											{
+												"type": "number"
+											},
+											{
+												"type": "string"
+											}
+										],
+										"description": "Event time: epoch ms, or a verbatim Sumsub \"YYYY-MM-DD HH:mm:ss.SSS\" string"
+									},
+									"delivery": {
+										"anyOf": [
+											{
+												"enum": [
+													"processor"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"route"
+												],
+												"type": "string"
+											}
+										]
+									},
+									"externalActionId": {
+										"description": "payload.externalApplicantActionId",
 										"type": "string"
 									},
 									"externalUserId": {
@@ -8178,6 +9131,15 @@
 									},
 									"levelName": {
 										"type": "string"
+									},
+									"moderationComment": {
+										"type": "string"
+									},
+									"rejectLabels": {
+										"items": {
+											"type": "string"
+										},
+										"type": "array"
 									},
 									"reviewAnswer": {
 										"anyOf": [
@@ -8199,15 +9161,35 @@
 												],
 												"type": "string"
 											}
-										],
-										"default": "GREEN"
+										]
+									},
+									"reviewRejectType": {
+										"anyOf": [
+											{
+												"enum": [
+													"RETRY"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"FINAL"
+												],
+												"type": "string"
+											}
+										]
 									},
 									"reviewStatus": {
-										"description": "Sumsub reviewStatus (default: \"completed\")",
+										"description": "Sumsub reviewStatus (default by webhookType)",
 										"type": "string"
 									},
+									"waitMs": {
+										"maximum": 60000,
+										"minimum": 0,
+										"type": "integer"
+									},
 									"webhookType": {
-										"description": "e.g. \"applicantReviewed\"",
+										"description": "Sumsub event type (default \"applicantReviewed\")",
 										"type": "string"
 									}
 								},
@@ -8227,8 +9209,86 @@
 							"application/json": {
 								"schema": {
 									"properties": {
+										"ackStatus": {
+											"type": "number"
+										},
+										"applied": {
+											"type": "boolean"
+										},
+										"auditError": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"auditStatus": {
+											"type": "string"
+										},
+										"delivery": {
+											"type": "string"
+										},
 										"ms": {
 											"type": "number"
+										},
+										"ok": {
+											"type": "boolean"
+										},
+										"payload": {},
+										"settled": {
+											"type": "boolean"
+										},
+										"webhookEventId": {
+											"type": "string"
+										},
+										"webhookType": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"ok",
+										"ms"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"ok": {
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"412": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
 										},
 										"ok": {
 											"type": "boolean"
@@ -8236,7 +9296,7 @@
 									},
 									"required": [
 										"ok",
-										"ms"
+										"error"
 									],
 									"type": "object"
 								}
@@ -8265,9 +9325,35 @@
 							}
 						},
 						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"ackStatus": {
+											"type": "number"
+										},
+										"error": {
+											"type": "string"
+										},
+										"ok": {
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"ok",
+										"error",
+										"ackStatus"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
 					}
 				},
-				"summary": "Synthesise a Sumsub webhook and run the status-processor",
+				"summary": "Synthesise a Sumsub webhook and run it through the real handler",
 				"tags": [
 					"dev"
 				]
@@ -12875,6 +13961,38 @@
 							}
 						},
 						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"enum": [
+												"CARD_APP_UPDATE_REQUIRED"
+											],
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										},
+										"status": {
+											"enum": [
+												"error"
+											],
+											"type": "string"
+										}
+									},
+									"required": [
+										"status",
+										"code",
+										"message"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
 					}
 				}
 			}
@@ -13352,6 +14470,271 @@
 				}
 			}
 		},
+		"/rain/cards/funding/access": {
+			"get": {
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"enrollmentAllowed": {
+											"type": "boolean"
+										},
+										"fundingMode": {
+											"anyOf": [
+												{
+													"enum": [
+														"legacy"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"managed"
+													],
+													"type": "string"
+												}
+											]
+										}
+									},
+									"required": [
+										"fundingMode",
+										"enrollmentAllowed"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/rain/cards/funding/enroll": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"consent": {
+										"properties": {
+											"authorizationAccepted": {
+												"type": "boolean"
+											},
+											"authorizationText": {
+												"maxLength": 256,
+												"type": "string"
+											},
+											"termsVersion": {
+												"maxLength": 64,
+												"type": "string"
+											}
+										},
+										"required": [
+											"termsVersion",
+											"authorizationAccepted",
+											"authorizationText"
+										],
+										"type": "object"
+									}
+								},
+								"required": [
+									"consent"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"enrollmentAllowed": {
+											"type": "boolean"
+										},
+										"fundingMode": {
+											"anyOf": [
+												{
+													"enum": [
+														"legacy"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"managed"
+													],
+													"type": "string"
+												}
+											]
+										}
+									},
+									"required": [
+										"fundingMode",
+										"enrollmentAllowed"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
 		"/rain/cards/funding/grant": {
 			"post": {
 				"requestBody": {
@@ -13619,6 +15002,27 @@
 						"description": "Default Response"
 					},
 					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
 						"content": {
 							"application/json": {
 								"schema": {
@@ -20000,22 +21404,37 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"code": {
-											"enum": [
-												"STEP_UP_REQUIRED"
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"STEP_UP_REQUIRED"
+													],
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"error",
+												"code"
 											],
-											"type": "string"
+											"type": "object"
 										},
-										"error": {
-											"type": "string"
+										{
+											"properties": {
+												"error": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
 										}
-									},
-									"required": [
-										"error",
-										"code"
-									],
-									"type": "object"
+									]
 								}
 							}
 						},
@@ -23165,22 +24584,37 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"code": {
-											"enum": [
-												"STEP_UP_REQUIRED"
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"STEP_UP_REQUIRED"
+													],
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"error",
+												"code"
 											],
-											"type": "string"
+											"type": "object"
 										},
-										"error": {
-											"type": "string"
+										{
+											"properties": {
+												"error": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
 										}
-									},
-									"required": [
-										"error",
-										"code"
-									],
-									"type": "object"
+									]
 								}
 							}
 						},

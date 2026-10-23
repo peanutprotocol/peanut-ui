@@ -45,6 +45,17 @@ jest.mock('@/hooks/wallet/useCardCollateralReturn', () => ({
     }),
 }))
 
+// The server's funding decision and the managed funding state it gates.
+let mockAccess: { fundingMode: 'legacy' | 'managed'; enrollmentAllowed: boolean } | undefined
+let mockManagementStatus: string | undefined
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'user-1' } } }) }))
+jest.mock('@/hooks/useCardFundingAccess', () => ({ useCardFundingAccess: () => ({ access: mockAccess }) }))
+jest.mock('@tanstack/react-query', () => ({
+    useQuery: ({ enabled }: { enabled?: boolean }) => ({
+        data: enabled && mockManagementStatus ? { management: { status: mockManagementStatus } } : undefined,
+    }),
+}))
+
 import YourCardScreen from '../YourCardScreen'
 
 const CARD = {
@@ -74,6 +85,48 @@ beforeEach(() => {
     mockIsReturning = false
     mockReturnError = null
     mockReturnCollateral.mockResolvedValue({ kind: 'returned', via: 'root', preparationId: 'prep-1' })
+    mockAccess = { fundingMode: 'managed', enrollmentAllowed: true }
+    mockManagementStatus = 'ready'
+})
+
+// On the existing card permission the card balance is what card payments use:
+// moving it out would only start a refill. The note and the move belong to
+// managed funding, and the move waits until managed funding is ready.
+describe('YourCardScreen — which accounts are offered the move', () => {
+    const action = () => screen.queryByRole('button', { name: 'Move card balance to wallet' })
+
+    it.each([true, false])(
+        'an account on the existing permission (open to managed funding: %s) sees no note and no move',
+        (enrollmentAllowed) => {
+            mockAccess = { fundingMode: 'legacy', enrollmentAllowed }
+            render(<YourCardScreen overview={overview(10_000)} card={CARD} />)
+            expect(screen.queryByTestId('card-collateral')).not.toBeInTheDocument()
+            expect(action()).not.toBeInTheDocument()
+        }
+    )
+
+    it('an unread decision offers nothing', () => {
+        mockAccess = undefined
+        render(<YourCardScreen overview={overview(10_000)} card={CARD} />)
+        expect(screen.queryByTestId('card-collateral')).not.toBeInTheDocument()
+        expect(action()).not.toBeInTheDocument()
+    })
+
+    it.each(['required', 'migration_required', 'pending', 'temporarily_unavailable', undefined])(
+        'a managed account whose funding is %s sees the note but no move yet',
+        (status) => {
+            mockManagementStatus = status
+            render(<YourCardScreen overview={overview(10_000)} card={CARD} />)
+            expect(screen.getByTestId('card-collateral')).toBeInTheDocument()
+            expect(action()).not.toBeInTheDocument()
+        }
+    )
+
+    it('a managed account keeps the move after new enrollment closed', () => {
+        mockAccess = { fundingMode: 'managed', enrollmentAllowed: false }
+        render(<YourCardScreen overview={overview(10_000)} card={CARD} />)
+        expect(action()).toBeInTheDocument()
+    })
 })
 
 describe('YourCardScreen — collateral note', () => {

@@ -6,6 +6,7 @@ import ActionModal, { type ActionModalButtonProps, type ActionModalTertiaryCta }
 import CardFundingConsent from '@/components/Card/CardFundingConsent'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { useCardFundingAccess } from '@/hooks/useCardFundingAccess'
 import { useRainFunding } from '@/hooks/wallet/useRainFunding'
 import { isRainBalanceKnown } from '@/utils/balance.utils'
 
@@ -53,6 +54,13 @@ export default function FundingSetupPrompt() {
     const { overview } = useRainCardOverview()
     const card = findActiveCard(overview)
     const hasActiveCard = card?.status === 'ACTIVE'
+    // The server's decision picks this prompt or the existing card permission
+    // prompt (EnableAutoBalanceBanner); unknown shows neither.
+    const { access, setupPath } = useCardFundingAccess({ enabled: hasActiveCard })
+    const isManagedPath = setupPath === 'managed'
+    // Open to new managed funding but not accepted yet: still on the existing
+    // permission until the person accepts here.
+    const offersEnrollment = access?.fundingMode === 'legacy' && access.enrollmentAllowed
     const {
         funding,
         status,
@@ -68,7 +76,7 @@ export default function FundingSetupPrompt() {
         owesReturn,
         returnError,
         continueSetup,
-    } = useRainFunding({ enabled: hasActiveCard })
+    } = useRainFunding({ enabled: hasActiveCard && isManagedPath })
     // Card id the user chose "Skip for now" for — per card, so skipping a
     // stuck card A never suppresses the prompt for a different card B that
     // legitimately needs its own setup later in the same session.
@@ -96,7 +104,12 @@ export default function FundingSetupPrompt() {
     // support and never a prompt the person cannot complete.
     // A grant that ended as retired or paused also ends the prompt: the person
     // can do nothing more, and it is never offered again.
-    const endedForGood = lastError?.kind === 'scope-retired' || lastError?.kind === 'unavailable'
+    // So does a refused enrollment: the decision is read again and the
+    // existing permission prompt takes over if that is what applies now.
+    const endedForGood =
+        lastError?.kind === 'scope-retired' ||
+        lastError?.kind === 'unavailable' ||
+        lastError?.kind === 'enrollment-not-allowed'
 
     // Card balance the provider can release moves back to the wallet once
     // funding is confirmed ready, which can take more than one confirmation. An
@@ -109,9 +122,17 @@ export default function FundingSetupPrompt() {
     // explicit step (a tap, never a render), and funding stays as it is.
     const finishingReturn = owesReturn && status === 'ready' && (returnCents > 0 || !!returnError)
 
-    // A card withdrawal still confirming is unfinished setup, never done.
+    // A card withdrawal still confirming is unfinished setup, never done. An
+    // account open to enrollment is offered setup once the terms are known.
     const shouldShow =
-        hasActiveCard && !endedForGood && (needsGrant === true || isPending || isWithdrawalInFlight || finishingReturn)
+        hasActiveCard &&
+        isManagedPath &&
+        !endedForGood &&
+        (needsGrant === true ||
+            isPending ||
+            isWithdrawalInFlight ||
+            finishingReturn ||
+            (offersEnrollment && !!funding?.permission.authorizationText))
 
     // Only honor the hook's error if the attempt it came from was for THIS
     // card. `lastAttemptFor === null` (error with no recorded attempt) can't
@@ -223,7 +244,8 @@ export default function FundingSetupPrompt() {
                 ? failureDescription(lastError, t('descriptionError'))
                 : returnCents > 0
                   ? t('descriptionReturn', { amount })
-                  : isMigration
+                  : // before acceptance the old permission still on the card has to be replaced too
+                    isMigration || (offersEnrollment && !!card?.hasStoredWithdrawApproval)
                     ? t('descriptionMigration')
                     : t('description')
 

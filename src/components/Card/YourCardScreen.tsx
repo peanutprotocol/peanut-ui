@@ -24,9 +24,13 @@ import { useCardReveal } from '@/hooks/useCardReveal'
 import { usePushProvisioning } from '@/hooks/usePushProvisioning'
 import { useWalletPlatform } from '@/hooks/useWalletPlatform'
 import { useCardCollateralReturn } from '@/hooks/wallet/useCardCollateralReturn'
+import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@/context/authContext'
+import { useCardFundingAccess } from '@/hooks/useCardFundingAccess'
+import { RAIN_CARD_FUNDING_QUERY_KEY } from '@/hooks/useCardStopConfirmation'
 import type { CollateralReturnFailure } from '@/hooks/wallet/cardCollateralReturn'
 import { cardBalanceDueCents, isRainBalanceKnown } from '@/utils/balance.utils'
-import type { RainCardOverview, RainCardSummary } from '@/services/rain'
+import { rainApi, type RainCardFunding, type RainCardOverview, type RainCardSummary } from '@/services/rain'
 import type { StopAttempt } from '@/hooks/useCardStopConfirmation'
 
 type CardAction = 'lock' | 'unlock' | 'cancel'
@@ -77,6 +81,9 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev, onStopAttempt }) =>
         last4: card.last4,
     })
     const { returnCollateral, isReturning, lastError: lastReturnError } = useCardCollateralReturn()
+    const { user } = useAuth()
+    const userId = user?.user?.userId
+    const { access: fundingAccess } = useCardFundingAccess()
 
     const handleAddToWallet = useCallback(async () => {
         if (isAdding) return
@@ -95,9 +102,24 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev, onStopAttempt }) =>
     const showAutoRenew = !autoRenewDismissed && shouldShowAutoRenewBanner(card.expiryMonth, card.expiryYear)
     const daysLeft = daysUntilExpiry(card.expiryMonth, card.expiryYear)
     const balanceDueCents = cardBalanceDueCents(overview.balance?.spendingPower)
-    const collateralCents = Math.max(0, Math.floor(overview.balance?.spendingPower ?? 0))
+    // On the existing card permission the card balance is topped up
+    // automatically, so it is not offered back here. A managed account sees
+    // what is left, and can move it once managed funding is ready.
+    const isManaged = fundingAccess?.fundingMode === 'managed'
+    const { data: funding } = useQuery<RainCardFunding>({
+        queryKey: [RAIN_CARD_FUNDING_QUERY_KEY, userId],
+        queryFn: () => rainApi.getCardFunding(),
+        enabled: isManaged && !!userId,
+        staleTime: 30_000,
+        retry: false,
+    })
+    const collateralCents = isManaged ? Math.max(0, Math.floor(overview.balance?.spendingPower ?? 0)) : 0
     // Offered only on a fresh provider figure; the return reads it again anyway.
-    const canMoveCollateral = collateralCents > 0 && isRainBalanceKnown(overview) && !overview.balanceUnavailable
+    const canMoveCollateral =
+        collateralCents > 0 &&
+        funding?.management.status === 'ready' &&
+        isRainBalanceKnown(overview) &&
+        !overview.balanceUnavailable
     const returnErrorKey = lastReturnError ? RETURN_ERROR_KEY[lastReturnError.kind] : null
 
     // Moves the card balance to this wallet. Never locks, cancels or grants.

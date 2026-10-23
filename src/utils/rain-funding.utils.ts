@@ -6,7 +6,27 @@ import {
 } from '@/constants/rain.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { apiErrorStatus, wireErrorCode } from '@/services/api-error'
-import type { RainCardFunding, RainFundingManagementStatus } from '@/services/rain'
+import type { RainCardFunding, RainFundingAccess, RainFundingManagementStatus } from '@/services/rain'
+
+/**
+ * Which card funding setup this account is offered, from the server's
+ * decision only: managed once the account is managed (whatever the rollout
+ * flag says now), or while new enrollment is open to it; otherwise the
+ * existing card permission. Unknown (no answer yet, or a failed read) is
+ * undefined, and callers then offer and sign nothing.
+ */
+export const fundingSetupPath = (access: RainFundingAccess | undefined): 'managed' | 'legacy' | undefined =>
+    !access ? undefined : access.fundingMode === 'managed' || access.enrollmentAllowed ? 'managed' : 'legacy'
+
+/** The signed-in user and connected wallet a card flow was started for. */
+export interface CardFlowIdentity {
+    userId?: string
+    connectedAddress?: string
+}
+
+/** Same user and same wallet: anything else stops a flow before its next request or signature. */
+export const sameIdentity = (a: CardFlowIdentity, b: CardFlowIdentity): boolean =>
+    a.userId === b.userId && a.connectedAddress === b.connectedAddress
 
 export type RainFundingError =
     /** A consent box is missing, or the statement shown is not the one the backend records. */
@@ -44,6 +64,8 @@ export type RainFundingError =
     | { kind: 'return-failed' }
     /** A card withdrawal is still confirming. Nothing is retired or signed until it settles. */
     | { kind: 'withdrawal-in-flight' }
+    /** New managed funding is not open to this account. Nothing was recorded, retired or signed. */
+    | { kind: 'enrollment-not-allowed' }
     | { kind: 'unexpected'; message: string }
 
 export type RainFundingResult =
@@ -120,6 +142,12 @@ export const classifyFundingApiError = (error: unknown): RainFundingError => {
     if (code === 'no_rain_account' || status === 404) return { kind: 'no-account' }
     if (code === 'card_wallet_mismatch') return { kind: 'wallet-mismatch' }
     if (code === 'consent_required') return { kind: 'consent-required' }
+    // not admitted, or no longer open to new accounts: nothing is signed
+    if (code === 'enrollment_not_allowed' || code === 'enrollment_required') return { kind: 'enrollment-not-allowed' }
+    if (code === 'card_action_in_progress') return { kind: 'busy' }
+    if (code === 'funding_access_unavailable') {
+        return { kind: 'funding-unavailable', message: (error as Error)?.message ?? String(error) }
+    }
     if (code === 'invalid_permission') return { kind: 'rejected' }
     if (code === 'scope_retired' || code === 'permission_retire_required') return { kind: 'scope-retired' }
     if (code === 'support_required') return { kind: 'unavailable' }

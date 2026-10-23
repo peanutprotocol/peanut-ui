@@ -73,6 +73,18 @@ export type CardFundingStop = CardLockResponse['fundingStop']
 export type SubmitRainFundingGrantInput =
     paths['/rain/cards/funding/grant']['post']['requestBody']['content']['application/json']
 
+/**
+ * `fundingMode` is the user's persisted transition for the current wallet,
+ * decided by the server only (the app never derives it from anything else),
+ * and never goes back to `legacy`. `enrollmentAllowed` is only whether a NEW enrollment is open to
+ * this user right now; `managed` with `false` still has to finish.
+ */
+export type RainFundingAccess =
+    paths['/rain/cards/funding/access']['get']['responses'][200]['content']['application/json']
+
+export type EnrollRainFundingInput =
+    paths['/rain/cards/funding/enroll']['post']['requestBody']['content']['application/json']
+
 export interface RainCardSummary {
     id: string
     rainCardId: string
@@ -611,6 +623,27 @@ export const rainApi = {
     },
 
     /**
+     * The server's funding decision for this account. A 503 means the state
+     * could not be read: callers treat it as unknown and sign nothing.
+     */
+    getFundingAccess: async (): Promise<RainFundingAccess> => {
+        return rainRequest<RainFundingAccess>({ method: 'GET', path: '/rain/cards/funding/access', noStore: true })
+    },
+
+    /**
+     * Record the user's accepted funding consent for their current wallet.
+     * Idempotent once admitted; refused (403) when new enrollment is not open.
+     * It signs nothing and must come before any old permission is retired.
+     */
+    enrollFunding: async (input: EnrollRainFundingInput): Promise<RainFundingAccess> => {
+        return rainRequest<RainFundingAccess>({
+            method: 'POST',
+            path: '/rain/cards/funding/enroll',
+            body: input,
+        })
+    },
+
+    /**
      * Hand the backend the one signed permission plus the user's explicit
      * consent. The backend enables it and sets the first finite allowance; the
      * answer is the funding state, `pending` until the chain confirms.
@@ -827,10 +860,14 @@ export const rainApi = {
              *  actually displayed (slug + version + hash), so the backend
              *  records what the user was shown. Only sent with acceptance. */
             acceptedDocuments?: AcceptedLegalDocument[]
+            /** Legacy re-issue only: the card permission signed right before the
+             *  application, for a user whose collateral contracts already exist. */
+            serializedApproval?: string
         } = {}
     ): Promise<ApplyForCardResponse> => {
         const body: Record<string, unknown> = { termsAccepted: opts.termsAccepted === true }
         if (opts.confirmedResidenceCountry) body.confirmedResidenceCountry = opts.confirmedResidenceCountry
+        if (opts.serializedApproval) body.serializedApproval = opts.serializedApproval
         if (opts.termsAccepted === true && opts.acceptedDocuments?.length) {
             body.acceptedDocuments = opts.acceptedDocuments
         }

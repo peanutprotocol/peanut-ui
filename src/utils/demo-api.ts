@@ -13,7 +13,7 @@ import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_US
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
-import type { RainCardFunding } from '@/services/rain'
+import type { RainCardFunding, RainFundingAccess } from '@/services/rain'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -900,6 +900,14 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             },
             management: { status: 'ready', reason: null, migration: null, stop: null },
         }),
+    },
+    // The server's funding decision. The demo card is already on managed
+    // funding (its permission above is ready); a fixture overrides it to show
+    // the existing-permission or not-yet-accepted paths.
+    {
+        method: 'GET',
+        pattern: '/rain/cards/funding/access',
+        handler: (): RainFundingAccess => ({ fundingMode: 'managed', enrollmentAllowed: true }),
     },
     // per-card limits read — without this the card-limit fixture (and any
     // demo/capture render of /card/limit) 404s into the error state.
