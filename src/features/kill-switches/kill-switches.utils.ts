@@ -27,10 +27,19 @@ export function resolveKillSwitches(server: unknown, saved: unknown): KillSwitch
     return { ...DEFAULT_KILL_SWITCHES, ...sanitizeKillSwitches(saved), ...sanitizeKillSwitches(server) }
 }
 
-/** True when full maintenance should move this page to /maintenance. */
-export function shouldRedirectToMaintenance(pathname: string | null, enableFullMaintenance: boolean): boolean {
-    if (!enableFullMaintenance || !pathname) return false
+/**
+ * Where full maintenance should send this page, or null to stay. Demo mode (the
+ * app-store review sandbox) counts as maintenance off, so it never redirects in
+ * and is never stuck on /maintenance.
+ */
+export function maintenanceRedirectTarget(
+    pathname: string | null,
+    enableFullMaintenance: boolean,
+    demoMode: boolean
+): '/maintenance' | '/home' | null {
+    if (!pathname) return null
     // the native export uses trailing slashes
     const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
-    return !FULL_MAINTENANCE_ALLOWED_PATHS.includes(path)
+    if (!enableFullMaintenance || demoMode) return path === '/maintenance' ? '/home' : null
+    return FULL_MAINTENANCE_ALLOWED_PATHS.includes(path) ? null : '/maintenance'
 }

@@ -1,5 +1,5 @@
 import { DEFAULT_KILL_SWITCHES } from '../kill-switches.consts'
-import { resolveKillSwitches, shouldRedirectToMaintenance } from '../kill-switches.utils'
+import { maintenanceRedirectTarget, resolveKillSwitches } from '../kill-switches.utils'
 
 describe('resolveKillSwitches', () => {
     it('uses the built-in defaults when nothing is served or saved', () => {
@@ -37,16 +37,29 @@ describe('resolveKillSwitches', () => {
     })
 })
 
-describe('shouldRedirectToMaintenance', () => {
+describe('maintenanceRedirectTarget', () => {
     it.each(['/home', '/withdraw/manteca', '/send/', '/claim'])('sends %s to /maintenance when it is on', (path) => {
-        expect(shouldRedirectToMaintenance(path, true)).toBe(true)
+        expect(maintenanceRedirectTarget(path, true, false)).toBe('/maintenance')
     })
 
     it.each(['/', '/maintenance', '/support', '/maintenance/', '/support/'])('leaves %s open when it is on', (path) => {
-        expect(shouldRedirectToMaintenance(path, true)).toBe(false)
+        expect(maintenanceRedirectTarget(path, true, false)).toBeNull()
     })
 
-    it('never redirects when it is off', () => {
-        expect(shouldRedirectToMaintenance('/home', false)).toBe(false)
+    it('never redirects other pages when it is off', () => {
+        expect(maintenanceRedirectTarget('/home', false, false)).toBeNull()
+    })
+
+    it.each(['/maintenance', '/maintenance/'])('sends %s back to /home when it is off', (path) => {
+        expect(maintenanceRedirectTarget(path, false, false)).toBe('/home')
+    })
+
+    it('does not redirect to /maintenance in demo mode', () => {
+        expect(maintenanceRedirectTarget('/home', true, true)).toBeNull()
+    })
+
+    it('lets demo mode leave /maintenance instead of looping back to it', () => {
+        expect(maintenanceRedirectTarget('/maintenance', true, true)).toBe('/home')
+        expect(maintenanceRedirectTarget('/home', true, true)).toBeNull()
     })
 })
