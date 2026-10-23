@@ -75,6 +75,13 @@ describe('demoRespond — routing', () => {
         expect(await res.json()).toEqual({})
     })
 
+    it('answers the avatar art map with an empty map in strict capture mode', async () => {
+        // every UserAvatar reads it; unmapped, strict mode fails every screen with an avatar
+        const res = await demoRespond('/avatars/art', { method: 'GET' }, { offline: true, strict: true })
+        expect(res.status).toBe(200)
+        expect(await res.json()).toEqual({})
+    })
+
     // Both are called by /qr-pay for a PIX key, and the screen-capture harness
     // runs strict: an unmapped route fails the qr-pay-pix-key-owner fixture.
     it('answers the PIX key owner lookup in strict capture mode', async () => {

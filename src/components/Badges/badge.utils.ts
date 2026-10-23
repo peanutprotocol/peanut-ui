@@ -26,7 +26,7 @@ export const BADGE_CODES: readonly string[] = Object.keys(BADGE_ASSET_FALLBACKS)
 // badge art route; arbitrary remote, data, traversal, query, and fragment URLs
 // never reach an image renderer. The API form is accepted ahead of the backend
 // route so installed apps need no OTA when it ships.
-const ESCAPED_API_URL = PEANUT_API_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+export const ESCAPED_API_URL = PEANUT_API_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const SAFE_BADGE_ICON_PATH = new RegExp(
     `^(?:${ESCAPED_API_URL}/badges/art|/badges)/[A-Za-z0-9][A-Za-z0-9._-]*\\.(?:svg|png|webp|avif)$`
 )
