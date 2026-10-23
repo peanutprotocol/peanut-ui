@@ -16,7 +16,6 @@ import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import { SetupLanguageSwitcher } from '@/components/Setup/components/SetupLanguageSwitcher'
-import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import type { PaperworkVerificationDocument } from '@/app/actions/types/kyc-paperwork-verification.types'
 import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
@@ -293,15 +292,12 @@ export function IdentityDocumentScreen({
                 <IdCardScanAnimation className="absolute bottom-2.5 left-1/2 h-[10.875rem] w-[13.125rem] -translate-x-1/2 short:h-36" />
             </div>
             <div className="flex min-h-0 flex-1 flex-col gap-3 px-6 pt-6 pb-6">
-                <SetupTitleBlock
-                    title={
-                        <span className="whitespace-pre-line">
-                            {t(restart ? 'midpoint.restartTitle' : 'documentList.title')}
-                        </span>
-                    }
-                    description={t(restart ? 'midpoint.restartDescription' : 'documentList.description')}
-                    size="m"
-                />
+                <h1 className="text-heading-m whitespace-pre-line text-foreground-primary">
+                    {t(restart ? 'midpoint.restartTitle' : 'documentList.title')}
+                </h1>
+                <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
+                    {t(restart ? 'midpoint.restartDescription' : 'documentList.description')}
+                </p>
                 {document && (
                     <ListGroup>
                         {main.map((c) => row(c, 'list'))}
