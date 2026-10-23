@@ -11,8 +11,6 @@ type AttemptResponse = paths['/users/kyc/attempts']['post']['responses'][200]['c
 export type KycDocumentConfig = AttemptResponse['sdkConfig']
 // A usable SDK session has a real applicant. The action validates that boundary before returning it.
 export type KycAttemptSession = Omit<AttemptResponse, 'applicantId'> & { applicantId: string }
-export type KycDocumentChoice =
-    paths['/users/kyc/attempts']['post']['requestBody']['content']['application/json']['documents'][number]
 type SavedKycFeatures = NonNullable<
     paths['/users/kyc-intents']['put']['responses'][200]['content']['application/json']['features']
 >

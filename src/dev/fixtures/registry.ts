@@ -1565,7 +1565,7 @@ export const FIXTURES: Record<string, Fixture> = {
 
     'kyc-setup-all-available': {
         route: '/history',
-        about: 'Setup status after a document-first identity check: every saved feature is available, so it reads all set.',
+        about: 'Setup status after a verification-attempt identity check: every saved feature is available, so it reads all set.',
         responses: {
             'GET /users/me': setupMe([
                 SETUP_PIX_RAIL,

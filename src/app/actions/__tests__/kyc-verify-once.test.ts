@@ -8,10 +8,6 @@ import {
 import { serverFetch } from '@/utils/api-fetch'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
-const mockVerifyOnceEnabled = jest.fn(() => true)
-jest.mock('@/features/verify-once/verifyOnceFlag', () => ({
-    verifyOnceHeaders: () => (mockVerifyOnceEnabled() ? { 'x-kyc-verify-once': '1' } : {}),
-}))
 const mockFetch = serverFetch as jest.MockedFunction<typeof serverFetch>
 
 const reply = (status: number, body: unknown) =>
@@ -29,11 +25,10 @@ const session = {
 
 beforeEach(() => {
     mockFetch.mockReset()
-    mockVerifyOnceEnabled.mockReturnValue(true)
 })
 
 describe('saveKycAnswers', () => {
-    it('PUTs the values of one step with the flag header and no telemetry', async () => {
+    it('PUTs the values of one step with the verify-once header and no telemetry', async () => {
         mockFetch.mockResolvedValue(reply(200, { next: 'money' }))
         await expect(saveKycAnswers('purpose', { cardPurpose: 'travel' })).resolves.toEqual({
             kind: 'saved',
@@ -55,13 +50,6 @@ describe('saveKycAnswers', () => {
         mockFetch.mockResolvedValue(reply(200, { next: null }))
         await saveKycAnswers('money', { annualSalary: 'under_25k' }, 'card')
         expect(mockFetch).toHaveBeenCalledWith('/users/kyc/answers/money?feature=card', expect.anything())
-    })
-
-    it('sends no flag header while the flag is off', async () => {
-        mockVerifyOnceEnabled.mockReturnValue(false)
-        mockFetch.mockResolvedValue(reply(200, { next: null }))
-        await saveKycAnswers('tax', { taxId: '412-55-0198' })
-        expect(mockFetch.mock.calls[0][1]).toEqual(expect.objectContaining({ headers: {} }))
     })
 
     it('maps 422 to the field errors', async () => {
@@ -147,7 +135,7 @@ describe('saveVerifyOnceFeatures', () => {
         await expect(saveVerifyOnceFeatures(features, { ...features, bank: false })).resolves.toEqual({ kind: 'saved' })
     })
 
-    it('PUTs the feature set with the flag header', async () => {
+    it('PUTs the feature set with the verify-once header', async () => {
         mockFetch.mockResolvedValue(reply(200, { intents: features }))
         await expect(saveVerifyOnceFeatures(features)).resolves.toEqual({ kind: 'saved' })
         expect(mockFetch).toHaveBeenCalledWith(

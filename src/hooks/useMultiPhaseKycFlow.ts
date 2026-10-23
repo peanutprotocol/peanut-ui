@@ -200,7 +200,7 @@ export const useMultiPhaseKycFlow = ({
     // ref for closeVerificationProgressModal (avoids circular dep with completeFlow)
     const closeVerificationModalRef = useRef<() => void>(() => {})
 
-    // A flow started on the document list shows the setup status instead of
+    // A flow on a verification attempt shows the setup status instead of
     // the phases. The ref answers callbacks that run before the next render
     // (an approval reported in the same turn the features were saved).
     const [setupFeatures, setSetupFeatures] = useState<KycFeatures | null>(null)
@@ -386,14 +386,8 @@ export const useMultiPhaseKycFlow = ({
         isActionFlow,
         isResidenceChangeFlow,
         isMultiLevel,
-        documentPlan,
-        documentPreferencesOnly,
-        documentRestartOffered,
         documentConfig,
         documentAttemptId,
-        confirmDocumentPlan,
-        updateDocumentFeatures,
-        dismissDocumentPlan,
         verificationSession,
         showCorrection,
         correctVerificationData,
@@ -956,8 +950,8 @@ export const useMultiPhaseKycFlow = ({
     const residence = user?.residence?.verified ?? user?.residence?.declared ?? null
     const setupStatus = setupFeatures
         ? {
-              // the SDK, the document list and the terms take the screen; the status waits under them
-              open: isModalOpen && modalPhase !== 'bridge_tos' && !showWrapper && !documentPlan && !showTosIframe,
+              // the SDK and the terms take the screen; the status waits under them
+              open: isModalOpen && modalPhase !== 'bridge_tos' && !showWrapper && !showTosIframe,
               residence,
               rows: setupRows({
                   features: setupFeatures,
@@ -988,14 +982,8 @@ export const useMultiPhaseKycFlow = ({
         isTerminalError: isTerminalError || depositBlocked,
         liveKycStatus,
 
-        documentPlan,
-        documentPreferencesOnly,
-        documentRestartOffered,
         documentConfig,
         documentAttemptId,
-        confirmDocumentPlan,
-        updateDocumentFeatures,
-        dismissDocumentPlan,
         verificationSession,
         showCorrection,
         correctVerificationData,
@@ -1028,7 +1016,7 @@ export const useMultiPhaseKycFlow = ({
         showTosIframe,
         handleTosIframeClose,
 
-        // setup status, for a flow started on the document list
+        // setup status, for a flow on a verification attempt
         setupStatus,
         openSetupStatus,
         handleSetupClose,

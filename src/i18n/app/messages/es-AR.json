@@ -1511,15 +1511,6 @@
             "details": "Hay información que debés actualizar para habilitar las transferencias bancarias. Tu verificación de identidad está guardada.",
             "correct": "Corregir datos"
         },
-        "documents": {
-            "title": "Elegí tus documentos",
-            "description": "Elegí acá los documentos que vas a usar. Abriremos la verificación con estos documentos ya seleccionados.",
-            "unavailable": "La verificación todavía no está disponible para estas opciones. Probá otra opción de pago.",
-            "choose": "Elegí una opción",
-            "preferencesTitle": "Funciones de pago",
-            "preferencesDescription": "Elegí las funciones de pago que querés usar. Tu identidad sigue verificada.",
-            "preferencesContinue": "Continuar"
-        },
         "supplement": {
             "proofOfAddressTitle": "Agregá un comprobante de domicilio",
             "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contactá a soporte y lo completamos por vos."

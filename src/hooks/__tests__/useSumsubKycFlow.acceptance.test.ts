@@ -1,28 +1,18 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
-import {
-    getKycDocumentStatus,
-    getKycDocumentPlan,
-    startKycDocumentAttempt,
-    saveKycFeatures,
-} from '@/app/actions/kyc-workflow'
-import { serverFetch } from '@/utils/api-fetch'
-jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
+import { getKycDocumentStatus, getKycDocumentPlan, resumeKycDocumentAttempt } from '@/app/actions/kyc-workflow'
 import { act } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { initiateSumsubKyc } from '@/app/actions/sumsub'
 
 jest.mock('@/app/actions/kyc-workflow', () => {
-    const getKycDocumentPlan = jest.fn(async (_restart?: boolean) => ({ available: false, routes: [] }))
+    const getKycDocumentPlan = jest.fn(async () => ({ available: false, routes: [] }))
     return {
         getKycDocumentStatus: jest.fn(async () => 'IN_REVIEW'),
         getKycDocumentPlan,
-        findKycDocumentPlan: jest.fn((restart?: boolean) => getKycDocumentPlan(restart).catch(() => null)),
+        findKycDocumentPlan: jest.fn(() => getKycDocumentPlan().catch(() => null)),
         resumeKycDocumentAttempt: jest.fn(),
-        startKycDocumentAttempt: jest.fn(),
-        startKycDocumentReplacement: jest.fn(),
-        saveKycFeatures: jest.fn(),
     }
 })
 
@@ -55,11 +45,6 @@ jest.mock('@/hooks/useWebSocket', () => ({
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { username: 'test' } } }) }))
 const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockRouterPush, replace: jest.fn() }) }))
-let mockVerifyOnceFlag = false
-jest.mock('@/features/verify-once/verifyOnceFlag', () => ({
-    isVerifyOnceEnabled: () => mockVerifyOnceFlag,
-    verifyOnceHeaders: () => ({}),
-}))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 
 const mockInitiate = initiateSumsubKyc as jest.MockedFunction<typeof initiateSumsubKyc>
@@ -75,7 +60,6 @@ const selectionPlan = (flow: 'verify-once' | 'document-first') => ({
 describe('legacy identity selection recovery acceptance', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        mockVerifyOnceFlag = true
         mockInitiate.mockResolvedValue({ error: 'Choose your features', code: 'feature_selection_required' })
         jest.mocked(getKycDocumentStatus).mockResolvedValue('NOT_STARTED')
     })
@@ -95,48 +79,13 @@ describe('legacy identity selection recovery acceptance', () => {
             if (flow === 'verify-once') {
                 expect(mockRouterPush).toHaveBeenCalledWith('/verify?feature=bank')
             } else {
-                expect(result.current.documentPreferencesOnly).toBe(true)
-                expect(result.current.documentPlan).toEqual(plan)
+                expect(result.current.error).toBe('Choose your features')
                 expect(mockRouterPush).not.toHaveBeenCalled()
             }
+            expect(result.current).not.toHaveProperty('documentPlan')
             expect(result.current.showWrapper).toBe(false)
             expect(onKycSuccess).not.toHaveBeenCalled()
-            expect(startKycDocumentAttempt).not.toHaveBeenCalled()
-        }
-    )
-})
-
-describe('added feature questions routing acceptance', () => {
-    it.each(['bank', 'card', 'local'] as const)(
-        'routes missing %s answers to its feature-scoped verify screen',
-        async (feature) => {
-            jest.clearAllMocks()
-            mockVerifyOnceFlag = false
-            const plan = selectionPlan('document-first')
-            jest.mocked(getKycDocumentPlan)
-                .mockResolvedValueOnce({ ...plan, available: false })
-                .mockResolvedValue(plan)
-            jest.mocked(getKycDocumentStatus).mockResolvedValue('APPROVED')
-            jest.mocked(saveKycFeatures).mockImplementation(
-                jest.requireActual('@/app/actions/kyc-workflow').saveKycFeatures
-            )
-            jest.mocked(serverFetch).mockResolvedValue({
-                ok: false,
-                status: 409,
-                json: async () => ({ code: 'questions_missing', feature, step: 'work' }),
-            } as Response)
-            const onKycSuccess = jest.fn()
-            const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
-            await act(async () => {
-                await result.current.handleInitiateKyc()
-            })
-            expect(result.current.documentPreferencesOnly).toBe(true)
-            await act(async () => {
-                await result.current.confirmDocumentPlan('', [], { ...plan.features, [feature]: true })
-            })
-            expect(mockRouterPush).toHaveBeenCalledWith(`/verify?feature=${feature}`)
-            expect(onKycSuccess).not.toHaveBeenCalled()
-            expect(result.current.showWrapper).toBe(false)
+            expect(resumeKycDocumentAttempt).not.toHaveBeenCalled()
         }
     )
 })

@@ -96,10 +96,10 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
     // verify-once users go straight to the question screens
     const verifyOnce = useVerifyOnceStart()
     const startIdentityCheck = () => (verifyOnce ? router.push('/verify') : setShowInitiateKyc(true))
-    // the document list or the SDK takes over the screen; the modal that opened it should not stay in front
+    // the SDK takes over the screen; the modal that opened it should not stay behind it
     useEffect(() => {
-        if (kycFlow.showWrapper || kycFlow.documentPlan) setShowInitiateKyc(false)
-    }, [kycFlow.showWrapper, kycFlow.documentPlan])
+        if (kycFlow.showWrapper) setShowInitiateKyc(false)
+    }, [kycFlow.showWrapper])
 
     // Each onboarding step is reported once per session, not on every Home visit.
     const userId = user?.user?.userId

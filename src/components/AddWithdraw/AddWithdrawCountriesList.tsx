@@ -290,10 +290,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     }, [])
     useEffect(() => cancelHeldSubmit, [cancelHeldSubmit, view, currentCountry?.path])
 
-    // close kyc modal when the document list or the sumsub sdk opens
+    // close kyc modal when sumsub sdk opens
     useEffect(() => {
-        if (sumsubFlow.showWrapper || sumsubFlow.documentPlan) setIsKycModalOpen(false)
-    }, [sumsubFlow.showWrapper, sumsubFlow.documentPlan])
+        if (sumsubFlow.showWrapper) setIsKycModalOpen(false)
+    }, [sumsubFlow.showWrapper])
 
     /** returns true if the user is gated (caller should return early) */
     const checkBridgeGate = useCallback(

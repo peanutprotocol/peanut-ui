@@ -2,14 +2,7 @@ import type { SumsubKycStatus } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
 import { verifyOnceHeaders } from '@/features/verify-once/verifyOnceFlag'
 import { providerRefusalsOf, type SetupRefusals } from '@/utils/kyc-setup-status.utils'
-import type {
-    KycAttemptSession,
-    KycDocumentPlan,
-    KycDocumentChoice,
-    KycFeatureReports,
-    KycFeatures,
-    KycProfile,
-} from './types/kyc-workflow.types'
+import type { KycAttemptSession, KycDocumentPlan, KycFeatures, KycProfile } from './types/kyc-workflow.types'
 
 async function read<T>(path: string, options?: RequestInit): Promise<T> {
     const response = await serverFetch(path, {
@@ -27,28 +20,18 @@ async function read<T>(path: string, options?: RequestInit): Promise<T> {
     }
     return response.json() as Promise<T>
 }
-export async function getKycDocumentPlan(restart = false): Promise<KycDocumentPlan> {
-    const plan = await read<KycDocumentPlan>(`/users/kyc/plan${restart ? '?restart=true' : ''}`)
+export async function getKycDocumentPlan(): Promise<KycDocumentPlan> {
+    const plan = await read<KycDocumentPlan>('/users/kyc/plan')
     if (typeof plan.available !== 'boolean' || !Array.isArray(plan.routes)) throw new Error('Invalid KYC plan')
     return plan
 }
 /** No plan means the legacy flow: an API without the route, a rollback or a failed read must not block KYC. */
-export async function findKycDocumentPlan(restart = false): Promise<KycDocumentPlan | null> {
+export async function findKycDocumentPlan(): Promise<KycDocumentPlan | null> {
     try {
-        return await getKycDocumentPlan(restart)
+        return await getKycDocumentPlan()
     } catch {
         return null
     }
-}
-export async function saveKycFeatures(
-    features: KycFeatures,
-    restart = false
-): Promise<{ plan: KycDocumentPlan; features?: KycFeatureReports }> {
-    const saved = await read<{ features?: KycFeatureReports } | null>('/users/kyc-intents', {
-        method: 'PUT',
-        body: JSON.stringify(features),
-    })
-    return { plan: await getKycDocumentPlan(restart), features: saved?.features ?? undefined }
 }
 export function validSession(value: KycAttemptSession, documentRequired = true): KycAttemptSession {
     const identity = value?.sdkConfig?.documentDefinitions?.IDENTITY
@@ -61,29 +44,6 @@ export function validSession(value: KycAttemptSession, documentRequired = true):
     )
         throw new Error('Invalid KYC verification session')
     return value
-}
-export async function startKycDocumentAttempt(input: {
-    requestKey: string
-    policyVersion: string
-    routeId: string
-    documents: KycDocumentChoice[]
-}) {
-    return validSession(
-        await read<KycAttemptSession>('/users/kyc/attempts', { method: 'POST', body: JSON.stringify(input) })
-    )
-}
-export async function startKycDocumentReplacement(input: {
-    requestKey: string
-    policyVersion: string
-    routeId: string
-    documents: KycDocumentChoice[]
-}) {
-    return validSession(
-        await read<KycAttemptSession>('/users/identity/restart', {
-            method: 'POST',
-            body: JSON.stringify({ replacement: input }),
-        })
-    )
 }
 export async function resumeKycDocumentAttempt(attemptId: string) {
     const response = await serverFetch(`/users/kyc/attempts/${encodeURIComponent(attemptId)}/token`, {
@@ -123,7 +83,7 @@ export async function getKycDocumentStatus(): Promise<SumsubKycStatus | undefine
 }
 
 /**
- * The setup of an identity verified through the document list: its saved
+ * The setup of an identity verified through a verification attempt: its saved
  * features and the plan's refusals. Null for every other identity, and when
  * a read fails (the identity status then shows as before).
  */

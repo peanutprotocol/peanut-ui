@@ -1,4 +1,4 @@
-import { resumeKycDocumentAttempt, saveKycFeatures } from '@/app/actions/kyc-workflow'
+import { resumeKycDocumentAttempt } from '@/app/actions/kyc-workflow'
 import { serverFetch } from '@/utils/api-fetch'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
@@ -37,40 +37,5 @@ describe('resumeKycDocumentAttempt', () => {
     it('a non-JSON success fails as an invalid session, not a parser or null-access error', async () => {
         mockFetch.mockResolvedValue(notJson(200))
         await expect(resumeKycDocumentAttempt('attempt-1')).rejects.toThrow('Invalid KYC verification session')
-    })
-})
-
-describe('saveKycFeatures', () => {
-    const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as unknown as Response
-    const features = { qr: true, bank: true, local: false, card: false }
-    const plan = { available: false, routes: [], policyVersion: 'v1', features }
-
-    it('returns what the save reported for each feature alongside the refreshed plan', async () => {
-        const reported = {
-            qr: { state: 'on' },
-            bank: { state: 'action_required', action: 'supplement:bridge' },
-            local: { state: 'not_requested' },
-            card: { state: 'not_requested' },
-        }
-        mockFetch
-            .mockResolvedValueOnce(ok({ intents: features, setAt: '2026-10-12T00:00:00.000Z', features: reported }))
-            .mockResolvedValueOnce(ok(plan))
-
-        await expect(saveKycFeatures(features)).resolves.toEqual({ plan, features: reported })
-        expect(mockFetch).toHaveBeenNthCalledWith(
-            1,
-            '/users/kyc-intents',
-            expect.objectContaining({ method: 'PUT', body: JSON.stringify(features) })
-        )
-        expect(mockFetch).toHaveBeenNthCalledWith(2, '/users/kyc/plan', expect.anything())
-    })
-
-    it('an API that reports no features still returns the plan', async () => {
-        mockFetch
-            .mockResolvedValueOnce(ok({ intents: features, setAt: '2026-10-12T00:00:00.000Z' }))
-            .mockResolvedValueOnce(ok(plan))
-
-        await expect(saveKycFeatures(features, true)).resolves.toEqual({ plan, features: undefined })
-        expect(mockFetch).toHaveBeenNthCalledWith(2, '/users/kyc/plan?restart=true', expect.anything())
     })
 })

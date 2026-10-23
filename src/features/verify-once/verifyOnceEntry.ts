@@ -4,7 +4,6 @@ import type { VerifyOnceFeature } from '@/app/actions/types/kyc-verify-once.type
 import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
-import { isVerifyOnceEnabled } from './verifyOnceFlag'
 
 const NEEDS_TODAYS_FIX = new Set(['REJECTED', 'FAILED'])
 
@@ -33,14 +32,13 @@ export function entryFeature({
 /**
  * Where a Verify tap goes for a verify-once user: /verify before approval,
  * the add-later screen for a feature not yet saved, or null for today's flow
- * (flag off, the server keeps the user on it, a rejection to fix, or nothing
- * new to add).
+ * (the server keeps the user on it, a rejection to fix, or nothing new to add).
  */
 export async function verifyOnceRoute(
     plan: KycDocumentPlan | null,
     feature: VerifyOnceFeature | null
 ): Promise<string | null> {
-    if (plan?.flow !== 'verify-once' || !isVerifyOnceEnabled()) return null
+    if (plan?.flow !== 'verify-once') return null
     const status = await getKycDocumentStatus().catch(() => undefined)
     if (status && NEEDS_TODAYS_FIX.has(status)) return null
     if (status !== 'APPROVED') return '/verify'

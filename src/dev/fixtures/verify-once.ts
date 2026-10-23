@@ -1,7 +1,5 @@
 // Verify-once screens (api#1816 contract). /verify reads the questions, the
-// plan and the identity status; ?step=<id> opens any question step. The flow
-// also needs the client flag: in a non-prod build set
-// localStorage['kyc_verify_once'] = 'true' first.
+// plan and the identity status; ?step=<id> opens any question step.
 //
 // Dependency-free like registry.ts (Playwright loads it).
 

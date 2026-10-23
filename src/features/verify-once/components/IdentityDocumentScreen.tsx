@@ -125,8 +125,7 @@ function OptionDrawer({
 /**
  * The midpoint: the questions are done, the user picks the ID and who issued
  * it, and Sumsub opens on that document for the photos and the selfie. The
- * list is the plan's identity catalogue, without the feature checkboxes of
- * the document-first picker (signup already chose the features).
+ * list is the plan's identity catalogue; signup already chose the features.
  */
 export function IdentityDocumentScreen({
     plan,

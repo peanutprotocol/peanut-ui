@@ -1,5 +1,5 @@
 /**
- * The setup drawer's rows: one per feature saved on the document list. A row
+ * The setup drawer's rows: one per saved feature. A row
  * reads "Available" only when what its name promises works, and the identity
  * check comes first. Ported from the one-shot setup rows (#3581).
  */
@@ -45,7 +45,7 @@ const stateOf = (caps: UserCapabilities, key: keyof typeof ALL, residence = 'BR'
     verified(caps, ONLY(key), residence)[0].state
 
 describe('setupRows', () => {
-    it('gives one row per saved feature, in the document list order', () => {
+    it('gives one row per saved feature, in feature order', () => {
         const rows = setupRows({
             features: { qr: true, local: false, bank: true, card: true },
             residence: 'BR',

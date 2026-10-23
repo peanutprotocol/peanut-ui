@@ -1,7 +1,7 @@
 /**
- * Who gets the setup status after the identity check: a flow started on the
- * document list shows it in place of the phases, every other flow keeps the
- * phases. The status survives the SDK closing, a review, and the steps it
+ * Who gets the setup status after the identity check: a flow on a saved
+ * verification attempt shows it in place of the phases, every other flow keeps
+ * the phases. The status survives the SDK closing, a review, and the steps it
  * starts (the proof of address, the bank terms).
  */
 jest.mock('@/app/actions/kyc-workflow', () => ({
@@ -9,9 +9,6 @@ jest.mock('@/app/actions/kyc-workflow', () => ({
     findKycDocumentPlan: jest.fn(),
     getKycDocumentStatus: jest.fn(async () => 'IN_REVIEW'),
     resumeKycDocumentAttempt: jest.fn(),
-    startKycDocumentAttempt: jest.fn(),
-    startKycDocumentReplacement: jest.fn(),
-    saveKycFeatures: jest.fn(),
     findKycProviderRefusals: jest.fn(async () => ({ refusals: {}, recorded: true })),
 }))
 import { act } from '@testing-library/react'
@@ -22,8 +19,7 @@ import {
     findKycDocumentPlan,
     findKycProviderRefusals,
     getKycDocumentStatus,
-    saveKycFeatures,
-    startKycDocumentAttempt,
+    resumeKycDocumentAttempt,
 } from '@/app/actions/kyc-workflow'
 import { initiateSumsubKyc, startKycAction } from '@/app/actions/sumsub'
 import { confirmBridgeTos } from '@/app/actions/users'
@@ -85,6 +81,7 @@ const plan = {
         },
     ],
 }
+const attemptPlan = { ...plan, activeAttemptId: 'attempt-1' }
 const session = {
     attemptId: 'attempt-1',
     token: 'token-1',
@@ -159,22 +156,17 @@ const verifiedUser = (capabilities: UserCapabilities) => ({
     capabilities,
 })
 
-/** Picks the documents on the list, submits in the SDK, and optionally gets the approval. */
-const submitOnDocumentList = async (options: Parameters<typeof useMultiPhaseKycFlow>[0] = {}) => {
+/** Resumes the saved verification attempt and submits in the SDK. */
+const submitOnAttempt = async (options: Parameters<typeof useMultiPhaseKycFlow>[0] = {}) => {
     const view = renderHook(() => useMultiPhaseKycFlow(options))
     await act(async () => {
         await view.result.current.handleInitiateKyc()
-    })
-    await act(async () => {
-        await view.result.current.confirmDocumentPlan('shared', [
-            { key: 'identity', type: 'PASSPORT', issuingCountry: 'BR' },
-        ])
     })
     expect(view.result.current.showWrapper).toBe(true)
     act(() => view.result.current.handleSdkComplete())
     return view
 }
-const approve = async (view: Awaited<ReturnType<typeof submitOnDocumentList>>, capabilities: UserCapabilities) => {
+const approve = async (view: Awaited<ReturnType<typeof submitOnAttempt>>, capabilities: UserCapabilities) => {
     mockUser = verifiedUser(capabilities)
     mockCapabilities = capabilities
     mockFetchUser.mockResolvedValue({ ...mockUser })
@@ -188,8 +180,8 @@ beforeEach(() => {
     mockUser = {}
     mockCapabilities = undefined
     mockFetchUser.mockResolvedValue(null)
-    jest.mocked(findKycDocumentPlan).mockResolvedValue(plan)
-    jest.mocked(startKycDocumentAttempt).mockResolvedValue(session)
+    jest.mocked(findKycDocumentPlan).mockResolvedValue(attemptPlan)
+    jest.mocked(resumeKycDocumentAttempt).mockResolvedValue(session)
     jest.mocked(getKycDocumentStatus).mockResolvedValue('IN_REVIEW')
     jest.mocked(startKycAction).mockResolvedValue({
         data: { token: 'poa-token', levelName: 'provider-rfi-proof-of-address' },
@@ -197,9 +189,9 @@ beforeEach(() => {
     jest.mocked(findKycProviderRefusals).mockResolvedValue({ refusals: {}, recorded: true })
 })
 
-describe('useMultiPhaseKycFlow — the setup status of a document-first flow', () => {
+describe('useMultiPhaseKycFlow — the setup status of a verification attempt', () => {
     it('shows every saved feature under review once the SDK closes, and stays while a reviewer looks', async () => {
-        const view = await submitOnDocumentList()
+        const view = await submitOnAttempt()
         const { setupStatus } = view.result.current
         expect(setupStatus?.open).toBe(true)
         expect(setupStatus?.rows).toEqual([
@@ -217,7 +209,7 @@ describe('useMultiPhaseKycFlow — the setup status of a document-first flow', (
     it('after the approval it reads the rails instead of running the phases', async () => {
         const onKycSuccess = jest.fn()
         const onKycApproved = jest.fn()
-        const view = await submitOnDocumentList({ onKycSuccess, onKycApproved })
+        const view = await submitOnAttempt({ onKycSuccess, onKycApproved })
         await approve(view, parked)
 
         expect(onKycApproved).toHaveBeenCalledTimes(1)
@@ -239,7 +231,7 @@ describe('useMultiPhaseKycFlow — the setup status of a document-first flow', (
 
     it('the bank row starts the proof of address, and the status comes back under review after it', async () => {
         const onKycSuccess = jest.fn()
-        const view = await submitOnDocumentList({ onKycSuccess })
+        const view = await submitOnAttempt({ onKycSuccess })
         await approve(view, parked)
         const bank = view.result.current.setupStatus!.rows[1]
 
@@ -264,7 +256,7 @@ describe('useMultiPhaseKycFlow — the setup status of a document-first flow', (
     })
 
     it('closing the proof of address without sending it brings the status back', async () => {
-        const view = await submitOnDocumentList()
+        const view = await submitOnAttempt()
         await approve(view, parked)
         await act(async () => {
             await view.result.current.handleSetupDocument(view.result.current.setupStatus!.rows[1].step!)
@@ -276,7 +268,7 @@ describe('useMultiPhaseKycFlow — the setup status of a document-first flow', (
 
     it('the bank terms open the existing terms step and come back to the status once accepted', async () => {
         jest.mocked(confirmBridgeTos).mockResolvedValue({ data: { accepted: true } } as never)
-        const view = await submitOnDocumentList()
+        const view = await submitOnAttempt()
         await approve(view, onTerms)
         expect(view.result.current.setupStatus?.rows[1].state).toBe('terms-needed')
 
@@ -295,7 +287,7 @@ describe('useMultiPhaseKycFlow — the setup status of a document-first flow', (
     })
 
     it('leaving the terms step without accepting goes back to the status', async () => {
-        const view = await submitOnDocumentList()
+        const view = await submitOnAttempt()
         await approve(view, onTerms)
         act(() => view.result.current.handleSetupTerms())
         await act(async () => {
@@ -312,7 +304,7 @@ describe('useMultiPhaseKycFlow — the setup status of a document-first flow', (
 
     it('Continue completes the flow once everything is available; Go to Home leaves as the progress modal did', async () => {
         const onKycSuccess = jest.fn()
-        const view = await submitOnDocumentList({ onKycSuccess })
+        const view = await submitOnAttempt({ onKycSuccess })
         await approve(view, parked)
 
         act(() => view.result.current.handleSetupClose())
@@ -324,34 +316,6 @@ describe('useMultiPhaseKycFlow — the setup status of a document-first flow', (
         act(() => view.result.current.handleSetupContinue())
         expect(onKycSuccess).toHaveBeenCalledTimes(1)
         expect(captured(ANALYTICS_EVENTS.KYC_APPROVED)).toHaveLength(1)
-    })
-
-    it('saving new features for a verified identity shows their status, not the phases', async () => {
-        const onKycSuccess = jest.fn()
-        mockUser = verifiedUser(parked)
-        mockCapabilities = parked
-        mockFetchUser.mockResolvedValue({ ...mockUser })
-        jest.mocked(findKycDocumentPlan)
-            .mockResolvedValueOnce({ ...plan, available: false, routes: [] })
-            .mockResolvedValue(plan)
-        jest.mocked(getKycDocumentStatus).mockResolvedValue('APPROVED')
-        const added = { ...features, bank: true, qr: true }
-        jest.mocked(saveKycFeatures).mockResolvedValue({
-            plan: { ...plan, available: false, routes: [], features: added },
-        })
-        const view = renderHook(() => useMultiPhaseKycFlow({ onKycSuccess }))
-        await act(async () => {
-            await view.result.current.handleInitiateKyc()
-        })
-        expect(view.result.current.documentPreferencesOnly).toBe(true)
-
-        await act(async () => {
-            await view.result.current.confirmDocumentPlan('', [], { ...added, qr: false })
-        })
-        expect(view.result.current.modalPhase).toBe('verifying')
-        expect(view.result.current.setupStatus?.open).toBe(true)
-        expect(view.result.current.setupStatus?.rows.map((row) => row.key)).toEqual(['bank'])
-        expect(onKycSuccess).not.toHaveBeenCalled()
     })
 })
 
@@ -380,7 +344,7 @@ describe('useMultiPhaseKycFlow — a returning user opens the status from the id
 })
 
 describe('useMultiPhaseKycFlow — every other flow keeps the phases', () => {
-    it('a flow the document list did not start runs the phases after the approval, with no setup status', async () => {
+    it('a legacy flow runs the phases after the approval, with no setup status', async () => {
         jest.mocked(findKycDocumentPlan).mockResolvedValue({ ...plan, available: false, routes: [] })
         jest.mocked(initiateSumsubKyc).mockResolvedValue({
             data: { token: 'tok', applicantId: 'app', status: 'PENDING' },
@@ -401,8 +365,8 @@ describe('useMultiPhaseKycFlow — every other flow keeps the phases', () => {
         expect(view.result.current.modalPhase).toBe('supplement')
     })
 
-    it('a legacy start after a document-first one in the same mount drops the setup status', async () => {
-        const view = await submitOnDocumentList()
+    it('a legacy start after an attempt one in the same mount drops the setup status', async () => {
+        const view = await submitOnAttempt()
         expect(view.result.current.setupStatus).not.toBeNull()
 
         jest.mocked(findKycDocumentPlan).mockResolvedValue({ ...plan, available: false, routes: [] })
@@ -439,7 +403,7 @@ describe('useMultiPhaseKycFlow — the plan refusals no rail carries', () => {
     }
     beforeEach(() => {
         jest.mocked(findKycDocumentPlan).mockResolvedValue({
-            ...plan,
+            ...attemptPlan,
             features: { qr: true, local: true, bank: false, card: false },
         })
     })
@@ -449,7 +413,7 @@ describe('useMultiPhaseKycFlow — the plan refusals no rail carries', () => {
             refusals: { manteca: 'local_tax_id_missing' },
             recorded: true,
         })
-        const view = await submitOnDocumentList()
+        const view = await submitOnAttempt()
         expect(findKycProviderRefusals).not.toHaveBeenCalled()
         await approve(view, pixPool)
 
@@ -462,7 +426,7 @@ describe('useMultiPhaseKycFlow — the plan refusals no rail carries', () => {
 
     it('a failed read falls back to the rails and keeps the status open', async () => {
         jest.mocked(findKycProviderRefusals).mockResolvedValue(null)
-        const view = await submitOnDocumentList()
+        const view = await submitOnAttempt()
         await approve(view, pixPool)
 
         expect(findKycProviderRefusals).toHaveBeenCalled()

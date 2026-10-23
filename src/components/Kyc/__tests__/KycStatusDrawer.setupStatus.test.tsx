@@ -5,7 +5,7 @@ import type { UseIdentityVerificationResult } from '@/hooks/useIdentityVerificat
 import { findKycSetup } from '@/app/actions/kyc-workflow'
 
 // The way back to the setup status: a returning user whose identity was
-// verified through the document list opens the identity status and gets the
+// verified through a verification attempt opens the identity status and gets the
 // setup status instead. Every other identity keeps the status drawer.
 
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
@@ -62,7 +62,7 @@ const open = () => {
 
 beforeEach(() => jest.clearAllMocks())
 
-describe('KycStatusDrawer — the setup status of a document-first identity', () => {
+describe('KycStatusDrawer — the setup status of a verification-attempt identity', () => {
     it.each(['verified', 'processing'] as const)('a %s identity hands over to the setup status', async (status) => {
         identity(status)
         mockFind.mockResolvedValue({ features, refusals })

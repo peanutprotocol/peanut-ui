@@ -2,7 +2,7 @@ import { findKycProviderRefusals, findKycSetup } from '@/app/actions/kyc-workflo
 import { serverFetch } from '@/utils/api-fetch'
 
 // A returning user sees the setup status only when the current identity was
-// verified through the document list, and the rows follow the saved set.
+// verified through a verification attempt, and the rows follow the saved set.
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
 const mockFetch = serverFetch as jest.MockedFunction<typeof serverFetch>
@@ -27,7 +27,7 @@ const profile = (attempts: unknown[], identity: unknown = { verificationId: 'ide
 beforeEach(() => mockFetch.mockReset())
 
 describe('findKycSetup', () => {
-    it('returns the saved features of an identity verified through the document list', async () => {
+    it('returns the saved features of an identity verified through a verification attempt', async () => {
         answers(profile([attempt({})]))
         await expect(findKycSetup()).resolves.toEqual({ features, refusals: {} })
     })

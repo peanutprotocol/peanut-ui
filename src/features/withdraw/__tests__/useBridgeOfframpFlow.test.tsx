@@ -159,12 +159,11 @@ jest.mock('@/hooks/useTosGuard', () => ({
     useTosGuard: () => ({ guardWithTos: jest.fn(), showBridgeTos: false, hideTos: jest.fn() }),
 }))
 
-let mockDocumentPlan: unknown = null
+let mockShowWrapper = false
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         isLoading: false,
-        showWrapper: false,
-        documentPlan: mockDocumentPlan,
+        showWrapper: mockShowWrapper,
         handleSelfHealResubmit: jest.fn(),
     }),
 }))
@@ -263,13 +262,13 @@ beforeEach(() => {
     mockQuote = null
     mockQuoteError = false
     mockQuoteCalls.length = 0
-    mockDocumentPlan = null
+    mockShowWrapper = false
 })
 
 // ---------- tests ----------
 
 describe('useBridgeOfframpFlow — KYC modal', () => {
-    it('closes when the document list opens', async () => {
+    it('closes when the SDK opens', async () => {
         mockGateKind = 'needs-identity'
         const view = renderFlow({ amount: '50', step: 'review' })
         await act(async () => {
@@ -277,7 +276,7 @@ describe('useBridgeOfframpFlow — KYC modal', () => {
         })
         expect(view.result.current.showKycModal).toBe(true)
 
-        mockDocumentPlan = { available: true, routes: [] }
+        mockShowWrapper = true
         view.rerender()
         expect(view.result.current.showKycModal).toBe(false)
     })

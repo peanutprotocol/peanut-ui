@@ -289,10 +289,7 @@ export const ANALYTICS_EVENTS = {
     KYC_VO_ADD_FEATURE_VIEWED: 'kyc_verify_once_add_feature_viewed',
     KYC_VO_ADD_FEATURE_OUTCOME: 'kyc_verify_once_add_feature_outcome',
 
-    // ── KYC: document picker and setup status (document-first) ──
-    KYC_DOCUMENT_PICKER_VIEWED: 'kyc_document_picker_viewed',
-    KYC_DOCUMENT_PICKER_SUBMITTED: 'kyc_document_picker_submitted',
-    KYC_DOCUMENT_PICKER_CLOSED: 'kyc_document_picker_closed',
+    // ── KYC: setup status ──
     KYC_SETUP_STATUS_VIEWED: 'kyc_setup_status_viewed',
     KYC_SETUP_STATUS_ACTION: 'kyc_setup_status_action',
 

@@ -28,7 +28,6 @@ import { QuestionStepScreen } from './components/QuestionStepScreen'
 import { ProofOfAddressScreen, ReviewScreen, VerifiedScreen } from './components/StatusScreens'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
 import { trackVerifyOnce, VerifyOnceTrackingProvider, type VerifyOnceTrackingContext } from './analytics'
-import { isVerifyOnceEnabled } from './verifyOnceFlag'
 import { useVerifyOnceIdentity } from './useVerifyOnceIdentity'
 import {
     entryStep,
@@ -97,8 +96,8 @@ export function VerifyOnceFlow() {
                 findKycDocumentPlan(),
                 getKycDocumentStatus().catch(() => undefined),
             ])
-            // Flag off, a stale link or a user the server keeps on today's flow: that flow starts from Home.
-            if (!isVerifyOnceEnabled() || !questions.available || plan?.flow !== 'verify-once') {
+            // A stale link or a user the server keeps on today's flow: that flow starts from Home.
+            if (!questions.available || plan?.flow !== 'verify-once') {
                 routerRef.current.replace('/home')
                 return
             }

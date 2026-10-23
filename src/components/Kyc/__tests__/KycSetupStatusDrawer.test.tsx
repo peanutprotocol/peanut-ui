@@ -1,5 +1,5 @@
 /**
- * The setup drawer after a document-first identity check: the document list's
+ * The setup drawer after a verification-attempt identity check: the saved
  * feature names, one badge per state, one button for the first step the user
  * can take, and a button that leaves until every feature is available, then
  * continues. Ported from #3581 and #3599.
@@ -48,7 +48,7 @@ describe('KycSetupStatusDrawer', () => {
         openSupport.mockClear()
     })
 
-    it('names every saved feature as the document list does, with the badge of its state', () => {
+    it('names every saved feature, with the badge of its state', () => {
         renderDrawer([
             { key: 'qr', state: 'available' },
             { key: 'local', state: 'under-review' },

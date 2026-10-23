@@ -3363,28 +3363,15 @@
             "correct": "Corrigir dados"
         },
         "documents": {
-            "title": "Escolha seus documentos",
-            "description": "Escolha aqui os documentos que você vai usar. Abriremos a verificação com esses documentos já selecionados.",
-            "features": "O que você gostaria de usar?",
             "qr": "Pagamentos QR",
             "local": "Transferências bancárias locais",
             "bank": "Contas em USD, EUR, MXN e GBP",
             "card": "Cartão Peanut",
-            "unavailable": "A verificação ainda não está disponível para essas opções. Tente outra opção de pagamento.",
-            "documentSet": "Documentos necessários",
-            "identity": "Documento de identidade",
-            "documentType": "Tipo de documento",
-            "issuingCountry": "País de emissão",
-            "choose": "Escolha uma opção",
-            "continue": "Continuar para a verificação",
             "passport": "Passaporte",
             "idCard": "Documento nacional de identidade",
             "drivers": "Carteira de habilitação",
             "residencePermit": "Permissão de residência",
             "otherDocument": "Documento de apoio",
-            "preferencesTitle": "Recursos de pagamento",
-            "preferencesDescription": "Escolha os recursos de pagamento que deseja usar. Sua identidade continua verificada.",
-            "preferencesContinue": "Continuar",
             "temporaryProtection": "Proteção temporária (Ucrânia)"
         },
         "supplement": {
@@ -3716,7 +3703,7 @@
                 "suggestions": "Lugares encontrados",
                 "noMatch": "Não está na lista. O nome como você digitou também vale.",
                 "inCountry": "Lugares em {country}. Um nome que não está na lista também vale.",
-                "done": "Pronto"
+                "done": "Concluído"
             },
             "continueWithoutLocal": "Continuar sem transferências bancárias locais"
         }

@@ -14,7 +14,7 @@ const handleInitiateKyc = jest.fn()
 const handleRestartIdentity = jest.fn()
 const handleSelfHealResubmit = jest.fn()
 const handleFixableGate = jest.fn()
-let mockDocumentPlan: unknown = null
+let mockShowWrapper = false
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleInitiateKyc: (...args: unknown[]) => handleInitiateKyc(...args),
@@ -24,8 +24,7 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
         isLoading: false,
         error: null,
         errorCooldown: null,
-        showWrapper: false,
-        documentPlan: mockDocumentPlan,
+        showWrapper: mockShowWrapper,
     }),
 }))
 const gateFor = jest.fn((): GateState => ({ kind: 'needs-enrollment' }) as GateState)
@@ -71,7 +70,7 @@ const openBannerFor = (gate: GateState, corridor?: DepositCorridor) =>
 
 beforeEach(() => {
     jest.clearAllMocks()
-    mockDocumentPlan = null
+    mockShowWrapper = false
 })
 
 describe('useDepositGateRemediation', () => {
@@ -117,7 +116,7 @@ describe('useDepositGateRemediation', () => {
         expect(handleInitiateKyc).toHaveBeenCalled()
     })
 
-    it('closes the start modal when the document list opens', () => {
+    it('closes the start modal when the SDK opens', () => {
         let remediation: Remediation | undefined
         function Host() {
             remediation = useDepositGateRemediation()
@@ -126,7 +125,7 @@ describe('useDepositGateRemediation', () => {
         const { rerender } = render(<Host />)
         act(() => remediation!.resolveGate({ kind: 'needs-identity' } as GateState))
         expect(modalVisible).toBe(true)
-        mockDocumentPlan = { available: true, routes: [] }
+        mockShowWrapper = true
         rerender(<Host />)
         expect(modalVisible).toBe(false)
     })

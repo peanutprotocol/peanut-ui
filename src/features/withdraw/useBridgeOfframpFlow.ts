@@ -253,10 +253,10 @@ export function useBridgeOfframpFlow() {
     const advisoryDeadline = headsUpDeadline(gate.kind === 'ready' ? gate.advisory?.effectiveDate : undefined)
     const [showKycModal, setShowKycModal] = useState(false)
 
-    // close kyc modal when the document list or the sumsub sdk opens
+    // close kyc modal when sumsub sdk opens
     useEffect(() => {
-        if (sumsubFlow.showWrapper || sumsubFlow.documentPlan) setShowKycModal(false)
-    }, [sumsubFlow.showWrapper, sumsubFlow.documentPlan])
+        if (sumsubFlow.showWrapper) setShowKycModal(false)
+    }, [sumsubFlow.showWrapper])
 
     // only bank reaches this page, so the bank-specific flag is the right one here
     const { isBankFromSend: fromSendFlow } = useSendFlowOrigin()

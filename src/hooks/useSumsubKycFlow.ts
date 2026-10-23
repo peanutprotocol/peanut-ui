@@ -1,20 +1,6 @@
-import { savedFeaturesOutcome } from '@/utils/kyc-feature-outcome.utils'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import {
-    findKycDocumentPlan,
-    getKycDocumentPlan,
-    getKycDocumentStatus,
-    resumeKycDocumentAttempt,
-    startKycDocumentAttempt,
-    startKycDocumentReplacement,
-    saveKycFeatures,
-} from '@/app/actions/kyc-workflow'
-import type {
-    KycDocumentPlan,
-    KycAttemptSession,
-    KycDocumentChoice,
-    KycFeatures,
-} from '@/app/actions/types/kyc-workflow.types'
+import { findKycDocumentPlan, getKycDocumentStatus, resumeKycDocumentAttempt } from '@/app/actions/kyc-workflow'
+import type { KycDocumentPlan, KycAttemptSession, KycFeatures } from '@/app/actions/types/kyc-workflow.types'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -38,7 +24,6 @@ import {
 } from '@/app/actions/types/sumsub.types'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { isDemoMode } from '@/utils/demo'
-import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import {
     entryFeature,
@@ -51,7 +36,7 @@ interface UseSumsubKycFlowOptions {
     onKycSuccess?: () => void
     onManualClose?: () => void
     regionIntent?: KYCRegionIntent
-    /** The features saved on the document list once a session it started opens; null when a flow starts that is not one. */
+    /** The saved features once a verification attempt's session opens; null when a flow starts that is not one. */
     onSetupFeatures?: (features: KycFeatures | null) => void
 }
 
@@ -160,23 +145,11 @@ export const useSumsubKycFlow = ({
     const sessionId = verificationSession?.id
     const sessionGeneration = verificationSession?.generation
     const [showCorrection, setShowCorrection] = useState(false)
-    const [documentPlan, setDocumentPlan] = useState<KycDocumentPlan | null>(null)
-    const [documentPreferencesOnly, setDocumentPreferencesOnly] = useState(false)
     const [documentConfig, setDocumentConfig] = useState<KycAttemptSession['sdkConfig']>()
-    // A saved feature the verified document cannot open: the list offers a new identity check.
-    const [documentRestartOffered, setDocumentRestartOffered] = useState(false)
     // called synchronously: the caller decides on it before the next render
     const onSetupFeaturesRef = useRef(onSetupFeatures)
     onSetupFeaturesRef.current = onSetupFeatures
-    const documentRestartRef = useRef(false)
     const documentAttemptRef = useRef<string | null>(null)
-    // Set when the plan could not be read: the legacy session this starts must not announce the picker.
-    const planUnreadableRef = useRef(false)
-    const documentRequestKeyRef = useRef<string | null>(null)
-    const documentBusyRef = useRef(false)
-    // Both are declared after confirmDocumentPlan, which hands off to them.
-    const legacyInitiateRef = useRef<(() => Promise<unknown>) | null>(null)
-    const startActionRef = useRef<((key: string) => Promise<void>) | null>(null)
     const [showWrapper, setShowWrapper] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setErrorState] = useState<string | null>(null)
@@ -357,7 +330,8 @@ export const useSumsubKycFlow = ({
 
         const fetchCurrentStatus = async () => {
             try {
-                if ((await findKycDocumentPlan())?.available) return
+                // a status initiate would open a legacy applicant for a user verify-once still has to ask
+                if ((await findKycDocumentPlan())?.flow === 'verify-once') return
                 const response = await initiateSumsubKyc({ regionIntent })
                 if (response.data?.status && !initiatingRef.current && !showWrapperRef.current) {
                     setLiveKycStatus(response.data.status)
@@ -397,7 +371,6 @@ export const useSumsubKycFlow = ({
                     regionIntent: regionIntentRef.current,
                     levelName: levelNameRef.current,
                     targetCountry: targetCountryRef.current,
-                    ...(planUnreadableRef.current && { documentSelection: false }),
                 })
                 if (response.data?.status) {
                     setLiveKycStatus(response.data.status)
@@ -429,8 +402,6 @@ export const useSumsubKycFlow = ({
         documentAttemptRef.current = session.attemptId
         onSetupFeaturesRef.current?.(features)
         setDocumentConfig(session.sdkConfig?.documentDefinitions?.IDENTITY ? session.sdkConfig : undefined)
-        setDocumentPlan(null)
-        setDocumentPreferencesOnly(false)
         verificationSessionRef.current = null
         setVerificationSession(null)
         selfHealProviderRef.current = null
@@ -449,147 +420,10 @@ export const useSumsubKycFlow = ({
             userInitiatedRef.current = false
             documentAttemptRef.current = null
             setShowWrapper(false)
-            setDocumentPlan(null)
             router.push(verifyOnceDocumentPath())
             return true
         },
         [router]
-    )
-    const handleQuestionsConflict = useCallback(
-        (error: unknown, features: KycFeatures, before?: KycFeatures) => {
-            const conflict = error as { code?: string; feature?: string } | null
-            if (conflict?.code !== 'questions_missing') return false
-            const feature = ['bank', 'card', 'local'].includes(conflict.feature ?? '')
-                ? conflict.feature
-                : (['bank', 'card', 'local'] as const).find((key) => features[key] && !before?.[key])
-            userInitiatedRef.current = false
-            setDocumentPlan(null)
-            router.push(feature ? `/verify?feature=${feature}` : '/verify')
-            return true
-        },
-        [router]
-    )
-    const dismissDocumentPlan = useCallback(() => {
-        if (documentBusyRef.current) return
-        setDocumentPlan(null)
-        setDocumentRestartOffered(false)
-        userInitiatedRef.current = false
-        onManualClose?.()
-    }, [onManualClose])
-    const updateDocumentFeatures = useCallback(
-        async (features: KycFeatures) => {
-            if (documentBusyRef.current) return
-            documentBusyRef.current = true
-            setIsLoading(true)
-            setError(null)
-            try {
-                setDocumentPlan((await saveKycFeatures(features, documentRestartRef.current)).plan)
-                documentRequestKeyRef.current = null
-            } catch (error) {
-                if (!handleQuestionsConflict(error, features, documentPlan?.features))
-                    setError(t('errorInitiateFailed'))
-            } finally {
-                documentBusyRef.current = false
-                setIsLoading(false)
-            }
-        },
-        [t, setError, handleQuestionsConflict, documentPlan]
-    )
-    const confirmDocumentPlan = useCallback(
-        async (routeId: string, documents: KycDocumentChoice[], features?: KycFeatures) => {
-            if (documentBusyRef.current || !documentPlan?.policyVersion) return
-            documentBusyRef.current = true
-            setIsLoading(true)
-            setError(null)
-            setDocumentRestartOffered(false)
-            let handOffToLegacy = false
-            if (documentPreferencesOnly) {
-                const changed =
-                    !!features &&
-                    (Object.keys(features) as (keyof KycFeatures)[]).some(
-                        (key) => features[key] !== documentPlan.features[key]
-                    )
-                let supplementAction: string | undefined
-                try {
-                    // Saving an approved user's features enrols and submits providers, so it waits for Continue.
-                    const saved = changed ? await saveKycFeatures(features) : undefined
-                    const outcome = changed
-                        ? savedFeaturesOutcome(features, documentPlan.features, saved?.features)
-                        : null
-                    if (saved && outcome && 'copy' in outcome) {
-                        setDocumentPlan(saved.plan)
-                        setError(t(outcome.copy, { feature: t(`documents.${outcome.feature}`) }))
-                        setDocumentRestartOffered(outcome.copy === 'supplement.identityDocumentInsufficient')
-                        return
-                    }
-                    supplementAction = outcome && 'action' in outcome ? outcome.action : undefined
-                    if (changed) onSetupFeaturesRef.current?.(features ?? null)
-                    setDocumentPlan(null)
-                    userInitiatedRef.current = false
-                    if (!supplementAction) {
-                        if (changed) onKycSuccess?.()
-                        else onManualClose?.()
-                    }
-                } catch (error) {
-                    if (!features || !handleQuestionsConflict(error, features, documentPlan.features))
-                        setError(t('errorInitiateFailed'))
-                } finally {
-                    documentBusyRef.current = false
-                    setIsLoading(false)
-                }
-                if (supplementAction) await startActionRef.current?.(supplementAction)
-                return
-            }
-            const identityKeys = new Set(
-                identityDocuments(documentPlan.routes.find((r) => r.id === routeId)).map((d) => d.key)
-            )
-            try {
-                documentRequestKeyRef.current ??= Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
-                    byte.toString(16).padStart(2, '0')
-                ).join('')
-                acceptDocumentSession(
-                    await (documentRestartRef.current ? startKycDocumentReplacement : startKycDocumentAttempt)({
-                        requestKey: documentRequestKeyRef.current,
-                        policyVersion: documentPlan.policyVersion,
-                        routeId,
-                        documents: documents.filter((d) => identityKeys.has(d.key)),
-                    }),
-                    documentPlan.features
-                )
-            } catch {
-                try {
-                    const latest = await getKycDocumentPlan(documentRestartRef.current)
-                    if (latest.activeAttemptId)
-                        acceptDocumentSession(await resumeKycDocumentAttempt(latest.activeAttemptId), latest.features)
-                    else if (!latest.available && !documentRestartRef.current) {
-                        // The backend handed this user back to the flow they had already started.
-                        setDocumentPlan(null)
-                        handOffToLegacy = true
-                    } else {
-                        setDocumentPlan(latest)
-                        documentRequestKeyRef.current = null
-                        setError(t('errorInitiateFailed'))
-                    }
-                } catch (error) {
-                    if (!(await handleDocumentConflict(error))) setError(t('errorInitiateFailed'))
-                }
-            } finally {
-                documentBusyRef.current = false
-                setIsLoading(false)
-            }
-            if (handOffToLegacy) await legacyInitiateRef.current?.()
-        },
-        [
-            documentPlan,
-            documentPreferencesOnly,
-            onKycSuccess,
-            onManualClose,
-            acceptDocumentSession,
-            t,
-            setError,
-            handleQuestionsConflict,
-            handleDocumentConflict,
-        ]
     )
 
     const handleInitiateKyc = useCallback(
@@ -639,10 +473,7 @@ export const useSumsubKycFlow = ({
 
             try {
                 if (!correctSession && !levelName) {
-                    documentRestartRef.current = false
-                    setDocumentPreferencesOnly(false)
                     plan = await findKycDocumentPlan()
-                    planUnreadableRef.current = plan === null
                     // Verify-once users answer Peanut's questions on /verify before any document.
                     const verifyOncePath = await verifyOnceRoute(
                         plan,
@@ -658,37 +489,14 @@ export const useSumsubKycFlow = ({
                         router.push(verifyOncePath)
                         return false
                     }
-                    if (plan?.available) {
-                        if (plan.activeAttemptId) {
-                            try {
-                                acceptDocumentSession(
-                                    await resumeKycDocumentAttempt(plan.activeAttemptId),
-                                    plan.features
-                                )
-                            } catch (error) {
-                                userInitiatedRef.current = false
-                                if (crossRegion) prevStatusRef.current = savedPrevStatus
-                                if (!(await handleDocumentConflict(error, plan))) setError(t('errorInitiateFailed'))
-                            }
-                        } else {
-                            setDocumentPlan(plan)
-                            documentRequestKeyRef.current = null
+                    if (plan?.activeAttemptId) {
+                        try {
+                            acceptDocumentSession(await resumeKycDocumentAttempt(plan.activeAttemptId), plan.features)
+                        } catch (error) {
+                            userInitiatedRef.current = false
+                            if (crossRegion) prevStatusRef.current = savedPrevStatus
+                            if (!(await handleDocumentConflict(error, plan))) setError(t('errorInitiateFailed'))
                         }
-                        return false
-                    }
-                    // Approved workflow users can add providers without replacing or recollecting identity.
-                    // A cross-region or country-specific entry needs the enrolment initiate performs, not the picker.
-                    if (
-                        plan?.policyVersion &&
-                        !crossRegion &&
-                        !targetCountry &&
-                        !corridor &&
-                        (await getKycDocumentStatus().catch(() => undefined)) === 'APPROVED' &&
-                        (await findKycDocumentPlan(true))?.available
-                    ) {
-                        setDocumentPreferencesOnly(true)
-                        setDocumentPlan(plan)
-                        documentRequestKeyRef.current = null
                         return false
                     }
                 }
@@ -701,7 +509,6 @@ export const useSumsubKycFlow = ({
                     crossRegion,
                     targetCountry,
                     correctSession,
-                    ...(planUnreadableRef.current && { documentSelection: false }),
                 })
 
                 if (response.code === 'feature_selection_required') {
@@ -709,11 +516,7 @@ export const useSumsubKycFlow = ({
                     if (crossRegion) prevStatusRef.current = savedPrevStatus
                     const latest = await findKycDocumentPlan()
                     if (latest?.flow === 'verify-once') router.push(verifyOnceFeaturePath('bank'))
-                    else if (latest?.policyVersion) {
-                        setDocumentPreferencesOnly(true)
-                        setDocumentPlan(latest)
-                        documentRequestKeyRef.current = null
-                    } else setError(actionErrorMessage(response) || t('errorInitiateFailed'))
+                    else setError(actionErrorMessage(response) || t('errorInitiateFailed'))
                     return false
                 }
 
@@ -887,7 +690,6 @@ export const useSumsubKycFlow = ({
             handleDocumentConflict,
         ]
     )
-    legacyInitiateRef.current = () => handleInitiateKyc()
 
     const correctVerificationData = useCallback(async () => {
         const session = verificationSessionRef.current
@@ -1029,19 +831,13 @@ export const useSumsubKycFlow = ({
             regionIntent: regionIntentRef.current,
             levelName: levelNameRef.current,
             targetCountry: targetCountryRef.current,
-            ...(planUnreadableRef.current && { documentSelection: false }),
         })
 
         if (response.error || !response.data?.token) {
             if (response.code === 'feature_selection_required') {
                 userInitiatedRef.current = false
                 setShowWrapper(false)
-                const plan = await findKycDocumentPlan()
-                if (plan?.flow === 'verify-once') router.push(verifyOnceFeaturePath('bank'))
-                else if (plan?.policyVersion) {
-                    setDocumentPreferencesOnly(true)
-                    setDocumentPlan(plan)
-                }
+                if ((await findKycDocumentPlan())?.flow === 'verify-once') router.push(verifyOnceFeaturePath('bank'))
             }
             throw new Error(response.error || 'Failed to refresh token')
         }
@@ -1075,7 +871,6 @@ export const useSumsubKycFlow = ({
             verificationSessionRef.current = null
             setVerificationSession(null)
             setShowCorrection(false)
-            setDocumentRestartOffered(false)
             setIsLoading(true)
             setError(null)
             setIsTerminalError(false)
@@ -1093,23 +888,6 @@ export const useSumsubKycFlow = ({
             residenceChangeRef.current = false
 
             try {
-                const plan = await findKycDocumentPlan(true)
-                if (plan?.available) {
-                    documentRestartRef.current = true
-                    setDocumentPreferencesOnly(false)
-                    if (plan.activeAttemptId) {
-                        try {
-                            acceptDocumentSession(await resumeKycDocumentAttempt(plan.activeAttemptId), plan.features)
-                        } catch (error) {
-                            userInitiatedRef.current = false
-                            if (!(await handleDocumentConflict(error, plan))) setError(t('errorRestartFailed'))
-                        }
-                    } else {
-                        setDocumentPlan(plan)
-                        documentRequestKeyRef.current = null
-                    }
-                    return
-                }
                 // Only an EXPLICIT override is forwarded, never the local ref.
                 // `resolveRestartIntent` on the route returns the intent canonical
                 // to the DECLARED residence in every non-null branch and never the
@@ -1157,7 +935,7 @@ export const useSumsubKycFlow = ({
                 setIsLoading(false)
             }
         },
-        [t, actionErrorMessage, setError, acceptDocumentSession, handleDocumentConflict]
+        [t, actionErrorMessage, setError]
     )
 
     // Open the applicant action associated with the current pending residence.
@@ -1337,7 +1115,6 @@ export const useSumsubKycFlow = ({
         },
         [t, tIdentity, actionErrorMessage, setError, acceptSessionView, onKycSuccess, handleRestartIdentity]
     )
-    startActionRef.current = handleStartAction
 
     // Launch the fix for a `fixable` provider rejection. Manteca RFIs (PEP/FEP,
     // source of funds) are their own Sumsub levels, keyed by the verdict's
@@ -1387,14 +1164,8 @@ export const useSumsubKycFlow = ({
     const getActionKey = useCallback(() => actionKeyRef.current, [])
 
     return {
-        documentPlan,
-        documentPreferencesOnly,
-        documentRestartOffered,
         documentConfig,
         documentAttemptId: documentAttemptRef.current,
-        confirmDocumentPlan,
-        updateDocumentFeatures,
-        dismissDocumentPlan,
         isLoading,
         error: errorCooldown ? null : error,
         errorCooldown,

@@ -168,11 +168,11 @@ jest.mock('@/context/ModalsContext', () => ({
 }))
 // useTosGuard is real: its own unscoped deposit read is what the ToS regressions below exercise
 let mockCooldown: { retryAt?: string } | null = null
-let mockDocumentPlan: unknown = null
+let mockShowWrapper = false
 const mockDismissCooldown = jest.fn()
 beforeEach(() => {
     mockCooldown = null
-    mockDocumentPlan = null
+    mockShowWrapper = false
     mockDismissCooldown.mockClear()
 })
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
@@ -183,8 +183,7 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
         error: null,
         errorCooldown: mockCooldown,
         dismissErrorCooldown: mockDismissCooldown,
-        showWrapper: false,
-        documentPlan: mockDocumentPlan,
+        showWrapper: mockShowWrapper,
     }),
 }))
 // back leaves for the list the country was picked from; the history rewind
@@ -594,21 +593,14 @@ describe('restart cooldown in add and withdraw flows', () => {
     })
 })
 
-it('the document list takes over from the bank initiation prompt', () => {
+it('the SDK takes over from the bank initiation prompt', () => {
     setCapabilities('needs-identity', [])
     const { rerender } = render(<AddWithdrawCountriesList flow="add" />)
     fireEvent.click(screen.getByTestId('method-bank'))
     expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
-    mockDocumentPlan = {
-        available: true,
-        activeAttemptId: null,
-        policyVersion: 'v1',
-        features: { qr: true, local: false, bank: true, card: false },
-        routes: [],
-    }
+    mockShowWrapper = true
     rerender(withProviders(<AddWithdrawCountriesList flow="add" />))
     expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
-    expect(screen.getByTestId('kyc-documents-continue')).toBeInTheDocument()
 })
 
 it('closing a cooldown also closes the underlying bank initiation prompt', async () => {

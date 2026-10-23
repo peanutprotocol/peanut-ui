@@ -97,11 +97,10 @@ function primaryStep(rows: SetupRow[]): PrimaryStep | null {
 }
 
 /**
- * The setup status after a document-first identity check: one row per
- * feature saved on the document list, named as the list names it, with the
- * state its rails give it, and one button for the first step the user can
- * take. It stands in for the progress modal. Ported from the one-shot setup
- * drawer (#3581, with the states of #3599).
+ * The setup status after a verification-attempt identity check: one row per
+ * saved feature, with the state its rails give it, and one button for the
+ * first step the user can take. It stands in for the progress modal. Ported
+ * from the one-shot setup drawer (#3581, with the states of #3599).
  */
 export const KycSetupStatusDrawer = ({
     open,

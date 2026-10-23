@@ -1,12 +1,9 @@
 import { getKycDocumentStatus } from '@/app/actions/kyc-workflow'
 import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
-import { isVerifyOnceEnabled } from '../verifyOnceFlag'
 import { entryFeature, verifyOnceRoute } from '../verifyOnceEntry'
 
 jest.mock('@/app/actions/kyc-workflow', () => ({ getKycDocumentStatus: jest.fn() }))
-jest.mock('../verifyOnceFlag', () => ({ isVerifyOnceEnabled: jest.fn() }))
 const mockStatus = getKycDocumentStatus as jest.MockedFunction<typeof getKycDocumentStatus>
-const mockEnabled = isVerifyOnceEnabled as jest.MockedFunction<typeof isVerifyOnceEnabled>
 
 const plan = (overrides: Partial<KycDocumentPlan> = {}) =>
     ({
@@ -21,7 +18,6 @@ const plan = (overrides: Partial<KycDocumentPlan> = {}) =>
     }) as KycDocumentPlan
 
 beforeEach(() => {
-    mockEnabled.mockReturnValue(true)
     mockStatus.mockResolvedValue('NOT_STARTED')
 })
 
@@ -30,11 +26,6 @@ describe('verifyOnceRoute', () => {
         await expect(verifyOnceRoute(plan({ flow: 'document-first' }), null)).resolves.toBeNull()
         await expect(verifyOnceRoute(null, null)).resolves.toBeNull()
         expect(mockStatus).not.toHaveBeenCalled()
-    })
-
-    it('keeps today’s flow with the flag off, whatever an old plan says', async () => {
-        mockEnabled.mockReturnValue(false)
-        await expect(verifyOnceRoute(plan(), null)).resolves.toBeNull()
     })
 
     it('sends a user who is not verified yet to the questions', async () => {

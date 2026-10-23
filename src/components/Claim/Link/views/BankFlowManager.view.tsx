@@ -158,10 +158,10 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         onManualClose: () => setIsKycModalOpen(false),
     })
 
-    // close the kyc modal once the document list or the sdk opens; on an error it stays to show it
+    // close the kyc modal once the sdk opens; on an error it stays to show it
     useEffect(() => {
-        if (sumsubFlow.showWrapper || sumsubFlow.documentPlan) setShowKycModal(false)
-    }, [sumsubFlow.showWrapper, sumsubFlow.documentPlan])
+        if (sumsubFlow.showWrapper) setShowKycModal(false)
+    }, [sumsubFlow.showWrapper])
 
     /**
      * @name handleConfirmClaim

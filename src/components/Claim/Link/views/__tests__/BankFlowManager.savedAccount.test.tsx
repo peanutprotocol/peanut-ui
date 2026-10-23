@@ -67,14 +67,13 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
 // --- KYC plumbing
 const mockHandleInitiateKyc = jest.fn()
 const mockGateFor = jest.fn(() => ({ kind: 'needs-enrollment' }))
-let mockDocumentPlan: unknown = null
+let mockShowWrapper = false
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleInitiateKyc: mockHandleInitiateKyc,
         handleRestartIdentity: jest.fn(),
         handleSelfHealResubmit: jest.fn(),
-        showWrapper: false,
-        documentPlan: mockDocumentPlan,
+        showWrapper: mockShowWrapper,
         isLoading: false,
         error: null,
     }),
@@ -183,7 +182,7 @@ function renderView() {
 beforeEach(() => {
     jest.clearAllMocks()
     mockGateFor.mockReturnValue({ kind: 'needs-enrollment' })
-    mockDocumentPlan = null
+    mockShowWrapper = false
     resetCtx()
 })
 
@@ -246,7 +245,7 @@ test('unlock CTA after a saved Mexico account sends the NA intent, not LATAM', a
     expect(mockHandleInitiateKyc.mock.calls[0].slice(0, 3)).toEqual(['NA', undefined, true])
 })
 
-test('the KYC modal stays while nothing opened and closes once the document list opens', async () => {
+test('the KYC modal stays while nothing opened and closes once the SDK opens', async () => {
     resetCtx({ selectedCountry: getCountryFromPath('mexico') })
     mockSavedAccounts = [clabeAccount({ countryCode: 'MEX', countryName: 'mexico', accountOwnerName: 'Ana Perez' })]
     const { rerender } = renderView()
@@ -261,7 +260,7 @@ test('the KYC modal stays while nothing opened and closes once the document list
     })
     expect(screen.getByTestId('kyc-verify-button')).toBeInTheDocument()
 
-    mockDocumentPlan = { available: true, routes: [] }
+    mockShowWrapper = true
     rerender(<BankFlowManager {...props} />)
     expect(screen.queryByTestId('kyc-verify-button')).not.toBeInTheDocument()
 })

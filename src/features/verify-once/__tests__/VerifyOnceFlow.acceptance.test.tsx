@@ -29,7 +29,6 @@ jest.mock('@/app/actions/kyc-workflow', () => ({
     findKycDocumentPlan: jest.fn(),
     getKycDocumentStatus: jest.fn(),
 }))
-jest.mock('../verifyOnceFlag', () => ({ isVerifyOnceEnabled: () => true }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { user: { username: 'tester' } }, fetchUser: jest.fn() }),
 }))

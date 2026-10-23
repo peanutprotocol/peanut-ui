@@ -42,7 +42,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
         onManualClose: handleFlowDone,
     })
 
-    // An identity verified through the document list shows its setup status
+    // An identity verified through a verification attempt shows its setup status
     // instead: this drawer steps aside for it and stays mounted under it.
     const handoffRef = useRef({ onClose, onKeepMounted, openSetupStatus: sumsubFlow.openSetupStatus })
     handoffRef.current = { onClose, onKeepMounted, openSetupStatus: sumsubFlow.openSetupStatus }

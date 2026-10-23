@@ -223,9 +223,8 @@ function featureOutcome(
 }
 
 /**
- * One row per feature saved on the document list, in its order. Until the
- * identity is verified no rail says anything yet, so every row waits on that
- * one check.
+ * One row per saved feature, in feature order. Until the identity is
+ * verified no rail says anything yet, so every row waits on that one check.
  *
  * @param input.residence ISO-2 residence: the country of the local bank transfers
  * @param input.submitted what this flow already sent and the rails do not show yet

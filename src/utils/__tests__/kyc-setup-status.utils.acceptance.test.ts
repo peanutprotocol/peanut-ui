@@ -1,5 +1,5 @@
 /**
- * The setup drawer's rows: one per feature saved on the document list. A row
+ * The setup drawer's rows: one per saved feature. A row
  * reads "Available" only when what its name promises works, and the identity
  * check comes first. Ported from the one-shot setup rows (#3581).
  */

@@ -2,10 +2,6 @@ import { saveKycAnswers, startVerifyOnceIdentity } from '@/app/actions/kyc-verif
 import { serverFetch } from '@/utils/api-fetch'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
-const mockVerifyOnceEnabled = jest.fn(() => true)
-jest.mock('@/features/verify-once/verifyOnceFlag', () => ({
-    verifyOnceHeaders: () => (mockVerifyOnceEnabled() ? { 'x-kyc-verify-once': '1' } : {}),
-}))
 const mockFetch = serverFetch as jest.MockedFunction<typeof serverFetch>
 
 const reply = (status: number, body: unknown) =>
@@ -23,7 +19,6 @@ const session = {
 
 beforeEach(() => {
     mockFetch.mockReset()
-    mockVerifyOnceEnabled.mockReturnValue(true)
 })
 
 describe('retry identity token transport acceptance', () => {
