@@ -1,0 +1,110 @@
+[
+  {
+    "label": "before",
+    "sourceCommit": "95aaabd8a4d296f3c5e41720a61b19024e8b8f12",
+    "buildId": "WoUf3F4KANTwgVwH0w8EM",
+    "sourceFilesRechecked": 3891,
+    "sourceUnchanged": true,
+    "manifestSha256": "3d34a50de689cb046df69b527f5d67127a4db970b9d03c4c870608d6ad6f531a",
+    "files": [
+      {
+        "name": "banner-es-419-card-cancel-stop-pending.png",
+        "sha256": "032096ced1c830721e0a91cd8abbd039ad761a7d95725500774047c889322138"
+      },
+      {
+        "name": "banner-es-419-card-lock-stop-unavailable.png",
+        "sha256": "c9d7181f15b97f816fd443a4357ac5ac9771bde9713555160cd07e9cc0bc542e"
+      },
+      {
+        "name": "banner-es-AR-card-cancel-stop-pending.png",
+        "sha256": "0d9eb440b1193580b03b23cc065397db83c657ad5fbe45a08d0e1742e24ba4ed"
+      },
+      {
+        "name": "banner-es-AR-card-lock-stop-unavailable.png",
+        "sha256": "e64623cd0dfd34a844f25f21d86ecf3caa68a183435f214024f2a8e949b3f4be"
+      },
+      {
+        "name": "banner-pt-BR-card-cancel-stop-pending.png",
+        "sha256": "54220b55b4c02d10dd7ba6881d187adfc5dc0a11f55e27e2c00ee58334745f67"
+      },
+      {
+        "name": "banner-pt-BR-card-lock-stop-unavailable.png",
+        "sha256": "aab9ad82e78da230a39e23c9f09fbabb9ac7878efa2598a0c8f3621dc3c2b97d"
+      },
+      {
+        "name": "holder-en-100.png",
+        "sha256": "9b92d237ffb49d95aaa5faa67d77971b315bded9e8cada96fa53e60eab582367"
+      },
+      {
+        "name": "holder-en-150.png",
+        "sha256": "28e740d38571f45c9517ed1c92a427bc89ba48cb67381fc6475a390bab173edf"
+      },
+      {
+        "name": "holder-en-200-card.png",
+        "sha256": "7164700194c2b1b4246a6e39b05aa4f7f96e1be603bce62ece11d9c8f0009434"
+      },
+      {
+        "name": "holder-en-200.png",
+        "sha256": "4a9eda30af6b621286dd19e351b761884635a8d48547ae3166f6da223641ce00"
+      },
+      {
+        "name": "scroll-card-lock-stop-unavailable-es-419.webm",
+        "sha256": "9cc350816c25c2ada9c4f96752f65d8261be3b3a222c6d0b6ecb87659ce94863"
+      }
+    ]
+  },
+  {
+    "label": "after",
+    "sourceCommit": "10ba4fe1321cb94fdffa33cf1df60b840f8a87d6",
+    "buildId": "kokrihYBn9YmUxyPRk-wG",
+    "sourceFilesRechecked": 3891,
+    "sourceUnchanged": true,
+    "manifestSha256": "1ceb17422b76d7aaf4e3b45df801bcdcfe4c5ff830c9c5b5ea75be5a8f2a207d",
+    "files": [
+      {
+        "name": "banner-es-419-card-cancel-stop-pending.png",
+        "sha256": "4452edfbd7d7b9d0e0b8604d9987faa9300df1cdbb8ccdd38e1871eabba9fef9"
+      },
+      {
+        "name": "banner-es-419-card-lock-stop-unavailable.png",
+        "sha256": "a134c4cc4e93961797b8c11ea26bc5452c6b46676605d58894f25d4f731451ee"
+      },
+      {
+        "name": "banner-es-AR-card-cancel-stop-pending.png",
+        "sha256": "a1ab5709d6940df4e43b7d4d5f5af1d8af49a13530e7b478493352bf6c006ba9"
+      },
+      {
+        "name": "banner-es-AR-card-lock-stop-unavailable.png",
+        "sha256": "001b98361c17652e20c57a2d200b359ef999466d8ada97fa2822df16268623a6"
+      },
+      {
+        "name": "banner-pt-BR-card-cancel-stop-pending.png",
+        "sha256": "121e1a41ec65330da970e02db6d20d360c82ba349d56ba309e2835afaf97fd79"
+      },
+      {
+        "name": "banner-pt-BR-card-lock-stop-unavailable.png",
+        "sha256": "04f88007017651b188751c4c3f3e43d2643232afcf750f04026adc36b41e3b67"
+      },
+      {
+        "name": "holder-en-100.png",
+        "sha256": "4c41db74b486c29197cb366f572d841c0966e7cc133c0a74ae118c2e9d8612b8"
+      },
+      {
+        "name": "holder-en-150.png",
+        "sha256": "132ce950fa53ecefac7cb6e5c0864f2b8e4182e556d9d0fc04f3e0681581a241"
+      },
+      {
+        "name": "holder-en-200-card.png",
+        "sha256": "668bd88721253679b70ad20a26798f31da19f0d53fe5e194484eee65e5b13bd5"
+      },
+      {
+        "name": "holder-en-200.png",
+        "sha256": "dbab082b52f32883bf6e65575795d6a141f27251a30da9f7ae2b6b3a4b13c9ba"
+      },
+      {
+        "name": "scroll-card-lock-stop-unavailable-es-419.webm",
+        "sha256": "e954f672bf8274d20d0e57f46c9422a7a790a89d0080b233e9bb3cb8eda54bae"
+      }
+    ]
+  }
+]
