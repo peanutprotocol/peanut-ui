@@ -118,7 +118,7 @@ function useDecisionReport(
     const reported = useRef<string | null>(null)
     useEffect(() => {
         if (!state.userId || !state.userLoaded) return
-        const key = `${state.userId}:${decision.interrupt}:${decision.zone?.id ?? null}:${decision.zone?.mode ?? ''}:${decision.inline?.id ?? null}:${decision.inline?.slot ?? null}:${decision.banner}:${decision.suspended}`
+        const key = `${state.userId}:${decision.interrupt}:${decision.zone?.id ?? null}:${decision.zone?.mode ?? ''}:${decision.zone?.underlay ?? ''}:${decision.inline?.id ?? null}:${decision.inline?.slot ?? null}:${decision.banner}:${decision.suspended}`
         if (reported.current === key) return
         reported.current = key
         const payload = {

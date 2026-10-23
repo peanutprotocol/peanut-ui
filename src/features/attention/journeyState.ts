@@ -36,6 +36,7 @@ import { selectHomeTasks } from '@/utils/bridge-tasks.utils'
 import { getStoredRedirect } from '@/utils/general.utils'
 import { selectMantecaCapNudge } from '@/utils/capability-gate'
 import { isDemoMode } from '@/utils/demo'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import { selectMaintenance } from './maintenance'
 import { isCapacitor } from '@/utils/capacitor'
 import type { RainCardOverview } from '@/services/rain'
@@ -311,7 +312,8 @@ export function useJourneyState(): JourneyState {
         () => (capabilitiesLoading ? undefined : (selectMantecaCapNudge(rails, nextActions) ?? null)),
         [capabilitiesLoading, rails, nextActions]
     )
-    const maintenance = selectMaintenance({ pathname, config: underMaintenanceConfig, demo: isDemoMode() })
+    const demoMode = useHydrationSnapshot(isDemoMode, () => false)
+    const maintenance = selectMaintenance({ pathname, config: underMaintenanceConfig, demo: demoMode })
 
     return useMemo(
         () =>

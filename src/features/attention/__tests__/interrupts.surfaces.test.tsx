@@ -8,6 +8,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
+import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import type { GrantSessionKeyError } from '@/hooks/wallet/useGrantSessionKey'
 
 const mockCapture = jest.fn()
@@ -57,11 +58,15 @@ jest.mock('next/navigation', () => ({
 
 const mockGetStoredRedirect = jest.fn()
 const mockClearRedirectUrl = jest.fn()
+const mockGenerateInviteCodeLink = jest.fn((_username: string, _source?: string, _origin?: string) => ({
+    inviteLink: 'https://peanut.me/invite?code=TEST',
+}))
 jest.mock('@/utils/general.utils', () => ({
     ...jest.requireActual('@/utils/general.utils'),
     getStoredRedirect: (...args: unknown[]) => mockGetStoredRedirect(...args),
     clearRedirectUrl: (...args: unknown[]) => mockClearRedirectUrl(...args),
-    generateInviteCodeLink: () => ({ inviteLink: 'https://peanut.me/invite?code=TEST' }),
+    generateInviteCodeLink: (username: string, source?: string, origin?: string) =>
+        mockGenerateInviteCodeLink(username, source, origin),
 }))
 
 jest.mock('@/hooks/useIdentityVerification', () => ({
@@ -387,6 +392,12 @@ describe('EarlyUserDrawer', () => {
         // "EarlyUserDrawer drops its guards and useOtherOpenOverlays"; "renders visible immediately when mounted"
         expect(await screen.findByRole('dialog', { name: title })).toBeInTheDocument()
         expect(mockUpdateUserById).not.toHaveBeenCalled()
+        // the share button emits a tagged invite link (TASK-23382)
+        expect(mockGenerateInviteCodeLink).toHaveBeenCalledWith(
+            'alice',
+            REFERRAL_SOURCES.EARLY_USER_DRAWER,
+            expect.any(String)
+        )
     })
 
     test('closing saves the server flag, refreshes the user, then reports acted', async () => {
