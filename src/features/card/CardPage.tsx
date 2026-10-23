@@ -317,13 +317,17 @@ export const CardPage: FC = () => {
 
     return (
         <PageContainer>
-            <CardStopBanner
-                key={stopAttempt?.attemptId}
-                enabled={!!overview?.status?.hasApplication}
-                attempt={stopAttempt}
-                onSettled={clearStopAttempt}
-            />
-            {renderState()}
+            {/* PageContainer lays its children out in a row; the stop banner
+                must stack above the screen, not take width from it. */}
+            <div className="flex min-h-inherit flex-col gap-6">
+                <CardStopBanner
+                    key={stopAttempt?.attemptId}
+                    enabled={!!overview?.status?.hasApplication}
+                    attempt={stopAttempt}
+                    onSettled={clearStopAttempt}
+                />
+                {renderState()}
+            </div>
             <SumsubKycWrapper
                 visible={poaToken !== null}
                 accessToken={poaToken}

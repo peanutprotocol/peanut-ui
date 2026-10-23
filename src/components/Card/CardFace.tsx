@@ -96,11 +96,14 @@ const CardFace: FC<Props> = ({
                 // physical-card geometry token — value lives in globals.css.
                 // intentionally off the ds radius scale, same exemption class
                 // as the aspect ratio (visual-qa verdict ui#3201).
-                'relative aspect-[1.586/1] w-full overflow-hidden rounded-card bg-action-primary text-foreground-primary',
+                // the id-1 ratio is the minimum height (spacer below); larger
+                // text grows the face instead of being clipped.
+                'relative grid w-full overflow-hidden rounded-card bg-action-primary text-foreground-primary',
                 isLocked && 'grayscale',
                 className
             )}
         >
+            <div aria-hidden className="col-start-1 row-start-1 aspect-[1.586/1] w-full" />
             {/* issued artwork uses 90% of the card height */}
             <Image
                 src={PEANUT_CARD_HAND}
@@ -113,7 +116,7 @@ const CardFace: FC<Props> = ({
                 priority
             />
 
-            <div className="relative flex h-full w-full flex-col p-4">
+            <div className="relative col-start-1 row-start-1 flex w-full flex-col p-4">
                 {/* Top row: peanut mascot + wordmark (left) + Visa Platinum (right).
                  * Matches the finalised Rain card art (Apple Wallet): yellow mascot +
                  * black PEANUT wordmark (WORDMARK from @/assets/brand is the text-only
