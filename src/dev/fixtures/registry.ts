@@ -137,6 +137,23 @@ const INVITES_ONE = {
     },
 }
 
+// A friend who never finished signup: no username and no name (TASK-24036).
+const INVITES_WITH_UNNAMED = {
+    invitees: [
+        ...INVITES_ONE.invitees,
+        {
+            inviteeId: 'fixture-invitee-unnamed',
+            username: null,
+            fullName: null,
+            kycVerified: false,
+            contributedPoints: 0,
+            showFullName: false,
+            lifetimeEarnedUsd: 0,
+        },
+    ],
+    summary: { ...INVITES_ONE.summary, pendingInvites: 1, totalInvites: 2 },
+}
+
 const HUGE_HISTORY_ENTRY = {
     uuid: 'fixture-huge-tx',
     type: 'TRANSACTION_INTENT',
@@ -789,6 +806,11 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/rewards/invites',
         about: 'Invite list with one verified friend.',
         responses: { 'GET /points/invites': INVITES_ONE },
+    },
+    'rewards-invites-unnamed': {
+        route: '/rewards/invites',
+        about: 'Invite list with a friend who never finished signup: no name, no profile link.',
+        responses: { 'GET /points/invites': INVITES_WITH_UNNAMED },
     },
     badges: {
         route: '/badges',

@@ -1195,8 +1195,10 @@ export const clearRedirectUrl = (expected?: StoredRedirect | null) => {
     }
 }
 
-export const getInitialsFromName = (name: string): string => {
-    const nameParts = name.trim().split(/\s+/)
+// A user who never finished signup has no username and no name; one such row
+// must not take down the screen that lists it.
+export const getInitialsFromName = (name: string | null | undefined): string => {
+    const nameParts = (name ?? '').trim().split(/\s+/)
     if (nameParts.length === 1) {
         return nameParts[0].substring(0, 2).toUpperCase()
     } else {
