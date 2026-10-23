@@ -375,62 +375,62 @@
         "route": "/limits/manteca"
     },
     {
-        "id": "fixture-verify-once-de",
+        "id": "fixture-paperwork-verification-de",
         "flow": "Home and shared states",
         "route": "/verify"
     },
     {
-        "id": "fixture-verify-once-ar",
+        "id": "fixture-paperwork-verification-ar",
         "flow": "Home and shared states",
         "route": "/verify"
     },
     {
-        "id": "fixture-verify-once-br",
+        "id": "fixture-paperwork-verification-br",
         "flow": "Home and shared states",
         "route": "/verify?step=birth"
     },
     {
-        "id": "fixture-verify-once-add-local",
+        "id": "fixture-paperwork-verification-add-local",
         "flow": "Home and shared states",
         "route": "/verify?feature=local"
     },
     {
-        "id": "fixture-verify-once-us",
+        "id": "fixture-paperwork-verification-us",
         "flow": "Home and shared states",
         "route": "/verify"
     },
     {
-        "id": "fixture-verify-once-ph",
+        "id": "fixture-paperwork-verification-ph",
         "flow": "Home and shared states",
         "route": "/verify"
     },
     {
-        "id": "fixture-verify-once-save-fails",
+        "id": "fixture-paperwork-verification-save-fails",
         "flow": "Home and shared states",
         "route": "/verify?step=tax"
     },
     {
-        "id": "fixture-verify-once-midpoint",
+        "id": "fixture-paperwork-verification-midpoint",
         "flow": "Home and shared states",
         "route": "/verify"
     },
     {
-        "id": "fixture-verify-once-review",
+        "id": "fixture-paperwork-verification-review",
         "flow": "Home and shared states",
         "route": "/verify"
     },
     {
-        "id": "fixture-verify-once-verified",
+        "id": "fixture-paperwork-verification-verified",
         "flow": "Home and shared states",
         "route": "/verify"
     },
     {
-        "id": "fixture-verify-once-proof-of-address",
+        "id": "fixture-paperwork-verification-proof-of-address",
         "flow": "Home and shared states",
         "route": "/verify"
     },
     {
-        "id": "fixture-verify-once-add-bank",
+        "id": "fixture-paperwork-verification-add-bank",
         "flow": "Home and shared states",
         "route": "/verify?feature=bank"
     },
@@ -969,7 +969,7 @@
         "route": "/home"
     },
     {
-        "id": "fixture-verify-once-add-card",
+        "id": "fixture-paperwork-verification-add-card",
         "flow": "Card",
         "route": "/verify?feature=card"
     },

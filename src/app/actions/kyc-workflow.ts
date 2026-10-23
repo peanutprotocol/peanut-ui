@@ -1,6 +1,6 @@
 import type { SumsubKycStatus } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
-import { verifyOnceHeaders } from '@/features/verify-once/verifyOnceFlag'
+import { paperworkVerificationHeaders } from '@/features/paperwork-verification/paperworkVerificationHeaders'
 import { providerRefusalsOf, type SetupRefusals } from '@/utils/kyc-setup-status.utils'
 import { restartIdentityVerification, type SumsubActionErrorCode } from './sumsub'
 import type {
@@ -14,7 +14,7 @@ import type {
 async function read<T>(path: string, options?: RequestInit): Promise<T> {
     const response = await serverFetch(path, {
         ...options,
-        headers: { ...verifyOnceHeaders(), ...(options?.headers as Record<string, string> | undefined) },
+        headers: { ...paperworkVerificationHeaders(), ...(options?.headers as Record<string, string> | undefined) },
         cache: 'no-store',
         redactTelemetry: true,
     })
@@ -56,7 +56,7 @@ export type KycReplacementResult =
     | { kind: 'session'; session: KycAttemptSession }
     | { kind: 'failed'; error?: string; code?: SumsubActionErrorCode; cooldown?: { retryAt?: string } }
 
-/** Restart an attempt-based identity on new documents. The API keeps the attempt's flow (verify-once stays verify-once). */
+/** Restart an attempt-based identity on new documents. The API keeps the attempt's flow (Smart Paperwork Verification stays on it). */
 export async function startKycDocumentReplacement(replacement: KycReplacementChoices): Promise<KycReplacementResult> {
     const response = await restartIdentityVerification(undefined, replacement)
     if (!response.data)
@@ -71,7 +71,7 @@ export async function resumeKycDocumentAttempt(attemptId: string) {
     const response = await serverFetch(`/users/kyc/attempts/${encodeURIComponent(attemptId)}/token`, {
         method: 'POST',
         body: '{}',
-        headers: verifyOnceHeaders(),
+        headers: paperworkVerificationHeaders(),
         cache: 'no-store',
         redactTelemetry: true,
     })
@@ -104,7 +104,7 @@ export async function getKycDocumentStatus(): Promise<SumsubKycStatus | undefine
     return undefined
 }
 
-/** True when the current identity was verified through a verification attempt (verify-once included). */
+/** True when the current identity was verified through a verification attempt (Smart Paperwork Verification included). */
 function attemptIdentity(profile: KycProfile): boolean {
     const identityId = profile.identity?.verificationId
     return (

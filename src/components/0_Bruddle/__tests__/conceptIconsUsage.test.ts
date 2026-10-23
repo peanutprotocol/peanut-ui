@@ -41,7 +41,7 @@ const EXEMPT = new Map<string, string>([
         'an explainer bullet about a shareable account link, not a send or request link',
     ],
     [
-        'features/verify-once/components/IdentityDocumentScreen.tsx :: globe',
+        'features/paperwork-verification/components/IdentityDocumentScreen.tsx :: globe',
         'the gray placeholder of an unchosen issuing country, not other countries',
     ],
     [

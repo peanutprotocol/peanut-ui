@@ -1563,7 +1563,7 @@ describe('a published document plan keeps the legacy flow', () => {
         expect(result.current.accessToken).toBe('enrol-token')
     })
 
-    it('an approved attempt the API asks to choose features shows its error outside verify-once', async () => {
+    it('an approved attempt the API asks to choose features shows its error outside Smart Paperwork Verification', async () => {
         mockInitiate.mockResolvedValue({ error: 'Choose your features', code: 'feature_selection_required' })
         const { result } = renderHook(() => useSumsubKycFlow({}))
         await act(async () => {
@@ -1819,7 +1819,7 @@ describe('useSumsubKycFlow — restarting an identity verified through a verific
     })
     afterEach(() => jest.mocked(findKycReplacementPlan).mockResolvedValue(null))
 
-    it('sends the user to the verify-once ID screen in restart mode instead of the legacy restart', async () => {
+    it('sends the user to the Smart Paperwork Verification ID screen in restart mode instead of the legacy restart', async () => {
         const { result } = renderHook(() => useSumsubKycFlow({}))
         await act(async () => {
             await result.current.handleRestartIdentity()
@@ -1879,8 +1879,8 @@ describe('useSumsubKycFlow — restarting an identity verified through a verific
     })
 })
 
-describe('useSumsubKycFlow — verify-once routing', () => {
-    const verifyOncePlan = {
+describe('useSumsubKycFlow — Smart Paperwork Verification routing', () => {
+    const paperworkVerificationPlan = {
         available: true,
         activeAttemptId: null,
         policyVersion: 'v1',
@@ -1892,7 +1892,7 @@ describe('useSumsubKycFlow — verify-once routing', () => {
     beforeEach(() => {
         mockInitiate.mockReset()
         mockRouterPush.mockReset()
-        ;(getKycDocumentPlan as jest.Mock).mockResolvedValue(verifyOncePlan)
+        ;(getKycDocumentPlan as jest.Mock).mockResolvedValue(paperworkVerificationPlan)
         ;(getKycDocumentStatus as jest.Mock).mockResolvedValue('NOT_STARTED')
     })
     afterEach(() => {
@@ -1928,8 +1928,8 @@ describe('useSumsubKycFlow — verify-once routing', () => {
         expect(mockInitiate).not.toHaveBeenCalled()
     })
 
-    it('keeps today’s flow when the server does not put the user on verify-once', async () => {
-        ;(getKycDocumentPlan as jest.Mock).mockResolvedValue({ ...verifyOncePlan, flow: null })
+    it('keeps today’s flow when the server does not put the user on Smart Paperwork Verification', async () => {
+        ;(getKycDocumentPlan as jest.Mock).mockResolvedValue({ ...paperworkVerificationPlan, flow: null })
         mockInitiate.mockResolvedValue({ data: { token: 'tok', status: 'PENDING' } } as never)
         const { result } = renderHook(() => useSumsubKycFlow())
         await act(async () => {

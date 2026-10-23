@@ -5,7 +5,12 @@ import {
     getKycDocumentStatus,
     resumeKycDocumentAttempt,
 } from '@/app/actions/kyc-workflow'
-import type { KycDocumentPlan, KycAttemptSession, KycFeatures } from '@/app/actions/types/kyc-workflow.types'
+import {
+    PAPERWORK_VERIFICATION_FLOW,
+    type KycDocumentPlan,
+    type KycAttemptSession,
+    type KycFeatures,
+} from '@/app/actions/types/kyc-workflow.types'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -32,11 +37,11 @@ import { isDemoMode } from '@/utils/demo'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import {
     entryFeature,
-    verifyOnceRoute,
-    verifyOnceFeaturePath,
-    verifyOnceDocumentPath,
-    verifyOnceRestartPath,
-} from '@/features/verify-once/verifyOnceEntry'
+    paperworkVerificationRoute,
+    paperworkVerificationFeaturePath,
+    paperworkVerificationDocumentPath,
+    paperworkVerificationRestartPath,
+} from '@/features/paperwork-verification/paperworkVerificationEntry'
 
 interface UseSumsubKycFlowOptions {
     onKycSuccess?: () => void
@@ -336,8 +341,8 @@ export const useSumsubKycFlow = ({
 
         const fetchCurrentStatus = async () => {
             try {
-                // a status initiate would open a legacy applicant for a user verify-once still has to ask
-                if ((await findKycDocumentPlan())?.flow === 'verify-once') return
+                // a status initiate would open a legacy applicant for a user Smart Paperwork Verification still has to ask
+                if ((await findKycDocumentPlan())?.flow === PAPERWORK_VERIFICATION_FLOW) return
                 const response = await initiateSumsubKyc({ regionIntent })
                 if (response.data?.status && !initiatingRef.current && !showWrapperRef.current) {
                     setLiveKycStatus(response.data.status)
@@ -422,11 +427,11 @@ export const useSumsubKycFlow = ({
         async (error: unknown, knownPlan?: KycDocumentPlan | null) => {
             if ((error as { code?: string } | null)?.code !== 'document_required') return false
             const plan = knownPlan ?? (await findKycDocumentPlan())
-            if (plan?.flow !== 'verify-once') return false
+            if (plan?.flow !== PAPERWORK_VERIFICATION_FLOW) return false
             userInitiatedRef.current = false
             documentAttemptRef.current = null
             setShowWrapper(false)
-            router.push(verifyOnceDocumentPath())
+            router.push(paperworkVerificationDocumentPath())
             return true
         },
         [router]
@@ -480,8 +485,8 @@ export const useSumsubKycFlow = ({
             try {
                 if (!correctSession && !levelName) {
                     plan = await findKycDocumentPlan()
-                    // Verify-once users answer Peanut's questions on /verify before any document.
-                    const verifyOncePath = await verifyOnceRoute(
+                    // Smart Paperwork Verification users answer Peanut's questions on /verify before any document.
+                    const paperworkVerificationPath = await paperworkVerificationRoute(
                         plan,
                         entryFeature({
                             intent: overrideIntent ?? regionIntent,
@@ -489,10 +494,10 @@ export const useSumsubKycFlow = ({
                             targetCountry: normalizedTargetCountry,
                         })
                     )
-                    if (verifyOncePath) {
+                    if (paperworkVerificationPath) {
                         userInitiatedRef.current = false
                         if (crossRegion) prevStatusRef.current = savedPrevStatus
-                        router.push(verifyOncePath)
+                        router.push(paperworkVerificationPath)
                         return false
                     }
                     if (plan?.activeAttemptId) {
@@ -521,7 +526,8 @@ export const useSumsubKycFlow = ({
                     userInitiatedRef.current = false
                     if (crossRegion) prevStatusRef.current = savedPrevStatus
                     const latest = await findKycDocumentPlan()
-                    if (latest?.flow === 'verify-once') router.push(verifyOnceFeaturePath('bank'))
+                    if (latest?.flow === PAPERWORK_VERIFICATION_FLOW)
+                        router.push(paperworkVerificationFeaturePath('bank'))
                     else setError(actionErrorMessage(response) || t('errorInitiateFailed'))
                     return false
                 }
@@ -843,7 +849,8 @@ export const useSumsubKycFlow = ({
             if (response.code === 'feature_selection_required') {
                 userInitiatedRef.current = false
                 setShowWrapper(false)
-                if ((await findKycDocumentPlan())?.flow === 'verify-once') router.push(verifyOnceFeaturePath('bank'))
+                if ((await findKycDocumentPlan())?.flow === PAPERWORK_VERIFICATION_FLOW)
+                    router.push(paperworkVerificationFeaturePath('bank'))
             }
             throw new Error(response.error || 'Failed to refresh token')
         }
@@ -911,7 +918,7 @@ export const useSumsubKycFlow = ({
                 if (replacement) {
                     // The API restarts this identity only on documents picked in Peanut.
                     userInitiatedRef.current = false
-                    router.push(verifyOnceRestartPath())
+                    router.push(paperworkVerificationRestartPath())
                     return
                 }
                 // Only an EXPLICIT override is forwarded, never the local ref.

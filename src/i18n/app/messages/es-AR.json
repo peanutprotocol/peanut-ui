@@ -1515,7 +1515,7 @@
             "proofOfAddressTitle": "Agregá un comprobante de domicilio",
             "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contactá a soporte y lo completamos por vos."
         },
-        "verifyOnce": {
+        "paperworkVerification": {
             "phoneHelp": "Incluí el código de tu país, como +54.",
             "hints": {
                 "purpose": "Elegí la opción más parecida.",

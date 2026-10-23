@@ -16,7 +16,7 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { useCardFlow } from './useCardFlow'
-import { AddFeatureQuestions } from '@/features/verify-once/AddFeatureFlow'
+import { AddFeatureQuestions } from '@/features/paperwork-verification/AddFeatureFlow'
 
 export const CardPage: FC = () => {
     const t = useTranslations('card')
@@ -139,7 +139,7 @@ export const CardPage: FC = () => {
                 />
             )
         }
-        // Verify-once: the card's own questions on one full screen over the page, then the application resumes.
+        // Smart Paperwork Verification: the card's own questions on one full screen over the page, then the application resumes.
         if (pendingQuestions) {
             return (
                 <div className="fixed inset-0 z-30 overflow-y-auto bg-white pt-safe-top pb-safe-bottom">

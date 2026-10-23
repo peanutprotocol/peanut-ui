@@ -345,7 +345,7 @@ describe('useMultiPhaseKycFlow — a returning user opens the status from the id
         expect(captured(ANALYTICS_EVENTS.KYC_APPROVED)).toHaveLength(0)
     })
 
-    it('Verify again picks the new ID on the verify-once ID screen, not through the legacy restart', async () => {
+    it('Verify again picks the new ID on the Smart Paperwork Verification ID screen, not through the legacy restart', async () => {
         mockUser = verifiedUser(parked)
         mockCapabilities = parked
         jest.mocked(findKycReplacementPlan).mockResolvedValueOnce(plan)
