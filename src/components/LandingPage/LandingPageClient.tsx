@@ -18,7 +18,7 @@ import { AppModalProvider } from '@/components/Migration/AppModalProvider'
 import { LandingDownloadCta } from './LandingDownloadCta'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import type { LandingContentHrefs } from './landingContentHrefs'
 import type { MarqueeChip } from '@/lib/landingContent'
 
@@ -63,6 +63,7 @@ export function LandingPageClient({
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
     const migrationOn = useMigrationFlag()
+    const locale = useLocale()
     // Card features under the homepage card offer.
     const tDoorMarquee = useTranslations('shhhhh.marquee')
     // The card offer and its feature strip share one PostHog flag. Read after
@@ -112,7 +113,7 @@ export function LandingPageClient({
     )
 
     return (
-        <AppModalProvider>
+        <AppModalProvider marketingPage="home" marketingLocale={locale}>
             <Hero
                 primaryCta={primaryCta}
                 buttonVisible={!isFooterVisible}

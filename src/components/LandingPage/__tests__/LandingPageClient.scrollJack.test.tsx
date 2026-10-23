@@ -20,6 +20,7 @@ jest.mock('@/context/footerVisibility', () => ({
 }))
 
 jest.mock('next-intl', () => ({
+    useLocale: () => 'en',
     useTranslations: (namespace: string) => (key: string) => `${namespace}.${key}`,
 }))
 

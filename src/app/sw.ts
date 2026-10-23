@@ -27,6 +27,16 @@ declare const self: ServiceWorkerGlobalScope
 // first so it wins ahead of any defaultCache JS-asset rule.
 const runtimeCaching: RuntimeCaching[] = [
     {
+        matcher: ({ url }) =>
+            url.pathname === '/q' || url.pathname.startsWith('/q/') || url.pathname === '/api/marketing-qr/open',
+        handler: new NetworkOnly(),
+    },
+    {
+        matcher: ({ url }) => url.pathname === '/api/marketing-qr/open',
+        method: 'POST',
+        handler: new NetworkOnly(),
+    },
+    {
         // Covers the protected document/RSC path on peanut.me and the
         // /invites/graph API path on every origin, regardless of query.
         matcher: ({ url }) => isSensitivePaymentNetworkUrl(url),

@@ -58,7 +58,7 @@ export function NoFees({
      */
     const handleCtaAction = async (sourceCurrency: string, destinationCurrency: string) => {
         // During migration, this CTA downloads the app without a preset send destination.
-        if (interceptAppCta(MIGRATION_SURFACES.LANDING_RATES)) return
+        if (interceptAppCta(MIGRATION_SURFACES.LANDING_RATES, 'rates')) return
 
         const signedIn = typeof document !== 'undefined' && /(^|;\s*)jwt-token=/.test(document.cookie)
         if (!signedIn) {

@@ -81,6 +81,7 @@ export async function UsEuAccountsLanding() {
                 art={<UsEuAccountPair />}
                 cta={
                     <StarLpCta
+                        qrPlacement="hero"
                         href={STAR_LP_HREF.accountsGuest}
                         signedInHref={STAR_LP_HREF.accountsSignedIn}
                         ground="pink"
@@ -113,6 +114,7 @@ export async function UsEuAccountsLanding() {
                     <div className="flex flex-col items-start gap-8 md:order-last">
                         <SectionTitle>Paid by someone on Peanut? Send a link.</SectionTitle>
                         <StarLpCta
+                            qrPlacement="request-fold"
                             href={US_EU_REQUEST_HREF.guest}
                             signedInHref={US_EU_REQUEST_HREF.signedIn}
                             ground="sky"
@@ -154,6 +156,7 @@ export async function UsEuAccountsLanding() {
                             </Wiggle>
                         </PopIn>
                         <StarLpCta
+                            qrPlacement="close"
                             href={STAR_LP_HREF.accountsGuest}
                             signedInHref={STAR_LP_HREF.accountsSignedIn}
                             ground="pink"
