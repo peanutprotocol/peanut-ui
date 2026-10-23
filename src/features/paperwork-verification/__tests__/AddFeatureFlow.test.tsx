@@ -354,7 +354,7 @@ describe('AddFeatureFlow', () => {
         mockQuestions.mockResolvedValue({ ...cardQuestions(), steps: [] })
         const onExit = jest.fn()
         renderWithIntl(<AddFeatureFlow feature="bank" onExit={onExit} />)
-        expect(await screen.findByText('You’re all set')).toBeInTheDocument()
+        expect(await screen.findByText("We're setting things up")).toBeInTheDocument()
         expect(screen.getByText(/setting up your bank account/)).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-feature-done'))
         expect(onExit).toHaveBeenCalled()

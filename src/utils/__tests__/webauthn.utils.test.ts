@@ -3,6 +3,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
 import posthog from 'posthog-js'
 import {
     isPasskeyBusyError,
+    isPasskeyCleanupPendingError,
     capturePasskeySignFailure,
     classifyPasskeyError,
     getPasskeyErrorSetupKey,
@@ -300,10 +301,10 @@ describe('normalizeNativePasskeyError', () => {
         expect(classifyPasskeyError(err).code).toBe('PASSKEY_UNSUPPORTED')
     })
 
-    test('treats the Android no-credential rejection as no passkey on this device, not a failed verification', () => {
+    test('distinguishes a credential inaccessible to this app from cancellation', () => {
         const err = normalizeNativePasskeyError(capacitorRejection('No matching passkey was found.', 'NotFoundError'))
         expect((err as Error).name).toBe('NotFoundError')
-        expect(classifyPasskeyError(err).code).toBe('LOGIN_CANCELED')
+        expect(classifyPasskeyError(err).code).toBe('PASSKEY_NOT_FOUND')
     })
 
     test('leaves an unattributable native failure alone rather than guessing', () => {
@@ -339,5 +340,32 @@ describe('isPasskeyBusyError', () => {
     it('does not match other passkey failures', () => {
         expect(isPasskeyBusyError(new Error('The operation either timed out or was not allowed'))).toBe(false)
         expect(isPasskeyBusyError('already in progress')).toBe(false)
+    })
+})
+
+describe('isPasskeyCleanupPendingError', () => {
+    const cleanup = Object.assign(new Error('Passkey cleanup is unconfirmed; restart the app'), {
+        name: 'PasskeyCleanupPendingError',
+    })
+
+    it('matches the controller and scope errors by name, wrapped or not', () => {
+        const scope = Object.assign(new Error('A previous passkey flow is still pending'), {
+            name: 'PasskeyCleanupPendingError',
+        })
+        expect(isPasskeyCleanupPendingError(cleanup)).toBe(true)
+        expect(isPasskeyCleanupPendingError(scope)).toBe(true)
+        expect(isPasskeyCleanupPendingError(new Error('sign failed', { cause: cleanup }))).toBe(true)
+    })
+
+    it('matches the controller message when a wrapper drops the name', () => {
+        expect(isPasskeyCleanupPendingError(new Error('Passkey cleanup is unconfirmed; restart the app'))).toBe(true)
+    })
+
+    it('is distinct from a busy prompt the user can close and retry', () => {
+        const conflict = Object.assign(new Error('A previous passkey flow is still pending'), {
+            name: 'CeremonyConflictError',
+        })
+        expect(isPasskeyCleanupPendingError(conflict)).toBe(false)
+        expect(isPasskeyBusyError(cleanup)).toBe(false)
     })
 })

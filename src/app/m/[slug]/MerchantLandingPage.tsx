@@ -14,7 +14,7 @@ import type { CardMarkup } from '@/utils/fx.utils'
 import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
 import { Star } from '@/assets/illustrations'
 import { UTM_MEDIUMS, UTM_SOURCES, withUtm } from '@/utils/utm.utils'
-import type { Merchant, MenuItem } from './merchants'
+import type { Merchant, MenuItem } from '@/data/merchants'
 import { CTA_MOTION } from '@/components/Marketing/constants'
 
 /** Build a `/invite` URL with the merchant's vanity code + the UTM

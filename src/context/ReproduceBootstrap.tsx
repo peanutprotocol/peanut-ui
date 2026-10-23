@@ -19,6 +19,7 @@
  */
 
 import { useEffect } from 'react'
+import { HARNESS_STORAGE_KEYS } from '@/constants/harness.consts'
 
 const COOKIE_NAME = 'jwt-token'
 const SESSION_STORAGE_KEY = '__reproduce_applied'
@@ -195,7 +196,7 @@ export function ReproduceBootstrap() {
                 // clears this key. See context/HarnessReplay.tsx.
                 if (Array.isArray(manifest.stepActions) && manifest.stepActions.length > 0) {
                     try {
-                        sessionStorage.setItem('__harness_replay_actions', JSON.stringify(manifest.stepActions))
+                        sessionStorage.setItem(HARNESS_STORAGE_KEYS.replayActions, JSON.stringify(manifest.stepActions))
                     } catch {}
                 }
                 // Step 3: set the jwt-token cookie so the UI treats the user as

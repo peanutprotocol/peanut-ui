@@ -86,26 +86,30 @@ export function deriveCapabilityPhaseSignals(
 }
 
 /**
- * confirms bridge ToS acceptance (with one retry) then polls fetchUser
- * until bridge rails leave the TOS-required state. max 3 attempts × 2s.
+ * Settles a Bridge ToS page that closed by itself: asks Bridge whether the
+ * terms are signed, and when they are, records the acceptance and polls
+ * fetchUser (max 3 × 2s) until the bank rails leave the ToS-required state.
  *
- * Returns Bridge's own verdict on whether the terms are signed. Callers that
- * never saw an acceptance signal (the android system-browser detour, where
- * the only event is "the user came back") need it to tell a real acceptance
- * from an abandoned one.
+ * Returns whether the caller should treat the terms as accepted. What a close
+ * proves depends on its source:
+ *   - `tos_accepted`: Bridge's page reported the signature, so this is always
+ *     true. A "no" from the confirm endpoint is webhook lag, and the rails are
+ *     still polled.
+ *   - `returned` (and `completed`): the user left the page without it
+ *     reporting a signature — the android system-browser tab closed, or the
+ *     page moved its frame away (TASK-23881). Only Bridge's answer counts,
+ *     with one retry for that same lag. A "no" returns false before arming
+ *     the submission window, because nothing was submitted.
  *
- * `observedAcceptance` says whether the caller SAW Bridge report a signature
- * (the iframe's `tos_accepted` postMessage). When it did, a "no" from the
- * confirm endpoint is treated as webhook lag: we still arm the submission
- * window and poll the rails, exactly as the web flow always has. Without it
- * (android's `returned`), a "no" after the retry means the user backed out —
- * marking a submission or polling for rails that will never change would arm
- * the 30s grace window for nothing and stall the error by ~6s, so we stop.
+ * A manual exit never comes here: the confirm endpoint reads Bridge's
+ * customer-level flag, which a user who signed the base terms already has, so
+ * it cannot tell whether they signed the terms this page asked for.
  */
-export async function confirmBridgeTosAndAwaitRails(
+export async function resolveBridgeTosClose(
     fetchUser: () => Promise<IUserProfile | null>,
-    { observedAcceptance = true }: { observedAcceptance?: boolean } = {}
+    source: Exclude<IframeCloseSource, 'manual'>
 ): Promise<boolean> {
+    const observedAcceptance = source === 'tos_accepted'
     let accepted = !!(await confirmBridgeTos()).data?.accepted
     if (!accepted) {
         await new Promise((resolve) => setTimeout(resolve, 2000))
@@ -113,6 +117,8 @@ export async function confirmBridgeTosAndAwaitRails(
     }
 
     if (!accepted && !observedAcceptance) return false
+
+    posthog.capture(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED, { source })
 
     // Arm the post-submission window only after the ToS POST has actually
     // completed (CodeRabbit feedback on #2131). Doing it before
@@ -132,7 +138,7 @@ export async function confirmBridgeTosAndAwaitRails(
         if (i < 2) await new Promise((resolve) => setTimeout(resolve, 2000))
     }
 
-    return accepted
+    return true
 }
 
 interface UseMultiPhaseKycFlowOptions {
@@ -714,6 +720,7 @@ export const useMultiPhaseKycFlow = ({
 
             setTosLink(response.data.tosLink)
             setShowTosIframe(true)
+            posthog.capture(ANALYTICS_EVENTS.KYC_TOS_OPENED)
         } catch {
             setTosError('Something went wrong. You can accept terms later from your activity feed.')
         } finally {
@@ -723,33 +730,22 @@ export const useMultiPhaseKycFlow = ({
 
     // handle ToS iframe close
     const handleTosIframeClose = useCallback(
-        async (source?: IframeCloseSource) => {
+        async (source: IframeCloseSource = 'manual') => {
             setShowTosIframe(false)
 
             // The setup status asked for the terms: back to it, which reads the rails.
             if (setupFlowRef.current) {
                 setModalPhase('verifying')
                 if (source !== 'tos_accepted' && source !== 'returned') return
-                if (source === 'tos_accepted') {
-                    posthog.capture(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED)
-                    setTermsAccepted(true)
-                }
+                if (source === 'tos_accepted') setTermsAccepted(true)
                 setIsLoadingTos(true)
                 try {
-                    const accepted = await confirmBridgeTosAndAwaitRails(fetchUser, {
-                        observedAcceptance: source === 'tos_accepted',
-                    })
-                    if (source === 'returned') {
-                        if (!accepted) {
-                            setModalPhase('bridge_tos')
-                            setTosError(
-                                "The terms weren't accepted. You can accept them later from your activity feed."
-                            )
-                            return
-                        }
-                        posthog.capture(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED)
-                        setTermsAccepted(true)
+                    if (!(await resolveBridgeTosClose(fetchUser, source))) {
+                        setModalPhase('bridge_tos')
+                        setTosError("The terms weren't accepted. You can accept them later from your activity feed.")
+                        return
                     }
+                    setTermsAccepted(true)
                 } catch {
                     // the rails still say where the terms stand
                 } finally {
@@ -758,51 +754,40 @@ export const useMultiPhaseKycFlow = ({
                 return
             }
 
-            if (source === 'tos_accepted' || source === 'returned') {
-                if (source === 'tos_accepted') posthog.capture(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED)
-                // show loading state while confirming + polling
-                setModalPhase('preparing')
-                try {
-                    const accepted = await confirmBridgeTosAndAwaitRails(fetchUser, {
-                        observedAcceptance: source === 'tos_accepted',
-                    })
-                    if (source === 'returned') {
-                        // `returned` carries no acceptance claim, so neither the
-                        // analytics event nor the flow's completion can be taken
-                        // on faith — Bridge's answer decides both. The recovery
-                        // copy stays dismissal-shaped because this modal's error
-                        // CTA closes the flow; the home ToS card owns the retry.
-                        if (!accepted) {
-                            setModalPhase('bridge_tos')
-                            setTosError(
-                                "The terms weren't accepted. You can accept them later from your activity feed."
-                            )
-                            return
-                        }
-                        posthog.capture(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED)
-                    }
-                    const refreshed = await fetchUser()
-                    if (
-                        deriveCapabilityPhaseSignals(
-                            refreshed?.capabilities,
-                            lastIntentRef.current ?? regionIntent,
-                            requestedCountry
-                        ).allSettled
-                    )
-                        completeFlow()
-                    else {
-                        setModalPhase('preparing')
-                        setForceShowModal(true)
-                    }
-                } catch {
-                    // Don't leave the modal frozen on 'preparing' with no feedback
-                    // if the confirm POST / rails poll throws — surface the
-                    // timed-out recovery state immediately instead of a ~30s dead
-                    // modal. (BridgeTosStep wraps the same call in try/catch.)
-                    setPreparingTimedOut(true)
+            // a manual exit stays on the bridge_tos phase (user can try again)
+            if (source === 'manual') return
+
+            // show loading state while confirming + polling
+            setModalPhase('preparing')
+            try {
+                if (!(await resolveBridgeTosClose(fetchUser, source))) {
+                    // The page closed by itself without a signature. The copy
+                    // stays dismissal-shaped because this modal's error CTA
+                    // closes the flow; the home ToS card owns the retry.
+                    setModalPhase('bridge_tos')
+                    setTosError("The terms weren't accepted. You can accept them later from your activity feed.")
+                    return
                 }
+                const refreshed = await fetchUser()
+                if (
+                    deriveCapabilityPhaseSignals(
+                        refreshed?.capabilities,
+                        lastIntentRef.current ?? regionIntent,
+                        requestedCountry
+                    ).allSettled
+                )
+                    completeFlow()
+                else {
+                    setModalPhase('preparing')
+                    setForceShowModal(true)
+                }
+            } catch {
+                // Don't leave the modal frozen on 'preparing' with no feedback
+                // if the confirm POST / rails poll throws — surface the
+                // timed-out recovery state immediately instead of a ~30s dead
+                // modal. (BridgeTosStep wraps the same call in try/catch.)
+                setPreparingTimedOut(true)
             }
-            // if manual close, stay on bridge_tos phase (user can try again)
         },
         [fetchUser, completeFlow, regionIntent, requestedCountry]
     )

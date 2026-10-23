@@ -14,7 +14,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
-import { parseUnits } from 'viem'
+import { decodeFunctionData, erc20Abi, parseUnits } from 'viem'
 import posthog from 'posthog-js'
 import { rainCentsToUsdcUnits, usdcUnitsToRainCents } from '@/utils/balance.utils'
 import { MANTECA_QR_DEPOSIT_ADDRESS_NON_AR } from '@/constants/manteca.consts'
@@ -780,6 +780,71 @@ describe.each(UNFORCED_KINDS)('useSignSpendBundle — %s quote 15.24486273 (1525
         expect(artifact).toMatchObject({ strategy: 'smart-only' })
         expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
         expect(mockSignTypedData).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * TASK-23997: a Manteca bank withdrawal of a typed local amount signs the
+ * lock's exact 6-decimal USDC. Card collateral moves whole cents, rounded up,
+ * so a direct withdrawal funds up to 1 cent more than the order; the remainder
+ * stays in Peanut's Manteca wallet (decision recorded on the task). A mixed
+ * spend pulls the rounded-up shortfall into the wallet and transfers the exact
+ * amount, so its remainder stays with the user. Real routing; only the live
+ * smart balance read and the Rain API are stubbed.
+ */
+describe('useSignSpendBundle — exact 6-decimal bank withdrawal amount (TASK-23997)', () => {
+    const LOCKED = parseUnits('13.336891', 6)
+
+    function signLocked(rainCents: number, smartUnits: bigint, prepAmountCents: number) {
+        mockPrepareWithdrawal.mockResolvedValue({
+            ...PREP,
+            amount: rainCentsToUsdcUnits(prepAmountCents).toString(),
+        })
+        mockOverview = {
+            status: { coordinatorAddress: PREP.coordinatorAddress },
+            cards: [{ id: 'card-1', status: 'ACTIVE', hasWithdrawApproval: true, hasStoredWithdrawApproval: true }],
+        }
+        mockSignTypedData.mockResolvedValue(`0x${'ab'.repeat(65)}`)
+        mockReadContract.mockResolvedValue(smartUnits)
+        mockResolveSpendStrategy.mockImplementation(jest.requireActual('../spendPreflight').resolveSpendStrategy)
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        return act(async () =>
+            result.current.signSpend({
+                requiredUsdcAmount: LOCKED,
+                recipient: RECIPIENT,
+                rainSpendingPower: rainCentsToUsdcUnits(rainCents),
+                kind: 'FIAT_OFFRAMP',
+            })
+        )
+    }
+
+    it('card only: a direct withdrawal of the rounded-up cents, at most 1 cent over the order', async () => {
+        const artifact = await signLocked(1334, 0n, 1334)
+
+        expect(mockPrepareWithdrawal).toHaveBeenCalledWith(
+            { amount: '1334', recipientAddress: RECIPIENT, directTransfer: true, kind: 'FIAT_OFFRAMP' },
+            { suppressCooldownEvent: false }
+        )
+        const funded = BigInt((artifact as { rainWithdrawal: { amount: string } }).rainWithdrawal.amount)
+        expect(funded).toBe(13_340_000n)
+        expect(funded - LOCKED).toBe(3_109n)
+        expect(mockSignCallsUserOp).not.toHaveBeenCalled()
+    })
+
+    it('mixed: pulls the rounded-up shortfall and transfers exactly the locked amount', async () => {
+        await signLocked(1300, 1_000_000n, 1234)
+
+        // 13.336891 - 1.000000 = 12.336891 USDC short, 1234 cents rounded up
+        expect(mockPrepareWithdrawal).toHaveBeenCalledWith(
+            { amount: '1234', totalAmountCents: '1334', recipientAddress: ACCOUNT, directTransfer: false },
+            { suppressCooldownEvent: false }
+        )
+        const calls = (mockSignCallsUserOp.mock.calls[0] as unknown as [Array<{ data: `0x${string}` }>])[0]
+        const transfer = decodeFunctionData({ abi: erc20Abi, data: calls[1].data })
+        expect(transfer.functionName).toBe('transfer')
+        const [to, amount] = transfer.args as readonly [string, bigint]
+        expect(to.toLowerCase()).toBe(RECIPIENT)
+        expect(amount).toBe(LOCKED)
     })
 })
 

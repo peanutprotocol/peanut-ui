@@ -1,7 +1,3 @@
-import CARD_GRADIENT_4 from './Cart Gradient 4.svg'
-import CARD_GRADIENT_5 from './Cart Gradient 5.png'
-import CARD_GRADIENT_9 from './Cart Gradient 9.svg'
-import CARD_GRADIENT_10 from './Cart Gradient 10.svg'
 import VISA_BRAND_MARK from './visa-brand-mark.png'
 import PEANUT_CARD_HAND from './peanut-card-hand.svg'
 
@@ -15,10 +11,6 @@ import GOOGLE_STEP_3 from './wallet-steps/google-step-3.png'
 import GOOGLE_STEP_4 from './wallet-steps/google-step-4.png'
 
 export {
-    CARD_GRADIENT_4,
-    CARD_GRADIENT_5,
-    CARD_GRADIENT_9,
-    CARD_GRADIENT_10,
     VISA_BRAND_MARK,
     PEANUT_CARD_HAND,
 }

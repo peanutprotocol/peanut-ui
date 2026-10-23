@@ -1006,6 +1006,74 @@ jobs:
                   path: e2e/__results__/
                   retention-days: 7
 
+    # A production-domain build catches inherited noindex and canonical drift.
+    # Preview builds intentionally block crawlers, so they cannot test this.
+    seo-contract:
+        needs: backdoor-scan
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        permissions:
+            contents: read
+        env:
+            NEXT_PUBLIC_BASE_URL: https://peanut.me
+            NEXT_PUBLIC_VERCEL_ENV: production
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+            - uses: pnpm/action-setup@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+            - run: pnpm install --frozen-lockfile
+            - name: Get Playwright version
+              id: pw
+              run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+            - name: Cache Playwright browsers
+              id: pw-cache
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+            - name: Install Chromium
+              if: steps.pw-cache.outputs.cache-hit != 'true'
+              timeout-minutes: 6
+              run: pnpm exec playwright install chromium
+            # Use the same bounded apt retry as the other browser contracts.
+            - name: Install Playwright system deps
+              timeout-minutes: 9
+              run: |
+                  for attempt in 1 2 3; do
+                      if timeout --kill-after=15s 150 pnpm exec playwright install-deps chromium; then
+                          exit 0
+                      fi
+                      echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
+                      sudo rm -rf /var/lib/apt/lists/partial/* || true
+                      if [ "${attempt}" = 1 ]; then
+                          sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' \
+                              /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
+                      fi
+                      sleep 5
+                  done
+                  echo "::error::playwright install-deps failed after 3 attempts"
+                  exit 1
+            - name: Build with production indexing policy
+              env:
+                  NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+              run: pnpm build
+            - name: Check every rendered sitemap URL
+              run: pnpm test:seo:rendered
+            - name: Upload failures
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: seo-contract-results-${{ github.run_number }}
+                  path: e2e/__seo_results__/
+                  retention-days: 7
+
     # Coverage + test-summary aggregator. Mirrors the pattern from
     # peanut-api-ts/.github/workflows/tests.yaml `report` job.
     report:
@@ -1333,6 +1401,7 @@ jobs:
                 native-export,
                 unit,
                 press-contract,
+                seo-contract,
                 report,
                 human-authors,
             ]
@@ -1351,6 +1420,7 @@ jobs:
                       echo "  native-export: ${{ needs['native-export'].result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
                       echo "  press-contract: ${{ needs['press-contract'].result }}"
+                      echo "  seo-contract: ${{ needs['seo-contract'].result }}"
                       echo "  report:    ${{ needs.report.result }}"
                       echo "  human-authors: ${{ needs['human-authors'].result }}"
                       exit 1

@@ -53,7 +53,8 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
     const router = useRouter()
     const { user } = useAuth()
     const tGlobal = useTranslations('global')
-    const { setSelectedBankAccount, setSelectedMethod, setRecipient, setIsValidRecipient } = useWithdrawFlow()
+    const { setSelectedBankAccount, setSelectedMethod, setRecipient, setIsValidRecipient, setNetworkUnconfirmed } =
+        useWithdrawFlow()
     // crypto address book — its rows render beside the saved bank accounts
     const {
         savedAddresses,
@@ -135,6 +136,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
         setSelectedTokenAddress(token?.address ?? '')
         setRecipient({ name: undefined, address: saved.address })
         setIsValidRecipient(true)
+        setNetworkUnconfirmed(false)
         openCryptoDestination()
     }
 
@@ -212,6 +214,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
         clearScannedDestination()
         setRecipient({ name: undefined, address: '' })
         setIsValidRecipient(false)
+        setNetworkUnconfirmed(false)
         openCryptoDestination()
     }
 

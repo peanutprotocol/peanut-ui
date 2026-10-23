@@ -1,5 +1,8 @@
+import fs from 'fs'
 import {
-    contentGeneratedAt,
+    contentArticleMetadata,
+    contentModifiedAt,
+    contentPublishedAt,
     helpArticleTitle,
     listAllContent,
     listContentSlugs,
@@ -72,6 +75,26 @@ describe('listAllContent', () => {
 })
 
 describe('resolveContentHref', () => {
+    beforeEach(() => {
+        const exists = fs.existsSync
+        const read = fs.readFileSync
+        const fixture = (file: unknown) =>
+            typeof file === 'string' &&
+            [
+                '/countries/poland/es-419.md',
+                '/send-to/australia/es-419.md',
+                '/send-to/argentina/from/colombia/es-419.md',
+                '/receive-from/portugal/es-419.md',
+                '/use-cases/families/es-419.md',
+            ].some((suffix) => file.endsWith(suffix))
+        jest.spyOn(fs, 'existsSync').mockImplementation((file) => fixture(file) || exists(file))
+        jest.spyOn(fs, 'readFileSync').mockImplementation(((file: Parameters<typeof read>[0], options: unknown) =>
+            fixture(file)
+                ? '---\ntitle: Resolver fixture\npublished: true\n---\nExample'
+                : read(file, options as never)) as typeof read)
+    })
+    afterEach(() => jest.restoreAllMocks())
+
     it('keeps locale-neutral app routes bare — /{locale}/card would 404 in the country catch-all', () => {
         expect(resolveContentHref('/card', 'es-ar')).toBe('/card')
         expect(resolveContentHref('/shhhhh?campaign=x', 'pt-br')).toBe('/shhhhh?campaign=x')
@@ -84,7 +107,7 @@ describe('resolveContentHref', () => {
         ['/en/poland', '/es-419/poland'],
         ['/en/send-money-to/australia', '/es-419/send-money-to/australia'],
         ['/en/send-money-from/colombia/to/argentina', '/es-419/send-money-from/colombia/to/argentina'],
-        ['/en/receive-money-from/portugal', '/es-419/receive-money-from/portugal'],
+        ['/en/receive-money-from/portugal', '/es-419/deposit/from-eur-account'],
         ['/en/compare/peanut-vs-wise', '/es-ar/compare/peanut-vs-wise'],
         ['/en/deposit/via-spei', '/es-419/deposit/via-spei'],
         ['/en/pay-with/mercadopago', '/es-ar/pay-with/mercadopago'],
@@ -106,6 +129,16 @@ describe('resolveContentHref', () => {
         expect(resolveContentHref('/en/deposit/via-spei?from=footer#limits', 'es-ar')).toBe(
             '/es-419/deposit/via-spei?from=footer#limits'
         )
+    })
+
+    it.each([
+        ['/en/deposit/from-binance?from=guide#fees', 'en', '/en/help/deposit-crypto?from=guide#fees'],
+        ['/en/deposit/from-binance?from=guide#fees', 'es-ar', '/es-419/help/deposit-crypto?from=guide#fees'],
+        ['/en/receive-money-from/france#details', 'pt-br', '/pt-br/deposit/from-eur-account#details'],
+        ['/en/withdraw/solana', 'es-ar', '/es-419/help/withdraw-crypto'],
+    ] as const)('links %s directly to its localized replacement in %s', (href, locale, expected) => {
+        expect(resolveContentHref(href, locale)).toBe(expected)
+        expect(resolveContentHref(`https://peanut.me${href}`, locale)).toBe(`https://peanut.me${expected}`)
     })
 
     it('localizes en-authored absolute URLs without a content owner, like their relative form', () => {
@@ -161,32 +194,91 @@ describe('resolveContentHref', () => {
     })
 })
 
-describe('contentGeneratedAt', () => {
-    // gray-matter runs js-yaml, which turns unquoted YAML timestamps into Date objects even
-    // though ContentFrontmatter types generated_at as a string — both shapes must work.
-    it('accepts a Date (the usual runtime shape from unquoted YAML)', () => {
-        const at = contentGeneratedAt({ frontmatter: { generated_at: new Date('2026-03-27') } as never, body: '' })
-        expect(at?.toISOString().split('T')[0]).toBe('2026-03-27')
+describe('source content dates', () => {
+    const content = (dates: Partial<ContentFrontmatter>) => ({
+        frontmatter: { title: 'Title', description: 'Description', ...dates },
+        body: '',
     })
 
-    it('accepts a quoted string date', () => {
-        const at = contentGeneratedAt({ frontmatter: { generated_at: '2026-03-20T17:10:00Z' } as never, body: '' })
-        expect(at?.toISOString()).toBe('2026-03-20T17:10:00.000Z')
+    it('keeps authored publication and modification dates separate from regeneration', () => {
+        const source = content({
+            date: new Date('2026-03-20'),
+            last_updated: '2026-04-15',
+            generated_at: '2026-10-22',
+        })
+        expect(contentPublishedAt(source)?.toISOString()).toBe('2026-03-20T00:00:00.000Z')
+        expect(contentModifiedAt(source)?.toISOString()).toBe('2026-04-15T00:00:00.000Z')
     })
 
-    it('returns undefined for null content, a missing field, or an unparseable value', () => {
-        expect(contentGeneratedAt(null)).toBeUndefined()
-        expect(contentGeneratedAt({ frontmatter: {} as never, body: '' })).toBeUndefined()
-        expect(contentGeneratedAt({ frontmatter: { generated_at: 'not-a-date' } as never, body: '' })).toBeUndefined()
-        expect(contentGeneratedAt({ frontmatter: { generated_at: '' } as never, body: '' })).toBeUndefined()
+    it('uses an explicit publication date before the blog date', () => {
+        const source = content({ published_at: '2026-03-21', date: '2026-03-20' })
+        expect(contentPublishedAt(source)?.toISOString()).toBe('2026-03-21T00:00:00.000Z')
+        expect(contentModifiedAt(source)).toEqual(contentPublishedAt(source))
     })
 
-    it('reads a real date off a real content file', () => {
-        const at = contentGeneratedAt(readPageContent<ContentFrontmatter>('help', 'delete-account', 'en'))
-        expect(at).toBeInstanceOf(Date)
-        // A real authored date, not the build clock.
-        expect(at!.getTime()).toBeLessThan(Date.now())
-        expect(at!.getUTCFullYear()).toBeGreaterThanOrEqual(2026)
+    it('never treats last_updated as a publication date', () => {
+        const source = content({ last_updated: new Date('2026-10-14') })
+        expect(contentPublishedAt(source)).toBeUndefined()
+        expect(contentModifiedAt(source)?.toISOString()).toBe('2026-10-14T00:00:00.000Z')
+    })
+
+    it.each([
+        null,
+        content({}),
+        content({ generated_at: '2026-10-22' }),
+        content({ date: 'invalid', last_updated: new Date('invalid'), published_at: '' }),
+    ])('omits dates when the source has no valid publication or modification date', (source) => {
+        expect(contentPublishedAt(source)).toBeUndefined()
+        expect(contentModifiedAt(source)).toBeUndefined()
+    })
+
+    it('reads the authored date from an actual blog and omits a generated-only help date', () => {
+        const blog = readPageContent<ContentFrontmatter>('blog', 'stablecoin-balance-visa-merchants', 'en')
+        expect(contentPublishedAt(blog)?.toISOString()).toBe('2026-05-21T00:00:00.000Z')
+        expect(contentModifiedAt(readPageContent<ContentFrontmatter>('help', 'delete-account', 'en'))).toBeUndefined()
+    })
+
+    it.each([undefined, ['BreadcrumbList', 'FAQPage'], ['WebPage'], ['CollectionPage']])(
+        'does not turn a non-article schema declaration into Article: %s',
+        (schema_types) => {
+            expect(
+                contentArticleMetadata(content({ schema_types, generated_at: '2026-10-22' }), '/en/help/test')
+            ).toBeUndefined()
+        }
+    )
+
+    it('preserves a declared Article without inventing dates', () => {
+        expect(
+            contentArticleMetadata(
+                content({ schema_types: ['Article'], generated_at: '2026-10-22' }),
+                '/en/stories/test'
+            )
+        ).toEqual({
+            title: 'Title',
+            description: 'Description',
+            url: '/en/stories/test',
+            schemaType: 'Article',
+            datePublished: undefined,
+            dateModified: undefined,
+        })
+    })
+
+    it('uses BlogPosting when declared and supplies separate source dates', () => {
+        expect(
+            contentArticleMetadata(
+                content({
+                    schema_types: ['Article', 'BlogPosting'],
+                    date: '2026-03-20',
+                    last_updated: '2026-04-15',
+                    generated_at: '2026-10-22',
+                }),
+                '/en/blog/test'
+            )
+        ).toMatchObject({
+            schemaType: 'BlogPosting',
+            datePublished: '2026-03-20T00:00:00.000Z',
+            dateModified: '2026-04-15T00:00:00.000Z',
+        })
     })
 })
 

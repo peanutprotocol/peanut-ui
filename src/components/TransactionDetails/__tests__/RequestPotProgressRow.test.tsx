@@ -23,4 +23,12 @@ describe('RequestPotProgressRow', () => {
         expect(screen.getByText('$4.00 contributed')).toBeInTheDocument()
         expect(screen.getByText('$6.00 remaining')).toBeInTheDocument()
     })
+
+    // TASK-23856: closed with $73.65 of $99.16 — nobody can pay the rest
+    it('calls the gap of a request closed short "not paid", not "remaining"', () => {
+        renderWithIntl(<RequestPotProgressRow transaction={request('closed', 99.16, 73.65)} />)
+        expect(screen.getByText('$73.65 contributed')).toBeInTheDocument()
+        expect(screen.getByText('$25.51 not paid')).toBeInTheDocument()
+        expect(screen.queryByText(/remaining/)).toBeNull()
+    })
 })

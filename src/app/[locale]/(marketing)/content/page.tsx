@@ -10,6 +10,9 @@ import { ContentPage } from '@/components/Marketing/ContentPage'
 import { Hero } from '@/components/Marketing/mdx/Hero'
 import ContentLanding, { ContentLinkList, type ContentLandingStrings } from '@/components/Marketing/ContentLanding'
 import { HUB_WIDTH } from '@/components/Marketing/constants'
+import { ContentGuideList } from '@/components/Marketing/ContentGuideList'
+import { getContentTopicCopy } from '@/lib/content-topic-types'
+import { listContentTopics } from '@/lib/content-topics'
 
 interface PageProps {
     params: Promise<{ locale: string }>
@@ -97,6 +100,15 @@ export default async function ContentHubPage({ params }: PageProps) {
             ]}
         >
             <Hero title={i18n.contentHubTitle} subtitle={i18n.contentHubSubtitle} locale={typedLocale} />
+            <ContentGuideList
+                locale={locale}
+                heading={i18n.contentBrowseTopics}
+                items={listContentTopics(typedLocale).map((topic) => ({
+                    ...getContentTopicCopy(i18n, topic),
+                    href: `/${locale}/content/${topic}`,
+                    lang: locale,
+                }))}
+            />
             <Suspense fallback={<LandingFallback items={items} locale={typedLocale} strings={strings} />}>
                 <ContentLanding items={items} locale={typedLocale} strings={strings} />
             </Suspense>

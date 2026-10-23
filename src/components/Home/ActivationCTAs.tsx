@@ -1,5 +1,6 @@
 'use client'
 
+import { isIdRetake, kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -52,6 +53,7 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
     const t = useTranslations('home.activation')
     const tGettingStarted = useTranslations('home.gettingStarted')
     const tIdentity = useTranslations('identity')
+    const tKyc = useTranslations('kyc')
     const tRegion = useTranslations('kyc.regionRestricted')
     const tProviderRejection = useTranslations('profile.regions.providerRejection')
     const router = useRouter()
@@ -66,6 +68,7 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
         hasFixableRejection,
         fixableProvider,
         fixableActionKey,
+        fixableAction,
         hasBlockedRejection,
         primaryRejectionMessage,
         primaryRejectionCode,
@@ -157,15 +160,6 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
                     href: '', // handled in onClick
                 }
             }
-            if (hasFixableRejection) {
-                return {
-                    bubble: { icon: 'globe-lock', color: 'blue' },
-                    title: t('completeSetup.title'),
-                    description: localizedRejectionMessage || t('completeSetup.description'),
-                    ctaLabel: t('completeSetup.cta'),
-                    href: '/profile/accounts',
-                }
-            }
             // Blocked, but self-fixable by verifying again with a document that
             // carries what the provider needs — a Brazilian whose ID has no CPF is
             // the case this exists for. Offering support here contradicts a restart
@@ -181,6 +175,17 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
                     description: localizedRejectionMessage || tProviderRejection('restartDescription'),
                     ctaLabel: tProviderRejection('restartTitle'),
                     href: '', // handled in onClick
+                }
+            }
+            if (hasFixableRejection) {
+                return {
+                    bubble: { icon: 'globe-lock', color: 'blue' },
+                    title: t('completeSetup.title'),
+                    description: isIdRetake(fixableAction)
+                        ? tKyc('initiate.descriptionRetakeId')
+                        : localizedRejectionMessage || t('completeSetup.description'),
+                    ctaLabel: tKyc(kycActionCtaKey(fixableAction, primaryRejectionCode)),
+                    href: '/profile/accounts',
                 }
             }
             // blocked
@@ -205,6 +210,9 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
         isRegionRestricted,
         tRegion,
         tProviderRejection,
+        tKyc,
+        fixableAction,
+        primaryRejectionCode,
     ])
 
     if (onboarding.step === 'completed' && !step) return null
@@ -263,7 +271,7 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
                             )
                         } else if (isEmailBlocked) {
                             setShowProvideEmail(true)
-                        } else if (hasProviderRejection && isRestartBlocked && !hasFixableRejection) {
+                        } else if (hasProviderRejection && isRestartBlocked) {
                             // Self-fixable by a fresh ID check, so it must not open
                             // support — same rank as the terminal arm below, only a
                             // different destination.

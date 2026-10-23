@@ -112,13 +112,13 @@ describe('added feature outcome acceptance through transport', () => {
         renderWithIntl(<AddFeatureQuestions feature="bank" onBack={jest.fn()} onDone={onDone} />)
         expect(await screen.findByText(/different ID document/i)).toBeInTheDocument()
         expect(onDone).not.toHaveBeenCalled()
-        expect(screen.queryByText('You’re all set')).not.toBeInTheDocument()
+        expect(screen.queryByText("We're setting things up")).not.toBeInTheDocument()
     })
 
     it('a successful HTTP save that requires a supplement opens the owed action without claiming completion', async () => {
         answerSave({ features: { bank: { state: 'action_required', action: 'supplement:bridge' } } })
         renderWithIntl(<AddFeatureFlow feature="bank" onExit={jest.fn()} />)
         await waitFor(() => expect(mockStartAction).toHaveBeenCalledWith('supplement:bridge'))
-        expect(screen.queryByText('You’re all set')).not.toBeInTheDocument()
+        expect(screen.queryByText("We're setting things up")).not.toBeInTheDocument()
     })
 })

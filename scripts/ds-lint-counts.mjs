@@ -35,14 +35,13 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SRC = join(ROOT, 'src')
 const BASELINE_PATH = join(ROOT, 'scripts', 'ds-lint-baseline.json')
 
-// allowlist for every metric: image-generation surfaces render standalone html
+// allowlist for every metric: the OG image surfaces render standalone html
 // with no tailwind, raw values are the tool there, not debt. the /dev/devices
 // harness sizes its panes from measured pixel values and keeps its chrome
 // deliberately colorless, so the app inside the panes is what you judge.
 const GLOBAL_ALLOW = [
     'components/og/',
     'app/api/og/',
-    'ImageGeneration/',
     'dev/_components/',
     'dev/devices/',
     'dev/fixtures/', // fixture tooling incl. the on-camera banner — dev-only, DEV_TOOLS_ENABLED-gated

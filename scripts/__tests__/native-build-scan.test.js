@@ -1,6 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const Module = require('module')
+const ts = require('typescript')
 
 const SCRIPT_PATH = path.join(__dirname, '..', 'native-build.js')
 
@@ -14,7 +15,7 @@ function loadScriptInternals() {
 
     const exposed =
         withoutEntrypoint +
-        '\nmodule.exports = { isHandledByTransform, detectUncoveredServerRoutes, P0_TRANSFORMS, APP_DIR }\n'
+        '\nmodule.exports = { isHandledByTransform, detectUncoveredServerRoutes, P0_TRANSFORMS, APP_DIR, ITEMS_TO_DISABLE }\n'
 
     const mod = new Module(SCRIPT_PATH, null)
     mod.filename = SCRIPT_PATH
@@ -23,11 +24,39 @@ function loadScriptInternals() {
     return mod.exports
 }
 
-const { isHandledByTransform, detectUncoveredServerRoutes, P0_TRANSFORMS, APP_DIR } = loadScriptInternals()
+const { isHandledByTransform, detectUncoveredServerRoutes, P0_TRANSFORMS, APP_DIR, ITEMS_TO_DISABLE } =
+    loadScriptInternals()
 
 const toPosix = (p) => p.split(path.sep).join('/')
 
 describe('native build server-route scan', () => {
+    it('keeps SEO entrypoint imports available after native routes are disabled', () => {
+        const root = path.resolve(APP_DIR, '..', '..')
+        const config = ts.readConfigFile(path.join(root, 'tsconfig.native.json'), ts.sys.readFile)
+        const { options } = ts.parseJsonConfigFileContent(config.config, ts.sys, root)
+        const unavailable = []
+
+        for (const entry of ['scripts/verify-content.ts', 'src/lib/seo/url-inventory.ts']) {
+            const file = path.join(root, entry)
+            const source = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest)
+            for (const statement of source.statements) {
+                if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue
+                const specifier = statement.moduleSpecifier.text
+                if (!specifier.startsWith('.') && !specifier.startsWith('@/')) continue
+                const target = ts.resolveModuleName(specifier, file, options, ts.sys).resolvedModule?.resolvedFileName
+                const disabled =
+                    target &&
+                    ITEMS_TO_DISABLE.some((item) => {
+                        const removed = path.join(APP_DIR, item.path)
+                        return target === removed || (item.type === 'dir' && target.startsWith(removed + path.sep))
+                    })
+                if (!target || disabled) unavailable.push(`${entry}: ${specifier}`)
+            }
+        }
+
+        expect(unavailable).toEqual([])
+    })
+
     it('treats every P0_TRANSFORMS entry as handled', () => {
         for (const transform of P0_TRANSFORMS) {
             expect(isHandledByTransform(transform.path)).toBe(true)

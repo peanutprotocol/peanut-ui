@@ -10,13 +10,14 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type ITokenPriceData } from '@/interfaces/interfaces'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { useRouter } from 'next/navigation'
-import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef } from 'react'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { addressFamilyForChainId } from '@/lib/validation/addressFamily'
 import { printableAddress } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
-import { validateAndResolveRecipient } from '@/lib/validation/recipient'
+import { withdrawChainRecord } from '../chain-record'
+import { useEnsRecipientForChain } from '../useEnsRecipientForChain'
 
 interface InitialWithdrawViewProps {
     onContinue: (data: { token: ITokenPriceData; chain: ChainWithTokens; address: string }) => void
@@ -52,14 +53,12 @@ export default function InitialWithdrawView({
         setInputChanging,
         recipient,
         setRecipient,
+        networkUnconfirmed,
+        setNetworkUnconfirmed,
         error,
         setError,
     } = useWithdrawFlow()
 
-    // A prefilled destination (address book, back navigation) on a network the
-    // selector no longer offers gets moved to a valid one. Never send to the
-    // moved network silently: the user picks the network for that address first.
-    const [networkUnconfirmed, setNetworkUnconfirmed] = useState(false)
     const recipientAddressRef = useRef(recipient.address)
     recipientAddressRef.current = recipient.address
 
@@ -88,60 +87,13 @@ export default function InitialWithdrawView({
         }
     }, [selectedChainID, error.showError, setError])
 
-    // ENS names resolve per destination chain (ENSIP-11) — a validated name
-    // must re-resolve when the user switches chains after typing it, or the
-    // withdraw would go to the previous chain's address. Kept separate from the
-    // error-clearing effect above: its error.showError dep would abort an
-    // in-flight resolution via this cleanup.
-    const prevResolvedChainRef = useRef(selectedChainID)
-    useEffect(() => {
-        if (prevResolvedChainRef.current === selectedChainID) return
-        prevResolvedChainRef.current = selectedChainID
-        if (addressFamily !== 'evm' || !recipient.name) return
-
-        const name = recipient.name
-        // Gate Review while the previous chain's address is still in state —
-        // clicking it mid-resolution would send to that address.
-        setIsValidRecipient(false)
-        let stale = false
-        validateAndResolveRecipient(name, true, 'evm', selectedChainID)
-            .then((validation) => {
-                if (stale) return
-                setRecipient({ name, address: validation.resolvedAddress })
-                setIsValidRecipient(true)
-            })
-            .catch(() => {
-                if (stale) return
-                setRecipient({ name: undefined, address: '' })
-                setIsValidRecipient(false)
-                setError({
-                    showError: true,
-                    errorMessage: 'Could not resolve the ENS name for the selected network',
-                })
-            })
-        return () => {
-            stale = true
-        }
-    }, [selectedChainID, addressFamily, recipient.name, setRecipient, setIsValidRecipient, setError])
+    // ENS names resolve per destination chain (ENSIP-11): a typed name
+    // re-resolves when the user switches chains. Kept out of the error-clearing
+    // effect above: its error.showError dep would abort an in-flight resolution.
+    useEnsRecipientForChain(selectedChainID, addressFamily)
 
     const handleContinue = () => {
-        // Context record already includes the synthetic non-EVM withdraw
-        // destinations (merged once in tokenSelector.context).
-        const xchainChainData = supportedChainsAndTokens[selectedChainID]
-        // supportedChainsAndTokens may not list the Peanut wallet chain on
-        // testnets / env-configured chains. Synthesize a minimal entry so the
-        // same-chain (no-bridge) path can proceed.
-        const isPeanutWalletChain = selectedChainID === PEANUT_WALLET_CHAIN.id.toString()
-        const fallbackChainData =
-            isPeanutWalletChain && !xchainChainData
-                ? ({
-                      chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                      networkName: PEANUT_WALLET_CHAIN.name,
-                      chainIconURI: '',
-                      tokens: [],
-                  } satisfies ChainWithTokens)
-                : undefined
-        const selectedChainData = xchainChainData ?? fallbackChainData
+        const selectedChainData = withdrawChainRecord(supportedChainsAndTokens, selectedChainID)
 
         if (selectedTokenData && selectedChainData && recipient.address) {
             onContinue({
@@ -193,11 +145,14 @@ export default function InitialWithdrawView({
             <div className="space-y-4">
                 <TokenSelector
                     viewType="withdraw"
+                    // never send to a network moved under a prefilled destination silently
                     onAutoCorrect={() => {
                         if (recipientAddressRef.current) setNetworkUnconfirmed(true)
                     }}
                     // a token tap keeps the default network, so only a network pick confirms it
                     onNetworkSelect={() => setNetworkUnconfirmed(false)}
+                    // guidance, not an error: the address is fine, the network is still the user's call
+                    networkHelper={networkUnconfirmed ? t('initial.confirmNetwork') : undefined}
                 />
 
                 {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
@@ -221,11 +176,7 @@ export default function InitialWithdrawView({
                         showInfoText={false}
                         isWithdrawal
                     />
-                    {networkUnconfirmed ? (
-                        <FieldError>{t('initial.confirmNetwork')}</FieldError>
-                    ) : (
-                        error.showError && !!error.errorMessage && <FieldError>{error.errorMessage}</FieldError>
-                    )}
+                    {error.showError && !!error.errorMessage && <FieldError>{error.errorMessage}</FieldError>}
                 </div>
 
                 {/* Surface the resolved address as soon as an ENS name validates —

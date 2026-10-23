@@ -71,6 +71,7 @@ export const REASON_CODE_KEYS = {
     // for the user. Self-serve: the paired action opens the address RFI. Without
     // this entry the copy ships in English to every locale.
     residence_unresolved: 'reasons.residence_unresolved',
+    bridge_answers_rejected: 'reasons.bridge_answers_rejected',
     // A rail parked for a requirement the approved identity never collected; `supplement:<provider>` collects it.
     // The copy names the bank proof of address: the only supplement the API can collect (Bridge's).
     requirements_missing: 'reasons.requirements_missing',

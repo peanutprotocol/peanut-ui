@@ -323,6 +323,7 @@ jobs:
                   install_wallet_profile "$IOS_WALLET_EXTENSION_UI_PROVISIONING_PROFILE_BASE64" wallet-extension-ui
 
             - name: Archive & export IPA
+              id: archive
               env:
                   APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
                   WALLET_PROVISIONING_ENABLED: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED == 'true' }}
@@ -349,6 +350,7 @@ jobs:
                   # Wall-clock seconds, the scheme Play's versionCode already uses, can.
                   # Info.plist reads both via $(...) build settings.
                   IOS_BUILD_NUMBER="$(node scripts/android-version-code.mjs)"
+                  echo "build=$IOS_BUILD_NUMBER" >> "$GITHUB_OUTPUT"
                   echo "build number $IOS_BUILD_NUMBER (version $IOS_VERSION_NAME)"
                   MARKETING_ARG=("MARKETING_VERSION=$IOS_VERSION_NAME")
                   XCODE_WALLET_ARGS=()
@@ -509,6 +511,22 @@ jobs:
                   api-key-id: ${{ secrets.ASC_KEY_ID }}
                   api-private-key: ${{ secrets.ASC_KEY_CONTENT }}
                   wait-for-processing: 'false'
+
+            # The build is in App Store Connect now. App Store review is still
+            # requested by hand; this records when the build reached the store,
+            # the start of the "What is live" store clock. Never fails the release.
+            - name: Record the store upload in PostHog
+              if: github.ref_name != 'innolope/TASK-21683-lottie-native-testflight'
+              continue-on-error: true
+              env:
+                  PLATFORM: ios
+                  VERSION: ${{ steps.version.outputs.name }}
+                  BUILD: ${{ steps.archive.outputs.build }}
+                  COMMIT: ${{ inputs.sourceSha }}
+                  TRACK: testflight
+                  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+                  POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+              run: node scripts/store-build-event.mjs
 
             # Upload a matching .0 only when this platform has no active legacy
             # bridge. No channel moves here: release-native.yml promotes both

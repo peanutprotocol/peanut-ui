@@ -32,6 +32,13 @@ export const IDENTITY_REGION_RESTRICTED_CODE = 'identity_region_restricted'
 export const IDENTITY_DOCUMENT_MISSING_CODE = 'identity_document_missing'
 
 /**
+ * Reason code of a QR pool rail the backend paused because the identity
+ * evidence behind the approval is gone (peanut-api-ts `QR_IDENTITY_MISSING`,
+ * `SUMSUB_IDENTITY_MISSING` on the rail).
+ */
+export const QR_IDENTITY_MISSING_CODE = 'identity_missing'
+
+/**
  * QR-pay KYC gate states. Relocated here from the (now capability-derived)
  * useQrKycGate hook so the qr-pay page keeps a stable import after that hook is
  * deleted. The gate is now computed inline on the page from useCapabilities().
@@ -106,3 +113,10 @@ export const getKycStatusCategory = (status: string): KycStatusCategory => {
     if (ACTION_REQUIRED_STATUSES.has(status)) return 'action_required'
     return 'processing'
 }
+
+/**
+ * Past this, "less than a minute" is a lie. A rail pending for a day is one the
+ * user walked away from before the provider's questionnaire (the awaiting-action
+ * ghost, 189 users in prod on 2026-09-22) or one stuck in provider review.
+ */
+export const KYC_PROCESSING_STALE_AFTER_MS = 24 * 60 * 60 * 1000

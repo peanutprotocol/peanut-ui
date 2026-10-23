@@ -22,7 +22,7 @@ import React from 'react'
 import { VerifiedUserLabel } from '../UserHeader'
 import { useRouter } from 'next/navigation'
 import { twMerge } from '@/utils/tw'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO } from '@/assets/brand'
 import { profileUrl } from '@/utils/native-routes'
 
 import type { TransactionDetails } from './transactionTransformer'
@@ -313,12 +313,16 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     return (
         <div className="flex flex-col items-center gap-3 text-center">
             {isTest ? (
-                <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-12" />
+                <Image src={LOGO} alt="Peanut Logo" width={64} height={64} className="size-12" />
             ) : (
                 <div
+                    // ph-sensitive: its aria-label can be the counterparty's real name
                     className={twMerge(
+                        'ph-sensitive',
                         isAvatarClickable &&
-                            'cursor-pointer rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus'
+                            'cursor-pointer rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                        // a full name in the accessible name is a legal name; a username is not
+                        nameForAvatar !== userName && 'ph-mask'
                     )}
                     onClick={isAvatarClickable ? handleUserProfileClick : undefined}
                     role={isAvatarClickable ? 'button' : undefined}

@@ -1,5 +1,7 @@
 'use client'
 
+import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
@@ -133,7 +135,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const queryClient = useQueryClient()
     const { overview } = useRainCardOverview()
     const { mantecaLimits, bridgeLimits } = useLimits()
-    const { setIsSupportModalOpen } = useModalsContext()
+    const { openSupportWithMessage, setIsSupportModalOpen } = useModalsContext()
 
     const isSumsubApproved = isKycApproved
     const depositAccountsEnabled = useDepositAccountsEnabled()
@@ -587,7 +589,9 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                 onResume={handleStartKyc}
                 onContactSupport={() => {
                     handleModalClose()
-                    setIsSupportModalOpen(true)
+                    openSupportWithMessage(
+                        buildContactSupportMessage({ reason: clickedRegionRail?.reason, railId: clickedRegionRail?.id })
+                    )
                 }}
             />
 

@@ -54,17 +54,47 @@ const isDocumentRequest = (action: NextAction): boolean => action.kind === 'sums
 export function selectHomeTasks(
     nextActions: NextAction[],
     rails: RailCapability[] = [],
-    now: Date = new Date()
+    now: Date = new Date(),
+    prioritizeIdentityRestart = false
 ): { largeTasks: NextAction[]; documentSlide: NextAction | undefined } {
     const tasks = selectBridgeTasks(nextActions, rails, now)
     const cardTask = selectCardDocumentTask(nextActions, rails)
+    const bridgeTasks = selectBridgeDocumentTasks(nextActions, rails)
+    const blockingKeys = new Set(bridgeTasks.map((task) => bridgeDocumentActionKey(task)))
     return {
         largeTasks: [
-            ...tasks.filter((task) => !isDocumentRequest(task) || isInFinalWeek(task.effectiveDate, now)),
+            ...tasks.filter(
+                (task) =>
+                    !blockingKeys.has(task.key) && (!isDocumentRequest(task) || isInFinalWeek(task.effectiveDate, now))
+            ),
+            ...(prioritizeIdentityRestart ? [] : bridgeTasks),
             ...(cardTask ? [cardTask] : []),
         ],
-        documentSlide: tasks.find((task) => isDocumentRequest(task) && !isInFinalWeek(task.effectiveDate, now)),
+        documentSlide: tasks.find(
+            (task) => !blockingKeys.has(task.key) && isDocumentRequest(task) && !isInFinalWeek(task.effectiveDate, now)
+        ),
     }
+}
+
+const BRIDGE_DOCUMENT_TASK_PREFIX = 'bridge-document:'
+
+export const isBridgeDocumentTask = (task: NextAction): boolean => task.key.startsWith(BRIDGE_DOCUMENT_TASK_PREFIX)
+export const bridgeDocumentActionKey = (task: NextAction): string => task.key.slice(BRIDGE_DOCUMENT_TASK_PREFIX.length)
+
+export function selectBridgeDocumentTasks(nextActions: NextAction[], rails: RailCapability[]): NextAction[] {
+    const byKey = new Map(nextActions.map((action) => [action.key, action]))
+    const tasks = new Map<string, NextAction>()
+    for (const rail of rails) {
+        if (rail.provider !== 'bridge' || rail.status !== 'requires-info') continue
+        const { status, nextAction } = railVerdict(rail, byKey)
+        if (status !== 'fixable' || nextAction?.kind !== 'sumsub') continue
+        tasks.set(nextAction.key, {
+            ...nextAction,
+            key: `${BRIDGE_DOCUMENT_TASK_PREFIX}${nextAction.key}`,
+            effectiveDate: undefined,
+        })
+    }
+    return [...tasks.values()]
 }
 
 const CARD_DOCUMENT_TASK_PREFIX = 'card-document:'

@@ -19,6 +19,9 @@ import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import { useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+import type { NextAction } from '@/types/capabilities'
+import { isIdRetake, kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
+import { isBridgeProcessingSlow } from '@/utils/kyc-processing.utils'
 import type { ProviderId } from '@/types/provider.types'
 
 type InitiateKycVariant =
@@ -46,6 +49,8 @@ interface InitiateKycModalProps {
     /** Stable `CapabilityReason.code` behind `providerMessage` — known codes
      *  render localized identity.reasons.* copy; unknown fall back to prose. */
     reasonCode?: string
+    nextAction?: NextAction
+    pendingSince?: string
     /** country name shown in cross_region variant (e.g. "Brazil", "Argentina") */
     regionName?: string
     /** Which prep checklist the SDK-bound variants show: extended for the
@@ -98,6 +103,8 @@ export const InitiateKycModal = ({
     variant = 'default',
     providerMessage,
     reasonCode,
+    nextAction,
+    pendingSince,
     regionName,
     prepPath = 'standard',
     taxIdCountry,
@@ -132,7 +139,8 @@ export const InitiateKycModal = ({
     // outage, and it yields to `region-unavailable`, whose UK copy is more
     // specific than this country-neutral one.
     const { banking: isBankRestricted } = useResidenceRestrictions()
-    const reasonKey = reasonCodeKey(reasonCode)
+    const slow = isBridgeProcessingSlow(reasonCode, pendingSince)
+    const reasonKey = slow ? 'reasons.bridge_processing_slow' : reasonCodeKey(reasonCode)
     const resolvedProviderMessage = reasonKey ? tIdentity(reasonKey) : providerMessage
     const isSupplementInReview = reasonCode === 'requirements_in_review'
     const descriptionTestId = isSupplementInReview ? 'kyc-supplement-in-review' : undefined
@@ -161,7 +169,7 @@ export const InitiateKycModal = ({
         if (error) return tCommon('somethingWentWrong')
         if (isRegionUnavailable) return t('initiate.titleRegionUnavailable')
         if (isBankUnavailable) return t('initiate.titleBankUnavailable')
-        if (isSupplementInReview) return t('processingTitle')
+        if (isSupplementInReview || slow) return t('processingTitle')
         if (isBlocked) return t('initiate.titleBlocked')
         if (isDocumentMissing) return t('initiate.titleIdentityDocumentMissing')
         if (isRestartIdentity) return t('initiate.titleRestartIdentity')
@@ -178,7 +186,8 @@ export const InitiateKycModal = ({
         if (error) return t('initiate.descriptionError', { error })
         if (isRegionUnavailable) return t('initiate.descriptionRegionUnavailable')
         if (isBankUnavailable) return t('initiate.descriptionBankUnavailable')
-        if (isSupplementInReview) return resolvedProviderMessage
+        if (isSupplementInReview || slow) return resolvedProviderMessage
+        if (isProviderRejection && isIdRetake(nextAction)) return t('initiate.descriptionRetakeId')
         if (isBlocked) return resolvedProviderMessage || t('initiate.descriptionBlocked')
         if (isRestartIdentity) return resolvedProviderMessage || t('initiate.descriptionRestartIdentity')
         if (isProviderRejection) return resolvedProviderMessage || t('initiate.descriptionProviderRejection')
@@ -198,6 +207,7 @@ export const InitiateKycModal = ({
         if (isBankUnavailable) {
             return { text: regionRestrictedCta.label, onClick: regionRestrictedCta.onClick }
         }
+        if (slow) return { text: tCommon('contactSupport'), onClick: onContactSupport ?? onClose }
         if (isSupplementInReview) return { text: tCommon('gotIt'), onClick: onClose }
         if (error || isBlocked) {
             return {
@@ -224,9 +234,12 @@ export const InitiateKycModal = ({
         }
         if (isProviderRejection) {
             return {
-                text: isLoading ? tCommon('loading') : t('initiate.ctaUploadDocument'),
+                text: isLoading ? tCommon('loading') : t(kycActionCtaKey(nextAction, reasonCode)),
                 onClick: onVerify,
-                icon: 'upload-cloud',
+                icon:
+                    kycActionCtaKey(nextAction, reasonCode) === 'initiate.ctaAnswerQuestions'
+                        ? undefined
+                        : 'upload-cloud',
                 testId: reasonCode === 'requirements_missing' ? 'kyc-supplement-cta' : undefined,
             }
         }

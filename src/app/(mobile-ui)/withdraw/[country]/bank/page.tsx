@@ -179,12 +179,15 @@ export default function WithdrawBankPage() {
                 variant={resolveKycModalVariant(gate)}
                 providerMessage={getGateUserMessage(gate)}
                 reasonCode={getGateReasonCode(gate)}
+                nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
+                pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
                 regionName={countryFromPath && localizedCountryTitle(locale, countryFromPath)}
             />
             <KycReverificationPendingModal
                 isOpen={pendingModal.isOpen}
                 onClose={pendingModal.close}
                 message={pendingModal.message}
+                onContactSupport={pendingModal.onContactSupport}
             />
             <SumsubKycModals
                 flow={flow.sumsubFlow}

@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import type { ComponentProps } from 'react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 import { UserAvatar } from '../UserAvatar'
@@ -7,6 +7,13 @@ jest.mock('next/image', () => ({
     __esModule: true,
     default: ({ unoptimized, ...rest }: ComponentProps<'img'> & { unoptimized?: boolean }) => <img {...rest} />,
 }))
+
+let mockArt: Record<string, string> = {}
+jest.mock('../useAvatarArt', () => ({ useAvatarArt: () => mockArt }))
+
+beforeEach(() => {
+    mockArt = {}
+})
 
 describe('UserAvatar', () => {
     it('renders the picked character on its palette', () => {
@@ -61,5 +68,32 @@ describe('UserAvatar', () => {
 
         expect(container).toHaveTextContent(/^0$/)
         expect(container.firstElementChild).toHaveAttribute('aria-hidden', 'true')
+    })
+
+    it('keeps bundled art and uses the served url only for keys the bundle lacks', () => {
+        mockArt = {
+            'basic.frog': 'https://api.peanut.me/badges/art/avatar-basic-frog.0123456789ab.webp',
+            'badge.NEW_BADGE.owl': 'https://api.peanut.me/badges/art/avatar-badge-NEW_BADGE-owl.0123456789ab.webp',
+        }
+        const { container, rerender } = render(<UserAvatar name="satoshi" avatarKey="basic.frog" />)
+        expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.webp')
+
+        rerender(<UserAvatar name="satoshi" avatarKey="badge.NEW_BADGE.owl" />)
+        expect(container.querySelector('img')).toHaveAttribute('src', mockArt['badge.NEW_BADGE.owl'])
+    })
+
+    // TASK-23547: a missing served file must not leave a broken image
+    it('swaps to the initials avatar when the art fails to load, and retries new art', () => {
+        mockArt = {
+            'badge.NEW_BADGE.owl': 'https://api.peanut.me/badges/art/avatar-badge-NEW_BADGE-owl.0123456789ab.webp',
+        }
+        const { container, rerender } = render(<UserAvatar name="satoshi" avatarKey="badge.NEW_BADGE.owl" />)
+
+        fireEvent.error(container.querySelector('img')!)
+        expect(container.querySelector('img')).toBeNull()
+        expect(container).toHaveTextContent(/^S$/i)
+
+        rerender(<UserAvatar name="satoshi" avatarKey="basic.cactus" />)
+        expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/cactus.webp')
     })
 })

@@ -1,5 +1,8 @@
 'use client'
 
+import { isBridgeProcessingSlow } from '@/utils/kyc-processing.utils'
+import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+import { isIdRetake, kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
@@ -78,12 +81,13 @@ type PrimaryStep =
     | { kind: 'support' }
 
 /**
- * One step at a time, the lightest first: the bank terms and a document stay
- * in this flow, the card continues on its own page, a new identity check
- * starts over, and support is the last way out.
+ * One step at a time, the lightest first: the bank terms, then a new identity
+ * check (a document asked of the old one would be moot), a document, the card
+ * on its own page, and support as the last way out.
  */
 function primaryStep(rows: SetupRow[]): PrimaryStep | null {
     if (rows.some((row) => row.state === 'terms-needed')) return { kind: 'terms' }
+    if (rows.some((row) => row.state === 'verify-again')) return { kind: 'verify', localId: false, card: false }
     const document = rows.find((row) => row.state === 'document-needed' && row.step)
     if (document?.step) return { kind: 'document', step: document.step }
     if (rows.some((row) => row.state === 'agreements-needed')) return { kind: 'card' }
@@ -120,7 +124,7 @@ export const KycSetupStatusDrawer = ({
     const tRejection = useTranslations('profile.regions.providerRejection')
     const locale = useLocale()
     const router = useRouter()
-    const { setIsSupportModalOpen } = useModalsContext()
+    const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
     const country = residence ? localizedCountryName(locale, residence, residence) : null
     const done = rows.length > 0 && rows.every((row) => row.state === 'available')
     const step = done ? null : primaryStep(rows)
@@ -147,7 +151,17 @@ export const KycSetupStatusDrawer = ({
         return <IconBubble {...CONCEPT_ICONS[concept]} size="s" />
     }
     // the states whose badge does not say enough get one line under the title
-    const rowBody = ({ key: feature, state, reason }: SetupRow) => {
+    const rowBody = ({ key: feature, state, reason, step: rowStep, pendingSince }: SetupRow) => {
+        if (isBridgeProcessingSlow(reason, pendingSince)) return tIdentity('reasons.bridge_processing_slow')
+        if (state === 'document-needed' || state === 'terms-needed') {
+            const key = setupReasonKey(reason)
+            if (key) return tIdentity(key)
+            if (state === 'terms-needed') return t('setup.termsDescription')
+            if (isIdRetake(rowStep?.action)) return t('initiate.descriptionRetakeId')
+            const proofOfAddress =
+                rowStep?.action?.key.startsWith('supplement:') || rowStep?.action?.levelKey === 'proof_of_address'
+            return t(proofOfAddress ? 'setup.proofOfAddressDescription' : 'setup.documentDescription')
+        }
         // The card's issuer never names the document, so neither do we.
         if (state === 'needs-local-id' && feature === 'card')
             return tIdentity('reasons.card_unavailable_for_verification')
@@ -177,7 +191,9 @@ export const KycSetupStatusDrawer = ({
                 return {
                     label: step.step.action?.key.startsWith('supplement:')
                         ? t('supplement.proofOfAddressCta')
-                        : t('setup.uploadNow'),
+                        : kycActionCtaKey(step.step.action, step.step.reasonCode) === 'initiate.ctaUploadDocument'
+                          ? t('setup.uploadNow')
+                          : t(kycActionCtaKey(step.step.action, step.step.reasonCode)),
                     onClick: () => onUploadDocument?.(step.step),
                 }
             case 'card':
@@ -200,8 +216,26 @@ export const KycSetupStatusDrawer = ({
                         setIsSupportModalOpen(true)
                     },
                 }
-            default:
-                return null
+            default: {
+                const slowRow = rows.find((row) => isBridgeProcessingSlow(row.reason, row.pendingSince))
+                return slowRow
+                    ? {
+                          label: tCommon('contactSupport'),
+                          onClick: () => {
+                              onClose()
+                              openSupportWithMessage(
+                                  buildContactSupportMessage({
+                                      reason: {
+                                          code: 'bridge_processing',
+                                          userMessage: tIdentity('reasons.bridge_processing_slow'),
+                                      },
+                                      railId: slowRow.railId,
+                                  })
+                              )
+                          },
+                      }
+                    : null
+            }
         }
     })()
 

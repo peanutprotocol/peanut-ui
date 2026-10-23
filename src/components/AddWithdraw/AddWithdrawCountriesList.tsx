@@ -56,7 +56,8 @@ import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificatio
 import Loading from '@/components/Global/Loading'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { useModalsContext } from '@/context/ModalsContext'
-import underMaintenanceConfig, { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/config/underMaintenance.config'
+import { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/features/kill-switches/kill-switches.consts'
+import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 
@@ -68,6 +69,7 @@ interface AddWithdrawCountriesListProps {
 const SUBMIT_CANCELLED = { error: 'cancelled', silent: true }
 
 const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
+    const { pixBrazilOnrampMaintenance } = useKillSwitches()
     const router = useRouter()
     const params = useParams()
     const searchParams = useSearchParams()
@@ -75,6 +77,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const locale = useLocale()
     const t = useTranslations('withdraw')
     const tAddMoney = useTranslations('addMoney')
+    const tDeposit = useTranslations('depositAccounts')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
 
@@ -371,8 +374,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         // ready: an in-scope bank rail is enabled, so the account can be added
         // directly. Email and name are collected by sumsub — not checked here.
-        const currentAccountIds = new Set((user?.accounts ?? []).map((acc) => acc.id))
-
         const result = await addBankAccount(payload)
         if (cancelled()) return SUBMIT_CANCELLED
         if (result.error) {
@@ -387,10 +388,17 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         const updatedUser = await fetchUser() // refetch user to get the new bank account
         if (cancelled()) return SUBMIT_CANCELLED
 
-        const newAccount = updatedUser?.accounts.find((acc) => !currentAccountIds.has(acc.id))
+        // Found by the id the API answered, not by being new: a corrected
+        // routing number or sort code updates the saved account in place. It
+        // counts only if it names the Bridge account the API answered with. A
+        // failed or lagging refetch can still show the old one, which pays
+        // the old bank.
+        const addedAccount = updatedUser?.accounts.find(
+            (acc) => acc.id === result.data?.id && acc.bridgeAccountId === result.data?.bridgeAccountId
+        )
 
-        if (newAccount) {
-            withdrawFlow?.setSelectedBankAccount(newAccount)
+        if (addedAccount) {
+            withdrawFlow?.setSelectedBankAccount(addedAccount)
         } else {
             // fallback to the previous method if we can't find the new account
             // this can happen if the user object is not updated immediately
@@ -570,6 +578,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 variant={resolveKycModalVariant(gate)}
                 providerMessage={getGateUserMessage(gate)}
                 reasonCode={getGateReasonCode(gate)}
+                nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
+                pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
                 regionName={currentCountry && localizedCountryTitle(locale, currentCountry)}
                 providerId={
                     providerForRegionIntent(bankRegionIntent(currentCountry)) === 'bridge'
@@ -597,6 +607,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 isOpen={pendingModal.isOpen}
                 onClose={pendingModal.close}
                 message={pendingModal.message}
+                onContactSupport={pendingModal.onContactSupport}
             />
             <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setIsKycModalOpen(false)} />
         </>
@@ -668,18 +679,28 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         // BRL-via-PIX onramp is warn-only under maintenance: tag the Pix option but
                         // keep it clickable (do not set isDisabled).
                         const isPixOnrampUnderMaintenance =
-                            flow === 'add' &&
-                            method.id === 'pix-add' &&
-                            underMaintenanceConfig.pixBrazilOnrampMaintenance
+                            flow === 'add' && method.id === 'pix-add' && pixBrazilOnrampMaintenance
                         // the row a tap is held on carries the wait, and takes
                         // no second tap while it does
                         const isHeld = heldMethod?.method.id === method.id
+                        // Argentina's one bank row opens the screen that takes a transfer
+                        // from Mercado Pago or a bank, so it names both, Mercado Pago first
+                        // (TASK-21375). Its own key: the shared rail name also sits inside
+                        // sentences on the request and account screens.
+                        const isArgentinaBank =
+                            flow === 'add' && currentCountry.id === 'AR' && method.id === 'bank-transfer-add'
                         return (
                             <ListItem
                                 key={method.id}
                                 disabled={method.isSoon || isHeld}
-                                title={method.title}
-                                body={<div className="text-body-xs">{method.description}</div>}
+                                title={isArgentinaBank ? tAddMoney('methods.mercadoPagoOrBank') : method.title}
+                                body={
+                                    <div className="text-body-xs">
+                                        {isArgentinaBank
+                                            ? tDeposit('corridors.BANK_TRANSFER_AR.arrivalShort')
+                                            : method.description}
+                                    </div>
+                                }
                                 leading={
                                     method.icon === ('bank' as IconName) ? (
                                         <IconBubble {...CONCEPT_ICONS.bank} size="s" />
@@ -696,9 +717,11 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                             }}
                                         />
                                     ) : (
+                                        // decorative: the row title already names the method, and an
+                                        // id as alt text was read out as part of the button's name
                                         <Image
                                             src={method.icon as StaticImageData}
-                                            alt={method.id}
+                                            alt=""
                                             className="h-8 w-8 rounded-full"
                                             width={32}
                                             height={32}

@@ -10,24 +10,55 @@
  *
  * The letters are not in the manifest — they are art everyone has
  * (`public/avatars/letter/`), so they are listed here and unlocked for all.
+ *
+ * The API also serves the art (GET /avatars/art, TASK-23547) as a key → url
+ * map. The bundled file wins; the map fills in keys this bundle does not know
+ * (a badge avatar added after it shipped), which are then pickable too. An
+ * empty map (an API without the route, or without an art bucket) leaves
+ * everything as the bundle has it.
  */
+import { ESCAPED_API_URL } from '@/components/Badges/badge.utils'
 import badgeAssets from '@/types/badge-assets.json'
+
+/** GET /avatars/art: avatar key → art url on the API. */
+export type AvatarArtUrls = Readonly<Record<string, string>>
 
 const BASICS: readonly string[] = badgeAssets.avatars.basics
 const BADGE_AVATARS: Readonly<Record<string, readonly string[]>> = badgeAssets.avatars.badges
 
+// only the API's own art route, hashed avatar files: a foreign host, another
+// path, a query or a non-webp file never reaches an image renderer
+const SAFE_AVATAR_ART_URL = new RegExp(`^${ESCAPED_API_URL}/badges/art/avatar-[A-Za-z0-9][A-Za-z0-9._-]*\\.webp$`)
+
+/** The served url for `key`, or null when the map has none or it fails the url check. */
+export function servedAvatarArt(key: string, art: AvatarArtUrls): string | null {
+    // plain JSON object: a key like `constructor` must not read Object.prototype
+    const url = Object.hasOwn(art, key) ? art[key] : null
+    return typeof url === 'string' && SAFE_AVATAR_ART_URL.test(url) ? url : null
+}
+
+/** Slugs under `prefix`: the bundled ones first, then those only the served map has. */
+const withServed = (bundled: readonly string[], prefix: string, art: AvatarArtUrls): string[] => {
+    const served = Object.keys(art)
+        .filter((key) => key.startsWith(prefix) && servedAvatarArt(key, art))
+        .map((key) => key.slice(prefix.length))
+    return [...new Set([...bundled, ...served])]
+}
+
 // plain JSON object: a code like `constructor` must read as "no avatars", not
 // as Object.prototype
-const slugsOf = (code: string): readonly string[] => (Object.hasOwn(BADGE_AVATARS, code) ? BADGE_AVATARS[code] : [])
+const slugsOf = (code: string, art: AvatarArtUrls = {}): string[] =>
+    withServed(Object.hasOwn(BADGE_AVATARS, code) ? BADGE_AVATARS[code] : [], `badge.${code}.`, art)
 
-export const basicAvatarKeys = (): string[] => BASICS.map((slug) => `basic.${slug}`)
+export const basicAvatarKeys = (art: AvatarArtUrls = {}): string[] =>
+    withServed(BASICS, 'basic.', art).map((slug) => `basic.${slug}`)
 
 /** a-z, the letter stickers every user may wear regardless of their name. */
 export const LETTERS: readonly string[] = Array.from({ length: 26 }, (_, i) => String.fromCharCode(97 + i))
 
 /** Avatar keys unlocked by holding these badge codes, in badge order. */
-export const badgeAvatarKeys = (heldCodes: readonly string[]): string[] =>
-    heldCodes.flatMap((code) => slugsOf(code).map((slug) => `badge.${code}.${slug}`))
+export const badgeAvatarKeys = (heldCodes: readonly string[], art: AvatarArtUrls = {}): string[] =>
+    heldCodes.flatMap((code) => slugsOf(code, art).map((slug) => `badge.${code}.${slug}`))
 
 /** Everything the user may pick: the basics plus what their badges unlock. */
 export const avatarPool = (heldCodes: readonly string[]): string[] => [
@@ -49,10 +80,10 @@ export const HAND_SIZE = 7
  * is dropped, and so is one whose art an earlier key already claimed (holding a
  * badge code twice unlocks the same files twice).
  */
-const distinctArt = (keys: readonly string[]): string[] => {
+const distinctArt = (keys: readonly string[], art: AvatarArtUrls): string[] => {
     const taken = new Set<string>()
     return keys.filter((key) => {
-        const src = avatarSrc(key)
+        const src = avatarSrc(key, art)
         if (!src || taken.has(src)) return false
         taken.add(src)
         return true
@@ -77,10 +108,10 @@ const distinctArt = (keys: readonly string[]): string[] => {
 export function dealHand(
     pick: string | null,
     unlocked: readonly string[],
-    { prefer, random = Math.random }: { prefer?: string; random?: () => number } = {}
+    { prefer, random = Math.random, art = {} }: { prefer?: string; random?: () => number; art?: AvatarArtUrls } = {}
 ): (string | null)[] {
     const draw = (pool: string[]) => pool.splice(Math.floor(random() * pool.length), 1)[0]
-    const deck = distinctArt([...basicAvatarKeys(), ...unlocked])
+    const deck = distinctArt([...basicAvatarKeys(art), ...unlocked], art)
     const earned = deck.filter((key) => key !== pick && unlocked.includes(key))
     const preferred = prefer ? earned.filter((key) => key.startsWith(`badge.${prefer}.`)) : []
     const hand: string[] = []
@@ -95,9 +126,16 @@ export function dealHand(
     return [null, ...hand]
 }
 
-/** Public path of the avatar art, or null for a key the manifest does not know. */
-export function avatarSrc(key: string | null | undefined): string | null {
+/**
+ * Url of the avatar art: the bundled public path, else the API's served url
+ * when the map has a safe one, else null for a key neither knows.
+ */
+export function avatarSrc(key: string | null | undefined, art: AvatarArtUrls = {}): string | null {
     if (!key) return null
+    return bundledAvatarSrc(key) ?? servedAvatarArt(key, art)
+}
+
+function bundledAvatarSrc(key: string): string | null {
     const [kind, ...rest] = key.split('.')
     if (kind === 'basic' && rest.length === 1 && BASICS.includes(rest[0])) return `/avatars/basic/${rest[0]}.webp`
     if (kind === 'badge' && rest.length === 2 && slugsOf(rest[0]).includes(rest[1])) {
@@ -113,7 +151,7 @@ export function avatarSrc(key: string | null | undefined): string | null {
  * is also pickable outright as `letter.<a-z>`, which is how someone wears an
  * initial that is not the one their username starts with.
  */
-export function letterAvatarSrc(name: string | null | undefined): string | null {
+export function letterAvatarSrc(name: string | null | undefined, art: AvatarArtUrls = {}): string | null {
     const ch = name?.trim().charAt(0).toLowerCase()
-    return ch && ch >= 'a' && ch <= 'z' ? `/avatars/letter/${ch}.webp` : null
+    return ch && ch >= 'a' && ch <= 'z' ? avatarSrc(`letter.${ch}`, art) : null
 }

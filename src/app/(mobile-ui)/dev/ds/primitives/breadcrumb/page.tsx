@@ -130,7 +130,7 @@ export default function BreadcrumbPage() {
                         className={`mx-auto ${PROSE_WIDTH} px-6 pt-4 pb-8 md:px-4`}
                         items={[
                             { name: 'Home', href: '/en' },
-                            { name: 'Argentina', href: '/en/receive-money-from/argentina' },
+                            { name: 'Argentina', href: '/en/argentina' },
                         ]}
                     />
                 </ProductUsage.Example>

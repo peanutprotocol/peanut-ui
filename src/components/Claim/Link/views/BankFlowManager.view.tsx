@@ -411,6 +411,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 variant={getKycModalVariant(gate.kind)}
                 providerMessage={getGateUserMessage(gate)}
                 reasonCode={getGateReasonCode(gate)}
+                nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
+                pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
                 providerId={
                     providerForRegionIntent(bankRegionIntent(bankRailCountry ?? selectedCountry)) === 'bridge'
                         ? bridgeProviderId

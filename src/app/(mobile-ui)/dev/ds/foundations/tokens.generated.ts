@@ -906,13 +906,6 @@ export const FONT_TOKENS: FontToken[] = [
         "section": "parity",
         "previewClass": "font-sans",
         "stack": "var(--font-roboto), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'"
-    },
-    {
-        "name": "condensed",
-        "section": "parity",
-        "previewClass": "font-condensed",
-        "stack": "var(--font-roboto)",
-        "fontVariationSettings": "'wdth' 50"
     }
 ]
 

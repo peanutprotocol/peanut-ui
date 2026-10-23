@@ -3,6 +3,7 @@ import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import type { NextAction, ProviderCode, RailCapability, RailOperation, UserCapabilities } from '@/types/capabilities'
 import { railVerdict } from '@/utils/capability-gate'
 import { KYC_FEATURE_KEYS } from '@/utils/kyc-document-plan.utils'
+import { isBridgeProcessingSlow } from '@/utils/kyc-processing.utils'
 
 export type KycFeatureKey = keyof KycFeatures
 
@@ -43,6 +44,8 @@ export interface SetupRow {
     reason?: string
     /** Not available, and only support can open it. */
     support?: boolean
+    pendingSince?: string
+    railId?: string
 }
 
 /** The plan's refusal reason per provider, from the profile's onboarding attempts (`providerRefusalsOf`). */
@@ -151,7 +154,13 @@ function railOutcome(
         return { state: 'document-needed', step: { provider: rail.provider, action, reasonCode: reason }, reason }
     }
     if (status === 'pending' || verdict.status === 'pending') {
-        return action?.kind === 'wait' ? { state: 'under-review', reason } : { state: 'setting-up' }
+        const waiting =
+            reason === 'bridge_processing'
+                ? { reason, ...(rail.pendingSince ? { pendingSince: rail.pendingSince, railId: rail.id } : {}) }
+                : {}
+        return action?.kind === 'wait'
+            ? { state: 'under-review', reason, ...waiting }
+            : { state: 'setting-up', ...waiting }
     }
     if (reason === PLAN_NOT_REQUESTED) return { state: 'setting-up' }
     // an enabled rail with the operation blocked and no reason is a card still being issued
@@ -219,7 +228,16 @@ function featureOutcome(
                 : outcome
         )
         .concat(refusal ? [refusal] : [])
-        .reduce<Outcome>((best, next) => (RANK[next.state] > RANK[best.state] ? next : best), { state: 'setting-up' })
+        .reduce<Outcome>(
+            (best, next) =>
+                RANK[next.state] > RANK[best.state] ||
+                (RANK[next.state] === RANK[best.state] &&
+                    isBridgeProcessingSlow(next.reason, next.pendingSince) &&
+                    !isBridgeProcessingSlow(best.reason, best.pendingSince))
+                    ? next
+                    : best,
+            { state: 'setting-up' }
+        )
 }
 
 /**

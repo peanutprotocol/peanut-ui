@@ -130,6 +130,7 @@ const DEMO_BADGE_CATALOG = [
         name: 'First Swipe',
         description: 'You put your card to work.',
         publicDescription: 'They put their card to work.',
+        shareLine: 'Just put my Peanut card to work for the first time 💳',
         iconUrl: '/badges/happy_card.svg',
         unlock: { kind: 'card_purchase' },
         earnable: true,
@@ -139,6 +140,7 @@ const DEMO_BADGE_CATALOG = [
         name: '$1K Club',
         description: '$1K swiped.',
         publicDescription: '$1K swiped.',
+        shareLine: 'Crossed $1K on the Peanut card 💳',
         iconUrl: '/badges/money_stack.svg',
         unlock: { kind: 'card_spend', targetUsd: 1000 },
         earnable: true,
@@ -148,6 +150,7 @@ const DEMO_BADGE_CATALOG = [
         name: 'Name Dropper',
         description: 'You paid at a name. Or got paid at yours.',
         publicDescription: 'They moved money with an ENS name.',
+        shareLine: 'One ENS name, no address to copy 🔷',
         iconUrl: '/badges/ens.svg',
         unlock: { kind: 'ens_payment' },
         earnable: true,
@@ -157,6 +160,7 @@ const DEMO_BADGE_CATALOG = [
         name: 'Tron Native',
         description: 'Found on Tron. Where the dollars actually move.',
         publicDescription: 'Found on Tron. Where the dollars actually move.',
+        shareLine: 'Peanut × Tron 🔺',
         iconUrl: '/badges/tron.svg',
         unlock: { kind: 'campaign' },
         earnable: true,
@@ -475,6 +479,11 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // which is what the form fixtures exist to show. A fixture that wants the
     // prefilled form overrides this key with a synthetic address.
     { method: 'GET', pattern: '/users/me/verified-address', handler: () => ({}) },
+    // every avatar asks for the served art map; empty keeps the bundled art,
+    // which is what prod serves while it has no art bucket
+    { method: 'GET', pattern: '/avatars/art', handler: () => ({}) },
+    // the app reads kill switches on start; empty keeps the built-in defaults
+    { method: 'GET', pattern: '/config/kill-switches', handler: () => ({}) },
     {
         method: 'GET',
         pattern: '/users/contacts',

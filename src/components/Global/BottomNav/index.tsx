@@ -3,7 +3,7 @@
 import { useNativePlatform } from '@/utils/native-platform'
 import { Icon } from '@/components/Global/Icons/Icon'
 import IndicatorDot from '@/components/Global/IndicatorDot'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { isSameRoute } from '@/constants/routes'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
@@ -90,6 +90,7 @@ export const BottomNav = () => {
     const { isSupportModalOpen, setIsSupportModalOpen, setIsQRScannerOpen } = useModalsContext()
     const isWebSupportOpen = isSupportModalOpen && !nativePlatform.isCapacitor
     const { triggerHaptic } = useAppHaptic()
+    const { enableFullMaintenance } = useKillSwitches()
     const { user } = useAuth()
     const hasUnreadSupport = useSupportUnread(!!user?.user.userId, user?.user.userId)
     // the badge above is event-driven; this makes sure a web session that
@@ -341,7 +342,7 @@ export const BottomNav = () => {
             <button
                 type="button"
                 aria-label={t('scanQr')}
-                disabled={underMaintenanceConfig.enableFullMaintenance}
+                disabled={enableFullMaintenance}
                 onClick={() => {
                     triggerHaptic()
                     setIsQRScannerOpen(true)

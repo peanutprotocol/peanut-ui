@@ -19,10 +19,11 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import Badge from '@/components/Global/Badges/Badge'
 import { SearchInput } from '@/components/SearchInput'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type IToken } from '@/interfaces/interfaces'
 import { isNativeCurrency } from '@/utils/general.utils'
+import { addressFamilyForChainId, type WithdrawAddressFamily } from '@/lib/validation/addressFamily'
 import { Drawer, DrawerContent, DrawerTitle } from '../Drawer'
 import EmptyState from '../EmptyStates/EmptyState'
 import SelectorOptionRow from './Components/SelectorOptionRow'
@@ -60,6 +61,10 @@ interface NewTokenSelectorProps {
     onAutoCorrect?: () => void
     /** the user picked a network in the network drawer — an explicit network choice */
     onNetworkSelect?: () => void
+    /** guidance under the network picker, for example when the screen needs an explicit network pick; the lock hint wins */
+    networkHelper?: string
+    /** only the networks an address of this family is valid on: a scanned EVM address is never offered Solana */
+    addressFamily?: WithdrawAddressFamily
 }
 
 type DrawerKind = 'token' | 'network'
@@ -69,12 +74,14 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
     disabled,
     onAutoCorrect,
     onNetworkSelect,
+    networkHelper,
+    addressFamily,
 }) => {
     const t = useTranslations('global')
-    // check if cross-chain is disabled via maintenance config
-    const isXchainWithdrawDisabled = viewType === 'withdraw' && underMaintenanceConfig.disableXchainWithdraw
-    const isXchainSendDisabled =
-        (viewType === 'claim' || viewType === 'req_pay') && underMaintenanceConfig.disableXchainSend
+    // check if cross-chain is disabled by a kill switch
+    const { disableXchainWithdraw, disableXchainSend } = useKillSwitches()
+    const isXchainWithdrawDisabled = viewType === 'withdraw' && disableXchainWithdraw
+    const isXchainSendDisabled = (viewType === 'claim' || viewType === 'req_pay') && disableXchainSend
     // cross-chain off: USDC on the wallet chain (Arbitrum) is the only pair
     const isLocked = isXchainWithdrawDisabled || isXchainSendDisabled
     // withdraw destinations are what Rhino can DELIVER to, not the wagmi
@@ -113,8 +120,9 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
             isAllowed = (_chainId, token) =>
                 POPULAR_SYMBOLS.includes(token.symbol.toUpperCase()) || isNativeCurrency(token.address)
         }
+        if (addressFamily) chainIds = chainIds.filter((chainId) => addressFamilyForChainId(chainId) === addressFamily)
         return buildTokenOptions(chains, chainIds, isAllowed)
-    }, [supportedChainsAndTokens, isLocked, restrictToRhino])
+    }, [supportedChainsAndTokens, isLocked, restrictToRhino, addressFamily])
 
     const current = useMemo(
         () => findSelection(options, selectedChainID, selectedTokenAddress),
@@ -297,7 +305,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
                 label={t('tokenSelector.networkLabel')}
                 value={shown?.network.name ?? placeholder}
                 iconUrl={shown?.network.iconUrl}
-                helper={isLocked ? t('tokenSelector.lockedHint') : undefined}
+                helper={isLocked ? t('tokenSelector.lockedHint') : networkHelper}
                 disabled={disabled || isLocked || !shown}
                 onClick={() => open('network')}
                 data-testid="network-selector-trigger"

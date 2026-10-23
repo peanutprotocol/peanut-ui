@@ -318,6 +318,8 @@ let nextConfig = {
     // file tracer — include them for the deployed serverless function.
     outputFileTracingIncludes: {
         '/receipt/[entryId]/pdf': ['./src/assets/fonts/*.ttf'],
+        '/api/og': ['./src/assets/brand/*.svg'],
+        '/api/og/marketing': ['./src/assets/brand/*.svg'],
     },
 
     // Dynamic content reads can trace the submodule's .git metadata. Vercel

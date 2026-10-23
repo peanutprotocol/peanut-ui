@@ -1,6 +1,7 @@
 'use client'
 
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { CARD_PROMOTION_DISABLED_FLAG } from '@/constants/card-flags.consts'
+import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
@@ -30,9 +31,10 @@ export function useProviderRejection(onboarding: OnboardingState) {
     // canSpendPathViaCard, not showCardSurface: a prohibited residence with
     // only a pending application keeps the /card surface to watch its status,
     // but a card path would promise a card that cannot issue. The Home
-    // card-prompt kill switch mutes it; /card itself stays available.
+    // card-prompt flag mutes it; /card itself stays available.
     const { canSpendPathViaCard } = useCardSurfaceAccess()
-    const canApplyForCard = underMaintenanceConfig.disableCardPromotion ? false : canSpendPathViaCard
+    const cardPromotionDisabled = useFeatureFlags()(CARD_PROMOTION_DISABLED_FLAG)
+    const canApplyForCard = cardPromotionDisabled ? false : canSpendPathViaCard
 
     // The activation funnel gates deposit/outbound, which routes through bank or
     // qr-only channels — never through card. Top-level status (not per-op
@@ -42,6 +44,7 @@ export function useProviderRejection(onboarding: OnboardingState) {
         hasFixableRejection,
         fixableProvider,
         fixableActionKey,
+        fixableAction,
         hasBlockedRejection,
         primaryRejectionMessage,
         primaryRejectionCode,
@@ -67,6 +70,10 @@ export function useProviderRejection(onboarding: OnboardingState) {
         const blocked =
             emailBlocked ?? rejectableRails.find((rail) => railVerdict(rail, actionByKey).status === 'blocked')
         const fixableAction = fixableRail ? railVerdict(fixableRail, actionByKey).nextAction : undefined
+        const restartBlocked =
+            !emailBlocked && blocked && railVerdict(blocked, actionByKey).blocking?.selfHealKind === 'restart-identity'
+                ? blocked
+                : undefined
         return {
             hasFixableRejection: !!fixableRail,
             fixableProvider:
@@ -74,14 +81,15 @@ export function useProviderRejection(onboarding: OnboardingState) {
                     ? (fixableRail.provider.toUpperCase() as 'BRIDGE' | 'MANTECA')
                     : null,
             fixableActionKey: fixableAction?.kind === 'sumsub' ? fixableAction.key : null,
+            fixableAction,
             hasBlockedRejection: !!blocked,
             // Same precedence the copy/onClick use: email-blocked → fixable → terminal.
             primaryRejectionMessage: (() => {
-                const surfaced = emailBlocked ?? fixableRail ?? blocked
+                const surfaced = emailBlocked ?? restartBlocked ?? fixableRail ?? blocked
                 return surfaced ? railUserMessage(surfaced) : null
             })(),
             primaryRejectionCode: (() => {
-                const surfaced = emailBlocked ?? fixableRail ?? blocked
+                const surfaced = emailBlocked ?? restartBlocked ?? fixableRail ?? blocked
                 return surfaced ? (surfaced.reason?.code ?? surfaced.resolved?.blocking?.code ?? null) : null
             })(),
             blockedRail: blocked,
@@ -147,8 +155,8 @@ export function useProviderRejection(onboarding: OnboardingState) {
         if (hasIdentityFailure) return card('verification-issue', identityFailureCode)
         if (!hasProviderRejection) return null
         if (isEmailBlocked) return card('add-email', primaryRejectionCode)
-        if (hasFixableRejection) return card('complete-setup', primaryRejectionCode)
         if (isRestartBlocked) return card('restart-identity', primaryRejectionCode)
+        if (hasFixableRejection) return card('complete-setup', primaryRejectionCode)
         return card('verification-issue', primaryRejectionCode)
     }, [
         isRegionRestricted,
@@ -168,6 +176,7 @@ export function useProviderRejection(onboarding: OnboardingState) {
         hasFixableRejection,
         fixableProvider,
         fixableActionKey,
+        fixableAction,
         hasBlockedRejection,
         primaryRejectionMessage,
         primaryRejectionCode,
