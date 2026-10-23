@@ -6,6 +6,7 @@ import {
     formatExtendedNumber,
     generateInviteCodeLink,
     getContributorsFromCharge,
+    getInitialsFromName,
     getRedirectOrigin,
     getRedirectUrl,
     getRequestLink,
@@ -693,6 +694,19 @@ describe('General Utilities', () => {
             endIntentionalLogout()
             saveRedirectUrl()
             expect(getRedirectUrl()).toBe('/profile')
+        })
+    })
+
+    describe('getInitialsFromName', () => {
+        it('takes the first letter of the first two words, or two letters of one word', () => {
+            expect(getInitialsFromName('ana maria lopez')).toBe('AM')
+            expect(getInitialsFromName('  konrad ')).toBe('KO')
+        })
+
+        // An invitee who never finished signup has no username and no name
+        // (TASK-24036): the invites screen must render, not crash.
+        it.each([null, undefined, '', '   '])('returns no initials for a missing name (%p)', (name) => {
+            expect(getInitialsFromName(name)).toBe('')
         })
     })
 })
