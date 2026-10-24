@@ -800,38 +800,26 @@ export default function WithdrawCryptoPage() {
     // selectedMethod here made the root amount guard bounce that back-nav to
     // method selection instead of the amount step (Chip review, PR #2917).
     // Leaving /withdraw entirely unmounts the provider, which clears the rest.
-    useEffect(() => {
-        return () => {
-            resetRouteCalculation()
-            resetPaymentRecorder()
-            resetTokenContextProvider() // reset token selector context to make sure previously selected token is not cached
-            setWithdrawData(null)
-            setChargeDetails(null)
-            setTransactionHash(null)
-            setPaymentDetails(null)
-            setRecipient({ address: '', name: '' })
-            setIsValidRecipient(false)
-            setScannedRecipient(null)
-            setPaymentError(null)
-            setWithdrawError({ showError: false, errorMessage: '' })
-            setShowCompatibilityModal(false)
-        }
-    }, [
-        resetRouteCalculation,
-        resetPaymentRecorder,
-        resetTokenContextProvider,
-        setWithdrawData,
-        setChargeDetails,
-        setTransactionHash,
-        setPaymentDetails,
-        setRecipient,
-        setIsValidRecipient,
-        setScannedRecipient,
-        setPaymentError,
-        setWithdrawError,
-        setShowCompatibilityModal,
-    ])
-
+    // The reset reads the latest callbacks from a ref: some change identity
+    // while mounted (resetTokenContextProvider follows wallet readiness), and a
+    // cleanup keyed on them wiped the typed recipient mid-flow.
+    const resetOnUnmountRef = useRef<() => void>(() => {})
+    resetOnUnmountRef.current = () => {
+        resetRouteCalculation()
+        resetPaymentRecorder()
+        resetTokenContextProvider() // reset token selector context to make sure previously selected token is not cached
+        setWithdrawData(null)
+        setChargeDetails(null)
+        setTransactionHash(null)
+        setPaymentDetails(null)
+        setRecipient({ address: '', name: '' })
+        setIsValidRecipient(false)
+        setScannedRecipient(null)
+        setPaymentError(null)
+        setWithdrawError({ showError: false, errorMessage: '' })
+        setShowCompatibilityModal(false)
+    }
+    useEffect(() => () => resetOnUnmountRef.current(), [])
     // Display payment errors first (user actions), then route errors (system limitations)
     const displayError = paymentError
 

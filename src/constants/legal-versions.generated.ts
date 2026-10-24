@@ -21,24 +21,24 @@ export const LEGAL_DOCUMENT_VERSIONS = {
         hash: 'd0ea9e1b239179c9ca4e5c26badb49506d8453399958ed040f68bb6650fd6e6c',
     },
     'card-terms-international': {
-        version: '2026-07-14',
-        hash: '9eb731e649de21ef8a28fca821f4123d63be55f0765a0843fe42bac31bbbe0bd',
+        version: '2026-10-14',
+        hash: 'bac95e1a8269062e55b80e1863b07d78007ab8624b075d63fde0dfddf3846855',
     },
     'card-terms-us': {
-        version: '2026-10-08',
-        hash: '5401c45fef1b8006355a6fb19d8bedf56c53eb48b73e3f9d2afb4eb70daa7c8d',
+        version: '2026-10-14',
+        hash: '64ac0c8c4be3b19eb3a2b72c42fa4fb903ba3fab7bad3682683eea48b58dd24d',
     },
     privacy: {
-        version: '2026-09-29',
-        hash: 'db3eb7845bf56d187bc2052ce352274ca6cf5263d7e83cecc05ebbf017b68b5c',
+        version: '2026-10-14',
+        hash: '57ba41eb58acc48927ba40d2e5500f9e45a3b9b390b908d35a355108b31bc933',
     },
     'real-time-funding-terms': {
         version: '2026-09-29',
         hash: '59e2db2c52e64fcd5f92587203f671a97d687b204f621dc4590635d6c37eeb27',
     },
     terms: {
-        version: '2026-09-26',
-        hash: '1098bda28be7baf5a438ae18b095a938e4c9e090b838d59727432fdc9255a3aa',
+        version: '2026-10-14',
+        hash: '20e206a91544a89accabee527efa5f1c014ae16e75cae58bb5c154436d58a266',
     },
 } as const
 

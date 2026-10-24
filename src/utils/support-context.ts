@@ -17,7 +17,7 @@
 
 import { formatUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { computeDisplaySpendable, isRainBalanceKnown, rainCentsToUsdcUnits } from '@/utils/balance.utils'
+import { computeAvailableSpendable, isRainBalanceKnown, rainCentsToUsdcUnits } from '@/utils/balance.utils'
 import { formatCurrency } from '@/utils/general.utils'
 import {
     ARBISCAN_ADDRESS_BASE_URL,
@@ -70,11 +70,7 @@ export function buildBalanceSummary(
 
     if (!walletKnown || !cardKnown) return `${halves} — total unknown`
 
-    const total = computeDisplaySpendable(
-        smartBalance,
-        spendingPower,
-        rainOverview?.balance?.inTransitToCollateralCents
-    )
+    const total = computeAvailableSpendable(smartBalance, spendingPower)
     return `${usd(total)} spendable (${halves})`
 }
 
