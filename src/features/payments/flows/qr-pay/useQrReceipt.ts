@@ -22,7 +22,7 @@ export function useQrReceipt() {
             // `externalId` is UUID-shaped, so it slips past the
             // id-shape gate and 404s silently instead of erroring.
             id: qrPayment.id,
-            direction: 'qr_payment',
+            direction: pixKeyOwner ? 'send' : 'qr_payment',
             userName: counterparty,
             fullName: counterparty,
             nameDetail: pixKeyOwner && pixKeyLabel ? formatBrTaxId(pixKeyLabel) : undefined,
