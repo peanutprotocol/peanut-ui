@@ -264,6 +264,26 @@ describe('useSumsubKycFlow — cross-region routing', () => {
     })
 })
 
+describe('useSumsubKycFlow — a user the API keeps on Smart Paperwork Verification', () => {
+    beforeEach(() => {
+        mockInitiate.mockReset()
+        mockRouterPush.mockReset()
+    })
+
+    it('the initiate refusal sends the user to /verify instead of showing an error', async () => {
+        mockInitiate.mockResolvedValue({ code: 'paperwork_verification_required', error: 'Continue in the app' })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU')
+        })
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/verify')
+        expect(result.current.error).toBeNull()
+        expect(result.current.showWrapper).toBe(false)
+    })
+})
+
 describe('useSumsubKycFlow — targetCountry gating', () => {
     beforeEach(() => {
         mockInitiate.mockReset()

@@ -4,6 +4,7 @@ import {
     type VerificationActionSession,
 } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
+import { paperworkVerificationHeaders } from '@/features/paperwork-verification/paperworkVerificationHeaders'
 import type { paths } from '@/types/api.generated'
 import type { KycDocumentConfig, KycReplacementChoices } from './types/kyc-workflow.types'
 
@@ -16,6 +17,8 @@ import type { KycDocumentConfig, KycReplacementChoices } from './types/kyc-workf
  */
 export type SumsubActionErrorCode =
     | 'feature_selection_required'
+    // the user is on Smart Paperwork Verification: /verify starts their check, never this route
+    | 'paperwork_verification_required'
     // Permanent refusals the backend names in its `error` field. A retry sends
     // the identical request and gets the identical answer, so callers must
     // suppress their retry CTA on these.
@@ -121,11 +124,22 @@ export const initiateSumsubKyc = async (params?: {
         const response = await serverFetch('/users/identity', {
             method: 'POST',
             body: JSON.stringify(body),
+            // lets the API refuse today's start to a user it put on Smart Paperwork Verification
+            headers: paperworkVerificationHeaders(),
         })
 
         const responseJson = await response.json()
 
         if (!response.ok) {
+            if (
+                response.status === 409 &&
+                (responseJson.code ?? responseJson.error) === 'paperwork_verification_required'
+            ) {
+                return {
+                    code: 'paperwork_verification_required',
+                    error: responseJson.userMessage || 'Continue your verification in the app',
+                }
+            }
             if (response.status === 409 && (responseJson.code ?? responseJson.error) === 'feature_selection_required') {
                 return {
                     code: 'feature_selection_required',

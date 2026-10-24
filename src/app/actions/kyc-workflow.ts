@@ -1,5 +1,7 @@
+import posthog from 'posthog-js'
 import type { SumsubKycStatus } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { paperworkVerificationHeaders } from '@/features/paperwork-verification/paperworkVerificationHeaders'
 import { providerRefusalsOf, type SetupRefusals } from '@/utils/kyc-setup-status.utils'
 import { restartIdentityVerification, type SumsubActionErrorCode } from './sumsub'
@@ -23,21 +25,61 @@ async function read<T>(path: string, options?: RequestInit): Promise<T> {
         throw Object.assign(new Error('KYC request failed'), {
             code: body?.code ?? body?.error,
             feature: body?.feature,
+            status: response.status,
         })
     }
     return response.json() as Promise<T>
 }
+const INVALID_PLAN = 'invalid_plan'
+
 export async function getKycDocumentPlan(restart = false): Promise<KycDocumentPlan> {
     const plan = await read<KycDocumentPlan>(`/users/kyc/plan${restart ? '?restart=true' : ''}`)
-    if (typeof plan.available !== 'boolean' || !Array.isArray(plan.routes)) throw new Error('Invalid KYC plan')
+    if (typeof plan.available !== 'boolean' || !Array.isArray(plan.routes))
+        throw Object.assign(new Error('Invalid KYC plan'), { code: INVALID_PLAN })
     return plan
 }
-/** No plan means the legacy flow: an API without the route, a rollback or a failed read must not block KYC. */
-export async function findKycDocumentPlan(): Promise<KycDocumentPlan | null> {
-    try {
-        return await getKycDocumentPlan()
-    } catch {
-        return null
+
+/** Waits before the 2nd and 3rd tries: Android WebView GETs fail intermittently (POSTs do not). */
+export const KYC_PLAN_RETRY_DELAYS_MS = [400, 1200]
+
+/** Where a plan read came from, for the failure event. */
+export type KycPlanReadSource = 'home' | 'verify' | 'initiate' | 'status-sync'
+
+/** The plan could not be read, so nothing says which flow the user is on. */
+export class KycPlanUnavailableError extends Error {
+    constructor(
+        readonly attempts: number,
+        readonly status: number | undefined
+    ) {
+        super('KYC plan unavailable')
+    }
+}
+
+/**
+ * The plan, or null when the API has none to give: no plan route (an older
+ * API, a rollback) or a body in another contract. Both mean today's flow.
+ *
+ * A read that keeps failing THROWS instead. Guessing today's flow there starts
+ * a legacy applicant for a Smart Paperwork Verification user, and that applicant
+ * shuts them out of the new flow for good.
+ */
+export async function findKycDocumentPlan(source?: KycPlanReadSource): Promise<KycDocumentPlan | null> {
+    for (let attempt = 1; ; attempt++) {
+        try {
+            return await getKycDocumentPlan()
+        } catch (error) {
+            const { status, code } = error as { status?: number; code?: string }
+            if (status === 404 || code === INVALID_PLAN) return null
+            if (attempt > KYC_PLAN_RETRY_DELAYS_MS.length) {
+                posthog.capture(ANALYTICS_EVENTS.KYC_PV_PLAN_FAILED, {
+                    attempts: attempt,
+                    http_status: status ?? null,
+                    source: source ?? null,
+                })
+                throw new KycPlanUnavailableError(attempt, status)
+            }
+            await new Promise((resolve) => setTimeout(resolve, KYC_PLAN_RETRY_DELAYS_MS[attempt - 1]))
+        }
     }
 }
 export function validSession(value: KycAttemptSession, documentRequired = true): KycAttemptSession {

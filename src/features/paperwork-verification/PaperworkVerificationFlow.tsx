@@ -88,7 +88,8 @@ export function PaperworkVerificationFlow() {
         try {
             const [questions, plan, status] = await Promise.all([
                 getKycQuestions(),
-                findKycDocumentPlan(),
+                // a plan that cannot be read throws: the retry screen, not Home
+                findKycDocumentPlan('verify'),
                 getKycDocumentStatus().catch(() => undefined),
             ])
             // A stale link or a user the server keeps on today's flow: that flow starts from Home.
@@ -297,10 +298,12 @@ function PaperworkVerificationSteps({
         if (!approved || step !== 'review' || approvalHandled.current) return
         approvalHandled.current = true
         void fetchUser()
-        void findKycDocumentPlan().then((fresh) => {
-            if (fresh) setPlan(fresh)
-            void stepper.goTo(fresh?.proofOfAddress === 'suggested' ? 'address-proof' : 'verified')
-        })
+        void findKycDocumentPlan()
+            .catch(() => null)
+            .then((fresh) => {
+                if (fresh) setPlan(fresh)
+                void stepper.goTo(fresh?.proofOfAddress === 'suggested' ? 'address-proof' : 'verified')
+            })
     }, [approved, step, fetchUser, stepper])
 
     const tracking = useMemo<PaperworkVerificationTrackingContext>(

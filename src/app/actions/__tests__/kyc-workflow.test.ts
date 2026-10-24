@@ -1,7 +1,14 @@
-import { resumeKycDocumentAttempt, startKycDocumentReplacement } from '@/app/actions/kyc-workflow'
+import {
+    findKycDocumentPlan,
+    KycPlanUnavailableError,
+    resumeKycDocumentAttempt,
+    startKycDocumentReplacement,
+} from '@/app/actions/kyc-workflow'
 import { serverFetch } from '@/utils/api-fetch'
+import posthog from 'posthog-js'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 const mockFetch = serverFetch as jest.MockedFunction<typeof serverFetch>
 
 const session = {
@@ -21,6 +28,67 @@ const notJson = (status: number) =>
     }) as unknown as Response
 
 beforeEach(() => mockFetch.mockReset())
+
+// APK #4: Android WebView GETs fail intermittently, and a failed plan read used
+// to read as "today's flow", which opened a legacy applicant for a Smart
+// Paperwork Verification user and shut them out of it.
+describe('findKycDocumentPlan', () => {
+    const plan = { available: true, routes: [], flow: 'verify-once', features: {} }
+    const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as unknown as Response
+    const status = (code: number) => ({ ok: false, status: code, json: async () => ({}) }) as unknown as Response
+    const read = async (source?: Parameters<typeof findKycDocumentPlan>[0]) => {
+        const result = findKycDocumentPlan(source)
+        result.catch(() => {})
+        await jest.runAllTimersAsync()
+        return result
+    }
+
+    beforeEach(() => {
+        jest.useFakeTimers()
+        jest.mocked(posthog.capture).mockClear()
+    })
+    afterEach(() => jest.useRealTimers())
+
+    it('retries a failed read and returns the plan', async () => {
+        mockFetch
+            .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+            .mockResolvedValueOnce(status(502))
+            .mockResolvedValueOnce(ok(plan))
+
+        await expect(read()).resolves.toEqual(plan)
+        expect(mockFetch).toHaveBeenCalledTimes(3)
+        expect(posthog.capture).not.toHaveBeenCalled()
+
+        // an API with no plan route is today's flow, and is not retried
+        mockFetch.mockReset().mockResolvedValue(status(404))
+        await expect(read()).resolves.toBeNull()
+        expect(mockFetch).toHaveBeenCalledTimes(1)
+    })
+
+    it('throws when every try fails, and tracks it once with the tries and the status', async () => {
+        mockFetch.mockResolvedValue(status(503))
+
+        await expect(read('home')).rejects.toBeInstanceOf(KycPlanUnavailableError)
+        expect(mockFetch).toHaveBeenCalledTimes(3)
+        expect(posthog.capture).toHaveBeenCalledTimes(1)
+        expect(posthog.capture).toHaveBeenCalledWith('kyc_paperwork_plan_failed', {
+            attempts: 3,
+            http_status: 503,
+            source: 'home',
+        })
+    })
+
+    it('a request that never got a response reports no status', async () => {
+        mockFetch.mockRejectedValue(new TypeError('Failed to fetch'))
+
+        await expect(read('initiate')).rejects.toMatchObject({ attempts: 3, status: undefined })
+        expect(posthog.capture).toHaveBeenCalledWith('kyc_paperwork_plan_failed', {
+            attempts: 3,
+            http_status: null,
+            source: 'initiate',
+        })
+    })
+})
 
 describe('resumeKycDocumentAttempt', () => {
     it('returns the refreshed session', async () => {

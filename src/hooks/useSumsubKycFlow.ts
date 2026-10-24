@@ -342,7 +342,8 @@ export const useSumsubKycFlow = ({
         const fetchCurrentStatus = async () => {
             try {
                 // a status initiate would open a legacy applicant for a user Smart Paperwork Verification still has to ask
-                if ((await findKycDocumentPlan())?.flow === PAPERWORK_VERIFICATION_FLOW) return
+                // (an unreadable plan throws, so the status initiate is skipped then too)
+                if ((await findKycDocumentPlan('status-sync'))?.flow === PAPERWORK_VERIFICATION_FLOW) return
                 const response = await initiateSumsubKyc({ regionIntent })
                 if (response.data?.status && !initiatingRef.current && !showWrapperRef.current) {
                     setLiveKycStatus(response.data.status)
@@ -426,7 +427,7 @@ export const useSumsubKycFlow = ({
     const handleDocumentConflict = useCallback(
         async (error: unknown, knownPlan?: KycDocumentPlan | null) => {
             if ((error as { code?: string } | null)?.code !== 'document_required') return false
-            const plan = knownPlan ?? (await findKycDocumentPlan())
+            const plan = knownPlan ?? (await findKycDocumentPlan().catch(() => null))
             if (plan?.flow !== PAPERWORK_VERIFICATION_FLOW) return false
             userInitiatedRef.current = false
             documentAttemptRef.current = null
@@ -484,7 +485,16 @@ export const useSumsubKycFlow = ({
 
             try {
                 if (!correctSession && !levelName) {
-                    plan = await findKycDocumentPlan()
+                    try {
+                        plan = await findKycDocumentPlan('initiate')
+                    } catch {
+                        // Unknown flow: today's start would open a legacy applicant,
+                        // which shuts a Smart Paperwork Verification user out for good.
+                        userInitiatedRef.current = false
+                        if (crossRegion) prevStatusRef.current = savedPrevStatus
+                        setError(t('errorInitiateFailed'))
+                        return false
+                    }
                     // Smart Paperwork Verification users answer Peanut's questions on /verify before any document.
                     const paperworkVerificationPath = await paperworkVerificationRoute(
                         plan,
@@ -522,10 +532,17 @@ export const useSumsubKycFlow = ({
                     correctSession,
                 })
 
+                if (response.code === 'paperwork_verification_required') {
+                    userInitiatedRef.current = false
+                    if (crossRegion) prevStatusRef.current = savedPrevStatus
+                    router.push('/verify')
+                    return false
+                }
+
                 if (response.code === 'feature_selection_required') {
                     userInitiatedRef.current = false
                     if (crossRegion) prevStatusRef.current = savedPrevStatus
-                    const latest = await findKycDocumentPlan()
+                    const latest = await findKycDocumentPlan().catch(() => null)
                     if (latest?.flow === PAPERWORK_VERIFICATION_FLOW)
                         router.push(paperworkVerificationFeaturePath('bank'))
                     else setError(actionErrorMessage(response) || t('errorInitiateFailed'))
@@ -846,10 +863,15 @@ export const useSumsubKycFlow = ({
         })
 
         if (response.error || !response.data?.token) {
+            if (response.code === 'paperwork_verification_required') {
+                userInitiatedRef.current = false
+                setShowWrapper(false)
+                router.push('/verify')
+            }
             if (response.code === 'feature_selection_required') {
                 userInitiatedRef.current = false
                 setShowWrapper(false)
-                if ((await findKycDocumentPlan())?.flow === PAPERWORK_VERIFICATION_FLOW)
+                if ((await findKycDocumentPlan().catch(() => null))?.flow === PAPERWORK_VERIFICATION_FLOW)
                     router.push(paperworkVerificationFeaturePath('bank'))
             }
             throw new Error(response.error || 'Failed to refresh token')

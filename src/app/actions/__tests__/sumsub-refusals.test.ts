@@ -36,6 +36,24 @@ const respondWith = (status: number, body: unknown) => {
 
 beforeEach(() => mockFetch.mockReset())
 
+describe('initiateSumsubKyc — Smart Paperwork Verification users', () => {
+    it('asks the API to refuse today\u2019s start to a user on the new flow', async () => {
+        respondWith(200, { token: 't', applicantId: 'a', status: 'NOT_STARTED' })
+        await initiateSumsubKyc({ regionIntent: 'EU' })
+        expect(mockFetch).toHaveBeenCalledWith(
+            '/users/identity',
+            expect.objectContaining({ headers: expect.objectContaining({ 'x-kyc-paperwork-verification': '1' }) })
+        )
+    })
+
+    it('reads the refusal as its own code, so the app can send the user to /verify', async () => {
+        respondWith(409, { error: 'paperwork_verification_required', code: 'paperwork_verification_required' })
+        const result = await initiateSumsubKyc({ regionIntent: 'EU' })
+        expect(result.code).toBe('paperwork_verification_required')
+        expect(result.data).toBeUndefined()
+    })
+})
+
 describe('initiateSumsubKyc — backend refusals', () => {
     it('classifies a permanent Manteca nationality refusal as terminal AND keeps its message', () => {
         return (async () => {
