@@ -3,6 +3,7 @@ import {
     pixKeyOwnerDetails,
     pixKeyToBRCode,
     pixKeyToQrPayUrl,
+    recipientBankNameOf,
     verifiedPixKeyLabel,
 } from '@/utils/pix.utils'
 
@@ -33,6 +34,15 @@ describe('PIX Utilities', () => {
                 expect(result).toContain('5802BR')
                 expect(result).toContain('5303986')
             })
+        })
+
+        // peanut-api-ts `wrappedPixKey` rebuilds this exact code to recognise a key the app wrapped,
+        // and only then sends Manteca the bare key, which returns the owner's bank (TASK-23738).
+        // A change here silently turns that off: change both repos together.
+        it('builds the exact code the API recognises as a wrapped key', () => {
+            expect(pixKeyToBRCode('maria@example.com')).toBe(
+                '00020126390014br.gov.bcb.pix0117maria@example.com5204000053039865802BR5917MARIA@EXAMPLE.COM6009SAO PAULO62070503***6304A7BD'
+            )
         })
 
         describe('BR Codes should be returned as-is', () => {
@@ -207,5 +217,21 @@ describe('defaultPixKeyNickname', () => {
     it('falls back to the first name, cut to fit', () => {
         expect(defaultPixKeyNickname('Arthur de Jesus Lima Alvino')).toBe('Arthur')
         expect(defaultPixKeyNickname('Maximilianogregorio Santos')).toBe('Maximilianogreg')
+    })
+})
+
+describe('recipientBankNameOf', () => {
+    it('names the bank a lock from a bare PIX key carries', () => {
+        expect(recipientBankNameOf({ paymentRecipientBankName: ' NU PAGAMENTOS S.A. ' })).toBe('NU PAGAMENTOS S.A.')
+    })
+
+    // A lock from a BR Code, or one the PIX directory did not answer for, names no bank.
+    it.each([
+        ['no lock', null],
+        ['no bank on the lock', {}],
+        ['an empty bank name', { paymentRecipientBankName: '  ' }],
+        ['a bank name that is not text', { paymentRecipientBankName: 42 }],
+    ])('gives null for %s, so the form shows no bank line', (_label, lock) => {
+        expect(recipientBankNameOf(lock)).toBeNull()
     })
 })

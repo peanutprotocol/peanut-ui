@@ -71,9 +71,9 @@ interface WithdrawConfirmViewProps {
     isFromSendFlow?: boolean
     /** Address-book nickname when the destination is already saved — "To" renders "Nickname · …abcd". */
     toNickname?: string | null
-    /** "Save to address book" prompt, rendered under the recipient card (only when not yet saved). */
+    /** "Save to favorites" prompt, rendered under the recipient card (only when not yet saved). */
     saveAddressPrompt?: React.ReactNode
-    /** Extra gate for the CTA — e.g. "Save to address book" ticked with no nickname yet. */
+    /** Extra gate for the CTA — e.g. "Save to favorites" ticked with no nickname yet. */
     confirmDisabled?: boolean
     /**
      * Funds already left the wallet for this charge and only the bookkeeping

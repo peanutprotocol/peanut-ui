@@ -1265,15 +1265,19 @@ export const FIXTURES: Record<string, Fixture> = {
         fails: ['GET /manteca/prices'],
     },
     // A PIX-key send after the key screen resolved the owner: the owner's name is
-    // the heading, and the key with the masked CPF/CNPJ sits underneath.
+    // the heading, the key with the masked CPF/CNPJ sits underneath, and the bank
+    // the PIX directory names comes last (the API sent Manteca the bare key).
     'qr-pay-pix-key-owner': {
         route: '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&pixKey=maria%40silva.com.br&t=1',
-        about: "PIX-key payment showing the key owner's name, with the key and masked CPF/CNPJ below it.",
+        about: "PIX-key payment showing the key owner's name, with the key, masked CPF/CNPJ and bank below it.",
         waitFor: 'p.text-body-s.ph-mask',
         responses: {
             'POST /manteca/qr-payment/init': {
                 type: 'PIX',
-                paymentRecipientName: 'MARIA@SILVA.COM.BR',
+                paymentRecipientName: 'MARIA DA SILVA',
+                paymentRecipientLegalId: '12*******90',
+                paymentRecipientBankName: 'NU PAGAMENTOS S.A.',
+                paymentRecipientBankCode: '18236120',
                 paymentAsset: 'BRL',
                 paymentAgainst: 'USDC',
                 paymentPrice: '5.5',
@@ -1282,6 +1286,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     // A CPF key is the owner's own tax ID: it shows once, in full, labelled CPF.
+    // Its lock names no bank, as when the API had to send the BR Code.
     'qr-pay-pix-key-cpf': {
         route: '/qr-pay?qrCode=00020126330014br.gov.bcb.pix0111123456789095204000053039865802BR5911123456789096009SAO%20PAULO62070503***63047AC2&type=PIX&pixKey=12345678909&t=1',
         about: 'PIX payment to a CPF key: the owner, then the CPF in full, with no masked copy.',
