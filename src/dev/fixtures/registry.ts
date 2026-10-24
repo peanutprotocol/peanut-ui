@@ -88,6 +88,23 @@ const NAMED_BANK_ACCOUNTS = [
     { ...BANK_ACCOUNTS[1], label: null, lastUsedAt: '2026-06-02T09:00:00.000Z' },
 ]
 
+// A PIX key saved to favorites after a payment, with the bank the PIX directory
+// named (TASK-23738). Offered under Send → Bank, never as a withdrawal.
+const PIX_FAVORITE = {
+    id: 'fixture-pix-favorite-1',
+    userId: 'demo-user',
+    bridgeAccountId: '',
+    type: 'manteca',
+    identifier: 'maria@silva.com.br',
+    label: 'Maria',
+    lastUsedAt: '2026-08-20T09:00:00.000Z',
+    details: { bankName: 'NU PAGAMENTOS S.A.', accountOwnerName: '', countryCode: 'BRA', countryName: 'brazil' },
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    chainId: null,
+    isPixRecipient: true,
+}
+
 // The activity list is not only transactions: it also injects a row per badge
 // in `user.badges` and one identity-verification row. An empty state needs all
 // three cleared, or "no transactions" still renders four rows.
@@ -1343,6 +1360,14 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             'GET /users/history': { entries: [CARD_SPEND_ENTRY, ...EARLIER_CARD_SPENDS], hasMore: false },
             'GET /users/me': { user: { badges: [] } },
+        },
+    },
+    // Send → Bank with a PIX key saved to favorites: the key's row names its bank.
+    'send-bank-pix-favorite': {
+        route: '/withdraw?method=bank',
+        about: 'Send to a bank account, with a PIX key saved to favorites that shows its bank.',
+        responses: {
+            'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS, PIX_FAVORITE] },
         },
     },
     // Named bank accounts beside the named address book: destinationLabel on

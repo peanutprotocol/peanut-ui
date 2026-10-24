@@ -167,9 +167,15 @@ export function SavedAccountsMapping({
                         title={destinationLabel(destination)}
                         truncate
                         body={
-                            recipientBankName
-                                ? `${destination.identifier} · ${recipientBankName}`
-                                : destination.identifier
+                            recipientBankName ? (
+                                // the key, then the bank on its own line, so neither is cut mid-name
+                                <>
+                                    <span className="block truncate">{destination.identifier}</span>
+                                    <span className="block break-words">{recipientBankName}</span>
+                                </>
+                            ) : (
+                                destination.identifier
+                            )
                         }
                         position="solo"
                         onClick={() => onItemClick(account, path)}

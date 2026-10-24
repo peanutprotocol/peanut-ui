@@ -1,6 +1,6 @@
 /**
  * A PIX key saved to favorites after a payment keeps the bank the PIX directory
- * named, and its row shows it after the key (TASK-23738). Other saved accounts
+ * named, and its row shows it under the key (TASK-23738). Other saved accounts
  * keep their rows as they were.
  */
 import { render, screen } from '@testing-library/react'
@@ -28,9 +28,10 @@ const renderRows = (accounts: Account[]) =>
     render(<SavedAccountsMapping accounts={accounts} onItemClick={() => {}} />, { wrapper: IntlWrapper })
 
 describe('SavedAccountsMapping — the bank of a saved PIX key', () => {
-    it('shows the bank after the key', () => {
+    it('shows the bank on its own line under the key', () => {
         renderRows([pixKey()])
-        expect(screen.getByText('maria@silva.com.br · NU PAGAMENTOS S.A.')).toBeInTheDocument()
+        expect(screen.getByText('maria@silva.com.br')).toBeInTheDocument()
+        expect(screen.getByText('NU PAGAMENTOS S.A.')).toBeInTheDocument()
     })
 
     it('shows the key alone when no bank was kept', () => {
