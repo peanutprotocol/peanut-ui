@@ -57,6 +57,17 @@ describe('InitiateKycModal — gate kinds', () => {
         expect(onVerify).toHaveBeenCalled()
     })
 
+    it('names what the payment partner needs for a rejected imported identity, and offers only support', () => {
+        const onContactSupport = jest.fn()
+        const onVerify = jest.fn()
+        renderModal({ variant: 'blocked', reasonCode: 'imported_identity_rejected', onContactSupport, onVerify })
+
+        expect(screen.getByText(/needs? a current government ID/)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+        expect(onContactSupport).toHaveBeenCalled()
+        expect(onVerify).not.toHaveBeenCalled()
+    })
+
     it('explains a duplicate account in its own words and offers support', () => {
         const onContactSupport = jest.fn()
         const onVerify = jest.fn()

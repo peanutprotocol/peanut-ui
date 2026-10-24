@@ -460,6 +460,28 @@ describe('useBridgeBankFlow', () => {
             expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
         })
 
+        it('a rejected imported identity opens support naming that case, and never verification', async () => {
+            mockGate = {
+                kind: 'blocked-rejection',
+                userMessage: null,
+                reason: {
+                    code: 'imported_identity_rejected',
+                    userMessage: "Our banking partner couldn't verify the ID from your earlier verification.",
+                    details: 'Bridge asks: government_id_verification_failed',
+                },
+            }
+            const { result } = renderFlow('?step=verify')
+
+            await act(async () => result.current.handleVerify())
+            act(() => result.current.handleContactSupport())
+
+            expectNoVerificationStarted()
+            const message = mockOpenSupportWithMessage.mock.calls[0][0] as string
+            expect(message).toContain('initiate.supportMessageImportedIdentity')
+            expect(message).toContain('reason: imported_identity_rejected')
+            expect(message).toContain('Bridge asks: government_id_verification_failed')
+        })
+
         it("a fixable rejection naming Bridge's hosted check opens that check, not a resubmit", async () => {
             mockGate = {
                 kind: 'fixable-rejection',

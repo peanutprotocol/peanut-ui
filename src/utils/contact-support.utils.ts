@@ -13,7 +13,7 @@
  * context that the agent can copy/paste into their ops tooling.
  */
 import type { CapabilityReason } from '@/types/capabilities'
-import { DUPLICATE_ACCOUNT_REASON_CODE } from '@/utils/capability-gate'
+import { SUPPORT_CASE_REASON_CODES, type SupportCase } from '@/utils/capability-gate'
 
 export function buildContactSupportMessage(args: {
     reason?: CapabilityReason
@@ -35,11 +35,23 @@ export function buildContactSupportMessage(args: {
     return lines.join('\n')
 }
 
+/** The user's own words for each support case (kyc namespace). */
+export const SUPPORT_CASE_MESSAGE_KEYS = {
+    'duplicate-account': 'initiate.supportMessageDuplicateAccount',
+    'imported-identity': 'initiate.supportMessageImportedIdentity',
+} as const satisfies Record<SupportCase, string>
+
 /**
- * The prefill for an account whose email belongs to another Peanut account.
- * The reason code tells support to find both accounts, rather than reason about
- * the one this chat comes from.
+ * The prefill for a block only support can lift. The reason code names the
+ * case, so the agent looks for both accounts of a duplicate, or at the
+ * imported identity, instead of reasoning about this account alone.
  */
-export function buildDuplicateAccountSupportMessage(userMessage: string, reason?: CapabilityReason): string {
-    return buildContactSupportMessage({ reason: { ...reason, code: DUPLICATE_ACCOUNT_REASON_CODE, userMessage } })
+export function buildSupportCaseMessage(
+    supportCase: SupportCase,
+    userMessage: string,
+    reason?: Partial<CapabilityReason>
+): string {
+    return buildContactSupportMessage({
+        reason: { ...reason, code: SUPPORT_CASE_REASON_CODES[supportCase], userMessage },
+    })
 }

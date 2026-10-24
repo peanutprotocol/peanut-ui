@@ -2973,6 +2973,7 @@
             "ctaAnswerQuestions": "Responder preguntas",
             "ctaRetakeId": "Volver a fotografiar el documento",
             "supportMessageDuplicateAccount": "¡Hola! Mi verificación está bloqueada porque mi correo ya está vinculado a otra cuenta de Peanut. ¿Me ayudan a resolver qué cuenta conservar?",
+            "supportMessageImportedIdentity": "¡Hola! Mis transferencias bancarias están bloqueadas porque el socio de pagos no pudo verificar el documento de mi verificación anterior. ¿Me ayudan a enviarle un documento vigente?",
             "descriptionRetakeId": "Nuestro socio de pagos necesita una foto nueva y clara de tu documento de identidad. Usa un documento vigente y que se vea completo."
         },
         "regionRestricted": {
@@ -3843,6 +3844,7 @@
             "bridge_terminal_rejection": "Nuestro socio de pagos no aprobó las transferencias bancarias para esta cuenta, y Peanut no puede cambiar esa decisión. Tus fondos en Peanut no se ven afectados. Si crees que es un error, escribe a soporte.",
             "duplicate_customer_detected": "Nuestro socio de pagos marcó tu cuenta como posible duplicado. Escríbele a soporte para verificarla y desbloquearla.",
             "duplicate_account": "Tu correo ya está vinculado a otra cuenta de Peanut, así que no podemos terminar de configurar esta. Si la otra cuenta es tuya, inicia sesión en ella. Si no, contacta a soporte y lo resolvemos.",
+            "imported_identity_rejected": "Nuestro socio de pagos no pudo verificar el documento de tu verificación anterior. Necesita un documento de identidad oficial vigente y puede pedirte también un comprobante de domicilio. Escríbele a soporte y nos encargamos del resto.",
             "region_block": "Las tarjetas Peanut todavía no están disponibles en tu región.",
             "compliance_block": "No pudimos aprobar tu solicitud de tarjeta después de una revisión de cumplimiento.",
             "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escríbele a soporte si crees que es un error.",

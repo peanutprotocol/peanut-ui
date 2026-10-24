@@ -18,7 +18,12 @@ import GettingStartedChecklist from '@/components/Home/GettingStartedChecklist'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { REGION_RESTRICTED_CTA_HREF } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useAuth } from '@/context/authContext'
-import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+import {
+    buildContactSupportMessage,
+    buildSupportCaseMessage,
+    SUPPORT_CASE_MESSAGE_KEYS,
+} from '@/utils/contact-support.utils'
+import { supportCaseOf } from '@/utils/capability-gate'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useProviderRejection } from '@/hooks/useProviderRejection'
@@ -80,6 +85,9 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
     // Known reason codes render localized identity.reasons.* copy; unknown
     // codes keep the backend's display-ready prose as fallback.
     const primaryRejectionReasonKey = reasonCodeKey(primaryRejectionCode)
+    // an identity held on a block only support lifts names it, here and in the prefill
+    const identitySupportCase = supportCaseOf(identity.reason?.code)
+    const identitySupportCaseKey = identitySupportCase ? reasonCodeKey(identity.reason?.code) : undefined
     const localizedRejectionMessage = primaryRejectionReasonKey
         ? tIdentity(primaryRejectionReasonKey)
         : primaryRejectionMessage
@@ -149,7 +157,9 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
             return {
                 bubble: { icon: 'globe-lock', color: 'blue' },
                 title: t('verificationIssue.title'),
-                description: t('verificationIssue.description'),
+                description: identitySupportCaseKey
+                    ? tIdentity(identitySupportCaseKey)
+                    : t('verificationIssue.description'),
                 ctaLabel: t('verificationIssue.cta'),
                 href: '', // handled in onClick
             }
@@ -211,6 +221,8 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
         return null
     }, [
         t,
+        tIdentity,
+        identitySupportCaseKey,
         hasIdentityFailure,
         hasProviderRejection,
         hasFixableRejection,
@@ -277,7 +289,16 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
                             router.push(REGION_RESTRICTED_CTA_HREF)
                         } else if (hasIdentityFailure) {
                             openSupportWithMessage(
-                                buildContactSupportMessage({ reason: identity.reason, userId: user?.user?.userId })
+                                identitySupportCase
+                                    ? buildSupportCaseMessage(
+                                          identitySupportCase,
+                                          tKyc(SUPPORT_CASE_MESSAGE_KEYS[identitySupportCase]),
+                                          identity.reason
+                                      )
+                                    : buildContactSupportMessage({
+                                          reason: identity.reason,
+                                          userId: user?.user?.userId,
+                                      })
                             )
                         } else if (isEmailBlocked) {
                             setShowProvideEmail(true)

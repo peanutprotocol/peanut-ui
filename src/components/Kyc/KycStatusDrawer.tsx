@@ -12,7 +12,9 @@ import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useAuth } from '@/context/authContext'
-import { buildDuplicateAccountSupportMessage } from '@/utils/contact-support.utils'
+import { buildSupportCaseMessage, SUPPORT_CASE_MESSAGE_KEYS } from '@/utils/contact-support.utils'
+import { supportCaseOf } from '@/utils/capability-gate'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 
 interface KycStatusDrawerProps {
     isOpen: boolean
@@ -30,7 +32,19 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
         useIdentityVerification()
     const { logoutUser, user } = useAuth()
     const t = useTranslations('kyc')
+    const tIdentity = useTranslations('identity')
     const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
+
+    // A block only support lifts gets a prefill naming it, so the agent looks
+    // past this one account (TASK-24046).
+    const supportCase = isEmailCollision ? 'duplicate-account' : supportCaseOf(identity.reason?.code)
+    const supportCaseReasonKey = supportCase ? reasonCodeKey(identity.reason?.code) : undefined
+    const contactSupport = () =>
+        supportCase
+            ? openSupportWithMessage(
+                  buildSupportCaseMessage(supportCase, t(SUPPORT_CASE_MESSAGE_KEYS[supportCase]), identity.reason)
+              )
+            : setIsSupportModalOpen(true)
 
     // close drawer and release the keep-mounted hold
     const handleFlowDone = useCallback(() => {
@@ -95,7 +109,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
                             reviewedAt={identity.reviewedAt}
                             onRetry={resumeKyc}
                             isTerminal
-                            onContactSupport={() => setIsSupportModalOpen(true)}
+                            onContactSupport={contactSupport}
                         />
                     )
                 }
@@ -106,13 +120,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
                         actionMessage={identity.actionMessage}
                         rejectLabels={identity.rejectLabels}
                         isEmailCollision={isEmailCollision}
-                        onContactSupport={() =>
-                            isEmailCollision
-                                ? openSupportWithMessage(
-                                      buildDuplicateAccountSupportMessage(t('initiate.supportMessageDuplicateAccount'))
-                                  )
-                                : setIsSupportModalOpen(true)
-                        }
+                        onContactSupport={contactSupport}
                         onLogOut={() => {
                             onClose()
                             void logoutUser()
@@ -133,7 +141,8 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
                         onRetry={resumeKyc}
                         isLoading={sumsubFlow.isLoading}
                         isTerminal={isTerminalFailure}
-                        onContactSupport={() => setIsSupportModalOpen(true)}
+                        onContactSupport={contactSupport}
+                        terminalMessage={supportCaseReasonKey && tIdentity(supportCaseReasonKey)}
                     />
                 )
             default:

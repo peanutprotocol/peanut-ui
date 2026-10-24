@@ -48,6 +48,8 @@ export const REASON_CODE_KEYS = {
     duplicate_customer_detected: 'reasons.duplicate_customer_detected',
     // this account's email belongs to another Peanut account; only support can move or merge them
     duplicate_account: 'reasons.duplicate_account',
+    // an identity imported from Bridge that Peanut never reviewed and Bridge has rejected; support collects the new ID
+    imported_identity_rejected: 'reasons.imported_identity_rejected',
     // Rain card rejections
     region_block: 'reasons.region_block',
     compliance_block: 'reasons.compliance_block',

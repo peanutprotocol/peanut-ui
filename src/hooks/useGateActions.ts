@@ -8,8 +8,8 @@ import { ADDITIONAL_VERIFICATION_ROUTE } from '@/constants/kyc.consts'
 import type { KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import type { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { gateRemedy, isDuplicateAccountGate, type GateState } from '@/utils/capability-gate'
-import { buildDuplicateAccountSupportMessage } from '@/utils/contact-support.utils'
+import { gateRemedy, gateSupportCase, type GateState } from '@/utils/capability-gate'
+import { buildSupportCaseMessage, SUPPORT_CASE_MESSAGE_KEYS } from '@/utils/contact-support.utils'
 
 type GateFlow = Pick<
     ReturnType<typeof useMultiPhaseKycFlow>,
@@ -68,12 +68,13 @@ export function useGateActions(flow: GateFlow) {
 
     const contactSupport = useCallback(
         (gate: GateState) => {
-            if (!isDuplicateAccountGate(gate)) {
+            const supportCase = gateSupportCase(gate)
+            if (!supportCase || gate.kind !== 'blocked-rejection') {
                 setIsSupportModalOpen(true)
                 return
             }
             openSupportWithMessage(
-                buildDuplicateAccountSupportMessage(t('initiate.supportMessageDuplicateAccount'), gate.reason)
+                buildSupportCaseMessage(supportCase, t(SUPPORT_CASE_MESSAGE_KEYS[supportCase]), gate.reason)
             )
         },
         [setIsSupportModalOpen, openSupportWithMessage, t]

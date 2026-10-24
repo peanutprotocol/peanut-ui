@@ -7000,6 +7000,12 @@
                                             },
                                             {
                                                 "enum": [
+                                                    "task_failed"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
                                                     "rejected"
                                                 ],
                                                 "type": "string"
@@ -7467,6 +7473,18 @@
                                             {
                                                 "enum": [
                                                     "exempt"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "manualReview"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "notStarted"
                                                 ],
                                                 "type": "string"
                                             }
@@ -29156,6 +29174,48 @@
                                                     "type": "null"
                                                 }
                                             ]
+                                        },
+                                        "supportLinkedAccounts": {
+                                            "items": {
+                                                "properties": {
+                                                    "relation": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "holds_email"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "blocked_on_email"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "userId": {
+                                                        "type": "string"
+                                                    },
+                                                    "username": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "type": "null"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "userId",
+                                                    "username",
+                                                    "relation"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
                                         }
                                     },
                                     "required": [
@@ -29165,7 +29225,8 @@
                                         "signupPreferences",
                                         "residenceRestrictions",
                                         "residence",
-                                        "depositAccounts"
+                                        "depositAccounts",
+                                        "supportLinkedAccounts"
                                     ],
                                     "type": "object"
                                 }

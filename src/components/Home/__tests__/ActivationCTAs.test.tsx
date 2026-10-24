@@ -260,6 +260,24 @@ describe('ActivationCTAs — an ID check that ended on a final decision', () => 
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
+    // TASK-24046: the import Bridge rejected is named, and support learns which case it is
+    it('a rejected imported identity says what the payment partner needs and prefills its case', () => {
+        mockIdentityReason = {
+            code: 'imported_identity_rejected',
+            userMessage: "Our banking partner couldn't verify the ID from your earlier verification.",
+        }
+        render(<ActivationCTAs onboarding={FAILED} />)
+
+        expect(screen.getByText(/couldn't verify the ID from your earlier verification/)).toBeInTheDocument()
+        expect(screen.queryByText('Contact support for help with your verification.')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('Contact support'))
+        expect(mockOpenSupport).toHaveBeenCalledWith(
+            expect.stringMatching(/^Hi! My bank transfers are blocked[\s\S]*reason: imported_identity_rejected/)
+        )
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+        expect(mockRestartIdentity).not.toHaveBeenCalled()
+    })
+
     it('can be hidden under its own key', () => {
         const onHide = jest.fn()
         render(<ActivationCTAs onboarding={FAILED} onHideBlockedCard={onHide} />)

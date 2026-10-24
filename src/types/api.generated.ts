@@ -3742,7 +3742,7 @@ export interface paths {
                         failedTask?: string;
                         mantecaUserId?: string;
                         rejectionReason?: string;
-                        state: "active" | "onboarding" | "inactive" | "rejected" | "documents_requested" | "documents_rejected" | "documents_accepted";
+                        state: "active" | "onboarding" | "inactive" | "task_failed" | "rejected" | "documents_requested" | "documents_rejected" | "documents_accepted";
                         userId: string;
                     };
                 };
@@ -3998,7 +3998,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         applicationReason?: string;
-                        applicationStatus: "pending" | "needsVerification" | "needsInformation" | "approved" | "denied" | "locked" | "canceled" | "exempt";
+                        applicationStatus: "pending" | "needsVerification" | "needsInformation" | "approved" | "denied" | "locked" | "canceled" | "exempt" | "manualReview" | "notStarted";
                         ensureRail?: boolean;
                         rainUserId?: string;
                         userId?: string;
@@ -14440,6 +14440,11 @@ export interface paths {
                                 fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
                                 paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
                             } | null;
+                            supportLinkedAccounts: {
+                                relation: "holds_email" | "blocked_on_email";
+                                userId: string;
+                                username: string | null;
+                            }[];
                         } & {
                             [key: string]: unknown;
                         };

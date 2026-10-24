@@ -1641,6 +1641,7 @@
             "bridge_terminal_rejection": "Nuestro socio de pagos no aprobó las transferencias bancarias para esta cuenta, y Peanut no puede cambiar esa decisión. Tus fondos en Peanut no se ven afectados. Si creés que es un error, escribile a soporte.",
             "duplicate_customer_detected": "Nuestro socio de pagos marcó tu cuenta como posible duplicado. Escribile a soporte para verificarla y desbloquearla.",
             "duplicate_account": "Tu correo ya está vinculado a otra cuenta de Peanut, así que no podemos terminar de configurar esta. Si la otra cuenta es tuya, iniciá sesión en ella. Si no, contactá a soporte y lo resolvemos.",
+            "imported_identity_rejected": "Nuestro socio de pagos no pudo verificar el documento de tu verificación anterior. Necesita un documento de identidad oficial vigente y puede pedirte también un comprobante de domicilio. Escribile a soporte y nos encargamos del resto.",
             "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escribile a soporte si creés que es un error.",
             "country_not_supported": "Este método necesita un documento de un país compatible. Podés verificarte con otro documento.",
             "manteca_action_expired": "La configuración de tu cuenta bancaria venció. Completá la breve verificación para habilitar depósitos y retiros locales.",

@@ -85,6 +85,42 @@ describe('KycStatusDrawer — action_required', () => {
     })
 })
 
+// TASK-24046: an identity imported from Bridge, never reviewed by Peanut, whose ID
+// Bridge rejected. It must not read verified, and must not offer a retry.
+describe('KycStatusDrawer — a rejected imported identity', () => {
+    it('names the cause, offers no retry, and opens support on its case', () => {
+        mockIdentity = {
+            status: 'failed',
+            identity: {
+                status: 'failed',
+                canRetry: false,
+                actionMessage: "Our banking partner couldn't verify the ID from your earlier verification.",
+                reason: {
+                    code: 'imported_identity_rejected',
+                    userMessage: "Our banking partner couldn't verify the ID from your earlier verification.",
+                    details: 'Bridge asks: government_id_verification_failed',
+                },
+            },
+            isRegionRestricted: false,
+            isTerminalFailure: true,
+            isEmailCollision: false,
+        }
+        render(<KycStatusDrawer isOpen onClose={jest.fn()} />)
+
+        expect(screen.getByTestId('status-failed')).toBeInTheDocument()
+        expect(screen.getByText(/needs? a current government ID/)).toBeInTheDocument()
+        expect(screen.queryByText(/cannot be retried/)).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /retry/i })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+        expect(mockOpenSupportWithMessage).toHaveBeenCalledWith(
+            expect.stringMatching(/reason: imported_identity_rejected[\s\S]*Bridge asks/)
+        )
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+        expect(mockRestartIdentity).not.toHaveBeenCalled()
+    })
+})
+
 // api#1776: an approval with no identity document on file reads action_required.
 // The start route answers "already approved" for it and opens nothing, so the
 // button must restart the identity check.

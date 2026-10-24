@@ -2973,6 +2973,7 @@
             "ctaAnswerQuestions": "Responder perguntas",
             "ctaRetakeId": "Tirar outra foto do documento",
             "supportMessageDuplicateAccount": "Olá! Minha verificação está bloqueada porque meu e-mail já está vinculado a outra conta Peanut. Vocês podem me ajudar a resolver qual conta manter?",
+            "supportMessageImportedIdentity": "Olá! Minhas transferências bancárias estão bloqueadas porque o parceiro de pagamentos não conseguiu verificar o documento da minha verificação anterior. Vocês podem me ajudar a enviar um documento válido?",
             "descriptionRetakeId": "Nosso parceiro de pagamentos precisa de uma foto nova e nítida do seu documento de identidade. Use um documento válido e mostre-o inteiro."
         },
         "regionRestricted": {
@@ -3843,6 +3844,7 @@
             "bridge_terminal_rejection": "Nosso parceiro de pagamentos não aprovou as transferências bancárias para esta conta, e a Peanut não pode mudar essa decisão. Seus fundos na Peanut não são afetados. Se você acha que houve um engano, fale com o suporte.",
             "duplicate_customer_detected": "Nosso parceiro de pagamentos marcou sua conta como possível duplicata. Fale com o suporte para verificar e desbloquear.",
             "duplicate_account": "Seu e-mail já está vinculado a outra conta Peanut, então não conseguimos terminar de configurar esta. Se a outra conta for sua, entre nela. Se não for, fale com o suporte e a gente resolve.",
+            "imported_identity_rejected": "Nosso parceiro de pagamentos não conseguiu verificar o documento da sua verificação anterior. Ele precisa de um documento de identidade oficial válido e pode pedir também um comprovante de endereço. Fale com o suporte e a gente cuida do resto.",
             "region_block": "Os cartões Peanut ainda não estão disponíveis na sua região.",
             "compliance_block": "Não conseguimos aprovar sua solicitação de cartão após uma análise de conformidade.",
             "card_rejected": "Sua solicitação de cartão não pôde ser aprovada. Fale com o suporte se achar que isso é um engano.",

@@ -378,22 +378,51 @@ export interface CapabilityState {
     identityVerified: boolean
     /** True until the user query settles. Holds the gate in 'loading'. */
     isLoading: boolean
-    /** The identity check is held because this account's email belongs to another account. */
-    duplicateAccount?: boolean
+    /** The identity is held on a case only support can resolve ({@link SupportCase}). */
+    identityHold?: CapabilityReason
 }
 
 /**
- * An account whose email belongs to another Peanut account. Neither a new
- * document nor the email sheet can clear it: support moves or merges the
- * accounts. The API names it with this reason code (on a rail or on the
- * identity) or a support action of the same purpose; older APIs only label
- * the identity check `DUPLICATE_EMAIL`.
+ * Blocks only a person can lift, so no verify, restart or email step is ever
+ * offered for them (TASK-24046):
+ *
+ *   duplicate-account — this account's email belongs to another Peanut
+ *                       account; support moves or merges the accounts. Older
+ *                       APIs only label the identity check `DUPLICATE_EMAIL`.
+ *   imported-identity — an identity imported from Bridge that Peanut never
+ *                       reviewed, whose ID Bridge has since rejected.
+ *
+ * The API names each with a reason code (on a rail or on the identity) or a
+ * contact-support action of the matching purpose.
  */
+export type SupportCase = 'duplicate-account' | 'imported-identity'
+
 export const DUPLICATE_ACCOUNT_REASON_CODE = 'duplicate_account'
+export const IMPORTED_IDENTITY_REJECTED_CODE = 'imported_identity_rejected'
+export const SUPPORT_CASE_REASON_CODES: Record<SupportCase, string> = {
+    'duplicate-account': DUPLICATE_ACCOUNT_REASON_CODE,
+    'imported-identity': IMPORTED_IDENTITY_REJECTED_CODE,
+}
+// reason codes and action purposes, `-` read as `_`
+const SUPPORT_CASE_MARKERS: Record<string, SupportCase> = {
+    duplicate_account: 'duplicate-account',
+    imported_identity_rejected: 'imported-identity',
+    imported_identity_review: 'imported-identity',
+}
 const DUPLICATE_EMAIL_LABEL = 'DUPLICATE_EMAIL'
 
-export function isDuplicateAccountMarker(value: string | null | undefined): boolean {
-    return !!value && value.replace(/-/g, '_') === DUPLICATE_ACCOUNT_REASON_CODE
+/** The support case a reason code or action purpose names, if any. */
+export function supportCaseOf(value: string | null | undefined): SupportCase | undefined {
+    return value ? SUPPORT_CASE_MARKERS[value.replace(/-/g, '_')] : undefined
+}
+
+function identityHoldOf(identity: IUserProfile['identityVerification']): CapabilityReason | undefined {
+    if (!identity) return undefined
+    if (identity.reason && supportCaseOf(identity.reason.code)) return identity.reason
+    if (identity.status === 'action_required' && identity.rejectLabels?.includes(DUPLICATE_EMAIL_LABEL)) {
+        return { code: DUPLICATE_ACCOUNT_REASON_CODE, userMessage: identity.actionMessage ?? '' }
+    }
+    return undefined
 }
 
 /**
@@ -408,18 +437,28 @@ export function capabilityStateForProfile(user: IUserProfile | null | undefined,
         nextActions: user?.capabilities?.nextActions ?? [],
         identityVerified: identity?.status === 'verified',
         isLoading,
-        duplicateAccount:
-            isDuplicateAccountMarker(identity?.reason?.code) ||
-            (identity?.status === 'action_required' && !!identity.rejectLabels?.includes(DUPLICATE_EMAIL_LABEL)),
+        identityHold: identityHoldOf(identity),
     }
 }
 
-function isDuplicateAccountCandidate({ rail, verdict }: RailWithVerdict, byKey: Map<string, NextAction>): boolean {
+function railSupportCase({ rail, verdict }: RailWithVerdict, byKey: Map<string, NextAction>): SupportCase | undefined {
     return (
-        isDuplicateAccountMarker(rail.reason?.code) ||
-        isDuplicateAccountMarker(verdict.blocking?.code) ||
-        [verdict.nextAction, ...railActions(rail, byKey)].some((action) => isDuplicateAccountMarker(action?.purpose))
+        supportCaseOf(rail.reason?.code) ??
+        supportCaseOf(verdict.blocking?.code) ??
+        [verdict.nextAction, ...railActions(rail, byKey)].map((action) => supportCaseOf(action?.purpose)).find(Boolean)
     )
+}
+
+function supportCaseGate(
+    supportCase: SupportCase,
+    reason: CapabilityReason | undefined,
+    userMessage: string | null
+): GateState {
+    return {
+        kind: 'blocked-rejection',
+        userMessage,
+        reason: { ...reason, code: SUPPORT_CASE_REASON_CODES[supportCase], userMessage: reason?.userMessage ?? '' },
+    }
 }
 
 /**
@@ -452,9 +491,9 @@ function dueBridgeHostedAction(state: CapabilityState, byKey: Map<string, NextAc
  *                            Hoisted above every blocker so a working rail (e.g. Manteca
  *                            PIX_BR ENABLED) wins over stuck sibling rails — the
  *                            2026-06-01 Alexandre incident guard.
- *  2b. blocked-rejection   — the account's email belongs to another account
- *      (duplicate_account)   ({@link DUPLICATE_ACCOUNT_REASON_CODE}). Above provide-email and
- *                            every verify path: none of them can clear it.
+ *  2b. blocked-rejection   — a rail held on a {@link SupportCase} (duplicate account,
+ *      (support case)        rejected import). Above provide-email, restart and every
+ *                            verify path: none of them can clear it.
  *   3. provide-email       — any verdict with selfHealKind 'provide-email': a USER-level
  *                            fix (one email unblocks every email-blocked rail), so it
  *                            outranks terminal siblings.
@@ -471,6 +510,8 @@ function dueBridgeHostedAction(state: CapabilityState, byKey: Map<string, NextAc
  *                            user sees "we're checking", not a misleading re-verify CTA.
  *  10. needs-identity      — no functional rail in scope AND identity not verified
  *  11. needs-enrollment    — no functional rail in scope BUT identity verified
+ *                            (10/11 read blocked-rejection instead when the identity is held
+ *                            on a support case: verifying again cannot clear it.)
  */
 export function deriveGate(state: CapabilityState, op: RailOperation, scope: GateScope = {}): GateState {
     if (state.isLoading) return { kind: 'loading' }
@@ -491,18 +532,10 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
         return advisory ? { kind: 'ready', advisory } : { kind: 'ready' }
     }
 
-    // 2b. duplicate account
-    const duplicate = candidates.find((candidate) => isDuplicateAccountCandidate(candidate, actionByKey))
-    if (duplicate || state.duplicateAccount) {
-        return {
-            kind: 'blocked-rejection',
-            userMessage: duplicate ? verdictMessage(duplicate) : null,
-            reason: {
-                ...duplicate?.rail.reason,
-                code: DUPLICATE_ACCOUNT_REASON_CODE,
-                userMessage: duplicate?.rail.reason?.userMessage ?? '',
-            },
-        }
+    // 2b. a rail held on a support case
+    for (const candidate of candidates) {
+        const supportCase = railSupportCase(candidate, actionByKey)
+        if (supportCase) return supportCaseGate(supportCase, candidate.rail.reason, verdictMessage(candidate))
     }
 
     // 3. provide-email
@@ -599,6 +632,9 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
 
     // 10/11. no functional rail in scope. Distinguish identity-not-cleared vs
     // identity-cleared-but-no-rail-for-this-scope (needs enrollment / cross-region).
+    // An identity held on a support case would only loop through verification.
+    const identityCase = supportCaseOf(state.identityHold?.code)
+    if (identityCase) return supportCaseGate(identityCase, state.identityHold, state.identityHold?.userMessage || null)
     if (!state.identityVerified) return { kind: 'needs-identity' }
     return { kind: 'needs-enrollment' }
 }
@@ -746,11 +782,9 @@ export function gateRemedy(gate: GateState): GateRemedy {
     }
 }
 
-/** Whether a blocked gate is the duplicate-account case, which support resolves by moving or merging accounts. */
-export function isDuplicateAccountGate(
-    gate: GateState
-): gate is { kind: 'blocked-rejection'; userMessage: string | null; reason: CapabilityReason } {
-    return gate.kind === 'blocked-rejection' && isDuplicateAccountMarker(gate.reason?.code)
+/** The support case behind a blocked gate, if it is one. */
+export function gateSupportCase(gate: GateState): SupportCase | undefined {
+    return gate.kind === 'blocked-rejection' ? supportCaseOf(gate.reason?.code) : undefined
 }
 
 export type DepositStep = 'verify' | 'inputAmount' | 'showDetails'
