@@ -1724,6 +1724,12 @@
         "feedbackBanner": "Ayudanos a mejorar Peanut. Compartí tus comentarios acá.",
         "reConsent": {
             "whatChanged": "Reescribimos los documentos de abajo en lenguaje sencillo para que reflejen lo que Peanut es hoy, incluidas la Peanut Card y las Recompensas. No hay apuro: leelos cuando quieras y seguí usando Peanut como siempre."
+        },
+        "savedAddresses": {
+            "nicknameRequired": "Agregá un nombre para guardar esta dirección."
+        },
+        "savedDestinations": {
+            "editFailed": "No pudimos guardar el nombre. Intentá de nuevo."
         }
     },
     "errors": {

@@ -3824,18 +3824,18 @@
             "cryptoWithdrawDescription": "Withdraw to a wallet or exchange"
         },
         "savedAccounts": {
-            "title": "Saved accounts",
+            "title": "Favorite accounts",
             "bankSectionTitle": "Bank accounts",
             "selectNewMethod": "Select new method",
             "flagAlt": "{country} flag",
             "flagAltGeneric": "Country flag"
         },
         "savedAddresses": {
-            "title": "Crypto address book",
+            "title": "Favorite crypto addresses",
             "lastUsed": "{days, plural, =0 {Used today} =1 {Used yesterday} other {Used # days ago}}",
             "nicknamePlaceholder": "e.g. Binance",
             "deleteCta": "Delete address",
-            "savePrompt": "Save to address book",
+            "savePrompt": "Save to favorites",
             "rowAria": "{name}, {address} on {chain}",
             "nicknameRequired": "Name this address to save it."
         },
