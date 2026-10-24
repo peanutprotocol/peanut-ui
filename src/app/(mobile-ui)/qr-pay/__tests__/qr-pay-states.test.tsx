@@ -9,7 +9,7 @@
  */
 import React from 'react'
 import posthog from 'posthog-js'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import { PAYMENT_LOADING_WORD_KEYS } from '@/components/Global/Loading/words'
@@ -989,6 +989,29 @@ describe('GROUP 2: Payment Form States', () => {
         expect(ownerLine).toHaveClass('ph-mask', 'ph-no-capture')
         expect(screen.getByText('CPF 12*******90')).toHaveClass('whitespace-nowrap')
         expect(mockMantecaApi.getPixKeyOwner).toHaveBeenCalledWith(pixKey)
+    })
+
+    test('PIX-key transfer shows the bank the lock names, kept out of session recordings (TASK-23738)', async () => {
+        setupMantecaPayment({ code: '', paymentRecipientBankName: 'NU PAGAMENTOS S.A.' })
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******90' })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'maria@silva.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        const bankLine = (await screen.findByText('NU PAGAMENTOS S.A.')).closest('p')!
+        expect(bankLine).toHaveClass('ph-mask', 'ph-no-capture')
+        expect(within(bankLine).getByTestId('icon-bank')).toBeInTheDocument()
+    })
+
+    test('a lock that names no bank shows no bank line', async () => {
+        setupMantecaPayment({ code: '' })
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******90' })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'maria@silva.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        await screen.findByText('MARIA DA SILVA')
+        expect(screen.queryByTestId('icon-bank')).not.toBeInTheDocument()
     })
 
     test('a CPF key shows once, in full, instead of the key and its masked copy', async () => {

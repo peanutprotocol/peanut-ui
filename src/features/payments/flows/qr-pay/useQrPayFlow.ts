@@ -608,7 +608,6 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         return pixKeyOwner?.name ?? pixKeyLabel ?? paymentLock.paymentRecipientName
     }, [paymentLock, pixKeyLabel, pixKeyOwner])
 
-    // Most locks name no bank, and the form then shows no bank line.
     const recipientBankName = recipientBankNameOf(paymentLock)
 
     /*
