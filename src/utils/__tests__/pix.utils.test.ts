@@ -36,6 +36,15 @@ describe('PIX Utilities', () => {
             })
         })
 
+        // peanut-api-ts `wrappedPixKey` rebuilds this exact code to recognise a key the app wrapped,
+        // and only then sends Manteca the bare key, which returns the owner's bank (TASK-23738).
+        // A change here silently turns that off: change both repos together.
+        it('builds the exact code the API recognises as a wrapped key', () => {
+            expect(pixKeyToBRCode('maria@example.com')).toBe(
+                '00020126390014br.gov.bcb.pix0117maria@example.com5204000053039865802BR5917MARIA@EXAMPLE.COM6009SAO PAULO62070503***6304A7BD'
+            )
+        })
+
         describe('BR Codes should be returned as-is', () => {
             it.each([
                 [
