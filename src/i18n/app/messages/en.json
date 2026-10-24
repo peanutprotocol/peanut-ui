@@ -2972,6 +2972,7 @@
             "ctaWithdrawFunds": "Withdraw funds",
             "ctaAnswerQuestions": "Answer questions",
             "ctaRetakeId": "Retake ID photo",
+            "supportMessageDuplicateAccount": "Hi! My verification is blocked because my email is already linked to another Peanut account. Can you help me sort out which account to keep?",
             "descriptionRetakeId": "Our payment partner needs a new, clear photo of your ID. Use a valid document and show all of it."
         },
         "regionRestricted": {
@@ -3841,6 +3842,7 @@
             "terminal_rejection": "Verification issue — contact support for help.",
             "bridge_terminal_rejection": "Our payment partner didn't approve bank transfers for this account, and Peanut can't change that decision. Your funds on Peanut are not affected. If you think this is a mistake, message support.",
             "duplicate_customer_detected": "Our payment partner flagged your account as a possible duplicate — message support to verify and unlock.",
+            "duplicate_account": "Your email is already linked to another Peanut account, so we can't finish setting up this one. If the other account is yours, sign in to it. Otherwise, contact support and we'll sort it out.",
             "region_block": "Peanut cards aren't available in your region yet.",
             "compliance_block": "We couldn't approve your card application after a compliance review.",
             "card_rejected": "Your card application couldn't be approved. Message support if you think this is a mistake.",

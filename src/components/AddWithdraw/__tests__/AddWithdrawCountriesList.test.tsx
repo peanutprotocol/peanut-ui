@@ -192,9 +192,12 @@ beforeEach(() => {
     mockShowWrapper = false
     mockDismissCooldown.mockClear()
 })
+const mockHandleInitiateKyc = jest.fn()
+const mockHandleRestartIdentity = jest.fn()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
-        handleInitiateKyc: jest.fn(),
+        handleInitiateKyc: mockHandleInitiateKyc,
+        handleRestartIdentity: mockHandleRestartIdentity,
         handleSelfHealResubmit: jest.fn(),
         isLoading: false,
         error: null,
@@ -308,6 +311,7 @@ jest.mock('@/components/Kyc/InitiateKycModal', () => ({
         props.visible && !props.cooldownActive ? (
             <div data-testid="initiate-kyc-modal" data-variant={props.variant} data-reason={props.reasonCode}>
                 {props.providerMessage}
+                <button data-testid="initiate-kyc-verify" onClick={props.onVerify} />
             </div>
         ) : null,
 }))
@@ -388,6 +392,21 @@ describe('AddWithdrawCountriesList — bank gate', () => {
         })
         expect(mockPush).not.toHaveBeenCalled()
         expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
+    })
+
+    // The list carried its own copy of the dispatch and it had no restart branch,
+    // so "Verify with a different document" started a fresh run instead.
+    it('a restart-identity gate restarts the identity check, never a fresh verification', async () => {
+        setCapabilities('restart-identity', [{ status: 'blocked', channel: 'bank', country: 'US' }])
+
+        render(<AddWithdrawCountriesList flow="add" />)
+        fireEvent.click(screen.getByTestId('method-bank'))
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('initiate-kyc-verify'))
+        })
+
+        expect(mockHandleRestartIdentity).toHaveBeenCalled()
+        expect(mockHandleInitiateKyc).not.toHaveBeenCalled()
     })
 
     // provide-email is a self-serve gate (one email unblocks the rail) — it must

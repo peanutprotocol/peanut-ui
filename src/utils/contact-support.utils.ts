@@ -13,6 +13,7 @@
  * context that the agent can copy/paste into their ops tooling.
  */
 import type { CapabilityReason } from '@/types/capabilities'
+import { DUPLICATE_ACCOUNT_REASON_CODE } from '@/utils/capability-gate'
 
 export function buildContactSupportMessage(args: {
     reason?: CapabilityReason
@@ -32,4 +33,13 @@ export function buildContactSupportMessage(args: {
     if (railId) lines.push(`rail: ${railId}`)
     if (userId) lines.push(`user: ${userId}`)
     return lines.join('\n')
+}
+
+/**
+ * The prefill for an account whose email belongs to another Peanut account.
+ * The reason code tells support to find both accounts, rather than reason about
+ * the one this chat comes from.
+ */
+export function buildDuplicateAccountSupportMessage(userMessage: string, reason?: CapabilityReason): string {
+    return buildContactSupportMessage({ reason: { ...reason, code: DUPLICATE_ACCOUNT_REASON_CODE, userMessage } })
 }

@@ -117,6 +117,8 @@ export const InitiateKycModal = ({
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
+    // the hosted check keeps the words of the Home task that also offers it
+    const tHome = useTranslations('home')
     // Enforced HERE rather than at each call site on purpose. Six gates open this
     // modal (add-money, withdraw, the two bank pages, and both Manteca flow
     // managers), and each one computes its variant from a rail gate that cannot
@@ -160,6 +162,9 @@ export const InitiateKycModal = ({
     // first document rather than a different one, so the reason code picks
     // the title and the button; the description already follows the code.
     const isDocumentMissing = isRestartIdentity && reasonCode === IDENTITY_DOCUMENT_MISSING_CODE
+    // Bridge's own check on its hosted page: no document to upload here, and
+    // the rail's reason (often an ID message) would point at the wrong fix.
+    const isHostedCheck = isProviderRejection && nextAction?.kind === 'bridge-hosted'
     const isCrossRegion = resolvedVariant === 'cross_region'
     const isCountryPayments = resolvedVariant === 'country_payments'
     const router = useRouter()
@@ -173,6 +178,7 @@ export const InitiateKycModal = ({
         if (isBlocked) return t('initiate.titleBlocked')
         if (isDocumentMissing) return t('initiate.titleIdentityDocumentMissing')
         if (isRestartIdentity) return t('initiate.titleRestartIdentity')
+        if (isHostedCheck) return tHome('pendingTasks.verifyTitle')
         if (isProviderRejection) return t('initiate.titleProviderRejection')
         if (isCrossRegion)
             return regionName
@@ -187,6 +193,7 @@ export const InitiateKycModal = ({
         if (isRegionUnavailable) return t('initiate.descriptionRegionUnavailable')
         if (isBankUnavailable) return t('initiate.descriptionBankUnavailable')
         if (isSupplementInReview || slow) return resolvedProviderMessage
+        if (isHostedCheck) return tHome('pendingTasks.verifyDescription')
         if (isProviderRejection && isIdRetake(nextAction)) return t('initiate.descriptionRetakeId')
         if (isBlocked) return resolvedProviderMessage || t('initiate.descriptionBlocked')
         if (isRestartIdentity) return resolvedProviderMessage || t('initiate.descriptionRestartIdentity')
@@ -231,6 +238,9 @@ export const InitiateKycModal = ({
                 onClick: onVerify,
                 icon: 'upload-cloud',
             }
+        }
+        if (isHostedCheck) {
+            return { text: t('continueVerification'), onClick: onVerify, icon: 'check-circle' }
         }
         if (isProviderRejection) {
             return {

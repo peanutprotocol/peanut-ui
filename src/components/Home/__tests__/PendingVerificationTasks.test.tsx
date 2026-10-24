@@ -149,7 +149,7 @@ describe('PendingVerificationTasks', () => {
         mockNextActions = [hostedAction]
         render(<PendingVerificationTasks />)
 
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
+        fireEvent.click(screen.getByRole('button', { name: /continue verification/i }))
         expect(mockRouterPush).toHaveBeenCalledWith('/profile/accounts/additional')
     })
 

@@ -34,7 +34,17 @@ jest.mock('@/hooks/useCapabilities', () => ({
 jest.mock('@/hooks/useTosGuard', () => ({
     useTosGuard: () => ({ guardWithTos: jest.fn(), showBridgeTos: false, hideTos: jest.fn() }),
 }))
-jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
+const mockSetIsSupportModalOpen = jest.fn()
+const mockOpenSupportWithMessage = jest.fn()
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({
+        setIsSupportModalOpen: mockSetIsSupportModalOpen,
+        openSupportWithMessage: mockOpenSupportWithMessage,
+    }),
+}))
+const mockRouterPush = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockRouterPush }) }))
+jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/components/Kyc/BridgeTosStep', () => ({ BridgeTosStep: () => null }))
 jest.mock('@/components/Kyc/ProvideEmailStep', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
@@ -101,6 +111,38 @@ describe('useDepositGateRemediation', () => {
 
         expect(handleFixableGate).toHaveBeenCalledWith('BRIDGE', gate)
         expect(handleSelfHealResubmit).not.toHaveBeenCalled()
+    })
+
+    it("sends Bridge's hosted check to its own screen, not to a resubmit", async () => {
+        const gate = {
+            kind: 'fixable-rejection',
+            userMessage: null,
+            nextAction: { key: 'bridge-hosted', kind: 'bridge-hosted', purpose: 'bridge-additional-verification' },
+        } as GateState
+        await openBannerFor(gate, 'SEPA_EU')
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile/accounts/additional')
+        expect(handleFixableGate).not.toHaveBeenCalled()
+        expect(handleInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('opens support for a duplicate account with a message naming the case', () => {
+        let remediation: Remediation | undefined
+        function Host() {
+            remediation = useDepositGateRemediation()
+            return <>{remediation.modals}</>
+        }
+        render(<Host />)
+        act(() =>
+            remediation!.resolveGate({
+                kind: 'blocked-rejection',
+                userMessage: null,
+                reason: { code: 'duplicate_account', userMessage: '' },
+            })
+        )
+
+        expect(mockOpenSupportWithMessage).toHaveBeenCalledWith(expect.stringContaining('reason: duplicate_account'))
+        expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
     })
 
     it("names the corridor's own provider", async () => {

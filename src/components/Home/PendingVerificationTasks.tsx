@@ -26,6 +26,7 @@ import Card from '../Global/Card'
 import { railVerdict } from '@/utils/capability-gate'
 import { isIdRetake, kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { ADDITIONAL_VERIFICATION_ROUTE } from '@/constants/kyc.consts'
 
 // Currencies whose corridor a hosted-verification task can NAME. The backend
 // sets `NextAction.currency` on the bridge-hosted catch-all; anything outside
@@ -202,7 +203,7 @@ export default function PendingVerificationTasks({
             // in a browser we don't control, and keeps no partial progress — a
             // user who leaves mid-check to find a document restarts from step
             // one. That is a page's worth of prep, and it owns the handoff.
-            router.push('/profile/accounts/additional')
+            router.push(ADDITIONAL_VERIFICATION_ROUTE)
         },
         [router, documentFlow, taskReason]
     )
@@ -357,8 +358,8 @@ export default function PendingVerificationTasks({
                                                         )
                                                       : t('pendingTasks.documentCta')
                                                   : isHosted
-                                                    ? 'Complete verification'
-                                                    : 'Review terms'}
+                                                    ? tKyc('continueVerification')
+                                                    : tKyc('setup.reviewTerms')}
                                         </Button>
                                         {startError && (
                                             <Callout

@@ -31,6 +31,9 @@ export const IDENTITY_REGION_RESTRICTED_CODE = 'identity_region_restricted'
  */
 export const IDENTITY_DOCUMENT_MISSING_CODE = 'identity_document_missing'
 
+/** The "what to expect" screen in front of Bridge's hosted check (AdditionalVerificationView). */
+export const ADDITIONAL_VERIFICATION_ROUTE = '/profile/accounts/additional'
+
 /**
  * Reason code of a QR pool rail the backend paused because the identity
  * evidence behind the approval is gone (peanut-api-ts `QR_IDENTITY_MISSING`,

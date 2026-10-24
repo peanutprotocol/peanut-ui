@@ -85,6 +85,8 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => ({ banking: false }),
 }))
 jest.mock('@/utils/capability-gate', () => ({
+    gateRemedy: (...args: [never]) => jest.requireActual('@/utils/capability-gate').gateRemedy(...args),
+    isDuplicateAccountGate: () => false,
     getKycModalVariant: () => 'needs_kyc',
     getGateUserMessage: () => undefined,
     getGateReasonCode: () => undefined,
@@ -101,6 +103,10 @@ jest.mock('@/components/Kyc/InitiateKycModal', () => ({
         ) : null,
 }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
+jest.mock('@/components/Kyc/KycReverificationPendingModal', () => ({
+    KycReverificationPendingModal: (props: { isOpen: boolean }) =>
+        props.isOpen ? <div data-testid="wait-modal" /> : null,
+}))
 jest.mock('@/components/Kyc/BridgeTosStep', () => ({ BridgeTosStep: () => null }))
 jest.mock('@/components/Claim/Link/views/Confirm.bank-claim.view', () => ({
     ConfirmBankClaimView: (props: any) => (
@@ -152,7 +158,10 @@ jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: (
 jest.mock('@/components/Invites/badge-campaign-context', () => ({ badgeCampaignForLegacyWire: () => undefined }))
 jest.mock('@/services/sendLinks', () => ({ sendLinksApi: {} }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
-jest.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }))
+jest.mock('next/navigation', () => ({
+    useSearchParams: () => new URLSearchParams(),
+    useRouter: () => ({ push: jest.fn() }),
+}))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 
 const claimLinkData: any = {
@@ -243,6 +252,26 @@ test('unlock CTA after a saved Mexico account sends the NA intent, not LATAM', a
 
     expect(mockGateFor).toHaveBeenCalledWith('withdraw', { railId: 'bridge.spei_mx' })
     expect(mockHandleInitiateKyc.mock.calls[0].slice(0, 3)).toEqual(['NA', undefined, true])
+})
+
+// A rail still provisioning has nothing for the user to do; the unlock modal
+// offered a fresh verification instead.
+test('a pending rail shows the wait, never the unlock modal', async () => {
+    mockGateFor.mockReturnValue({ kind: 'pending' })
+    resetCtx({ selectedCountry: getCountryFromPath('mexico') })
+    mockSavedAccounts = [clabeAccount({ countryCode: 'MEX', countryName: 'mexico', accountOwnerName: 'Ana Perez' })]
+    renderView()
+
+    await act(async () => {
+        fireEvent.click(screen.getByTestId('account-acc-mx'))
+    })
+    await act(async () => {
+        fireEvent.click(screen.getByTestId('confirm-claim'))
+    })
+
+    expect(screen.getByTestId('wait-modal')).toBeInTheDocument()
+    expect(screen.queryByTestId('kyc-verify-button')).toBeNull()
+    expect(mockHandleInitiateKyc).not.toHaveBeenCalled()
 })
 
 test('the KYC modal stays while nothing opened and closes once the SDK opens', async () => {

@@ -1,5 +1,7 @@
 import {
+    capabilityStateForProfile,
     deriveGate,
+    gateRemedy,
     getGateAdvisory,
     selectMantecaCapNudge,
     getGateUserMessage,
@@ -1116,5 +1118,169 @@ describe('resolveKycModalVariant — residence refusals', () => {
 
     test('any other blocked rail keeps the contact-support ending', () => {
         expect(resolveKycModalVariant(blocked('verification_blocked'))).toBe('blocked')
+    })
+})
+
+describe('gateRemedy — each gate kind leads to the step that resolves it', () => {
+    test.each<[GateState, ReturnType<typeof gateRemedy>]>([
+        [{ kind: 'needs-identity' }, 'verify'],
+        [{ kind: 'needs-enrollment' }, 'enroll'],
+        [{ kind: 'fixable-rejection', userMessage: null, actionKey: 'sumsub:proof_of_address' }, 'provider-fix'],
+        [{ kind: 'fixable-rejection', userMessage: null }, 'provider-fix'],
+        [
+            {
+                kind: 'fixable-rejection',
+                userMessage: null,
+                nextAction: { key: 'bridge-hosted', kind: 'bridge-hosted', purpose: 'bridge-additional-verification' },
+            },
+            'hosted-check',
+        ],
+        [{ kind: 'restart-identity', userMessage: null }, 'restart-identity'],
+        [{ kind: 'blocked-rejection', userMessage: null }, 'support'],
+        [{ kind: 'provide-email', userMessage: null }, 'provide-email'],
+        [{ kind: 'accept-tos', userMessage: null }, 'accept-tos'],
+        [{ kind: 'pending' }, 'wait'],
+        [{ kind: 'waiting-on-provider', userMessage: null }, 'wait'],
+        [{ kind: 'ready' }, 'none'],
+        [{ kind: 'loading' }, 'none'],
+    ])('%o → %s', (gate, remedy) => {
+        expect(gateRemedy(gate)).toBe(remedy)
+    })
+})
+
+// TASK-24046: the identity reads verified, but the bank rail waits on Bridge.
+describe('deriveGate — a verified identity with a Bridge requires-info rail never offers verification', () => {
+    const hosted: NextAction = {
+        key: 'bridge-hosted',
+        kind: 'bridge-hosted',
+        purpose: 'bridge-additional-verification',
+        requirementKey: 'kyc_approval',
+    }
+    const punt = bankRail({
+        id: 'bridge.sepa_eu',
+        method: 'SEPA_EU',
+        country: 'EU',
+        currency: 'EUR',
+        status: 'requires-info',
+        reason: { code: 'document_rejected', userMessage: 'Please upload a clearer photo of your ID.' },
+        resolved: {
+            status: 'fixable',
+            blocking: {
+                code: 'document_rejected',
+                userMessage: 'Please upload a clearer photo of your ID.',
+                selfHealable: true,
+                selfHealKind: 'document-resubmit',
+            },
+        },
+    })
+
+    test("an action-less rail carries Bridge's due-now hosted check instead of a resubmit", () => {
+        const gate = deriveGate(state([punt], [hosted]), 'deposit', { channel: 'bank', country: 'EU' })
+
+        expect(gate).toMatchObject({ kind: 'fixable-rejection', actionKey: 'bridge-hosted', nextAction: hosted })
+        expect(gateRemedy(gate)).toBe('hosted-check')
+
+        // a future-dated hosted check is advisory: the resubmit stays the fix
+        const advisory = deriveGate(state([punt], [{ ...hosted, effectiveDate: '2099-01-01' }]), 'deposit', {
+            channel: 'bank',
+            country: 'EU',
+        })
+        expect(gateRemedy(advisory)).toBe('provider-fix')
+
+        // beside a Sumsub step on a Bridge rail it stands down, as the Home task does
+        const proofOfAddress: NextAction = {
+            key: 'sumsub:proof_of_address',
+            kind: 'sumsub',
+            purpose: 'unlock-bridge',
+            levelKey: 'proof_of_address',
+        }
+        const usRail = bankRail({ status: 'requires-info', blockingActions: [proofOfAddress.key] })
+        const native = deriveGate(state([punt, usRail], [hosted, proofOfAddress]), 'deposit', {
+            channel: 'bank',
+            country: 'EU',
+        })
+        expect(gateRemedy(native)).toBe('provider-fix')
+    })
+
+    test('a hosted check attached to the rail stays fixable even when the API reads it as blocked', () => {
+        const rail = bankRail({
+            ...punt,
+            blockingActions: ['bridge-hosted'],
+            resolved: {
+                status: 'blocked',
+                blocking: { code: 'unknown', userMessage: '', selfHealable: false },
+                nextAction: hosted,
+            },
+        })
+        const gate = deriveGate(state([rail], [hosted]), 'deposit', { channel: 'bank', country: 'EU' })
+
+        expect(gate.kind).toBe('fixable-rejection')
+        expect(gateRemedy(gate)).toBe('hosted-check')
+    })
+
+    test('a legacy requires-info rail whose fix is a new identity check reads as the restart', () => {
+        const restart: NextAction = { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_missing' }
+        const rail = bankRail({ status: 'requires-info', blockingActions: [restart.key] })
+        const gate = deriveGate(state([rail], [restart]), 'deposit', { channel: 'bank' })
+
+        expect(gate.kind).toBe('restart-identity')
+    })
+})
+
+describe('deriveGate — duplicate account', () => {
+    const emailRail = bankRail({
+        status: 'blocked',
+        blockingActions: ['provide-email'],
+        reason: { code: 'email_required', userMessage: 'Add an email.' },
+    })
+    const emailAction: NextAction = { key: 'provide-email', kind: 'provide-email', purpose: 'kyc-email' }
+
+    test('the API reason code on a rail routes to support, above the email sheet', () => {
+        const duplicate = bankRail({
+            id: 'bridge.sepa_eu',
+            method: 'SEPA_EU',
+            status: 'blocked',
+            reason: { code: 'duplicate_account', userMessage: 'This email belongs to another account.' },
+        })
+        const gate = deriveGate(state([emailRail, duplicate], [emailAction]), 'deposit', { channel: 'bank' })
+
+        expect(gate).toMatchObject({ kind: 'blocked-rejection', reason: { code: 'duplicate_account' } })
+        expect(gateRemedy(gate)).toBe('support')
+        expect(resolveKycModalVariant(gate)).toBe('blocked')
+    })
+
+    test('a support action of that purpose routes the same way', () => {
+        const support: NextAction = { key: 'contact-support', kind: 'contact-support', purpose: 'duplicate-account' }
+        const rail = bankRail({ status: 'requires-info', blockingActions: [support.key] })
+        const gate = deriveGate(state([rail], [support]), 'deposit', { channel: 'bank' })
+
+        expect(gate).toMatchObject({ kind: 'blocked-rejection', reason: { code: 'duplicate_account' } })
+    })
+
+    // hmontenegro's second account: no rail yet, so the gate read needs-identity
+    // and sent him to a verification that could never clear the email.
+    test('an identity held on DUPLICATE_EMAIL is a duplicate account, not needs-identity', () => {
+        const profile = {
+            identityVerification: { status: 'action_required', rejectLabels: ['DUPLICATE_EMAIL'] },
+            capabilities: { rails: [], nextActions: [], restrictions: [] },
+        } as never
+        const gate = deriveGate(capabilityStateForProfile(profile, false), 'deposit', { channel: 'bank' })
+
+        expect(gate).toMatchObject({ kind: 'blocked-rejection', reason: { code: 'duplicate_account' } })
+        expect(gateRemedy(gate)).toBe('support')
+        // a working rail still wins
+        expect(
+            deriveGate({ ...state([bankRail()]), duplicateAccount: true }, 'deposit', { channel: 'bank' }).kind
+        ).toBe('ready')
+    })
+
+    test('the identity reason code works the same once the API sends it there', () => {
+        const profile = {
+            identityVerification: { status: 'failed', reason: { code: 'duplicate_account', userMessage: '' } },
+            capabilities: { rails: [bankRail({ status: 'pending' })], nextActions: [], restrictions: [] },
+        } as never
+        const gate = deriveGate(capabilityStateForProfile(profile, false), 'deposit', { channel: 'bank' })
+
+        expect(gate).toMatchObject({ kind: 'blocked-rejection', reason: { code: 'duplicate_account' } })
     })
 })

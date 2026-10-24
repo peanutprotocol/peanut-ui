@@ -24,8 +24,9 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     }),
 }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
+const mockOpenSupportWithMessage = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
-    useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
+    useModalsContext: () => ({ setIsSupportModalOpen: jest.fn(), openSupportWithMessage: mockOpenSupportWithMessage }),
     useModalsContextOptional: () => undefined,
 }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ logoutUser: jest.fn() }) }))
@@ -64,6 +65,18 @@ describe('KycStatusDrawer — action_required', () => {
         })
         expect(screen.getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /re-submit/i })).not.toBeInTheDocument()
+    })
+
+    // TASK-24046: support has to find both accounts, so the message names the case
+    it('an email collision opens support with a message naming the duplicate account', () => {
+        actionRequired({
+            identity: { status: 'action_required', rejectLabels: ['DUPLICATE_EMAIL'] },
+            isEmailCollision: true,
+        })
+        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+        expect(mockOpenSupportWithMessage).toHaveBeenCalledWith(
+            expect.stringMatching(/linked to another Peanut account[\s\S]*reason: duplicate_account/)
+        )
     })
 
     it('a retryable rejection keeps Resubmit', () => {

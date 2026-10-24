@@ -12,6 +12,7 @@ import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useAuth } from '@/context/authContext'
+import { buildDuplicateAccountSupportMessage } from '@/utils/contact-support.utils'
 
 interface KycStatusDrawerProps {
     isOpen: boolean
@@ -29,7 +30,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
         useIdentityVerification()
     const { logoutUser, user } = useAuth()
     const t = useTranslations('kyc')
-    const { setIsSupportModalOpen } = useModalsContext()
+    const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
 
     // close drawer and release the keep-mounted hold
     const handleFlowDone = useCallback(() => {
@@ -105,7 +106,13 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
                         actionMessage={identity.actionMessage}
                         rejectLabels={identity.rejectLabels}
                         isEmailCollision={isEmailCollision}
-                        onContactSupport={() => setIsSupportModalOpen(true)}
+                        onContactSupport={() =>
+                            isEmailCollision
+                                ? openSupportWithMessage(
+                                      buildDuplicateAccountSupportMessage(t('initiate.supportMessageDuplicateAccount'))
+                                  )
+                                : setIsSupportModalOpen(true)
+                        }
                         onLogOut={() => {
                             onClose()
                             void logoutUser()

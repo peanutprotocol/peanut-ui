@@ -7,8 +7,10 @@ import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testi
 // ---------- navigation ----------
 
 let mockParams: Record<string, string> = { country: 'germany' }
+const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({
     useParams: () => mockParams,
+    useRouter: () => ({ push: mockRouterPush }),
 }))
 
 jest.mock('next-intl', () => ({
@@ -33,8 +35,13 @@ jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { user: { userId: 'u1' } }, fetchUser: mockFetchUser }),
 }))
 
+const mockSetIsSupportModalOpen = jest.fn()
+const mockOpenSupportWithMessage = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
-    useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
+    useModalsContext: () => ({
+        setIsSupportModalOpen: mockSetIsSupportModalOpen,
+        openSupportWithMessage: mockOpenSupportWithMessage,
+    }),
 }))
 
 // ---------- hooks ----------
@@ -170,6 +177,8 @@ jest.mock('posthog-js', () => ({
 }))
 
 import { useBridgeBankFlow } from '../useBridgeBankFlow'
+import { deriveGate, type GateState } from '@/utils/capability-gate'
+import type { NextAction, RailCapability } from '@/types/capabilities'
 
 const renderFlow = (search = '', onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
     renderHook(() => useBridgeBankFlow(), { wrapper: withNuqsTestingAdapter({ searchParams: search, onUrlUpdate }) })
@@ -400,6 +409,114 @@ describe('useBridgeBankFlow', () => {
         ;({ result } = renderFlow('?step=verify'))
         await act(async () => result.current.handleVerify())
         expect(mockSumsubFlow.handleInitiateKyc).toHaveBeenCalledWith('intent:europe', undefined, undefined, 'DE')
+    })
+
+    describe('each gate kind leads to the step that resolves it', () => {
+        const expectNoVerificationStarted = () => {
+            expect(mockSumsubFlow.handleInitiateKyc).not.toHaveBeenCalled()
+            expect(mockSumsubFlow.handleFixableGate).not.toHaveBeenCalled()
+            expect(mockSumsubFlow.handleRestartIdentity).not.toHaveBeenCalled()
+        }
+
+        it('provide-email stays on the amount step and opens the email sheet, never the verify screen', async () => {
+            mockGate = { kind: 'provide-email', userMessage: null }
+            const events: UrlUpdateEvent[] = []
+            const { result } = renderFlow('?step=inputAmount&amount=100', (e) => events.push(e))
+            await act(async () => {})
+            expect(events.some((e) => e.searchParams.get('step') === 'verify')).toBe(false)
+
+            act(() => result.current.handleAmountContinue())
+
+            expect(result.current.showProvideEmail).toBe(true)
+            expect(result.current.showKycModal).toBe(false)
+            expectNoVerificationStarted()
+        })
+
+        it('blocked-rejection never starts a verification; its button opens support', async () => {
+            mockGate = { kind: 'blocked-rejection', userMessage: null, reason: { code: 'verification_blocked' } }
+            const { result } = renderFlow('?step=verify')
+
+            await act(async () => result.current.handleVerify())
+            expectNoVerificationStarted()
+
+            act(() => result.current.handleContactSupport())
+            expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
+        })
+
+        it('a duplicate account opens support with a message naming the case', () => {
+            mockGate = {
+                kind: 'blocked-rejection',
+                userMessage: null,
+                reason: { code: 'duplicate_account', userMessage: '' },
+            }
+            const { result } = renderFlow('?step=verify')
+
+            act(() => result.current.handleContactSupport())
+
+            expect(mockOpenSupportWithMessage).toHaveBeenCalledTimes(1)
+            const message = mockOpenSupportWithMessage.mock.calls[0][0] as string
+            expect(message).toContain('initiate.supportMessageDuplicateAccount')
+            expect(message).toContain('reason: duplicate_account')
+            expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
+        })
+
+        it("a fixable rejection naming Bridge's hosted check opens that check, not a resubmit", async () => {
+            mockGate = {
+                kind: 'fixable-rejection',
+                userMessage: null,
+                actionKey: 'bridge-hosted',
+                nextAction: { key: 'bridge-hosted', kind: 'bridge-hosted', purpose: 'bridge-additional-verification' },
+            }
+            const { result } = renderFlow('?step=verify')
+
+            await act(async () => result.current.handleVerify())
+
+            expect(mockRouterPush).toHaveBeenCalledWith('/profile/accounts/additional')
+            expectNoVerificationStarted()
+        })
+
+        // TASK-24046: identity reads verified, the Bridge rail needs Bridge's own
+        // check, and Add money → bank sent the user to re-upload an ID instead.
+        it('a verified identity with a Bridge requires-info rail is sent to that ask, never to verification', async () => {
+            const hosted: NextAction = {
+                key: 'bridge-hosted',
+                kind: 'bridge-hosted',
+                purpose: 'bridge-additional-verification',
+                requirementKey: 'kyc_approval',
+            }
+            const sepa: RailCapability = {
+                id: 'bridge.sepa_eu',
+                provider: 'bridge',
+                method: 'SEPA_EU',
+                channel: 'bank',
+                country: 'EU',
+                currency: 'EUR',
+                status: 'requires-info',
+                reason: { code: 'document_rejected', userMessage: 'Please upload a clearer photo of your ID.' },
+                resolved: {
+                    status: 'fixable',
+                    blocking: {
+                        code: 'document_rejected',
+                        userMessage: 'Please upload a clearer photo of your ID.',
+                        selfHealable: true,
+                        selfHealKind: 'document-resubmit',
+                    },
+                },
+            }
+            mockGate = deriveGate(
+                { rails: [sepa], nextActions: [hosted], identityVerified: true, isLoading: false },
+                'deposit',
+                { channel: 'bank', country: 'EU' }
+            ) as GateState
+            const events: UrlUpdateEvent[] = []
+            const { result } = renderFlow('?step=inputAmount&amount=100', (e) => events.push(e))
+            await waitFor(() => expect(events.at(-1)?.searchParams.get('step')).toBe('verify'))
+
+            await act(async () => result.current.handleVerify())
+
+            expect(mockRouterPush).toHaveBeenCalledWith('/profile/accounts/additional')
+            expectNoVerificationStarted()
+        })
     })
 
     it('bounces a deep-linked showDetails without onramp data back to inputAmount', async () => {

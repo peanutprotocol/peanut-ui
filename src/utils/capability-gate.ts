@@ -174,7 +174,19 @@ function railHintActions(rail: RailCapability, byKey: Map<string, NextAction>): 
  * ActivationCTAs) shares ONE collapse instead of hand-rolling diverging copies.
  */
 export function railVerdict(rail: RailCapability, byKey: Map<string, NextAction>): ResolvedRail {
-    if (rail.resolved) return rail.resolved
+    if (rail.resolved) {
+        // The API counts a hosted step as no self-serve fix (it only ever sent
+        // one unattached). On a requires-info rail it is the provider's own ask.
+        const { status, nextAction, blocking } = rail.resolved
+        if (status === 'blocked' && rail.status === 'requires-info' && nextAction?.kind === 'bridge-hosted') {
+            return {
+                ...rail.resolved,
+                status: 'fixable',
+                ...(blocking ? { blocking: { ...blocking, selfHealable: true } } : {}),
+            }
+        }
+        return rail.resolved
+    }
 
     if (rail.status === 'enabled' || rail.status === 'pending') {
         // an enabled rail's advisory hint rides as the verdict's nextAction
@@ -366,6 +378,22 @@ export interface CapabilityState {
     identityVerified: boolean
     /** True until the user query settles. Holds the gate in 'loading'. */
     isLoading: boolean
+    /** The identity check is held because this account's email belongs to another account. */
+    duplicateAccount?: boolean
+}
+
+/**
+ * An account whose email belongs to another Peanut account. Neither a new
+ * document nor the email sheet can clear it: support moves or merges the
+ * accounts. The API names it with this reason code (on a rail or on the
+ * identity) or a support action of the same purpose; older APIs only label
+ * the identity check `DUPLICATE_EMAIL`.
+ */
+export const DUPLICATE_ACCOUNT_REASON_CODE = 'duplicate_account'
+const DUPLICATE_EMAIL_LABEL = 'DUPLICATE_EMAIL'
+
+export function isDuplicateAccountMarker(value: string | null | undefined): boolean {
+    return !!value && value.replace(/-/g, '_') === DUPLICATE_ACCOUNT_REASON_CODE
 }
 
 /**
@@ -374,12 +402,42 @@ export interface CapabilityState {
  * one through it, so both resolve the same way.
  */
 export function capabilityStateForProfile(user: IUserProfile | null | undefined, isLoading: boolean): CapabilityState {
+    const identity = user?.identityVerification
     return {
         rails: user?.capabilities?.rails ?? [],
         nextActions: user?.capabilities?.nextActions ?? [],
-        identityVerified: user?.identityVerification?.status === 'verified',
+        identityVerified: identity?.status === 'verified',
         isLoading,
+        duplicateAccount:
+            isDuplicateAccountMarker(identity?.reason?.code) ||
+            (identity?.status === 'action_required' && !!identity.rejectLabels?.includes(DUPLICATE_EMAIL_LABEL)),
     }
+}
+
+function isDuplicateAccountCandidate({ rail, verdict }: RailWithVerdict, byKey: Map<string, NextAction>): boolean {
+    return (
+        isDuplicateAccountMarker(rail.reason?.code) ||
+        isDuplicateAccountMarker(verdict.blocking?.code) ||
+        [verdict.nextAction, ...railActions(rail, byKey)].some((action) => isDuplicateAccountMarker(action?.purpose))
+    )
+}
+
+/**
+ * Bridge's hosted check while it is what Bridge waits on: the API sends the
+ * due-now `bridge-hosted` action unattached to any rail. It stands down beside
+ * a Sumsub step on a Bridge rail, exactly as the Home task does
+ * (selectBridgeTasks), because the hosted check cannot collect that document.
+ */
+function dueBridgeHostedAction(state: CapabilityState, byKey: Map<string, NextAction>): NextAction | undefined {
+    const hosted = state.nextActions.find((action) => action.kind === 'bridge-hosted' && !action.effectiveDate)
+    if (!hosted) return undefined
+    const nativeStep = state.rails.some(
+        (rail) =>
+            rail.provider === 'bridge' &&
+            rail.status === 'requires-info' &&
+            (rail.blockingActions ?? []).some((key) => byKey.get(key)?.kind === 'sumsub')
+    )
+    return nativeStep ? undefined : hosted
 }
 
 /**
@@ -394,14 +452,19 @@ export function capabilityStateForProfile(user: IUserProfile | null | undefined,
  *                            Hoisted above every blocker so a working rail (e.g. Manteca
  *                            PIX_BR ENABLED) wins over stuck sibling rails — the
  *                            2026-06-01 Alexandre incident guard.
+ *  2b. blocked-rejection   — the account's email belongs to another account
+ *      (duplicate_account)   ({@link DUPLICATE_ACCOUNT_REASON_CODE}). Above provide-email and
+ *                            every verify path: none of them can clear it.
  *   3. provide-email       — any verdict with selfHealKind 'provide-email': a USER-level
  *                            fix (one email unblocks every email-blocked rail), so it
  *                            outranks terminal siblings.
  *   4. restart-identity    — verdict selfHealKind 'restart-identity' (self-fix by
- *                            re-verifying with a different document).
+ *                            re-verifying with a different document), blocked or fixable.
  *   5. blocked-rejection   — any verdict status 'blocked' (terminal, contact support).
  *   6. accept-tos          — fixable verdict whose nextAction is `accept-tos`.
- *   7. fixable-rejection   — any other fixable verdict (document resubmit / RFI).
+ *   7. fixable-rejection   — any other fixable verdict (document resubmit / RFI). An
+ *                            action-less Bridge one carries Bridge's due-now hosted
+ *                            check as its nextAction when Bridge is waiting on it.
  *   8. pending             — verdict 'pending' without a wait marker (we're provisioning).
  *   9. waiting-on-provider — only wait-marked pending verdicts remain (provider is
  *                            reviewing; no user action). Above needs-identity so the
@@ -428,6 +491,20 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
         return advisory ? { kind: 'ready', advisory } : { kind: 'ready' }
     }
 
+    // 2b. duplicate account
+    const duplicate = candidates.find((candidate) => isDuplicateAccountCandidate(candidate, actionByKey))
+    if (duplicate || state.duplicateAccount) {
+        return {
+            kind: 'blocked-rejection',
+            userMessage: duplicate ? verdictMessage(duplicate) : null,
+            reason: {
+                ...duplicate?.rail.reason,
+                code: DUPLICATE_ACCOUNT_REASON_CODE,
+                userMessage: duplicate?.rail.reason?.userMessage ?? '',
+            },
+        }
+    }
+
     // 3. provide-email
     const emailFix = candidates.find(({ verdict }) => verdict.blocking?.selfHealKind === 'provide-email')
     if (emailFix) {
@@ -446,6 +523,16 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
     }
 
     const fixables = candidates.filter(({ verdict }) => verdict.status === 'fixable')
+
+    // 4b. a requires-info rail whose fix is a fresh identity check (the legacy
+    // fallback reads it as fixable; the API reads it as blocked + restart)
+    const restartFix = fixables.find(
+        ({ verdict }) =>
+            verdict.blocking?.selfHealKind === 'restart-identity' || verdict.nextAction?.kind === 'restart-identity'
+    )
+    if (restartFix) {
+        return { kind: 'restart-identity', userMessage: verdictMessage(restartFix), reason: restartFix.rail.reason }
+    }
 
     // 5. accept-tos
     const tos = fixables.find(({ verdict }) => verdict.nextAction?.kind === 'accept-tos')
@@ -485,7 +572,16 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
     // resubmit endpoint but with nothing concrete to click — ranked below
     // pending (matches the old 7b placement: mid-provisioning wins).
     if (fixables.length > 0) {
-        return { kind: 'fixable-rejection', userMessage: verdictMessage(fixables[0]), reason: fixables[0].rail.reason }
+        const [first] = fixables
+        // When Bridge waits on its hosted check, a resubmit only re-runs the
+        // ID check Bridge already has, and can never clear the rail.
+        const hosted = first.rail.provider === 'bridge' ? dueBridgeHostedAction(state, actionByKey) : undefined
+        return {
+            kind: 'fixable-rejection',
+            userMessage: verdictMessage(first),
+            reason: first.rail.reason,
+            ...(hosted ? { actionKey: hosted.key, nextAction: hosted } : {}),
+        }
     }
 
     // 9. waiting-on-provider — only wait-marked verdicts remain in scope
@@ -599,6 +695,64 @@ export function isVerifiableGate(kind: GateState['kind']): boolean {
     return VERIFIABLE_GATE_KINDS.has(kind)
 }
 
+/**
+ * The step that resolves a gate — where its CTA must lead. The six verifiable
+ * kinds are not interchangeable: sending them all to identity verification is
+ * how a verified user ends up in a Sumsub run that cannot help them.
+ *
+ *   verify            — needs-identity: start verification (Smart Paperwork
+ *                       Verification users are routed to /verify by the start)
+ *   enroll            — needs-enrollment: open this corridor on the identity on file
+ *   provider-fix      — fixable-rejection: the provider's own fix (resubmit or start-action)
+ *   hosted-check      — fixable-rejection naming Bridge's hosted check
+ *   restart-identity  — the identity check again, with another document
+ *   provide-email     — the email sheet
+ *   support           — blocked-rejection: nothing the user can do in the app
+ */
+export type GateRemedy =
+    | 'none'
+    | 'wait'
+    | 'accept-tos'
+    | 'verify'
+    | 'enroll'
+    | 'provider-fix'
+    | 'hosted-check'
+    | 'restart-identity'
+    | 'provide-email'
+    | 'support'
+
+export function gateRemedy(gate: GateState): GateRemedy {
+    switch (gate.kind) {
+        case 'loading':
+        case 'ready':
+            return 'none'
+        case 'pending':
+        case 'waiting-on-provider':
+            return 'wait'
+        case 'accept-tos':
+            return 'accept-tos'
+        case 'needs-identity':
+            return 'verify'
+        case 'needs-enrollment':
+            return 'enroll'
+        case 'restart-identity':
+            return 'restart-identity'
+        case 'provide-email':
+            return 'provide-email'
+        case 'blocked-rejection':
+            return 'support'
+        case 'fixable-rejection':
+            return gate.nextAction?.kind === 'bridge-hosted' ? 'hosted-check' : 'provider-fix'
+    }
+}
+
+/** Whether a blocked gate is the duplicate-account case, which support resolves by moving or merging accounts. */
+export function isDuplicateAccountGate(
+    gate: GateState
+): gate is { kind: 'blocked-rejection'; userMessage: string | null; reason: CapabilityReason } {
+    return gate.kind === 'blocked-rejection' && isDuplicateAccountMarker(gate.reason?.code)
+}
+
 export type DepositStep = 'verify' | 'inputAmount' | 'showDetails'
 
 /**
@@ -616,6 +770,8 @@ export type DepositStep = 'verify' | 'inputAmount' | 'showDetails'
  *
  * `accept-tos` is not an identity check. It is a one-tap consent the amount
  * step already guards inline, so it does not earn a screen of its own.
+ * `provide-email` is the same: one field the amount step opens as a sheet,
+ * where the verify screen could only offer support.
  */
 /**
  * Whether a deposit step may render yet.
@@ -644,6 +800,6 @@ export function nextDepositStep(
 ): 'verify' | 'inputAmount' | null {
     if (gateKind === 'loading') return null
     if (current === 'showDetails') return null
-    const target = isVerifiableGate(gateKind) ? 'verify' : 'inputAmount'
+    const target = isVerifiableGate(gateKind) && gateKind !== 'provide-email' ? 'verify' : 'inputAmount'
     return current === target ? null : target
 }

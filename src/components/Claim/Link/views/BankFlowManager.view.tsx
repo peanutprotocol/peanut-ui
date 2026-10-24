@@ -47,11 +47,14 @@ import { providerForRegionIntent } from '@/utils/regions.utils'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { getKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
+import { gateRemedy, getKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
-import { useModalsContext } from '@/context/ModalsContext'
+import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
+import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
+import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
+import { useGateActions } from '@/hooks/useGateActions'
 import { useTranslations } from 'next-intl'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 import {
@@ -142,7 +145,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     )
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const [showKycModal, setShowKycModal] = useState(false)
-    const { setIsSupportModalOpen } = useModalsContext()
+    const [showProvideEmail, setShowProvideEmail] = useState(false)
+    const pendingModal = useWaitingOnProviderModal(gate)
 
     // inline sumsub kyc flow for users who need verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -157,6 +161,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         },
         onManualClose: () => setIsKycModalOpen(false),
     })
+    const gateActions = useGateActions(sumsubFlow)
 
     // close the kyc modal once the sdk opens; on an error it stays to show it
     useEffect(() => {
@@ -254,18 +259,17 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             // for logged-in users, check bank-rail readiness before proceeding
             const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
             if (!isGuestFlow && gate.kind !== 'ready') {
-                // capabilities still loading OR provider doing internal review —
-                // silently return; the CTA that triggered this should be disabled
-                // too, but defend against double-click races. `waiting-on-provider`
-                // means there's no user action to take (Bridge KYC review,
-                // post_processing), so opening the KYC modal would falsely imply
-                // the user has something to do.
-                if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') return
-                if (gate.kind === 'accept-tos') {
-                    guardWithTos()
-                } else {
-                    setShowKycModal(true)
-                }
+                // capabilities still loading: silently return; the CTA that
+                // triggered this should be disabled too, but defend against
+                // double-click races.
+                if (gate.kind === 'loading') return
+                const remedy = gateRemedy(gate)
+                // provider review or a rail still provisioning: there's no user
+                // action to take, so the KYC modal would falsely imply one
+                if (remedy === 'wait') pendingModal.open()
+                else if (remedy === 'accept-tos') guardWithTos()
+                else if (remedy === 'provide-email') setShowProvideEmail(true)
+                else setShowKycModal(true)
                 return
             }
 
@@ -386,25 +390,16 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 cooldownActive={!!sumsubFlow.errorCooldown}
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
-                onVerify={async () => {
-                    if (gate.kind === 'restart-identity') {
-                        await sumsubFlow.handleRestartIdentity()
-                    } else if (gate.kind === 'fixable-rejection') {
-                        // Through the shared router: it sends a residence park to
-                        // the address step and everything else to resubmit as before.
-                        await sumsubFlow.handleFixableGate('BRIDGE', gate)
-                    } else {
-                        await sumsubFlow.handleInitiateKyc(
-                            bankRegionIntent(bankRailCountry ?? selectedCountry),
-                            undefined,
-                            gate.kind === 'needs-enrollment' || undefined,
-                            selectedCountry?.id
-                        )
-                    }
-                }}
+                onVerify={() =>
+                    gateActions.verify(gate, {
+                        provider: 'BRIDGE',
+                        intent: bankRegionIntent(bankRailCountry ?? selectedCountry),
+                        targetCountry: selectedCountry?.id,
+                    })
+                }
                 onContactSupport={() => {
                     setShowKycModal(false)
-                    setIsSupportModalOpen(true)
+                    gateActions.contactSupport(gate)
                 }}
                 isLoading={sumsubFlow.isLoading}
                 error={sumsubFlow.error}
@@ -418,6 +413,17 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         ? bridgeProviderId
                         : undefined
                 }
+            />
+            <ProvideEmailStep
+                visible={showProvideEmail}
+                onComplete={() => setShowProvideEmail(false)}
+                onSkip={() => setShowProvideEmail(false)}
+            />
+            <KycReverificationPendingModal
+                isOpen={pendingModal.isOpen}
+                onClose={pendingModal.close}
+                message={pendingModal.message}
+                onContactSupport={pendingModal.onContactSupport}
             />
             <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
         </>

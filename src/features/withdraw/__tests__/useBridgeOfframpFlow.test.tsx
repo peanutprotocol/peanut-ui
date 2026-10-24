@@ -117,7 +117,7 @@ jest.mock('@/utils/regions.utils', () => ({
 }))
 
 jest.mock('@/utils/capability-gate', () => ({
-    isVerifiableGate: () => true,
+    gateRemedy: (...args: [never]) => jest.requireActual('@/utils/capability-gate').gateRemedy(...args),
 }))
 
 jest.mock('@/utils/eea-uplift.utils', () => ({
@@ -278,6 +278,17 @@ describe('useBridgeOfframpFlow — KYC modal', () => {
 
         mockShowWrapper = true
         view.rerender()
+        expect(view.result.current.showKycModal).toBe(false)
+    })
+
+    // the KYC modal could only offer support for a missing email
+    it('a missing email opens the email sheet, not the KYC modal', async () => {
+        mockGateKind = 'provide-email'
+        const view = renderFlow({ amount: '50', step: 'review' })
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(view.result.current.showProvideEmail).toBe(true)
         expect(view.result.current.showKycModal).toBe(false)
     })
 })

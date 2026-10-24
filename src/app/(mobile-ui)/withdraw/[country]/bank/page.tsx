@@ -7,7 +7,8 @@ import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
-import { useModalsContext } from '@/context/ModalsContext'
+import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
+import { useGateActions } from '@/hooks/useGateActions'
 import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { getCountryFromPath } from '@/utils/bridge.utils'
 import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
@@ -37,7 +38,6 @@ export default function WithdrawBankPage() {
     const leaveToHome = useReturnTo('/home')
     const flow = useBridgeOfframpFlow()
     const bankRegionIntent = useBankRegionIntent()
-    const { setIsSupportModalOpen } = useModalsContext()
     const providerId = useBridgeProviderId()
 
     const {
@@ -52,6 +52,7 @@ export default function WithdrawBankPage() {
         pendingModal,
         bankAmount,
     } = flow
+    const gateActions = useGateActions(sumsubFlow)
 
     if (!bankAccount || !flow.payout) {
         return null
@@ -153,26 +154,17 @@ export default function WithdrawBankPage() {
                     flow.setShowKycModal(false)
                     flow.resetUpliftFunnel()
                 }}
-                onVerify={async () => {
-                    if (gate.kind === 'restart-identity') {
-                        await sumsubFlow.handleRestartIdentity()
-                    } else if (gate.kind === 'fixable-rejection') {
-                        // Through the shared router: it sends a residence park to the
-                        // address step and everything else to resubmit as before.
-                        await sumsubFlow.handleFixableGate('BRIDGE', gate)
-                    } else {
-                        await sumsubFlow.handleInitiateKyc(
-                            bankRegionIntent(countryFromPath),
-                            undefined,
-                            gate.kind === 'needs-enrollment' || undefined,
-                            getCountryFromPath(country)?.id
-                        )
-                    }
-                }}
+                onVerify={() =>
+                    gateActions.verify(gate, {
+                        provider: 'BRIDGE',
+                        intent: bankRegionIntent(countryFromPath),
+                        targetCountry: getCountryFromPath(country)?.id,
+                    })
+                }
                 onContactSupport={() => {
                     flow.setShowKycModal(false)
                     flow.resetUpliftFunnel()
-                    setIsSupportModalOpen(true)
+                    gateActions.contactSupport(gate)
                 }}
                 isLoading={sumsubFlow.isLoading}
                 error={sumsubFlow.error}
@@ -182,6 +174,11 @@ export default function WithdrawBankPage() {
                 nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
                 pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
                 regionName={countryFromPath && localizedCountryTitle(locale, countryFromPath)}
+            />
+            <ProvideEmailStep
+                visible={flow.showProvideEmail}
+                onComplete={() => flow.setShowProvideEmail(false)}
+                onSkip={() => flow.setShowProvideEmail(false)}
             />
             <KycReverificationPendingModal
                 isOpen={pendingModal.isOpen}

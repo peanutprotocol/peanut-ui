@@ -1,4 +1,4 @@
-import type { GateState } from '@/utils/capability-gate'
+import { isDuplicateAccountGate, type GateState } from '@/utils/capability-gate'
 import type { ClaimableCorridor } from './types'
 
 /**
@@ -189,7 +189,8 @@ export function depositGateView(gate: GateState, claimable?: ClaimableCorridor):
         notice: {
             kind: gate.kind,
             message: 'userMessage' in gate ? (gate.userMessage ?? null) : null,
-            ...(supplementInReview ? { reasonCode: gate.reason?.code } : {}),
+            // the app's own words for these two; the backend sentence is English
+            ...(supplementInReview || isDuplicateAccountGate(gate) ? { reasonCode: gate.reason?.code } : {}),
             action: ACTION_BY_KIND[gate.kind],
             tosUrl: gate.kind === 'accept-tos' ? gate.tosUrl : undefined,
         },

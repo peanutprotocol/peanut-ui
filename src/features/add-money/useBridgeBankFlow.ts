@@ -6,7 +6,6 @@ import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/co
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
-import { useModalsContext } from '@/context/ModalsContext'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
@@ -15,13 +14,14 @@ import { useCreateOnramp, GENERIC_ONRAMP_ERROR } from '@/hooks/useCreateOnramp'
 import { useSubmissionKey } from '@/hooks/useSubmissionKey'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
+import { useGateActions } from '@/hooks/useGateActions'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { getCurrencyConfig, getMinimumAmount, railJurisdictionForBank } from '@/utils/bridge.utils'
-import { nextDepositStep, isVerifiableGate } from '@/utils/capability-gate'
+import { gateRemedy, nextDepositStep } from '@/utils/capability-gate'
 import { headsUpDeadline } from '@/utils/bridge-tasks.utils'
 import { upliftTriggerFromGate } from '@/utils/eea-uplift.utils'
 import { formatAmount } from '@/utils/general.utils'
@@ -69,6 +69,7 @@ export function useBridgeBankFlow() {
     // Local UI state (not URL-appropriate - transient)
     const [showWarningModal, setShowWarningModal] = useState<boolean>(false)
     const [showKycModal, setShowKycModal] = useState<boolean>(false)
+    const [showProvideEmail, setShowProvideEmail] = useState<boolean>(false)
     const { setError, error, setOnrampData, onrampData } = useOnrampFlow()
     // client-side amount validation renders as the field's own error, never in
     // the flow-level Callout (which keeps backend/API failures only)
@@ -147,7 +148,7 @@ export function useBridgeBankFlow() {
     // from the Home and Accounts task cards (PendingVerificationTasks).
     const advisoryDeadline = headsUpDeadline(gate.kind === 'ready' ? gate.advisory?.effectiveDate : undefined)
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
-    const { setIsSupportModalOpen } = useModalsContext()
+    const gateActions = useGateActions(sumsubFlow)
 
     // close kyc modal when sumsub sdk opens
     useEffect(() => {
@@ -254,22 +255,14 @@ export function useBridgeBankFlow() {
         validateAmount(rawTokenAmount)
     }, [rawTokenAmount, validateAmount, setError])
 
-    const handleVerify = async () => {
-        if (gate.kind === 'restart-identity') {
-            await sumsubFlow.handleRestartIdentity()
-        } else if (gate.kind === 'fixable-rejection') {
-            // Through the shared router: it sends a residence park to the
-            // address step and everything else to resubmit as before.
-            await sumsubFlow.handleFixableGate('BRIDGE', gate)
-        } else {
-            await sumsubFlow.handleInitiateKyc(
-                bankRegionIntent(selectedCountry),
-                undefined,
-                gate.kind === 'needs-enrollment' || undefined,
-                selectedCountry?.id
-            )
-        }
-    }
+    const handleVerify = () =>
+        gateActions.verify(gate, {
+            provider: 'BRIDGE',
+            intent: bankRegionIntent(selectedCountry),
+            targetCountry: selectedCountry?.id,
+        })
+
+    const handleContactSupport = () => gateActions.contactSupport(gate)
 
     const handleAmountContinue = () => {
         if (!validateAmount(rawTokenAmount)) return
@@ -278,6 +271,7 @@ export function useBridgeBankFlow() {
             // capabilities still loading — silently no-op instead of flashing
             // a misleading needs_kyc modal.
             if (gate.kind === 'loading') return
+            const remedy = gateRemedy(gate)
             /*
              * Every gate the user cannot act on: `waiting-on-provider` is bridge
              * re-reviewing submitted info (e.g. right after an eea uplift) and
@@ -287,12 +281,14 @@ export function useBridgeBankFlow() {
              * button, and re-arm the capability poller so we pick up bridge's
              * latest status live and it auto-dismisses when the gate clears.
              */
-            if (!isVerifiableGate(gate.kind) && gate.kind !== 'accept-tos') {
+            if (remedy === 'wait') {
                 pendingModal.open()
                 return
             }
-            if (gate.kind === 'accept-tos') {
+            if (remedy === 'accept-tos') {
                 guardWithTos()
+            } else if (remedy === 'provide-email') {
+                setShowProvideEmail(true)
             } else {
                 // urgent (post-cliff) eea uplift lands here as a fixable-rejection —
                 // fire the funnel event as this KYC modal opens.
@@ -392,11 +388,11 @@ export function useBridgeBankFlow() {
         gate,
         sumsubFlow,
         handleVerify,
+        handleContactSupport,
         pendingModal,
         advisoryDeadline,
         showBridgeTos,
         hideTos,
-        setIsSupportModalOpen,
         resetUpliftFunnel,
         // amount step
         rawTokenAmount,
@@ -420,6 +416,8 @@ export function useBridgeBankFlow() {
         handleWarningCancel,
         showKycModal,
         setShowKycModal,
+        showProvideEmail,
+        setShowProvideEmail,
         onrampData,
     }
 }

@@ -46,6 +46,8 @@ export const REASON_CODE_KEYS = {
     terminal_rejection: 'reasons.terminal_rejection',
     bridge_terminal_rejection: 'reasons.bridge_terminal_rejection',
     duplicate_customer_detected: 'reasons.duplicate_customer_detected',
+    // this account's email belongs to another Peanut account; only support can move or merge them
+    duplicate_account: 'reasons.duplicate_account',
     // Rain card rejections
     region_block: 'reasons.region_block',
     compliance_block: 'reasons.compliance_block',
