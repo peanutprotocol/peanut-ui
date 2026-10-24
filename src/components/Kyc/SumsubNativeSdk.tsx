@@ -45,6 +45,8 @@ export const ORPHANED_SDK_GRACE_MS = 2000
 export const SumsubNativeSdk = ({
     visible,
     accessToken,
+    documentConfig,
+    preselection,
     email,
     onClose,
     onComplete,
@@ -63,6 +65,10 @@ export const SumsubNativeSdk = ({
     const onRefreshTokenRef = useRef(onRefreshToken)
     const accessTokenRef = useRef(accessToken)
     // A profile refresh must not relaunch the SDK over the user's KYC edits.
+    const documentConfigRef = useRef(documentConfig)
+    documentConfigRef.current = documentConfig
+    const preselectionRef = useRef(preselection)
+    preselectionRef.current = preselection
     const emailRef = useRef(email)
     emailRef.current = email
     const isMultiLevelRef = useRef(isMultiLevel)
@@ -149,7 +155,7 @@ export const SumsubNativeSdk = ({
         }
 
         try {
-            instance = sumsub
+            let builder = sumsub
                 .init(accessTokenRef.current!, () => onRefreshTokenRef.current())
                 .withHandlers({
                     onStatusChanged: (event) => {
@@ -163,7 +169,15 @@ export const SumsubNativeSdk = ({
                 .withLocale(sumsubLocaleRef.current)
                 .withApplicantConf(emailRef.current ? { email: emailRef.current } : {})
                 .withDebug(process.env.NODE_ENV === 'development')
-                .build()
+            const documentDefinitions = documentConfigRef.current?.documentDefinitions
+            if (documentDefinitions) {
+                if (typeof builder.withPreferredDocumentDefinitions === 'function') {
+                    builder = builder.withPreferredDocumentDefinitions(documentDefinitions)
+                } else if (preselectionRef.current !== 'preferred') {
+                    throw new Error('Document preselection requires an app update')
+                }
+            }
+            instance = builder.build()
 
             // The Cordova wrapper keeps a module-level instance lock until its
             // launch promise settles. A backgrounded native screen can disappear

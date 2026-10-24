@@ -55,7 +55,7 @@ import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
 import Loading from '@/components/Global/Loading'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
-import { useModalsContext } from '@/context/ModalsContext'
+import { useGateActions } from '@/hooks/useGateActions'
 import { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/features/kill-switches/kill-switches.consts'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { useLocale, useTranslations } from 'next-intl'
@@ -265,7 +265,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // deposit read can still say ready
     const { openTos, showBridgeTos, hideTos } = useTosGuard()
     const [showProvideEmail, setShowProvideEmail] = useState(false)
-    const { setIsSupportModalOpen } = useModalsContext()
+    const gateActions = useGateActions(sumsubFlow)
     // wait-only gates (provider review, provisioning) get the amount steps' "please wait"
     const pendingModal = useWaitingOnProviderModal(gate)
     const openPendingModal = pendingModal.open
@@ -555,29 +555,24 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 cooldownActive={!!sumsubFlow.errorCooldown}
                 visible={isKycModalOpen}
                 onClose={() => setIsKycModalOpen(false)}
-                onVerify={async () => {
-                    if (gate.kind === 'fixable-rejection') {
-                        // Through the shared router: it sends a residence park to the
-                        // address step and everything else to resubmit as before.
-                        await sumsubFlow.handleFixableGate('BRIDGE', gate)
-                    } else {
-                        await sumsubFlow.handleInitiateKyc(
-                            bankRegionIntent(currentCountry),
-                            undefined,
-                            gate.kind === 'needs-enrollment' || undefined,
-                            currentCountry?.id
-                        )
-                    }
-                }}
+                onVerify={() =>
+                    gateActions.verify(gate, {
+                        provider: 'BRIDGE',
+                        intent: bankRegionIntent(currentCountry),
+                        targetCountry: currentCountry?.id,
+                    })
+                }
                 onContactSupport={() => {
                     setIsKycModalOpen(false)
-                    setIsSupportModalOpen(true)
+                    gateActions.contactSupport(gate)
                 }}
                 isLoading={sumsubFlow.isLoading}
                 error={sumsubFlow.error}
                 variant={resolveKycModalVariant(gate)}
                 providerMessage={getGateUserMessage(gate)}
                 reasonCode={getGateReasonCode(gate)}
+                nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
+                pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
                 regionName={currentCountry && localizedCountryTitle(locale, currentCountry)}
                 providerId={
                     providerForRegionIntent(bankRegionIntent(currentCountry)) === 'bridge'
@@ -605,6 +600,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 isOpen={pendingModal.isOpen}
                 onClose={pendingModal.close}
                 message={pendingModal.message}
+                onContactSupport={pendingModal.onContactSupport}
             />
             <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setIsKycModalOpen(false)} />
         </>

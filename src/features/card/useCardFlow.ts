@@ -24,6 +24,8 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { writeStoredValue } from '@/utils/safe-storage'
 import { isRainBalanceKnown } from '@/utils/balance.utils'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 /**
  * flow hook for the card page — owns every behaviour so the page stays dumb
  * (same model as features/home/useHomeFlow).
@@ -119,6 +121,15 @@ export function useCardFlow() {
     // KYC residence is eligible and only an open residence-change request is
     // restricting issuance. The recovery screen links to that exact request.
     const [pendingResidenceBlocked, setPendingResidenceBlocked] = useState(false)
+    // The send gate's refusal of Rain for this plan (POST /rain/cards 403
+    // provider-not-in-plan), when the app has copy and a step for it.
+    const [planRefusal, setPlanRefusal] = useState<string | null>(null)
+    // Smart Paperwork Verification: POST /rain/cards answered `questions-required` with the step to ask; the card questions come first.
+    const [pendingQuestions, setPendingQuestions] = useState<string | null>(null)
+    const [pendingApplication, setPendingApplication] = useState<'pending-identity' | 'pending' | null>(null)
+    useEffect(() => {
+        setPendingApplication(null)
+    }, [userId])
 
     const state = computeCardState({
         overview,
@@ -162,6 +173,15 @@ export function useCardFlow() {
         void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
     }, [queryClient])
 
+    // The identity steps a plan refusal asks for: a supplement, or a restart with another document.
+    const kycFlow = useMultiPhaseKycFlow({
+        onKycSuccess: () => {
+            setPlanRefusal(null)
+            invalidateOverview()
+        },
+    })
+    const startFlowAction = kycFlow.handleStartAction
+
     // Proof-of-address self-heal — a dedicated, deliberately tiny flow. The
     // multi-phase KYC machinery (useMultiPhaseKycFlow) is bank-onboarding
     // shaped: its post-approval phase machine polls a mutating endpoint, can
@@ -175,6 +195,10 @@ export function useCardFlow() {
     // Optimistic "we got your document" until the backend webhook flips the
     // rail reason to its own review-wait state (may lag the SDK by seconds).
     const [poaSubmitted, setPoaSubmitted] = useState(false)
+    // The same Sumsub surface also takes the selfie and ID Rain asks for on needsVerification.
+    const [rainDocumentKind, setRainDocumentKind] = useState<'proofOfAddress' | 'identity'>('proofOfAddress')
+    const rainDocumentReceivedCode =
+        rainDocumentKind === 'identity' ? 'identity_verification_received' : 'proof_of_address_received'
 
     // The rain rail's self-serve proof-of-address action, when the backend
     // classified the application as PoA-fixable (kind 'sumsub' + levelKey
@@ -189,10 +213,13 @@ export function useCardFlow() {
     // create-action idempotency into minting two Sumsub actions (the id
     // collision path deliberately mints a suffixed fresh action).
     const poaStartingRef = useRef(false)
-    const startPoaUpload = useCallback(async () => {
+    const startRainDocumentUpload = useCallback(async (kind: 'proofOfAddress' | 'identity') => {
         if (poaStartingRef.current) return
         poaStartingRef.current = true
-        posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { source: 'poa-self-heal' })
+        posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, {
+            source: kind === 'identity' ? 'identity-self-heal' : 'poa-self-heal',
+        })
+        setRainDocumentKind(kind)
         setPoaError(null)
         try {
             const response = await initiateSelfHealResubmission('RAIN')
@@ -207,7 +234,8 @@ export function useCardFlow() {
             poaStartingRef.current = false
         }
     }, [])
-    const onUploadProofOfAddress = poaAction && !poaSubmitted ? () => void startPoaUpload() : undefined
+    const onUploadProofOfAddress =
+        poaAction && !poaSubmitted ? () => void startRainDocumentUpload('proofOfAddress') : undefined
 
     // The rain rail's identity-document re-upload action, emitted when Rain
     // rejected the card application on a proof-of-identity document. Rather than
@@ -218,7 +246,17 @@ export function useCardFlow() {
         ? nextActionsForRail(cardRail.id).find((action) => action.kind === 'rain-hosted')
         : undefined
     const { start: startIdentityUpload, error: identityUploadError } = useHostedVerification('rain-hosted')
-    const onUploadIdentity = identityAction ? () => void startIdentityUpload() : undefined
+    // needsVerification: Rain asks for a selfie and an ID, collected in a Sumsub action we own.
+    const identityVerificationAction = cardRail
+        ? nextActionsForRail(cardRail.id).find(
+              (action) => action.kind === 'sumsub' && action.levelKey === 'rain_identity_verification'
+          )
+        : undefined
+    const onUploadIdentity = identityAction
+        ? () => void startIdentityUpload()
+        : identityVerificationAction && !poaSubmitted
+          ? () => void startRainDocumentUpload('identity')
+          : undefined
 
     const informationActions = cardRail
         ? nextActionsForRail(cardRail.id).filter(
@@ -288,6 +326,18 @@ export function useCardFlow() {
     // and stays inline.
     const advanceFromApplyResponse = useCallback(
         (res: ApplyForCardResponse) => {
+            if (
+                res.status === 'pending-identity' ||
+                (res.status === 'pending' && !('rainUserId' in res && res.rainUserId))
+            ) {
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                setPendingApplication(res.status)
+                awaitingIssuanceRef.current = false
+                invalidateOverview()
+                return
+            }
+            setPendingApplication(null)
             // Main applicant is missing a doc Rain requires (e.g. SELFIE
             // after liveness was added to the level). Open WebSDK at the
             // MAIN level — Sumsub asks only for the missing step. Same
@@ -332,6 +382,21 @@ export function useCardFlow() {
                 setPendingResidenceBlocked(true)
                 return
             }
+            if (res.status === 'questions-required' && 'step' in res) {
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                setPendingQuestions(res.step)
+                return
+            }
+            if (res.status === 'provider-not-in-plan' && 'message' in res) {
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                const reason = 'reason' in res ? res.reason : undefined
+                if (reason === 'requirements_missing') void startFlowAction('supplement:rain')
+                else if (reason && reasonCodeKey(reason)) setPlanRefusal(reason)
+                else setApplyError(res.message)
+                return
+            }
             // pending / already-applied → state machine routes based on overview.
             setPendingTerms(null)
             setPendingCountryConfirmation(null)
@@ -344,7 +409,7 @@ export function useCardFlow() {
             if (res.status === 'pending') awaitingIssuanceRef.current = true
             invalidateOverview()
         },
-        [invalidateOverview, refetchCardInfo]
+        [invalidateOverview, refetchCardInfo, startFlowAction]
     )
 
     // Card-create-after-apply failure detector (see advanceFromApplyResponse).
@@ -585,22 +650,9 @@ export function useCardFlow() {
         // Edge case: the user became "ready" between initial apply and the
         // refresh attempt. Close the modal and continue the non-Sumsub path.
         setSumsubToken(null)
-        if (res.status === 'terms-required' && 'isUsResident' in res) {
-            setPendingTerms({ isUsResident: res.isUsResident })
-        } else if (res.status === 'country-confirmation-required' && 'candidates' in res) {
-            setPendingCountryConfirmation({ candidates: res.candidates })
-        } else if (res.status === 'geo-blocked') {
-            setPendingResidenceBlocked(false)
-            setGeoBlocked(true)
-            void refetchCardInfo()
-        } else if (res.status === 'pending-residence-blocked') {
-            setGeoBlocked(false)
-            setPendingResidenceBlocked(true)
-        } else {
-            invalidateOverview()
-        }
+        advanceFromApplyResponse(res)
         return ''
-    }, [invalidateOverview, refetchCardInfo])
+    }, [advanceFromApplyResponse])
 
     // Preserve an interrupted Sumsub session for installed Android PWAs that
     // remain reachable until the native migration cutoff.
@@ -614,6 +666,12 @@ export function useCardFlow() {
         advanceFromApplyResponse(res)
         return false
     })
+
+    // The card answers are saved and the card joined the saved features: apply again.
+    const handleQuestionsDone = useCallback(() => {
+        setPendingQuestions(null)
+        void handleApply(false)
+    }, [handleApply])
 
     return {
         // data
@@ -642,6 +700,13 @@ export function useCardFlow() {
         isIssuing,
         geoBlocked,
         pendingResidenceBlocked,
+        planRefusal,
+        setPlanRefusal,
+        pendingQuestions,
+        pendingApplication,
+        setPendingQuestions,
+        handleQuestionsDone,
+        kycFlow,
         handleApply,
         handleConfirmCountry,
         handleAcceptTerms,
@@ -652,6 +717,7 @@ export function useCardFlow() {
         poaError,
         poaSubmitted,
         setPoaSubmitted,
+        rainDocumentReceivedCode,
         onUploadProofOfAddress,
         // identity re-upload
         onUploadIdentity,

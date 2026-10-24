@@ -4,8 +4,10 @@ import {
     bridgeTaskDismissalKey,
     hasNativeBridgeStep,
     headsUpDeadline,
+    isCardDocumentTask,
     isInFinalWeek,
     selectBridgeTasks,
+    selectCardDocumentTask,
     selectHomeTasks,
 } from '../bridge-tasks.utils'
 import type { NextAction, RailCapability } from '@/types/capabilities'
@@ -194,3 +196,105 @@ describe('bridgeTaskDismissalKey', () => {
         expect(bridgeTaskDismissalKey(task)).toBe(bridgeTaskDismissalKey({ ...task }))
     })
 })
+
+describe('selectCardDocumentTask — a card application waiting on the user', () => {
+    const cardRail = (overrides: Partial<RailCapability> = {}) =>
+        rail({
+            id: 'rain.card_rain',
+            provider: 'rain',
+            method: 'CARD_RAIN',
+            channel: 'card',
+            country: 'GLOBAL',
+            currency: 'USD',
+            status: 'requires-info',
+            blockingActions: ['sumsub:proof_of_address'],
+            ...overrides,
+        })
+    const rainPoa = action({
+        key: 'sumsub:proof_of_address',
+        kind: 'sumsub',
+        purpose: 'rain-card',
+        levelKey: 'proof_of_address',
+    })
+    const rainHosted = action({ key: 'rain-hosted', kind: 'rain-hosted', purpose: 'rain-card' })
+
+    it('a Rain proof-of-address ask becomes a card task, keyed apart from the shared action key', () => {
+        const task = selectCardDocumentTask([rainPoa], [cardRail()])
+        expect(task).toMatchObject({ kind: 'sumsub', levelKey: 'proof_of_address' })
+        expect(task?.key).not.toBe(rainPoa.key)
+        expect(isCardDocumentTask(task!)).toBe(true)
+        expect(isCardDocumentTask(rainPoa)).toBe(false)
+    })
+
+    it('a Rain selfie-and-ID ask (needsVerification) becomes a card task', () => {
+        const rainIdentity = action({
+            key: 'sumsub:rain_identity_verification',
+            kind: 'sumsub',
+            purpose: 'rain-card',
+            levelKey: 'rain_identity_verification',
+        })
+        const task = selectCardDocumentTask(
+            [rainIdentity],
+            [cardRail({ blockingActions: ['sumsub:rain_identity_verification'] })]
+        )
+        expect(task).toMatchObject({ kind: 'sumsub', levelKey: 'rain_identity_verification' })
+        expect(isCardDocumentTask(task!)).toBe(true)
+    })
+
+    it('an identity re-upload in Rain’s portal becomes a card task', () => {
+        expect(selectCardDocumentTask([rainHosted], [cardRail({ blockingActions: ['rain-hosted'] })])).toMatchObject({
+            kind: 'rain-hosted',
+        })
+    })
+
+    it('the same proof-of-address key on a Bridge rail is not a card task', () => {
+        expect(
+            selectCardDocumentTask([poaUpload], [rail({ blockingActions: ['sumsub:proof_of_address'] })])
+        ).toBeUndefined()
+    })
+
+    it('a collected proof of address waiting for review is not a task', () => {
+        const wait = action({ key: 'wait:rain-poa-review', kind: 'wait', purpose: 'rain-poa-review' })
+        expect(
+            selectCardDocumentTask([wait], [cardRail({ blockingActions: ['wait:rain-poa-review'] })])
+        ).toBeUndefined()
+    })
+
+    it('a denied application is not a task, even when the API still resolves its upload as fixable', () => {
+        // a Rain denial with an address reason: status blocked, verdict fixable with the upload
+        const denied = cardRail({
+            status: 'blocked',
+            resolved: {
+                status: 'fixable',
+                blocking: {
+                    code: 'proof_of_address',
+                    userMessage: '',
+                    selfHealable: true,
+                    selfHealKind: 'document-resubmit',
+                },
+                nextAction: rainPoa,
+            },
+        })
+        expect(selectCardDocumentTask([rainPoa], [denied])).toBeUndefined()
+    })
+
+    it('asks the card screen has no button for yet (tax ID) are not tasks', () => {
+        const taxId = action({
+            key: 'sumsub:tax_identification_number',
+            kind: 'sumsub',
+            purpose: 'rain-card',
+            levelKey: 'tax_identification_number',
+        })
+        expect(selectCardDocumentTask([taxId], [cardRail({ blockingActions: [taxId.key] })])).toBeUndefined()
+    })
+
+    it('on Home it joins the large task card, so the carousel and checklist give way', () => {
+        const { largeTasks } = selectHomeTasks([tosAction(), rainPoa], [cardRail()])
+        expect(largeTasks.map((task) => task.kind)).toEqual(['accept-tos', 'sumsub'])
+        expect(isCardDocumentTask(largeTasks[1])).toBe(true)
+    })
+})
+
+function tosAction() {
+    return action({ key: 'accept-tos', kind: 'accept-tos' })
+}

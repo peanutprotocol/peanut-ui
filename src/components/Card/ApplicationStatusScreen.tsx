@@ -12,6 +12,7 @@ import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 
 type Variant =
     | 'pending'
+    | 'pending-identity'
     | 'manual-review'
     | 'requires-info'
     | 'requires-support'
@@ -52,6 +53,7 @@ interface Props {
 // reassurance and no support CTA.
 const COPY_KEYS = {
     pending: { title: 'status.pendingTitle', body: 'status.pendingBody' },
+    'pending-identity': { title: 'status.pendingTitle', body: 'status.pendingIdentityBody' },
     'manual-review': { title: 'status.manualReviewTitle', body: 'status.manualReviewBody' },
     'requires-info': { title: 'status.requiresInfoTitle', body: 'status.requiresInfoBody' },
     'requires-support': { title: 'status.requiresSupportTitle', body: 'status.requiresSupportBody' },
@@ -62,6 +64,14 @@ const COPY_KEYS = {
         body: 'status.pendingResidenceBlockedBody',
     },
 } as const satisfies Record<Variant, { title: string; body: string }>
+
+/** A collected proof of address on its way to, or with, the card partner: nothing for the user to do. */
+const AWAITING_DOCUMENT_REVIEW: ReadonlySet<string> = new Set([
+    'proof_of_address_received',
+    'proof_of_address_review',
+    'identity_verification_received',
+    'identity_verification_review',
+])
 
 export type InformationKind = 'taxId' | 'birthDate'
 type SelfServeKind = 'proofOfAddress' | 'identity' | InformationKind
@@ -125,13 +135,20 @@ const ApplicationStatusScreen: FC<Props> = ({
             selfServeAction = informationActions[0]
         }
     }
+    // requires-info's default body points at support; the step on screen, or a wait, is the way forward instead
     const bodyKey =
-        variant === 'requires-info' && selfServeAction ? REQUIRES_INFO_BODY_KEYS[selfServeAction.kind] : copyKeys.body
+        variant !== 'requires-info'
+            ? copyKeys.body
+            : selfServeAction
+              ? REQUIRES_INFO_BODY_KEYS[selfServeAction.kind]
+              : reasonCode && AWAITING_DOCUMENT_REVIEW.has(reasonCode)
+                ? 'status.requiresInfoWaitBody'
+                : copyKeys.body
     return (
         <PageStack>
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
             <div className="my-auto flex flex-col items-center gap-6 text-center">
-                {variant === 'pending' && <Loading />}
+                {(variant === 'pending' || variant === 'pending-identity') && <Loading />}
                 {(variant === 'rejected' || variant === 'requires-support' || variant === 'geo-blocked') && (
                     <PeanutMascot
                         pose="worried"

@@ -218,6 +218,10 @@
             "documentDescription": "Needed to keep bank transfers running.",
             "documentDueBy": "Due {deadline} to keep bank transfers running.",
             "documentCta": "Complete now",
+            "cardDocumentTitle": "One more document for your card",
+            "cardAddressDescription": "Our card partner needs a proof of address to finish your application.",
+            "cardIdentityDescription": "Our card partner needs your identity document again to finish your application.",
+            "cardDocumentCta": "Continue",
             "completeBefore": "Complete before {deadline}",
             "dismiss": "Dismiss {task}",
             "verifyTitle": "Additional verification needed",
@@ -1640,6 +1644,7 @@
             "requiresInfoBirthDateBody": "Provide your date of birth to finish your card application.",
             "requiresInfoProofOfAddressBody": "Upload a proof of address to finish your card application.",
             "requiresInfoIdentityBody": "Upload your identity documents to finish your card application.",
+            "requiresInfoWaitBody": "There's nothing else to do for now. Your application moves on once our card partner has reviewed your document.",
             "requiresSupportTitle": "Something went wrong on our side",
             "requiresSupportBody": "We hit a snag while processing your card application. Our team needs to take a look — message support and we'll get you sorted.",
             "rejectedTitle": "We couldn't issue a card",
@@ -1649,7 +1654,8 @@
             "geoBlockedPolicyLink": "See which regions are restricted",
             "pendingResidenceBlockedTitle": "Residence change pending",
             "pendingResidenceBlockedBody": "Your approved residence is still active, but card applications are paused while a residence change is pending. Review or cancel that change to continue.",
-            "pendingResidenceBlockedCta": "Review residence change"
+            "pendingResidenceBlockedCta": "Review residence change",
+            "pendingIdentityBody": "We’ll set up your card once your ID check is done."
         },
         "cancel": {
             "title": "Cancel card?",
@@ -2963,7 +2969,12 @@
             "descriptionDefault": "Confirm your ID to unlock payments.",
             "ctaUploadDocument": "Upload document",
             "ctaUnlockNow": "Verify identity",
-            "ctaWithdrawFunds": "Withdraw funds"
+            "ctaWithdrawFunds": "Withdraw funds",
+            "ctaAnswerQuestions": "Answer questions",
+            "ctaRetakeId": "Retake ID photo",
+            "supportMessageDuplicateAccount": "Hi! My verification is blocked because my email is already linked to another Peanut account. Can you help me sort out which account to keep?",
+            "supportMessageImportedIdentity": "Hi! My bank transfers are blocked because the payment partner couldn't verify the ID from my earlier verification. Can you help me send them a current ID?",
+            "descriptionRetakeId": "Our payment partner needs a new, clear photo of your ID. Use a valid document and show all of it."
         },
         "regionRestricted": {
             "title": "We can't verify IDs from this country",
@@ -3014,6 +3025,26 @@
             "invalidEmail": "Please enter a valid email address.",
             "stillLoading": "Still loading your account — please try again in a moment.",
             "saveFailed": "Something went wrong saving your email. Please try again."
+        },
+        "setup": {
+            "settingUp": "Setting up",
+            "available": "Available",
+            "underReview": "Under review",
+            "documentNeeded": "Document needed",
+            "agreementsNeeded": "Agreements needed",
+            "verifyId": "Verify ID",
+            "notAvailable": "Not available",
+            "verifyAgain": "Verify again with a {country} ID",
+            "verifyAgainPlain": "Verify again",
+            "verifyAgainNote": "Starts a new identity check.",
+            "uploadNow": "Upload now",
+            "later": "Later",
+            "continueCard": "Continue card setup",
+            "reviewTerms": "Review terms",
+            "termsNeeded": "Terms needed",
+            "documentDescription": "Our payment partner needs one more document to finish opening this account.",
+            "proofOfAddressDescription": "Our payment partner needs a proof of address to finish opening your bank account.",
+            "termsDescription": "Accept the updated terms to keep using bank transfers."
         },
         "bridgeTos": {
             "title": "Accept terms",
@@ -3364,6 +3395,387 @@
             "taxId": "Your identity is verified, but we could not validate your tax ID for this country. Check and correct it to enable bank transfers.",
             "details": "Some information needs updating before bank transfers can be enabled. Your identity verification is saved.",
             "correct": "Correct details"
+        },
+        "documents": {
+            "qr": "QR payments",
+            "local": "Local bank transfers",
+            "bank": "USD, EUR, MXN and GBP accounts",
+            "card": "Peanut card",
+            "passport": "Passport",
+            "idCard": "National ID card",
+            "drivers": "Driving licence",
+            "residencePermit": "Residence permit",
+            "otherDocument": "Supporting document",
+            "temporaryProtection": "Temporary protection (Ukraine)"
+        },
+        "supplement": {
+            "proofOfAddressTitle": "Add a proof of address",
+            "proofOfAddressDescription": "Your ID is verified. To open your bank accounts, our payment partner also needs a proof of address, such as a recent bank statement or utility bill.",
+            "proofOfAddressCta": "Add proof of address",
+            "later": "Do this later",
+            "uncollectable": "{feature}: we can't finish setting this up in the app. Contact support and we'll complete it for you.",
+            "identityDocumentInsufficient": "{feature}: this needs a different ID document than the one you verified with.",
+            "unavailable": "{feature}: this feature isn’t available with the current verification."
+        },
+        "paperworkVerification": {
+            "back": "Go back",
+            "progress": "Step {current} of {total}",
+            "continue": "Continue",
+            "choose": "Choose",
+            "whyAsk": "Why do we ask?",
+            "whyTitle": "Why we ask",
+            "whyShared": "We share each answer only with the partner that needs it.",
+            "gotIt": "Got it",
+            "optional": "Optional",
+            "phoneHelp": "Include your country code, like +1.",
+            "phoneNote": {
+                "card": "For card security. We won’t send you codes.",
+                "local": "For local transfers. We won’t send you codes."
+            },
+            "noSpam": {
+                "title": "No spam",
+                "body": "We won’t text you or share it for marketing."
+            },
+            "hints": {
+                "purpose": "Pick the closest match.",
+                "work": "Pick the closest match.",
+                "money": "Rough estimates are fine."
+            },
+            "why": {
+                "purpose": "Banks and card issuers must know how you’ll use your account. Every regulated financial account asks this.",
+                "work": "Banks and card issuers must know what you do for work.",
+                "money": "Our partners check that your account activity fits your income. A range is enough.",
+                "birth": "Financial rules ask for these personal details, the same as on your ID.",
+                "address": "Your home address must match where you live, and it goes on your account details.",
+                "phone": "Our partners keep your phone number on file to protect your account.",
+                "tax": "Accounts in your country must be linked to your tax number.",
+                "declarations": "Financial rules in your country ask everyone these questions. If one applies, we may ask for a document later.",
+                "nationality": "Banks in the EU must know every country you’re a citizen of."
+            },
+            "sentence": {
+                "cardPurpose": "I’ll use my card <nw>for <pill></pill></nw>",
+                "bankPurpose": "I’ll use my account <nw>for <pill></pill></nw>",
+                "occupation": "My job is closest <nw>to <pill></pill></nw>",
+                "employmentStatus": "<nw>I’m <pill></pill></nw>",
+                "annualSalary": "<nw>I earn <pill></pill></nw> <nw>a year</nw>",
+                "expectedMonthlyVolume": "<nw>I’ll spend <pill></pill></nw> <nw>a month</nw>",
+                "sourceOfFunds": "My money comes <nw>from <pill></pill></nw>",
+                "countryOfBirth": "I was born <nw>in <pill></pill></nw>",
+                "cityOfBirth": "in the city <nw>of <pill></pill></nw>",
+                "bankMonthlyPayments": "Each month, my account <nw>moves <pill></pill></nw>",
+                "actingAsIntermediary": "I’ll send money <nw><pill></pill></nw>",
+                "nationality": "I’m a citizen <nw>of <pill></pill></nw>",
+                "maritalStatus": "My marital status <nw>is <pill></pill></nw>",
+                "sex": "My sex on my ID <nw>is <pill></pill></nw>"
+            },
+            "pickerTitle": {
+                "cardPurpose": "What you’ll use the card for",
+                "bankPurpose": "What you’ll use the account for",
+                "occupation": "Your job",
+                "employmentStatus": "Your work",
+                "annualSalary": "Your yearly income",
+                "expectedMonthlyVolume": "What you’ll spend each month",
+                "sourceOfFunds": "Where your money comes from",
+                "countryOfBirth": "Country of birth",
+                "cityOfBirth": "City of birth",
+                "bankMonthlyPayments": "What your account moves each month",
+                "actingAsIntermediary": "Who you send money for",
+                "nationality": "Your citizenship",
+                "maritalStatus": "Marital status",
+                "sex": "Sex"
+            },
+            "search": {
+                "occupation": "Search jobs",
+                "country": "Search countries",
+                "popular": "Popular",
+                "matches": "{count, plural, one {# match} other {# matches}}",
+                "typeToSearch": "Type to search all {count} jobs.",
+                "noJob": "No job matches “{query}”. Try a broader word, like “manager” or “driver”.",
+                "noCountry": "No country matches “{query}”.",
+                "keepTyping": "Keep typing to narrow it down."
+            },
+            "options": {
+                "cardPurpose": {
+                    "personal_spending": "Everyday spending",
+                    "travel": "Travel",
+                    "online_shopping": "Online shopping",
+                    "bills": "Paying bills",
+                    "business_expenses": "Business expenses"
+                },
+                "bankPurpose": {
+                    "personal_or_living_expenses": "Everyday spending and bills",
+                    "receive_salary": "Receiving my salary",
+                    "receive_payment_for_freelancing": "Getting paid for freelance work",
+                    "payments_to_friends_or_family_abroad": "Sending money to family or friends abroad",
+                    "purchase_goods_and_services": "Buying goods and services",
+                    "ecommerce_retail_payments": "Selling online or in a shop",
+                    "protect_wealth": "Protecting my savings",
+                    "investment_purposes": "Investing",
+                    "operating_a_company": "Running a company",
+                    "charitable_donations": "Giving to charity"
+                },
+                "employmentStatus": {
+                    "employed": "Employed",
+                    "self_employed": "Self-employed",
+                    "student": "A student",
+                    "retired": "Retired",
+                    "homemaker": "A homemaker",
+                    "unemployed": "Not working"
+                },
+                "annualSalary": {
+                    "under_25k": "Under $25,000",
+                    "25k_50k": "$25,000–$49,999",
+                    "50k_100k": "$50,000–$99,999",
+                    "100k_200k": "$100,000–$199,999",
+                    "over_200k": "Over $200,000"
+                },
+                "expectedMonthlyVolume": {
+                    "under_1k": "Under $1,000",
+                    "1k_5k": "$1,000–$4,999",
+                    "5k_10k": "$5,000–$9,999",
+                    "over_10k": "$10,000 or more"
+                },
+                "sourceOfFunds": {
+                    "salary": "My salary",
+                    "savings": "My savings",
+                    "company_funds": "My business",
+                    "investments_loans": "Investments or loans",
+                    "pension_retirement": "My pension",
+                    "gifts": "Gifts",
+                    "inheritance": "An inheritance",
+                    "sale_of_assets_real_estate": "Selling property or assets",
+                    "government_benefits": "Government benefits",
+                    "ecommerce_reseller": "Selling online",
+                    "someone_elses_funds": "Someone else’s money",
+                    "gambling_proceeds": "Gambling winnings"
+                },
+                "bankMonthlyPayments": {
+                    "0_4999": "Under $5,000",
+                    "5000_9999": "$5,000–$9,999",
+                    "10000_49999": "$10,000–$49,999",
+                    "50000_plus": "$50,000 or more"
+                },
+                "actingAsIntermediary": {
+                    "no": "Only for myself",
+                    "yes": "On behalf of others"
+                },
+                "maritalStatus": {
+                    "single": "Single",
+                    "married": "Married",
+                    "divorced": "Divorced",
+                    "widowed": "Widowed"
+                },
+                "sex": {
+                    "female": "Female",
+                    "male": "Male",
+                    "other": "Other (X)"
+                }
+            },
+            "titles": {
+                "address": "Where do you live?",
+                "phone": "What’s your phone number?",
+                "declarations": "Do any of these apply to you?"
+            },
+            "descriptions": {
+                "address": "Your home address, as it appears on a bill or bank statement.",
+                "phone": {
+                    "card": "Your card partner uses it to keep your card secure.",
+                    "local": "Our local transfer partner keeps it on file with your account."
+                },
+                "declarations": "Most people leave these off. If one applies, we may ask for a document later."
+            },
+            "labels": {
+                "street": "Street",
+                "buildingNumber": "Number",
+                "town": "Town or city",
+                "state": "State or region",
+                "postCode": "Postcode",
+                "country": "Country",
+                "countryLocked": "Your country of residence. You can change it in Profile.",
+                "changeResidence": "Change your country of residence",
+                "phone": "Phone number",
+                "isPep": "I hold a public office",
+                "isFatca": "I’m a US citizen or tax resident",
+                "isFep": "I must report to the UIF",
+                "cityOfBirth": "City of birth"
+            },
+            "tax": {
+                "title": {
+                    "ssn": "What’s your Social Security number?",
+                    "other": "What’s your tax number?"
+                },
+                "description": {
+                    "ssn": "US bank accounts need it.",
+                    "other": "The tax number from your country of residence."
+                },
+                "label": {
+                    "ssn": "Social Security number",
+                    "cuit": "CUIT or CUIL",
+                    "cpf": "CPF",
+                    "rut": "RUT",
+                    "curp": "CURP",
+                    "cc": "Cédula de ciudadanía",
+                    "other": "Tax number"
+                },
+                "placeholder": {
+                    "ssn": "123-45-6789",
+                    "cuit": "20-12345678-6",
+                    "cpf": "123.456.789-09",
+                    "rut": "12.345.678-5",
+                    "curp": "GODE561231HDFRRN09",
+                    "cc": "1023456789",
+                    "other": "Your tax number"
+                },
+                "help": {
+                    "ssn": "9 digits. ITINs aren’t accepted.",
+                    "cuit": "11 digits, from your tax registration.",
+                    "cpf": "11 digits.",
+                    "rut": "With the check digit at the end.",
+                    "curp": "18 characters.",
+                    "cc": "As it appears on your ID.",
+                    "other": "As it appears on your tax documents."
+                }
+            },
+            "errors": {
+                "required": "Answer this to continue.",
+                "invalidOption": "Choose one of the options.",
+                "invalidTaxId": "Check the number. It doesn’t look right.",
+                "itinNotAccepted": "That’s an ITIN. Enter your Social Security number.",
+                "invalidPhone": "Enter the full number with your country code, like +1.",
+                "invalidCountry": "Choose a country from the list.",
+                "tooLong": "That’s too long. Keep it under 100 characters.",
+                "invalidText": "Use only letters, numbers and punctuation.",
+                "invalid": "Check this answer.",
+                "retry": "We couldn’t save that. Check your connection and try again.",
+                "featureNotSelected": "Your account changed. We’re loading the right questions.",
+                "identitySubmitted": "Your ID is already submitted, so these answers can’t change now.",
+                "unavailable": "This check isn’t available right now.",
+                "usCitizenNotSupported": "Local transfers aren’t available to US citizens or tax residents. You can still get paid with a USD account or pay by QR.",
+                "tooShort": "Add the street name and number.",
+                "streetNumberMissing": "Add the street number.",
+                "poBoxNotAccepted": "A PO box can’t be used as a home address.",
+                "invalidBody": "These answers couldn’t be accepted. Reopen this check to continue.",
+                "unknownStep": "This step is no longer available. Reopen this check to continue.",
+                "rateLimited": "Too many tries. Wait a minute and try again."
+            },
+            "midpoint": {
+                "restartTitle": "Verify with a different document",
+                "restartDescription": "Pick the ID you’ll use now. Then take photos of it and a quick selfie.",
+                "document": "Document type",
+                "issuedBy": "Issuing country",
+                "privacy": "Your documents are handled securely by Sumsub.",
+                "failed": "We couldn’t start the ID check. Try again.",
+                "unavailable": "We can’t show the documents right now. Try again later.",
+                "temporaryProtectionNote": "The document you got as a person displaced from Ukraine. A paper certificate is fine; photograph the page with your details."
+            },
+            "review": {
+                "title": "Checking your ID",
+                "description": "Checks usually come back in a few minutes. If a reviewer needs to look, it takes 1 to 3 business days. You can leave this screen, and we’ll let you know when it’s done.",
+                "cta": "Go to Home",
+                "photos": "Photos received",
+                "reading": "Reading your ID and selfie",
+                "settingUp": "Setting up your {features}",
+                "unlocking": "Unlocking payments"
+            },
+            "failed": {
+                "title": "We need another look at your ID",
+                "description": "Your ID check needs something from you. Home shows what to do next.",
+                "cta": "Go to Home",
+                "retry": "Try again"
+            },
+            "verified": {
+                "title": "Your ID is confirmed!",
+                "description": "We’re setting up your {features}. It usually takes a few minutes, and we’ll let you know when everything is ready.",
+                "cta": "Go to Home",
+                "descriptionQrOnly": "You can start using Peanut."
+            },
+            "poa": {
+                "title": "Add a proof of address",
+                "description": "Your ID isn’t from {country}, so our banking partner asks for a recent document with your name and your address there.",
+                "kinds": {
+                    "bankStatement": "Bank statement",
+                    "utilityBill": "Utility bill",
+                    "taxLetter": "Tax or government letter"
+                },
+                "recent": "From the last 3 months",
+                "upload": "Upload document",
+                "skip": "Skip for now",
+                "skipNote": "You can skip this. Your bank account still opens, and our partner may ask for it later."
+            },
+            "addLater": {
+                "title": {
+                    "bank": "For your bank account",
+                    "card": "For your card",
+                    "local": "For local transfers"
+                },
+                "doneTitle": "We're setting things up",
+                "doneDescription": {
+                    "bank": "We’re setting up your bank account. It usually takes a few minutes, and we’ll let you know when it’s ready.",
+                    "card": "We’re setting up your card. It usually takes a few minutes, and we’ll let you know when it’s ready.",
+                    "local": "We’re setting up your local transfers. It usually takes a few minutes, and we’ll let you know when they’re ready."
+                },
+                "doneCta": "Done",
+                "actionTitle": "One more step",
+                "actionDescription": "Finish the extra check to set this up."
+            },
+            "loadFailed": {
+                "title": "We couldn’t load this",
+                "description": "Check your connection and try again. Your answers so far are saved.",
+                "retry": "Try again"
+            },
+            "toggleNotes": {
+                "isPep": "Or a close relative or partner does.",
+                "isFatca": "Even if I also hold another citizenship or a green card.",
+                "isFep": "Required in some jobs, like notaries."
+            },
+            "whenYes": {
+                "isFatca": "Local transfers aren’t available to US citizens or tax residents. You can still get paid with a USD account or pay by QR."
+            },
+            "place": {
+                "placeholder": "Start typing the city",
+                "countryFirst": "Choose the country first",
+                "suggestions": "Matching places",
+                "noMatch": "Not in the list. The name as typed works too.",
+                "inCountry": "Places in {country}. A name that isn’t listed works too.",
+                "done": "Done"
+            },
+            "continueWithoutLocal": "Continue without local bank transfers",
+            "steps": {
+                "title": "A few steps to\nverify your ID",
+                "residence": "Set your country of residence",
+                "questions": "Answer a few questions",
+                "photo": "Take a photo of your ID",
+                "selfie": "Take a quick selfie",
+                "review": "Get a secure review",
+                "unlock": "Unlock eligible payments",
+                "done": "Done"
+            },
+            "saved": {
+                "title": "Answers saved!",
+                "description": "Next, a photo of your ID and a quick selfie."
+            },
+            "featureNames": {
+                "bank": "bank accounts",
+                "card": "card",
+                "local": "local transfers"
+            },
+            "documentList": {
+                "title": "Which document\nwill you use?",
+                "description": "Choose one to start verification. You’ll take photos of it and a selfie.",
+                "issuedBy": "Issued by {country}",
+                "issuedByWithProof": "Issued by {country}. You’ll also add a proof of address.",
+                "other": "Other document",
+                "otherHint": "Like a driver’s license",
+                "otherTitle": "Other documents",
+                "otherDescription": "You can also verify with one of these. You’ll take photos of it and a selfie.",
+                "otherNotAccepted": "Visas, work permits and student cards can’t be used to verify your ID.",
+                "anotherCountry": "A document from another country",
+                "anotherCountryHint": "Pick the document, then the country that issued it.",
+                "backToList": "Back to the list",
+                "noneFit": "Don’t have any of those?",
+                "changeResidence": "Change residence",
+                "stepDots": "Verify identity, step 1 of 3"
+            }
         }
     },
     "identity": {
@@ -3403,6 +3815,11 @@
             "tax_identification_number": "We need your tax identification number to continue.",
             "address_of_residence": "We need your residential address to continue.",
             "residence_unresolved": "We still need your home address to finish setting up bank transfers. Add it and we will retry automatically.",
+            "bridge_answers_rejected": "Our payment partner couldn't accept one of your answers. Answer the questions again.",
+            "requirements_missing": "To open your bank accounts, our payment partner needs a proof of address, such as a recent bank statement or utility bill. Add it and we'll finish setting them up automatically.",
+            "requirements_in_review": "We're checking your proof of address. Bank accounts open once it's approved.",
+            "identity_document_insufficient": "The document you verified with can't be used for this account. Verify again with a different ID document.",
+            "requirements_uncollectable": "Our payment partner needs something we can't collect in the app. Message support and we'll finish setting this up with you.",
             "proof_of_address": "We need a valid proof of address document.",
             "source_of_funds": "We need information about your source of funds.",
             "proof_of_source_of_funds": "We need a document proving your source of funds.",
@@ -3414,14 +3831,20 @@
             "fep_documentation": "Because of your professional activity, we need proof of your UIF reporting status.",
             "email_required": "We need an email address to finish setting up this account. Add one to your profile and we'll retry automatically.",
             "submission_failed": "We hit a snag finishing your verification on our side. We'll get you sorted — tap below to message support.",
-            "proof_of_address_review": "We received your proof of address — it's being reviewed.",
+            "proof_of_address_review": "We sent your proof of address to our card partner — it's being reviewed.",
+            "proof_of_address_received": "We received your proof of address and are passing it to our card partner.",
+            "identity_verification_required": "Our card partner needs a selfie and a photo of your ID to finish reviewing your application.",
+            "identity_verification_review": "We sent your selfie and ID to our card partner — they're being reviewed.",
+            "identity_verification_received": "We received your selfie and ID and are passing them to our card partner.",
             "bridge_tos_required": "Accept our payment partner's terms to continue.",
             "bridge_tos_v2_required": "Accept the bank transfer provider's updated Terms of Service to enable euro and British pound bank transfers.",
             "bridge_processing": "Our payment partner is finishing your verification. This usually takes a few minutes.",
             "verification_blocked": "Verification issue — contact support for help.",
             "terminal_rejection": "Verification issue — contact support for help.",
-            "bridge_terminal_rejection": "We couldn't verify your account for bank transfers. Message support if you think this is a mistake.",
+            "bridge_terminal_rejection": "Our payment partner didn't approve bank transfers for this account, and Peanut can't change that decision. Your funds on Peanut are not affected. If you think this is a mistake, message support.",
             "duplicate_customer_detected": "Our payment partner flagged your account as a possible duplicate — message support to verify and unlock.",
+            "duplicate_account": "Your email is already linked to another Peanut account, so we can't finish setting up this one. If the other account is yours, sign in to it. Otherwise, contact support and we'll sort it out.",
+            "imported_identity_rejected": "Our payment partner couldn't verify the ID from your earlier verification. They need a current government ID, and may also ask for a proof of address. Message support and we'll take it from here.",
             "region_block": "Peanut cards aren't available in your region yet.",
             "compliance_block": "We couldn't approve your card application after a compliance review.",
             "card_rejected": "Your card application couldn't be approved. Message support if you think this is a mistake.",
@@ -3434,7 +3857,12 @@
             "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "residence_bank_restricted": "Bank transfers aren't available for residents of your country. Your funds are safe — you can withdraw them as crypto anytime.",
             "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result.",
-            "identity_document_missing": "We need an identity document and a selfie to complete your verification."
+            "identity_document_missing": "We need an identity document and a selfie to complete your verification.",
+            "document_country_unsupported": "Needs an ID issued by {country}",
+            "card_unavailable_for_verification": "Not available with the current verification",
+            "local_tax_id_missing": "Needs a tax ID: CPF in Brazil, CUIT or CUIL in Argentina",
+            "under_minimum_age": "Only from age 18",
+            "bridge_processing_slow": "This is taking longer than usual. Our payment partner is still reviewing your details. Contact support and we'll check on it."
         }
     },
     "recoverFunds": {
@@ -3936,6 +4364,7 @@
         "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
         "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
         "providerRejected": "Our payment partner couldn't accept this for your account. No money moved. Contact support.",
+        "mantecaAccountRejected": "Deposits and withdrawals in this country aren’t available for your account. You can still pay with QR. Contact support for help.",
         "bankAccountNotUsable": "This bank account can't be used anymore. Add it again.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",
         "linkTransactionHashFetch": "We couldn’t load this link’s transaction. Please refresh and try again.",

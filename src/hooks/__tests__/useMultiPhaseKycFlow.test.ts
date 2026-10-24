@@ -1,5 +1,12 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
+jest.mock('@/app/actions/kyc-workflow', () => ({
+    getKycDocumentPlan: jest.fn(async () => ({ available: false, routes: [] })),
+    findKycDocumentPlan: jest.fn(async () => ({ available: false, routes: [] })),
+    getKycDocumentStatus: jest.fn(),
+    resumeKycDocumentAttempt: jest.fn(),
+    findKycReplacementPlan: jest.fn(async () => null),
+}))
 import { act } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import posthog from 'posthog-js'
@@ -47,7 +54,8 @@ jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, isAndroidNativ
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ fetchUser: mockFetchUser, user: { user: { username: 'test' } } }),
 }))
-jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ capabilities: undefined }) }))
+let mockCapabilities: unknown = undefined
+jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ capabilities: mockCapabilities }) }))
 jest.mock('@/hooks/useSumsubReloadResume', () => ({ useSumsubReloadResume: jest.fn() }))
 jest.mock('@/hooks/useSubmissionWindow', () => ({ markSubmitted: jest.fn() }))
 jest.mock('@/utils/capability-gate', () => ({ deriveGate: () => ({ kind: 'none' }) }))
@@ -651,6 +659,152 @@ describe('useMultiPhaseKycFlow — submission analytics per attempt', () => {
                 submit_source: 'sdk_complete',
             })
         )
+    })
+})
+
+// A document-first approval with bank accounts ticked parks Bridge until the
+// proof of address arrives on its supplement action (supplement:bridge).
+describe('useMultiPhaseKycFlow — the proof of address after the identity', () => {
+    const parked = {
+        capabilities: {
+            rails: [
+                {
+                    id: 'bridge.sepa_eu',
+                    provider: 'bridge',
+                    channel: 'bank',
+                    country: 'EU',
+                    currency: 'EUR',
+                    status: 'blocked',
+                    reason: { code: 'requirements_missing', userMessage: 'x' },
+                    blockingActions: ['supplement:bridge'],
+                },
+            ],
+            nextActions: [{ key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' }],
+            restrictions: [],
+        },
+    }
+    const reviewing = {
+        capabilities: {
+            ...parked.capabilities,
+            rails: [
+                {
+                    ...parked.capabilities.rails[0],
+                    status: 'pending',
+                    reason: {
+                        code: 'requirements_in_review',
+                        userMessage: "We're checking your proof of address. Bank accounts open once it's approved.",
+                    },
+                    blockingActions: [],
+                },
+            ],
+            nextActions: [],
+        },
+    }
+    const mockStartAction = jest.requireMock('@/app/actions/sumsub').startKycAction as jest.Mock
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockFetchUser.mockResolvedValue(parked)
+        mockInitiate.mockResolvedValue({ data: { token: 'tok', applicantId: 'app', status: 'PENDING' } })
+        mockStartAction.mockResolvedValue({ data: { token: 'poa-token', levelName: 'provider-rfi-proof-of-address' } })
+    })
+
+    const approve = async (onKycSuccess = jest.fn()) => {
+        const view = renderHook(() => useMultiPhaseKycFlow({ onKycSuccess }))
+        await act(async () => {
+            await view.result.current.handleInitiateKyc('EU')
+        })
+        await act(async () => {
+            mockWs.handler?.('APPROVED')
+        })
+        return view
+    }
+
+    it('reads the supplement a parked rail carries', () => {
+        expect(deriveCapabilityPhaseSignals(parked.capabilities as never).supplementKey).toBe('supplement:bridge')
+        expect(
+            deriveCapabilityPhaseSignals({ ...parked.capabilities, rails: [], nextActions: [] } as never).supplementKey
+        ).toBeUndefined()
+    })
+
+    it('does not infer a supplement from a parked rail whose proof of address is in review', async () => {
+        expect(deriveCapabilityPhaseSignals(reviewing.capabilities as never).supplementKey).toBeUndefined()
+        mockFetchUser.mockResolvedValue(reviewing)
+        const onKycSuccess = jest.fn()
+        const view = await approve(onKycSuccess)
+        expect(view.result.current.modalPhase).not.toBe('supplement')
+        expect(mockStartAction).not.toHaveBeenCalled()
+
+        mockCapabilities = reviewing.capabilities
+        view.rerender()
+        expect(view.result.current.modalPhase).not.toBe('supplement')
+        expect(mockStartAction).not.toHaveBeenCalled()
+        mockCapabilities = undefined
+    })
+
+    it('asks for the proof of address right after approval and starts it on the supplement action', async () => {
+        const onKycSuccess = jest.fn()
+        const { result } = await approve(onKycSuccess)
+
+        expect(result.current.modalPhase).toBe('supplement')
+        expect(result.current.isModalOpen).toBe(true)
+        expect(onKycSuccess).not.toHaveBeenCalled()
+
+        await act(async () => {
+            await result.current.handleStartSupplement()
+        })
+        expect(mockStartAction).toHaveBeenCalledWith('supplement:bridge')
+        expect(result.current.showWrapper).toBe(true)
+        expect(result.current.isModalOpen).toBe(false)
+    })
+
+    it('a submitted proof of address finishes the flow instead of reporting payments unavailable', async () => {
+        const onKycSuccess = jest.fn()
+        const { result } = await approve(onKycSuccess)
+        await act(async () => {
+            await result.current.handleStartSupplement()
+        })
+        await act(async () => {
+            result.current.handleSdkComplete()
+        })
+
+        expect(onKycSuccess).toHaveBeenCalledTimes(1)
+        expect(result.current.error).toBeNull()
+        expect(result.current.isTerminalError).toBe(false)
+        expect(result.current.modalPhase).not.toBe('supplement')
+    })
+
+    it('a rail that parks while the account is prepared asks for the proof of address, not support', async () => {
+        const provisioning = {
+            capabilities: {
+                ...parked.capabilities,
+                rails: [{ ...parked.capabilities.rails[0], status: 'pending', blockingActions: [] }],
+                nextActions: [],
+            },
+        }
+        mockFetchUser.mockResolvedValue(provisioning)
+        const onKycSuccess = jest.fn()
+        const view = await approve(onKycSuccess)
+        expect(view.result.current.modalPhase).toBe('preparing')
+
+        mockCapabilities = parked.capabilities
+        view.rerender()
+
+        expect(view.result.current.modalPhase).toBe('supplement')
+        expect(view.result.current.error).toBeNull()
+        expect(view.result.current.isTerminalError).toBe(false)
+        mockCapabilities = undefined
+    })
+
+    it('doing it later closes without reporting success', async () => {
+        const onKycSuccess = jest.fn()
+        const { result } = await approve(onKycSuccess)
+        act(() => result.current.handleSkipSupplement())
+
+        expect(result.current.isModalOpen).toBe(false)
+        expect(result.current.modalPhase).toBe('verifying')
+        expect(onKycSuccess).not.toHaveBeenCalled()
+        expect(mockStartAction).not.toHaveBeenCalled()
     })
 })
 

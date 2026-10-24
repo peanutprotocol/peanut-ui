@@ -12,9 +12,11 @@ import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { useCardFlow } from './useCardFlow'
+import { AddFeatureQuestions } from '@/features/paperwork-verification/AddFeatureFlow'
 
 export const CardPage: FC = () => {
     const t = useTranslations('card')
@@ -43,6 +45,13 @@ export const CardPage: FC = () => {
         isIssuing,
         geoBlocked,
         pendingResidenceBlocked,
+        planRefusal,
+        setPlanRefusal,
+        pendingQuestions,
+        pendingApplication,
+        setPendingQuestions,
+        handleQuestionsDone,
+        kycFlow,
         handleApply,
         handleConfirmCountry,
         handleAcceptTerms,
@@ -51,6 +60,7 @@ export const CardPage: FC = () => {
         setPoaToken,
         poaError,
         poaSubmitted,
+        rainDocumentReceivedCode,
         setPoaSubmitted,
         onUploadProofOfAddress,
         onUploadIdentity,
@@ -108,6 +118,9 @@ export const CardPage: FC = () => {
         if (isIssuing) {
             return <ApplicationStatusScreen variant="pending" onPrev={onBack} />
         }
+        if (pendingApplication && state === 'add-card') {
+            return <ApplicationStatusScreen variant={pendingApplication} onPrev={onBack} />
+        }
         // Terminal regulatory block detected mid-funnel by the BE apply gate —
         // takes precedence over the confirmation/terms overlays (those flows
         // are moot once the country verdict is in).
@@ -116,6 +129,46 @@ export const CardPage: FC = () => {
         }
         if (pendingResidenceBlocked) {
             return <ApplicationStatusScreen variant="pending-residence-blocked" onPrev={onBack} />
+        }
+        // A supplement start the backend refused for good: support is the way on.
+        if (kycFlow.isTerminalError && kycFlow.error) {
+            return (
+                <ApplicationStatusScreen
+                    variant="requires-info"
+                    reasonMessage={kycFlow.error}
+                    onContactSupport={() => setIsSupportModalOpen(true)}
+                    onPrev={onBack}
+                />
+            )
+        }
+        // Smart Paperwork Verification: the card's own questions on one full screen over the page, then the application resumes.
+        if (pendingQuestions) {
+            return (
+                <div className="fixed inset-0 z-30 overflow-y-auto bg-white pt-safe-top pb-safe-bottom">
+                    <AddFeatureQuestions
+                        feature="card"
+                        requiredStep={pendingQuestions}
+                        onBack={() => setPendingQuestions(null)}
+                        onDone={handleQuestionsDone}
+                    />
+                </div>
+            )
+        }
+        if (planRefusal) {
+            return (
+                <ApplicationStatusScreen
+                    variant="requires-info"
+                    reasonCode={planRefusal}
+                    onContactSupport={() => setIsSupportModalOpen(true)}
+                    onUploadIdentity={
+                        planRefusal === 'identity_document_insufficient'
+                            ? () => void kycFlow.handleRestartIdentity()
+                            : undefined
+                    }
+                    uploadError={kycFlow.error ?? undefined}
+                    onPrev={() => setPlanRefusal(null)}
+                />
+            )
         }
         // Residence confirmation comes before terms in the funnel — the
         // backend won't return terms-required until the country is resolved.
@@ -179,7 +232,7 @@ export const CardPage: FC = () => {
                         fundingRequired={fundingRequired}
                         onApply={() => handleApply(false)}
                         onPrev={onBack}
-                        applyError={applyError}
+                        applyError={applyError ?? kycFlow.error}
                     />
                 )
             case 'pending':
@@ -201,7 +254,7 @@ export const CardPage: FC = () => {
                     )
                 }
                 const cardRail = railsForProvider('rain')[0]
-                const cardRailReasonCode = poaSubmitted ? 'proof_of_address_review' : cardRail?.reason?.code
+                const cardRailReasonCode = poaSubmitted ? rainDocumentReceivedCode : cardRail?.reason?.code
                 const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
@@ -254,7 +307,7 @@ export const CardPage: FC = () => {
                 // on its own (reassurance + support CTA), so show it now and let
                 // the reason fill in once capabilities resolve.
                 const cardRail = capabilitiesLoading ? undefined : railsForProvider('rain')[0]
-                const cardRailReasonCode = poaSubmitted ? 'proof_of_address_review' : cardRail?.reason?.code
+                const cardRailReasonCode = poaSubmitted ? rainDocumentReceivedCode : cardRail?.reason?.code
                 const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
@@ -310,6 +363,7 @@ export const CardPage: FC = () => {
                     return response.data.token
                 }}
             />
+            <SumsubKycModals flow={kycFlow} />
             <SumsubKycWrapper
                 sessionKey={informationSession?.key}
                 visible={informationSession !== null}

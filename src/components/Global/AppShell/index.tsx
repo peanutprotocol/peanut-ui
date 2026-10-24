@@ -19,6 +19,8 @@ interface AppShellProps {
     innerClassName?: string
     /** Bottom safe-area fill color (onboarding variant, device-dependent). */
     bottomInsetClassName?: string
+    /** Page and status-bar strip background override (app variant), for a full-screen flow. */
+    pageClassName?: string
     children: React.ReactNode
 }
 
@@ -35,6 +37,7 @@ export const AppShell = ({
     contentClassName,
     innerClassName,
     bottomInsetClassName,
+    pageClassName,
     children,
 }: AppShellProps) => {
     const navHidden = useBottomNavHidden()
@@ -79,12 +82,18 @@ export const AppShell = ({
     }
 
     return (
-        <div className="flex min-h-dvh w-full flex-col bg-background-page pt-safe-top">
+        <div className={twMerge('flex min-h-dvh w-full flex-col bg-background-page pt-safe-top', pageClassName)}>
             {/* Status-bar safe zone. Paints the inset strip in the app background so
                 the top matches the page even where fixed children would otherwise draw
                 under the status bar. Height is the natively measured inset on Android
                 15+ and env() elsewhere, so still a no-op on web (inset = 0). */}
-            <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top bg-background-page" />
+            <div
+                aria-hidden
+                className={twMerge(
+                    'pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top bg-background-page',
+                    pageClassName
+                )}
+            />
             {banner}
             {/* Scrollable content — one centered mobile column on every viewport */}
             <div

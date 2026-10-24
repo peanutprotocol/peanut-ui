@@ -46,6 +46,7 @@ jest.mock('@/services/rain', () => ({
 jest.mock('@/services/consent', () => ({ cardConsentDocuments: jest.fn(() => []) }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser, fetchUser: jest.fn(), isFetchingUser: false }),
+    useOptionalAuth: () => ({ user: mockUser }),
 }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
@@ -115,6 +116,12 @@ const proofOfAddress: NextAction = {
     levelKey: 'proof_of_address',
 }
 const identityDocument: NextAction = { key: 'rain:hosted_identity', kind: 'rain-hosted', purpose: 'rain-card' }
+const identityVerification: NextAction = {
+    key: 'sumsub:rain_identity_verification',
+    kind: 'sumsub',
+    purpose: 'rain-card',
+    levelKey: 'rain_identity_verification',
+}
 
 const tokenFor: Record<string, string> = {
     [taxId.key]: 'tok_tax_id',
@@ -285,6 +292,18 @@ describe('Rain tax-ID and date-of-birth actions on the requires-information card
         fireEvent.click(screen.getByText('Upload proof of address'))
         await waitFor(() => expect(mockSelfHeal).toHaveBeenCalledWith('RAIN'))
         await waitFor(() => expect(openSdkTokens()).toEqual(['tok_poa']))
+        expect(mockHostedStart).not.toHaveBeenCalled()
+        expect(startActionKeys()).toEqual([])
+    })
+
+    it('opens our Sumsub flow for the selfie and ID Rain asks for on needsVerification', async () => {
+        setCapabilities({ cardActions: [identityVerification] })
+        mockSelfHeal.mockResolvedValue({ data: { token: 'tok_identity' } } as never)
+        render()
+
+        fireEvent.click(screen.getByText('Upload identity documents'))
+        await waitFor(() => expect(mockSelfHeal).toHaveBeenCalledWith('RAIN'))
+        await waitFor(() => expect(openSdkTokens()).toEqual(['tok_identity']))
         expect(mockHostedStart).not.toHaveBeenCalled()
         expect(startActionKeys()).toEqual([])
     })

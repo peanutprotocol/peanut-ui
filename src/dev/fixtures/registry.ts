@@ -23,6 +23,7 @@ import {
 } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
+import { PAPERWORK_VERIFICATION_FIXTURES } from './paperwork-verification'
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
@@ -723,6 +724,53 @@ const BLOCKED_BANK_CAPABILITIES = {
 }
 
 /**
+ * The setup status of an identity verified through the document list
+ * (api#1816): /users/kyc/profile holds its identity attempt and
+ * /users/kyc/plan the saved features. Open the identity row on Activity.
+ */
+const SETUP_PROFILE = {
+    identity: {
+        verificationId: 'fixture-identity',
+        applicantId: null,
+        canonicalStatus: 'APPROVED',
+        status: 'verified',
+    },
+    attempts: [
+        {
+            id: 'fixture-attempt',
+            verificationId: 'fixture-identity',
+            provider: 'SUMSUB',
+            kind: 'IDENTITY',
+            status: 'APPROVED',
+            createdAt: '2026-10-01T10:00:00.000Z',
+        },
+    ],
+}
+const setupPlan = (features: { qr: boolean; local: boolean; bank: boolean; card: boolean }) => ({
+    available: false,
+    activeAttemptId: null,
+    policyVersion: 'fixture',
+    features,
+    routes: [],
+})
+const SETUP_PIX_RAIL = {
+    id: 'manteca.pix_br',
+    provider: 'manteca',
+    method: 'PIX_BR',
+    channel: 'bank',
+    country: 'BR',
+    currency: 'BRL',
+    status: 'enabled',
+    operations: { pay: 'enabled', deposit: 'enabled', withdraw: 'enabled' },
+}
+const SETUP_ACCOUNT_RAILS = BRIDGE_BANK_RAILS.slice(0, 2)
+const SETUP_SUPPLEMENT = { key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' }
+const setupMe = (rails: unknown[], nextActions: unknown[] = [], residence = 'BR') => ({
+    residence: { declared: residence, verified: residence, pending: null, declaredSecond: null },
+    capabilities: { rails, nextActions, restrictions: [] },
+})
+
+/**
  * QR pay closed for this user: the one case the Home checklist has no payment
  * row (QR pay is open to every verified user unless the capabilities block it).
  */
@@ -922,6 +970,62 @@ const PROFILE_ACCOUNTS_MIX = {
                 reason: 'identity-required',
             },
         ],
+    },
+}
+
+/**
+ * An unverified Bangladesh resident who picked bank accounts. Every Bridge
+ * corridor waits on the ID, and the Smart Paperwork Engine (api#1931) refuses
+ * USD to the residence: Bridge publishes no USD rail for Bangladesh.
+ */
+const PAPERWORK_BANGLADESH_RESPONSE = {
+    'GET /users/me': {
+        capabilities: BLOCKED_BANK_CAPABILITIES,
+        depositAccounts: { enabled: true },
+        residence: { declared: 'BD', verified: null, pending: null, declaredSecond: null },
+    },
+    'GET /users/deposit-accounts': {
+        depositAccounts: [],
+        claimable: [],
+        unavailable: [
+            {
+                railId: 'bridge.sepa_eu',
+                method: 'SEPA_EU',
+                country: 'EU',
+                currency: 'EUR',
+                reason: 'identity-required',
+            },
+            {
+                railId: 'bridge.faster_payments_gb',
+                method: 'FASTER_PAYMENTS_GB',
+                country: 'GB',
+                currency: 'GBP',
+                reason: 'identity-required',
+            },
+            { railId: 'bridge.ach_us', method: 'ACH_US', country: 'US', currency: 'USD', reason: 'identity-required' },
+            {
+                railId: 'bridge.spei_mx',
+                method: 'SPEI_MX',
+                country: 'MX',
+                currency: 'MXN',
+                reason: 'identity-required',
+            },
+        ],
+    },
+    'GET /users/kyc/paperwork': {
+        products: [
+            {
+                product: 'bridge.usd',
+                provider: 'BRIDGE',
+                available: false,
+                reason: 'account_unavailable_in_residence',
+                rule: 'bridge.no-usd',
+            },
+            { product: 'bridge.eur', provider: 'BRIDGE', available: true },
+            { product: 'bridge.gbp', provider: 'BRIDGE', available: true },
+            { product: 'bridge.mxn', provider: 'BRIDGE', available: true },
+        ],
+        requirements: [],
     },
 }
 
@@ -1842,6 +1946,234 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
 
+    'kyc-setup-all-available': {
+        route: '/history',
+        about: 'Setup status after a verification-attempt identity check: every saved feature is available, so it reads all set.',
+        responses: {
+            'GET /users/me': setupMe([
+                SETUP_PIX_RAIL,
+                ...SETUP_ACCOUNT_RAILS.map((rail) => ({ ...rail, status: 'enabled' })),
+                {
+                    id: 'rain.card_rain',
+                    provider: 'rain',
+                    method: 'CARD_RAIN',
+                    channel: 'card',
+                    country: 'GLOBAL',
+                    currency: 'USD',
+                    status: 'enabled',
+                    operations: { pay: 'enabled' },
+                },
+            ]),
+            'GET /users/kyc/profile': SETUP_PROFILE,
+            'GET /users/kyc/plan': setupPlan({ qr: true, local: true, bank: true, card: true }),
+        },
+    },
+    'kyc-setup-bank-document-needed': {
+        route: '/history',
+        about: 'Setup status: QR pays, the accounts wait for a proof of address on the supplement action.',
+        responses: {
+            'GET /users/me': setupMe(
+                [
+                    SETUP_PIX_RAIL,
+                    ...SETUP_ACCOUNT_RAILS.map((rail) => ({
+                        ...rail,
+                        status: 'blocked',
+                        reason: {
+                            code: 'requirements_missing',
+                            userMessage: 'We need one more document to finish setting this up.',
+                        },
+                        blockingActions: ['supplement:bridge'],
+                        resolved: {
+                            status: 'fixable',
+                            blocking: {
+                                code: 'requirements_missing',
+                                userMessage: 'We need one more document to finish setting this up.',
+                                selfHealable: true,
+                                selfHealKind: 'document-resubmit',
+                            },
+                            nextAction: SETUP_SUPPLEMENT,
+                        },
+                    })),
+                ],
+                [SETUP_SUPPLEMENT]
+            ),
+            'GET /users/kyc/profile': SETUP_PROFILE,
+            'GET /users/kyc/plan': setupPlan({ qr: true, local: false, bank: true, card: false }),
+        },
+    },
+    'kyc-setup-bank-address-review': {
+        route: '/history',
+        about: 'Setup status: the proof of address is under review, so the accounts read under review with no button.',
+        responses: {
+            'GET /users/me': setupMe([
+                SETUP_PIX_RAIL,
+                ...SETUP_ACCOUNT_RAILS.map((rail) => ({
+                    ...rail,
+                    status: 'pending',
+                    reason: {
+                        code: 'requirements_in_review',
+                        userMessage: "We're checking your proof of address. Bank accounts open once it's approved.",
+                    },
+                    blockingActions: [],
+                    resolved: { status: 'pending' },
+                })),
+            ]),
+            'GET /users/kyc/profile': SETUP_PROFILE,
+            'GET /users/kyc/plan': setupPlan({ qr: true, local: false, bank: true, card: false }),
+        },
+    },
+    'kyc-setup-card-agreements-needed': {
+        route: '/history',
+        about: 'Setup status: QR pays, the card has no application yet, so its agreements wait on the card page.',
+        responses: {
+            'GET /users/me': setupMe([SETUP_PIX_RAIL]),
+            'GET /users/kyc/profile': SETUP_PROFILE,
+            'GET /users/kyc/plan': setupPlan({ qr: true, local: false, bank: false, card: true }),
+        },
+    },
+    'kyc-setup-bank-terms-needed': {
+        route: '/history',
+        about: 'Setup status: QR pays, the accounts wait for Bridge terms and the card for its agreements, two different badges.',
+        responses: {
+            'GET /users/me': setupMe(
+                [
+                    SETUP_PIX_RAIL,
+                    ...SETUP_ACCOUNT_RAILS.map((rail) => ({
+                        ...rail,
+                        status: 'requires-info',
+                        reason: {
+                            code: 'bridge_tos_required',
+                            userMessage: 'Accept the Bridge terms of service to continue.',
+                        },
+                        blockingActions: ['accept-tos'],
+                        resolved: {
+                            status: 'fixable',
+                            blocking: {
+                                code: 'bridge_tos_required',
+                                userMessage: 'Accept the Bridge terms of service to continue.',
+                                selfHealable: true,
+                            },
+                            nextAction: { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' },
+                        },
+                    })),
+                ],
+                [{ key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }]
+            ),
+            'GET /users/kyc/profile': SETUP_PROFILE,
+            'GET /users/kyc/plan': setupPlan({ qr: true, local: false, bank: true, card: true }),
+        },
+    },
+    'kyc-setup-bank-local-id-refused': {
+        route: '/history',
+        about: 'Setup status: the plan refused Bridge for the document country, so the accounts need an ID issued by Brazil while QR and local transfers work.',
+        responses: {
+            // a refused provider was never enrolled: no Bridge rail, only the top-level restart action names it
+            'GET /users/me': setupMe(
+                [SETUP_PIX_RAIL],
+                [
+                    {
+                        key: 'restart-identity',
+                        kind: 'restart-identity',
+                        purpose: 'document_country_unsupported',
+                        refused: [{ provider: 'bridge', reason: 'document_country_unsupported' }],
+                    },
+                ]
+            ),
+            'GET /users/kyc/profile': SETUP_PROFILE,
+            'GET /users/kyc/plan': setupPlan({ qr: true, local: true, bank: true, card: false }),
+        },
+    },
+    'kyc-setup-local-account-refused': {
+        route: '/history',
+        about: 'Setup status after a first approval for a passport user in Brazil with no CPF: the plan refused the personal Manteca account, so local transfers are not available while QR pays on the pool.',
+        responses: {
+            // what the first approval leaves: no Manteca bank rail, the Pix pool
+            // rail ENABLED with its first-party operations locked behind the upgrade
+            'GET /users/me': setupMe(
+                [
+                    {
+                        ...SETUP_PIX_RAIL,
+                        operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
+                        blockingActions: ['manteca-full-account'],
+                        resolved: { status: 'enabled' },
+                    },
+                ],
+                [
+                    {
+                        key: 'manteca-full-account',
+                        kind: 'sumsub',
+                        purpose: 'unlock-manteca-bank',
+                        levelKey: 'manteca',
+                    },
+                ]
+            ),
+            // the refusal reaches the app only as the provider's onboarding attempt
+            'GET /users/kyc/profile': {
+                ...SETUP_PROFILE,
+                attempts: [
+                    {
+                        id: 'fixture-manteca-onboarding',
+                        verificationId: 'fixture-manteca',
+                        provider: 'MANTECA',
+                        kind: 'ONBOARDING',
+                        status: 'REJECTED',
+                        decisionSource: 'POLICY',
+                        reasonCode: 'local_tax_id_missing',
+                        sourceAttemptId: 'fixture-attempt',
+                        createdAt: '2026-10-01T10:01:00.000Z',
+                    },
+                    ...SETUP_PROFILE.attempts,
+                ],
+            },
+            'GET /users/kyc/plan': setupPlan({ qr: true, local: true, bank: false, card: false }),
+        },
+    },
+
+    'bank-proof-of-address-supplement': {
+        route: '/profile/accounts',
+        about: 'Identity approved with bank accounts ticked: Bridge waits for a proof of address, collected on its supplement action after the identity.',
+        responses: {
+            'GET /users/me': {
+                // what api#1816 answers right after the approval: the rail is
+                // parked REQUIREMENTS_MISSING and names supplement:bridge
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'bridge.sepa_eu',
+                            provider: 'bridge',
+                            method: 'SEPA_EU',
+                            channel: 'bank',
+                            country: 'EU',
+                            currency: 'EUR',
+                            status: 'blocked',
+                            reason: {
+                                code: 'requirements_missing',
+                                userMessage: 'We need one more document to finish setting this up.',
+                            },
+                            blockingActions: ['supplement:bridge'],
+                            resolved: {
+                                status: 'fixable',
+                                blocking: {
+                                    code: 'requirements_missing',
+                                    userMessage: 'We need one more document to finish setting this up.',
+                                    selfHealable: true,
+                                    selfHealKind: 'document-resubmit',
+                                },
+                                nextAction: {
+                                    key: 'supplement:bridge',
+                                    kind: 'sumsub',
+                                    purpose: 'requirements_missing',
+                                },
+                            },
+                        },
+                    ],
+                    nextActions: [{ key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' }],
+                    restrictions: [],
+                },
+            },
+        },
+    },
+
     reconsent: {
         route: '/home',
         about: 'Re-consent modal over home: two updated documents as a centered link line.',
@@ -2071,6 +2403,16 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /users/deposit-accounts': { depositAccounts: [] },
             'GET /users/me': { capabilities: BLOCKED_BANK_CAPABILITIES },
         },
+    },
+    'get-paid-usd-closed-bangladesh': {
+        route: '/add-money?method=bank',
+        about: 'An unverified Bangladesh resident: the paperwork engine refuses USD, so USD reads Not available while EUR, GBP and MXN still ask for the ID.',
+        responses: PAPERWORK_BANGLADESH_RESPONSE,
+    },
+    'get-paid-usd-closed-bangladesh-claim': {
+        route: '/add-money?method=bank&step=claim&corridor=ACH_US',
+        about: 'A link straight to the USD claim for a Bangladesh resident: the drawer says USD is not available where they live, with no ID check offered.',
+        responses: PAPERWORK_BANGLADESH_RESPONSE,
     },
     'get-paid-claim': {
         route: '/add-money?method=bank&step=claim&corridor=ACH_US',
@@ -2964,4 +3306,6 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'The caps screen when GET /users/limits fails.',
         fails: ['GET /users/limits'],
     },
+
+    ...PAPERWORK_VERIFICATION_FIXTURES,
 }

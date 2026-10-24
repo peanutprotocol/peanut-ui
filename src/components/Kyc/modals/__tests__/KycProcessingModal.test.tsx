@@ -80,4 +80,25 @@ describe('KycProcessingModal', () => {
         expect(screen.getByText('Got it')).toBeInTheDocument()
         expect(screen.getByText('Contact support')).toBeInTheDocument()
     })
+
+    it.each([0, 2])('a proof of address in review for %i days stays a wait with no resume or support CTA', (days) => {
+        const message = "We're checking your proof of address. Bank accounts open once it's approved."
+        renderWithIntl(
+            <KycProcessingModal
+                visible
+                onClose={onClose}
+                pendingSince={daysAgo(days)}
+                reason={{ code: 'requirements_in_review', userMessage: message }}
+                onResume={onResume}
+                onContactSupport={onContactSupport}
+            />
+        )
+        expect(screen.getByTestId('kyc-supplement-in-review')).toHaveTextContent(message)
+        expect(screen.queryByText(/left the verification unfinished/)).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Continue verification' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Contact support' })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Got it' })).toBeInTheDocument()
+        expect(onResume).not.toHaveBeenCalled()
+        expect(onContactSupport).not.toHaveBeenCalled()
+    })
 })

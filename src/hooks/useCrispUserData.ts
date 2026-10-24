@@ -12,6 +12,7 @@ import {
     buildBalanceSummary,
     buildCardSummary,
     buildLinkedAccounts,
+    buildSupportLinkedAccounts,
     buildSupportLinks,
     buildSupportSegments,
 } from '@/utils/support-context'
@@ -43,6 +44,8 @@ export interface CrispUserData {
     accountStats: string | undefined
     card: string | undefined
     linkedAccounts: string | undefined
+    /** other Peanut accounts in an email collision with this one */
+    sameEmailAccounts: string | undefined
     appContext: string | undefined
     /** Filterable/routable flags for the Crisp inbox — not sidebar rows. */
     segments: string[]
@@ -223,6 +226,7 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
         accountStats: buildAccountStats(user ?? undefined),
         card: buildCardSummary(rainOverview),
         linkedAccounts: buildLinkedAccounts(user?.accounts),
+        sameEmailAccounts: buildSupportLinkedAccounts(user?.supportLinkedAccounts),
         appContext: buildAppContext(client),
         segments: buildSupportSegments({
             isLoggedIn: Boolean(userId),

@@ -251,6 +251,127 @@ describe('deriveProviderRejection — actionKey (per-requirement Sumsub level)',
     })
 })
 
+describe('deriveProviderRejection — a requirement the approved identity never collected', () => {
+    const supplement: NextAction = { key: 'supplement:bridge', kind: 'sumsub', purpose: 'unlock-bridge' }
+    const bridgeRail = (overrides: Partial<RailCapability> = {}): RailCapability => ({
+        id: 'bridge.ach_us',
+        provider: 'bridge',
+        method: 'ACH',
+        channel: 'bank',
+        country: 'US',
+        currency: 'USD',
+        status: 'requires-info',
+        reason: { code: 'requirements_missing', userMessage: 'We need one more document.' },
+        blockingActions: [supplement.key],
+        ...overrides,
+    })
+
+    test('a parked Bridge rail is fixable through its supplement key', () => {
+        const info = deriveProviderRejection([bridgeRail()], 'BRIDGE', [supplement])
+        expect(info).toMatchObject({
+            state: 'fixable',
+            reasonCode: 'requirements_missing',
+            actionKey: 'supplement:bridge',
+        })
+    })
+
+    test('the verdict the API resolved carries the same key', () => {
+        const info = deriveProviderRejection(
+            [
+                bridgeRail({
+                    resolved: {
+                        status: 'fixable',
+                        blocking: {
+                            code: 'requirements_missing',
+                            userMessage: 'We need one more document.',
+                            selfHealable: true,
+                            selfHealKind: 'document-resubmit',
+                        },
+                        nextAction: supplement,
+                    },
+                }),
+            ],
+            'BRIDGE'
+        )
+        expect(info).toMatchObject({ state: 'fixable', actionKey: 'supplement:bridge' })
+    })
+})
+
+// The send gate parks a document-first user's rail for a need the approved
+// identity cannot meet. Either provider: the restart is the user's own step,
+// the uncollectable need is support's.
+describe('deriveProviderRejection — a need the approved identity cannot meet', () => {
+    const restart: NextAction = {
+        key: 'restart-identity',
+        kind: 'restart-identity',
+        purpose: 'identity_document_insufficient',
+    }
+    const support: NextAction = {
+        key: 'contact-support',
+        kind: 'contact-support',
+        purpose: 'requirements_uncollectable',
+    }
+    const bridgeRail = (overrides: Partial<RailCapability> = {}): RailCapability => ({
+        id: 'bridge.ach_us',
+        provider: 'bridge',
+        method: 'ACH',
+        channel: 'bank',
+        country: 'US',
+        currency: 'USD',
+        status: 'blocked',
+        ...overrides,
+    })
+    const insufficient = { code: 'identity_document_insufficient', userMessage: 'Verify again with another document.' }
+    const uncollectable = { code: 'requirements_uncollectable', userMessage: 'Message support.' }
+
+    test('a Bridge rail asking for another document offers the restart', () => {
+        const info = deriveProviderRejection(
+            [
+                bridgeRail({
+                    reason: insufficient,
+                    blockingActions: [restart.key],
+                    resolved: {
+                        status: 'blocked',
+                        blocking: { ...insufficient, selfHealable: true, selfHealKind: 'restart-identity' },
+                        nextAction: restart,
+                    },
+                }),
+            ],
+            'BRIDGE',
+            [restart]
+        )
+        expect(info).toMatchObject({ state: 'restart-identity', reasonCode: 'identity_document_insufficient' })
+    })
+
+    test('the legacy collapse reads the restart action the same way', () => {
+        const info = deriveProviderRejection(
+            [bridgeRail({ reason: insufficient, blockingActions: [restart.key] })],
+            'BRIDGE',
+            [restart]
+        )
+        expect(info.state).toBe('restart-identity')
+    })
+
+    test('a need no supplement can collect stays with support', () => {
+        const info = deriveProviderRejection(
+            [
+                bridgeRail({
+                    reason: uncollectable,
+                    blockingActions: [support.key],
+                    resolved: {
+                        status: 'blocked',
+                        blocking: { ...uncollectable, selfHealable: false, selfHealKind: 'contact-support' },
+                        nextAction: support,
+                    },
+                }),
+            ],
+            'BRIDGE',
+            [support]
+        )
+        expect(info).toMatchObject({ state: 'blocked', reasonCode: 'requirements_uncollectable' })
+    })
+})
+
 // api#1776: an approval with no identity document on file. The API sends one
 // top-level restart action and leaves every rail as it was, so a pool rail
 // still pays. The verify buttons must start the identity check, never Manteca

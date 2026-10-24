@@ -67,6 +67,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // /profile/* sub-pages keep the nav.
     const isProfileMenu = pathName === '/profile' || pathName === '/profile/'
     const isDev = pathName?.startsWith('/dev') ?? false
+    // Smart Paperwork Verification is a full-screen setup-style flow: no bottom nav, its own insets.
+    const isVerify = pathName === '/verify' || pathName === '/verify/'
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
 
@@ -211,7 +213,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <AppShell
                 variant="app"
                 banner={!isDev && <ShellBannerFallback />}
-                nav={!isDev && !isProfileMenu && isUserLoggedIn && <BottomNav />}
+                nav={!isDev && !isProfileMenu && !isVerify && isUserLoggedIn && <BottomNav />}
+                pageClassName={
+                    isVerify ? 'bg-[color:var(--setup-hero-background,var(--color-background-page))]' : undefined
+                }
                 contentClassName={twMerge(
                     'pb-[calc(6rem_+_var(--safe-bottom))]',
                     isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
@@ -223,14 +228,15 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     isUserLoggedIn && !isProfileMenu
                         ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
                         : 'pb-[calc(1rem_+_var(--safe-bottom))]',
-                    isDev && 'p-0 pb-0'
+                    isDev && 'p-0 pb-0',
+                    isVerify && 'p-0 pb-0'
                 )}
                 innerClassName={twMerge(
                     alignStart && 'items-start',
                     isSupport && 'h-full',
                     // the shell inset now lives on the capped column, so a page that
                     // owns its own inset opts out here instead of with p-0 above
-                    (isSupport || isReceipt || isDev) && 'px-0',
+                    (isSupport || isReceipt || isDev || isVerify) && 'px-0',
                     isUserLoggedIn
                         ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
                         : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
@@ -239,7 +245,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     // than the box that holds it, so on edge-to-edge iOS/Android the
                     // scroller overflows by the inset and /dev/ds — which caps itself
                     // at the same height — drifts its header out of view.
-                    isDev && 'max-w-full min-h-[calc(100dvh_-_var(--safe-top))] items-start justify-start'
+                    isDev && 'max-w-full min-h-[calc(100dvh_-_var(--safe-top))] items-start justify-start',
+                    isVerify && 'min-h-0 items-stretch'
                 )}
                 modals={
                     <>

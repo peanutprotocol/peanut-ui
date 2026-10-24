@@ -185,20 +185,25 @@ jest.mock('@/context/ModalsContext', () => ({
 }))
 // useTosGuard is real: its own unscoped deposit read is what the ToS regressions below exercise
 let mockCooldown: { retryAt?: string } | null = null
+let mockShowWrapper = false
 const mockDismissCooldown = jest.fn()
 beforeEach(() => {
     mockCooldown = null
+    mockShowWrapper = false
     mockDismissCooldown.mockClear()
 })
+const mockHandleInitiateKyc = jest.fn()
+const mockHandleRestartIdentity = jest.fn()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
-        handleInitiateKyc: jest.fn(),
+        handleInitiateKyc: mockHandleInitiateKyc,
+        handleRestartIdentity: mockHandleRestartIdentity,
         handleSelfHealResubmit: jest.fn(),
         isLoading: false,
         error: null,
         errorCooldown: mockCooldown,
         dismissErrorCooldown: mockDismissCooldown,
-        showWrapper: false,
+        showWrapper: mockShowWrapper,
     }),
 }))
 // back leaves for the list the country was picked from; the history rewind
@@ -306,6 +311,7 @@ jest.mock('@/components/Kyc/InitiateKycModal', () => ({
         props.visible && !props.cooldownActive ? (
             <div data-testid="initiate-kyc-modal" data-variant={props.variant} data-reason={props.reasonCode}>
                 {props.providerMessage}
+                <button data-testid="initiate-kyc-verify" onClick={props.onVerify} />
             </div>
         ) : null,
 }))
@@ -386,6 +392,21 @@ describe('AddWithdrawCountriesList — bank gate', () => {
         })
         expect(mockPush).not.toHaveBeenCalled()
         expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
+    })
+
+    // The list carried its own copy of the dispatch and it had no restart branch,
+    // so "Verify with a different document" started a fresh run instead.
+    it('a restart-identity gate restarts the identity check, never a fresh verification', async () => {
+        setCapabilities('restart-identity', [{ status: 'blocked', channel: 'bank', country: 'US' }])
+
+        render(<AddWithdrawCountriesList flow="add" />)
+        fireEvent.click(screen.getByTestId('method-bank'))
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('initiate-kyc-verify'))
+        })
+
+        expect(mockHandleRestartIdentity).toHaveBeenCalled()
+        expect(mockHandleInitiateKyc).not.toHaveBeenCalled()
     })
 
     // provide-email is a self-serve gate (one email unblocks the rail) — it must
@@ -646,6 +667,16 @@ describe('restart cooldown in add and withdraw flows', () => {
         fireEvent.click(screen.getByText("I'll try later"))
         expect(mockDismissCooldown).toHaveBeenCalledTimes(1)
     })
+})
+
+it('the SDK takes over from the bank initiation prompt', () => {
+    setCapabilities('needs-identity', [])
+    const { rerender } = render(<AddWithdrawCountriesList flow="add" />)
+    fireEvent.click(screen.getByTestId('method-bank'))
+    expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
+    mockShowWrapper = true
+    rerender(withProviders(<AddWithdrawCountriesList flow="add" />))
+    expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
 })
 
 it('closing a cooldown also closes the underlying bank initiation prompt', async () => {

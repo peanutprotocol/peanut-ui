@@ -15,6 +15,7 @@ import VerificationDeadlineNotice from '@/components/Kyc/VerificationDeadlineNot
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
+import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { shouldShowAmountError } from '@/features/limits/amount-error-gating'
@@ -46,11 +47,11 @@ export function BridgeBankOnrampView() {
         gate,
         sumsubFlow,
         handleVerify,
+        handleContactSupport,
         pendingModal,
         advisoryDeadline,
         showBridgeTos,
         hideTos,
-        setIsSupportModalOpen,
         resetUpliftFunnel,
         rawTokenAmount,
         handleTokenAmountChange,
@@ -72,6 +73,8 @@ export function BridgeBankOnrampView() {
         handleWarningCancel,
         showKycModal,
         setShowKycModal,
+        showProvideEmail,
+        setShowProvideEmail,
         onrampData,
     } = useBridgeBankFlow()
     const bridgeProviderId = useBridgeProviderId()
@@ -136,12 +139,14 @@ export function BridgeBankOnrampView() {
                     onBack={onBack}
                     onClose={onBack}
                     onVerify={handleVerify}
-                    onContactSupport={() => setIsSupportModalOpen(true)}
+                    onContactSupport={handleContactSupport}
                     isLoading={sumsubFlow.isLoading}
                     error={sumsubFlow.error}
                     variant={resolveKycModalVariant(gate)}
                     providerMessage={getGateUserMessage(gate)}
                     reasonCode={getGateReasonCode(gate)}
+                    nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
+                    pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
                     regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                     providerId={kycProviderId}
                 />
@@ -251,13 +256,15 @@ export function BridgeBankOnrampView() {
                     onContactSupport={() => {
                         setShowKycModal(false)
                         resetUpliftFunnel()
-                        setIsSupportModalOpen(true)
+                        handleContactSupport()
                     }}
                     isLoading={sumsubFlow.isLoading}
                     error={sumsubFlow.error}
                     variant={resolveKycModalVariant(gate)}
                     providerMessage={getGateUserMessage(gate)}
                     reasonCode={getGateReasonCode(gate)}
+                    nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
+                    pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
                     regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                     providerId={kycProviderId}
                 />
@@ -266,6 +273,7 @@ export function BridgeBankOnrampView() {
                     isOpen={pendingModal.isOpen}
                     onClose={pendingModal.close}
                     message={pendingModal.message}
+                    onContactSupport={pendingModal.onContactSupport}
                 />
 
                 <SumsubKycModals
@@ -274,6 +282,12 @@ export function BridgeBankOnrampView() {
                         setShowKycModal(false)
                         resetUpliftFunnel()
                     }}
+                />
+
+                <ProvideEmailStep
+                    visible={showProvideEmail}
+                    onComplete={() => setShowProvideEmail(false)}
+                    onSkip={() => setShowProvideEmail(false)}
                 />
 
                 <BridgeTosStep

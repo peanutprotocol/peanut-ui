@@ -104,6 +104,17 @@ describe('action functions Content-Type headers', () => {
         expect(headers['Content-Type']).toBe('application/json')
     })
 
+    it('never announces the document picker on an identity initiate', async () => {
+        const { initiateSumsubKyc } = require('@/app/actions/sumsub')
+        await initiateSumsubKyc()
+        expect(getLastCallUrl()).toBe('https://api.test.com/users/identity')
+        expect(getLastCallHeaders()['x-kyc-document-selection']).toBeUndefined()
+
+        await initiateSumsubKyc({ regionIntent: 'LATAM', crossRegion: true, targetCountry: 'AR' })
+        expect(getLastCallHeaders()['x-kyc-document-selection']).toBeUndefined()
+        expect(getLastCallHeaders()['Authorization']).toBe('Bearer test-token')
+    })
+
     it('should include Content-Type in updateUserById', async () => {
         const { updateUserById } = require('@/app/actions/users')
         await updateUserById({ name: 'Test' })

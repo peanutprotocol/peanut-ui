@@ -117,7 +117,7 @@ jest.mock('@/utils/regions.utils', () => ({
 }))
 
 jest.mock('@/utils/capability-gate', () => ({
-    isVerifiableGate: () => true,
+    gateRemedy: (...args: [never]) => jest.requireActual('@/utils/capability-gate').gateRemedy(...args),
 }))
 
 jest.mock('@/utils/eea-uplift.utils', () => ({
@@ -159,8 +159,13 @@ jest.mock('@/hooks/useTosGuard', () => ({
     useTosGuard: () => ({ guardWithTos: jest.fn(), showBridgeTos: false, hideTos: jest.fn() }),
 }))
 
+let mockShowWrapper = false
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
-    useMultiPhaseKycFlow: () => ({ isLoading: false, showWrapper: false, handleSelfHealResubmit: jest.fn() }),
+    useMultiPhaseKycFlow: () => ({
+        isLoading: false,
+        showWrapper: mockShowWrapper,
+        handleSelfHealResubmit: jest.fn(),
+    }),
 }))
 
 jest.mock('@/hooks/useWaitingOnProviderModal', () => ({
@@ -257,9 +262,36 @@ beforeEach(() => {
     mockQuote = null
     mockQuoteError = false
     mockQuoteCalls.length = 0
+    mockShowWrapper = false
 })
 
 // ---------- tests ----------
+
+describe('useBridgeOfframpFlow — KYC modal', () => {
+    it('closes when the SDK opens', async () => {
+        mockGateKind = 'needs-identity'
+        const view = renderFlow({ amount: '50', step: 'review' })
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(view.result.current.showKycModal).toBe(true)
+
+        mockShowWrapper = true
+        view.rerender()
+        expect(view.result.current.showKycModal).toBe(false)
+    })
+
+    // the KYC modal could only offer support for a missing email
+    it('a missing email opens the email sheet, not the KYC modal', async () => {
+        mockGateKind = 'provide-email'
+        const view = renderFlow({ amount: '50', step: 'review' })
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(view.result.current.showProvideEmail).toBe(true)
+        expect(view.result.current.showKycModal).toBe(false)
+    })
+})
 
 describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
     it('runs create → send → confirm with the normalized URL amount', async () => {

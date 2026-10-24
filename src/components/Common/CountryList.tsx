@@ -31,7 +31,8 @@ interface CountryListViewProps {
     inputTitle?: string
     inputDescription?: string
     viewMode: 'claim-request' | 'add-withdraw' | 'general-verification'
-    onCountryClick: (country: CountryData) => void
+    /** returns false when it answered in place (a drawer over this list), so the row does not wait */
+    onCountryClick: (country: CountryData) => void | boolean
     onCryptoClick?: (flow: 'add' | 'withdraw') => void
     flow?: 'add' | 'withdraw'
     getRightContent?: (country: CountryData, isSupported: boolean) => ReactNode
@@ -274,7 +275,7 @@ export const CountryList = ({
                                     }
                                     // set loading state immediately for visual feedback
                                     setClickedCountryId(country.id)
-                                    onCountryClick(country)
+                                    if (onCountryClick(country) === false) setClickedCountryId(null)
                                 }}
                                 position={position}
                                 disabled={clickedCountryId === country.id}

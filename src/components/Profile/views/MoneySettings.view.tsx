@@ -1,5 +1,7 @@
 'use client'
 
+import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
@@ -133,7 +135,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const queryClient = useQueryClient()
     const { overview } = useRainCardOverview()
     const { mantecaLimits, bridgeLimits } = useLimits()
-    const { setIsSupportModalOpen } = useModalsContext()
+    const { openSupportWithMessage, setIsSupportModalOpen } = useModalsContext()
 
     const isSumsubApproved = isKycApproved
     const depositAccountsEnabled = useDepositAccountsEnabled()
@@ -583,10 +585,13 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                 onClose={handleModalClose}
                 pendingSince={clickedRegionRail?.pendingSince}
                 waitingOnProvider={clickedRegionRail?.resolved?.nextAction?.kind === 'wait'}
+                reason={clickedRegionRail?.reason}
                 onResume={handleStartKyc}
                 onContactSupport={() => {
                     handleModalClose()
-                    setIsSupportModalOpen(true)
+                    openSupportWithMessage(
+                        buildContactSupportMessage({ reason: clickedRegionRail?.reason, railId: clickedRegionRail?.id })
+                    )
                 }}
             />
 
@@ -624,32 +629,22 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                         ? providerRejectionMessage || tRegions('providerRejection.fixableDescription')
                         : providerRejectionForRegion.state === 'restart-identity'
                           ? providerRejectionMessage || tRegions('providerRejection.restartDescription')
-                          : tRegions('providerRejection.unavailableDescription')
+                          : providerRejectionReasonKey
+                            ? tIdentity(providerRejectionReasonKey)
+                            : tRegions('providerRejection.unavailableDescription')
                 }
                 tone="error"
                 ctas={[
                     providerRejectionForRegion.state === 'fixable'
                         ? {
                               text: tRegions('providerRejection.uploadDocument'),
+                              'data-testid': providerRejectionForRegion.actionKey?.startsWith('supplement:')
+                                  ? 'kyc-supplement-cta'
+                                  : undefined,
                               onClick: () => {
                                   handleModalClose()
-                                  // This IS the surface the residence cohort reaches.
-                                  // REQUIRES_SUPPORT maps to a top-level rail status of
-                                  // `blocked`, and `hasFunctionalRail` tests that field,
-                                  // so their region is LOCKED, they tap it, and this
-                                  // modal opens with copy asking for their address over
-                                  // a button that 404s.
-                                  //
-                                  // Gated on the one reason code rather than routing
-                                  // everything through the handler: that would also
-                                  // divert every Manteca fixable rejection here from
-                                  // resubmit to start-action, which is a change this has
-                                  // no reason to make.
-                                  if (providerRejectionForRegion.reasonCode === 'residence_unresolved') {
-                                      void flow.handleFixableRejection(providerRejectionForRegion)
-                                      return
-                                  }
-                                  flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
+                                  // The shared router picks start-action or resubmit from the row's action.
+                                  void flow.handleFixableRejection(providerRejectionForRegion)
                               },
                               variant: 'primary' as const,
                               shadowSize: '4' as const,

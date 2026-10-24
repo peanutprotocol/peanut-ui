@@ -5,7 +5,7 @@ import { type UserCapabilities, type IdentityVerification } from '@/types/capabi
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
 
 // phases for the multi-phase kyc verification modal
-export type KycModalPhase = 'verifying' | 'preparing' | 'bridge_tos' | 'complete'
+export type KycModalPhase = 'verifying' | 'preparing' | 'bridge_tos' | 'supplement' | 'complete'
 
 // per-provider rail status for tracking after kyc approval
 export type ProviderDisplayStatus = 'setting_up' | 'requires_tos' | 'requires_documents' | 'enabled' | 'failed'
@@ -299,6 +299,13 @@ export interface IUserRail {
     }
 }
 
+export interface SupportLinkedAccount {
+    userId: string
+    username: string | null
+    /** `holds_email`: that account holds this one's email. `blocked_on_email`: that account is blocked on this one's email. */
+    relation: 'holds_email' | 'blocked_on_email'
+}
+
 export interface IUserProfile {
     // OLD Points V1 fields removed - use pointsV2 in stats instead
     // Points V2: Use stats.pointsV2.totalPoints, pointsV2.inviteCount, etc.
@@ -331,6 +338,9 @@ export interface IUserProfile {
     // `app.configurations`. Read via useDepositAccountsEnabled(). Optional for
     // the window before that API lands; absent reads as off.
     depositAccounts?: { enabled: boolean }
+    // Accounts in a live DUPLICATE_EMAIL collision with this one, for the
+    // support sidebar only (TASK-24046). Ids and usernames, nothing else.
+    supportLinkedAccounts?: SupportLinkedAccount[]
     // Residence, both flavors: declared at signup (advisory) and verified by
     // KYC (Sumsub address — the compliance source of truth). ISO-2 or null.
     // nextChangeAllowedAt: legacy field, ignored for self-declaration.

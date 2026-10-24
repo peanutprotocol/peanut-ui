@@ -19,6 +19,7 @@ import { renderWithIntl as render } from '@/test-utils/intl'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 import PendingVerificationTasks from '../PendingVerificationTasks'
 import { formatEffectiveDate } from '@/utils/format.utils'
+import en from '@/i18n/app/messages/en.json'
 
 let mockNextActions: NextAction[] = []
 let mockRails: RailCapability[] = []
@@ -148,7 +149,7 @@ describe('PendingVerificationTasks', () => {
         mockNextActions = [hostedAction]
         render(<PendingVerificationTasks />)
 
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
+        fireEvent.click(screen.getByRole('button', { name: /continue verification/i }))
         expect(mockRouterPush).toHaveBeenCalledWith('/profile/accounts/additional')
     })
 
@@ -442,5 +443,78 @@ describe('PendingVerificationTasks', () => {
             expect(screen.getByText('Accept updated bank transfer provider terms')).toBeInTheDocument()
             expect(screen.queryByRole('button', { name: /dismiss/i })).not.toBeInTheDocument()
         })
+    })
+})
+
+describe('PendingVerificationTasks — a card application waiting on a document', () => {
+    const cardRail = (blockingActions: string[]): RailCapability => ({
+        id: 'rain.card_rain',
+        provider: 'rain',
+        method: 'CARD_RAIN',
+        channel: 'card',
+        country: 'GLOBAL',
+        currency: 'USD',
+        status: 'requires-info',
+        blockingActions,
+    })
+    const rainPoa: NextAction = {
+        key: 'sumsub:proof_of_address',
+        kind: 'sumsub',
+        purpose: 'rain-card',
+        levelKey: 'proof_of_address',
+    }
+    const rainHosted: NextAction = { key: 'rain-hosted', kind: 'rain-hosted', purpose: 'rain-card' }
+
+    beforeEach(() => {
+        mockNextActions = []
+        mockRails = []
+        mockRouterPush.mockReset()
+        mockStoredDismissal = undefined
+        mockUserId = 'user-1'
+        mockHandleSelfHealResubmit.mockReset()
+        mockKycFlow = { isLoading: false, error: null, handleSelfHealResubmit: mockHandleSelfHealResubmit }
+    })
+
+    it('Home shows the proof-of-address ask in place of the carousel, and it opens the card screen', () => {
+        mockNextActions = [rainPoa]
+        mockRails = [cardRail([rainPoa.key])]
+        render(<PendingVerificationTasks placement="home" whenEmpty={carousel} />)
+
+        expect(screen.getByText(en.home.pendingTasks.cardDocumentTitle)).toBeInTheDocument()
+        expect(screen.getByText(en.home.pendingTasks.cardAddressDescription)).toBeInTheDocument()
+        expect(screen.queryByTestId('when-empty')).not.toBeInTheDocument()
+        // blocking: no dismiss X
+        expect(screen.queryByRole('button', { name: /dismiss/i })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: en.home.pendingTasks.cardDocumentCta }))
+        expect(mockRouterPush).toHaveBeenCalledWith('/card')
+        // the card screen starts the upload, not Home
+        expect(mockHandleSelfHealResubmit).not.toHaveBeenCalled()
+    })
+
+    it('an identity re-upload reads as one and opens the card screen too', () => {
+        mockNextActions = [rainHosted]
+        mockRails = [cardRail([rainHosted.key])]
+        render(<PendingVerificationTasks placement="home" whenEmpty={carousel} />)
+
+        expect(screen.getByText(en.home.pendingTasks.cardIdentityDescription)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: en.home.pendingTasks.cardDocumentCta }))
+        expect(mockRouterPush).toHaveBeenCalledWith('/card')
+    })
+
+    it('a Bridge task and the card ask both stay reachable', () => {
+        mockNextActions = [sepaTosAction, rainPoa]
+        mockRails = [cardRail([rainPoa.key])]
+        render(<PendingVerificationTasks placement="home" whenEmpty={carousel} />)
+
+        expect(screen.getByText('Accept updated bank transfer provider terms')).toBeInTheDocument()
+        expect(screen.getByText(en.home.pendingTasks.cardDocumentTitle)).toBeInTheDocument()
+    })
+
+    it('Profile → Accounts lists bank tasks only', () => {
+        mockNextActions = [rainPoa]
+        mockRails = [cardRail([rainPoa.key])]
+        const { container } = render(<PendingVerificationTasks />)
+        expect(container).toBeEmptyDOMElement()
     })
 })

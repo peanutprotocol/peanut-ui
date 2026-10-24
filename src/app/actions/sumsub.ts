@@ -5,6 +5,7 @@ import {
 } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
 import type { paths } from '@/types/api.generated'
+import type { KycDocumentConfig, KycReplacementChoices } from './types/kyc-workflow.types'
 
 /**
  * Stable discriminant for the English fallback errors below. Server actions
@@ -14,6 +15,7 @@ import type { paths } from '@/types/api.generated'
  * and stays untranslated (#2554: keep BE prose as fallback where no code exists).
  */
 export type SumsubActionErrorCode =
+    | 'feature_selection_required'
     // Permanent refusals the backend names in its `error` field. A retry sends
     // the identical request and gets the identical answer, so callers must
     // suppress their retry CTA on these.
@@ -30,6 +32,8 @@ export type SumsubActionErrorCode =
     | 'residence_change_failed'
     | 'resubmit_failed'
     | 'start_action_failed'
+    // start-action refused a supplement the gate no longer asks for; `fallback` names the step instead
+    | 'supplement_not_required'
     | 'invalid_response'
     | 'unexpected'
 
@@ -122,6 +126,12 @@ export const initiateSumsubKyc = async (params?: {
         const responseJson = await response.json()
 
         if (!response.ok) {
+            if (response.status === 409 && (responseJson.code ?? responseJson.error) === 'feature_selection_required') {
+                return {
+                    code: 'feature_selection_required',
+                    error: responseJson.userMessage || 'Choose the features to set up',
+                }
+            }
             return {
                 ...backendOrFallback(
                     responseJson,
@@ -141,6 +151,8 @@ export const initiateSumsubKyc = async (params?: {
                 actionType: responseJson.actionType,
                 session: responseJson.session,
                 workflow: responseJson.workflow,
+                attemptId: responseJson.attemptId,
+                sdkConfig: responseJson.sdkConfig,
             },
         }
     } catch (e: unknown) {
@@ -171,6 +183,10 @@ export interface RestartIdentityResponse {
      * Optional so a response from an older backend still parses.
      */
     regionIntent?: KYCRegionIntent
+    /** Set when the restart replaced an attempt-based identity's documents. */
+    attemptId?: string
+    status?: string
+    sdkConfig?: KycDocumentConfig
 }
 
 /**
@@ -183,7 +199,8 @@ export interface RestartIdentityResponse {
 const RESTART_REGION_INTENTS: ReadonlySet<string> = new Set(['LATAM', 'ROW', 'EU', 'NA'])
 
 export const restartIdentityVerification = async (
-    regionIntent?: KYCRegionIntent
+    regionIntent?: KYCRegionIntent,
+    replacement?: KycReplacementChoices
 ): Promise<{
     data?: RestartIdentityResponse
     error?: string
@@ -195,7 +212,7 @@ export const restartIdentityVerification = async (
         const response = await serverFetch('/users/identity/restart', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(intent ? { regionIntent: intent } : {}),
+            body: JSON.stringify({ ...(intent && { regionIntent: intent }), ...(replacement && { replacement }) }),
         })
         const responseJson = await response.json()
         if (!response.ok) {
@@ -377,11 +394,17 @@ export const refreshKycState = async (): Promise<KycRefreshResponse> => {
     }
 }
 
+/** The step start-action names when it refuses a supplement the gate no longer asks for. */
+export type SupplementFallback = 'contact-support' | 'restart-identity' | 'wait'
+const SUPPLEMENT_FALLBACKS = new Set<string>(['contact-support', 'restart-identity', 'wait'])
+
 export interface StartKycActionResponse {
     token?: string
     session?: VerificationActionSession
     levelName: string
     externalActionId?: string
+    /** Sumsub had already reviewed this action: nothing to open, the backend recorded the review. */
+    completed?: boolean
 }
 
 /**
@@ -395,7 +418,13 @@ export interface StartKycActionResponse {
  */
 export const startKycAction = async (
     key: string
-): Promise<{ data?: StartKycActionResponse; error?: string; code?: SumsubActionErrorCode }> => {
+): Promise<{
+    data?: StartKycActionResponse
+    error?: string
+    code?: SumsubActionErrorCode
+    reason?: string
+    fallback?: SupplementFallback
+}> => {
     try {
         const response = await serverFetch('/users/kyc/start-action', {
             method: 'POST',
@@ -403,12 +432,29 @@ export const startKycAction = async (
         })
         const responseJson = await response.json()
         if (!response.ok) {
-            return backendOrFallback(
+            const failure = backendOrFallback(
                 responseJson,
                 'Failed to start verification',
                 'start_action_failed',
                 response.status
             )
+            if (response.status !== 409 || responseJson.error !== 'supplement_not_required') return failure
+            const { reason, fallback } = responseJson
+            return {
+                ...failure,
+                code: 'supplement_not_required',
+                ...(typeof reason === 'string' ? { reason } : {}),
+                ...(SUPPLEMENT_FALLBACKS.has(fallback) ? { fallback: fallback as SupplementFallback } : {}),
+            }
+        }
+        if (!responseJson.sumsubAccessToken && !responseJson.session && responseJson.status === 'completed') {
+            return {
+                data: {
+                    levelName: responseJson.levelName,
+                    externalActionId: responseJson.externalActionId,
+                    completed: true,
+                },
+            }
         }
         if (!responseJson.sumsubAccessToken && !responseJson.session) {
             return { error: 'Invalid response from server', code: 'invalid_response' }

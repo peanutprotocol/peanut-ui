@@ -28,6 +28,9 @@ declare global {
     }
 
     interface SNSMobileSDKBuilder {
+        withPreferredDocumentDefinitions(definitions: {
+            IDENTITY: { country: string; idDocType: string }
+        }): SNSMobileSDKBuilder
         withHandlers(handlers: SNSMobileSDKHandlers): SNSMobileSDKBuilder
         withLocale(locale: string): SNSMobileSDKBuilder
         withApplicantConf(conf: { email?: string; phone?: string }): SNSMobileSDKBuilder

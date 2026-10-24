@@ -50,6 +50,13 @@ describe('InitiateKycModal — residence check', () => {
     it('offers the unlock when banking is available', () => {
         renderModal()
         expect(screen.getByText('Verify identity')).toBeInTheDocument()
+        expect(screen.getByTestId('kyc-initiate-cta')).toHaveTextContent('Verify identity')
+    })
+
+    it("marks the cross-region continue with the caller's test id", () => {
+        renderModal({ variant: 'cross_region', regionName: 'Argentina', ctaTestId: 'kyc-identity-gate-cta' })
+        expect(screen.getByTestId('kyc-identity-gate-cta')).toHaveTextContent('Continue')
+        expect(screen.queryByTestId('kyc-initiate-cta')).not.toBeInTheDocument()
     })
 
     it('replaces the unlock offer when the residence rules out bank rails', () => {
@@ -102,5 +109,78 @@ describe('InitiateKycModal — residence check', () => {
         mockIsRegionRestricted = true
         renderModal()
         expect(screen.getByText("We can't verify IDs from this country")).toBeInTheDocument()
+    })
+})
+
+describe('InitiateKycModal — a requirement the approved identity never collected', () => {
+    beforeEach(() => {
+        mockRestrictions = { banking: false, card: false }
+        mockIsRegionRestricted = false
+        onVerify.mockClear()
+    })
+
+    it('says plainly that the bank accounts need a proof of address, not the backend prose', () => {
+        renderModal({
+            variant: 'provider_rejection',
+            reasonCode: 'requirements_missing',
+            providerMessage: 'Backend English prose',
+        })
+        expect(
+            screen.getByText(
+                "To open your bank accounts, our payment partner needs a proof of address, such as a recent bank statement or utility bill. Add it and we'll finish setting them up automatically."
+            )
+        ).toBeInTheDocument()
+        expect(screen.queryByText('Backend English prose')).not.toBeInTheDocument()
+        screen.getByTestId('kyc-supplement-cta').click()
+        expect(onVerify).toHaveBeenCalled()
+    })
+
+    it.each([undefined, 'page'] as const)(
+        'shows a submitted proof of address as review in %s presentation with no collection action',
+        (presentation) => {
+            renderModal({
+                variant: 'provider_rejection',
+                reasonCode: 'requirements_in_review',
+                providerMessage: 'Backend English prose',
+                ...(presentation ? { presentation } : {}),
+            })
+
+            expect(screen.getByTestId('kyc-supplement-in-review')).toHaveTextContent(
+                "We're checking your proof of address. Bank accounts open once it's approved."
+            )
+            expect(screen.queryByText('Backend English prose')).not.toBeInTheDocument()
+            expect(screen.queryByTestId('kyc-supplement-cta')).not.toBeInTheDocument()
+            expect(
+                screen.queryByRole('button', { name: /verify|upload|add proof of address/i })
+            ).not.toBeInTheDocument()
+            expect(onVerify).not.toHaveBeenCalled()
+        }
+    )
+})
+
+describe('InitiateKycModal — a requirement the app cannot collect', () => {
+    beforeEach(() => {
+        mockRestrictions = { banking: false, card: false }
+        mockIsRegionRestricted = false
+        onVerify.mockClear()
+    })
+
+    it('reads the catalog line and offers support', () => {
+        const onContactSupport = jest.fn()
+        renderModal({
+            variant: 'blocked',
+            reasonCode: 'requirements_uncollectable',
+            providerMessage: 'Backend English prose',
+            onContactSupport,
+        })
+        expect(
+            screen.getByText(
+                "Our payment partner needs something we can't collect in the app. Message support and we'll finish setting this up with you."
+            )
+        ).toBeInTheDocument()
+        expect(screen.queryByText('Backend English prose')).not.toBeInTheDocument()
+        screen.getByRole('button', { name: 'Contact support' }).click()
+        expect(onContactSupport).toHaveBeenCalled()
+        expect(onVerify).not.toHaveBeenCalled()
     })
 })

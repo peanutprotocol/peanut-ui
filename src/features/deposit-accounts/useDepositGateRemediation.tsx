@@ -4,11 +4,11 @@ import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
-import { useModalsContext } from '@/context/ModalsContext'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
+import { useGateActions } from '@/hooks/useGateActions'
 import { getGateReasonCode, getGateUserMessage, resolveKycModalVariant, type GateState } from '@/utils/capability-gate'
 import { useEffect, useState, type ReactNode } from 'react'
 import { DEPOSIT_RAILS, railIdFor } from './rails'
@@ -33,7 +33,7 @@ export function useDepositGateRemediation(): {
     const sumsubFlow = useMultiPhaseKycFlow({})
     const { gateFor } = useCapabilities()
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
-    const { setIsSupportModalOpen } = useModalsContext()
+    const gateActions = useGateActions(sumsubFlow)
     const bridgeProviderId = useBridgeProviderId()
     const [showProvideEmail, setShowProvideEmail] = useState(false)
     const [kycModalGate, setKycModalGate] = useState<GateState | undefined>()
@@ -65,12 +65,12 @@ export function useDepositGateRemediation(): {
                 setShowProvideEmail(true)
                 return
             case 'blocked-rejection':
-                setIsSupportModalOpen(true)
+                gateActions.contactSupport(gate)
                 return
             default:
                 // needs-identity, needs-enrollment, fixable-rejection,
                 // restart-identity: all start in the same modal, which reads the
-                // gate to pick its words and which run to start — see onVerify
+                // gate to pick its words and which run to start (gateRemedy)
                 setKycModalGate(gate)
         }
     }
@@ -82,44 +82,26 @@ export function useDepositGateRemediation(): {
                 visible={kycModalGate !== undefined}
                 onClose={() => setKycModalGate(undefined)}
                 onVerify={async () => {
-                    if (kycModalGate?.kind === 'restart-identity') {
-                        // the identity run itself is what the provider
-                        // refused, so it is started again rather than resumed
-                        await sumsubFlow.handleRestartIdentity()
-                        return
-                    }
-                    if (kycModalGate?.kind === 'fixable-rejection') {
-                        // A document the provider rejected is resubmitted, not
-                        // re-collected from scratch — the same handoff the four
-                        // shipped bank surfaces make today. It is wrong for one
-                        // code: `residence_unresolved` parks the rail before the
-                        // provider ever sees the user, so the resubmit route
-                        // answers 404. peanut-ui#2985 fixes that centrally for
-                        // every surface at once; this one inherits the fix when
-                        // that merges, and must not grow its own copy of the
-                        // reason table in the meantime.
-                        await sumsubFlow.handleSelfHealResubmit('BRIDGE')
-                        return
-                    }
+                    if (!kycModalGate) return
                     // The corridor, where there is one, names the level: a
                     // verified user moves on to it, a new one starts there.
-                    await sumsubFlow.handleInitiateKyc(
-                        undefined,
-                        undefined,
-                        kycModalGate?.kind === 'needs-enrollment' || undefined,
-                        undefined,
-                        kycCorridor
-                    )
+                    await gateActions.verify(kycModalGate, {
+                        provider:
+                            kycCorridor && DEPOSIT_RAILS[kycCorridor].provider === 'manteca' ? 'MANTECA' : 'BRIDGE',
+                        corridor: kycCorridor,
+                    })
                 }}
                 onContactSupport={() => {
+                    const gate = kycModalGate
                     setKycModalGate(undefined)
-                    setIsSupportModalOpen(true)
+                    if (gate) gateActions.contactSupport(gate)
                 }}
                 isLoading={sumsubFlow.isLoading}
                 error={sumsubFlow.error}
                 variant={kycModalGate ? resolveKycModalVariant(kycModalGate) : undefined}
                 providerMessage={(kycModalGate && getGateUserMessage(kycModalGate)) || undefined}
                 reasonCode={(kycModalGate && getGateReasonCode(kycModalGate)) || undefined}
+                nextAction={kycModalGate?.kind === 'fixable-rejection' ? kycModalGate.nextAction : undefined}
                 providerId={
                     kycCorridor && DEPOSIT_RAILS[kycCorridor].provider === 'bridge' ? bridgeProviderId : undefined
                 }

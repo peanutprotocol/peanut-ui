@@ -85,6 +85,10 @@ jest.mock('@/hooks/useSafeBack', () => ({
 jest.mock('@/hooks/useSumsubReloadResume', () => ({
     useSumsubReloadResume: jest.fn(),
 }))
+const mockStartAction = jest.fn()
+jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
+    useMultiPhaseKycFlow: () => ({ handleStartAction: mockStartAction }),
+}))
 
 const mockApplyForCard = rainApi.applyForCard as jest.Mock
 
@@ -154,6 +158,34 @@ describe('useCardFlow', () => {
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
     })
 
+    it('asks the Smart Paperwork Verification card questions on questions-required, then applies again once they are saved', async () => {
+        mockApplyForCard.mockResolvedValueOnce({ status: 'questions-required', step: 'purpose' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(result.current.pendingQuestions).toBe('purpose')
+        expect(result.current.pendingTerms).toBeNull()
+
+        mockApplyForCard.mockResolvedValueOnce({ status: 'terms-required', isUsResident: true })
+        await act(async () => {
+            result.current.handleQuestionsDone()
+        })
+        expect(mockApplyForCard).toHaveBeenCalledTimes(2)
+        expect(mockApplyForCard).toHaveBeenLastCalledWith(expect.objectContaining({ termsAccepted: false }))
+        expect(result.current.pendingQuestions).toBeNull()
+        expect(result.current.pendingTerms).toEqual({ isUsResident: true })
+    })
+
+    it('asks the job again when Rain refused the title (questions-required at the work step)', async () => {
+        mockApplyForCard.mockResolvedValueOnce({ status: 'questions-required', step: 'work' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(result.current.pendingQuestions).toBe('work')
+    })
+
     it('routes terms-required to the terms screen', async () => {
         mockApplyForCard.mockResolvedValue({ status: 'terms-required', isUsResident: true })
         const { result } = renderHook(() => useCardFlow())
@@ -184,6 +216,49 @@ describe('useCardFlow', () => {
 
         expect(result.current.pendingResidenceBlocked).toBe(true)
         expect(result.current.geoBlocked).toBe(false)
+    })
+
+    describe('a card the plan does not send to Rain', () => {
+        const refused = (reason?: string) => ({
+            status: 'provider-not-in-plan',
+            ...(reason ? { reason } : {}),
+            message: 'The card is not part of your current verification.',
+        })
+
+        it('opens the missing requirement through start-action', async () => {
+            mockApplyForCard.mockResolvedValue(refused('requirements_missing'))
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleApply()
+            })
+            expect(mockStartAction).toHaveBeenCalledWith('supplement:rain')
+            expect(result.current.planRefusal).toBeNull()
+            expect(result.current.applyError).toBeNull()
+        })
+
+        it.each(['identity_document_insufficient', 'requirements_uncollectable'])(
+            'holds %s for the status screen instead of an English error',
+            async (reason) => {
+                mockApplyForCard.mockResolvedValue(refused(reason))
+                const { result } = renderHook(() => useCardFlow())
+                await act(async () => {
+                    await result.current.handleApply()
+                })
+                expect(result.current.planRefusal).toBe(reason)
+                expect(result.current.applyError).toBeNull()
+                expect(mockStartAction).not.toHaveBeenCalled()
+            }
+        )
+
+        it('keeps the error line for a refusal the app has no copy for', async () => {
+            mockApplyForCard.mockResolvedValue(refused('not_requested'))
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleApply()
+            })
+            expect(result.current.planRefusal).toBeNull()
+            expect(result.current.applyError).toBe('The card is not part of your current verification.')
+        })
     })
 
     it('surfaces an apply failure as applyError', async () => {
