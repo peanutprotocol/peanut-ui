@@ -1,6 +1,6 @@
 'use client'
 
-import { isPixKeyNotFound, verifiedPixKeyLabel } from '@/utils/pix.utils'
+import { isPixKeyNotFound, recipientBankNameOf, verifiedPixKeyLabel } from '@/utils/pix.utils'
 import { usePixKeyOwner } from '@/hooks/usePixKeyOwner'
 import { usePixKeySavePrompt } from './usePixKeySavePrompt'
 import {
@@ -607,6 +607,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         if (!paymentLock) return null
         return pixKeyOwner?.name ?? pixKeyLabel ?? paymentLock.paymentRecipientName
     }, [paymentLock, pixKeyLabel, pixKeyOwner])
+
+    const recipientBankName = recipientBankNameOf(paymentLock)
 
     /*
      * Controller-rotation handoff. Nothing moved and no provider order exists
@@ -1273,6 +1275,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         balance,
         usdAmount,
         merchantName,
+        recipientBankName,
         pixKeyLabel,
         pixKeyOwner,
         isAwaitingPixKeyOwner,

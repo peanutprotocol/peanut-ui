@@ -1599,6 +1599,7 @@
             }
         },
         "pixKeyOwnerTaxId": "{taxIdKind} {taxId}",
+        "recipientBank": "Banco",
         "pixKeySavedAs": "Salva como {name}"
     },
     "card": {
@@ -3823,18 +3824,18 @@
             "cryptoWithdrawDescription": "Saque para uma carteira ou corretora"
         },
         "savedAccounts": {
-            "title": "Contas salvas",
+            "title": "Contas favoritas",
             "bankSectionTitle": "Contas bancárias",
             "selectNewMethod": "Escolher outro método",
             "flagAlt": "Bandeira de {country}",
             "flagAltGeneric": "Bandeira do país"
         },
         "savedAddresses": {
-            "title": "Agenda de endereços cripto",
+            "title": "Endereços cripto favoritos",
             "lastUsed": "{days, plural, =0 {Usado hoje} =1 {Usado ontem} other {Usado há # dias}}",
             "nicknamePlaceholder": "ex.: Binance",
             "deleteCta": "Excluir endereço",
-            "savePrompt": "Salvar na agenda",
+            "savePrompt": "Salvar nos favoritos",
             "rowAria": "{name}, {address} em {chain}",
             "nicknameRequired": "Adicione um nome para salvar este endereço."
         },

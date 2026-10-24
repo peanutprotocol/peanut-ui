@@ -1334,6 +1334,11 @@
         "route": "/withdraw/manteca?method=bank-transfer&country=argentina&destination=fixture.account&isSavedAccount=true&amount=0.01"
     },
     {
+        "id": "fixture-send-bank-pix-favorite",
+        "flow": "Withdraw",
+        "route": "/withdraw?method=bank"
+    },
+    {
         "id": "fixture-withdraw-destination-names",
         "flow": "Withdraw",
         "route": "/withdraw"
