@@ -3,6 +3,7 @@ import {
     pixKeyOwnerDetails,
     pixKeyToBRCode,
     pixKeyToQrPayUrl,
+    recipientBankNameOf,
     verifiedPixKeyLabel,
 } from '@/utils/pix.utils'
 
@@ -207,5 +208,21 @@ describe('defaultPixKeyNickname', () => {
     it('falls back to the first name, cut to fit', () => {
         expect(defaultPixKeyNickname('Arthur de Jesus Lima Alvino')).toBe('Arthur')
         expect(defaultPixKeyNickname('Maximilianogregorio Santos')).toBe('Maximilianogreg')
+    })
+})
+
+describe('recipientBankNameOf', () => {
+    it('names the bank a lock from a bare PIX key carries', () => {
+        expect(recipientBankNameOf({ paymentRecipientBankName: ' NU PAGAMENTOS S.A. ' })).toBe('NU PAGAMENTOS S.A.')
+    })
+
+    // A lock from a BR Code, or one the PIX directory did not answer for, names no bank.
+    it.each([
+        ['no lock', null],
+        ['no bank on the lock', {}],
+        ['an empty bank name', { paymentRecipientBankName: '  ' }],
+        ['a bank name that is not text', { paymentRecipientBankName: 42 }],
+    ])('gives null for %s, so the form shows no bank line', (_label, lock) => {
+        expect(recipientBankNameOf(lock)).toBeNull()
     })
 })

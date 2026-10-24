@@ -86,6 +86,11 @@ export type QrPaymentLock = {
     userExternalId: string
     paymentRecipientName: string
     paymentRecipientLegalId: string
+    /** The bank that receives the payment, as the PIX directory names it. Only on a lock the
+     *  API made from a bare PIX key, and only when the directory answered (TASK-23738). */
+    paymentRecipientBankName?: string
+    /** That bank's 8-digit ISPB, on the same condition. */
+    paymentRecipientBankCode?: string
     paymentAssetAmount: string
     paymentAsset: string
     paymentPrice: string

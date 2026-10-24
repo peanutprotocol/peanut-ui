@@ -1599,6 +1599,7 @@
             }
         },
         "pixKeyOwnerTaxId": "{taxIdKind} {taxId}",
+        "recipientBank": "Bank",
         "pixKeySavedAs": "Saved as {name}"
     },
     "card": {
