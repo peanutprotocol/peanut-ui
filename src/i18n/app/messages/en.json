@@ -3831,7 +3831,7 @@
             "flagAltGeneric": "Country flag"
         },
         "savedAddresses": {
-            "title": "Favorite crypto addresses",
+            "title": "Crypto address book",
             "lastUsed": "{days, plural, =0 {Used today} =1 {Used yesterday} other {Used # days ago}}",
             "nicknamePlaceholder": "e.g. Binance",
             "deleteCta": "Delete address",
