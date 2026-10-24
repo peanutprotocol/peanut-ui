@@ -802,6 +802,16 @@
         "route": "/add-money?method=bank"
     },
     {
+        "id": "fixture-get-paid-usd-closed-bangladesh",
+        "flow": "Add money",
+        "route": "/add-money?method=bank"
+    },
+    {
+        "id": "fixture-get-paid-usd-closed-bangladesh-claim",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=claim&corridor=ACH_US"
+    },
+    {
         "id": "fixture-get-paid-claim",
         "flow": "Add money",
         "route": "/add-money?method=bank&step=claim&corridor=ACH_US"
@@ -932,6 +942,12 @@
         "flow": "Add money",
         "route": "/dev/surfaces?s=39-c-onrampconfirmationmodal",
         "source": "AddMoney/components/OnrampConfirmationModal.tsx"
+    },
+    {
+        "id": "92-f-deposit-account-closed",
+        "flow": "Add money",
+        "route": "/dev/surfaces?s=92-f-deposit-account-closed",
+        "source": "Common/MantecaAccountUnavailable.tsx"
     },
     {
         "id": "fixture-history-card-spend",
@@ -1533,6 +1549,12 @@
         "flow": "Withdraw",
         "route": "/dev/surfaces?s=91-f-withdraw-review-spent",
         "source": "features/withdraw/views/ConfirmWithdrawView.tsx"
+    },
+    {
+        "id": "93-f-withdraw-account-closed",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=93-f-withdraw-account-closed",
+        "source": "Common/MantecaAccountUnavailable.tsx"
     },
     {
         "id": "fixture-rewards",

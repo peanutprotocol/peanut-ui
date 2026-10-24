@@ -1,7 +1,7 @@
 {
     "budget": 60,
     "screens": {
-        "app/(mobile-ui)/add-money/[country]/[regional-method]/page.tsx": 235,
+        "app/(mobile-ui)/add-money/[country]/[regional-method]/page.tsx": 281,
         "app/(mobile-ui)/add-money/[country]/page.tsx": 404,
         "app/(mobile-ui)/add-money/us/bank/page.tsx": 169,
         "app/(mobile-ui)/badges/page.tsx": 114,
@@ -19,7 +19,7 @@
         "app/(mobile-ui)/withdraw/[country]/bank/page.tsx": 141,
         "app/(mobile-ui)/withdraw/[country]/page.tsx": 404,
         "app/(mobile-ui)/withdraw/crypto/page.tsx": 128,
-        "app/(mobile-ui)/withdraw/manteca/page.tsx": 361,
+        "app/(mobile-ui)/withdraw/manteca/page.tsx": 405,
         "app/(setup)/setup/finish/page.tsx": 68,
         "app/[...recipient]/page.tsx": 163,
         "app/invite/page.tsx": 91,

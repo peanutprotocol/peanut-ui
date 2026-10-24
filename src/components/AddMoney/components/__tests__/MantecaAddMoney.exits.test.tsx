@@ -65,6 +65,9 @@ jest.mock('@/services/manteca', () => ({ mantecaApi: { deposit: (...a: unknown[]
 
 jest.mock('@/hooks/useCurrency', () => ({ useCurrency: () => ({ symbol: 'R$', price: 5 }) }))
 jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ rails: [] }) }))
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ openSupportWithMessage: jest.fn() }),
+}))
 jest.mock('@/hooks/useBankRows', () => ({ useBankChipFor: () => () => 'unlock' }))
 jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isVerified: true }) }))
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({ useMultiPhaseKycFlow: () => ({ isLoading: false, error: null }) }))
