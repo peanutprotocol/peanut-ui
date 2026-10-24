@@ -52,10 +52,12 @@ jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => nu
 // the modal is the only way to reach onVerify, so the test holds its props
 let verify: () => Promise<void>
 let modalVisible = false
+let modalVerifyEntry: unknown
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
-    InitiateKycModal: (props: { visible: boolean; onVerify: () => Promise<void> }) => {
+    InitiateKycModal: (props: { visible: boolean; onVerify: () => Promise<void>; verifyEntry?: unknown }) => {
         verify = props.onVerify
         modalVisible = props.visible
+        modalVerifyEntry = props.verifyEntry
         return null
     },
 }))
@@ -150,6 +152,12 @@ describe('useDepositGateRemediation', () => {
         await openBannerFor(gate, 'PIX_BR')
 
         expect(handleFixableGate).toHaveBeenCalledWith('MANTECA', gate)
+    })
+
+    // a verify-once user leaves for /verify from the modal itself, before it paints
+    it('names the corridor to the start modal, so a verify-once user goes straight to /verify', async () => {
+        await openBannerFor({ kind: 'needs-identity' } as GateState, 'PIX_BR')
+        expect(modalVerifyEntry).toEqual({ corridor: 'PIX_BR' })
     })
 
     it('starts a first identity run for a user who has none', async () => {

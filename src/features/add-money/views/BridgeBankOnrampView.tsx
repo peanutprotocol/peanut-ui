@@ -48,6 +48,7 @@ export function BridgeBankOnrampView() {
         sumsubFlow,
         handleVerify,
         handleContactSupport,
+        verifyEntry,
         pendingModal,
         advisoryDeadline,
         showBridgeTos,
@@ -149,6 +150,7 @@ export function BridgeBankOnrampView() {
                     pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
                     regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                     providerId={kycProviderId}
+                    verifyEntry={verifyEntry}
                 />
             </>
         )
@@ -267,6 +269,7 @@ export function BridgeBankOnrampView() {
                     pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
                     regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                     providerId={kycProviderId}
+                    verifyEntry={verifyEntry}
                 />
 
                 <KycReverificationPendingModal

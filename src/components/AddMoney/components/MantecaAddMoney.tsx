@@ -423,6 +423,7 @@ const MantecaAddMoney: FC = () => {
                     providerMessage={mantecaRejection.userMessage ?? undefined}
                     reasonCode={mantecaRejection.reasonCode ?? undefined}
                     regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
+                    verifyEntry={{ intent: 'LATAM', targetCountry: selectedCountry?.id }}
                 />
                 <SumsubKycModals flow={sumsubFlow} onCooldownClose={closeKycModal} />
                 <InputAmountStep

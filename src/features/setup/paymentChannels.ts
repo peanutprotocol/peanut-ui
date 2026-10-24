@@ -1,6 +1,7 @@
 import type { ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import type { Concept } from '@/components/0_Bruddle/conceptIcons'
+import type { KycFeatures } from '@/app/actions/types/kyc-workflow.types'
 export type SetupFundingChannel = 'bank' | 'brlBank' | 'arsBank' | 'crypto' | 'peanut'
 export type SetupPaymentChannel = Exclude<SetupFundingChannel, 'brlBank' | 'arsBank'> | 'card' | 'qr'
 export type SetupChannel = SetupFundingChannel | SetupPaymentChannel
@@ -40,5 +41,18 @@ export function setupChannelsForResidence(
     return {
         funding: [...bank, 'crypto', 'peanut'],
         payment: spend.length > 0 ? spend : ['peanut'],
+    }
+}
+
+/**
+ * The features a payment plan asks for. The API derives them from the same
+ * pair at signup (intentsFromSignupPreferences); QR comes with every approval.
+ */
+export function featuresFromPaymentPlan(funding: SetupFundingChannel, payment: SetupPaymentChannel): KycFeatures {
+    return {
+        qr: true,
+        bank: funding === 'bank' || payment === 'bank',
+        local: funding === 'brlBank' || funding === 'arsBank',
+        card: payment === 'card',
     }
 }

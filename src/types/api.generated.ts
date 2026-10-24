@@ -7985,8 +7985,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            /** @enum {string} */
-                            code: "application-outcome-unknown";
+                            code: "application-outcome-unknown" | "paperwork_verification_required";
                             message: string;
                             /** @enum {string} */
                             status: "error";
@@ -13763,6 +13762,7 @@ export interface paths {
                                 qr: boolean;
                             };
                             flow: "verify-once" | "document-first" | null;
+                            needs: ("residence" | "features")[];
                             policyVersion: string | null;
                             proofOfAddress: "suggested" | null;
                             proofOfAddressIdCountries: string[];
@@ -14047,6 +14047,7 @@ export interface paths {
                             attemptId: string | null;
                             available: boolean;
                             firstUnanswered: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax") | null;
+                            needs: ("residence" | "features")[];
                             progress: {
                                 done: number;
                                 total: number;

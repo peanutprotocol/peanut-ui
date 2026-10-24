@@ -14225,10 +14225,20 @@
                                 "schema": {
                                     "properties": {
                                         "code": {
-                                            "enum": [
-                                                "application-outcome-unknown"
-                                            ],
-                                            "type": "string"
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "application-outcome-unknown"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "paperwork_verification_required"
+                                                    ],
+                                                    "type": "string"
+                                                }
+                                            ]
                                         },
                                         "message": {
                                             "type": "string"
@@ -25894,6 +25904,25 @@
                                                 }
                                             ]
                                         },
+                                        "needs": {
+                                            "items": {
+                                                "anyOf": [
+                                                    {
+                                                        "enum": [
+                                                            "residence"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "features"
+                                                        ],
+                                                        "type": "string"
+                                                    }
+                                                ]
+                                            },
+                                            "type": "array"
+                                        },
                                         "policyVersion": {
                                             "anyOf": [
                                                 {
@@ -26071,6 +26100,7 @@
                                         "features",
                                         "routes",
                                         "flow",
+                                        "needs",
                                         "proofOfAddress",
                                         "proofOfAddressIdCountries",
                                         "temporaryProtection"
@@ -27470,6 +27500,25 @@
                                                 }
                                             ]
                                         },
+                                        "needs": {
+                                            "items": {
+                                                "anyOf": [
+                                                    {
+                                                        "enum": [
+                                                            "residence"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "features"
+                                                        ],
+                                                        "type": "string"
+                                                    }
+                                                ]
+                                            },
+                                            "type": "array"
+                                        },
                                         "progress": {
                                             "properties": {
                                                 "done": {
@@ -27632,7 +27681,8 @@
                                         "residence",
                                         "steps",
                                         "firstUnanswered",
-                                        "progress"
+                                        "progress",
+                                        "needs"
                                     ],
                                     "type": "object"
                                 }

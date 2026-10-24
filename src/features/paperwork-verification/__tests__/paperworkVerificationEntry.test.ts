@@ -1,8 +1,12 @@
-import { getKycDocumentStatus } from '@/app/actions/kyc-workflow'
+import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-workflow'
 import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
-import { entryFeature, paperworkVerificationRoute } from '../paperworkVerificationEntry'
+import {
+    entryFeature,
+    paperworkVerificationEntryRoute,
+    paperworkVerificationRoute,
+} from '../paperworkVerificationEntry'
 
-jest.mock('@/app/actions/kyc-workflow', () => ({ getKycDocumentStatus: jest.fn() }))
+jest.mock('@/app/actions/kyc-workflow', () => ({ getKycDocumentStatus: jest.fn(), findKycDocumentPlan: jest.fn() }))
 const mockStatus = getKycDocumentStatus as jest.MockedFunction<typeof getKycDocumentStatus>
 
 const plan = (overrides: Partial<KycDocumentPlan> = {}) =>
@@ -18,7 +22,28 @@ const plan = (overrides: Partial<KycDocumentPlan> = {}) =>
     }) as KycDocumentPlan
 
 beforeEach(() => {
+    jest.clearAllMocks()
     mockStatus.mockResolvedValue('NOT_STARTED')
+})
+
+// Every entry point reads this before its start modal: a verify-once user never sees that modal.
+describe('paperworkVerificationEntryRoute', () => {
+    it('names /verify, or the entry\u2019s add-later screen, from the entry itself', async () => {
+        jest.mocked(findKycDocumentPlan).mockResolvedValue(plan())
+        await expect(paperworkVerificationEntryRoute({ corridor: 'SEPA_EU' })).resolves.toBe('/verify')
+
+        mockStatus.mockResolvedValue('APPROVED')
+        await expect(paperworkVerificationEntryRoute({ corridor: 'SEPA_EU' })).resolves.toBe('/verify?feature=bank')
+        await expect(paperworkVerificationEntryRoute({ intent: 'LATAM', targetCountry: 'AR' })).resolves.toBe(
+            '/verify?feature=local'
+        )
+
+        // today's flow, or a plan that cannot be read: the start modal stays
+        jest.mocked(findKycDocumentPlan).mockResolvedValue(plan({ flow: 'document-first' }))
+        await expect(paperworkVerificationEntryRoute({ corridor: 'SEPA_EU' })).resolves.toBeNull()
+        jest.mocked(findKycDocumentPlan).mockRejectedValue(new Error('KYC plan unavailable'))
+        await expect(paperworkVerificationEntryRoute({ corridor: 'SEPA_EU' })).resolves.toBeNull()
+    })
 })
 
 describe('paperworkVerificationRoute', () => {

@@ -1,4 +1,4 @@
-import { getKycDocumentStatus } from '@/app/actions/kyc-workflow'
+import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-workflow'
 import type { KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import type { PaperworkVerificationFeature } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { PAPERWORK_VERIFICATION_FLOW, type KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
@@ -48,4 +48,22 @@ export async function paperworkVerificationRoute(
     if (status && NEEDS_TODAYS_FIX.has(status)) return null
     if (status !== 'APPROVED') return '/verify'
     return feature && !plan.features[feature] ? paperworkVerificationFeaturePath(feature) : null
+}
+
+/** A Verify entry point: what it unlocks, as the start it would make names it. */
+export interface PaperworkVerificationEntry {
+    intent?: KYCRegionIntent
+    corridor?: DepositCorridor
+    targetCountry?: string
+}
+
+/**
+ * Where an entry point's Verify goes for a Smart Paperwork Verification user,
+ * read before any start modal opens; null keeps today's start. A plan that
+ * cannot be read keeps it too: that start reads the plan again, and refuses to
+ * open a legacy applicant while it still cannot.
+ */
+export async function paperworkVerificationEntryRoute(entry: PaperworkVerificationEntry): Promise<string | null> {
+    const plan = await findKycDocumentPlan('entry').catch(() => null)
+    return paperworkVerificationRoute(plan, entryFeature(entry))
 }

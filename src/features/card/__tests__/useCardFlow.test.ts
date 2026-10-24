@@ -18,8 +18,10 @@ const mockInvalidateQueries = jest.fn()
 let mockUserFetching = 0
 const mockQueryClient = { invalidateQueries: mockInvalidateQueries, isFetching: () => mockUserFetching }
 
+const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({
     notFound: jest.fn(),
+    useRouter: () => ({ push: mockRouterPush }),
 }))
 jest.mock('@tanstack/react-query', () => ({
     useQuery: () => ({ data: undefined, isLoading: false, error: null, refetch: jest.fn() }),
@@ -103,6 +105,24 @@ describe('useCardFlow', () => {
         mockUser = { user: { userId: 'user-1' } }
         mockRainRails = []
         window.localStorage.clear()
+    })
+
+    // the API refuses a legacy applicant to a Smart Paperwork Verification user
+    it('an application the API sends to /verify goes there, never to an error or the legacy check', async () => {
+        const { ApiError } = jest.requireActual('@/services/api-error')
+        mockOverview = { status: { hasApplication: false }, cards: [] }
+        mockApplyForCard.mockRejectedValue(
+            new ApiError('Answer a few questions to start your verification.', {
+                status: 409,
+                code: 'paperwork_verification_required',
+            })
+        )
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(mockRouterPush).toHaveBeenCalledWith('/verify')
+        expect(result.current.applyError).toBeNull()
     })
 
     it('does not contact Rain before a confirmed $10 balance for a new application', async () => {

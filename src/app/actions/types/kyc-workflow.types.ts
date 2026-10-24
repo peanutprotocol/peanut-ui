@@ -1,11 +1,19 @@
 import type { paths } from '@/types/api.generated'
 
 type DocumentPlanResponse = paths['/users/kyc/plan']['get']['responses'][200]['content']['application/json']
+/** What an older account still has to answer before Smart Paperwork Verification can ask its questions. */
+export type KycPlanNeed = DocumentPlanResponse['needs'][number]
+// `needs` is optional for a response from an API before the field
 export type KycDocumentPlan = Omit<
     DocumentPlanResponse,
-    'flow' | 'proofOfAddress' | 'proofOfAddressIdCountries' | 'temporaryProtection'
+    'flow' | 'proofOfAddress' | 'proofOfAddressIdCountries' | 'temporaryProtection' | 'needs'
 > &
-    Partial<Pick<DocumentPlanResponse, 'flow' | 'proofOfAddress' | 'proofOfAddressIdCountries' | 'temporaryProtection'>>
+    Partial<
+        Pick<
+            DocumentPlanResponse,
+            'flow' | 'proofOfAddress' | 'proofOfAddressIdCountries' | 'temporaryProtection' | 'needs'
+        >
+    >
 export type KycFeatures = KycDocumentPlan['features']
 /** Smart Paperwork Verification's stored `flow` value; the API keeps it on existing attempts. */
 export const PAPERWORK_VERIFICATION_FLOW = 'verify-once' satisfies NonNullable<KycDocumentPlan['flow']>

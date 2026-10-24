@@ -548,6 +548,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     if (view === 'form' && flow === 'withdraw' && !hasBridgeBankCorridor(currentCountry.id)) return null
     if (mantecaForwardPath) return null
 
+    const verifyEntry = { intent: bankRegionIntent(currentCountry), targetCountry: currentCountry?.id }
     // shared modals — rendered once regardless of view (form vs list)
     const sharedModals = (
         <>
@@ -555,13 +556,8 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 cooldownActive={!!sumsubFlow.errorCooldown}
                 visible={isKycModalOpen}
                 onClose={() => setIsKycModalOpen(false)}
-                onVerify={() =>
-                    gateActions.verify(gate, {
-                        provider: 'BRIDGE',
-                        intent: bankRegionIntent(currentCountry),
-                        targetCountry: currentCountry?.id,
-                    })
-                }
+                onVerify={() => gateActions.verify(gate, { provider: 'BRIDGE', ...verifyEntry })}
+                verifyEntry={verifyEntry}
                 onContactSupport={() => {
                     setIsKycModalOpen(false)
                     gateActions.contactSupport(gate)

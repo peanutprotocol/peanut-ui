@@ -186,6 +186,11 @@
         "route": "/profile/accounts"
     },
     {
+        "id": "fixture-paperwork-verification-needs-signup",
+        "flow": "Setup and login",
+        "route": "/verify"
+    },
+    {
         "id": "p75-residence-country-dropdown",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-a-residence-select"

@@ -105,6 +105,7 @@ export function useDepositGateRemediation(): {
                 providerId={
                     kycCorridor && DEPOSIT_RAILS[kycCorridor].provider === 'bridge' ? bridgeProviderId : undefined
                 }
+                verifyEntry={{ corridor: kycCorridor }}
             />
             <BridgeTosStep visible={showBridgeTos} onComplete={hideTos} onSkip={hideTos} />
             <ProvideEmailStep

@@ -64,14 +64,17 @@ interface SetupFlowContextType {
     noBackLockScreenId: ScreenId | null
     setNoBackLockScreenId: (screenId: ScreenId | null) => void
     resetSetupFlow: () => void
+    /** Continue on the last step, for a host that runs some of these screens outside /setup. */
+    onFinish?: () => Promise<void>
 }
 
 const SetupFlowContext = createContext<SetupFlowContextType | undefined>(undefined)
 
-export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds: readonly ScreenId[] }> = ({
-    children,
-    masterScreenIds,
-}) => {
+export const SetupFlowProvider: React.FC<{
+    children: ReactNode
+    masterScreenIds: readonly ScreenId[]
+    onFinish?: () => Promise<void>
+}> = ({ children, masterScreenIds, onFinish }) => {
     const [notificationEmail, setNotificationEmail] = useState('')
     const [fundingChannel, setFundingChannel] = useState<SetupFundingChannel | null>(null)
     const [paymentChannel, setPaymentChannel] = useState<SetupPaymentChannel | null>(null)
@@ -140,6 +143,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             noBackLockScreenId,
             setNoBackLockScreenId,
             resetSetupFlow,
+            onFinish,
         }),
         [
             fundingChannel,
@@ -159,6 +163,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             signupEntryFlow,
             noBackLockScreenId,
             resetSetupFlow,
+            onFinish,
         ]
     )
 

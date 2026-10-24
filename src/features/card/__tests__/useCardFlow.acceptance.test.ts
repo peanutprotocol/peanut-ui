@@ -16,8 +16,10 @@ const mockInvalidateQueries = jest.fn()
 let mockUserFetching = 0
 const mockQueryClient = { invalidateQueries: mockInvalidateQueries, isFetching: () => mockUserFetching }
 
+const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({
     notFound: jest.fn(),
+    useRouter: () => ({ push: mockRouterPush }),
 }))
 jest.mock('@tanstack/react-query', () => ({
     useQuery: () => ({ data: undefined, isLoading: false, error: null, refetch: jest.fn() }),

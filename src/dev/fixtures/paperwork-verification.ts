@@ -322,6 +322,15 @@ const asking = (residence: string, steps: unknown[]) => ({
 })
 
 export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
+    'paperwork-verification-needs-signup': {
+        route: '/verify',
+        about: 'An older account with no residence and no payment plan: signup’s residence screen, then its payment plan, before the questions.',
+        responses: {
+            'GET /users/kyc/questions': { available: false, residence: null, needs: ['residence', 'features'] },
+            'GET /users/kyc/plan': { ...plan(), activeAttemptId: null, needs: ['residence', 'features'] },
+            'GET /users/kyc/profile': profile('NOT_STARTED'),
+        },
+    },
     'paperwork-verification-de': {
         route: '/verify',
         about: 'Smart Paperwork Verification questions for a German resident with bank + card: Bridge’s EEA citizenship beside the country of birth.',

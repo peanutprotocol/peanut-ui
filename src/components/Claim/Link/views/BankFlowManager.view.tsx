@@ -384,19 +384,18 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     // Defined once and rendered by both the form and confirm steps: the direct
     // claim path refuses inside handleSuccess, and the modal has to exist where
     // that refusal happens or the submit is a silent no-op.
+    const verifyEntry = {
+        intent: bankRegionIntent(bankRailCountry ?? selectedCountry),
+        targetCountry: selectedCountry?.id,
+    }
     const kycModal = (
         <>
             <InitiateKycModal
                 cooldownActive={!!sumsubFlow.errorCooldown}
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
-                onVerify={() =>
-                    gateActions.verify(gate, {
-                        provider: 'BRIDGE',
-                        intent: bankRegionIntent(bankRailCountry ?? selectedCountry),
-                        targetCountry: selectedCountry?.id,
-                    })
-                }
+                onVerify={() => gateActions.verify(gate, { provider: 'BRIDGE', ...verifyEntry })}
+                verifyEntry={verifyEntry}
                 onContactSupport={() => {
                     setShowKycModal(false)
                     gateActions.contactSupport(gate)

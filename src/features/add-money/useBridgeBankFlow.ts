@@ -255,12 +255,11 @@ export function useBridgeBankFlow() {
         validateAmount(rawTokenAmount)
     }, [rawTokenAmount, validateAmount, setError])
 
-    const handleVerify = () =>
-        gateActions.verify(gate, {
-            provider: 'BRIDGE',
-            intent: bankRegionIntent(selectedCountry),
-            targetCountry: selectedCountry?.id,
-        })
+    const verifyEntry = useMemo(
+        () => ({ intent: bankRegionIntent(selectedCountry), targetCountry: selectedCountry?.id }),
+        [bankRegionIntent, selectedCountry]
+    )
+    const handleVerify = () => gateActions.verify(gate, { provider: 'BRIDGE', ...verifyEntry })
 
     const handleContactSupport = () => gateActions.contactSupport(gate)
 
@@ -389,6 +388,7 @@ export function useBridgeBankFlow() {
         sumsubFlow,
         handleVerify,
         handleContactSupport,
+        verifyEntry,
         pendingModal,
         advisoryDeadline,
         showBridgeTos,

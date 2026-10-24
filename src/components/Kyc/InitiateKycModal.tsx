@@ -23,6 +23,9 @@ import type { NextAction } from '@/types/capabilities'
 import { isIdRetake, kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
 import { isBridgeProcessingSlow } from '@/utils/kyc-processing.utils'
 import type { ProviderId } from '@/types/provider.types'
+import Loading from '@/components/Global/Loading'
+import type { PaperworkVerificationEntry } from '@/features/paperwork-verification/paperworkVerificationEntry'
+import { usePaperworkVerificationRedirect } from '@/features/paperwork-verification/usePaperworkVerificationRedirect'
 
 type InitiateKycVariant =
     | 'default'
@@ -76,6 +79,12 @@ interface InitiateKycModalProps {
     providerId?: ProviderId
     /** test id of the start-verification CTA (default and cross-region variants) */
     ctaTestId?: string
+    /**
+     * The entry point's start, for Smart Paperwork Verification: such a user
+     * goes straight to /verify (or the add-later screen for this feature) and
+     * never sees the unlock offer. Omit where the caller already routes them.
+     */
+    verifyEntry?: PaperworkVerificationEntry
 }
 
 // confirmation modal shown before starting identity check or document resubmission.
@@ -113,6 +122,7 @@ export const InitiateKycModal = ({
     navTitle,
     providerId,
     ctaTestId = 'kyc-initiate-cta',
+    verifyEntry,
 }: InitiateKycModalProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -169,6 +179,13 @@ export const InitiateKycModal = ({
     const isCountryPayments = resolvedVariant === 'country_payments'
     const router = useRouter()
     const regionRestrictedCta = useRegionRestrictedCta(onClose)
+    // Only the unlock offers start a verification; every other variant is an
+    // ending of its own, and the outage and region screens outrank them all.
+    const isUnlockOffer = resolvedVariant === 'default' || isCrossRegion || isCountryPayments
+    const redirecting = usePaperworkVerificationRedirect(
+        visible && isUnlockOffer && !cooldownActive && !isKycDegraded && !isRegionRestricted && !error,
+        verifyEntry
+    )
 
     const getTitle = () => {
         if (error) return tCommon('somethingWentWrong')
@@ -271,6 +288,7 @@ export const InitiateKycModal = ({
     const cta = getCta()
 
     if (cooldownActive) return null
+    if (redirecting) return presentation === 'page' ? <Loading variant="mascot" /> : null
 
     // Outage outranks everything, including the region screen: whatever the
     // user's state, opening the SDK during a verification outage burns an

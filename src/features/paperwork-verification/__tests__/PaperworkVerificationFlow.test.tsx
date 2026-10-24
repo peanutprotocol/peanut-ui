@@ -41,6 +41,13 @@ jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => mockExit }))
 jest.mock('@/hooks/useSumsubKycFlow', () => ({ useSumsubKycFlow: jest.fn() }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div>loading</div> }))
+jest.mock('@/features/paperwork-verification/components/VerifySetupPrelude', () => ({
+    VerifySetupPrelude: ({ needs, onDone }: { needs: string[]; onDone: () => Promise<void> }) => (
+        <button data-testid="verify-setup-prelude" onClick={() => void onDone()}>
+            {needs.join(',')}
+        </button>
+    ),
+}))
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
     SumsubKycWrapper: ({ visible, onComplete }: { visible: boolean; onComplete: () => void }) =>
         visible ? <button onClick={onComplete}>sumsub-submit</button> : null,
@@ -191,6 +198,22 @@ const withAddressAndPhone = (addressAnswered: boolean): PaperworkVerificationQue
         ],
     }
 }
+
+// An older account: the plan needs a residence and a plan for money before the questions exist.
+describe('PaperworkVerificationFlow: an account missing signup answers', () => {
+    it('shows the signup screens first, then reloads into the steps overview', async () => {
+        mockPlan.mockResolvedValueOnce({ ...plan, needs: ['residence', 'features'] })
+        mockQuestions.mockRejectedValueOnce(new Error('no residence'))
+        renderFlow()
+
+        const prelude = await screen.findByTestId('verify-setup-prelude')
+        expect(prelude).toHaveTextContent('residence,features')
+        expect(mockReplace).not.toHaveBeenCalledWith('/home')
+
+        fireEvent.click(prelude)
+        expect(await screen.findByTestId('verify-steps-continue')).toBeInTheDocument()
+    })
+})
 
 describe('PaperworkVerificationFlow: the steps overview', () => {
     it('opens on the steps, with the questions as the current step, and Continue resumes the open question', async () => {

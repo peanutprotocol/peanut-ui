@@ -43,7 +43,7 @@ export async function getKycDocumentPlan(restart = false): Promise<KycDocumentPl
 export const KYC_PLAN_RETRY_DELAYS_MS = [400, 1200]
 
 /** Where a plan read came from, for the failure event. */
-export type KycPlanReadSource = 'home' | 'verify' | 'initiate' | 'status-sync'
+export type KycPlanReadSource = 'home' | 'verify' | 'initiate' | 'status-sync' | 'entry'
 
 /** The plan could not be read, so nothing says which flow the user is on. */
 export class KycPlanUnavailableError extends Error {

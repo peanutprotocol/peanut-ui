@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useIsFetching, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { USER } from '@/constants/query.consts'
@@ -26,6 +27,7 @@ import { isRainBalanceKnown } from '@/utils/balance.utils'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { ApiError } from '@/services/api-error'
 /**
  * flow hook for the card page — owns every behaviour so the page stays dumb
  * (same model as features/home/useHomeFlow).
@@ -95,6 +97,7 @@ export function useCardFlow() {
     }, [userId, hasOverviewStatus, railStatus, applicationStatus, showsCapabilityReason, queryClient])
     const { setIsSupportModalOpen } = useModalsContext()
     const onBack = useSafeBack('/home')
+    const router = useRouter()
 
     // Sumsub card-application token — populated when POST /rain/cards reports
     // the user still needs to complete the rain-card-application level.
@@ -494,13 +497,18 @@ export function useCardFlow() {
                 }
                 advanceFromApplyResponse(res)
             } catch (e) {
+                // A Smart Paperwork Verification user's identity check starts on /verify, never as a legacy applicant here.
+                if (e instanceof ApiError && e.code === 'paperwork_verification_required') {
+                    router.push('/verify')
+                    return
+                }
                 const message = e instanceof Error ? e.message : t('page.applyFailed')
                 console.error('[card apply] error:', e)
                 setApplyError(message)
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse, pendingTerms, needsFundingBeforeApply, userId, t]
+        [advanceFromApplyResponse, pendingTerms, needsFundingBeforeApply, userId, t, router]
     )
 
     const handleAcceptTerms = useCallback(async () => {

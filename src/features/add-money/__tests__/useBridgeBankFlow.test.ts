@@ -418,6 +418,12 @@ describe('useBridgeBankFlow', () => {
             expect(mockSumsubFlow.handleRestartIdentity).not.toHaveBeenCalled()
         }
 
+        it('names the entry to the start screen, so a verify-once user goes straight to /verify', () => {
+            mockGate = { kind: 'needs-identity' }
+            const { result } = renderFlow('?step=verify')
+            expect(result.current.verifyEntry).toEqual({ intent: 'intent:europe', targetCountry: 'DE' })
+        })
+
         it('provide-email stays on the amount step and opens the email sheet, never the verify screen', async () => {
             mockGate = { kind: 'provide-email', userMessage: null }
             const events: UrlUpdateEvent[] = []

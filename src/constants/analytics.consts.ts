@@ -257,7 +257,7 @@ export const ANALYTICS_EVENTS = {
     KYC_PV_VIEWED: 'kyc_paperwork_viewed',
     KYC_PV_LOAD_FAILED: 'kyc_paperwork_load_failed',
     // The plan read failed every retry; which flow the user is on is unknown.
-    // attempts, http_status (null: no response), source: home | verify | initiate | status-sync
+    // attempts, http_status (null: no response), source: home | verify | initiate | status-sync | entry
     KYC_PV_PLAN_FAILED: 'kyc_paperwork_plan_failed',
     KYC_PV_STEPS_VIEWED: 'kyc_paperwork_steps_viewed',
     KYC_PV_STEPS_CONTINUED: 'kyc_paperwork_steps_continued',

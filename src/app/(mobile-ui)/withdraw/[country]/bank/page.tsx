@@ -53,6 +53,7 @@ export default function WithdrawBankPage() {
         bankAmount,
     } = flow
     const gateActions = useGateActions(sumsubFlow)
+    const verifyEntry = { intent: bankRegionIntent(countryFromPath), targetCountry: getCountryFromPath(country)?.id }
 
     if (!bankAccount || !flow.payout) {
         return null
@@ -154,13 +155,8 @@ export default function WithdrawBankPage() {
                     flow.setShowKycModal(false)
                     flow.resetUpliftFunnel()
                 }}
-                onVerify={() =>
-                    gateActions.verify(gate, {
-                        provider: 'BRIDGE',
-                        intent: bankRegionIntent(countryFromPath),
-                        targetCountry: getCountryFromPath(country)?.id,
-                    })
-                }
+                onVerify={() => gateActions.verify(gate, { provider: 'BRIDGE', ...verifyEntry })}
+                verifyEntry={verifyEntry}
                 onContactSupport={() => {
                     flow.setShowKycModal(false)
                     flow.resetUpliftFunnel()

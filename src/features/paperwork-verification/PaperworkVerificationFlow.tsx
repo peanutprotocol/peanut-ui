@@ -24,11 +24,16 @@ import type {
     PaperworkVerificationQuestions,
     PaperworkVerificationStepId,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
-import { PAPERWORK_VERIFICATION_FLOW, type KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
+import {
+    PAPERWORK_VERIFICATION_FLOW,
+    type KycDocumentPlan,
+    type KycPlanNeed,
+} from '@/app/actions/types/kyc-workflow.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
 import { QuestionStepScreen } from './components/QuestionStepScreen'
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
+import { VerifySetupPrelude } from './components/VerifySetupPrelude'
 import {
     ProofOfAddressScreen,
     ReviewScreen,
@@ -73,9 +78,15 @@ type Loaded = {
  */
 export function PaperworkVerificationFlow() {
     const router = useRouter()
-    const [state, setState] = useState<{ kind: 'loading' } | { kind: 'failed' } | ({ kind: 'ready' } & Loaded)>({
+    const [state, setState] = useState<
+        | { kind: 'loading' }
+        | { kind: 'failed' }
+        | { kind: 'setup'; needs: KycPlanNeed[] }
+        | ({ kind: 'ready' } & Loaded)
+    >({
         kind: 'loading',
     })
+    const exit = useSafeBack('/home')
     const [generation, setGeneration] = useState(0)
     // The steps overview opens a visit once; a reload mid-flow goes straight back to the open step.
     const introShown = useRef(false)
@@ -87,11 +98,17 @@ export function PaperworkVerificationFlow() {
         setState({ kind: 'loading' })
         try {
             const [questions, plan, status] = await Promise.all([
-                getKycQuestions(),
+                // an older account the questions cannot be built for yet answers the setup screens first
+                getKycQuestions().catch(() => null),
                 // a plan that cannot be read throws: the retry screen, not Home
                 findKycDocumentPlan('verify'),
                 getKycDocumentStatus().catch(() => undefined),
             ])
+            if (plan?.flow === PAPERWORK_VERIFICATION_FLOW && plan.needs?.length) {
+                setState({ kind: 'setup', needs: plan.needs })
+                return
+            }
+            if (!questions) throw new Error('KYC questions unavailable')
             // A stale link or a user the server keeps on today's flow: that flow starts from Home.
             if (!questions.available || plan?.flow !== PAPERWORK_VERIFICATION_FLOW) {
                 routerRef.current.replace('/home')
@@ -114,6 +131,7 @@ export function PaperworkVerificationFlow() {
 
     if (state.kind === 'loading') return <VerifyLoading />
     if (state.kind === 'failed') return <LoadFailed onRetry={() => void load()} onHome={() => router.push('/home')} />
+    if (state.kind === 'setup') return <VerifySetupPrelude needs={state.needs} onDone={load} onExit={exit} />
     return <PaperworkVerificationSteps key={generation} initial={state} reload={load} introShown={introShown} />
 }
 

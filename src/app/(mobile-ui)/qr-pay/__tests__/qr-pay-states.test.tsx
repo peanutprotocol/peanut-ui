@@ -63,6 +63,10 @@ const mockRouterBack = jest.fn()
 const mockRouterReplace = jest.fn()
 const mockSearchParams = new Map<string, string>()
 
+// these users are on today's flow: the unlock offer shows (the verify-once redirect has its own tests)
+jest.mock('@/features/paperwork-verification/usePaperworkVerificationRedirect', () => ({
+    usePaperworkVerificationRedirect: () => false,
+}))
 jest.mock('next/navigation', () => ({
     useSearchParams: () => ({
         get: (key: string) => mockSearchParams.get(key) ?? null,
