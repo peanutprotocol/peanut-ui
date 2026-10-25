@@ -3492,7 +3492,8 @@
         },
         "qrScanner": {
             "scanToPay": "Escanea para pagar",
-            "clickToPaste": "Toca para pegar",
+            "clickToPaste": "Pega el código",
+            "supportedQrCodes": "Códigos QR compatibles",
             "clipboardEmpty": "El portapapeles está vacío",
             "clipboardUnavailable": "No se pudo acceder al portapapeles",
             "startingCamera": "Iniciando la cámara…",
@@ -3530,8 +3531,7 @@
             },
             "useCopiedCode": "Usar código copiado",
             "paymentMethods": {
-                "evmName": "ETH y EVMs",
-                "evmAlt": "Ethereum y EVMs"
+                "evmName": "ETH y EVMs"
             }
         },
         "qrScannerOverlay": {

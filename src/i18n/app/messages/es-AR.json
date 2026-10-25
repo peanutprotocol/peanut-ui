@@ -1581,7 +1581,7 @@
         },
         "qrScanner": {
             "scanToPay": "Escaneá para pagar",
-            "clickToPaste": "Tocá para pegar",
+            "clickToPaste": "Pegá el código",
             "cameraPermissionDenied": "Permiso de cámara denegado. Permití el acceso a la cámara en la configuración de tu navegador.",
             "cameraStillBusy": "La cámara sigue ocupada. Cerrá otras apps e intentalo de nuevo.",
             "cameraUnavailable": "No se pudo acceder a la cámara. Asegurate de haber concedido los permisos de cámara.",

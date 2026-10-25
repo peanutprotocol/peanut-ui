@@ -3492,7 +3492,8 @@
         },
         "qrScanner": {
             "scanToPay": "Escaneie para pagar",
-            "clickToPaste": "Toque para colar",
+            "clickToPaste": "Cole o código",
+            "supportedQrCodes": "Códigos QR aceitos",
             "clipboardEmpty": "A área de transferência está vazia",
             "clipboardUnavailable": "Não foi possível acessar a área de transferência",
             "startingCamera": "Iniciando a câmera…",
@@ -3530,8 +3531,7 @@
             },
             "useCopiedCode": "Usar código copiado",
             "paymentMethods": {
-                "evmName": "ETH e EVMs",
-                "evmAlt": "Ethereum e EVMs"
+                "evmName": "ETH e EVMs"
             }
         },
         "qrScannerOverlay": {
