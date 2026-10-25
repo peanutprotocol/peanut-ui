@@ -214,9 +214,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 variant="app"
                 banner={!isDev && <ShellBannerFallback />}
                 nav={!isDev && !isProfileMenu && !isVerify && isUserLoggedIn && <BottomNav />}
+                // /verify is white panels under a white or hero-blue status bar, and white under the nav bar
                 pageClassName={
-                    isVerify ? 'bg-[color:var(--setup-hero-background,var(--color-background-page))]' : undefined
+                    isVerify ? 'bg-[color:var(--setup-hero-background,var(--color-background-default))]' : undefined
                 }
+                bottomInsetClassName={isVerify ? 'bg-background-default' : undefined}
                 contentClassName={twMerge(
                     'pb-[calc(6rem_+_var(--safe-bottom))]',
                     isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',

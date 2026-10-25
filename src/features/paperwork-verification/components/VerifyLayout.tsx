@@ -1,6 +1,6 @@
 'use client'
 
-import { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
@@ -12,24 +12,12 @@ import SetupFooter from '@/components/Setup/components/SetupFooter'
 import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
 import { confettiPresets } from '@/utils/confetti'
 import { twMerge } from '@/utils/tw'
+import { useInsetColor } from '../useInsetColor'
 
 const SCREEN_HEIGHT = 'min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]'
 // The setup flow's panel: px-6, the CTA on one baseline, tighter on short phones.
 const PANEL =
     'flex min-h-0 flex-1 flex-col justify-between gap-8 bg-white px-6 pt-10 pb-6 compact:gap-6 compact:pt-6 compact:pb-4 short:gap-4 short:pt-4 short:pb-3'
-
-/** Paints the status-bar strip the way the setup flow does: white over questions, blue over a hero. */
-function useInsetColor(hero: boolean) {
-    useLayoutEffect(() => {
-        document.documentElement.style.setProperty(
-            '--setup-hero-background',
-            hero ? 'var(--color-background-setup-hero)' : 'var(--color-background-default)'
-        )
-        return () => {
-            document.documentElement.style.removeProperty('--setup-hero-background')
-        }
-    }, [hero])
-}
 
 function BackButton({ onBack }: { onBack: () => void }) {
     const t = useTranslations('kyc.paperworkVerification')

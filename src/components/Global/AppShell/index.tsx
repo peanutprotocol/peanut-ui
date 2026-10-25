@@ -17,7 +17,7 @@ interface AppShellProps {
     contentClassName?: string
     /** Route-conditional overrides for the centering wrapper (app variant). */
     innerClassName?: string
-    /** Bottom safe-area fill color (onboarding variant, device-dependent). */
+    /** Bottom safe-area fill color: the onboarding variant's, device-dependent; the app variant fills only when given. */
     bottomInsetClassName?: string
     /** Page and status-bar strip background override (app variant), for a full-screen flow. */
     pageClassName?: string
@@ -135,6 +135,15 @@ export const AppShell = ({
                 >
                     <div className="mx-auto w-full max-w-md">{nav}</div>
                 </div>
+            )}
+            {bottomInsetClassName && (
+                <div
+                    aria-hidden
+                    className={twMerge(
+                        'pointer-events-none fixed inset-x-0 bottom-0 z-40 h-safe-bottom',
+                        bottomInsetClassName
+                    )}
+                />
             )}
             {modals}
         </div>

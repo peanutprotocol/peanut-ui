@@ -3,9 +3,11 @@
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
+import { useInsetColor } from '../useInsetColor'
 import { VerifyFooter, VerifyHeroLayout } from './VerifyLayout'
 
 export function VerifyLoading() {
+    useInsetColor(false)
     return (
         <div className="flex h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] w-full items-center justify-center bg-white">
             <Loading variant="mascot" />
