@@ -3492,7 +3492,8 @@
         },
         "qrScanner": {
             "scanToPay": "Scan to pay",
-            "clickToPaste": "Click to paste",
+            "clickToPaste": "Paste code",
+            "supportedQrCodes": "Supported QR codes",
             "clipboardEmpty": "Clipboard is empty",
             "clipboardUnavailable": "Could not access clipboard",
             "startingCamera": "Starting camera…",
@@ -3530,8 +3531,7 @@
             },
             "useCopiedCode": "Use copied code",
             "paymentMethods": {
-                "evmName": "ETH & EVMs",
-                "evmAlt": "Ethereum and EVMs"
+                "evmName": "ETH & EVMs"
             }
         },
         "qrScannerOverlay": {

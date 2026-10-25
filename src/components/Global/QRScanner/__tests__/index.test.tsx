@@ -45,7 +45,7 @@ jest.mock('../CameraPermissionDrawer', () => ({
         <div>
             <button onClick={onRetry}>{'Try again'}</button>
             <button onClick={onClose}>{'Dismiss'}</button>
-            {onPaste && <button onClick={onPaste}>{'Click to paste'}</button>}
+            {onPaste && <button onClick={onPaste}>{'Paste code'}</button>}
         </div>
     ),
 }))
@@ -108,7 +108,7 @@ describe('camera unavailable: paste stays reachable', () => {
         const onScan = renderScanner()
 
         await act(async () => {
-            fireEvent.click(await screen.findByText('Click to paste'))
+            fireEvent.click(await screen.findByText('Paste code'))
         })
         expect(onScan).toHaveBeenCalledWith(PIX_CODE)
     })
@@ -124,7 +124,7 @@ describe('camera permission denied: the modal keeps one primary + Dismiss', () =
 
         expect(await screen.findByText('Try again')).toBeInTheDocument()
         expect(screen.getByText('Dismiss')).toBeInTheDocument()
-        expect(screen.queryByText('Click to paste')).toBeNull()
+        expect(screen.queryByText('Paste code')).toBeNull()
     })
 })
 
@@ -186,7 +186,7 @@ it('iOS native: the chip hands a pasted Pix code straight to the scan path', asy
     expect(mockToastError).not.toHaveBeenCalled()
 })
 
-it('"Click to paste": a pasted Pix code reaches onScan verbatim', async () => {
+it('"Paste code": a pasted Pix code reaches onScan verbatim', async () => {
     mockIsAndroidNative.mockReturnValue(false)
     mockHasStrings.mockResolvedValue(false)
     mockRead.mockResolvedValue({ value: PIX_CODE, type: 'text/plain' })
@@ -194,7 +194,7 @@ it('"Click to paste": a pasted Pix code reaches onScan verbatim', async () => {
     const onScan = renderScanner()
 
     await act(async () => {
-        fireEvent.click(await screen.findByText('Click to paste'))
+        fireEvent.click(await screen.findByText('Paste code'))
     })
     expect(onScan).toHaveBeenCalledWith(PIX_CODE)
 })
@@ -235,7 +235,7 @@ it('chip tap: onScan failure is not misreported as a clipboard error', async () 
     )
 })
 
-it('"Click to paste": onScan failure is not misreported as a clipboard error', async () => {
+it('"Paste code": onScan failure is not misreported as a clipboard error', async () => {
     mockIsAndroidNative.mockReturnValue(false)
     mockHasStrings.mockResolvedValue(false)
     mockRead.mockResolvedValue({ value: PIX_PAYLOAD, type: 'text/plain' })
@@ -243,7 +243,7 @@ it('"Click to paste": onScan failure is not misreported as a clipboard error', a
     const onScan = jest.fn().mockRejectedValue(new Error('routing exploded'))
     renderScanner(onScan)
 
-    const paste = await screen.findByText('Click to paste')
+    const paste = await screen.findByText('Paste code')
     await act(async () => {
         fireEvent.click(paste)
     })
@@ -274,7 +274,7 @@ it('Android chip: onScan failure surfaces a processing error instead of rejectin
     expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
 })
 
-it('chip tap: empty clipboard maps to the same copy as "Click to paste"', async () => {
+it('chip tap: empty clipboard maps to the same copy as "Paste code"', async () => {
     mockIsAndroidNative.mockReturnValue(false)
     mockHasStrings.mockResolvedValue(true)
     mockRead.mockRejectedValue(new Error('There is no data on the clipboard'))
@@ -301,7 +301,7 @@ it('paste actions hang below the scan square', async () => {
 
     renderScanner()
 
-    const link = await screen.findByText('Click to paste')
+    const link = await screen.findByText('Paste code')
     const anchored = link.closest('.top-full') as HTMLElement | null
     expect(anchored).not.toBeNull()
     // one XL section gap below the square, positioned off the square not the viewport
