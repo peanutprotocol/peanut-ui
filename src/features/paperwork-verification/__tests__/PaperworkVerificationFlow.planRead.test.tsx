@@ -4,6 +4,7 @@
  * start. The plan read is real here, down to the fetch.
  */
 import { act, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import { getKycQuestions } from '@/app/actions/kyc-paperwork-verification'
@@ -33,9 +34,11 @@ afterEach(() => jest.useRealTimers())
 
 it('a plan that cannot be read shows the retry screen, never Home', async () => {
     renderWithIntl(
-        <NuqsTestingAdapter>
-            <PaperworkVerificationFlow />
-        </NuqsTestingAdapter>
+        <QueryClientProvider client={new QueryClient()}>
+            <NuqsTestingAdapter>
+                <PaperworkVerificationFlow />
+            </NuqsTestingAdapter>
+        </QueryClientProvider>
     )
     await act(async () => {
         await jest.runAllTimersAsync()

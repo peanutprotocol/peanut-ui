@@ -13,6 +13,7 @@ import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
 import type { PaperworkVerificationFeature } from '@/app/actions/types/kyc-paperwork-verification.types'
 import type { KycFeatures } from '@/app/actions/types/kyc-workflow.types'
 import { twMerge } from '@/utils/tw'
+import { useInsetColor } from '../useInsetColor'
 import { VerifyCelebrationLayout, VerifyFooter, VerifyHeroLayout, VerifyQuestionLayout } from './VerifyLayout'
 
 const SCREEN_HEIGHT = 'min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]'
@@ -47,6 +48,7 @@ export function StepsScreen({
     onContinue: () => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
+    useInsetColor(false)
     const photoCurrent = !hasQuestions || questionsDone
     const questions: StepRow[] = hasQuestions ? [{ key: 'questions', state: questionsDone ? 'done' : 'current' }] : []
     const rows: StepRow[] = [
@@ -110,7 +112,8 @@ export function StepsScreen({
 }
 
 /** The last answer is saved: the ID check comes next. */
-export function SavedScreen({ onContinue }: { onContinue: () => void }) {
+/** `busy` while the last answers are still on their way to the server. */
+export function SavedScreen({ busy = false, onContinue }: { busy?: boolean; onContinue: () => void }) {
     const t = useTranslations('kyc.paperworkVerification')
     return (
         <VerifyCelebrationLayout
@@ -118,7 +121,7 @@ export function SavedScreen({ onContinue }: { onContinue: () => void }) {
             celebrate
             title={t('saved.title')}
             description={t('saved.description')}
-            footer={<VerifyFooter actions={primary(t('continue'), onContinue, 'verify-saved-continue')} />}
+            footer={<VerifyFooter actions={primary(t('continue'), onContinue, 'verify-saved-continue', busy)} />}
         />
     )
 }

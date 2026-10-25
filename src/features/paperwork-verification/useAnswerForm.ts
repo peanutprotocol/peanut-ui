@@ -33,6 +33,27 @@ export type SaveOutcome =
 
 const CONFLICTS = new Set(['feature_not_selected', 'identity_submitted', 'unavailable', 'existing_verification'])
 
+/** Saves the steps in the server's order, stopping at the first one it refuses. */
+export async function saveSteps(
+    steps: PaperworkVerificationStep[],
+    values: PaperworkVerificationAnswers,
+    feature?: PaperworkVerificationFeature
+): Promise<SaveOutcome> {
+    let next: PaperworkVerificationStepId | null = null
+    for (const step of steps) {
+        const result = await saveKycAnswers(step.id, stepPayload(step.fields, values), feature)
+        if (result.kind === 'invalid') return { ok: false, rejected: { step: step.id, errors: result.errors } }
+        if (result.kind === 'conflict') {
+            const error = CONFLICTS.has(result.code) ? (result.code as AnswerFormError) : 'conflict'
+            return { ok: false, error, formError: error }
+        }
+        if (result.kind === 'blocked') return { ok: false, formError: result.code }
+        if (result.kind === 'retry') return { ok: false, error: 'retry', formError: 'retry' }
+        next = result.next
+    }
+    return { ok: true, next }
+}
+
 /**
  * The answers of the steps on screen: kept in memory only (never storage),
  * saved step by step in the server's order. One save runs at a time, so a
@@ -41,7 +62,9 @@ const CONFLICTS = new Set(['feature_not_selected', 'identity_submitted', 'unavai
 export function useAnswerForm(
     steps: PaperworkVerificationStep[],
     feature?: PaperworkVerificationFeature,
-    residence: string | null = null
+    residence: string | null = null,
+    /** what a background save of these steps came back with */
+    returned?: { errors?: Record<string, string>; formError?: AnswerFormError }
 ) {
     const [values, setValues] = useState<PaperworkVerificationAnswers>(() =>
         initialValues(
@@ -49,8 +72,8 @@ export function useAnswerForm(
             residence
         )
     )
-    const [errors, setErrors] = useState<Record<string, string>>({})
-    const [formError, setFormError] = useState<AnswerFormError | null>(null)
+    const [errors, setErrors] = useState<Record<string, string>>(() => returned?.errors ?? {})
+    const [formError, setFormError] = useState<AnswerFormError | null>(() => returned?.formError ?? null)
     const [saving, setSaving] = useState(false)
     const savingRef = useRef(false)
 
@@ -70,31 +93,12 @@ export function useAnswerForm(
             savingRef.current = true
             setSaving(true)
             setFormError(null)
-            let next: PaperworkVerificationStepId | null = null
             try {
-                for (const step of toSave) {
-                    const result = await saveKycAnswers(step.id, stepPayload(step.fields, values), feature)
-                    if (result.kind === 'invalid') {
-                        setErrors(result.errors)
-                        return { ok: false, rejected: { step: step.id, errors: result.errors } }
-                    }
-                    if (result.kind === 'conflict') {
-                        const error = CONFLICTS.has(result.code) ? (result.code as AnswerFormError) : 'conflict'
-                        setFormError(error)
-                        return { ok: false, error, formError: error }
-                    }
-                    if (result.kind === 'blocked') {
-                        setFormError(result.code)
-                        return { ok: false, formError: result.code }
-                    }
-                    if (result.kind === 'retry') {
-                        setFormError('retry')
-                        return { ok: false, error: 'retry', formError: 'retry' }
-                    }
-                    next = result.next
-                }
-                setErrors({})
-                return { ok: true, next }
+                const outcome = await saveSteps(toSave, values, feature)
+                if (outcome.ok) setErrors({})
+                if (!outcome.ok && outcome.rejected) setErrors(outcome.rejected.errors)
+                if (!outcome.ok && outcome.formError) setFormError(outcome.formError)
+                return outcome
             } finally {
                 savingRef.current = false
                 setSaving(false)

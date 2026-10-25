@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryState } from 'nuqs'
+import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useLocale, useTranslations } from 'next-intl'
 import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -22,6 +23,7 @@ import type { SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type {
     PaperworkVerificationAnswers,
     PaperworkVerificationQuestions,
+    PaperworkVerificationStep,
     PaperworkVerificationStepId,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import {
@@ -30,10 +32,12 @@ import {
     type KycPlanNeed,
 } from '@/app/actions/types/kyc-workflow.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
+import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
-import { QuestionStepScreen } from './components/QuestionStepScreen'
+import { QuestionStepScreen, trackSaveOutcome } from './components/QuestionStepScreen'
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
 import { VerifySetupPrelude } from './components/VerifySetupPrelude'
+import { restoreNativeStatusBar } from './useInsetColor'
 import {
     ProofOfAddressScreen,
     ReviewScreen,
@@ -42,10 +46,16 @@ import {
     VerifiedScreen,
 } from './components/StatusScreens'
 import {
+    stepsLabel,
     trackPaperworkVerification,
     PaperworkVerificationTrackingProvider,
     type PaperworkVerificationTrackingContext,
 } from './analytics'
+import {
+    PAPERWORK_VERIFICATION_PLAN_QUERY_KEY,
+    PAPERWORK_VERIFICATION_QUESTIONS_QUERY_KEY,
+    PAPERWORK_VERIFICATION_STATUS_QUERY_KEY,
+} from './usePaperworkVerificationStart'
 import { usePaperworkVerificationIdentity } from './usePaperworkVerificationIdentity'
 import {
     citizenshipOf,
@@ -60,14 +70,44 @@ import {
     stepProgress,
     type VerifyStep,
 } from './paperworkVerification.utils'
-import type { AnswerFormError } from './useAnswerForm'
+import { saveSteps, type AnswerFormError, type SaveOutcome } from './useAnswerForm'
 
 const STATUS_POLL_MS = 15_000
+const SAVE_RETRY_DELAYS_MS = [1_000, 3_000]
 
 type Loaded = {
     questions: PaperworkVerificationQuestions
     plan: KycDocumentPlan | null
     status: SumsubKycStatus | undefined
+}
+
+/** What Home loaded for this visit, when it is enough to open on. */
+function cachedLoad(queryClient: QueryClient): Loaded | null {
+    const plan = queryClient.getQueryData<KycDocumentPlan | null>(PAPERWORK_VERIFICATION_PLAN_QUERY_KEY)
+    const questions = queryClient.getQueryData<PaperworkVerificationQuestions>(
+        PAPERWORK_VERIFICATION_QUESTIONS_QUERY_KEY
+    )
+    if (plan?.flow !== PAPERWORK_VERIFICATION_FLOW || plan.needs?.length || !questions?.available) return null
+    const status = queryClient.getQueryData<SumsubKycStatus>(PAPERWORK_VERIFICATION_STATUS_QUERY_KEY)
+    return { questions, plan, status }
+}
+
+/** The screens a load opens on: a fresh read that differs from the cached one reopens the flow. */
+const shapeOf = ({ questions, plan, status }: Loaded) =>
+    JSON.stringify([
+        entryStep({ questions, plan, status }, false),
+        questions.steps.map((s) => [s.id, s.answered]),
+        status ?? null,
+    ])
+
+const RETRY: SaveOutcome = { ok: false, error: 'retry', formError: 'retry' }
+
+async function saveWithRetries(steps: PaperworkVerificationStep[], values: PaperworkVerificationAnswers) {
+    for (let attempt = 0; ; attempt++) {
+        const outcome = await saveSteps(steps, values).catch(() => RETRY)
+        if (outcome.ok || outcome.error !== 'retry' || attempt >= SAVE_RETRY_DELAYS_MS.length) return outcome
+        await new Promise((resolve) => setTimeout(resolve, SAVE_RETRY_DELAYS_MS[attempt]))
+    }
 }
 
 /**
@@ -78,14 +118,17 @@ type Loaded = {
  */
 export function PaperworkVerificationFlow() {
     const router = useRouter()
+    const queryClient = useQueryClient()
     const [state, setState] = useState<
         | { kind: 'loading' }
         | { kind: 'failed' }
         | { kind: 'setup'; needs: KycPlanNeed[] }
-        | ({ kind: 'ready' } & Loaded)
-    >({
-        kind: 'loading',
+        | ({ kind: 'ready'; fresh?: Loaded } & Loaded)
+    >(() => {
+        const cached = cachedLoad(queryClient)
+        return cached ? { kind: 'ready', ...cached } : { kind: 'loading' }
     })
+    const opened = useRef(state.kind === 'ready' ? shapeOf(state) : null)
     const exit = useSafeBack('/home')
     const [generation, setGeneration] = useState(0)
     // The steps overview opens a visit once; a reload mid-flow goes straight back to the open step.
@@ -94,8 +137,9 @@ export function PaperworkVerificationFlow() {
     const routerRef = useRef(router)
     routerRef.current = router
 
-    const load = useCallback(async () => {
-        setState({ kind: 'loading' })
+    // `quiet` refreshes a cached open behind its screens instead of showing the loading one.
+    const load = useCallback(async (quiet = false) => {
+        if (!quiet) setState({ kind: 'loading' })
         try {
             const [questions, plan, status] = await Promise.all([
                 // an older account the questions cannot be built for yet answers the setup screens first
@@ -114,9 +158,16 @@ export function PaperworkVerificationFlow() {
                 routerRef.current.replace('/home')
                 return
             }
-            setState({ kind: 'ready', questions, plan, status })
+            const loaded = { questions, plan, status }
+            if (quiet && shapeOf(loaded) === opened.current) {
+                setState((current) => (current.kind === 'ready' ? { ...current, fresh: loaded } : current))
+                return
+            }
+            setState({ kind: 'ready', ...loaded })
             setGeneration((g) => g + 1)
         } catch {
+            // the cached screens stay; the next answer or ID step reads the server again
+            if (quiet) return
             trackPaperworkVerification(
                 { flow: 'paperwork_verification', residence: null },
                 ANALYTICS_EVENTS.KYC_PV_LOAD_FAILED
@@ -126,21 +177,36 @@ export function PaperworkVerificationFlow() {
     }, [])
 
     useEffect(() => {
-        void load()
+        void load(opened.current !== null)
+        // Once per visit: a cached open refreshes quietly.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [load])
+    // The signup prelude's wrapper paints the native status bar and leaves it painted.
+    useEffect(() => restoreNativeStatusBar, [])
 
     if (state.kind === 'loading') return <VerifyLoading />
     if (state.kind === 'failed') return <LoadFailed onRetry={() => void load()} onHome={() => router.push('/home')} />
     if (state.kind === 'setup') return <VerifySetupPrelude needs={state.needs} onDone={load} onExit={exit} />
-    return <PaperworkVerificationSteps key={generation} initial={state} reload={load} introShown={introShown} />
+    return (
+        <PaperworkVerificationSteps
+            key={generation}
+            initial={state}
+            fresh={state.fresh}
+            reload={load}
+            introShown={introShown}
+        />
+    )
 }
 
 function PaperworkVerificationSteps({
     initial,
+    fresh,
     reload,
     introShown,
 }: {
     initial: Loaded
+    /** the server's read behind a cached open, with the same screens */
+    fresh?: Loaded
     reload: () => Promise<void>
     introShown: React.MutableRefObject<boolean>
 }) {
@@ -156,6 +222,7 @@ function PaperworkVerificationSteps({
     const [idError, setIdError] = useState<string | null>(null)
     const [documentRequired, setDocumentRequired] = useState(false)
     const identity = usePaperworkVerificationIdentity()
+    const queryClient = useQueryClient()
     // Decided once per load, so Back shows the same screens the user came through.
     const [phoneJoined] = useState(() => phoneJoinsAddress(initial.questions))
     const screenOf = (id: VerifyStep): VerifyStep => (phoneJoined && id === 'phone' ? 'address' : id)
@@ -202,32 +269,120 @@ function PaperworkVerificationSteps({
         if (showIntro) introShown.current = true
     }, [showIntro, introShown])
 
-    const afterSave = async (
-        saved: PaperworkVerificationStepId[],
-        next: PaperworkVerificationStepId | null,
-        values: PaperworkVerificationAnswers
+    const stepRef = useRef(step)
+    stepRef.current = step
+    // Continue moves on at once; each screen's answers save behind the next one, in order.
+    const saves = useRef<Promise<void>>(Promise.resolve())
+    const submissions = useRef(0)
+    const saveRefused = useRef(false)
+    const settled = useRef<Promise<void>>(Promise.resolve())
+    const rejections = useRef<Partial<Record<PaperworkVerificationStepId, number>>>({})
+    const [returned, setReturned] = useState<{
+        step: PaperworkVerificationStepId
+        errors?: Record<string, string>
+        formError?: AnswerFormError
+    } | null>(null)
+    const [savedBusy, setSavedBusy] = useState(false)
+
+    const saveFailed = (shown: PaperworkVerificationStep[], outcome: SaveOutcome & { ok: false }) => {
+        if (outcome.error && outcome.error !== 'retry') return onConflict(outcome.error)
+        saveRefused.current = true
+        const refused = outcome.rejected?.step ?? shown[0].id
+        setQuestions((current) => ({
+            ...current,
+            steps: current.steps.map((s) => (s.id === refused ? { ...s, answered: false } : s)),
+        }))
+        setReturned({ step: refused, errors: outcome.rejected?.errors, formError: outcome.formError })
+        void stepper.goTo(screenOf(refused))
+    }
+
+    const submitAnswers = (
+        shown: PaperworkVerificationStep[],
+        values: PaperworkVerificationAnswers,
+        seconds: number
     ) => {
-        const updated = saved.reduce((current, id) => markSaved(current, id, values), questions)
+        const ids = shown.map((s) => s.id)
+        const updated = ids.reduce((current, id) => markSaved(current, id, values), questions)
         setQuestions(updated)
-        const last = saved[saved.length - 1]
+        setReturned(null)
+        saveRefused.current = false
+        const last = ids[ids.length - 1]
         const following =
-            (next && updated.steps.some((s) => s.id === next && !s.answered) ? next : null) ??
             updated.steps.slice(updated.steps.findIndex((s) => s.id === last) + 1).find((s) => !s.answered)?.id ??
             updated.steps.find((s) => !s.answered)?.id
-        if (following) {
-            void stepper.goTo(screenOf(following))
-            return
-        }
-        // The last answer reserves the attempt: read it back before the midpoint needs it.
-        try {
-            const fresh = await getKycQuestions()
-            setQuestions(fresh)
-            const open = resumeStep(fresh)
-            void stepper.goTo(open ? screenOf(open) : 'saved')
-        } catch {
-            void stepper.goTo('saved')
-        }
+        void stepper.goTo(following ? screenOf(following) : 'saved')
+
+        const submission = ++submissions.current
+        const stepTracking = { ...tracking, step: ids[0] }
+        saves.current = saves.current.then(async () => {
+            const outcome = await saveWithRetries(shown, values)
+            trackSaveOutcome(
+                (event, properties) =>
+                    trackPaperworkVerification(stepTracking, event, { steps: stepsLabel(shown), ...properties }),
+                outcome,
+                { seconds, rejectedBefore: rejections.current[ids[0]] ?? 0 }
+            )
+            if (outcome.ok) return
+            if (outcome.rejected) rejections.current[ids[0]] = (rejections.current[ids[0]] ?? 0) + 1
+            saveFailed(shown, outcome)
+        })
+        if (following) return
+        // The last answer reserves the attempt: read it and the ID's documents back before the midpoint needs them.
+        settled.current = saves.current.then(async () => {
+            if (submission !== submissions.current || saveRefused.current) return
+            const [freshQuestions, freshPlan] = await Promise.all([
+                getKycQuestions().catch(() => null),
+                findKycDocumentPlan('verify').catch(() => null),
+            ])
+            if (submission !== submissions.current || saveRefused.current) return
+            if (freshPlan) setPlan(freshPlan)
+            if (!freshQuestions) return
+            setQuestions(freshQuestions)
+            const open = resumeStep(freshQuestions)
+            if (open) void stepper.goTo(screenOf(open))
+        })
     }
+
+    const continueFromSaved = async () => {
+        setSavedBusy(true)
+        await settled.current
+        setSavedBusy(false)
+        if (stepRef.current === 'saved' && !saveRefused.current) void stepper.goTo('id')
+    }
+
+    // A cached open takes the server's read in as long as nothing was answered on top of it.
+    useEffect(() => {
+        if (!fresh || submissions.current) return
+        setQuestions(fresh.questions)
+        setPlan(fresh.plan)
+        setStatus(fresh.status)
+    }, [fresh])
+    // The next visit opens on what this one ends with.
+    useEffect(() => {
+        queryClient.setQueryData(PAPERWORK_VERIFICATION_QUESTIONS_QUERY_KEY, questions)
+    }, [queryClient, questions])
+    useEffect(() => {
+        queryClient.setQueryData(PAPERWORK_VERIFICATION_PLAN_QUERY_KEY, plan)
+    }, [queryClient, plan])
+    useEffect(() => {
+        if (status) queryClient.setQueryData(PAPERWORK_VERIFICATION_STATUS_QUERY_KEY, status)
+    }, [queryClient, status])
+
+    // A plan read before the attempt existed can lack the ID's documents: read it once more on the ID screen.
+    const documentsReread = useRef(false)
+    const [documentsLoading, setDocumentsLoading] = useState(false)
+    const needsDocuments = step === 'id' && !identityDocuments(plan?.routes[0]).length
+    useEffect(() => {
+        if (!needsDocuments || documentsReread.current) return
+        documentsReread.current = true
+        setDocumentsLoading(true)
+        void findKycDocumentPlan('verify')
+            .catch(() => null)
+            .then((current) => {
+                if (current) setPlan(current)
+                setDocumentsLoading(false)
+            })
+    }, [needsDocuments])
 
     const onConflict = (error: AnswerFormError) => {
         // Not (or no longer) a Smart Paperwork Verification user: today's flow starts from Home.
@@ -378,7 +533,7 @@ function PaperworkVerificationSteps({
             />
         )
     } else if (step === 'saved') {
-        screen = <SavedScreen onContinue={() => void stepper.goTo('id')} />
+        screen = <SavedScreen busy={savedBusy} onContinue={() => void continueFromSaved()} />
     } else if (current) {
         const shown = phoneJoined && current.id === 'address' && phone ? [current, phone] : [current]
         screen = (
@@ -388,13 +543,8 @@ function PaperworkVerificationSteps({
                 residence={questions.residence}
                 progress={stepProgress(questionIds, current.id)}
                 onBack={() => void stepper.back()}
-                onSaved={(next, values) =>
-                    void afterSave(
-                        shown.map((s) => s.id),
-                        next,
-                        values
-                    )
-                }
+                onSubmitted={(values, seconds) => submitAnswers(shown, values, seconds)}
+                returned={returned && shown.some((s) => s.id === returned.step) ? returned : undefined}
                 onConflict={onConflict}
                 onContinueWithoutLocal={continueWithoutLocal}
                 onChangeResidence={() => {
@@ -409,6 +559,7 @@ function PaperworkVerificationSteps({
                 plan={plan}
                 residence={questions.residence}
                 citizenship={citizenshipOf(questions)}
+                documentsLoading={documentsLoading}
                 busy={identity.busy}
                 error={idError}
                 onBack={() => void stepper.back()}

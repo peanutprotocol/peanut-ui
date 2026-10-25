@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { usePaperworkVerificationTrack } from '../analytics'
 import { useLocale, useTranslations } from 'next-intl'
@@ -23,6 +23,7 @@ import { localizedCountryName } from '@/utils/country-name.utils'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 import { twMerge } from '@/utils/tw'
 import { IdCardScanAnimation } from './IdCardScanAnimation'
+import { useInsetColor } from '../useInsetColor'
 
 const SCREEN_HEIGHT = 'min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]'
 
@@ -136,6 +137,7 @@ export function IdentityDocumentScreen({
     residence,
     citizenship = null,
     restart = false,
+    documentsLoading = false,
     busy,
     error,
     onBack,
@@ -147,6 +149,8 @@ export function IdentityDocumentScreen({
     /** The citizenship the questions asked, when they did. */
     citizenship?: string | null
     restart?: boolean
+    /** the plan is being read again for the documents */
+    documentsLoading?: boolean
     busy: boolean
     error: string | null
     onBack: () => void
@@ -155,6 +159,7 @@ export function IdentityDocumentScreen({
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     const tDocuments = useTranslations('kyc.documents')
+    useInsetColor(true)
     const locale = useLocale()
     const document = identityDocuments(plan?.routes[0])[0]
     const collator = useMemo(() => new Intl.Collator(locale), [locale])
@@ -266,7 +271,6 @@ export function IdentityDocumentScreen({
 
     return (
         <div className={twMerge('flex w-full flex-col bg-white', SCREEN_HEIGHT)} data-testid="verify-id">
-            <HeroInset />
             <div className="absolute inset-x-0 top-[calc(var(--safe-top)_+_1rem)] z-20 mx-auto grid w-full max-w-md grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center px-4">
                 <Button
                     variant="ghost"
@@ -315,7 +319,12 @@ export function IdentityDocumentScreen({
                         />
                     </ListGroup>
                 )}
-                {(error || !document) && (
+                {!document && documentsLoading && (
+                    <div className="flex justify-center py-6" data-testid="verify-id-loading">
+                        <Spinner />
+                    </div>
+                )}
+                {(error || (!document && !documentsLoading)) && (
                     <Callout priority="error" className="w-full text-left" data-testid="verify-id-error">
                         {error ?? t('midpoint.unavailable')}
                     </Callout>
@@ -400,15 +409,4 @@ function Spinner() {
             className="size-5 animate-spin rounded-full border-2 border-black border-r-transparent motion-reduce:animate-none"
         />
     )
-}
-
-/** Paints the status-bar strip blue over the hero, like the setup flow. */
-function HeroInset() {
-    useLayoutEffect(() => {
-        document.documentElement.style.setProperty('--setup-hero-background', 'var(--color-background-setup-hero)')
-        return () => {
-            document.documentElement.style.removeProperty('--setup-hero-background')
-        }
-    }, [])
-    return null
 }

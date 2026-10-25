@@ -1,4 +1,5 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { PaperworkVerificationQuestions } from '@/app/actions/types/kyc-paperwork-verification.types'
@@ -141,9 +142,11 @@ const build = (
 
 function renderFlow(search = '') {
     return renderWithIntl(
-        <NuqsTestingAdapter searchParams={search} hasMemory>
-            <PaperworkVerificationFlow />
-        </NuqsTestingAdapter>
+        <QueryClientProvider client={new QueryClient()}>
+            <NuqsTestingAdapter searchParams={search} hasMemory>
+                <PaperworkVerificationFlow />
+            </NuqsTestingAdapter>
+        </QueryClientProvider>
     )
 }
 

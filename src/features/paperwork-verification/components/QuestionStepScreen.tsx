@@ -23,7 +23,7 @@ import {
     PaperworkVerificationTrackingProvider,
 } from '../analytics'
 import { isE164 } from '../callingCodes'
-import { useAnswerForm, type AnswerFormError } from '../useAnswerForm'
+import { useAnswerForm, type AnswerFormError, type SaveOutcome } from '../useAnswerForm'
 import { looksLikeItin, stepComplete } from '../paperworkVerification.utils'
 import { isSentenceField, QuestionFields } from './QuestionFields'
 import { VerifyFooter, VerifyQuestionLayout } from './VerifyLayout'
@@ -59,6 +59,41 @@ function useStepHeading(step: PaperworkVerificationStep) {
     if (step.id === 'address' || step.id === 'declarations')
         return { title: t(`titles.${step.id}`), description: t(`descriptions.${step.id}`) }
     return null
+}
+
+type Track = (event: AnalyticsEvent, properties?: Record<string, unknown>) => void
+
+/** A save's outcome in analytics, whether the screen waited for it or the flow saved it behind the next one. */
+export function trackSaveOutcome(
+    track: Track,
+    outcome: SaveOutcome,
+    { seconds, rejectedBefore }: { seconds: number; rejectedBefore: number }
+) {
+    if (outcome.ok) {
+        track(ANALYTICS_EVENTS.KYC_PV_STEP_SAVED, { seconds_on_step: seconds, rejected_before: rejectedBefore })
+        return
+    }
+    if (outcome.rejected) {
+        const attempt = rejectedBefore + 1
+        const errors = Object.entries(outcome.rejected.errors)
+        track(ANALYTICS_EVENTS.KYC_PV_STEP_REJECTED, {
+            failed_step: outcome.rejected.step,
+            fields: errors.map(([key]) => key),
+            codes: errors.map(([, code]) => code),
+            attempt,
+        })
+        for (const [key, code] of errors)
+            track(ANALYTICS_EVENTS.KYC_PV_FIELD_ERROR, {
+                field: key,
+                code,
+                source: 'server',
+                failed_step: outcome.rejected.step,
+                attempt,
+            })
+        if (errors.some(([, code]) => code === 'us_citizen_not_supported'))
+            track(ANALYTICS_EVENTS.KYC_PV_LOCAL_REFUSED, { reason: 'us_person' })
+    }
+    if (outcome.formError) track(ANALYTICS_EVENTS.KYC_PV_FORM_ERROR, { error: outcome.formError })
 }
 
 /** "Why do we ask?": what each answer is for, and that it only reaches the partner that needs it. */
@@ -112,6 +147,8 @@ export function QuestionStepScreen({
     continueLabel,
     onBack,
     onSaved,
+    onSubmitted,
+    returned,
     onConflict,
     onContinueWithoutLocal,
     onChangeResidence,
@@ -124,14 +161,18 @@ export function QuestionStepScreen({
     description?: ReactNode
     continueLabel?: string
     onBack?: () => void
-    onSaved: (next: PaperworkVerificationStepId | null, values: Record<string, string>) => void
+    onSaved?: (next: PaperworkVerificationStepId | null, values: Record<string, string>) => void
+    /** Continue hands the answers over and moves on; the caller saves them behind the next screen. */
+    onSubmitted?: (values: Record<string, string>, secondsOnStep: number) => void
+    /** a background save of these steps the server refused, shown on arrival */
+    returned?: { errors?: Record<string, string>; formError?: AnswerFormError }
     onConflict?: (error: AnswerFormError) => void
     onContinueWithoutLocal?: () => Promise<void>
     /** The locked country row's "Change your country of residence". */
     onChangeResidence?: () => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
-    const form = useAnswerForm(steps, feature, residence)
+    const form = useAnswerForm(steps, feature, residence, returned)
     const parentTracking = usePaperworkVerificationTrackingContext()
     const leadStep = steps[0]?.id
     const tracking = useMemo(
@@ -209,37 +250,22 @@ export function QuestionStepScreen({
         submitting.current = true
         const seconds = secondsSince(viewedAt.current)
         track(ANALYTICS_EVENTS.KYC_PV_STEP_SUBMITTED, { seconds_on_step: seconds, rejected_before: rejections.current })
+        if (onSubmitted) {
+            submitting.current = false
+            onSubmitted(form.values, seconds)
+            return
+        }
         try {
             const outcome = await form.save()
+            trackSaveOutcome(track, outcome, {
+                seconds: secondsSince(viewedAt.current),
+                rejectedBefore: rejections.current,
+            })
             if (outcome.ok) {
-                track(ANALYTICS_EVENTS.KYC_PV_STEP_SAVED, {
-                    seconds_on_step: secondsSince(viewedAt.current),
-                    rejected_before: rejections.current,
-                })
-                onSaved(outcome.next, form.values)
+                onSaved?.(outcome.next, form.values)
                 return
             }
-            if (outcome.rejected) {
-                rejections.current += 1
-                const errors = Object.entries(outcome.rejected.errors)
-                track(ANALYTICS_EVENTS.KYC_PV_STEP_REJECTED, {
-                    failed_step: outcome.rejected.step,
-                    fields: errors.map(([key]) => key),
-                    codes: errors.map(([, code]) => code),
-                    attempt: rejections.current,
-                })
-                for (const [key, code] of errors)
-                    track(ANALYTICS_EVENTS.KYC_PV_FIELD_ERROR, {
-                        field: key,
-                        code,
-                        source: 'server',
-                        failed_step: outcome.rejected.step,
-                        attempt: rejections.current,
-                    })
-                if (errors.some(([, code]) => code === 'us_citizen_not_supported'))
-                    track(ANALYTICS_EVENTS.KYC_PV_LOCAL_REFUSED, { reason: 'us_person' })
-            }
-            if (outcome.formError) track(ANALYTICS_EVENTS.KYC_PV_FORM_ERROR, { error: outcome.formError })
+            if (outcome.rejected) rejections.current += 1
             if (outcome.error && outcome.error !== 'retry') onConflict?.(outcome.error)
         } finally {
             submitting.current = false

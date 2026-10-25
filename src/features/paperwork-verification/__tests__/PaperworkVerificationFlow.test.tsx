@@ -1,4 +1,5 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { PaperworkVerificationQuestions } from '@/app/actions/types/kyc-paperwork-verification.types'
@@ -11,6 +12,10 @@ import {
 import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-workflow'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { PaperworkVerificationFlow } from '../PaperworkVerificationFlow'
+import {
+    PAPERWORK_VERIFICATION_PLAN_QUERY_KEY,
+    PAPERWORK_VERIFICATION_QUESTIONS_QUERY_KEY,
+} from '../usePaperworkVerificationStart'
 
 const mockPush = jest.fn()
 const mockReplace = jest.fn()
@@ -129,11 +134,13 @@ const build = (
     progress: { done: 2, total: 5 },
 })
 
-function renderFlow(search = '') {
+function renderFlow(search = '', client = new QueryClient()) {
     return renderWithIntl(
-        <NuqsTestingAdapter searchParams={search} hasMemory>
-            <PaperworkVerificationFlow />
-        </NuqsTestingAdapter>
+        <QueryClientProvider client={client}>
+            <NuqsTestingAdapter searchParams={search} hasMemory>
+                <PaperworkVerificationFlow />
+            </NuqsTestingAdapter>
+        </QueryClientProvider>
     )
 }
 
@@ -313,17 +320,19 @@ describe('PaperworkVerificationFlow', () => {
         expect(screen.getByTestId('verify-pick-annualSalary')).toHaveTextContent('$25,000–$49,999')
     })
 
-    it('Continue saves the step once even on a double tap, then moves to the next open step', async () => {
+    // Slava, 2026-10-25: every Continue waited on the save. The next screen comes first now.
+    it('Continue moves on before the server answers and saves the step once, even on a double tap', async () => {
         let release: (value: { kind: 'saved'; next: 'tax' }) => void = () => {}
         mockSave.mockImplementation(() => new Promise((resolve) => (release = resolve)))
         await startFlow()
         await screen.findByTestId('verify-pick-annualSalary')
         fireEvent.click(continueButton())
         fireEvent.click(continueButton())
+        expect(await screen.findByText('What’s your Social Security number?')).toBeInTheDocument()
         expect(mockSave).toHaveBeenCalledTimes(1)
         expect(mockSave).toHaveBeenCalledWith('money', { annualSalary: '25k_50k' }, undefined)
         await act(async () => release({ kind: 'saved', next: 'tax' }))
-        expect(await screen.findByText('What’s your Social Security number?')).toBeInTheDocument()
+        expect(screen.getByText('What’s your Social Security number?')).toBeInTheDocument()
     })
 
     it('Back shows the previous step with its saved values', async () => {
@@ -332,6 +341,8 @@ describe('PaperworkVerificationFlow', () => {
         await screen.findByTestId('verify-pick-annualSalary')
         fireEvent.click(continueButton())
         await screen.findByText('What’s your Social Security number?')
+        // Let the URL write for the tax screen land before Back writes the next one.
+        await act(async () => new Promise((resolve) => setTimeout(resolve, 100)))
         fireEvent.click(screen.getByTestId('verify-back'))
         expect(await screen.findByTestId('verify-pick-annualSalary')).toHaveTextContent('$25,000–$49,999')
     })
@@ -356,13 +367,20 @@ describe('PaperworkVerificationFlow', () => {
         expect(continueButton()).toBeDisabled()
     })
 
-    it('offline or a 5xx: a retry message, the step and its values stay, nothing is stored', async () => {
+    it('offline or a 5xx past its retries: back on the step with a retry message and its values, nothing stored', async () => {
         const setItem = jest.spyOn(Storage.prototype, 'setItem')
         mockQuestions.mockResolvedValue(build({ money: true }, 'tax'))
-        mockSave.mockResolvedValueOnce({ kind: 'retry' })
+        mockSave.mockResolvedValue({ kind: 'retry' })
         await startFlow()
         fireEvent.change(await screen.findByTestId('verify-input-taxId'), { target: { value: '412550198' } })
+        jest.useFakeTimers()
         fireEvent.click(continueButton())
+        expect(await screen.findByText('Answers saved!')).toBeInTheDocument()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(5_000)
+        })
+        jest.useRealTimers()
+        expect(mockSave).toHaveBeenCalledTimes(3)
         expect(await screen.findByTestId('verify-form-error')).toHaveTextContent('We couldn’t save that.')
         expect(screen.getByTestId('verify-input-taxId')).toHaveValue('412-55-0198')
         expect(setItem.mock.calls.flat().join(' ')).not.toContain('412')
@@ -396,6 +414,27 @@ describe('PaperworkVerificationFlow', () => {
         expect(mockToken).toHaveBeenCalledWith('attempt-1', { type: 'PASSPORT', issuingCountry: 'US' })
         fireEvent.click(await screen.findByText('sumsub-submit'))
         expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+    })
+
+    // APK #5: the plan /verify read before the last answer had no documents for a taken-over applicant.
+    it('an ID screen opened on a plan without documents reads the plan again for them', async () => {
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        mockPlan.mockResolvedValueOnce({ ...plan, routes: [] })
+        await startFlow()
+        expect(await screen.findByTestId('verify-id-option-PASSPORT-US')).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-id-error')).not.toBeInTheDocument()
+    })
+
+    // Slava, 2026-10-25: Verify showed the loading mascot before every visit.
+    it('opens on what Home loaded, without the loading screen, and refreshes behind it', async () => {
+        const client = new QueryClient()
+        client.setQueryData(PAPERWORK_VERIFICATION_PLAN_QUERY_KEY, plan)
+        client.setQueryData(PAPERWORK_VERIFICATION_QUESTIONS_QUERY_KEY, build())
+        renderFlow('', client)
+        expect(screen.getByTestId('verify-steps-continue')).toBeInTheDocument()
+        expect(screen.queryByText('loading')).not.toBeInTheDocument()
+        await waitFor(() => expect(mockQuestions).toHaveBeenCalled())
+        expect(screen.getByTestId('verify-steps-continue')).toBeInTheDocument()
     })
 
     it('a token refused for missing answers goes back to that step', async () => {

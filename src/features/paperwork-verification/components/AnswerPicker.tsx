@@ -32,6 +32,30 @@ const FIELD_ICONS: Record<string, IconName> = {
     cityOfBirth: 'home',
 }
 
+// What the card or account is for: the drawer's rows and the chosen pill carry the option's own icon.
+const OPTION_ICONS: Record<string, Record<string, IconName>> = {
+    cardPurpose: {
+        personal_spending: 'wallet',
+        travel: 'globe',
+        online_shopping: 'fees',
+        bills: 'home',
+        business_expenses: 'docs',
+    },
+    bankPurpose: {
+        personal_or_living_expenses: 'home',
+        receive_salary: 'currency',
+        receive_payment_for_freelancing: 'user',
+        payments_to_friends_or_family_abroad: 'users',
+        purchase_goods_and_services: 'fees',
+        ecommerce_retail_payments: 'globe',
+        protect_wealth: 'shield',
+        investment_purposes: 'arrow-up-right',
+        operating_a_company: 'docs',
+        charitable_donations: 'invite-heart',
+    },
+}
+const optionIcon = (field: string, option: string): IconName | undefined => OPTION_ICONS[field]?.[option]
+
 // Most picked first; one list serves the card and the bank account.
 const POPULAR_JOBS = [
     'software_developer_applications',
@@ -67,7 +91,9 @@ function Leading({ field, value, size }: { field: PaperworkVerificationField; va
     if (field.kind === 'country' && value) return <Flag country={value} size={size} />
     // gray = nothing chosen yet (design.md)
     if (!value) return <IconBubble icon={<span />} size={size} color="gray" />
-    return <IconBubble icon={FIELD_ICONS[field.key] ?? 'check'} size={size} color="blue" />
+    return (
+        <IconBubble icon={optionIcon(field.key, value) ?? FIELD_ICONS[field.key] ?? 'check'} size={size} color="blue" />
+    )
 }
 
 /** The pill a sentence answer sits in ("I earn [pill] a year"); a drawer trigger passes its props through. */
@@ -255,7 +281,15 @@ export function AnswerPicker({
                                         key={option}
                                         title={optionLabel(option)}
                                         leading={
-                                            field.kind === 'country' ? <Flag country={option} size="s" /> : undefined
+                                            field.kind === 'country' ? (
+                                                <Flag country={option} size="s" />
+                                            ) : optionIcon(field.key, option) ? (
+                                                <IconBubble
+                                                    icon={optionIcon(field.key, option)!}
+                                                    size="s"
+                                                    color="blue"
+                                                />
+                                            ) : undefined
                                         }
                                         trailing={option === value ? <Icon name="check" size={20} /> : undefined}
                                         aria-label={optionLabel(option)}
