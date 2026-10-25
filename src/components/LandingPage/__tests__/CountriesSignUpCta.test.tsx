@@ -37,7 +37,7 @@ describe('CountriesSignUpCta', () => {
 
         const event = fireEvent.click(screen.getByRole('link', { name: 'SIGN UP' }))
 
-        expect(mockIntercept).toHaveBeenCalledWith('landing_countries')
+        expect(mockIntercept).toHaveBeenCalledWith('landing_countries', 'countries')
         // handled here, so the anchor must not also navigate
         expect(event).toBe(false)
     })

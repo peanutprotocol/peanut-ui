@@ -26,7 +26,7 @@ export function UsEuAppLink({ href, signedInHref, children, className }: UsEuApp
             tabIndex={-1}
             className={twMerge('group', className)}
             onClick={(event) => {
-                if (interceptAppCta(MIGRATION_SURFACES.STAR_LP)) event.preventDefault()
+                if (interceptAppCta(MIGRATION_SURFACES.STAR_LP, 'artwork')) event.preventDefault()
             }}
         >
             {children}

@@ -59,7 +59,7 @@ it('has one desktop download action and delegates to the shared modal', () => {
     const link = screen.getByRole('link', { name: 'downloadNow' })
     expect(link).toHaveAttribute('href', '/app')
     fireEvent.click(link)
-    expect(mockIntercept).toHaveBeenCalledWith('landing_hero')
+    expect(mockIntercept).toHaveBeenCalledWith('landing_hero', 'hero')
 })
 it.each(['ios', 'android'])('has one store download action on %s', (device) => {
     mockDevice = device
