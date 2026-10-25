@@ -47,7 +47,7 @@ class PlayVitalsReportTest(unittest.TestCase):
 
     def test_missing_secret_fails_without_fallback(self):
         with patch.dict("os.environ", {}, clear=True):
-            with self.assertRaisesRegex(RuntimeError, "PLAY_SERVICE_ACCOUNT_JSON is missing"):
+            with self.assertRaisesRegex(RuntimeError, "PLAY_VITALS_SERVICE_ACCOUNT_JSON is missing"):
                 report.collect(NOW)
 
 
