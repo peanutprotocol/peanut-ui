@@ -90,6 +90,8 @@ jobs:
                                    printf '%s\n' "$FILES" | grep '^content/_system/generated/'; } | head -1 )
                     if [ -n "$PUBLISHED" ]; then EXPECTED="$SHA"; break; fi
                   done
+                  EXPECTED_AT=""
+                  [ -n "$EXPECTED" ] && EXPECTED_AT=$(GH_TOKEN=$MONO_TOKEN gh api "repos/peanutprotocol/mono/commits/$EXPECTED" --jq '.commit.committer.date' || true)
 
                   # On failure `gh` prints its error body to stdout, which would land
                   # in these vars and read as a bogus sha. Keep only real ones, so a
@@ -162,6 +164,10 @@ jobs:
 
                   STALE=""
                   MIRROR_BROKEN=false
+                  # Age of the content that has not arrived yet. Production behind
+                  # peanut-content: the newest mirror commit. Mirror behind mono: the
+                  # expected mono commit, set below.
+                  WAITING_SINCE=${TIP_AT:-}
                   if [ "$DEGRADED" = true ]; then
                     STALE="**the watchdog itself could not evaluate the pipeline** — check its permissions before assuming content is stuck"
                     MIRROR_BROKEN=true
@@ -169,8 +175,12 @@ jobs:
                     STALE="the mirror published a commit that is not on mono main (published \`${MIRRORED:0:7}\`, compare to main: ${ON_MAIN})"
                     MIRROR_BROKEN=true
                   elif [ "$FRESH" != "identical" ] && [ "$FRESH" != "ahead" ]; then
+                    # Behind is also what a healthy mirror looks like for the minute
+                    # after a push, so it gets the grace period. On 2026-10-23 a check
+                    # at 12:19:52 UTC paged on a commit the mirror published at 12:20,
+                    # reporting "stuck 2525m" measured from the previous publish.
                     STALE="the mirror is behind mono (expected \`${EXPECTED:0:7}\`, published \`${MIRRORED:0:7}\`, compare: ${FRESH})"
-                    MIRROR_BROKEN=true
+                    WAITING_SINCE=${EXPECTED_AT:-}
                   elif [ "$LIVE" != "$TIP" ]; then
                     STALE="production is behind peanut-content (live \`${LIVE:0:7}\`, latest \`${TIP:0:7}\`)"
                   fi
@@ -180,14 +190,15 @@ jobs:
                     exit 0
                   fi
 
-                  AGE=$(( ( $(date -u +%s) - $(date -u -d "${TIP_AT:-now}" +%s) ) / 60 ))
+                  AGE=$(( ( $(date -u +%s) - $(date -u -d "${WAITING_SINCE:-now}" +%s) ) / 60 ))
 
                   # ---- which hop, and is it already doomed? --------------------
                   NUM=$(GH_TOKEN=$UI_TOKEN gh pr list --repo "$REPO" --state open --base main \
                           --json number,headRefName \
                           --jq '[.[] | select((.headRefName | startswith("auto/update-content-")) or (.headRefName | startswith("content/publish-to-main")))] | first | .number // empty' || true)
 
-                  # A failed mirror will not fix itself, so skip the grace period.
+                  # A watchdog that cannot evaluate, or a mirror that published a commit
+                  # off main, will not fix itself, so skip the grace period.
                   DOOMED=$MIRROR_BROKEN
                   if [ -n "$NUM" ]; then
                     PR_SHA=$(GH_TOKEN=$UI_TOKEN gh api "repos/$REPO/pulls/$NUM" --jq '.head.sha' || true)
