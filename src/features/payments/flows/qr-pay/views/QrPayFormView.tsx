@@ -256,16 +256,6 @@ export function QrPayFormView() {
                             moreInfoText={tCommon('exchangeRateInfo')}
                         />
                         {(() => {
-                            // Explain the Pix benefit without inventing a dollar saving.
-                            if (currency.code.toUpperCase() === 'BRL') {
-                                return (
-                                    <PaymentInfoRow
-                                        label={t('info.foreignCardFees')}
-                                        value={t('info.noForeignCardFees')}
-                                        moreInfoText={t('info.saveVsCardTooltipBrl')}
-                                    />
-                                )
-                            }
                             if (!hasCardMarkupComparison(currency.code)) return null
                             const savingsInCents = calculateSavingsInCents(usdAmount, cardMarkup?.rate)
                             if (savingsInCents <= 0) return null

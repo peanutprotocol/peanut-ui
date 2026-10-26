@@ -477,7 +477,7 @@ jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
 
 jest.mock('@/components/Payment/PaymentInfoRow', () => ({
     PaymentInfoRow: (props: any) => (
-        <div data-testid="payment-info-row" title={props.moreInfoText}>
+        <div data-testid="payment-info-row">
             {props.label}: {props.value}
         </div>
     ),
@@ -956,10 +956,10 @@ describe('GROUP 2: Payment Form States', () => {
         mockMantecaApi.initiateQrPayment.mockResolvedValue(defaultLock)
     }
 
-    test('Pix explains potential card-fee savings without displaying a dollar estimate', async () => {
+    test('Pix confirmation makes no card comparison, even with a retired Brazil estimate', async () => {
         const { hasCardMarkupComparison, calculateSavingsInCents } = require('@/utils/qr-payment.utils')
         const { useCardMarkupRate } = require('@/hooks/useCardMarkupRate')
-        // Deliberately supply retired data: the form must still explain, not estimate.
+        // Deliberately supply retired data: the form must still show no comparison.
         useCardMarkupRate.mockReturnValueOnce({ data: { rate: 0.07, source: 'static' } })
         hasCardMarkupComparison.mockImplementation(
             jest.requireActual('@/utils/qr-payment.utils').hasCardMarkupComparison
@@ -969,8 +969,9 @@ describe('GROUP 2: Payment Form States', () => {
         renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
 
         await screen.findByText('PIX Merchant')
-        expect(screen.getByTitle(en.qrPay.info.saveVsCardTooltipBrl)).toHaveTextContent(en.qrPay.info.noForeignCardFees)
+        expect(screen.getByText(new RegExp(en.qrPay.info.exchangeRate))).toBeInTheDocument()
         expect(screen.queryByText(/Save vs card/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/Foreign-card fees/)).not.toBeInTheDocument()
         expect(screen.queryByText(/~\$1\.29/)).not.toBeInTheDocument()
     })
 

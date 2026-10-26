@@ -1484,10 +1484,7 @@
         "info": {
             "exchangeRate": "Tipo de cambio",
             "saveVsCard": "Ahorro vs. tarjeta",
-            "saveVsCardTooltipBrl": "Con Peanut, pagas a través de Pix y puedes ahorrarte la comisión de alrededor del 3% que cobran algunas tarjetas extranjeras.",
-            "saveVsCardTooltipArs": "Con Peanut, pagas a través de Mercado Pago al tipo de cambio actual del mercado y puedes ahorrarte la comisión de alrededor del 3% que cobran algunas tarjetas extranjeras.",
-            "foreignCardFees": "Comisiones de tarjetas extranjeras",
-            "noForeignCardFees": "Ninguna en este pago"
+            "saveVsCardTooltipArs": "Con Peanut, pagas a través de Mercado Pago al tipo de cambio actual del mercado y evitas las comisiones de tarjetas extranjeras. Las comisiones de las tarjetas y los tipos de cambio varían."
         },
         "success": {
             "youPaid": "Pagado a {merchant}",
@@ -2499,6 +2496,7 @@
         "nudge": {
             "localRailTitle": "Paga como local la próxima vez",
             "localRailDescription": "En {country}, pagar con {rail} cuesta alrededor de {percent}% menos que usar tu tarjeta.",
+            "localRailAvailableDescription": "En {country}, también puedes pagar con {rail} desde Peanut.",
             "usdAbroadTitle": "Paga en moneda local la próxima vez",
             "usdAbroadDescription": "Te cobraron en dólares. Cuando una terminal ofrezca cobrar en dólares, elige la moneda local — el tipo de cambio de Peanut suele ser mejor."
         },
