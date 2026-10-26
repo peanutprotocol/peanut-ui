@@ -128,6 +128,7 @@ export async function startPaperworkVerificationIdentity(
 export type FeatureIntentsResult =
     | { kind: 'saved' }
     | { kind: 'action-required'; action: string }
+    | { kind: 'card-application' }
     | { kind: 'refused'; feature: keyof KycFeatures; copy: string }
     | { kind: 'questions-missing'; step: PaperworkVerificationStepId | null }
     | { kind: 'failed' }
@@ -151,6 +152,8 @@ export async function savePaperworkVerificationFeatures(
         const owed = (Object.keys(features) as (keyof KycFeatures)[]).find(
             (key) => features[key] && body?.features?.[key]?.state === 'action_required'
         )
+        // The card is allowed and owes only its own application (the card questions and agreement on /card).
+        if (owed === 'card') return { kind: 'card-application' }
         if (owed) return { kind: 'refused', feature: owed, copy: 'supplement.unavailable' }
         return { kind: 'saved' }
     }

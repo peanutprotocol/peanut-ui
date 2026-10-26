@@ -15,8 +15,9 @@ jest.mock('@/app/actions/kyc-paperwork-verification', () => ({
     savePaperworkVerificationFeatures: jest.fn(),
 }))
 jest.mock('@/app/actions/kyc-workflow', () => ({ getKycDocumentPlan: jest.fn() }))
+const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({
-    useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
+    useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
 }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div>loading</div> }))
@@ -123,6 +124,18 @@ describe('AddFeatureQuestions', () => {
         await waitFor(() => expect(onDone).toHaveBeenCalled())
         expect(mockSave).not.toHaveBeenCalled()
         expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, card: true }, features)
+    })
+
+    it('a card that owes only its application opens the card application', async () => {
+        const answered = cardQuestions()
+        answered.steps = answered.steps.map((s) => ({ ...s, answered: true }))
+        mockQuestions.mockResolvedValue(answered)
+        mockSaveFeatures.mockResolvedValue({ kind: 'card-application' })
+        const onDone = jest.fn()
+        renderWithIntl(<AddFeatureQuestions feature="card" onBack={jest.fn()} onDone={onDone} />)
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/card'))
+        expect(onDone).not.toHaveBeenCalled()
+        expect(screen.queryByText(/isn’t available/)).toBeNull()
     })
 
     it('checks the saved feature outcome again before claiming completion', async () => {

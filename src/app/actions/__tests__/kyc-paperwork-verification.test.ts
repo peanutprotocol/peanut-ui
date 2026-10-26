@@ -140,6 +140,26 @@ describe('savePaperworkVerificationFeatures', () => {
         })
     })
 
+    it('a card owing only its application goes to the card application, not a refusal', async () => {
+        mockFetch.mockResolvedValue(
+            reply(200, { features: { bank: { state: 'on' }, card: { state: 'action_required' } } })
+        )
+        await expect(savePaperworkVerificationFeatures(features, { ...features, card: false })).resolves.toEqual({
+            kind: 'card-application',
+        })
+    })
+
+    it('another feature owing an action it cannot start is still refused', async () => {
+        mockFetch.mockResolvedValue(
+            reply(200, { features: { bank: { state: 'action_required' }, card: { state: 'on' } } })
+        )
+        await expect(savePaperworkVerificationFeatures(features, { ...features, bank: false })).resolves.toEqual({
+            kind: 'refused',
+            feature: 'bank',
+            copy: 'supplement.unavailable',
+        })
+    })
+
     it('PUTs the feature set with the Smart Paperwork Verification header', async () => {
         mockFetch.mockResolvedValue(reply(200, { intents: features }))
         await expect(savePaperworkVerificationFeatures(features)).resolves.toEqual({ kind: 'saved' })

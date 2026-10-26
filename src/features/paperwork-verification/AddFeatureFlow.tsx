@@ -81,6 +81,8 @@ export function AddFeatureQuestions({
     // Called once per finish, whatever the parent re-renders with.
     const onDoneRef = useRef(onDone)
     onDoneRef.current = onDone
+    const routerRef = useRef(router)
+    routerRef.current = router
     const loadRef = useRef<(required?: string | null) => Promise<void>>(async () => {})
     const firstRequired = useRef(requiredStep)
 
@@ -94,6 +96,7 @@ export function AddFeatureQuestions({
                     ...(result.kind === 'questions-missing' && { missing_step: result.step }),
                 })
                 if (result.kind === 'saved') onDoneRef.current()
+                else if (result.kind === 'card-application') routerRef.current.push('/card')
                 else if (result.kind === 'refused' || result.kind === 'action-required') setState(result)
                 // A step asked a second time with nothing new to answer would loop: stop on the failure screen.
                 else if (result.kind === 'questions-missing' && result.step !== afterRequired)
