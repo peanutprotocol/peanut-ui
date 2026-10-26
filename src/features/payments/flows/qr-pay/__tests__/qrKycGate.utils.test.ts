@@ -7,7 +7,7 @@
  */
 import { QrKycState } from '@/constants/kyc.consts'
 import type { NextAction, RailCapability } from '@/types/capabilities'
-import { qrPayIsAPath, qrVerificationNeedsRestart, selectQrKycGate } from '../qrKycGate.utils'
+import { qrIdentityRestartReason, qrPayIsAPath, qrVerificationNeedsRestart, selectQrKycGate } from '../qrKycGate.utils'
 
 const pix = (overrides: Partial<RailCapability> = {}) =>
     ({
@@ -145,3 +145,43 @@ describe('qrPayIsAPath — what the Home checklist reads', () => {
         expect(qrPayIsAPath(QrKycState.LOADING)).toBeUndefined()
     })
 })
+
+/**
+ * Slava, 2026-10-26: the verify-again screen says why QR stopped. Each cause
+ * has its own words, and the first that applies wins.
+ */
+describe('qrIdentityRestartReason', () => {
+    const restart = (purpose: string) => ({ key: 'restart-identity', kind: 'restart-identity', purpose }) as NextAction
+    const paused = (code: string) => pix({ status: 'blocked', reason: { code, userMessage: '' } })
+    const reason = (input: Partial<Parameters<typeof qrIdentityRestartReason>[0]>) =>
+        qrIdentityRestartReason({ mantecaRails: [], nextActions: [], ...input })
+
+    it('names an unfinished new ID check from the paused rail', () => {
+        expect(reason({ mantecaRails: [paused('identity_restart_pending')] })).toBe('identity_restart_pending')
+        expect(needsRestartFor('identity_restart_pending')).toBe(true)
+    })
+
+    it('names an ID the payment partner cannot read', () => {
+        expect(reason({ nextActions: [restart('identity_missing')] })).toBe('identity_missing')
+    })
+
+    it('puts an imported account with no ID on file first', () => {
+        expect(
+            reason({
+                mantecaRails: [paused('identity_missing')],
+                nextActions: [restart('identity_document_missing')],
+            })
+        ).toBe('identity_document_missing')
+    })
+
+    it('is null when nothing needs the restart', () => {
+        expect(reason({ mantecaRails: [pix()], nextActions: [restart('country_not_supported')] })).toBeNull()
+    })
+})
+
+function needsRestartFor(code: string) {
+    return qrVerificationNeedsRestart({
+        mantecaRails: [pix({ status: 'blocked', reason: { code, userMessage: '' } })],
+        nextActions: [],
+    })
+}

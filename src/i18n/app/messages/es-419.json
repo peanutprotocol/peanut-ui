@@ -1519,8 +1519,23 @@
             "restartDescription": "Los pagos con QR necesitan un documento de un país compatible. Puedes verificarte con otra identificación.",
             "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contacta a soporte para recibir ayuda.",
             "uploadDocument": "Subir documento",
-            "verifyAgainTitle": "Verificar identidad de nuevo",
-            "verifyAgainDescription": "Los pagos con QR están en pausa hasta que vuelvas a verificarte."
+            "verifyAgain": {
+                "documentMissing": {
+                    "title": "Agrega tu documento otra vez",
+                    "description": "Cambiamos de proveedor de verificación y la foto de tu documento no se transfirió. Es nuestra responsabilidad. Sube tu documento y tómate una selfie rápida, y los pagos con QR vuelven a funcionar.",
+                    "cta": "Subir documento"
+                },
+                "restartPending": {
+                    "title": "Termina de verificar tu nuevo documento",
+                    "description": "Empezaste a verificarte con un documento nuevo. Hasta que lo revisemos, los pagos con QR quedan en pausa para no pagar nunca con datos desactualizados. Continúa donde lo dejaste: toma unos minutos.",
+                    "cta": "Continuar verificación"
+                },
+                "unreadable": {
+                    "title": "No pudimos leer el número de tu documento",
+                    "description": "Para pagar con QR, nuestro socio de pagos necesita tu nombre completo y el número de tu documento, y no pudimos leerlos en el documento que enviaste. Disculpa el paso extra. Sube tu documento otra vez y listo.",
+                    "cta": "Subir documento"
+                }
+            }
         },
         "info": {
             "exchangeRate": "Tipo de cambio",

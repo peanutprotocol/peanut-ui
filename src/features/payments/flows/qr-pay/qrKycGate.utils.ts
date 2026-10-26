@@ -1,4 +1,9 @@
-import { IDENTITY_DOCUMENT_MISSING_CODE, QR_IDENTITY_MISSING_CODE, QrKycState } from '@/constants/kyc.consts'
+import {
+    IDENTITY_DOCUMENT_MISSING_CODE,
+    QR_IDENTITY_MISSING_CODE,
+    QR_IDENTITY_RESTART_PENDING_CODE,
+    QrKycState,
+} from '@/constants/kyc.consts'
 import type { KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
@@ -135,11 +140,31 @@ export function selectQrKycGate(input: {
     }
 }
 
-/** Causes whose verification step is the identity restart, not a new check. */
-const IDENTITY_RESTART_REASONS: ReadonlySet<string> = new Set([
+/**
+ * Causes whose verification step is the identity restart, not a new check,
+ * in the order the verify-again screen explains them: an imported account with
+ * no ID on file, a new ID check the user has not finished, an ID whose name or
+ * number the payment partner cannot use.
+ */
+const IDENTITY_RESTART_ORDER = [
     IDENTITY_DOCUMENT_MISSING_CODE,
+    QR_IDENTITY_RESTART_PENDING_CODE,
     QR_IDENTITY_MISSING_CODE,
-])
+] as const
+export type QrIdentityRestartReason = (typeof IDENTITY_RESTART_ORDER)[number]
+const IDENTITY_RESTART_REASONS: ReadonlySet<string> = new Set(IDENTITY_RESTART_ORDER)
+
+/** Which restart cause the QR screen explains, from the actions and the Manteca rails; null when none applies. */
+export function qrIdentityRestartReason(input: {
+    mantecaRails: RailCapability[]
+    nextActions: NextAction[]
+}): QrIdentityRestartReason | null {
+    const named = new Set([
+        ...input.nextActions.filter((action) => action.kind === 'restart-identity').map((action) => action.purpose),
+        ...input.mantecaRails.map((rail) => rail.resolved?.blocking?.code ?? rail.reason?.code ?? ''),
+    ])
+    return IDENTITY_RESTART_ORDER.find((code) => named.has(code)) ?? null
+}
 
 /**
  * Whether the QR verification step must restart the identity check. In both

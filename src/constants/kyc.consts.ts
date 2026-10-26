@@ -41,6 +41,9 @@ export const ADDITIONAL_VERIFICATION_ROUTE = '/profile/accounts/additional'
  */
 export const QR_IDENTITY_MISSING_CODE = 'identity_missing'
 
+/** The same pause, because the user started a new ID check that is not done (peanut-api-ts `identityMissingCause: 'restarted'`). */
+export const QR_IDENTITY_RESTART_PENDING_CODE = 'identity_restart_pending'
+
 /**
  * QR-pay KYC gate states. Relocated here from the (now capability-derived)
  * useQrKycGate hook so the qr-pay page keeps a stable import after that hook is

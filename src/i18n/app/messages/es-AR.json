@@ -813,7 +813,20 @@
             "restartTitle": "Verificate con otro documento",
             "fixableDescription": "Necesitamos un documento actualizado para habilitar los pagos con QR. Subí una foto más clara de tu identificación.",
             "restartDescription": "Los pagos con QR necesitan un documento de un país compatible. Podés verificarte con otra identificación.",
-            "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contactá a soporte para recibir ayuda."
+            "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contactá a soporte para recibir ayuda.",
+            "verifyAgain": {
+                "documentMissing": {
+                    "title": "Agregá tu documento otra vez",
+                    "description": "Cambiamos de proveedor de verificación y la foto de tu documento no se transfirió. Es nuestra responsabilidad. Subí tu documento y sacate una selfie rápida, y los pagos con QR vuelven a funcionar."
+                },
+                "restartPending": {
+                    "title": "Terminá de verificar tu nuevo documento",
+                    "description": "Empezaste a verificarte con un documento nuevo. Hasta que lo revisemos, los pagos con QR quedan en pausa para no pagar nunca con datos desactualizados. Seguí donde lo dejaste: lleva unos minutos."
+                },
+                "unreadable": {
+                    "description": "Para pagar con QR, nuestro socio de pagos necesita tu nombre completo y el número de tu documento, y no pudimos leerlos en el documento que enviaste. Disculpá el paso extra. Subí tu documento otra vez y listo."
+                }
+            }
         },
         "success": {
             "earnedHoldToClaim": "¡Ganaste ${amount}! Mantené presionado para reclamar tu recompensa.",
