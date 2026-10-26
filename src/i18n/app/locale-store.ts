@@ -272,6 +272,11 @@ export function localeReady(): Promise<AppLocale> {
 
 let explicitlyChosen = false
 
+/** True once the user picked a language this session (switcher, banner, IntlCore.setLocale). */
+export function isLocaleExplicitlyChosen(): boolean {
+    return explicitlyChosen
+}
+
 /** An explicit choice (switcher, suggestion banner): outranks the startup write. */
 export function persistLocale(locale: AppLocale): void {
     explicitlyChosen = true
