@@ -343,7 +343,7 @@ jest.mock('@/utils/history.utils', () => ({
 jest.mock('@/utils/general.utils', () => ({
     isTxReverted: jest.fn(() => false),
     saveRedirectUrl: jest.fn(),
-    formatNumberForDisplay: jest.fn((v: any) => v ?? '0'),
+    formatCurrency: jest.fn((v: any) => v?.toString() ?? ''),
 }))
 
 jest.mock('@/utils/perk.utils', () => ({
