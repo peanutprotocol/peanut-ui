@@ -126,7 +126,10 @@ jobs:
             # sibling runs minutes apart cleared the same step in seconds. The
             # stall is transient, so retry with a per-attempt cap — one bad
             # mirror then costs an attempt instead of the whole job — and drop
-            # to the canonical archive after the first failure. install-deps
+            # to the canonical archive after the first failure. The runner's
+            # sources point at mirror+file:/etc/apt/apt-mirrors.txt, so the Azure
+            # host is swapped there too; editing only *.sources left every retry
+            # on the stalled mirror (2026-10-26, PR #3836). install-deps
             # runs apt through sudo, so `timeout` (an unprivileged process)
             # cannot signal the root apt-get it started: a stalled attempt left
             # it holding the dpkg lock and both retries failed on that lock in
@@ -156,7 +159,7 @@ jobs:
                       sudo rm -rf /var/lib/apt/lists/partial/* || true
                       if [ "${attempt}" = 1 ]; then
                           sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' \
-                              /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
+                              /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
                       fi
                       sleep 5
                   done
