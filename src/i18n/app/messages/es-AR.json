@@ -1610,7 +1610,6 @@
         "qrScannerOverlay": {
             "notSupportedGetNotified": "¡Enterate cuando esté disponible!",
             "getNotifiedCta": "¡Avisame!",
-            "directSendConfirm": "Confirmá los datos del pago antes de enviarlo",
             "externalUrlIntro": "Peanut no admite este QR, pero podés abrirlo con tu navegador.",
             "externalUrlTrust": "¡Asegurate de confiar en este sitio web!",
             "pixRecurringBody": "Peanut no admite pagos PIX recurrentes: pedí un código QR de PIX normal.",
