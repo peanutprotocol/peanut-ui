@@ -15,6 +15,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { DocumentRequestState } from '@/components/Kyc/DocumentRequestState'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import { useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
@@ -196,7 +197,7 @@ export const InitiateKycModal = ({
         if (isDocumentMissing) return t('initiate.titleIdentityDocumentMissing')
         if (isRestartIdentity) return t('initiate.titleRestartIdentity')
         if (isHostedCheck) return tHome('pendingTasks.verifyTitle')
-        if (isProviderRejection) return t('initiate.titleProviderRejection')
+        if (isProviderRejection) return t('documentRequest.title')
         if (isCrossRegion)
             return regionName
                 ? t('initiate.titleCrossRegion', { region: regionName })
@@ -371,7 +372,11 @@ export const InitiateKycModal = ({
     // green, which the app reserves for a finished state.
     const isErrorState =
         !!error || isBlocked || isRestartIdentity || isProviderRejection || isRegionUnavailable || isBankUnavailable
-    const iconName = (isSupplementInReview ? 'clock' : isErrorState ? 'alert' : 'badge') as IconName
+    // A provider asking for a document is a step to take: the yellow ID icon, as on Home and the Card tab.
+    const iconName = (
+        isSupplementInReview ? 'clock' : isProviderRejection ? 'user-id' : isErrorState ? 'alert' : 'badge'
+    ) as IconName
+    const iconColor = isSupplementInReview || isProviderRejection ? 'yellow' : isErrorState ? 'red' : 'blue'
     const footer =
         isProviderRejection ||
         isBlocked ||
@@ -392,6 +397,23 @@ export const InitiateKycModal = ({
          */
         const titleIsGeneric = resolvedVariant === 'default' && !error
         const headerTitle = navTitle ?? getTitle()
+        if (isProviderRejection && !error)
+            return (
+                <div className="flex flex-col gap-6">
+                    <NavHeader title={navTitle ?? getTitle()} onPrev={onBack} />
+                    <DocumentRequestState
+                        title={getTitle()}
+                        ctaIcon={isHostedCheck ? null : undefined}
+                        reason={description(false)}
+                        reasonTestId={descriptionTestId}
+                        ctaLabel={cta.text}
+                        onCta={cta.onClick}
+                        ctaLoading={isLoading}
+                        ctaTestId={cta.testId}
+                        onContactSupport={onContactSupport}
+                    />
+                </div>
+            )
         return (
             <div className="flex flex-col gap-6">
                 <NavHeader title={headerTitle} onPrev={onBack} />
@@ -399,7 +421,7 @@ export const InitiateKycModal = ({
                     heading at all whenever the visible one is dropped. */}
                 {titleIsGeneric && <h1 className="sr-only">{headerTitle}</h1>}
                 <div className="flex flex-col items-center gap-4 text-center">
-                    <IconBubble icon={iconName} size="l" color={isErrorState ? 'red' : 'blue'} />
+                    <IconBubble icon={iconName} size="l" color={iconColor} />
                     {!titleIsGeneric && <h1 className="text-heading-xs text-foreground-primary">{getTitle()}</h1>}
                     <div className="w-full text-body-s text-foreground-secondary" data-testid={descriptionTestId}>
                         {description(false)}
@@ -437,10 +459,7 @@ export const InitiateKycModal = ({
                     {/* the head owns the M/12 beneath it; everything after keeps
                         the drawer's L/16 rhythm */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble
-                            icon={iconName}
-                            color={isSupplementInReview ? 'yellow' : isErrorState ? 'red' : 'blue'}
-                        />
+                        <IconBubble icon={iconName} color={iconColor} />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{getTitle()}</DrawerTitle>
                         </DrawerHeader>

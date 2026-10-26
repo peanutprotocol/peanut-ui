@@ -380,9 +380,15 @@ const MantecaAddMoney: FC = () => {
     }
 
     if (step === 'inputAmount') {
+        // A document Manteca asks for takes the page, as on the bank Add money screen: nothing on
+        // the amount step works until it is uploaded, so a drawer over it would sit on a dead screen.
+        const documentRequest = showKycModal && mantecaRejection.state === 'fixable'
         return (
             <>
                 <InitiateKycModal
+                    presentation={documentRequest ? 'page' : 'modal'}
+                    navTitle={documentRequest ? t('title') : undefined}
+                    onBack={documentRequest ? onBack : undefined}
                     cooldownActive={!!sumsubFlow.errorCooldown}
                     prepPath="extended"
                     taxIdCountry={selectedCountry?.id === 'BR' ? 'BR' : selectedCountry?.id === 'AR' ? 'AR' : undefined}
@@ -426,29 +432,31 @@ const MantecaAddMoney: FC = () => {
                     verifyEntry={{ intent: 'LATAM', targetCountry: selectedCountry?.id }}
                 />
                 <SumsubKycModals flow={sumsubFlow} onCooldownClose={closeKycModal} />
-                <InputAmountStep
-                    tokenAmount={displayedAmount}
-                    setTokenAmount={handleUsdAmountChange}
-                    onSubmit={handleAmountSubmit}
-                    isLoading={isCreatingDeposit}
-                    error={error || sumsubFlow.error}
-                    validationError={validationError}
-                    currencyData={currencyData}
-                    setCurrencyAmount={handleLocalCurrencyAmountChange}
-                    setCurrentDenomination={handleDenominationChange}
-                    initialDenomination={currentDenomination}
-                    setDisplayedAmount={handleDisplayedAmountChange}
-                    limitsValidation={limitsValidation}
-                    limitsCurrency={limitsValidation.currency}
-                    onBack={onBack}
-                    providerFinePrint={
-                        residenceGatedCountry && (
-                            <ProviderFinePrint
-                                providerId={residenceGatedCountry === 'AR' ? 'manteca-ar' : 'manteca-br'}
-                            />
-                        )
-                    }
-                />
+                {!documentRequest && (
+                    <InputAmountStep
+                        tokenAmount={displayedAmount}
+                        setTokenAmount={handleUsdAmountChange}
+                        onSubmit={handleAmountSubmit}
+                        isLoading={isCreatingDeposit}
+                        error={error || sumsubFlow.error}
+                        validationError={validationError}
+                        currencyData={currencyData}
+                        setCurrencyAmount={handleLocalCurrencyAmountChange}
+                        setCurrentDenomination={handleDenominationChange}
+                        initialDenomination={currentDenomination}
+                        setDisplayedAmount={handleDisplayedAmountChange}
+                        limitsValidation={limitsValidation}
+                        limitsCurrency={limitsValidation.currency}
+                        onBack={onBack}
+                        providerFinePrint={
+                            residenceGatedCountry && (
+                                <ProviderFinePrint
+                                    providerId={residenceGatedCountry === 'AR' ? 'manteca-ar' : 'manteca-br'}
+                                />
+                            )
+                        }
+                    />
+                )}
             </>
         )
     }

@@ -3028,6 +3028,9 @@
             "supportMessageImportedIdentity": "Hi! My bank transfers are blocked because the payment partner couldn't verify the ID from my earlier verification. Can you help me send them a current ID?",
             "descriptionRetakeId": "Our payment partner needs a new, clear photo of your ID. Use a valid document and show all of it."
         },
+        "documentRequest": {
+            "title": "One more document needed"
+        },
         "regionRestricted": {
             "title": "We can't verify IDs from this country",
             "description": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result.",
@@ -3875,7 +3878,7 @@
             "eea_uplift": "We need some additional information to comply with EEA regulations.",
             "eea_uplift_with_tin": "We need some additional information to comply with EEA regulations.",
             "eea_tin_reupload": "Please re-upload your tax identification number.",
-            "pep_documentation": "We need a document showing the source of the funds you'll be using on Peanut.",
+            "pep_documentation": "Because you or someone close to you holds public office, we need a sworn declaration of your assets and income, or a document showing where your money comes from.",
             "fep_documentation": "Because of your professional activity, we need proof of your UIF reporting status.",
             "email_required": "We need an email address to finish setting up this account. Add one to your profile and we'll retry automatically.",
             "submission_failed": "We hit a snag finishing your verification on our side. We'll get you sorted — tap below to message support.",

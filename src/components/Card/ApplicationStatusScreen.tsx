@@ -9,6 +9,7 @@ import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { DocumentRequestState } from '@/components/Kyc/DocumentRequestState'
 
 type Variant =
     | 'pending'
@@ -144,6 +145,26 @@ const ApplicationStatusScreen: FC<Props> = ({
               : reasonCode && AWAITING_DOCUMENT_REVIEW.has(reasonCode)
                 ? 'status.requiresInfoWaitBody'
                 : copyKeys.body
+    // A document Rain asks for gets the one document-request look the Add money screens share.
+    if (
+        variant === 'requires-info' &&
+        (selfServeAction?.kind === 'proofOfAddress' || selfServeAction?.kind === 'identity')
+    )
+        return (
+            <PageStack>
+                <NavHeader title={t('navAddCard')} onPrev={onPrev} />
+                <div className="my-auto">
+                    <DocumentRequestState
+                        reason={reasonText}
+                        body={t(bodyKey)}
+                        ctaLabel={selfServeAction.label}
+                        onCta={selfServeAction.onClick}
+                        error={uploadError}
+                        onContactSupport={onContactSupport}
+                    />
+                </div>
+            </PageStack>
+        )
     return (
         <PageStack>
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />

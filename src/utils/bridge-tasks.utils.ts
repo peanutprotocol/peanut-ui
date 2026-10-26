@@ -81,11 +81,14 @@ const BRIDGE_DOCUMENT_TASK_PREFIX = 'bridge-document:'
 export const isBridgeDocumentTask = (task: NextAction): boolean => task.key.startsWith(BRIDGE_DOCUMENT_TASK_PREFIX)
 export const bridgeDocumentActionKey = (task: NextAction): string => task.key.slice(BRIDGE_DOCUMENT_TASK_PREFIX.length)
 
+// Bank-transfer providers whose document request is a Home task: Bridge's, and Manteca's PEP or UIF ask.
+const DOCUMENT_TASK_PROVIDERS = new Set(['bridge', 'manteca'])
+
 export function selectBridgeDocumentTasks(nextActions: NextAction[], rails: RailCapability[]): NextAction[] {
     const byKey = new Map(nextActions.map((action) => [action.key, action]))
     const tasks = new Map<string, NextAction>()
     for (const rail of rails) {
-        if (rail.provider !== 'bridge' || rail.status !== 'requires-info') continue
+        if (!DOCUMENT_TASK_PROVIDERS.has(rail.provider) || rail.status !== 'requires-info') continue
         const { status, nextAction } = railVerdict(rail, byKey)
         if (status !== 'fixable' || nextAction?.kind !== 'sumsub') continue
         tasks.set(nextAction.key, {

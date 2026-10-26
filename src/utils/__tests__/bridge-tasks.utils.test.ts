@@ -163,6 +163,20 @@ describe('selectHomeTasks — one CTA surface on Home', () => {
         expect(selectHomeTasks([tos, documentRequest(20)], [], now).largeTasks).toEqual([tos])
     })
 
+    it('a Manteca document request is a large Home task, as Bridge’s is', () => {
+        const pep = action({ key: 'sumsub:pep_documentation', kind: 'sumsub', purpose: 'manteca-documents' })
+        const arBank = rail({
+            id: 'manteca.bank_transfer_ar',
+            provider: 'manteca',
+            method: 'BANK_TRANSFER_AR',
+            country: 'AR',
+            currency: 'ARS',
+            blockingActions: ['sumsub:pep_documentation'],
+        })
+        const { largeTasks } = selectHomeTasks([pep], [arBank], now)
+        expect(largeTasks.map((task) => task.key)).toEqual(['bridge-document:sumsub:pep_documentation'])
+    })
+
     it('isInFinalWeek: the edge is exactly the final-week constant', () => {
         expect(isInFinalWeek(due(ADVISORY_FINAL_WEEK_DAYS), now)).toBe(true)
         expect(isInFinalWeek(due(ADVISORY_FINAL_WEEK_DAYS + 1), now)).toBe(false)

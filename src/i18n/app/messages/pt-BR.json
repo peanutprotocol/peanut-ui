@@ -3028,6 +3028,9 @@
             "supportMessageImportedIdentity": "Olá! Minhas transferências bancárias estão bloqueadas porque o parceiro de pagamentos não conseguiu verificar o documento da minha verificação anterior. Vocês podem me ajudar a enviar um documento válido?",
             "descriptionRetakeId": "Nosso parceiro de pagamentos precisa de uma foto nova e nítida do seu documento de identidade. Use um documento válido e mostre-o inteiro."
         },
+        "documentRequest": {
+            "title": "Mais um documento necessário"
+        },
         "regionRestricted": {
             "title": "Não conseguimos verificar documentos deste país",
             "description": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado.",
@@ -3875,7 +3878,7 @@
             "eea_uplift": "Precisamos de algumas informações adicionais para cumprir as regulamentações do EEE.",
             "eea_uplift_with_tin": "Precisamos de algumas informações adicionais para cumprir as regulamentações do EEE.",
             "eea_tin_reupload": "Reenvie seu número de identificação fiscal.",
-            "pep_documentation": "Precisamos de um documento que mostre a origem dos fundos que você vai usar no Peanut.",
+            "pep_documentation": "Como você ou alguém próximo a você ocupa um cargo público, precisamos de uma declaração juramentada dos seus bens e rendimentos, ou de um documento que mostre a origem do seu dinheiro.",
             "fep_documentation": "Devido à sua atividade profissional, precisamos de um comprovante da sua situação de reporte à UIF.",
             "email_required": "Precisamos de um e-mail para terminar de configurar esta conta. Adicione um ao seu perfil e tentaremos de novo automaticamente.",
             "submission_failed": "Tivemos um problema ao finalizar sua verificação do nosso lado. Vamos resolver: toque abaixo para falar com o suporte.",
