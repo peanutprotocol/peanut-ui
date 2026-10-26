@@ -3636,6 +3636,23 @@
                 "money": "Dinheiro",
                 "birth": "Sobre você"
             },
+            "closed": {
+                "bank": {
+                    "us_state_unsupported": "Contas bancárias não estão disponíveis para endereços em Nova York.",
+                    "uk_resident_blocked": "Contas bancárias não estão disponíveis para residentes do Reino Unido.",
+                    "default": "Contas bancárias não estão disponíveis onde você mora."
+                },
+                "card": {
+                    "default": "O cartão não está disponível onde você mora."
+                },
+                "local": {
+                    "default": "Transferências bancárias locais não estão disponíveis onde você mora."
+                },
+                "qr": {
+                    "default": "Pagamentos com QR não estão disponíveis onde você mora."
+                },
+                "rest": "Todo o resto que você escolheu continua disponível."
+            },
             "descriptions": {
                 "address": "Seu endereço residencial, como aparece em uma conta ou extrato bancário.",
                 "phone": {

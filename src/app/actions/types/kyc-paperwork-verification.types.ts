@@ -46,6 +46,13 @@ export interface PaperworkVerificationQuestions {
     steps: PaperworkVerificationStep[]
     firstUnanswered: PaperworkVerificationStepId | null
     progress: { done: number; total: number }
+    /** Picked features the residence or an answer (a New York address) closes, with the API's reason. */
+    closed?: PaperworkVerificationClosedFeature[]
+}
+
+export interface PaperworkVerificationClosedFeature {
+    feature: 'qr' | 'bank' | 'local' | 'card'
+    reason: string
 }
 
 export type PaperworkVerificationAnswers = Record<string, string>

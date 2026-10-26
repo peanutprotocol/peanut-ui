@@ -4,6 +4,7 @@ import type {
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import {
     composeScreens,
+    openFeatures,
     entryStep,
     fieldErrorKey,
     formatTaxId,
@@ -91,6 +92,18 @@ describe('stepProgress', () => {
         const ids = firstIds(composeScreens(questions(), false)) as never
         expect(stepProgress(ids, 'purpose')).toEqual({ current: 2, total: 4 })
         expect(stepProgress(ids, 'tax')).toEqual({ current: 3, total: 4 })
+    })
+})
+
+describe('openFeatures', () => {
+    it('turns off what the residence or an answer closed, and keeps the rest', () => {
+        const picked = { qr: true, bank: true, card: true, local: false }
+        expect(openFeatures(picked, [{ feature: 'bank', reason: 'us_state_unsupported' }])).toEqual({
+            ...picked,
+            bank: false,
+        })
+        expect(openFeatures(picked, undefined)).toEqual(picked)
+        expect(openFeatures(undefined, [])).toBeUndefined()
     })
 })
 

@@ -1567,6 +1567,20 @@
             "sections": {
                 "birth": "Sobre vos"
             },
+            "closed": {
+                "bank": {
+                    "default": "Las cuentas bancarias no están disponibles donde vivís."
+                },
+                "card": {
+                    "default": "La tarjeta no está disponible donde vivís."
+                },
+                "local": {
+                    "default": "Las transferencias bancarias locales no están disponibles donde vivís."
+                },
+                "qr": {
+                    "default": "Los pagos con QR no están disponibles donde vivís."
+                }
+            },
             "labels": {
                 "countryLocked": "Tu país de residencia. Podés cambiarlo en Perfil."
             },

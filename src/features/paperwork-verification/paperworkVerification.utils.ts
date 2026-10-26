@@ -3,6 +3,7 @@ import type { SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import type {
     PaperworkVerificationAnswers,
+    PaperworkVerificationClosedFeature,
     PaperworkVerificationField,
     PaperworkVerificationFieldKind,
     PaperworkVerificationQuestions,
@@ -101,6 +102,12 @@ export function composeScreens(
     }
     return screens
 }
+
+/** The picked features less the ones the residence or an answer closed: what the ID check will set up. */
+export const openFeatures = <F extends Partial<Record<PaperworkVerificationClosedFeature['feature'], boolean>>>(
+    features: F | undefined,
+    closed: PaperworkVerificationClosedFeature[] | undefined
+): F | undefined => features && { ...features, ...Object.fromEntries((closed ?? []).map((c) => [c.feature, false])) }
 
 /** The screen a step is asked on. */
 export const screenOfStep = <S extends string>(

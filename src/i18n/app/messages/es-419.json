@@ -3636,6 +3636,23 @@
                 "money": "Dinero",
                 "birth": "Sobre ti"
             },
+            "closed": {
+                "bank": {
+                    "us_state_unsupported": "Las cuentas bancarias no están disponibles para direcciones en Nueva York.",
+                    "uk_resident_blocked": "Las cuentas bancarias no están disponibles para residentes del Reino Unido.",
+                    "default": "Las cuentas bancarias no están disponibles donde vives."
+                },
+                "card": {
+                    "default": "La tarjeta no está disponible donde vives."
+                },
+                "local": {
+                    "default": "Las transferencias bancarias locales no están disponibles donde vives."
+                },
+                "qr": {
+                    "default": "Los pagos con QR no están disponibles donde vives."
+                },
+                "rest": "Todo lo demás que elegiste sigue disponible."
+            },
             "descriptions": {
                 "address": "Tu domicilio, como aparece en una factura o estado de cuenta.",
                 "phone": {

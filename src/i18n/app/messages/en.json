@@ -3636,6 +3636,23 @@
                 "money": "Money",
                 "birth": "About you"
             },
+            "closed": {
+                "bank": {
+                    "us_state_unsupported": "Bank accounts aren’t available for New York addresses.",
+                    "uk_resident_blocked": "Bank accounts aren’t available for UK residents.",
+                    "default": "Bank accounts aren’t available where you live."
+                },
+                "card": {
+                    "default": "The card isn’t available where you live."
+                },
+                "local": {
+                    "default": "Local bank transfers aren’t available where you live."
+                },
+                "qr": {
+                    "default": "QR payments aren’t available where you live."
+                },
+                "rest": "Everything else you picked stays available."
+            },
             "descriptions": {
                 "address": "Your home address, as it appears on a bill or bank statement.",
                 "phone": {

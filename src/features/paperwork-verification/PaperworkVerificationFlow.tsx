@@ -67,6 +67,7 @@ import {
     IN_REVIEW_STATUSES,
     markSaved,
     composeScreens,
+    openFeatures,
     phoneJoinsAddress,
     RESIDENCE_CHANGE_HREF,
     resumeStep,
@@ -552,7 +553,7 @@ function PaperworkVerificationSteps({
             />
         )
     } else if (step === 'saved') {
-        screen = <SavedScreen busy={savedBusy} onContinue={() => void continueFromSaved()} />
+        screen = <SavedScreen busy={savedBusy} closed={questions.closed} onContinue={() => void continueFromSaved()} />
     } else if (current) {
         const shown = (screens.find((ids) => ids[0] === current.id) ?? [current.id])
             .map((id) => questions.steps.find((s) => s.id === id))
@@ -597,7 +598,7 @@ function PaperworkVerificationSteps({
         screen = (
             <ReviewScreen
                 failed={failed}
-                features={plan?.features}
+                features={openFeatures(plan?.features, questions.closed)}
                 onHome={goHome}
                 onRetry={
                     status === 'ACTION_REQUIRED'
@@ -612,7 +613,7 @@ function PaperworkVerificationSteps({
             />
         )
     } else if (step === 'verified') {
-        screen = <VerifiedScreen features={plan?.features} onHome={goHome} />
+        screen = <VerifiedScreen features={openFeatures(plan?.features, questions.closed)} onHome={goHome} />
     } else if (step === 'address-proof') {
         screen = (
             <ProofOfAddressStep

@@ -286,6 +286,17 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         expect(screen.getByText('Money')).toBeInTheDocument()
     })
 
+    it('says on the saved screen which picked features an answer closed', async () => {
+        mockQuestions.mockResolvedValue({
+            ...build({ money: true, tax: true }, null),
+            closed: [{ feature: 'bank', reason: 'us_state_unsupported' }],
+        })
+        renderFlow('?step=saved')
+        const notice = await screen.findByTestId('verify-closed-features')
+        expect(notice).toHaveTextContent('Bank accounts aren’t available for New York addresses.')
+        expect(notice).toHaveTextContent('Everything else you picked stays available.')
+    })
+
     it('the last answer celebrates before the document choice, and Back from the ID skips the celebration', async () => {
         mockSave
             .mockResolvedValueOnce({ kind: 'saved', next: 'tax' })

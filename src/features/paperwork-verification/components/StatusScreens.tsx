@@ -10,7 +10,10 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
-import type { PaperworkVerificationFeature } from '@/app/actions/types/kyc-paperwork-verification.types'
+import type {
+    PaperworkVerificationClosedFeature,
+    PaperworkVerificationFeature,
+} from '@/app/actions/types/kyc-paperwork-verification.types'
 import type { KycFeatures } from '@/app/actions/types/kyc-workflow.types'
 import { twMerge } from '@/utils/tw'
 import { useInsetColor } from '../useInsetColor'
@@ -154,8 +157,21 @@ export function StepsScreen({
 
 /** The last answer is saved: the ID check comes next. */
 /** `busy` while the last answers are still on their way to the server. */
-export function SavedScreen({ busy = false, onContinue }: { busy?: boolean; onContinue: () => void }) {
+export function SavedScreen({
+    busy = false,
+    closed = [],
+    onContinue,
+}: {
+    busy?: boolean
+    /** What the residence or an answer closed of the user's pick, said before the ID check. */
+    closed?: PaperworkVerificationClosedFeature[]
+    onContinue: () => void
+}) {
     const t = useTranslations('kyc.paperworkVerification')
+    const line = ({ feature, reason }: PaperworkVerificationClosedFeature) =>
+        t.has(`closed.${feature}.${reason}` as never)
+            ? t(`closed.${feature}.${reason}` as never)
+            : t(`closed.${feature}.default` as never)
     return (
         <VerifyCelebrationLayout
             pose="pointing"
@@ -163,7 +179,18 @@ export function SavedScreen({ busy = false, onContinue }: { busy?: boolean; onCo
             title={t('saved.title')}
             description={t('saved.description')}
             footer={<VerifyFooter actions={primary(t('continue'), onContinue, 'verify-saved-continue', busy)} />}
-        />
+        >
+            {closed.length > 0 && (
+                <Callout priority="info" className="w-full max-w-80 text-left" data-testid="verify-closed-features">
+                    {closed.map((c) => (
+                        <span key={c.feature} className="block">
+                            {line(c)}
+                        </span>
+                    ))}
+                    <span className="block">{t('closed.rest')}</span>
+                </Callout>
+            )}
+        </VerifyCelebrationLayout>
     )
 }
 
