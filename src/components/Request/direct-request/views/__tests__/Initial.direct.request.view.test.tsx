@@ -175,6 +175,14 @@ describe('addressed requests', () => {
         expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
     })
 
+    test('sends an incomplete account that never gave an email back through the signup steps', async () => {
+        mockAuth.user.accounts = []
+        mockAuth.user.user = { userId: 'sender', username: 'sender', email: '' }
+        renderView()
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/setup'))
+        expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
+    })
+
     test.each(['loading', 'blocked', 'error'])('does not offer a request form while eligibility is %s', (state) => {
         mockContact = { ...mockContact, data: null, isLoading: state === 'loading', isError: state === 'error' }
         renderView()

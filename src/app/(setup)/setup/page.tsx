@@ -41,8 +41,8 @@ import {
 import { claimAndSettlePendingBadgeCampaigns } from '@/services/badge-campaigns'
 import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration } from '@/utils/deep-link-state'
 import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
-import { AccountType, type IUserProfile } from '@/interfaces/interfaces'
 import { isDemoMode } from '@/utils/demo'
+import { unfinishedSignupRoute } from '@/features/setup/unfinished-signup'
 
 // The steps after registration; reaching any of them arms the no-back lock.
 const POST_REGISTRATION_SCREENS: readonly ScreenId[] = [
@@ -55,11 +55,6 @@ const POST_REGISTRATION_SCREENS: readonly ScreenId[] = [
     'notification-permission',
     'advantage-control',
 ]
-
-/** The last step creates the wallet: a registered account without one left the flow before finishing it. */
-function hasUnfinishedSignup(profile: IUserProfile): boolean {
-    return !isDemoMode() && !profile.accounts?.some((account) => account.type === AccountType.PEANUT_WALLET)
-}
 
 function setupTargetMatchesSearchParams(target: string | null, searchParamsString: string): boolean {
     if (!target) return false
@@ -118,6 +113,13 @@ function SetupPageContent() {
     }, [setScreenId])
     const resolvedEntry = useRef<string | null>(null)
     const resumeSignup = useRef(false)
+    // A live flow, not a reloaded ?screen=: this mount has rendered a step after registration.
+    const shownPostRegistration = useRef(false)
+    // Async exits (a native badge claim settling) must read the latest list and cursor.
+    const stepsRef = useRef(steps)
+    stepsRef.current = steps
+    const currentScreenRef = useRef(step?.screenId)
+    currentScreenRef.current = step?.screenId
     const [isLoading, setIsLoading] = useState(true)
     const [initializationError, setInitializationError] = useState<string | null>(null)
     const initializationExpired = useRef(false)
@@ -227,6 +229,7 @@ function SetupPageContent() {
     // is fixed here too, so they do not change under the person.
     useEffect(() => {
         if (stepRendered && !signupCompleted && step && POST_REGISTRATION_SCREENS.includes(step.screenId)) {
+            shownPostRegistration.current = true
             setNoBackLockScreenId(postRegistrationScreen(steps.map((entry) => entry.screenId)))
             if (sellScreensCountry === undefined) {
                 setSellScreensCountry(setupCountrySuggestion(countrySignals)?.country ?? null)
@@ -295,6 +298,29 @@ function SetupPageContent() {
             const explicitRedirect = new URLSearchParams(searchParamsString).get('redirect_uri')
             const safeRedirect = explicitRedirect ? getValidRedirectUrl(explicitRedirect, '/home') : '/home'
             const signedInExit = safeRedirect.startsWith('/setup') ? '/home' : safeRedirect
+            /*
+             * A reload mid-signup (a deploy's service worker, chunk recovery,
+             * pull to refresh) or an app restart lands here signed in without
+             * the wallet the last step creates. Leaving for /home skipped the
+             * email and every other step after registration, so every exit
+             * below resumes instead. Entry never trusts a reloaded ?screen=:
+             * restart at the first step after registration, unless the flow
+             * is already past it.
+             */
+            const unfinishedRoute = isDemoMode() ? null : unfinishedSignupRoute(user)
+            // A flow already under way keeps going until its last step creates the wallet.
+            const resume = unfinishedRoute === '/setup' || (unfinishedRoute !== null && shownPostRegistration.current)
+            if (resume) resumeSignup.current = true
+            const exitSignedIn = () => {
+                if (!resume) {
+                    router.replace(signedInExit)
+                    return
+                }
+                if (resolvedEntry.current === null || shownPostRegistration.current) return
+                setScreenIdRef.current(postRegistrationScreen(stepsRef.current.map((entry) => entry.screenId)), {
+                    history: 'replace',
+                })
+            }
             const nativeClaimDeepLinkGeneration = getDeepLinkGeneration()
             const nativeClaimCampaignsKey = pendingBadgeCampaigns.join('\u0000')
             const shouldSettleNativeBadgeCampaigns =
@@ -338,7 +364,7 @@ function SetupPageContent() {
                     .finally(() => {
                         if (isCurrentNativeClaim()) {
                             setIsSettlingNativeBadgeCampaigns(false)
-                            router.replace(signedInExit)
+                            exitSignedIn()
                         } else if (isSetupMountedRef.current && nativeClaimRunIdRef.current === nativeClaimRunId) {
                             // A newer native link may keep this setup instance
                             // mounted while Next transitions to its new URL.
@@ -351,25 +377,12 @@ function SetupPageContent() {
             }
             if (isNewSetupDeepLink) {
                 setIsSettlingNativeBadgeCampaigns(false)
-                router.replace(signedInExit)
+                exitSignedIn()
                 return
             }
             if (!isInitialSessionCheck) return
-            if (hasUnfinishedSignup(user)) {
-                /*
-                 * A reload (a deploy's service worker, chunk recovery, pull to
-                 * refresh) mid-signup lands here signed in. /home would send it
-                 * to /setup/finish, which only creates the wallet: the email and
-                 * every other step after registration were silently skipped.
-                 * Entry never trusts a reloaded ?screen=, so restart at the
-                 * first step after registration.
-                 */
-                resumeSignup.current = true
-                if (resolvedEntry.current !== null) {
-                    setScreenIdRef.current(postRegistrationScreen(steps.map((entry) => entry.screenId)), {
-                        history: 'replace',
-                    })
-                }
+            if (resume) {
+                exitSignedIn()
                 return
             }
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
@@ -386,7 +399,6 @@ function SetupPageContent() {
         urlBadgeCampaigns,
         deepLinkGeneration,
         searchParamsString,
-        steps,
     ])
 
     useEffect(() => {
@@ -405,8 +417,12 @@ function SetupPageContent() {
             setIsLoading(true)
             await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
             if (isObsolete()) return
-            const entryScreen = (target: ScreenId): ScreenId =>
-                resumeSignup.current ? postRegistrationScreen(steps.map((entry) => entry.screenId)) : target
+            const entryScreen = (target: ScreenId): ScreenId => {
+                if (!resumeSignup.current) return target
+                const current = currentScreenRef.current
+                if (shownPostRegistration.current && current) return current
+                return postRegistrationScreen(steps.map((entry) => entry.screenId))
+            }
 
             // The entry-step rules (invite code / ?step=signup opening the form
             // directly, ?step=login, a known device going to Log In) live in

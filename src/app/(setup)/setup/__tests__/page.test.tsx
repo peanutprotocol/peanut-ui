@@ -32,7 +32,10 @@ const mockFlow = {
     setScreenId: jest.fn(),
 }
 const mockStore = { steps: [] as ISetupStep[], inviteCode: undefined }
-type MockAuthUser = { user?: { username?: string; hasAppAccess?: boolean }; accounts?: { type: string }[] }
+type MockAuthUser = {
+    user?: { username?: string; hasAppAccess?: boolean; email?: string }
+    accounts?: { type: string }[]
+}
 // The last setup step creates the wallet, so a finished signup always has one.
 const WALLET = [{ type: 'peanut-wallet' }]
 const mockAuth = {
@@ -688,9 +691,9 @@ it('hides Back at the residence boundary once registered, and during celebration
 
 /*
  * A reload mid-signup (a deploy's service worker, chunk recovery, pull to
- * refresh) lands on /setup signed in but without the wallet the last step
- * creates. Leaving for /home sent it to /setup/finish and skipped the email
- * and every other step after registration (test044, 2026-10-26).
+ * refresh) or an app restart lands on /setup signed in but without the wallet
+ * the last step creates. Leaving for /home sent it to /setup/finish and skipped
+ * the email and every other step after registration (test044, 2026-10-26).
  */
 describe('a signup interrupted after registration', () => {
     const residence: ISetupStep = { ...landing, screenId: 'residence', component: () => <div>Residence step</div> }
@@ -720,6 +723,7 @@ describe('a signup interrupted after registration', () => {
 
     it('moves to that step when the profile arrives after the entry step resolved', async () => {
         mockAuth.isFetchingUser = true
+        mockFlow.step = landing
         const view = renderWithIntl(<SetupPage />)
         await advance(100)
         expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('landing', { history: 'replace' })
@@ -734,9 +738,87 @@ describe('a signup interrupted after registration', () => {
         expect(mockRouter.replace).not.toHaveBeenCalled()
     })
 
+    it('resumes, not leaves, once a native badge claim settles', async () => {
+        mockAuth.user = unfinished
+        mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
+        await waitFor(() => expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1))
+        await advance(0)
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+        expect(mockFlow.setScreenId).toHaveBeenCalledWith('residence', { history: 'replace' })
+    })
+
+    it('keeps its place when a newer setup deep link arrives mid-flow', async () => {
+        const paymentPlan: ISetupStep = { ...landing, screenId: 'payment-plan', component: () => <div>Plan step</div> }
+        mockStore.steps = [landing, residence, paymentPlan]
+        mockAuth.user = unfinished
+        mockSearchParams = new URLSearchParams()
+        const view = renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('residence', { history: 'replace' })
+
+        // The person moves on in the flow, then a new invite link opens /setup.
+        mockFlow.step = paymentPlan
+        view.rerender(<SetupPage />)
+        mockFlow.setScreenId.mockClear()
+        mockSearchParams = new URLSearchParams('code=friend')
+        await act(async () => {
+            markDeepLinkNavigated('/setup?code=friend')
+            view.rerender(<SetupPage />)
+        })
+        await advance(100)
+
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+        expect(mockFlow.setScreenId).not.toHaveBeenCalledWith('residence', expect.anything())
+        expect(screen.getByText('Plan step')).toBeInTheDocument()
+    })
+
+    it('keeps a flow under way going after its email is saved, until the wallet exists', async () => {
+        const paymentPlan: ISetupStep = { ...landing, screenId: 'payment-plan', component: () => <div>Plan step</div> }
+        mockStore.steps = [landing, residence, paymentPlan]
+        mockAuth.user = unfinished
+        const view = renderWithIntl(<SetupPage />)
+        await advance(100)
+
+        mockFlow.step = paymentPlan
+        mockAuth.user = { ...unfinished, user: { ...unfinished.user, email: 'test044@example.com' } }
+        view.rerender(<SetupPage />)
+        mockSearchParams = new URLSearchParams('code=friend')
+        await act(async () => {
+            markDeepLinkNavigated('/setup?code=friend')
+            view.rerender(<SetupPage />)
+        })
+        await advance(100)
+
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+        expect(screen.getByText('Plan step')).toBeInTheDocument()
+    })
+
+    it('restarts after registration on a fresh load even when the URL names a later step', async () => {
+        const paymentPlan: ISetupStep = { ...landing, screenId: 'payment-plan', component: () => <div>Plan step</div> }
+        mockStore.steps = [landing, residence, paymentPlan]
+        mockFlow.step = paymentPlan
+        mockAuth.user = unfinished
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(mockFlow.setScreenId).toHaveBeenCalledWith('residence', { history: 'replace' })
+        expect(mockFlow.setScreenId).not.toHaveBeenCalledWith('payment-plan', expect.anything())
+    })
+
     it('still sends a finished signup home', async () => {
         mockAuth.user = { ...unfinished, accounts: WALLET }
         renderWithIntl(<SetupPage />)
         expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    })
+
+    // Its answers are in: only the wallet is missing, which /home hands to /setup/finish.
+    it('does not walk the steps again for an account that already gave its email', async () => {
+        mockAuth.user = { ...unfinished, user: { ...unfinished.user, email: 'test044@example.com' } }
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+        expect(mockFlow.setScreenId).not.toHaveBeenCalledWith('residence', { history: 'replace' })
     })
 })
