@@ -5,6 +5,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { twMerge } from '@/utils/tw'
 import { fetchUserList } from '../userRecords.api'
 import type { UserSort } from '../userRecords.types'
@@ -39,37 +40,56 @@ export default function UserList({
     return (
         <div className="flex flex-col">
             <ol>
-                {users.map((user, index) => (
-                    <li key={user.user_id}>
-                        <ListItem
-                            title={displayName(user)}
-                            truncate
-                            position={getCardPosition(index, users.length)}
-                            onClick={() => onSelect(user.user_id)}
-                            trailing={<KycBadge status={user.kyc_status} />}
-                            // the list sits inside a bordered card: drop the row's own side borders and radius
-                            className={twMerge(
-                                'rounded-none border-x-0 px-4 py-3 first:border-t-0 hover:bg-background-badge-accent/30',
-                                user.user_id === selectedId && 'bg-background-selection'
-                            )}
-                            body={
-                                <span className="flex min-w-0 flex-col gap-0.5 text-body-xs">
-                                    <span className="flex min-w-0 gap-3">
-                                        {user.username && <span className="shrink-0">@{user.username}</span>}
-                                        {user.email && <span className="truncate">{user.email}</span>}
-                                    </span>
-                                    <span className="flex gap-3">
-                                        <span>{listDate(user, sort)}</span>
-                                        {user.residence_country && (
-                                            <span className="font-mono">{user.residence_country}</span>
+                {users.map((user, index) => {
+                    const selected = user.user_id === selectedId
+                    // design.md "selected list rows": fill + over-colour text + a trailing check, never colour alone.
+                    // ListItem forwards no selected state, so the row's <li> carries aria-current.
+                    const textColor = selected && 'text-foreground-over-color-primary'
+                    return (
+                        <li key={user.user_id} aria-current={selected ? 'true' : undefined}>
+                            <ListItem
+                                title={
+                                    <span className={twMerge('block truncate', textColor)}>{displayName(user)}</span>
+                                }
+                                position={getCardPosition(index, users.length)}
+                                onClick={() => onSelect(user.user_id)}
+                                trailing={
+                                    <span className="flex items-center gap-2">
+                                        <KycBadge status={user.kyc_status} />
+                                        {selected && (
+                                            <Icon
+                                                name="check"
+                                                size={20}
+                                                className="text-foreground-over-color-primary"
+                                                aria-hidden
+                                            />
                                         )}
-                                        {user.is_active === false && <span>Inactive</span>}
                                     </span>
-                                </span>
-                            }
-                        />
-                    </li>
-                ))}
+                                }
+                                // the list sits inside a bordered card: drop the row's own side borders and radius
+                                className={twMerge(
+                                    'rounded-none border-x-0 px-4 py-3 first:border-t-0 hover:bg-background-badge-accent/30',
+                                    selected && 'bg-background-selection hover:bg-background-selection'
+                                )}
+                                body={
+                                    <span className={twMerge('flex min-w-0 flex-col gap-0.5 text-body-xs', textColor)}>
+                                        <span className="flex min-w-0 gap-3">
+                                            {user.username && <span className="shrink-0">@{user.username}</span>}
+                                            {user.email && <span className="truncate">{user.email}</span>}
+                                        </span>
+                                        <span className="flex gap-3">
+                                            <span>{listDate(user, sort)}</span>
+                                            {user.residence_country && (
+                                                <span className="font-mono">{user.residence_country}</span>
+                                            )}
+                                            {user.is_active === false && <span>Inactive</span>}
+                                        </span>
+                                    </span>
+                                }
+                            />
+                        </li>
+                    )
+                })}
             </ol>
             {list.hasNextPage && (
                 <div className="p-4">
