@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * The reproduce bootstrap has to run on every browser, not only the ones whose
  * provider chunks happen to be warm.
@@ -29,14 +31,20 @@ jest.mock('next/dynamic', () => ({
     },
 }))
 
-jest.mock('@/constants/harness.consts', () => ({ HARNESS_ENABLED: true }))
+jest.mock('@/constants/harness.consts', () => ({
+    ...jest.requireActual('@/constants/harness.consts'),
+    HARNESS_ENABLED: true,
+}))
 jest.mock('@/constants/dev-tools.consts', () => ({ DEV_TOOLS_ENABLED: false }))
 
 const passthrough = (name: string) => ({
     [name]: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 })
 
-jest.mock('next/navigation', () => ({ usePathname: () => '/add-money' }))
+jest.mock('next/navigation', () => ({
+    usePathname: () => '/add-money',
+    useSelectedLayoutSegments: () => ['add-money'],
+}))
 jest.mock('nuqs/adapters/next/app', () => passthrough('NuqsAdapter'))
 jest.mock('@/context/OtaUpdateContext', () => passthrough('OtaUpdateProvider'))
 jest.mock('@/config/peanut.config', () => passthrough('PeanutProvider'))
@@ -72,6 +80,7 @@ jest.mock('@/context/HarnessReplay', () => ({ HarnessReplay: () => null }))
 import { ClientProviders } from '../ClientProviders'
 
 const reload = jest.fn()
+const replace = jest.fn()
 
 beforeEach(() => {
     jest.clearAllMocks()
@@ -87,6 +96,7 @@ beforeEach(() => {
             search: '?method=bank&__reproduce=session-9',
             pathname: '/add-money',
             reload,
+            replace,
         },
     })
     Object.defineProperty(window, 'caches', {

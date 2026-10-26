@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * legal re-consent outranks the migration download prompt (TASK-22452 item
  * 12). both modals render together under one real ModalsProvider, like the
@@ -66,8 +68,8 @@ jest.mock('@/utils/capacitor', () => ({
     openExternalUrl: jest.fn(),
 }))
 jest.mock('@/utils/migration.utils', () => ({
-    // far cutover: the early (non-urgent) variant, always inside the window
-    getMigrationCutoverTime: () => Date.now() + 90 * 24 * 60 * 60 * 1000,
+    storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
+    storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
     openStore: jest.fn(),
 }))
 jest.mock('@/utils/general.utils', () => ({

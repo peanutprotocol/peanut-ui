@@ -7,6 +7,7 @@ import { RoleCard } from '@/components/Jobs/RoleCard'
 import { MarketingHero } from '@/components/Marketing/MarketingHero'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import Link from 'next/link'
+import { CTA_MOTION } from '@/components/Marketing/constants'
 
 // Company facts here are lifted from content/press/en.md (boilerplate + company_facts)
 // and content/team/en.md (founders) in mono — the single source for how Peanut
@@ -60,9 +61,7 @@ export function Careers() {
                             {WORK_BLOCKS.map(({ label, body }, index) => (
                                 <div key={label}>
                                     {index > 0 && <Divider />}
-                                    <h3 className="mb-2 text-label-m tracking-widest text-foreground-secondary uppercase">
-                                        {label}
-                                    </h3>
+                                    <h3 className="mb-2 text-label-m text-foreground-secondary uppercase">{label}</h3>
                                     <p className="text-body-s text-foreground-primary">{body}</p>
                                 </div>
                             ))}
@@ -117,16 +116,16 @@ export function Careers() {
                                 Applications go through our Notion board — that&apos;s the only place we read them. Skip
                                 the cover letter. Tell us what you&apos;d do in your first month.
                             </p>
-                            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:justify-center">
+                            <div className="flex flex-col items-center gap-4">
                                 <Button
+                                    size="large"
                                     href={NOTION_JOB_BOARD_URL}
                                     external
-                                    shadowSize="4"
-                                    className="w-full justify-center px-8 sm:w-auto"
+                                    className={`w-fit ${CTA_MOTION}`}
                                 >
                                     Apply on Notion
                                 </Button>
-                                <Button variant="secondary" href="/lp" className="w-full justify-center px-8 sm:w-auto">
+                                <Button size="large" variant="secondary" href="/lp" className={`w-fit ${CTA_MOTION}`}>
                                     See what we&apos;ve built
                                 </Button>
                             </div>

@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { LandingPageClient } from './LandingPageClient'
 import { FAQs } from './faq'
 import { SupportedRailsFaqAnswer } from './SupportedRailsFaqAnswer'
-import { SUPPORTED_RAILS_FAQ_ID } from '@/constants/faq.consts'
+import { SUPPORTED_RAILS_FAQ_ID, supportedFiatRails } from '@/constants/faq.consts'
 import Manteca from './Manteca'
 import { RegulatedRails } from './RegulatedRails'
 import { YourMoney } from './yourMoney'
@@ -18,10 +18,6 @@ import { getTranslations } from '@/i18n'
 import { landingStrings } from './landingStrings'
 import type { Locale } from '@/i18n/types'
 import { contentHrefsFor } from './landingContentHrefs.server'
-
-// Blue, not Manteca's default cream: on the homepage it follows RegulatedRails,
-// which is cream already.
-const MANTECA_BG_COLOR = '#90A8ED'
 
 // Shared body of the landing page, rendered by / (en) and by each per-locale
 // landing route. Reads the filesystem via getLandingContent, so this must stay
@@ -51,7 +47,11 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
     const faqQuestions = faqData.questions.map((question) => ({
         ...question,
         ...(question.id === SUPPORTED_RAILS_FAQ_ID
-            ? { answerContent: <SupportedRailsFaqAnswer strings={strings.supportedRails} /> }
+            ? {
+                  answerContent: (
+                      <SupportedRailsFaqAnswer strings={strings.supportedRails} rails={supportedFiatRails(locale)} />
+                  ),
+              }
             : {}),
         ...(learnMoreHrefs[question.id] ? { learnMoreHref: learnMoreHrefs[question.id] } : {}),
     }))
@@ -75,12 +75,14 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                     strings={strings}
                     contentHrefs={contentHrefs}
                     problemSlot={<ProblemFold strings={strings} />}
-                    mantecaSlot={<Manteca locale={locale} backgroundColor={MANTECA_BG_COLOR} />}
+                    // The lavender band, not Manteca's default cream: on the homepage it
+                    // follows RegulatedRails, which is cream already.
+                    mantecaSlot={<Manteca locale={locale} backgroundClassName="bg-background-marketing-sky" />}
                     regulatedRailsSlot={<RegulatedRails locale={locale} />}
                     yourMoneySlot={<YourMoney locale={locale} />}
                     securitySlot={<SecurityBuiltIn locale={locale} />}
                     sendInSecondsSlot={<SendInSeconds locale={locale} />}
-                    footerSlot={<Footer locale={locale} />}
+                    footerSlot={<Footer locale={locale} padForStickyCta />}
                     faqSlot={
                         <FAQs
                             heading={faqData.heading}

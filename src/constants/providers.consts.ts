@@ -100,9 +100,11 @@ export const PROVIDERS: Record<ProviderId, ProviderRecord> = {
         termsUrl: 'https://rhino.fi/legal-policies-and-documentation/terms-conditions',
         privacyUrl: 'https://rhino.fi/legal-policies-and-documentation/privacy-policy',
     },
+    // rain is the brand users know, so the row names it; the issuer's legal
+    // details stay in the sheet (konrad, TASK-23295)
     'third-national': {
         id: 'third-national',
-        brand: 'Third National',
+        brand: 'Rain',
         legalName: 'Nimbus LLC, doing business as Third National',
         registeredOffice: ['273 Ave Ponce de León, Estudio 6', 'San Juan, PR 00917'],
         registration: 'NMLS 2612780',

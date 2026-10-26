@@ -6,6 +6,7 @@ import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/confi
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import {
+    contentArticleMetadata,
     availableCorridorLocales,
     corridorLocaleFor,
     readCorridorContentLocalized,
@@ -39,7 +40,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return {
         ...metadataHelper({
-            locale,
+            locale: contentLocale,
             title,
             description,
             canonical: `/${contentLocale}/send-money-from/${from}/to/${to}`,
@@ -59,26 +60,23 @@ export default async function FromToCorridorPage({ params }: PageProps) {
 
     const mdxSource = readCorridorContentLocalized<ContentFrontmatter>(to, from, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+    const contentLocale = corridorLocaleFor(to, from, locale)
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
     const fromName = getCountryName(from, locale)
     const toName = getCountryName(to, locale)
     const url = `/${locale}/send-money-from/${from}/to/${to}`
-    const fm = mdxSource.frontmatter
 
     return (
         <ContentPage
             locale={locale}
+            contentLocale={contentLocale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: `${fromName} → ${toName}`, href: url },
             ]}
-            article={
-                fm.generated_at
-                    ? { title: fm.title, description: fm.description, url, datePublished: fm.generated_at }
-                    : undefined
-            }
+            article={contentArticleMetadata(mdxSource, url)}
         >
             {content}
         </ContentPage>

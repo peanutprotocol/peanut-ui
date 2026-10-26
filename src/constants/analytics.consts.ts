@@ -19,7 +19,6 @@ export const ANALYTICS_EVENTS = {
     HOME_VIEWED: 'home_viewed',
     HOME_CHECKLIST_VIEWED: 'home_checklist_viewed',
     HOME_CHECKLIST_ITEM_CLICKED: 'home_checklist_item_clicked',
-    HOME_CHECKLIST_HIDDEN: 'home_checklist_hidden',
     HOME_BLOCKED_CARD_HIDDEN: 'home_blocked_card_hidden',
     KYC_DEGRADED_NOTIFY_REQUESTED: 'kyc_degraded_notify_requested',
     SIGNUP_CLICKED: 'signup_signup_clicked',
@@ -27,8 +26,10 @@ export const ANALYTICS_EVENTS = {
     PASSKEY_LOGIN_RETRY: 'passkey_login_retry',
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
     SIGNUP_USERNAME_VALIDATED: 'signup_username_validated',
+    SIGNUP_USERNAME_INVALID: 'signup_username_invalid',
     SIGNUP_INVITER_PROMPT_OPENED: 'signup_inviter_prompt_opened',
     SIGNUP_INVITER_ADDED: 'signup_inviter_added',
+    SIGNUP_INVITE_SKIPPED: 'signup_invite_skipped',
     SIGNUP_EXISTING_SESSION_CONTINUED: 'signup_existing_session_continued',
     SIGNUP_PASSKEY_STARTED: 'signup_passkey_started',
     SIGNUP_PASSKEY_SUCCEEDED: 'signup_passkey_succeeded',
@@ -41,6 +42,7 @@ export const ANALYTICS_EVENTS = {
 
     // ── KYC (Bridge) ──
     KYC_INITIATED: 'kyc_initiated',
+    KYC_TOS_OPENED: 'kyc_tos_opened',
     KYC_TOS_ACCEPTED: 'kyc_tos_accepted',
     KYC_SUBMITTED: 'kyc_submitted',
     KYC_APPROVED: 'kyc_approved',
@@ -157,6 +159,10 @@ export const ANALYTICS_EVENTS = {
     INVITE_CODE_VALIDATED: 'invite_code_validated',
     INVITE_ACCEPTED: 'invite_accepted',
     INVITE_ACCEPT_FAILED: 'invite_accept_failed',
+    // One per registration (every outcome, `none` included) and per later
+    // retry that found an invite. `status: none` after a restored invite link
+    // is the iOS stash loss of Oct 2026 — it used to leave no trace at all.
+    INVITE_ATTRIBUTION_SETTLED: 'invite_attribution_settled',
 
     // ── Points / Rewards ──
     POINTS_PAGE_VIEWED: 'points_page_viewed',
@@ -203,6 +209,10 @@ export const ANALYTICS_EVENTS = {
     MODAL_DISMISSED: 'modal_dismissed',
     MODAL_CTA_CLICKED: 'modal_cta_clicked',
 
+    // ── Arrival prompt (TASK-23251): props country, prompt ──
+    ARRIVAL_PROMPT_SHOWN: 'arrival_prompt_shown',
+    ARRIVAL_PROMPT_CTA_CLICKED: 'arrival_prompt_cta_clicked',
+
     // ── QR ──
     QR_SCANNED: 'qr_scanned',
     QR_NOTIFY_ME_CLICKED: 'qr_notify_me_clicked',
@@ -240,6 +250,14 @@ export const ANALYTICS_EVENTS = {
     // ── Card: acquisition funnel (Rain virtual card) ──
     // State observed on /card mount or transition. `state` matches CardTopLevelState.
     CARD_STATE_VIEWED: 'card_state_viewed',
+    // The screens inside the `add-card` state (the eligibility gate). `step` ∈
+    // eligibility|available|funding|entry; `funded` = spendable balance at the
+    // $10 minimum; `min_balance_shown` = the screen states that minimum.
+    CARD_GATE_STEP_VIEWED: 'card_gate_step_viewed',
+    // "Add funds" tapped on the gate. `step` as above; `method` ∈ bank|crypto
+    // when a deposit method was picked, else null. The deposit itself is the
+    // server-side `deposit_completion` (peanut-api-ts, every rail).
+    CARD_GATE_ADD_FUNDS_TAPPED: 'card_gate_add_funds_tapped',
     // POST /rain/cards lifecycle. `outcome` ∈
     // pending|terms-required|incomplete|main-kyc-required|enabled|error|already-applied.
     CARD_APPLY_ATTEMPTED: 'card_apply_attempted',
@@ -318,6 +336,7 @@ export const ANALYTICS_EVENTS = {
     // card_tokenization_declined (Rain webhooks) close this funnel.
     CARD_ADD_TO_WALLET_TAPPED: 'card_add_to_wallet_tapped',
     CARD_ADD_TO_WALLET_SUCCEEDED: 'card_add_to_wallet_succeeded',
+    CARD_ADD_TO_WALLET_ALREADY_ADDED: 'card_add_to_wallet_already_added',
     CARD_ADD_TO_WALLET_CANCELED: 'card_add_to_wallet_canceled',
     CARD_ADD_TO_WALLET_FAILED: 'card_add_to_wallet_failed',
     // Spend routing across collateral / smart / mixed buckets. `strategy` is SpendStrategy.
@@ -339,6 +358,7 @@ export const ANALYTICS_EVENTS = {
     // in. `webauthn_ceremony_flow` closes a flow with the total count — that
     // count is what says whether a 2–3 prompt report is our call sites, a retry,
     // or the native shim presenting extra sheets on its own.
+    PASSKEY_NATIVE_DIAGNOSTIC: 'passkey_native_diagnostic',
     WEBAUTHN_CEREMONY: 'webauthn_ceremony',
     WEBAUTHN_CEREMONY_FLOW: 'webauthn_ceremony_flow',
 
@@ -360,7 +380,6 @@ export const ANALYTICS_EVENTS = {
     // `surface` ∈ MIGRATION_SURFACES; store_cta_clicked also carries
     // `store` ∈ 'ios' | 'android'. qr_shown fires once per QR display (the
     // smart QR serves both stores, so it has no store dimension).
-    MIGRATION_SUNSET_VIEWED: 'migration_sunset_viewed',
     // guest Join/Continue-with-Peanut CTA rendered to a logged-out web
     // visitor during the window — the impression leg of the guest funnel
     MIGRATION_GUEST_CTA_SHOWN: 'migration_guest_cta_shown',
@@ -376,6 +395,49 @@ export const ANALYTICS_EVENTS = {
     DEFERRED_LINK_RESTORED: 'deferred_link_restored',
     // Fired on the web side when a store bounce writes the hand-off.
     DEFERRED_LINK_HANDOFF_CREATED: 'deferred_link_handoff_created',
+
+    // ── Statements (Profile → Statements): activity download ──
+    // `range_preset` is the named period (allTime, last30d, …) or 'custom',
+    // and `range_days` its length — never the dates themselves, which would
+    // describe when a person banks. RANGE_APPLIED fires on a preset pick or a
+    // finished custom period. STARTED and SAVED are separate because native
+    // delivery needs a second tap: the gap between them is the share sheet
+    // being dismissed. FAILED carries the server's reason code.
+    ACTIVITY_RANGE_APPLIED: 'activity_range_applied',
+    ACTIVITY_EXPORT_STARTED: 'activity_export_started',
+    ACTIVITY_EXPORT_SAVED: 'activity_export_saved',
+    ACTIVITY_EXPORT_FAILED: 'activity_export_failed',
+
+    // ── Screens session replay cannot see ──
+    // The native Sumsub SDK, the native Crisp messenger and the Sumsub web
+    // iframe paint outside the recorded DOM, and the camera prompt is an OS
+    // sheet. These events are the only trace those screens leave for journey
+    // reviews. Properties are SDK codes, states and error names, never text a
+    // user typed or a document showed. The `platform` super property already
+    // says web or app, so these events do not send their own.
+    //
+    // KYC: `sdk` is 'native' | 'web' (the web SDK can also run inside the app).
+    // status_changed: prev_status, new_status (SDK status names; web adds
+    // review_answer; snapshot: true marks the status the web SDK reports on
+    // launch, which is the applicant's earlier state). step: event_type (StepInitiated | StepCompleted), step
+    // (the SDK's idDocSetType, e.g. IDENTITY, SELFIE), is_cancelled. closed
+    // (native only, one per launch result): status, success, error_type.
+    KYC_SDK_STATUS_CHANGED: 'kyc_sdk_status_changed',
+    KYC_SDK_STEP: 'kyc_sdk_step',
+    KYC_SDK_CLOSED: 'kyc_sdk_closed',
+    // Support chat: `messenger` is 'native' | 'web', `has_topic` says the
+    // screen passed a prefilled topic (the topic is free text, so it is not
+    // sent). open_failed carries `error_name`. token_failed fires once a
+    // mount gives up on the Crisp session token, with `reason`.
+    SUPPORT_CHAT_OPENED: 'support_chat_opened',
+    SUPPORT_CHAT_OPEN_FAILED: 'support_chat_open_failed',
+    SUPPORT_CHAT_TOKEN_FAILED: 'support_chat_token_failed',
+    // QR camera: opened once per scanner open. camera_permission `state` is
+    // granted | denied | pending (the web prompt outlived its deadline) |
+    // unavailable (no camera or camera busy), with `error_name` when the
+    // camera failed. Scan results stay on qr_scanned.
+    QR_SCANNER_OPENED: 'qr_scanner_opened',
+    QR_CAMERA_PERMISSION: 'qr_camera_permission',
 } as const
 
 /**
@@ -427,9 +489,13 @@ export const REFERRAL_SOURCES = {
     BADGE_DETAIL: 'badge_detail',
     BADGE_UNLOCK: 'badge_unlock',
     QR_PAY_SUCCESS: 'qr_pay_success',
+    // Early-user announcement drawer's share button (utm_content only, no
+    // referral CTA event).
+    EARLY_USER_DRAWER: 'early_user_drawer',
     // Pre-existing wire value — the receipt used this as an inline literal
     // before it was registered here. Do not rename.
     TRANSACTION_RECEIPT: 'transaction_receipt',
 } as const
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS]
+export type ReferralSource = (typeof REFERRAL_SOURCES)[keyof typeof REFERRAL_SOURCES]

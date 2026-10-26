@@ -13,6 +13,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -45,6 +46,7 @@ export function QrPayFormView() {
         paymentLock,
         qrPayment,
         merchantName,
+        recipientBankName,
         pixKeyLabel,
         pixKeyOwner,
         isAwaitingPixKeyOwner,
@@ -59,6 +61,8 @@ export function QrPayFormView() {
         errorInitiatingPayment,
         isBlockingError,
         balanceErrorMessage,
+        rateUnavailable,
+        retryRate,
         shouldBlockPay,
         isLoading,
         loadingState,
@@ -157,11 +161,31 @@ export function QrPayFormView() {
                                         )}
                                     </p>
                                 )}
+                                {recipientBankName && (
+                                    <p className="ph-mask ph-no-capture flex items-start gap-1 text-body-s text-foreground-secondary">
+                                        <Icon
+                                            name="bank"
+                                            size={16}
+                                            role="img"
+                                            aria-label={t('recipientBank')}
+                                            className="mt-0.5 flex-shrink-0"
+                                        />
+                                        <span className="min-w-0 break-words">{recipientBankName}</span>
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </Card>
 
                     {/* Under the recipient, so it reads as saving the key, not the amount or fee. */}
+                    {pixKeySave.savedName && (
+                        <p
+                            className="ph-mask ph-no-capture text-body-s break-words text-foreground-secondary"
+                            data-testid="pix-key-saved-as"
+                        >
+                            {t('pixKeySavedAs', { name: pixKeySave.savedName })}
+                        </p>
+                    )}
                     {pixKeySave.isOffered && (
                         <SaveAddressPrompt
                             checked={pixKeySave.checked}
@@ -281,6 +305,7 @@ export function QrPayFormView() {
                         disabled={
                             !!errorInitiatingPayment ||
                             isBlockingError ||
+                            rateUnavailable ||
                             !amount ||
                             isLoading ||
                             // A replacement quote is being obtained — paying now
@@ -298,18 +323,14 @@ export function QrPayFormView() {
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('pay')}
                     </Button>
 
-                    {isLoading && (
-                        <p role="status" className="text-center text-body-s text-foreground-secondary">
-                            {tLoading(loadingStateKey(loadingState))}
-                        </p>
-                    )}
-
                     {/* Neutral controller-rotation notice — the quote moved, the payment did not fail */}
                     {quoteUpdatedNotice && (
                         <Callout priority="info" data-testid="quote-updated-notice">
                             {quoteUpdatedNotice}
                         </Callout>
                     )}
+
+                    {rateUnavailable && <RateUnavailable onRetry={retryRate} />}
 
                     {/* Error State */}
                     {errorMessage && (

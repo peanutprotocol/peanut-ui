@@ -11,6 +11,7 @@ import { toError } from '@/utils/to-error'
 import posthog from 'posthog-js'
 import { addBreadcrumb } from '@sentry/nextjs'
 import { Capacitor } from '@capacitor/core'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 // ============================================================================
 // Configuration
@@ -99,6 +100,20 @@ async function raceStartDeadline(started: Promise<void>): Promise<'started' | 'p
         clearTimeout(timeoutId)
     }
 }
+
+type CameraPermissionState = 'granted' | 'denied' | 'pending' | 'unavailable'
+
+/**
+ * The OS camera prompt and the permission recovery are invisible to session
+ * replay, so each camera start reports how it ended. `errorName` is a
+ * CAMERA_ERRORS value, never browser message text.
+ */
+function captureCameraPermission(state: CameraPermissionState, errorName?: string) {
+    posthog.capture(ANALYTICS_EVENTS.QR_CAMERA_PERMISSION, { state, error_name: errorName ?? null })
+}
+
+const isHardwareFailure = (errorName: string) =>
+    errorName === CAMERA_ERRORS.NOT_FOUND || errorName === CAMERA_ERRORS.NOT_READABLE
 
 // ============================================================================
 // Types
@@ -274,13 +289,15 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     const errName = await classifyCameraFailure(err)
                     if (stale()) return
 
-                    const isHardware = errName === CAMERA_ERRORS.NOT_FOUND || errName === CAMERA_ERRORS.NOT_READABLE
+                    const isHardware = isHardwareFailure(errName)
+                    captureCameraPermission(isHardware ? 'unavailable' : 'denied', errName)
                     setIsPermissionDenied(!isHardware)
                     // no retry follows a start that already outlived its deadline,
                     // so ask for the copy that does not promise one
                     setError(getErrorMessage(errName, CONFIG.MAX_CAMERA_RETRIES))
                 })
 
+            captureCameraPermission('pending')
             setIsPermissionDenied(true)
             setError(getErrorMessage(CAMERA_ERRORS.NOT_ALLOWED, 0))
         },
@@ -321,7 +338,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     if (superseded()) return
                     if (!granted) {
                         const data = {
-                            platform: Capacitor.getPlatform(),
+                            os: Capacitor.getPlatform(),
                             permission: 'denied',
                             source: 'native_camera_permission',
                         }
@@ -332,6 +349,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                             level: 'info',
                             data,
                         })
+                        captureCameraPermission('denied', CAMERA_ERRORS.NOT_ALLOWED)
                         setIsPermissionDenied(true)
                         setError(getErrorMessage(CAMERA_ERRORS.NOT_ALLOWED, 0))
                         return
@@ -425,6 +443,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                 }
 
                 console.log('[QR Scanner] Camera started, ready to scan')
+                captureCameraPermission('granted')
                 setIsCameraReady(true)
                 retryCountRef.current = 0
             } catch (err) {
@@ -444,9 +463,12 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
 
                 // treat any non-retryable, non-hardware error as permission denied.
                 // exclude NOT_READABLE (camera busy) — it has its own "remains busy" error path.
-                if (!shouldRetry && errName !== CAMERA_ERRORS.NOT_FOUND && errName !== CAMERA_ERRORS.NOT_READABLE) {
+                if (!shouldRetry && !isHardwareFailure(errName)) {
                     setIsPermissionDenied(true)
                 }
+                // a busy camera that is about to retry has not ended this start yet
+                if (!shouldRetry)
+                    captureCameraPermission(isHardwareFailure(errName) ? 'unavailable' : 'denied', errName)
 
                 setError(getErrorMessage(errName, retryCountRef.current))
 
@@ -553,6 +575,7 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
     // Start/stop scanner based on isScanning state
     useEffect(() => {
         if (isScanning) {
+            posthog.capture(ANALYTICS_EVENTS.QR_SCANNER_OPENED)
             startCamera()
         } else {
             cleanup()

@@ -3,11 +3,16 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { addBreadcrumb, captureException, captureMessage } from '@sentry/nextjs'
 import { getOneSignalAdapter, type NotificationPermissionState } from '@/services/onesignal'
+import { initializeNotificationIdentity, syncNotificationIdentityFromHook } from '@/services/onesignal/identity'
+import { isPermanentOneSignalInitError } from '@/services/onesignal/errors'
+import { isChunkLoadError } from '@/utils/chunk-error-recovery'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
+import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { onForegroundPushDelivered } from '@/utils/notifications-events'
 import { useAuth } from '@/context/authContext'
+import { useAppLocked } from '@/hooks/useAppLocked'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
@@ -78,11 +83,7 @@ const getSnapshot = () => state
 export const getNotificationPermissionSnapshot = (): NotificationPermissionState => state.permissionState
 const getServerSnapshot = () => INITIAL_STATE
 
-let currentExternalId: string | null = null
-let lastLinkedExternalId: string | null = null
-// the login in flight, so a second sync for the same id joins it instead of
-// starting another login() (the double-record race behind TASK-22209)
-let loginInFlight: { id: string; token: object; promise: Promise<void> } | null = null
+let currentExternalId: string | null | undefined
 let disableExternalIdLogin = false
 // A session is one app load. One pre-prompt per session at most, and the
 // session count gates the Home fallback.
@@ -95,6 +96,9 @@ let pendingPromptTriggers: PushPromptTrigger[] = []
 // the moment behind the OS dialog, for the permission events that follow it
 let permissionRequestTrigger: PushPromptTrigger | null = null
 let initializationPromise: Promise<void> | null = null
+const MAX_INIT_ATTEMPTS = 3
+let initAttempts = 0
+let initRetryArmed = false
 
 function handleLoginError(err: unknown) {
     const msg = err instanceof Error ? err.message : String(err ?? '')
@@ -123,44 +127,22 @@ function handleLoginError(err: unknown) {
 
 // link/unlink the OneSignal subscription to the logged-in user
 async function syncExternalIdLink() {
-    if (!state.oneSignalInitialized) return
+    // AuthProvider owns null reconciliation: this hook sees null both while
+    // the profile is unresolved and after a confirmed sign-out.
+    if (!state.oneSignalInitialized || !currentExternalId) return
     const id = currentExternalId
-    if (id && lastLinkedExternalId !== id) {
-        if (disableExternalIdLogin) return
-        if (loginInFlight?.id === id) {
-            // join it rather than start a second login for the same id, then
-            // check the outcome: a joined caller that never retries would leave
-            // the device unlinked whenever the login it joined failed
-            await loginInFlight.promise
-            if (currentExternalId === id && lastLinkedExternalId !== id) return syncExternalIdLink()
-            return
-        }
-        const token = {}
-        const promise = (async () => {
+    if (disableExternalIdLogin) return
+    try {
+        await syncNotificationIdentityFromHook(id)
+    } catch (err) {
+        handleLoginError(err)
+        // One bounded retry also recovers callers that joined a failed login.
+        if (currentExternalId === id && !disableExternalIdLogin) {
             try {
-                const adapter = await getOneSignalAdapter()
-                await adapter.login(id)
-                // commit only on success so transient failures retry on the next
-                // sync, and only while this call still owns the tracker — an
-                // older login settling late must not name an account we left
-                if (loginInFlight?.token === token) lastLinkedExternalId = id
-            } catch (err: unknown) {
-                handleLoginError(err)
-            } finally {
-                // a switch to another external id may own the tracker by now —
-                // clearing it here would drop that newer login's guard
-                if (loginInFlight?.token === token) loginInFlight = null
+                await syncNotificationIdentityFromHook(id)
+            } catch (retryError) {
+                handleLoginError(retryError)
             }
-        })()
-        loginInFlight = { id, token, promise }
-        return promise
-    } else if (!id && lastLinkedExternalId !== null) {
-        lastLinkedExternalId = null
-        try {
-            const adapter = await getOneSignalAdapter()
-            await adapter.logout()
-        } catch (err) {
-            addBreadcrumb({ category: 'onesignal', message: 'logout failed', data: { error: String(err) } })
         }
     }
 }
@@ -259,6 +241,27 @@ function ensureInitialized(): Promise<void> {
     return initializationPromise
 }
 
+// The web SDK cannot be initialized twice in one document; there only its chunk load is retryable.
+function isRetryableInitFailure(error: unknown): boolean {
+    if (isChunkLoadError(error)) return true
+    return isCapacitor() && !isPermanentOneSignalInitError(error)
+}
+
+// Retried on the next online or foreground edge, never on a timer, so a device that stays offline costs nothing.
+function armInitRetry() {
+    if (initRetryArmed) return
+    initRetryArmed = true
+    const retry = () => {
+        if (document.visibilityState !== 'visible' || !navigator.onLine) return
+        initRetryArmed = false
+        window.removeEventListener('online', retry)
+        document.removeEventListener('visibilitychange', retry)
+        void ensureInitialized()
+    }
+    window.addEventListener('online', retry)
+    document.addEventListener('visibilitychange', retry)
+}
+
 async function initializeNotifications() {
     // demo sessions are synthetic: no push subscription, no external_id login
     if (isDemoMode()) return
@@ -267,9 +270,10 @@ async function initializeNotifications() {
         setState({ permissionState: Notification.permission as NotificationPermissionState })
     }
 
+    let initSucceeded = false
     try {
-        const adapter = await getOneSignalAdapter()
-        await adapter.init()
+        const adapter = await initializeNotificationIdentity()
+        initSucceeded = true
 
         // Web half of the foreground-push badge refresh (the Set dedupes the
         // shared reference with useForegroundPushRefresh's registration; on
@@ -342,11 +346,37 @@ async function initializeNotifications() {
         await evaluateVisibility()
         void offerPendingPrompts()
     } catch (e) {
+        initAttempts += 1
+        // Only a failed init is retried: past it, the listeners and login above have already run.
+        if (!initSucceeded && isRetryableInitFailure(e) && initAttempts < MAX_INIT_ATTEMPTS) {
+            initializationPromise = null
+            addBreadcrumb({
+                category: 'onesignal',
+                message: 'init failed, retry armed',
+                data: { attempt: initAttempts, error: String(e) },
+            })
+            armInitRetry()
+            return
+        }
+        // Settled for good, so remounts don't report the same failure again.
         // Surface Brave/Shields SDK-block failures; previously silent.
-        initializationPromise = null
         console.warn('OneSignal init failed', e)
-        captureException(e, { level: 'warning', tags: { feature: 'onesignal', source: 'onesignal_init' } })
+        if (isOriginBoundRefusalOffProduction(e)) return
+        captureException(e, {
+            level: 'warning',
+            tags: { feature: 'onesignal', source: 'onesignal_init' },
+            extra: { attempts: initAttempts },
+        })
     }
+}
+
+// A OneSignal web app answers only on the origin it is registered for, so every
+// preview deploy and localhost is refused by design (PEANUT-UI-STG). On staging
+// or production the same refusal is a real misconfiguration and still reports.
+function isOriginBoundRefusalOffProduction(e: unknown): boolean {
+    if (!(e instanceof Error) || !e.message.startsWith('Can only be used on:')) return false
+    const environment = inferSentryEnvironment()
+    return environment === 'preview' || environment === 'development'
 }
 
 function countSession(userId: string) {
@@ -468,7 +498,8 @@ export function resetPushPromptForTests() {
 }
 
 export function useNotifications() {
-    const { user } = useAuth()
+    const { user, isFetchingUser, userFetchError, isLoggingOut } = useAuth()
+    const appLocked = useAppLocked()
     const externalId = user?.user.userId
     const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
@@ -477,8 +508,9 @@ export function useNotifications() {
     }, [])
 
     useEffect(() => {
+        if (appLocked || isFetchingUser || userFetchError || isLoggingOut) return
         setExternalId(externalId ?? null)
-    }, [externalId])
+    }, [externalId, appLocked, isFetchingUser, userFetchError, isLoggingOut])
 
     return {
         showPermissionModal: snapshot.showPermissionModal,

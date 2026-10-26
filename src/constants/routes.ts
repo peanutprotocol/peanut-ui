@@ -47,6 +47,7 @@ export const DEDICATED_ROUTES = [
 
     // Public pages (existing)
     'app', // smart store link (/app) — QR codes point here, redirects by device
+    'q', // registered marketing QR handoff; distinct from /qr payments
     'm', // merchant landing pages (/m/[slug]) — added on main; register so the catch-all never treats it as a recipient
     'careers',
     'jobs',
@@ -55,6 +56,12 @@ export const DEDICATED_ROUTES = [
     'lp',
     'exchange',
     'shhhhh',
+    // Public feature landing pages
+    'us-europe-accounts',
+    'qr-payments',
+    'peanut-card',
+    'request-links',
+    'self-custody',
     'app-help', // static help article JSON for the in-app help drawer
 
     // Future SEO routes (pre-register so catch-all doesn't intercept)

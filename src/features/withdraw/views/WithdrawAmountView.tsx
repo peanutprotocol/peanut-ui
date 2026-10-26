@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Callout } from '@/components/0_Bruddle/Callout'
+import { Field } from '@/components/0_Bruddle/Field'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import AmountInput from '@/components/Global/AmountInput'
 import NavHeader from '@/components/Global/NavHeader'
@@ -12,6 +12,7 @@ import { shouldShowAmountError } from '@/features/limits/amount-error-gating'
 import { type FlowErrorState } from '@/interfaces/interfaces'
 import { type FC } from 'react'
 import { useTranslations } from 'next-intl'
+import { useAmountErrorScroll } from '../useAmountErrorScroll'
 
 interface WithdrawAmountViewProps {
     pageTitle: string
@@ -74,44 +75,54 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
         showLimitsCard && limitsValidation
             ? getLimitsWarningCardProps({ validation: limitsValidation, flowType: 'offramp', currency: 'USD' })
             : null
+    const amountError = shouldShowAmountError({
+        showError: error.showError && !!error.errorMessage,
+        showsLimitsCard: !isCryptoWithdraw,
+        limitsBlocking: limitsValidation?.isBlocking ?? false,
+    })
+        ? error.errorMessage
+        : undefined
+    const amountField = useAmountErrorScroll(amountError)
 
     return (
         <PageStack>
             <NavHeader title={pageTitle} onPrev={onBack} />
             <PageStack.Center className="gap-4">
                 <div className="text-heading-xs text-foreground-primary">{heading}</div>
-                {bankAmount ? (
-                    <AmountInput
-                        initialAmount={bankAmount.initialAmount}
-                        initialDenomination={bankAmount.initialDenomination}
-                        setPrimaryAmount={bankAmount.onAmountChange}
-                        setSecondaryAmount={onAmountChange}
-                        setCurrentDenomination={bankAmount.onDenominationChange}
-                        primaryDenomination={{ symbol: bankAmount.currency, price: bankAmount.rate, decimals: 2 }}
-                        secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
-                        // the quote rounds the USDC up to the cent; the line and the balance check match it
-                        roundSecondaryUp
-                        walletBalance={walletBalance}
-                        // the balance row is USD and the field is the bank currency:
-                        // floor the USD to cents first so the fill never quotes above it
-                        balanceFillAmount={(Math.floor(balanceFillAmount * 100) / 100) * bankAmount.rate}
-                        onBalanceFilled={onBalanceFilled}
-                    />
-                ) : (
-                    <AmountInput
-                        initialAmount={initialAmount}
-                        setPrimaryAmount={onAmountChange}
-                        primaryDenomination={{
-                            symbol: '$',
-                            price: 1,
-                            decimals: 6, // we want USDC decimals to be able to pay exactly
-                        }}
-                        walletBalance={walletBalance}
-                        balanceFillAmount={balanceFillAmount}
-                        onBalanceFilled={onBalanceFilled}
-                        hideCurrencyToggle
-                    />
-                )}
+                <Field {...amountField} error={amountError} errorTestId="error-alert">
+                    {bankAmount ? (
+                        <AmountInput
+                            initialAmount={bankAmount.initialAmount}
+                            initialDenomination={bankAmount.initialDenomination}
+                            setPrimaryAmount={bankAmount.onAmountChange}
+                            setSecondaryAmount={onAmountChange}
+                            setCurrentDenomination={bankAmount.onDenominationChange}
+                            primaryDenomination={{ symbol: bankAmount.currency, price: bankAmount.rate, decimals: 2 }}
+                            secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
+                            // the quote rounds the USDC up to the cent; the line and the balance check match it
+                            roundSecondaryUp
+                            walletBalance={walletBalance}
+                            // the balance row is USD and the field is the bank currency:
+                            // floor the USD to cents first so the fill never quotes above it
+                            balanceFillAmount={(Math.floor(balanceFillAmount * 100) / 100) * bankAmount.rate}
+                            onBalanceFilled={onBalanceFilled}
+                        />
+                    ) : (
+                        <AmountInput
+                            initialAmount={initialAmount}
+                            setPrimaryAmount={onAmountChange}
+                            primaryDenomination={{
+                                symbol: '$',
+                                price: 1,
+                                decimals: 6, // we want USDC decimals to be able to pay exactly
+                            }}
+                            walletBalance={walletBalance}
+                            balanceFillAmount={balanceFillAmount}
+                            onBalanceFilled={onBalanceFilled}
+                            hideCurrencyToggle
+                        />
+                    )}
+                </Field>
 
                 {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
 
@@ -125,16 +136,6 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                 >
                     {tCommon('continue')}
                 </Button>
-                {/* the banner yields to the limits card only when that card renders (TASK-21666) */}
-                {shouldShowAmountError({
-                    showError: error.showError && !!error.errorMessage,
-                    showsLimitsCard: !isCryptoWithdraw,
-                    limitsBlocking: limitsValidation?.isBlocking ?? false,
-                }) && (
-                    <Callout priority="error" data-testid="error-alert">
-                        {error.errorMessage}
-                    </Callout>
-                )}
             </PageStack.Center>
         </PageStack>
     )

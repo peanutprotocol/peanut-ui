@@ -5,15 +5,21 @@ import {
     asksAddressCountry,
     bankCorridorFor,
     corridorAcceptsAddressCountry,
+    findSavedBankAccount,
     fixedAddressCountry,
     hasBridgeBankCorridor,
+    isOwnerAddressCountryAccepted,
+    usStreetLacksLeadingNumber,
+    usStreetProblem,
 } from '../bank-corridors'
+import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { BridgeAccountType } from '@/app/actions/types/users.types'
 import { COUNTRY_SPECIFIC_METHODS, countryData } from '@/components/AddMoney/consts'
 import { liveRailsForCountry, soleLiveRailForCountry } from '@/features/destinations/country-rails'
 import { liveWithdrawCurrencies, withdrawPayoutCurrency } from '@/features/withdraw/components/withdraw-currencies'
 import { isMantecaCountry } from '@/constants/manteca.consts'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
+import { AccountType, type Account } from '@/interfaces/interfaces'
 
 const fieldNames = (country: string) => bankCorridorFor(country)?.fields.map((field) => field.name)
 const fieldFor = (country: string, name: string) =>
@@ -275,5 +281,126 @@ describe("the owner's address on a US account", () => {
         expect(addressCountryAlpha2('NGA')).toBe('NG')
         expect(addressCountryAlpha2('pt')).toBe('PT')
         expect(addressCountryAlpha2('ZZZ')).toBeNull()
+    })
+})
+
+/**
+ * The provider refused `address.country=CHN` on an external account in a live
+ * production test (2026-10-11) and took HKG, TWN, SGP, CAN and GBR. Only the
+ * bank form's list drops it: the shared residence list must keep it, so a
+ * resident of China can answer truthfully at signup.
+ */
+describe('countries refused as a payout owner address', () => {
+    it.each(['CN', 'CHN', 'cn'])('refuses China (%s)', (code) => {
+        expect(isOwnerAddressCountryAccepted(code)).toBe(false)
+    })
+
+    it.each(['HK', 'TW', 'SG', 'CA', 'GB', 'US', 'PT', 'HKG', null, ''])('accepts %s', (code) => {
+        expect(isOwnerAddressCountryAccepted(code)).toBe(true)
+    })
+
+    it('leaves China in the shared residence list', () => {
+        expect(buildResidenceCountryOptions('en').map((option) => option.value)).toContain('CN')
+    })
+})
+
+/**
+ * The provider wants a street number on a US address and no PO box or PMB. It
+ * does not say the number comes first, so only a line with no digit is
+ * refused; a line that does not start with one only gets a hint.
+ */
+describe('US street lines', () => {
+    it.each([
+        ['No Yuyao Road', 'noNumber'],
+        ['Main Street', 'noNumber'],
+        ['PO Box 123', 'poBox'],
+        ['P.O. Box 77', 'poBox'],
+        ['p o box 9', 'poBox'],
+        ['POBox 12', 'poBox'],
+        ['Post Office Box 5', 'poBox'],
+        ['123 Main St PMB 456', 'poBox'],
+        ['Private Mailbox 3', 'poBox'],
+    ])('refuses "%s" (%s)', (street, problem) => {
+        expect(usStreetProblem(street)).toBe(problem)
+    })
+
+    it.each([
+        ['123 Main St', false],
+        ['No 566 Yuyao Road', true],
+        // a unit first, a Wisconsin/Utah grid address, a Puerto Rico urbanization
+        ['Apt 4B, 123 Main St', true],
+        ['N123W456 Main Rd', true],
+        ['W1234 County Rd', true],
+        ['Urb Las Gladiolas 150 Calle A', true],
+        // "Box" alone is not a PO box: nobody has shown the provider refuses a rural route
+        ['RR 2 Box 152', true],
+        ['10 Boxwood Ln', false],
+        ['5 Pomba St', false],
+    ])('takes "%s"; hint shown: %s', (street, hint) => {
+        expect(usStreetProblem(street)).toBeNull()
+        expect(usStreetLacksLeadingNumber(street)).toBe(hint)
+    })
+
+    it('says nothing about an empty line: the required rule owns that', () => {
+        expect(usStreetProblem('  ')).toBeNull()
+        expect(usStreetLacksLeadingNumber('')).toBe(false)
+    })
+})
+
+describe('which saved account typed bank details name (TASK-23891)', () => {
+    const saved = (account: Partial<Account>) => account as Account
+    const US = bankCorridorFor('USA')!
+    const GB = bankCorridorFor('GB')!
+    const savedUs = saved({ id: 'us', type: AccountType.US, identifier: '123456789', routingNumber: '021000021' })
+    const savedGb = saved({ id: 'gb', type: AccountType.GB, identifier: '01234567', sortCode: '200000' })
+    const savedIban = saved({ id: 'iban', type: AccountType.IBAN, identifier: 'de89370400440532013000' })
+
+    it('reuses a saved US account only when the routing number matches as well', () => {
+        expect(findSavedBankAccount([savedUs], US, '123456789', { routingNumber: '021000021' })).toBe(savedUs)
+        // the same number at another bank is a correction for the API
+        expect(findSavedBankAccount([savedUs], US, '123456789', { routingNumber: '026009593' })).toBeUndefined()
+    })
+
+    it('never reuses a saved account it cannot compare: one saved without its routing number', () => {
+        const noRouting = saved({ ...savedUs, routingNumber: undefined })
+        expect(findSavedBankAccount([noRouting], US, '123456789', { routingNumber: '021000021' })).toBeUndefined()
+    })
+
+    it('compares a UK sort code however it was typed, and falls back to the routing number a UK row keeps', () => {
+        expect(findSavedBankAccount([savedGb], GB, '01234567', { sortCode: '20-00-00' })).toBe(savedGb)
+        expect(findSavedBankAccount([savedGb], GB, '01234567', { sortCode: '40-00-75' })).toBeUndefined()
+        const rowOnly = saved({ ...savedGb, sortCode: undefined, routingNumber: '200000' })
+        expect(findSavedBankAccount([rowOnly], GB, '01234567', { sortCode: '20 00 00' })).toBe(rowOnly)
+    })
+
+    it('names an IBAN by its number alone, in any case and spacing', () => {
+        const IBAN = bankCorridorFor('SEPA')!
+        expect(findSavedBankAccount([savedIban], IBAN, 'DE89 3704 0044 0532 0130 00', {})).toBe(savedIban)
+    })
+
+    it('keeps the letters of an IBAN: two banks with the same digits are two accounts', () => {
+        const IBAN = bankCorridorFor('SEPA')!
+        const nwbk = saved({ id: 'nwbk', type: AccountType.IBAN, identifier: 'gb29nwbk60161331926819' })
+        expect(findSavedBankAccount([nwbk], IBAN, 'GB29 ABCD 6016 1331 9268 19', {})).toBeUndefined()
+        expect(findSavedBankAccount([nwbk], IBAN, 'GB29 NWBK 6016 1331 9268 19', {})).toBe(nwbk)
+    })
+
+    it('never takes a saved account of another kind with the same number', () => {
+        const usNumberAsGb = saved({ ...savedGb, identifier: '123456789', sortCode: '021000021' })
+        expect(findSavedBankAccount([usNumberAsGb], US, '123456789', { routingNumber: '021000021' })).toBeUndefined()
+    })
+
+    it('leaves a Colombian account to the API: no saved account keeps its document and bank code', () => {
+        const CO = bankCorridorFor('CO')!
+        const savedCo = saved({ id: 'co', type: AccountType.CO_BANK_TRANSFER, identifier: '12345678910' })
+        expect(
+            findSavedBankAccount([savedCo], CO, '12345678910', {
+                documentType: 'cc',
+                documentNumber: '1234567890',
+                bankCode: '1007',
+                accountCategory: 'savings',
+                phoneNumber: '+573001234567',
+            })
+        ).toBeUndefined()
     })
 })

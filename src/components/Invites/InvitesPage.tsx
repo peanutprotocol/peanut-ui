@@ -1,4 +1,5 @@
 'use client'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import Loading from '../Global/Loading'
 import ValidationErrorView from '../Payment/Views/Error.validation.view'
@@ -33,6 +34,10 @@ import { getPasskeyErrorSetupKey } from '@/utils/webauthn.utils'
 import { stashInvite } from '@/utils/invite-stash'
 
 function InvitePageContent() {
+    const browserOrigin = useHydrationSnapshot<string | null>(
+        () => window.location.origin,
+        () => null
+    )
     const t = useTranslations('invites')
     const tSetup = useTranslations('setup')
     const toast = useToast()
@@ -40,7 +45,7 @@ function InvitePageContent() {
     // trim trailing '?' from invite code to handle qr codes with ? at the end
     const inviteCode = searchParams.get('code')?.toLowerCase().replace(/\?+$/, '')
     const redirectUri = searchParams.get('redirect_uri')
-    const safeRedirectUri = redirectUri ? getValidRedirectUrl(redirectUri, '') : ''
+    const safeRedirectUri = redirectUri ? getValidRedirectUrl(redirectUri, '', browserOrigin) : ''
     const { user, isFetchingUser, fetchUser } = useAuth()
 
     // Badge campaign identities are opaque and backend-owned. The canonical
@@ -245,10 +250,15 @@ function InvitePageContent() {
         // typed claim result is consumed after registration.
         if (hasUrlBadgeCampaigns) queuePendingBadgeCampaigns(urlBadgeCampaigns)
 
-        // during the migration window guests go to the stores, not signup —
-        // cookie/queue bookkeeping above still runs so a keep-web signup or
-        // post-install link re-tap recovers the invite context.
-        if (!user?.user && interceptGuestCta()) {
+        // A desktop download QR opens on another device, so the inviter must
+        // travel in the handoff rather than relying on this browser's cookies.
+        if (
+            !user?.user &&
+            interceptGuestCta({
+                invite: hasValidInvite || hasBackendLegacyAcceptance ? inviteCode : undefined,
+                dest: safeRedirectUri || undefined,
+            })
+        ) {
             // keep the mid-flow destination (e.g. a pending claim) recoverable
             // after the store round-trip, same as handleLoginWithBadgeCampaign
             if (safeRedirectUri) saveRedirectUrl()
@@ -319,7 +329,7 @@ function InvitePageContent() {
             <div className="flex flex-grow flex-col items-end justify-center gap-6 overflow-hidden bg-background-default px-6 pt-8 pb-8 md:h-dvh md:justify-center md:gap-4">
                 <div className="mx-auto w-full md:max-w-xs">
                     <div className="flex h-full flex-col justify-between gap-4 md:gap-6 md:pt-6">
-                        <h1 className="text-heading-xs text-foreground-primary">{title}</h1>
+                        <h1 className="text-heading-xs break-words text-foreground-primary">{title}</h1>
                         <p className="text-body-m">{description}</p>
                         <Button onClick={handleClaim} shadowSize="4">
                             {ctaLabel}

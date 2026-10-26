@@ -4,7 +4,12 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { availableContentLocales, contentLocaleFor, readPageContentLocalized } from '@/lib/content'
+import {
+    contentArticleMetadata,
+    availableContentLocales,
+    contentLocaleFor,
+    readPageContentLocalized,
+} from '@/lib/content'
 import { renderContent } from '@/lib/mdx'
 import { Hero } from '@/components/Marketing/mdx/Hero'
 
@@ -39,7 +44,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return {
         ...metadataHelper({
-            locale,
+            locale: contentLocale,
             title: mdxContent.frontmatter.title,
             description: mdxContent.frontmatter.description,
             canonical: `/${contentLocale}/${SLUG}`,
@@ -57,6 +62,7 @@ export default async function PrivacyPage({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized<LegalFrontmatter>('legal', SLUG, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+    const contentLocale = contentLocaleFor('legal', SLUG, locale)
 
     // The verbatim markdown opens with its own `# Privacy Policy`; the Hero
     // below already renders that title, so strip the body's leading h1.
@@ -69,22 +75,14 @@ export default async function PrivacyPage({ params }: PageProps) {
     return (
         <ContentPage
             locale={locale}
+            contentLocale={contentLocale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: displayTitle, href: url },
             ]}
-            article={
-                mdxSource.frontmatter.last_updated
-                    ? {
-                          title: mdxSource.frontmatter.title,
-                          description: mdxSource.frontmatter.description,
-                          url,
-                          datePublished: mdxSource.frontmatter.last_updated,
-                      }
-                    : undefined
-            }
+            article={contentArticleMetadata(mdxSource, url)}
         >
-            <Hero title={displayTitle} subtitle={i18n.legalHeroSubtitlePrivacy} />
+            <Hero title={displayTitle} subtitle={i18n.legalHeroSubtitlePrivacy} subtitleLang={locale} locale={locale} />
             {content}
         </ContentPage>
     )

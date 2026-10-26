@@ -96,6 +96,7 @@ jest.mock('@/features/limits/utils', () => ({
     isBrUserEligibleForLimitIncrease: () => false,
 }))
 jest.mock('@/context/ModalsContext', () => ({
+    useModalsContextOptional: () => undefined,
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn(), openSupportWithMessage: jest.fn() }),
 }))
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({ InitiateKycModal: () => null }))
@@ -108,11 +109,10 @@ jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true,
 jest.mock('@/components/Global/Banner/MantecaTransfersMaintenanceView', () => ({
     MantecaTransfersMaintenanceView: () => null,
 }))
-jest.mock('@/config/underMaintenance.config', () => ({
-    __esModule: true,
-    default: { disabledMantecaCurrencies: [] },
-    underMaintenanceConfig: { disabledMantecaCurrencies: [] },
-}))
+jest.mock('@/features/kill-switches/kill-switches-store', () => {
+    const killSwitches = { disabledMantecaCurrencies: [] }
+    return { getKillSwitches: () => killSwitches, subscribeKillSwitches: () => () => {} }
+})
 jest.mock('@/utils/network-triage', () => ({
     captureNetworkTriagedFailure: jest.fn(),
     isNetworkLayerFailure: () => false,

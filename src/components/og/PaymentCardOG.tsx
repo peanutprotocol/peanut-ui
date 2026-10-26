@@ -1,5 +1,5 @@
 import { type PaymentLink } from '@/interfaces/interfaces'
-import { knerdTitle } from '@/components/0_Bruddle/Title'
+import { knerdTitle } from '@/components/0_Bruddle/Title.consts'
 
 function usernamePxWidth(name: string) {
     const charPx = 0.6 * 80 // ≈48 px per glyph
@@ -158,37 +158,46 @@ export function PaymentCardOG({
                             }}
                         />
 
-                        {/* 1) white fill — stays in normal flow */}
+                        {/* fill + outline lean together by the Knerd line-1 tilt, as Title does */}
                         <span
                             style={{
-                                fontFamily: 'Knerd Filled',
-                                color: '#fff',
-                                letterSpacing: knerdTitle.letterSpacing,
+                                position: 'relative',
+                                display: 'flex',
+                                transform: `rotate(${knerdTitle.lineTilt[0]}deg)`,
                             }}
                         >
-                            {link.token && link.token.toLowerCase() !== 'usdc'
-                                ? `${link.amount} ${link.token}`
-                                : `$${link.amount}`}
-                        </span>
+                            {/* 1) white fill — stays in normal flow */}
+                            <span
+                                style={{
+                                    fontFamily: 'Knerd Filled',
+                                    color: '#fff',
+                                    letterSpacing: knerdTitle.letterSpacing,
+                                }}
+                            >
+                                {link.token && link.token.toLowerCase() !== 'usdc'
+                                    ? `${link.amount} ${link.token}`
+                                    : `$${link.amount}`}
+                            </span>
 
-                        {/* 2) black outline — absolutely positioned, painted *after* → on top */}
-                        <span
-                            aria-hidden="true"
-                            style={{
-                                position: 'absolute',
-                                top: knerdTitle.outlineOffset.y,
-                                left: knerdTitle.outlineOffset.x,
-                                fontFamily: 'Knerd Outline',
-                                color: '#000',
-                                pointerEvents: 'none', // just in case
-                                transformOrigin: 'top left',
-                                transform: `scale(${knerdTitle.outlineScale})`,
-                                letterSpacing: knerdTitle.letterSpacing,
-                            }}
-                        >
-                            {link.token && link.token.toLowerCase() !== 'usdc'
-                                ? `${link.amount} ${link.token}`
-                                : `$${link.amount}`}
+                            {/* 2) black outline — absolutely positioned, painted *after* → on top */}
+                            <span
+                                aria-hidden="true"
+                                style={{
+                                    position: 'absolute',
+                                    top: knerdTitle.outlineOffset.y,
+                                    left: knerdTitle.outlineOffset.x,
+                                    fontFamily: 'Knerd Outline',
+                                    color: '#000',
+                                    pointerEvents: 'none', // just in case
+                                    transformOrigin: 'top left',
+                                    transform: `scale(${knerdTitle.outlineScale})`,
+                                    letterSpacing: knerdTitle.letterSpacing,
+                                }}
+                            >
+                                {link.token && link.token.toLowerCase() !== 'usdc'
+                                    ? `${link.amount} ${link.token}`
+                                    : `$${link.amount}`}
+                            </span>
                         </span>
 
                         {/* Bottom-left arrow */}

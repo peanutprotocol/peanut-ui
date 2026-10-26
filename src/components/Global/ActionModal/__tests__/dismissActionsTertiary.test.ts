@@ -25,6 +25,7 @@ const DISMISS_KEYS = [
     'doThisLater',
     'goBack',
     'keepCard',
+    'keepOpen',
     'maybeLater',
     'notNow',
     'notNowCta',
@@ -37,6 +38,10 @@ const EXEMPT = new Set<string>([
     // the setup flow's header "Skip" sits in the nav row beside back and log
     // out, not under a primary CTA; its shape is waiting on a design ruling
     'components/Setup/components/SetupWrapper.tsx',
+    // "Invited by a friend?" Skip is a secondary Button in the footer slot by
+    // Hugo's sign-up ruling (TASK-23467, 2026-10-10): every sign-up step keeps
+    // its secondary action (Log in, Skip) at one height under the primary
+    'components/Setup/Views/Invite.tsx',
 ])
 
 const DISMISS_LABEL_RE = new RegExp(`\\(\\s*'(?:[\\w-]+\\.)*(?:${DISMISS_KEYS.join('|')})'`)

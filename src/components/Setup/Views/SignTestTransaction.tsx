@@ -5,6 +5,7 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import SetupFooter from '../components/SetupFooter'
+import SetupTitleBlock from '../components/SetupTitleBlock'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { updateUserById } from '@/app/actions/users'
@@ -12,7 +13,7 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { useAccountSetup } from '@/hooks/useAccountSetup'
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces/interfaces'
-import { useState, useEffect, useRef } from 'react'
+import { type ReactNode, useState, useEffect, useRef } from 'react'
 import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
@@ -21,7 +22,7 @@ import posthog from 'posthog-js'
 import { setupCountrySignalProperties } from '@/features/setup/country-signals'
 import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { getFromCookie } from '@/utils/general.utils'
+import { readInviteCode } from '@/utils/invite-stash'
 import {
     clearSignupAttribution,
     hasPendingSignupAttribution,
@@ -29,8 +30,17 @@ import {
 } from '@/utils/signup-attribution'
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
+import type en from '@/i18n/app/messages/en.json'
 import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
 import { confettiPresets } from '@/utils/confetti'
+import { isAa24Error } from '@/utils/walletCredential.utils'
+import { classifyPasskeyError, getPasskeySetupKey } from '@/utils/webauthn.utils'
+import { latestCeremony } from '@/utils/webauthn-ceremony-telemetry'
+
+/** A `setup` catalog key: the finish screen's own errors or the shared passkey copy. */
+type FinishErrorKey =
+    | `testTransaction.errors.${keyof typeof en.setup.testTransaction.errors}`
+    | ReturnType<typeof getPasskeySetupKey>
 
 export function SetupConfirmationView({
     onConfirm,
@@ -39,6 +49,7 @@ export function SetupConfirmationView({
     buttonText,
     showTitle = true,
     merged = false,
+    secondary,
 }: {
     onConfirm: () => void
     isLoading?: boolean
@@ -46,57 +57,76 @@ export function SetupConfirmationView({
     buttonText?: string
     showTitle?: boolean
     merged?: boolean
+    /** the tertiary link under the primary (log out on the finish route) */
+    secondary?: ReactNode
 }) {
     const t = useTranslations('setup')
     const [isPasskeyInfoOpen, setIsPasskeyInfoOpen] = useState(false)
+    const button = (
+        <Button onClick={onConfirm} loading={isLoading} disabled={isLoading} className="w-full">
+            {buttonText || t(merged ? 'cta.finish' : 'testTransaction.confirmAndFinish')}
+        </Button>
+    )
+    // In the sign-up flow this is the "Only for you" step: the shared title block
+    // at the top, the passkey confirmation on the pinned primary.
+    if (merged) {
+        return (
+            <div className="flex flex-1 flex-col gap-6">
+                <SetupTitleBlock
+                    title={showTitle ? t('steps.advantage-control.title') : undefined}
+                    description={t('steps.advantage-control.description')}
+                />
+                {error && <Callout priority="error">{error}</Callout>}
+                <SetupFooter actions={button} />
+            </div>
+        )
+    }
     return (
         <PageStack className="flex-1">
-            <PageStack.Center className={merged ? 'my-0' : undefined}>
-                {showTitle && (
-                    <h1 className="text-heading-s">
-                        {t(merged ? 'steps.advantage-control.title' : 'testTransaction.confirmTitle')}
-                    </h1>
-                )}
-                <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
-                    {t(merged ? 'steps.advantage-control.description' : 'steps.sign-test-transaction.description')}
-                </p>
+            <PageStack.Center>
+                {showTitle && <h1 className="text-heading-s">{t('testTransaction.confirmTitle')}</h1>}
                 {error && <Callout priority="error">{error}</Callout>}
             </PageStack.Center>
-            <SetupFooter
-                actions={
-                    <Button onClick={onConfirm} loading={isLoading} disabled={isLoading} className="w-full">
-                        {buttonText || t('testTransaction.confirmAndFinish')}
-                    </Button>
-                }
-            >
-                {!merged && (
-                    <p className="pt-2 text-center text-body-xs text-foreground-secondary">
-                        <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>
-                            <Icon name="info" size={16} className="shrink-0" />
-                            {t('passkey.learnMore')}
-                        </LinkButton>
-                    </p>
-                )}
+            <SetupFooter actions={button} secondary={secondary}>
+                <p className="text-center text-body-xs text-foreground-secondary">
+                    <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>
+                        <Icon name="info" size={16} className="shrink-0" />
+                        {t('passkey.learnMore')}
+                    </LinkButton>
+                </p>
             </SetupFooter>
             <PasskeyInfoDrawer visible={isPasskeyInfoOpen} onClose={() => setIsPasskeyInfoOpen(false)} />
         </PageStack>
     )
 }
 
-const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () => void; merged?: boolean }) => {
+const SignTestTransaction = ({
+    onComplete,
+    merged = false,
+    showLogout = false,
+}: {
+    onComplete?: () => void
+    merged?: boolean
+    /** /setup/finish: a signed-in user whose passkey fails must still be able to leave */
+    showLogout?: boolean
+}) => {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
+    const tProfile = useTranslations('profile')
     const { address, handleSendUserOpEncoded } = useZeroDev()
     const { finalizeAccountSetup, isProcessing, error: setupError, handleRedirect } = useAccountSetup()
-    const { user, isFetchingUser, fetchUser } = useAuth()
+    const { user, isFetchingUser, fetchUser, logoutUser, isLoggingOut } = useAuth()
     const {
         residenceCountry,
         secondResidenceCountry,
         setIsLoading: setSetupLoading,
         signupEntryFlow,
-        fundingMethods,
+        fundingChannel,
+        paymentChannel,
     } = useSetupFlowContext()
-    const [error, setError] = useState<string | null>(null)
+    // the key, not the text: translated at render, so the message follows a
+    // language change made after it appeared (Release 164 smoke test)
+    const [errorKey, setErrorKey] = useState<FinishErrorKey | null>(null)
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
     const creatingAccountRef = useRef(false)
@@ -126,7 +156,7 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
             completionCelebratedRef.current = true
             confettiPresets.celebration()
         }
-        const inviteCode = getFromCookie('inviteCode')
+        const inviteCode = readInviteCode()
         // Native Preferences can be the only surviving copy after a WebView
         // process restart, so load the durable context before emitting the
         // terminal event or deleting it.
@@ -136,7 +166,9 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
             acquisition_source: inviteCode ? 'referred' : 'organic',
             invite_code: inviteCode || undefined,
             ...signupAnalyticsContext(signupEntryFlow),
-            funding_methods: fundingMethods,
+            funding_methods: fundingChannel
+                ? [fundingChannel === 'crypto' || fundingChannel === 'peanut' ? fundingChannel : 'bank']
+                : [],
             ...(signupAttribution
                 ? {
                       signup_journey_id: signupAttribution.journeyId,
@@ -216,7 +248,7 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
                     tags: { feature: 'signup-test-transaction' },
                     extra: { context: 'user-fetch-on-mount' },
                 })
-                setError(t('testTransaction.errors.loadUserFailed'))
+                setErrorKey('testTransaction.errors.loadUserFailed')
             })
         } else if (user) {
             console.log('[SignTestTransaction] User loaded successfully:', {
@@ -235,24 +267,28 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
         // Login flow only: an account that existed before this screen redirects
         // straight in. Signup completion owns its own redirect, guarded so the
         // account refetch cannot consume the stored destination a second time.
-        if (creatingAccountRef.current || redirectingRef.current) return
+        // A wallet can already be saved by an earlier ambiguous signup request.
+        // That is not proof of confirmation during this visit to the final step.
+        if (onComplete || creatingAccountRef.current || redirectingRef.current) return
         if (accountExists) {
             console.log('[SignTestTransaction] Account exists, redirecting to the app')
+            redirectingRef.current = true
             handleRedirect()
         }
-    }, [accountExists])
+    }, [accountExists, handleRedirect, onComplete])
 
     const handleTestTransaction = async () => {
         if (redirectingRef.current) return
+        const attemptStartedAt = Date.now()
 
         if (!address) {
-            setError(t('testTransaction.errors.noWalletAddress'))
+            setErrorKey('testTransaction.errors.noWalletAddress')
             return
         }
 
         if (!user) {
             console.error('[SignTestTransaction] Cannot proceed without user data')
-            setError(t('testTransaction.errors.userNotLoaded'))
+            setErrorKey('testTransaction.errors.userNotLoaded')
             return
         }
 
@@ -263,7 +299,7 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
             testTransactionCompleted,
         })
         setIsSigning(true)
-        setError(null)
+        setErrorKey(null)
         setSetupLoading(true)
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_STARTED)
 
@@ -298,16 +334,20 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
                 console.log('[SignTestTransaction] Test transaction already completed, retrying account creation')
             }
 
-            // if successful and account doesn't exist, finalize account setup
-            if (!accountExists) {
+            // A retry must also confirm the current choices: a prior request may
+            // have committed before the user returned and changed their plan.
+            if (onComplete || !accountExists || (creatingAccountRef.current && fundingChannel && paymentChannel)) {
                 console.log('[SignTestTransaction] Finalizing account setup')
                 creatingAccountRef.current = true
-                const success = await finalizeAccountSetup(address)
+                const success = await finalizeAccountSetup(
+                    address,
+                    fundingChannel && paymentChannel ? { fundingChannel, paymentChannel } : undefined
+                )
                 if (!success) {
                     // The request layer already recorded the concrete failure;
                     // avoid another console-captured wrapper event here.
                     console.info('[SignTestTransaction] Account setup remains retryable')
-                    setError(setupError || t('testTransaction.errors.setupFailed'))
+                    setErrorKey('testTransaction.errors.setupFailed')
                     setIsSigning(false)
                     setSetupLoading(false)
                     return
@@ -348,21 +388,37 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
                 },
             })
 
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED, { error_name: (e as Error).name })
-            setError(t('testTransaction.errors.supportNeeded'))
+            // viem wraps a signer or bundler rejection in UserOperationExecutionError with the
+            // real failure in `cause`; the login path's stale-session wrapper does the same.
+            const rootCause = e instanceof Error && e.cause instanceof Error ? e.cause : (e as Error)
+            const isAa24 = isAa24Error(rootCause)
+            // classify first: it renames the capgo shim's plain `Error('User cancelled the selector')`
+            // to NotAllowedError in place, so read error_name after it
+            const errorCode = isAa24 ? undefined : classifyPasskeyError(rootCause).code
+            const assertion = latestCeremony('get', 'user_op', attemptStartedAt)
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED, {
+                error_name: rootCause.name,
+                error_code: errorCode,
+                is_aa24: isAa24,
+                backup_eligible: assertion?.backupEligible,
+                challenge_offset: assertion?.challengeOffset,
+            })
+            if (isAa24) setErrorKey('testTransaction.errors.passkeyProviderUnsupported')
+            else if (errorCode && errorCode !== 'LOGIN_ERROR') setErrorKey(getPasskeySetupKey(errorCode))
+            else setErrorKey('testTransaction.errors.supportNeeded')
             setIsSigning(false)
             setSetupLoading(false)
         }
     }
 
     const isLoading = isSigning || isProcessing || isFetchingUser || !user
-    const displayError = error || setupError
+    const displayError = (errorKey && t(errorKey)) || setupError
 
     // determine button text based on state
     const getButtonText = () => {
         if (isFetchingUser || !user) return tCommon('loading')
         if (testTransactionCompleted && displayError) return t('testTransaction.retryAccountSetup')
-        return t('testTransaction.confirmAndFinish')
+        return undefined
     }
 
     return (
@@ -373,6 +429,13 @@ const SignTestTransaction = ({ onComplete, merged = false }: { onComplete?: () =
             buttonText={getButtonText()}
             merged={merged}
             showTitle={!!onComplete}
+            secondary={
+                showLogout && (
+                    <LinkButton onClick={() => void logoutUser()} disabled={isLoggingOut}>
+                        {tProfile('logOut')}
+                    </LinkButton>
+                )
+            }
         />
     )
 }

@@ -16,7 +16,7 @@
 // same-version replacement can add an annotated platform baseline only after
 // the store accepts it. The OTA lane compares the tree it is publishing
 // against the applicable baseline and refuses when they disagree, naming what
-// moved. That is the rule docs/NATIVE-RELEASE.md states ("bump the native
+// moved. That is the rule mono ops/releases.md (native appendix) states ("bump the native
 // version whenever you change plugins/native code") with the deliberate
 // replacement exception encoded rather than hand-waved.
 //
@@ -100,10 +100,12 @@ export const NATIVE_DEPENDENCIES = [
     '@capacitor/clipboard',
     '@capacitor/core',
     '@capacitor/device',
+    '@capacitor/filesystem',
     '@capacitor/haptics',
     '@capacitor/ios',
     '@capacitor/keyboard',
     '@capacitor/preferences',
+    '@capacitor/share',
     '@capacitor/splash-screen',
     '@capacitor/status-bar',
     '@capgo/capacitor-crisp',
@@ -173,6 +175,7 @@ export const NATIVE_INPUTS = [
 
     // iOS build surface: targets, deployment floor, capabilities.
     { kind: 'file', id: 'ios/App/App.xcodeproj/project.pbxproj', platform: 'ios' },
+    { kind: 'file', id: 'ios/App/App/PrivacyInfo.xcprivacy', platform: 'ios' },
 
     // Native resource contracts the config files delegate to, which nothing
     // else here moves for. On Android that is res/values — capacitor-passkey.xml

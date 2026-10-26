@@ -65,6 +65,10 @@ export interface paths {
                         chainId?: string;
                         telegramHandle?: string;
                         userId: string;
+                        signupPreferences?: {
+                            fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
+                            paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
+                        };
                     };
                 };
             };
@@ -318,6 +322,8 @@ export interface paths {
                                     iconUrl: string;
                                     name: string;
                                     publicDescription: string;
+                                    /** @description First-person share text in the request language, without the link. */
+                                    shareLine: string;
                                 };
                                 /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
                                 badgeCampaign: string;
@@ -369,6 +375,8 @@ export interface paths {
                                 iconUrl: string;
                                 name: string;
                                 publicDescription: string;
+                                /** @description First-person share text in the request language, without the link. */
+                                shareLine: string;
                             } & {
                                 earnable: boolean;
                                 unlock: {
@@ -460,6 +468,8 @@ export interface paths {
                                     iconUrl: string;
                                     name: string;
                                     publicDescription: string;
+                                    /** @description First-person share text in the request language, without the link. */
+                                    shareLine: string;
                                 };
                                 /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
                                 badgeCampaign: string;
@@ -5369,6 +5379,8 @@ export interface paths {
                                     iconUrl: string;
                                     name: string;
                                     publicDescription: string;
+                                    /** @description First-person share text in the request language, without the link. */
+                                    shareLine: string;
                                 };
                                 /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
                                 badgeCampaign: string;
@@ -5423,6 +5435,8 @@ export interface paths {
                                     iconUrl: string;
                                     name: string;
                                     publicDescription: string;
+                                    /** @description First-person share text in the request language, without the link. */
+                                    shareLine: string;
                                 };
                                 /** @description Opaque badge-acquisition campaign value. New integrations use the badge_campaign slug. */
                                 badgeCampaign: string;
@@ -6399,7 +6413,7 @@ export interface paths {
         put?: never;
         /**
          * Initialize withdraw with locked price
-         * @description Creates a price lock for withdraw. Returns the locked exchange rate valid for ~120 seconds. Use this before showing the user the final amount.
+         * @description Creates a price lock for withdraw. Returns the locked exchange rate valid for ~120 seconds. Use this before showing the user the final amount. With `fiatAmount`, `usdAmount` is the exact USDC (6 decimals) to sign so the bank receives `fiatAmount`.
          */
         post: {
             parameters: {
@@ -6413,10 +6427,12 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description Amount to withdraw in USD (USDC) */
-                        amount: string;
+                        /** @description Amount to withdraw in USD (USDC). Ignored when `fiatAmount` is set. */
+                        amount?: string;
                         /** @description Target fiat currency (e.g. ARS, BRL) */
                         currency: "ARS" | "BRL" | "CLP" | "COP" | "PUSD" | "CRC" | "GTQ" | "MXN" | "PHP" | "BOB";
+                        /** @description Amount the bank must receive, in `currency`, as the user typed it (at most 2 decimals). The response prices the USDC for it. */
+                        fiatAmount?: string;
                     };
                 };
             };
@@ -12023,6 +12039,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/history/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description One file in the requested format. A period with more records than one file holds returns application/zip: one file per calendar year of the time zone, in the requested format. */
+        get: {
+            parameters: {
+                query: {
+                    format: "csv" | "pdf" | "xlsx";
+                    from?: string;
+                    /** @description Exclusive upper date-time bound */
+                    to?: string;
+                    timeZone?: string;
+                    /** @description Language of the PDF and XLSX labels, dates and amounts. CSV is always English. */
+                    locale?: "en" | "es-419" | "es-AR" | "pt-BR";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/identity": {
         parameters: {
             query?: never;
@@ -12664,6 +12722,10 @@ export interface paths {
                                 banking: boolean;
                                 card: boolean;
                             };
+                            signupPreferences: {
+                                fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
+                                paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
+                            } | null;
                         } & {
                             [key: string]: unknown;
                         };
@@ -12673,6 +12735,62 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/arrival": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        country: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            prompt: "qr_ar" | "pix_br" | "card" | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

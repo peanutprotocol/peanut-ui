@@ -1,4 +1,5 @@
 'use client'
+import { useNativePlatform } from '@/utils/native-platform'
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -16,11 +17,12 @@ import { useDepositAccountCopy } from '../useDepositAccountCopy'
  * details nobody is going to return.
  */
 export function CorridorUnavailableScreen({ rail, onBack }: { rail: DepositRail; onBack: () => void }) {
+    const native = useNativePlatform()
     const { t } = useDepositAccountCopy()
     // The Manteca top-up lives at /add-money/[country]/manteca, a dynamic route
     // the native static export does not ship. rewriteMethodPath turns it into
     // the query-backed parent the export does have; on web it is a no-op.
-    const topUpHref = rail.topUpHref ? rewriteMethodPath(rail.topUpHref) : undefined
+    const topUpHref = rail.topUpHref ? rewriteMethodPath(rail.topUpHref, undefined, native.isCapacitor) : undefined
 
     return (
         <PageStack>

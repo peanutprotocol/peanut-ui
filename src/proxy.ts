@@ -3,7 +3,6 @@
 // https://nextjs.org/docs/messages/middleware-to-proxy
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import maintenanceConfig from '@/config/underMaintenance.config'
 import { shouldBlockDevRoute } from '@/constants/dev-tools.consts'
 import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import { APP_ENTRY_QUERY_PARAM } from '@/constants/migration.consts'
@@ -25,22 +24,6 @@ export function proxy(request: NextRequest) {
     // status holds even while the content mirror still has their files.
     if (isGoneMarketingPath(pathname)) {
         return new NextResponse(null, { status: 410, headers: { 'X-Robots-Tag': 'noindex' } })
-    }
-
-    // check if full maintenance mode is enabled
-    if (maintenanceConfig.enableFullMaintenance) {
-        const allowedPaths = ['/', '/maintenance', '/apple-app-site-association', '/support']
-        if (
-            !allowedPaths.includes(pathname) &&
-            !pathname.startsWith('/api/') &&
-            !pathname.startsWith('/_next/') &&
-            !pathname.startsWith('/.well-known/') &&
-            !pathname.match(
-                /.*\.(jpg|jpeg|png|gif|svg|ico|ttf|woff|woff2|eot|css|js|json|xml|txt|mp3|mp4|webm|ogg|wav|flac|aac)$/
-            )
-        ) {
-            return NextResponse.redirect(new URL('/maintenance', request.url))
-        }
     }
 
     // QR downloads enter through /home because that path is already claimed by

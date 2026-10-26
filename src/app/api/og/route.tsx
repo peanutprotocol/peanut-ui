@@ -41,18 +41,27 @@ const getFont = async (file: string) => {
     }
 }
 
+// the brand masters are read from disk and inlined, so the card does not
+// depend on a public/ copy being served
+const brandDir = path.join(process.cwd(), 'src', 'assets', 'brand')
+const getSvgDataUri = async (file: string) => {
+    const svg = await fs.readFile(path.join(brandDir, file), 'utf-8')
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
+}
+
 export async function GET(req: NextRequest) {
     // grab the full origin (protocol + host + port)
     const origin = (await getOrigin()) || BASE_URL
 
-    // fetch the four fonts in parallel
-    let knerdFilled, knerdOutline, montserratMedium, montserratSemibold
+    // fetch the four fonts and the wordmark in parallel
+    let knerdFilled, knerdOutline, montserratMedium, montserratSemibold, wordmark
     try {
-        ;[knerdFilled, knerdOutline, montserratMedium, montserratSemibold] = await Promise.all([
+        ;[knerdFilled, knerdOutline, montserratMedium, montserratSemibold, wordmark] = await Promise.all([
             getFont('knerd-filled.ttf'),
             getFont('knerd-outline.ttf'),
             getFont('montserrat-medium.ttf'),
             getFont('montserrat-semibold.ttf'),
+            getSvgDataUri('wordmark.svg'),
         ])
     } catch (err) {
         console.error('Error loading fonts for OG image:', err)
@@ -87,7 +96,7 @@ export async function GET(req: NextRequest) {
                 username={username}
                 scribbleSrc={`${origin}/scribble.svg`}
                 iconSrc={`${origin}/icons/peanut-icon.svg`}
-                logoSrc={`${origin}/logos/peanut-logo.svg`}
+                logoSrc={wordmark}
                 arrowSrcs={arrowSrcs}
             />,
             {
@@ -125,7 +134,7 @@ export async function GET(req: NextRequest) {
             <ProfileCardOG
                 username={username}
                 scribbleSrc={`${origin}/scribble.svg`}
-                logoSrc={`${origin}/logos/peanut-logo.svg`}
+                logoSrc={wordmark}
                 iconSrc={`${origin}/icons/peanut-icon.svg`}
             />,
             {
@@ -152,7 +161,7 @@ export async function GET(req: NextRequest) {
             <ReceiptCardOG
                 link={link}
                 iconSrc={`${origin}/icons/peanut-icon.svg`}
-                logoSrc={`${origin}/logos/peanut-logo.svg`}
+                logoSrc={wordmark}
                 scribbleSrc={`${origin}/scribble.svg`}
                 arrowSrcs={arrowSrcs}
             />,
@@ -180,7 +189,7 @@ export async function GET(req: NextRequest) {
         <PaymentCardOG
             link={link}
             iconSrc={`${origin}/icons/peanut-icon.svg`}
-            logoSrc={`${origin}/logos/peanut-logo.svg`}
+            logoSrc={wordmark}
             scribbleSrc={`${origin}/scribble.svg`}
             arrowSrcs={arrowSrcs}
         />,

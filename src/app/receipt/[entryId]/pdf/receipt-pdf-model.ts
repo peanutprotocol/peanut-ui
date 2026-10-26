@@ -162,6 +162,17 @@ export function buildReceiptPdfModel(
     // Money, the provider last (receipt-rows ruling)
     push(t('common.exchangeRate'), receiptExchangeRate(transaction))
 
+    // The network fee a crypto withdrawal settled, and what arrived. Only a
+    // charged fee is printed: the document records what happened, and a
+    // pending fee has not happened yet. Same status gate as the screen.
+    const deliveredSomething = !['cancelled', 'failed', 'refunded'].includes(status ?? '')
+    if (transaction.networkFeeDetails?.state === 'charged' && deliveredSomething) {
+        push(t('transaction.rows.networkFee'), transaction.networkFeeDetails.amountDisplay)
+        if (transaction.recipientReceivesUsd !== undefined) {
+            push(t('transaction.rows.recipientReceives'), `$${formatAmount(transaction.recipientReceivesUsd)}`)
+        }
+    }
+
     if (transaction.fee !== undefined && !isCancelled) {
         push(t('transaction.rows.fee'), formatAmount(transaction.fee as number))
     }
@@ -171,7 +182,7 @@ export function buildReceiptPdfModel(
     const provider = providerId ? PROVIDERS[providerId] : undefined
     if (provider) {
         push(
-            t(providerId === 'third-national' ? 'provider.label.cardIssuer' : 'provider.label.provider'),
+            t(providerId === 'third-national' ? 'provider.label.cardProvider' : 'provider.label.provider'),
             provider.brand
         )
     }

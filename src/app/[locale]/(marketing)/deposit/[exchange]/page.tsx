@@ -7,6 +7,7 @@ import type { Locale } from '@/i18n/types'
 import { getTranslations, t } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import {
+    contentArticleMetadata,
     availableContentLocales,
     contentLocaleFor,
     readPageContentLocalized,
@@ -59,7 +60,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         const contentLocale = contentLocaleFor('deposit', deposit.key, locale)
         return {
             ...metadataHelper({
-                locale,
+                locale: contentLocale,
                 title: mdxContent.frontmatter.title,
                 description: mdxContent.frontmatter.description,
                 canonical: `/${contentLocale}/deposit/${rawSlug}`,
@@ -100,6 +101,7 @@ export default async function DepositPageLocalized({ params }: PageProps) {
 
     const mdxSource = readPageContentLocalized<ContentFrontmatter>('deposit', deposit.key, locale)
     if (!mdxSource || mdxSource.frontmatter.published === false) notFound()
+    const contentLocale = contentLocaleFor('deposit', deposit.key, locale)
 
     const { content } = await renderContent(mdxSource.body, locale)
     const i18n = getTranslations(locale)
@@ -108,20 +110,12 @@ export default async function DepositPageLocalized({ params }: PageProps) {
     return (
         <ContentPage
             locale={locale}
+            contentLocale={contentLocale}
             breadcrumbs={[
                 { name: i18n.home, href: `/${locale}` },
                 { name: deposit.displayName, href: url },
             ]}
-            article={
-                mdxSource.frontmatter.generated_at
-                    ? {
-                          title: mdxSource.frontmatter.title,
-                          description: mdxSource.frontmatter.description,
-                          url,
-                          datePublished: mdxSource.frontmatter.generated_at,
-                      }
-                    : undefined
-            }
+            article={contentArticleMetadata(mdxSource, url)}
         >
             {content}
         </ContentPage>

@@ -1,22 +1,28 @@
 import ChainChip from '@/components/AddMoney/components/ChainChip'
 import { CHAIN_LOGOS, OTHER_SUPPORTED_CHAINS, SUPPORTED_EVM_CHAINS, getSupportedTokens } from '@/constants/rhino.consts'
-import { FIAT_RAILS } from '@/constants/faq.consts'
 import { chainDisplayName } from '@/utils/chain-display.utils'
 import { t } from '@/i18n/interpolate'
-import type { LandingSupportedRailsStrings } from './landing.types'
+import type { FiatRailListing, LandingSupportedRailsStrings } from './landing.types'
 
 /**
  * Rich answer body for the "which networks, tokens and banks?" landing FAQ item.
  * Renders from the same rhino.consts constants as the add-money Choose Network
- * drawer (and FIAT_RAILS shared with the plain-text SEO answer), so the FAQ
- * always advertises exactly what the app supports.
+ * drawer. The bank rails arrive as `rails`, built by supportedFiatRails — the
+ * same list the plain-text SEO answer prints — so the FAQ always advertises
+ * exactly what the app supports.
  *
  * Copy comes from the landing catalog via `strings`, like every other FAQ body —
  * the chain, token and rail names inside it stay as the app spells them.
  */
-export function SupportedRailsFaqAnswer({ strings }: { strings: LandingSupportedRailsStrings }) {
+export function SupportedRailsFaqAnswer({
+    strings,
+    rails,
+}: {
+    strings: LandingSupportedRailsStrings
+    rails: FiatRailListing[]
+}) {
     return (
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-6">
             <div>
                 <p className="mb-2">
                     {t(strings.crypto, {
@@ -41,9 +47,9 @@ export function SupportedRailsFaqAnswer({ strings }: { strings: LandingSupported
             </div>
             <div>
                 <p className="mb-2">{strings.banks}</p>
-                <ul className="flex flex-col gap-1.5">
-                    {FIAT_RAILS.map((rail) => (
-                        <li key={rail.name} className="flex items-baseline gap-2">
+                <ul className="flex flex-col gap-2">
+                    {rails.map((rail) => (
+                        <li key={rail.corridor} className="flex items-baseline gap-2">
                             <span>{rail.flag}</span>
                             <span>{rail.name}</span>
                             <span className="text-body-m text-foreground-secondary">

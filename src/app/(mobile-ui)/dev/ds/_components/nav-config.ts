@@ -1,5 +1,7 @@
 import {
+    AppWindow,
     BellRing,
+    CalendarRange,
     Blocks,
     Boxes,
     CaseUpper,
@@ -17,12 +19,14 @@ import {
     CreditCard,
     Ellipsis,
     FileSearch,
+    FileText,
     FlaskConical,
     Gauge,
     Gift,
     GitCompare,
     Group,
     Heading1,
+    Images,
     KeyRound,
     Layers,
     Layers2,
@@ -53,6 +57,7 @@ import {
     SlidersHorizontal,
     Sparkles,
     Square,
+    Stamp,
     SquareCheck,
     Table2,
     TextAlignStart,
@@ -105,6 +110,7 @@ export const TIERS: NavTier[] = [
     { label: 'Patterns', href: '/dev/ds/patterns', icon: Puzzle, key: 'patterns' },
     { label: 'Primitives', href: '/dev/ds/primitives', icon: Component, key: 'primitives' },
     { label: 'Foundations', href: '/dev/ds/foundations', icon: Blocks, key: 'foundations' },
+    { label: 'Marketing', href: '/dev/ds/marketing', icon: Megaphone, key: 'marketing' },
     { label: 'Audit', href: '/dev/ds/audit', icon: ClipboardCheck, key: 'audit' },
     { label: 'Playground', href: '/dev/ds/playground', icon: FlaskConical, key: 'playground' },
 ]
@@ -170,6 +176,14 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             href: '/dev/ds/primitives/button',
             description: 'Primary interaction component. 3 variants, 3 sizes, shadow options, long-press support',
             status: 'production',
+        },
+        {
+            label: 'Calendar',
+            icon: CalendarRange,
+            href: '/dev/ds/primitives/calendar',
+            description:
+                'Range calendar over react-day-picker, semantic tokens only. Built for the statement period on Profile → Statements',
+            status: 'limited',
         },
         {
             label: 'Card',
@@ -487,6 +501,46 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             description: 'Percentage slider with magnetic snap points. Used by AmountInput in contribute-pot',
             status: 'production',
             usages: 1,
+        },
+    ],
+    // the marketing surfaces' chapter of the doc site: what the live site ships is the brand.
+    marketing: [
+        {
+            label: 'Brand',
+            icon: Stamp,
+            href: '/dev/ds/marketing/brand',
+            description: 'Grounds, buttons and panels, body and display type, Knerd — the classes to copy',
+            status: 'production',
+        },
+        {
+            label: 'Knerd',
+            icon: Type,
+            href: '/dev/ds/marketing/knerd',
+            description:
+                'Display lettering and the exact Follow the pull hero animation: live reference, sizing and motion specs',
+            status: 'limited',
+        },
+        {
+            label: 'Assets',
+            icon: Images,
+            href: '/dev/ds/marketing/assets',
+            description:
+                'The art you may use: mascot, doodles, gloves, logo set, easter eggs, avatars, badges. Not here = not approved',
+            status: 'production',
+        },
+        {
+            label: 'Landing',
+            icon: AppWindow,
+            href: '/dev/ds/marketing/landing',
+            description: 'Pick a hero, build the CTA, keep the containers. Real components at 390 and 1440',
+            status: 'production',
+        },
+        {
+            label: 'Content',
+            icon: FileText,
+            href: '/dev/ds/marketing/content',
+            description: 'Hero, FAQ, tables, gutter, page header — one rule each, with the mdx to copy',
+            status: 'production',
         },
     ],
     audit: [

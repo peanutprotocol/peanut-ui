@@ -3,6 +3,7 @@ import { BRIDGE_ALPHA3_TO_ALPHA2, countryData, type CountryData } from '@/compon
 import { isValidRoutingNumber, isValidSortCode, isValidUKAccountNumber } from '@/utils/bridge-accounts.utils'
 import { getCountryCodeForWithdraw, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
 import { MX_STATES, US_STATES } from '@/constants/stateCodes.consts'
+import { type Account } from '@/interfaces/interfaces'
 
 /**
  * What a bank account looks like in one country, in one place.
@@ -35,6 +36,12 @@ export interface BankCorridorField {
     test?: (value: string) => boolean
     /** What reaches the payload, when it is not the typed value. */
     normalize?: (value: string) => string
+    /**
+     * Where a saved account keeps this detail. The same number at another bank
+     * is another account, so a typed account reuses a saved one only when every
+     * detail it asks for matches (TASK-23891).
+     */
+    savedValue?: (account: Account) => string | null | undefined
 }
 
 export interface BankCorridorSpec {
@@ -173,6 +180,7 @@ const SPECS: Record<string, BankCorridorSpec> = {
                 requiredKey: 'routingNumberRequired',
                 invalidKey: 'routingNumberInvalid',
                 test: isValidRoutingNumber,
+                savedValue: (account) => account.routingNumber,
             },
         ],
     },
@@ -196,6 +204,8 @@ const SPECS: Record<string, BankCorridorSpec> = {
                 invalidKey: 'sortCodeInvalid',
                 test: isValidSortCode,
                 normalize: digits,
+                // a UK row keeps its sort code in the routing number as well
+                savedValue: (account) => account.sortCode ?? account.routingNumber,
             },
         ],
     },
@@ -210,6 +220,32 @@ const SPECS: Record<string, BankCorridorSpec> = {
         needsAddress: false,
         fields: COLOMBIAN_FIELDS,
     },
+}
+
+/**
+ * The saved account the typed details name, if there is one: the same kind of
+ * account, the same number, and the same value for every detail the corridor
+ * asks for. A detail no saved account keeps cannot be compared, so it never
+ * matches, and the API decides. `accountNumber` is the number as the payload
+ * carries it.
+ */
+export function findSavedBankAccount(
+    savedAccounts: readonly Account[],
+    spec: BankCorridorSpec,
+    accountNumber: string,
+    details: Partial<Record<BankCorridorField['name'], string>>
+): Account | undefined {
+    // spaces and dashes only: an IBAN's letters are part of the number
+    const comparable = (value: string | null | undefined) => (value ?? '').replace(/[-\s]/g, '').toLowerCase()
+    return savedAccounts.find(
+        (account) =>
+            (account.type as string) === spec.accountType &&
+            comparable(account.identifier) === comparable(accountNumber) &&
+            spec.fields.every((field) => {
+                const saved = comparable(field.savedValue?.(account))
+                return saved !== '' && saved === comparable(details[field.name])
+            })
+    )
 }
 
 /** Countries that reach the same corridor under more than one code. */
@@ -341,4 +377,63 @@ export function corridorAcceptsAddressCountry(spec: BankCorridorSpec, country: s
     const code = addressCountryAlpha2(country)
     if (!code || !spec.addressCountries) return true
     return spec.addressCountries.has(code)
+}
+
+/**
+ * Countries the provider refuses as a payout owner's address, ISO alpha-2.
+ *
+ * China only, and on evidence: a live production test (2026-10-11) had
+ * `address.country=CHN` refused as "not supported" on an external account,
+ * while HKG, TWN, SGP, CAN and GBR were taken. The provider's other
+ * "unavailable" countries are about where a customer lives, not where an
+ * account owner's address is, so they stay until a test says otherwise.
+ *
+ * This filters the bank form's own country list. The shared residence list
+ * keeps China: a resident must be able to answer truthfully at signup.
+ */
+const REFUSED_OWNER_ADDRESS_COUNTRIES: ReadonlySet<string> = new Set(['CN'])
+
+/** Can a payout owner's address be in this country (alpha-2 or alpha-3)? */
+export function isOwnerAddressCountryAccepted(country: string | null | undefined): boolean {
+    const code = addressCountryAlpha2(country)
+    return !code || !REFUSED_OWNER_ADDRESS_COUNTRIES.has(code)
+}
+
+/** What is wrong with a US street line, as the provider reads it. */
+export type UsStreetProblem = 'noNumber' | 'poBox'
+
+// "PO Box", "P.O. Box", "POBox", "Post Office Box", "PMB", "Private Mailbox".
+// A rural route ("RR 2 Box 152") is not matched: nobody has shown the
+// provider refuses it.
+const PO_BOX_PATTERN = /\b(?:p\.?\s*o\.?\s*box|post\s+office\s+box|pmb|private\s+mail\s*box)\b/i
+
+/**
+ * A US street line the provider will refuse, or null.
+ *
+ * The provider wants a street number on a US address, and no PO box or PMB
+ * (external accounts API). It does not say the number comes first, and a strict
+ * "starts with a digit" rule would refuse real addresses: "Apt 4B, 123 Main
+ * St", Wisconsin and Utah grid addresses ("N123W456 Main Rd"), Puerto Rico
+ * urbanizations ("Urb Las Gladiolas 150 Calle A"). So only a line with no digit
+ * at all is refused for the number; see `usStreetLacksLeadingNumber` for the
+ * softer check.
+ */
+export function usStreetProblem(street: string): UsStreetProblem | null {
+    const value = street.trim()
+    if (!value) return null
+    if (PO_BOX_PATTERN.test(value)) return 'poBox'
+    if (!/\d/.test(value)) return 'noNumber'
+    return null
+}
+
+/**
+ * Does a US street line not start with its number?
+ *
+ * Most US addresses do ("123 Main St"), and a line that starts elsewhere may
+ * carry only a unit or a ZIP code the provider cannot use as the street
+ * number. It is only a hint: the exceptions above are real addresses.
+ */
+export function usStreetLacksLeadingNumber(street: string): boolean {
+    const value = street.trim()
+    return !!value && !/^\d/.test(value)
 }

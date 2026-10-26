@@ -1,10 +1,12 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { act, renderHook } from '@testing-library/react'
 import { NuqsTestingAdapter, type OnUrlUpdateFunction } from 'nuqs/adapters/testing'
-import type { ReactNode } from 'react'
-import { SETUP_DEFAULT_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
+import { useState, type ReactNode } from 'react'
+import { SETUP_DEFAULT_SCREEN, postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
 import { SetupFlowProvider, useSetupFlowContext } from '../SetupFlowContext'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
-import { filterSetupStepsForResidence } from '../filterSetupSteps'
+import { filterSetupStepsForCountry, filterSetupStepsForInvite } from '../filterSetupSteps'
 
 // native detection is mocked so the history-mode contract below can flip it
 let mockIsNativeBridge = false
@@ -19,7 +21,7 @@ jest.mock('@/utils/capacitor', () => ({
 // and the point of no return after a no-back step renders.
 
 const STEPS = setupSteps.filter((s) =>
-    ['landing', 'welcome', 'signup', 'residence', 'passkey-permission', 'advantage-control'].includes(s.screenId)
+    ['landing', 'welcome', 'signup', 'residence', 'notification-permission', 'advantage-control'].includes(s.screenId)
 )
 
 const wrapperFor = (searchParams: Record<string, string>) =>
@@ -52,25 +54,30 @@ const seedSteps = async (
 
 describe('useSetupFlow (URL stepper)', () => {
     it.each([
-        ['PT', 'advantage-bank', 'advantage-card'],
-        ['AR', 'advantage-bank', 'advantage-local'],
-        ['IN', 'advantage-bank', 'advantage-exchange'],
-        ['JP', 'advantage-exchange', 'advantage-card'],
-        ['RU', 'advantage-exchange', 'advantage-people'],
-    ])('walks funding between the selected feature screens for %s', async (country, first, second) => {
-        const { result } = renderFlow({ screen: 'residence' })
+        ['PT', ['advantage-fees', 'advantage-card']],
+        ['IN', ['advantage-fees']],
+        ['JP', ['advantage-card']],
+        ['RU', []],
+    ])('walks the sell screens offered between the inviter and residence for %s', async (country, features) => {
+        const { result } = renderFlow({ screen: 'invite' })
         const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
-        await seedSteps(result, filterSetupStepsForResidence(setupSteps, restrictions, country))
-        for (const expected of [first, 'funding-methods', second]) {
+        await seedSteps(result, filterSetupStepsForCountry(setupSteps, restrictions, country as string))
+        for (const expected of features) {
             await act(async () => {
                 await result.current.flow.handleNext()
             })
             expect(result.current.flow.step?.screenId).toBe(expected)
         }
+        await act(async () => {
+            await result.current.flow.handleNext()
+        })
+        expect(result.current.flow.step?.screenId).toBe('residence')
+        for (const expected of [...features].reverse()) {
+            await act(async () => result.current.flow.handleBack())
+            expect(result.current.flow.step?.screenId).toBe(expected)
+        }
         await act(async () => result.current.flow.handleBack())
-        expect(result.current.flow.step?.screenId).toBe('funding-methods')
-        await act(async () => result.current.flow.handleBack())
-        expect(result.current.flow.step?.screenId).toBe(first)
+        expect(result.current.flow.step?.screenId).toBe('invite')
     })
 
     it('uses the registry-derived master order until runtime-filtered steps arrive', () => {
@@ -95,7 +102,7 @@ describe('useSetupFlow (URL stepper)', () => {
     })
 
     it('handleNext walks the filtered list and reports the end explicitly — no clamp loop (TASK-21404)', async () => {
-        const { result } = renderFlow({ screen: 'passkey-permission' })
+        const { result } = renderFlow({ screen: 'notification-permission' })
         await seedSteps(result)
         await act(async () => {
             await result.current.flow.handleNext()
@@ -153,6 +160,141 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.flow.step?.screenId).toBe('advantage-control')
     })
 
+    it('walks every post-registration screen backward to the inviter without reopening the username', async () => {
+        const { result } = renderFlow({ screen: 'advantage-control' })
+        await seedSteps(result, setupSteps)
+        await act(async () => {
+            result.current.context.setNoBackLockScreenId(postRegistrationScreen(setupScreenIds))
+        })
+        for (const expected of [
+            'notification-permission',
+            'notification-email',
+            'payment-plan',
+            'residence',
+            'advantage-card',
+            'advantage-fees',
+            'invite',
+        ]) {
+            await act(async () => {
+                result.current.flow.handleBack()
+            })
+            expect(result.current.flow.step?.screenId).toBe(expected)
+        }
+        // the account exists: neither Back nor a URL move may reopen the username step
+        await act(async () => {
+            result.current.flow.handleBack()
+        })
+        expect(result.current.flow.step?.screenId).toBe('invite')
+        for (const target of ['signup', 'landing'] as const) {
+            await act(async () => {
+                result.current.flow.setScreenId(target)
+            })
+            expect(result.current.flow.step?.screenId).toBe('invite')
+        }
+    })
+
+    it.each([
+        ['the inviter question', false, 'PT', 'invite'],
+        [
+            'the first sell screen when the signup has an invite or the inviter was just accepted',
+            true,
+            'PT',
+            'advantage-fees',
+        ],
+        ['residence when nothing else is offered', true, 'RU', 'residence'],
+    ])('locks the way back at %s', (_label, hasInvite, country, expected) => {
+        const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
+        const steps = filterSetupStepsForInvite(
+            filterSetupStepsForCountry(setupSteps, restrictions, country),
+            hasInvite
+        )
+        expect(postRegistrationScreen(steps.map((step) => step.screenId))).toBe(expected)
+    })
+
+    it('an accepted inviter cannot be reopened by Back, a URL move or a history pop', async () => {
+        let navigate!: (screen: string) => void
+        function Wrapper({ children }: { children: ReactNode }) {
+            const [screen, setScreen] = useState('invite')
+            navigate = setScreen
+            return (
+                <NuqsTestingAdapter hasMemory searchParams={{ screen }}>
+                    <SetupFlowProvider masterScreenIds={setupScreenIds}>{children}</SetupFlowProvider>
+                </NuqsTestingAdapter>
+            )
+        }
+        const rendered: (string | undefined)[] = []
+        const { result } = renderHook(
+            () => {
+                const context = useSetupFlowContext()
+                const flow = useSetupFlow()
+                rendered.push(flow.step?.screenId)
+                return { context, flow }
+            },
+            { wrapper: Wrapper }
+        )
+        // As the page does: the lock sits on the first screen after registration.
+        const armLock = async (steps: typeof setupSteps) => {
+            await seedSteps(result, steps)
+            await act(async () => {
+                result.current.context.setNoBackLockScreenId(postRegistrationScreen(steps.map((s) => s.screenId)))
+            })
+        }
+        await armLock(setupSteps)
+        await act(async () => {
+            await result.current.flow.handleNext()
+        })
+        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+
+        // The layout drops the step once the inviter is accepted.
+        await armLock(filterSetupStepsForInvite(setupSteps, true))
+        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+        await act(async () => result.current.flow.handleBack())
+        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+        await act(async () => {
+            result.current.flow.setScreenId('invite')
+        })
+        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+        // The browser still holds ?screen=invite: popping to it lands on the lock, and the
+        // first screen is never shown on the way.
+        rendered.length = 0
+        await act(async () => {
+            navigate('invite')
+        })
+        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+        expect(rendered).not.toContain('landing')
+    })
+
+    it('derives backward and forward arrival direction for external URL changes', async () => {
+        let navigate!: (screen: string) => void
+        function Wrapper({ children }: { children: ReactNode }) {
+            const [screen, setScreen] = useState('advantage-card')
+            navigate = setScreen
+            return (
+                <NuqsTestingAdapter hasMemory searchParams={{ screen }}>
+                    <SetupFlowProvider masterScreenIds={setupScreenIds}>{children}</SetupFlowProvider>
+                </NuqsTestingAdapter>
+            )
+        }
+        const { result } = renderHook(
+            () => {
+                const context = useSetupFlowContext()
+                return { context, flow: useSetupFlow() }
+            },
+            { wrapper: Wrapper }
+        )
+        await seedSteps(result, setupSteps)
+        await act(async () => {
+            navigate('advantage-fees')
+        })
+        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+        expect(result.current.flow.direction).toBe(-1)
+        expect(result.current.context.direction).toBe(-1)
+        await act(async () => {
+            navigate('advantage-card')
+        })
+        expect(result.current.flow.direction).toBe(1)
+    })
+
     it('a STALE terminal URL never locks: with no rendered lock, entry resolution can replace it (Chip round 2)', async () => {
         // fresh logged-out session lands on /setup?screen=advantage-control
         // (a copied/reloaded stale URL) — the page is still on its loading
@@ -192,19 +334,16 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.flow.step?.screenId).toBe(SETUP_DEFAULT_SCREEN)
     })
 
-    it('keeps email and notification choices after passkey creation and celebrates last', () => {
+    it('creates the account on the username step, then inviter, sell screens, residence, plan, contact and finish', () => {
+        expect(postRegistrationScreen(setupScreenIds)).toBe('invite')
         expect(setupScreenIds).toEqual([
             'landing',
             'signup',
+            'invite',
             'advantage-fees',
-            'residence',
-            'advantage-bank',
             'advantage-card',
-            'advantage-exchange',
-            'advantage-local',
-            'advantage-people',
-            'funding-methods',
-            'passkey-permission',
+            'residence',
+            'payment-plan',
             'notification-email',
             'notification-permission',
             'advantage-control',

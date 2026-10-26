@@ -7,9 +7,15 @@ interface ContentLinkRowProps {
     href: string
     title: string
     description?: string
+    /** Keep guide requirements and availability visible on narrow screens. */
+    wrap?: boolean
     /** Position in the group — the row draws its own top/middle/bottom corners. */
     index: number
     total: number
+    /** Language of the title and description when it is not the page's (an English fallback). */
+    lang?: string
+    /** Visible note that the item is in another language, e.g. "En inglés". */
+    languageLabel?: string
 }
 
 /**
@@ -21,16 +27,49 @@ interface ContentLinkRowProps {
  * ListGroup, whose cloneElement would put `position` on the anchor, cannot own
  * the grouping here.
  */
-export function ContentLinkRow({ href, title, description, index, total }: ContentLinkRowProps) {
+export function ContentLinkRow({
+    href,
+    title,
+    description,
+    wrap = false,
+    index,
+    total,
+    lang,
+    languageLabel,
+}: ContentLinkRowProps) {
+    const heading = (
+        <h3 lang={lang} className={wrap ? 'group-hover:underline' : 'truncate group-hover:underline'}>
+            {title}
+        </h3>
+    )
     return (
         <Link
             href={href}
+            hrefLang={lang}
             className="group block rounded-sm focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid"
         >
             <ListItem
                 position={getCardPosition(index, total)}
-                title={<h3 className="truncate group-hover:underline">{title}</h3>}
-                body={description}
+                title={
+                    languageLabel ? (
+                        <div className="flex min-w-0 items-baseline gap-2">
+                            {heading}
+                            <span className="shrink-0 text-label-m text-foreground-secondary">{languageLabel}</span>
+                        </div>
+                    ) : (
+                        heading
+                    )
+                }
+                body={
+                    lang && description ? (
+                        <span lang={lang} className={wrap ? 'block' : 'block truncate'}>
+                            {description}
+                        </span>
+                    ) : (
+                        description
+                    )
+                }
+                bodyWrap={wrap}
                 trailing={<Icon name="arrow-up-right" size={20} className="text-foreground-secondary" />}
                 className="transition-colors duration-instant group-hover:bg-background-disabled"
             />

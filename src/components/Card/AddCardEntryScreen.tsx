@@ -11,12 +11,14 @@ interface Props {
     onApply: () => void | Promise<void>
     onPrev?: () => void
     applyError?: string | null
+    needsFundingBeforeApply?: boolean
 }
 
 const FEATURE_KEYS = ['entry.featureBalance', 'entry.featureControl', 'entry.featureOnline'] as const
 
-const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
+const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError, needsFundingBeforeApply = false }) => {
     const t = useTranslations('card')
+    const tAdd = useTranslations('addMoney')
     const [isApplying, setIsApplying] = useState(false)
 
     const handleClick = async () => {
@@ -36,6 +38,7 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
             <div className="flex flex-col gap-2">
                 <h1 className="text-heading-s text-foreground-primary">{t('entry.title')}</h1>
                 <p className="text-foreground-secondary">{t('entry.description')}</p>
+                {needsFundingBeforeApply && <p className="text-foreground-secondary">{t('onboarding.fundingBody')}</p>}
             </div>
 
             {/* The DS checklist body — Callout's `items` slot exists
@@ -59,7 +62,7 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
                 shadowSize="4"
                 className="w-full"
             >
-                {t('entry.cta')}
+                {needsFundingBeforeApply ? tAdd('title') : t('entry.cta')}
             </Button>
         </PageStack>
     )

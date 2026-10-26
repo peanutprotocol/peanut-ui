@@ -8,9 +8,10 @@ import { BASE_URL } from '@/constants/general.consts'
  *
  * DOCTRINE (mono engineering/patterns/feature-gates.md): a PostHog flag
  * answers "have we LAUNCHED this?" — flipped in the PostHog UI, no deploy,
- * cohort/% targeting. It is NOT a kill-switch: incident switches stay in
- * code (`underMaintenance.config.ts`). Flags are scaffolding — delete them
- * once a launch is permanent.
+ * cohort/% targeting. It is NOT a kill-switch: incident switches come from
+ * our API (`/config/kill-switches`, read through
+ * `features/kill-switches/kill-switches-store.ts`), not PostHog and not code.
+ * Flags are scaffolding — delete them once a launch is permanent.
  */
 const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
 

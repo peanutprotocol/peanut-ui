@@ -1,11 +1,13 @@
 'use client'
 
 import Image from 'next/image'
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { AVATAR_SIZE_CLASSES, type AvatarSize } from '@/components/Profile/avatar-size.consts'
 import { twMerge } from '@/utils/tw'
 import { avatarSrc, letterAvatarSrc } from './avatar.utils'
+import { useAvatarArt } from './useAvatarArt'
 
 interface UserAvatarProps {
     /** Display name: the source of the day-0 letter sticker and of the label. */
@@ -28,14 +30,18 @@ interface UserAvatarProps {
  * (art direction, 2026-09-03). Without a pick, the first letter of the name as
  * a sticker. A name that does not start with a-z falls through to the
  * first-letter avatar, which stays the one place that renders a bare initial.
+ * Art that fails to load renders that same initials avatar.
  */
 export function UserAvatar({ name, avatarKey, size = 's', className, decorative }: UserAvatarProps) {
     const t = useTranslations('common')
-    const picked = avatarKey ? avatarSrc(avatarKey) : null
-    const letter = picked ? null : letterAvatarSrc(name)
+    const served = useAvatarArt()
+    const picked = avatarKey ? avatarSrc(avatarKey, served) : null
+    const letter = picked ? null : letterAvatarSrc(name, served)
     const art = picked ?? letter
+    // keyed by url, so new art gets its own try
+    const [failedArt, setFailedArt] = useState<string | null>(null)
 
-    if (!art) {
+    if (!art || art === failedArt) {
         const initialsAvatar = name ? (
             <AvatarWithBadge size={size} name={name} firstLetterOnly className={className} />
         ) : (
@@ -70,7 +76,15 @@ export function UserAvatar({ name, avatarKey, size = 's', className, decorative 
                 className
             )}
         >
-            <Image src={art} alt="" width={176} height={176} unoptimized className="size-full object-contain" />
+            <Image
+                src={art}
+                alt=""
+                width={176}
+                height={176}
+                unoptimized
+                className="size-full object-contain"
+                onError={() => setFailedArt(art)}
+            />
         </span>
     )
 }

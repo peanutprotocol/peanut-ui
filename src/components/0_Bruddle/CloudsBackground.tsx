@@ -1,6 +1,13 @@
 'use client'
 
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useSyncExternalStore, type CSSProperties } from 'react'
+
+const subscribeViewportWidth = (onChange: () => void) => {
+    window.addEventListener('resize', onChange)
+    return () => window.removeEventListener('resize', onChange)
+}
+const viewportWidth = () => window.innerWidth
+const serverViewportWidth = () => 1200
 
 const cloud1 = (
     <svg width="209" height="98" viewBox="0 0 209 98" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -69,23 +76,8 @@ interface CloudsBackgroundProps {
 }
 
 const CloudsBackground: React.FC<CloudsBackgroundProps> = ({ minimal = false }) => {
-    const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200)
-    const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false)
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return undefined
-
-        const handleResize = () => {
-            if (typeof window === 'undefined') return
-            setIsMobile(window.innerWidth <= 768)
-            setScreenWidth(window.innerWidth)
-        }
-
-        handleResize()
-
-        window.addEventListener('resize', handleResize)
-        return () => window.removeEventListener('resize', handleResize)
-    }, [])
+    const screenWidth = useSyncExternalStore(subscribeViewportWidth, viewportWidth, serverViewportWidth)
+    const isMobile = screenWidth <= 768
 
     // Separate cloud configurations for desktop and mobile
     const desktopClouds = [

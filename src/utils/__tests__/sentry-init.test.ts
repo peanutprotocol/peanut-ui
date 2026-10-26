@@ -90,6 +90,19 @@ describe('initSentry', () => {
         expect(Sentry.init.mock.calls[0][0]).toMatchObject({ attachStacktrace: true })
     })
 
+    it('keeps a send-link secret out of web errors and transactions', async () => {
+        const { initSentry, Sentry } = load({ NEXT_PUBLIC_VERCEL_ENV: 'production' })
+        Sentry.getClient.mockReturnValue(undefined)
+        initSentry()
+        await flush()
+
+        const { beforeSend, beforeSendTransaction } = Sentry.init.mock.calls[0][0]
+        const url = 'https://peanut.me/claim?c=42161&v=v4.4&i=552#p=fakeClaimSecret0123'
+        const breadcrumbs = [{ category: 'navigation', data: { to: `/setup?redirect_uri=${encodeURIComponent(url)}` } }]
+        expect(JSON.stringify(beforeSend({ request: { url }, breadcrumbs }))).not.toContain('fakeClaimSecret0123')
+        expect(JSON.stringify(beforeSendTransaction({ request: { url } }))).not.toContain('fakeClaimSecret0123')
+    })
+
     it('leaves an existing client alone', async () => {
         const { initSentry, Sentry } = load({ NEXT_PUBLIC_VERCEL_ENV: 'production' })
         Sentry.getClient.mockReturnValue({})
@@ -135,10 +148,60 @@ describe('withoutNoise', () => {
         expect(inner).not.toHaveBeenCalled()
     })
 
+    it('skips the mirror for a Brave iOS host-evaluated script error', () => {
+        const { inner, wrapped } = wrap()
+        wrapped.processEvent!(
+            event({
+                exception: {
+                    values: [
+                        {
+                            type: 'TypeError',
+                            value: "undefined is not an object (evaluating 'window.ethereum.selectedAddress = undefined')",
+                            stacktrace: { frames: [{ filename: 'https://peanut.me/home' }] },
+                        },
+                    ],
+                },
+            })
+        )
+
+        expect(inner).not.toHaveBeenCalled()
+    })
+
     it('mirrors everything else', () => {
         const { inner, wrapped } = wrap()
         wrapped.processEvent!(event({ message: 'TypeError: x is not a function' }))
 
         expect(inner).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('initSentry — failed SDK load', () => {
+    afterEach(() => {
+        jest.dontMock('../sentry-lazy')
+    })
+
+    it('releases the start latch, so the next trigger loads the SDK again', async () => {
+        jest.resetModules()
+        process.env.NEXT_PUBLIC_VERCEL_ENV = 'production'
+        delete process.env.NEXT_PUBLIC_CAPACITOR_BUILD
+        delete process.env.NEXT_PUBLIC_PERF_BARE
+        const sdk = {
+            init: jest.fn(),
+            getClient: jest.fn(),
+            captureException: jest.fn(),
+            captureConsoleIntegration: jest.fn(() => ({ name: 'CaptureConsole' })),
+        }
+        const loadSentry = jest.fn().mockRejectedValueOnce(new Error('ChunkLoadError')).mockResolvedValue(sdk)
+        jest.doMock('../sentry-lazy', () => ({ loadSentry }))
+        const { initSentry } = require('../sentry-init') as typeof import('../sentry-init')
+
+        initSentry()
+        await flush()
+        expect(sdk.init).not.toHaveBeenCalled()
+
+        initSentry()
+        await flush()
+        expect(loadSentry).toHaveBeenCalledTimes(2)
+        expect(sdk.init).toHaveBeenCalledTimes(1)
     })
 })

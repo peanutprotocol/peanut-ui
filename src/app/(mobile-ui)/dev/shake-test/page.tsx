@@ -1,5 +1,6 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import { useState, useCallback } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
@@ -17,6 +18,8 @@ import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
 import DevPageShell from '../_components/DevPageShell'
 
 export default function DevShakeTestPage() {
+    const nativePlatform = useNativePlatform()
+
     const toast = useToast()
     const [isShaking, setIsShaking] = useState(false)
     const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
@@ -171,7 +174,7 @@ export default function DevShakeTestPage() {
                     <DataRow
                         label="Haptics"
                         value={
-                            isCapacitor()
+                            nativePlatform.isCapacitor
                                 ? 'native engine'
                                 : typeof navigator !== 'undefined' && 'vibrate' in navigator
                                   ? 'web vibration API'

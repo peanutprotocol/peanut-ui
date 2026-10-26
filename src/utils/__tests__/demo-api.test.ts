@@ -62,6 +62,7 @@ describe('demoRespond — routing', () => {
         expect(res.status).toBe(200)
         expect(res.headers.get('content-type')).toBe('application/json')
         expect(data.user.username).toBe(DEMO_USER.user.username)
+        expect(data.residence).toMatchObject({ declared: 'BR', declaredSecond: null })
     })
 
     it('answers the verified-address read the bank form makes on open, even in strict capture mode', async () => {
@@ -71,6 +72,20 @@ describe('demoRespond — routing', () => {
         const res = await demoRespond('/users/me/verified-address', { method: 'GET' }, { offline: true, strict: true })
         expect(res.status).toBe(200)
         // Nothing to prefill, so the form asks — no synthetic address is served.
+        expect(await res.json()).toEqual({})
+    })
+
+    it('answers the avatar art map with an empty map in strict capture mode', async () => {
+        // every UserAvatar reads it; unmapped, strict mode fails every screen with an avatar
+        const res = await demoRespond('/avatars/art', { method: 'GET' }, { offline: true, strict: true })
+        expect(res.status).toBe(200)
+        expect(await res.json()).toEqual({})
+    })
+
+    it('answers the kill-switch read with an empty map in strict capture mode', async () => {
+        // the app reads it on start; unmapped, strict mode fails every screen
+        const res = await demoRespond('/config/kill-switches', { method: 'GET' }, { offline: true, strict: true })
+        expect(res.status).toBe(200)
         expect(await res.json()).toEqual({})
     })
 
@@ -93,6 +108,21 @@ describe('demoRespond — routing', () => {
             { offline: true, strict: true }
         )
         expect(res.status).toBe(404)
+    })
+
+    // The request receipt and the created screen read this once the requester
+    // shares bank details. Unmapped, the strict capture harness fails both
+    // fixture screens (dev Screen library, 2026-10-16).
+    it('answers the request deposit-instructions read in strict capture mode', async () => {
+        const res = await demoRespond(
+            '/requests/demo-request/deposit-instructions',
+            { method: 'GET' },
+            { offline: true, strict: true }
+        )
+        expect(res.status).toBe(200)
+        const data = await res.json()
+        expect(data.paymentReference).toBe('demo-req')
+        expect(data.depositAccount.currency).toBe('EUR')
     })
 
     it('only advertises badges with live unlock paths in the demo catalog', async () => {
@@ -313,18 +343,18 @@ describe('demoRespond — shape-aware fallback (never throws on undefined.map)',
     })
 })
 
-describe('demo mode is web-safe', () => {
+describe('demo mode is server-inert', () => {
     afterEach(() => {
         jest.resetModules()
         jest.dontMock('@/utils/capacitor')
     })
 
-    it('isDemoMode() is false when not running under Capacitor', () => {
+    it('isDemoMode() is false without a browser, even when enabled', () => {
         jest.resetModules()
         jest.doMock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
         const { isDemoMode, enableDemoMode } = require('@/utils/demo')
-        enableDemoMode() // even with the flag set...
-        expect(isDemoMode()).toBe(false) // ...web stays inert
+        enableDemoMode()
+        expect(isDemoMode()).toBe(false)
     })
 })
 

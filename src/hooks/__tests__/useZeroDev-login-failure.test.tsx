@@ -1,9 +1,13 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import React from 'react'
 import { act, render, renderHook, waitFor } from '@testing-library/react'
 import { useZeroDev } from '../useZeroDev'
 import { clearAuthState } from '@/utils/auth.utils'
 import { currentCeremonyId, stashCeremonyVerifyToken } from '@/utils/passkeyCeremony.utils'
 import { PasskeyVerifyRejectedError } from '@/utils/passkey-auth-capture'
+import { getPasskeyErrorSetupKey } from '@/utils/webauthn.utils'
+import { AccountType } from '@/interfaces/interfaces'
 
 const mockSetIsLoggingIn = jest.fn()
 const mockCaptureException = jest.fn()
@@ -18,6 +22,8 @@ const mockGetClientForChain = jest.fn()
 const mockEnsureClientForChain = jest.fn()
 let mockUseRealProvider = false
 let mockSavedKey: unknown
+let mockAccounts: Array<{ type: AccountType }> = []
+let mockUserLoaded = true
 
 type PasskeyTestGlobals = typeof globalThis & {
     __passkeyTestIOSNative?: boolean
@@ -27,7 +33,7 @@ const passkeyTestGlobals = globalThis as PasskeyTestGlobals
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
-        user: { user: { userId: 'u1', username: 'alice' }, accounts: [] },
+        user: mockUserLoaded ? { user: { userId: 'u1', username: 'alice' }, accounts: mockAccounts } : null,
         logoutUser: mockLogoutUser,
         fetchUser: jest.fn(),
         hydrateLoginSession: mockHydrateLoginSession,
@@ -117,6 +123,8 @@ jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockAccounts = []
+    mockUserLoaded = true
     passkeyTestGlobals.__passkeyTestIOSNative = false
     delete passkeyTestGlobals.__capgoPasskeyShimInstalled
 })
@@ -203,6 +211,79 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
             expect.any(TypeError),
             expect.objectContaining({ tags: { error_type: 'login_error' } })
         )
+        // a console mirror of the same Error reaches Sentry first, and dedupe then drops the tagged capture
+        expect(errorSpy).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        ['NotSupportedError', 'Error connecting to Web Authentication service.', 'PASSKEY_UNSUPPORTED'],
+        [
+            'SecurityError',
+            'The relying party ID is not a registrable domain suffix of the current domain.',
+            'PASSKEY_ORIGIN',
+        ],
+        ['NotFoundError', 'No credential accessible to this app.', 'PASSKEY_NOT_FOUND'],
+        ['InvalidStateError', 'The authenticator is in an invalid state.', 'PASSKEY_STATE'],
+    ])(
+        'preserves auth state when the authenticator refuses with %s before any assertion',
+        async (name, message, code) => {
+            const thrown = await loginRejectingWith(Object.assign(new Error(message), { name }))
+
+            expect(thrown).toMatchObject({ name: 'PasskeyError', code })
+            expect(clearAuthState).not.toHaveBeenCalled()
+            expect(mockCaptureException).toHaveBeenCalledTimes(1)
+            expect(mockCaptureException).toHaveBeenCalledWith(expect.objectContaining({ name }), {
+                level: 'warning',
+                tags: { error_type: 'login_platform_unavailable' },
+            })
+            expect(mockSetIsLoggingIn).toHaveBeenCalledWith(false)
+        }
+    )
+
+    it('preserves auth and gives restart guidance when native cleanup is unconfirmed', async () => {
+        const thrown = await loginRejectingWith(
+            Object.assign(new Error('Cleanup unconfirmed.'), { name: 'PasskeyCleanupPendingError' })
+        )
+        expect(thrown).toMatchObject({ name: 'PasskeyError', code: 'PASSKEY_STATE' })
+        expect(clearAuthState).not.toHaveBeenCalled()
+        expect(mockSetIsLoggingIn).toHaveBeenCalledWith(false)
+        expect(mockCaptureException).toHaveBeenCalledWith(
+            expect.any(Error),
+            expect.objectContaining({ tags: { error_type: 'login_cleanup_pending' } })
+        )
+    })
+
+    it('shows desktop guidance, not Google Play steps, for a Mac browser NotSupportedError', async () => {
+        const ua = jest
+            .spyOn(window.navigator, 'userAgent', 'get')
+            .mockReturnValue(
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36'
+            )
+        try {
+            const thrown = await loginRejectingWith(
+                Object.assign(new Error('Error connecting to Web Authentication service.'), {
+                    name: 'NotSupportedError',
+                })
+            )
+
+            expect(getPasskeyErrorSetupKey(thrown)).toBe('passkey.unsupportedDesktop')
+            expect(clearAuthState).not.toHaveBeenCalled()
+        } finally {
+            ua.mockRestore()
+        }
+    })
+
+    it('treats a browser request still pending from an earlier prompt as an interruption', async () => {
+        const thrown = await loginRejectingWith(
+            Object.assign(new Error('A request is already pending.'), { name: 'OperationError' })
+        )
+
+        expect(thrown.code).toBe('PASSKEY_INTERRUPTED')
+        expect(clearAuthState).not.toHaveBeenCalled()
+        expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), {
+            level: 'warning',
+            tags: { error_type: 'login_interrupted' },
+        })
     })
 
     it('preserves existing auth state after the iOS authorization retry is exhausted', async () => {
@@ -228,10 +309,13 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
         expect(thrown).toMatchObject({ name: 'PasskeyError', code: 'PASSKEY_INTERRUPTED' })
         expect(mockToWebAuthnKey).toHaveBeenCalledTimes(2)
         expect(clearAuthState).not.toHaveBeenCalled()
-        expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), {
-            level: 'warning',
-            tags: { error_type: 'login_interrupted' },
-        })
+        expect(mockCaptureException).toHaveBeenCalledWith(
+            expect.any(Error),
+            expect.objectContaining({
+                level: 'warning',
+                tags: expect.objectContaining({ passkey_reason: 'authorization_failed' }),
+            })
+        )
     })
 })
 it('waits for fresh session hydration before publishing the verified wallet key and blocks a second ceremony', async () => {
@@ -356,7 +440,10 @@ jest.mock('@/utils/retry.utils', () => ({ retryAsync: (fn: () => Promise<unknown
 jest.mock('@/utils/reconnect.utils', () => ({ onReconnect: () => jest.fn() }))
 jest.mock('@/utils/native-webauthn', () => ({ createNativeSignMessageCallback: jest.fn() }))
 jest.mock('@/dev/fixtures/active', () => ({ ensureActiveFixture: () => null }))
-jest.mock('@/constants/harness.consts', () => ({ HARNESS_ENABLED: false }))
+jest.mock('@/constants/harness.consts', () => ({
+    ...jest.requireActual('@/constants/harness.consts'),
+    HARNESS_ENABLED: false,
+}))
 
 it.each(['login', 'registration'])(
     'restores the %s key after an RPC outage and remount with no cookie',
@@ -459,6 +546,8 @@ describe('useZeroDev handleSendUserOpEncoded — stale credential cleanup', () =
 
     beforeEach(() => {
         errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        // a signed-in wallet user: the only case where a stale key means a stale session
+        mockAccounts = [{ type: AccountType.PEANUT_WALLET }]
         client = {
             account: {
                 encodeCalls: jest.fn().mockResolvedValue('0xencoded'),
@@ -518,6 +607,31 @@ describe('useZeroDev handleSendUserOpEncoded — stale credential cleanup', () =
             }
         )
 
+        // TASK-23931: at signup's Confirm & finish the key is fresh, and AA24
+        // can come from a clientDataJSON layout the validator cannot read
+        it.each(['UserOperation reverted with reason: AA24 signature error', 'wapk: unauthorized'])(
+            'keeps the session and the saved key when no wallet account exists yet, for %s',
+            async (message) => {
+                mockAccounts = []
+                const error = new Error(message)
+                expect(await sendRejectingWith(error)).toBe(error)
+
+                expect(mockLogoutUser).not.toHaveBeenCalled()
+                expect(mockUpdateUserPreferences).not.toHaveBeenCalled()
+                expect(client.waitForUserOperationReceipt).not.toHaveBeenCalled()
+                const { zeroDevFlowActions } = jest.requireMock('@/hooks/useZeroDevFlow')
+                expect(zeroDevFlowActions.setIsSendingUserOp).toHaveBeenLastCalledWith(false)
+            }
+        )
+
+        it('still logs out on AA24 while the user is not loaded yet', async () => {
+            mockUserLoaded = false
+            const error = new Error('UserOperation reverted with reason: AA24 signature error')
+
+            expect(await sendRejectingWith(error)).toMatchObject({ isStaleKeyError: true, cause: error })
+            expect(mockLogoutUser).toHaveBeenCalledTimes(1)
+        })
+
         it.each(['401 unauthorized', 'network request failed'])(
             'preserves the saved credential for %s',
             async (message) => {
@@ -532,4 +646,36 @@ describe('useZeroDev handleSendUserOpEncoded — stale credential cleanup', () =
             }
         )
     })
+})
+
+// Native conditions cannot invalidate an existing working login.
+it.each([
+    ['Device must be unlocked to perform request.', 'PASSKEY_DEVICE_LOCKED'],
+    ['Stolen Device Protection is enabled and biometry is required.', 'PASSKEY_BIOMETRY_REQUIRED'],
+    [
+        'Unable to verify webcredentials association of TEAM.app with domain peanut.me. Please try again in a few seconds.',
+        'PASSKEY_ASSOCIATION_UNAVAILABLE',
+    ],
+    ['Application with identifier TEAM.app is not associated with domain peanut.me', 'PASSKEY_ORIGIN'],
+])('preserves the session after %s', async (message, code) => {
+    const { result } = renderHook(() => useZeroDev())
+    mockToWebAuthnKey.mockRejectedValue(
+        Object.assign(new Error('The operation couldn’t be completed. ' + message), { name: 'NotAllowedError' })
+    )
+    await act(async () => {
+        await expect(result.current.handleLogin()).rejects.toMatchObject({ name: 'PasskeyError', code })
+    })
+    expect(clearAuthState).not.toHaveBeenCalled()
+    expect(mockSetIsLoggingIn).toHaveBeenCalledWith(false)
+})
+
+it('propagates abandoned SDK cleanup to signup instead of treating pending as success', async () => {
+    const failure = Object.assign(new Error('A previous passkey flow is still pending'), {
+        name: 'PasskeyCleanupPendingError',
+    })
+    mockToWebAuthnKey.mockRejectedValue(failure)
+    const { result } = renderHook(() => useZeroDev())
+    await expect(result.current.handleRegister('new-user')).rejects.toBe(failure)
+    expect(mockHydrateLoginSession).not.toHaveBeenCalled()
+    expect(mockSetWebAuthnKey).not.toHaveBeenCalled()
 })

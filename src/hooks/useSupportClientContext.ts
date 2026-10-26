@@ -1,12 +1,13 @@
 'use client'
 
+import { useNativePlatform } from '@/utils/native-platform'
 import { useEffect, useState } from 'react'
 import { useLocale } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useConnectivity } from '@/hooks/useConnectivity'
 import { getNotificationPermissionSnapshot } from '@/hooks/useNotifications'
-import { getPlatform, isCapacitor } from '@/utils/capacitor'
+import { isCapacitor } from '@/utils/capacitor'
 import { normalizeSupportRoute } from '@/utils/support-context'
 
 export interface SupportClientContext {
@@ -65,6 +66,8 @@ function resolveNativeBuild(): Promise<string | undefined> {
 }
 
 export function useSupportClientContext(): SupportClientContext {
+    const nativePlatform = useNativePlatform()
+
     const locale = useLocale()
     const pathname = usePathname()
     const { isSupportModalOpen } = useModalsContext()
@@ -110,7 +113,7 @@ export function useSupportClientContext(): SupportClientContext {
     const buildParts = [webBuild() ? `web:${webBuild()}` : undefined, nativeBuild].filter(Boolean)
 
     return {
-        platform: getPlatform(),
+        platform: nativePlatform.platform,
         appBuild: buildParts.length ? buildParts.join(' · ') : 'unknown',
         locale,
         routeOnOpen: latch.route,

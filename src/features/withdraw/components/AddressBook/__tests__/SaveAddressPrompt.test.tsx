@@ -1,5 +1,5 @@
 /**
- * SaveAddressPrompt — the "Save to address book" field on the withdraw review.
+ * SaveAddressPrompt — the "Save to favorites" field on the withdraw review.
  * Pins the sep-23 review follow-up (A47/A50): the field is labelled "Name", as
  * in the edit drawer, the label stays visible after typing, and a missing name
  * becomes a field error once the user has been in the field.
@@ -9,8 +9,8 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import SaveAddressPrompt from '../SaveAddressPrompt'
 
-function Harness({ initialName = '' }: { initialName?: string }) {
-    const [checked, setChecked] = useState(true)
+function Harness({ initialName = '', initialChecked = true }: { initialName?: string; initialChecked?: boolean }) {
+    const [checked, setChecked] = useState(initialChecked)
     const [name, setName] = useState(initialName)
     return (
         <SaveAddressPrompt checked={checked} nickname={name} onCheckedChange={setChecked} onNicknameChange={setName} />
@@ -42,6 +42,17 @@ describe('SaveAddressPrompt', () => {
         expect(error).toHaveTextContent('Name this address to save it.')
         expect(error).toHaveAttribute('role', 'alert')
         expect(input).toHaveAttribute('aria-describedby', error.id)
+    })
+
+    it('leaves the name unfocused when the box starts ticked', () => {
+        renderPrompt('Maria')
+        expect(screen.getByLabelText('Name')).not.toHaveFocus()
+    })
+
+    it('focuses the name when the user ticks the box', () => {
+        render(<Harness initialChecked={false} />, { wrapper: IntlWrapper })
+        fireEvent.click(screen.getByLabelText('Save to favorites'))
+        expect(screen.getByLabelText('Name')).toHaveFocus()
     })
 
     it('shows no error while a name is set', () => {

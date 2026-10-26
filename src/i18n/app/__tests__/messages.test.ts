@@ -40,6 +40,7 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     'Euro bank transfers': 'sentence fragment vs. standalone label casing',
     'British pound bank transfers': 'sentence fragment vs. standalone label casing',
     'Peanut reward': 'receipt title fragment vs. standalone label casing (Recompensa Peanut / recompensa Peanut)',
+    'Log in': 'button label in the infinitive vs. the invite page imperative (Iniciar sesión / Inicia sesión)',
     'Pay a QR code':
         'button label in the infinitive vs. checklist hint in the imperative like its sibling hints (Pagar / Paga un código QR)',
 }
@@ -247,5 +248,26 @@ describe('ENS badge copy is localized', () => {
         const messages = await loadMessages(locale)
         expect(messages.badges.catalog.ENS.name).not.toBe(en.badges.catalog.ENS.name)
         expect(messages.badges.catalog.ENS.description).not.toBe(en.badges.catalog.ENS.description)
+    })
+})
+
+describe('card partner review reason copy', () => {
+    const key = 'identity.reasons.card_needs_review'
+
+    it('provides the approved English review copy', async () => {
+        expect(leafValue(await loadMessages('en'), key)).toBe('Our card partner needs to check a few more details.')
+    })
+
+    it.each(['es-419', 'pt-BR'] as const)('%s has its own translated review copy', async (locale) => {
+        const rawCopy = leafValue(CATALOGS[locale], key)
+        expect(typeof rawCopy).toBe('string')
+        expect(rawCopy.trim().length).toBeGreaterThan(0)
+        expect(rawCopy).not.toBe('Our card partner needs to check a few more details.')
+        expect(leafValue(await loadMessages(locale), key)).toBe(rawCopy)
+    })
+
+    it('lets Argentine Spanish inherit the Latin American Spanish review copy', async () => {
+        expect(leafPaths(esAR)).not.toContain(key)
+        expect(leafValue(await loadMessages('es-AR'), key)).toBe(leafValue(es419, key))
     })
 })

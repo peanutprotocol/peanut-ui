@@ -38,6 +38,10 @@ jest.mock('@/components/Badges/useBadgeEarnToast', () => ({
     useBadgeEarnToast: () => ({ pending: mockPending, markSeen: mockMarkSeen }),
 }))
 
+// null = the art map has not settled yet (cold load)
+let mockArt: Record<string, string> | null = {}
+jest.mock('@/components/Avatar/useAvatarArt', () => ({ useSettledAvatarArt: () => mockArt }))
+
 import posthog from 'posthog-js'
 const captureMock = (posthog as unknown as { capture: jest.Mock }).capture
 
@@ -52,6 +56,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockPathname = '/home'
     mockPending = []
+    mockArt = {}
 })
 
 describe('BadgeEarnToast', () => {
@@ -89,16 +94,22 @@ describe('BadgeEarnToast', () => {
 
         const { container } = render(mockToast.mock.calls[0][0].content)
         expect(container.querySelector('img')).toHaveAttribute('src', '/badges/backend_product_hunt.webp')
-        // a code in `badges.catalog` renders the localized name, not the backend one
-        expect(screen.getByText(/Product Hunt/)).toBeInTheDocument()
     })
 
-    it('falls back to the backend name for a code with no catalog entry', () => {
-        mockPending = [badge('FUTURE_BADGE', 'Backend Name')]
+    it('shows the API name over the app catalog, which the API localizes', () => {
+        mockPending = [badge('PRODUCT_HUNT', 'Nombre del API')]
         render(<BadgeEarnToast />)
 
         render(mockToast.mock.calls[0][0].content)
-        expect(screen.getByText(/Backend Name/)).toBeInTheDocument()
+        expect(screen.getByText(/Nombre del API/)).toBeInTheDocument()
+    })
+
+    it('falls back to the app catalog name when the API sends none', () => {
+        mockPending = [badge('PRODUCT_HUNT', '')]
+        render(<BadgeEarnToast />)
+
+        render(mockToast.mock.calls[0][0].content)
+        expect(screen.getByText(/Product Hunt/)).toBeInTheDocument()
     })
 
     it('announces unlocked avatars in a non-interactive second toast 500ms later (TASK-22142)', () => {
@@ -165,5 +176,32 @@ describe('BadgeEarnToast', () => {
         mockPathname = '/send'
         rerender(<BadgeEarnToast />)
         expect(mockDismissToast).toHaveBeenCalledWith('badge-earn:PRODUCT_HUNT')
+    })
+
+    // TASK-23547: a badge whose avatars only the API serves, on a cold load
+    it('waits for the served art map before announcing, so API-only avatars are not lost', () => {
+        jest.useFakeTimers()
+        try {
+            mockArt = null
+            mockPending = [badge('FIRST_INVITE', 'First Invite')]
+            const { rerender } = render(<BadgeEarnToast />)
+            expect(mockToast).not.toHaveBeenCalled()
+            expect(mockMarkSeen).not.toHaveBeenCalled()
+
+            mockArt = {
+                'badge.FIRST_INVITE.owl':
+                    'https://api.peanut.me/badges/art/avatar-badge-FIRST_INVITE-owl.0123456789ab.webp',
+            }
+            rerender(<BadgeEarnToast />)
+            act(() => {
+                jest.advanceTimersByTime(500)
+            })
+
+            expect(mockMarkSeen).toHaveBeenCalledWith(['FIRST_INVITE'])
+            expect(mockToast).toHaveBeenCalledTimes(2)
+            expect(mockToast.mock.calls[1][0].id).toBe('badge-earn-avatar:FIRST_INVITE')
+        } finally {
+            jest.useRealTimers()
+        }
     })
 })

@@ -1,4 +1,6 @@
 /** @jest-environment jsdom */
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * Native has no browser chrome, so the per-browser screenshot carousel — which
  * teaches the user to change a *site* permission — is wrong there: the camera

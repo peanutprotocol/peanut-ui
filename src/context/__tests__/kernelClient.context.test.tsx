@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * KernelClientProvider — a failed primary-chain client build must not cost
  * the user their session unless the stored passkey is genuinely stale.
@@ -127,7 +129,10 @@ jest.mock('@/utils/capacitor', () => ({
 jest.mock('@/utils/native-webauthn', () => ({ createNativeSignMessageCallback: jest.fn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/dev/fixtures/active', () => ({ ensureActiveFixture: () => null }))
-jest.mock('@/constants/harness.consts', () => ({ HARNESS_ENABLED: false }))
+jest.mock('@/constants/harness.consts', () => ({
+    ...jest.requireActual('@/constants/harness.consts'),
+    HARNESS_ENABLED: false,
+}))
 
 import { KernelClientProvider, createKernelClientForChain, useKernelClient } from '../kernelClient.context'
 import { PAYMASTER_PREVIEW_CONTEXT } from '@/hooks/wallet/paymasterSponsorship'

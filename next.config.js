@@ -114,6 +114,7 @@ function contentSecurityPolicyReportOnly(includeReporting = true) {
             // break the socket for every user the moment the policy is enforced.
             'wss://api.peanut.me',
             'wss://*.peanut.me',
+            'https://peanut-notes.s3.eu-north-1.amazonaws.com',
             'https://*.ingest.sentry.io',
             'https://*.ingest.us.sentry.io',
             // Wildcarded because GA4 shards collection by region: EU traffic
@@ -317,6 +318,8 @@ let nextConfig = {
     // file tracer — include them for the deployed serverless function.
     outputFileTracingIncludes: {
         '/receipt/[entryId]/pdf': ['./src/assets/fonts/*.ttf'],
+        '/api/og': ['./src/assets/brand/*.svg'],
+        '/api/og/marketing': ['./src/assets/brand/*.svg'],
     },
 
     // Dynamic content reads can trace the submodule's .git metadata. Vercel
@@ -470,6 +473,14 @@ let nextConfig = {
                         key: 'Permissions-Policy',
                         value: 'camera=*, microphone=*, clipboard-read=(self), clipboard-write=(self)',
                     },
+                    { key: 'X-Content-Type-Options', value: 'nosniff' },
+                ],
+            },
+            {
+                // Standalone QR routes supply their own nonce CSP and no-referrer
+                // policy. Global headers would replace those response headers.
+                source: '/:path((?!q(?:/|$)|api/marketing-qr/open(?:/|$)).*)',
+                headers: [
                     // Security headers - prevents clickjacking and other attacks
                     // Using frame-ancestors instead of X-Frame-Options to allow specific domains
                     // object-src/base-uri are safe to enforce today: the app embeds no
@@ -480,7 +491,6 @@ let nextConfig = {
                     },
                     { key: 'Content-Security-Policy-Report-Only', value: contentSecurityPolicyReportOnly() },
                     ...reportingEndpointsHeader(),
-                    { key: 'X-Content-Type-Options', value: 'nosniff' },
                     { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
                 ],
             },
@@ -558,6 +568,10 @@ if (process.env.NODE_ENV !== 'development') {
         const withSerwist = (await import('@serwist/next')).default({
             swSrc: './src/app/sw.ts',
             swDest: 'public/sw.js',
+            // layout.tsx registers the worker with error handling. Avoid both uncaught
+            // auto-registration and an online event reloading a page mid-payment.
+            register: false,
+            reloadOnOnline: false,
             // explicitly include offline screen assets in precache
             additionalPrecacheEntries: ['/icons/peanut-icon.svg'],
         })

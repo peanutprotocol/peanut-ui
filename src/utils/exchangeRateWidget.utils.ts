@@ -55,7 +55,8 @@ export const getExchangeRateWidgetRedirectRoute = (
     // Region paths the user has unlocked (from deriveRegionAccess). When passed,
     // an add-money redirect that would land on a locked region is retargeted to
     // an unlocked one instead of dumping the user on a region they can't use.
-    unlockedRegionPaths?: string[]
+    unlockedRegionPaths?: string[],
+    native?: boolean
 ): string => {
     let route = '/add-money'
     let countryPath: string | undefined = ''
@@ -97,7 +98,7 @@ export const getExchangeRateWidgetRedirectRoute = (
     // destination currency legitimately picks the country there.
     if (route === '/add-money' && unlockedRegionPaths) {
         const landing = addMoneyCountryForCurrencyHint(sourceCurrency, destinationCurrency, unlockedRegionPaths)
-        return landing ? addMoneyCountryUrl(landing) : '/add-money'
+        return landing ? addMoneyCountryUrl(landing, native) : '/add-money'
     }
 
     if (!countryPath) {
@@ -107,5 +108,7 @@ export const getExchangeRateWidgetRedirectRoute = (
     // but in the Capacitor static export the `[country]` dynamic routes are
     // stripped (scripts/native-build.js), so a path-segment URL lands on a
     // non-existent route and the app hangs. The helpers emit `?country=` there.
-    return route === '/withdraw' ? withdrawCountryUrl(countryPath) : addMoneyCountryUrl(countryPath)
+    return route === '/withdraw'
+        ? withdrawCountryUrl(countryPath, undefined, native)
+        : addMoneyCountryUrl(countryPath, native)
 }

@@ -35,13 +35,24 @@ export function canUseNativeHttp(url: string, options: RequestInit = {}): boolea
 export async function nativeHttpRequest(url: string, options: RequestInit = {}, timeoutMs: number): Promise<Response> {
     const { CapacitorHttp } = await import('@capacitor/core')
 
+    const method = (options.method || 'GET').toUpperCase()
+    const headers = Object.fromEntries(new Headers(options.headers as HeadersInit | undefined).entries())
+    let data = typeof options.body === 'string' ? options.body : undefined
+    // Android's HttpURLConnection labels a bodyless POST/PUT/PATCH/DELETE as a
+    // form, which the API answers with 415 (PEANUT-UI-TCY). An empty JSON body
+    // is a 400 there, so send an empty object instead.
+    if (data === undefined && method !== 'GET' && method !== 'HEAD' && !('content-type' in headers)) {
+        headers['content-type'] = 'application/json'
+        data = '{}'
+    }
+
     let expire: ReturnType<typeof setTimeout> | undefined
     const response = await Promise.race([
         CapacitorHttp.request({
             url,
-            method: (options.method || 'GET').toUpperCase(),
-            headers: Object.fromEntries(new Headers(options.headers as HeadersInit | undefined).entries()),
-            data: typeof options.body === 'string' ? options.body : undefined,
+            method,
+            headers,
+            data,
             connectTimeout: timeoutMs,
             readTimeout: timeoutMs,
             responseType: 'text',

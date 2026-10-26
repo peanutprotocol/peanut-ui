@@ -15,6 +15,7 @@ import { capabilityStateForProfile, deriveGate, type GateScope, type GateState }
 import type { RailChannel } from '@/types/capabilities'
 import { isDemoMode } from '@/utils/demo'
 import { useCallback, useMemo } from 'react'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 
 /**
  * Single selector over the backend-computed capability model. ALL KYC/rail
@@ -104,6 +105,7 @@ export interface UseCapabilitiesResult {
 }
 
 export function useCapabilities(): UseCapabilitiesResult {
+    const demoMode = useHydrationSnapshot(isDemoMode, () => false)
     const { user, isFetchingUser } = useAuth()
 
     const capabilities = user?.capabilities ?? EMPTY_CAPABILITIES
@@ -183,7 +185,7 @@ export function useCapabilities(): UseCapabilitiesResult {
     )
 
     // demo mode: present as verified so KYC walls don't block the walkthrough.
-    const isKycApproved = useMemo(() => isDemoMode() || rails.some((rail) => rail.status === 'enabled'), [rails])
+    const isKycApproved = useMemo(() => demoMode || rails.some((rail) => rail.status === 'enabled'), [demoMode, rails])
 
     const isKycInProgress = useMemo(
         () => rails.some((rail) => rail.status === 'pending' || rail.status === 'requires-info'),

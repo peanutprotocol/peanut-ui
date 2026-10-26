@@ -1,4 +1,5 @@
 'use client'
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import { useEffect, useState } from 'react'
 
 // cache key for session storage
@@ -29,8 +30,10 @@ const hasFreshMemoryCache = (): boolean => !!memoryCache && Date.now() - memoryC
 const freshMemoryCountry = (): string | null => (hasFreshMemoryCache() ? memoryCache!.countryCode : null)
 
 export const useGeoLocation = () => {
-    const [countryCode, setCountryCode] = useState<string | null>(freshMemoryCountry)
-    const [isLoading, setIsLoading] = useState(() => !hasFreshMemoryCache())
+    const initialCountry = useHydrationSnapshot(freshMemoryCountry, () => null)
+    const hasInitialCountry = useHydrationSnapshot(hasFreshMemoryCache, () => false)
+    const [countryCode, setCountryCode] = useState<string | null>(initialCountry)
+    const [isLoading, setIsLoading] = useState(!hasInitialCountry)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {

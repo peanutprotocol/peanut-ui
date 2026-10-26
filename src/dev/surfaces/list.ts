@@ -10,6 +10,10 @@
 export type SurfaceMeta = {
     name: string
     path: string
+    /** Human-readable state inputs used by this deterministic capture. */
+    captureState?: string[]
+    /** A visible element owned by the mounted component, not just the gallery shell. */
+    expectSelector?: string
     blocked?: string
     /** Fixture the shot spec must load instead of its default — for surfaces
      *  whose open state depends on an API answer the demo baseline lacks. */
@@ -24,26 +28,33 @@ export type SurfaceMeta = {
 }
 
 export const SURFACE_META: Record<string, SurfaceMeta> = {
-    '01-b-first-launch-intro': {
-        name: 'First launch — animated Peanut intro',
-        path: 'Setup/components/SetupWrapper.tsx',
-    },
     '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx' },
-    '03-c-residence-congrats': { name: 'Residence — available features checklist', path: 'Setup/Views/Residence.tsx' },
+    '03-c-residence-congrats': {
+        name: 'Payment plan',
+        path: 'Setup/Views/PaymentPlan.tsx',
+        shotFixture: 'setup-payment-plan',
+    },
+    '03-h-funding-methods': {
+        name: 'Setup — funding methods',
+        path: 'Setup/Views/PaymentPlan.tsx',
+        shotClickTestId: 'setup-funding-channel',
+        shotFixture: 'setup-payment-plan',
+    },
+    '03-i-payment-methods': {
+        name: 'Setup — payment methods',
+        path: 'Setup/Views/PaymentPlan.tsx',
+        shotClickTestId: 'setup-payment-channel',
+        shotFixture: 'setup-payment-plan',
+    },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
     '05-a-signtesttransaction': {
         name: 'Final passkey confirmation',
         path: 'Setup/Views/SignTestTransaction.tsx',
     },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx' },
-    '07-a-setuppasskey': { name: 'SetupPasskey', path: 'Setup/Views/SetupPasskey.tsx' },
+    '06-b-invite': { name: 'Invited by a friend', path: 'Setup/Views/Invite.tsx' },
     '02-b-advantage-card': { name: 'Setup benefit — card', path: 'Setup/Views/Advantage.tsx' },
-    '03-d-funding-methods': { name: 'Setup — funding methods', path: 'Setup/Views/Funding.tsx' },
-    '03-e-advantage-local': { name: 'Setup benefit — QR payments', path: 'Setup/Views/Advantage.tsx' },
-    '03-f-advantage-exchange': { name: 'Setup benefit — Exchange rates', path: 'Setup/Views/Advantage.tsx' },
-    '03-g-advantage-people': { name: 'Setup benefit — Payments by username', path: 'Setup/Views/Advantage.tsx' },
-    '03-b-advantage-bank': { name: 'Setup benefit — bank accounts', path: 'Setup/Views/Advantage.tsx' },
-    '04-b-advantage-fees': { name: 'Setup benefit — monthly fees', path: 'Setup/Views/Advantage.tsx' },
+    '04-b-advantage-fees': { name: 'Setup benefit — accounts', path: 'Setup/Views/Advantage.tsx' },
     '07-c-notification-email': { name: 'Setup — notification email', path: 'Setup/Views/Email.tsx' },
     '07-d-notification-settings': { name: 'Setup — notification settings', path: 'Setup/Views/Notifications.tsx' },
     '07-e-setup-celebration': { name: 'Setup — full-screen account celebration', path: 'Setup/Views/Success.tsx' },
@@ -128,6 +139,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '52-d-contributorsdrawer': {
         name: 'ContributorsDrawer',
         path: 'features/payments/flows/contribute-pot/components/ContributorsDrawer.tsx',
+        shotClick: 'See all contributors',
     },
     '53-d-cancelsendlinkdrawer': { name: 'CancelSendLinkDrawer', path: 'Global/CancelSendLinkDrawer/index.tsx' },
     '54-d-qrbottomdrawer': {
@@ -199,13 +211,54 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Request pot — payment choices',
         path: 'features/payments/flows/contribute-pot/components/RequestPotActionList.tsx',
     },
+    '81-g-request-pot-partial': {
+        name: 'Request pot — deposit card after a short external-wallet deposit',
+        path: 'components/AddMoney/views/RhinoDeposit.view.tsx',
+        captureState: ['received=33', 'asked=58.51'],
+    },
     '82-f-choice-card-requires-info': {
         name: 'Card application — more information required',
         path: 'Card/ApplicationStatusScreen.tsx',
     },
+    '82-f-choice-card-needs-review': {
+        name: 'Card application — card partner needs review',
+        path: 'Card/ApplicationStatusScreen.tsx',
+        captureState: ['variant=requires-info', 'reasonCode=card_needs_review'],
+        expectSelector: '[data-testid="app-page-surface-content"] h1',
+    },
+    '82-g-card-tax-id': {
+        name: 'Card application — tax ID requested',
+        path: 'Card/ApplicationStatusScreen.tsx',
+        captureState: ['variant=requires-info', 'actions=tax_identification_number'],
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '82-h-card-birth-date': {
+        name: 'Card application — date of birth requested',
+        path: 'Card/ApplicationStatusScreen.tsx',
+        captureState: ['variant=requires-info', 'actions=birth_details'],
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '82-i-card-information-both': {
+        name: 'Card application — tax ID first, date of birth next',
+        path: 'Card/ApplicationStatusScreen.tsx',
+        captureState: ['variant=requires-info', 'actions=tax_identification_number,birth_details'],
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '82-j-card-information-error': {
+        name: 'Card application — information action failed to start',
+        path: 'Card/ApplicationStatusScreen.tsx',
+        captureState: ['variant=requires-info', 'actions=tax_identification_number', 'uploadError=retryable'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
+    },
+    '92-f-withdraw-amount-error': {
+        name: 'Bank withdrawal — amount below minimum',
+        path: 'features/withdraw/views/WithdrawAmountView.tsx',
+        captureState: ['amount=0.01', 'error=minimum', 'continueDisabled=true'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
+    },
     '83-f-choice-residence-restricted': {
-        name: 'Setup residence — restricted',
-        path: 'Setup/Views/Residence.tsx',
+        name: 'Setup payment plan — restricted residence',
+        path: 'Setup/Views/PaymentPlan.tsx',
     },
     '84-f-choice-public-profile-guest': {
         name: 'Public profile — guest actions',
@@ -224,6 +277,24 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Request link — bank currency chooser',
         path: 'features/payments/flows/contribute-pot/components/BankTransferChooserDrawer.tsx',
         shotClickTestId: 'bank-transfer-chooser',
+    },
+    '89-f-withdraw-review-insufficient': {
+        name: 'Withdrawal review — insufficient balance before confirmation',
+        path: 'features/withdraw/views/ConfirmWithdrawView.tsx',
+        captureState: ['insufficientBalance=true', 'processing=false', 'alreadySpent=false'],
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '90-f-withdraw-review-processing': {
+        name: 'Withdrawal review — processing after balance refresh',
+        path: 'features/withdraw/views/ConfirmWithdrawView.tsx',
+        captureState: ['insufficientBalance=true', 'processing=true', 'alreadySpent=false'],
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '91-f-withdraw-review-spent': {
+        name: 'Withdrawal review — already spent after balance refresh',
+        path: 'features/withdraw/views/ConfirmWithdrawView.tsx',
+        captureState: ['insufficientBalance=true', 'processing=false', 'alreadySpent=true'],
+        expectSelector: '[data-testid="app-page-surface-content"] button',
     },
     '70-d-activationctas-outbound': {
         name: 'First-payment chooser',

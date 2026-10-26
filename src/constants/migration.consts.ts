@@ -2,10 +2,9 @@
  * PWA → native app migration (pwa-sunset).
  *
  * Everything here is dark until the `pwa-sunset` PostHog flag is flipped ON
- * (no deploy needed). Flag ON starts the notice window: download prompts +
- * store links appear and web signups close. Once MIGRATION_CUTOVER_DATE passes
- * (flag still ON), the web app is replaced by the full-screen sunset block
- * (SunsetScreen).
+ * (no deploy needed). Flag ON closes web signup and shows download prompts and
+ * store links. Existing accounts keep logging in on the web (ruled 2026-10-07,
+ * hugo): signup is app-only, the web app is not switched off.
  */
 
 export const PWA_SUNSET_FLAG = 'pwa-sunset'
@@ -18,24 +17,16 @@ export const PWA_SUNSET_FLAG = 'pwa-sunset'
  */
 export const APP_ENTRY_QUERY_PARAM = 'app_entry'
 
-// ponytail: cutover date is a constant; move to flag payload only if the date
-// needs to move without a deploy.
-export const MIGRATION_CUTOVER_DATE = new Date('2026-10-09T00:00:00Z')
-
 // how long "Remind me later" snoozes the download prompt modal
 export const DOWNLOAD_PROMPT_SNOOZE_DAYS = 3
-
-// download prompt copy switches from celebratory to friendly-urgency once
-// the cutover is this close (Hugo's two-phase notice window)
-export const MIGRATION_URGENCY_THRESHOLD_DAYS = 14
 
 // how long "Not now" on the notifications pre-prompt snoozes before re-asking
 // (only during the migration window; flag off keeps closed-forever)
 export const NOTIF_PROMPT_SNOOZE_DAYS = 14
 
 // support escape hatch for users who can't install the app: support DMs
-// `/home?keep-web=<token>`; visiting it stores a 90-day cookie that bypasses
-// the sunset block.
+// `/home?keep-web=<token>`; visiting it stores a 90-day cookie that reopens
+// web signup in that browser.
 // ponytail: static shared token, FE-only; per-user tokens need a BE endpoint.
 export const KEEP_WEB_COOKIE = 'keep-web'
 export const KEEP_WEB_TOKEN = 'walnut-still-cracks'
@@ -53,8 +44,17 @@ export const REVIEW_URL = {
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 
+/**
+ * Apple campaign tokens: `pt` is the provider token from App Store Connect >
+ * Analytics > Campaign links, `ct` the campaign name. App Store Connect
+ * counts a campaign only when both are present, so without the provider
+ * token the link stays plain.
+ */
+const IOS_STORE_URL = 'https://apps.apple.com/us/app/id6786373552'
+const APP_STORE_PROVIDER_TOKEN = process.env.NEXT_PUBLIC_APP_STORE_PROVIDER_TOKEN
+
 export const STORE_URL = {
-    ios: 'https://apps.apple.com/us/app/id6786373552',
+    ios: APP_STORE_PROVIDER_TOKEN ? `${IOS_STORE_URL}?pt=${APP_STORE_PROVIDER_TOKEN}&ct=web` : IOS_STORE_URL,
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 
@@ -66,7 +66,6 @@ export const STORE_NAME = {
 /** `surface` property for migration analytics events. */
 export const MIGRATION_SURFACES = {
     DOWNLOAD_MODAL: 'download_modal',
-    SUNSET_SCREEN: 'sunset_screen',
     LANDING_HERO: 'landing_hero',
     HOME_BANNER: 'home_banner',
     SETUP: 'setup',
@@ -80,6 +79,8 @@ export const MIGRATION_SURFACES = {
     LANDING_RATES: 'landing_rates',
     LANDING_COUNTRIES: 'landing_countries',
     LANDING_DOOR: 'landing_door',
+    // the six star-feature landing pages (/peanut-card, /request-links, …)
+    STAR_LP: 'star_lp',
 } as const
 
 export type MigrationSurface = (typeof MIGRATION_SURFACES)[keyof typeof MIGRATION_SURFACES]

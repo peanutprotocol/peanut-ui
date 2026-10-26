@@ -8,6 +8,7 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isCapacitor } from './capacitor'
 import { isDemoMode } from './demo'
 import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
+import { currentAppLocale } from '@/i18n/app/locale-store'
 import { ensureActiveFixture } from '@/dev/fixtures/active'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -24,15 +25,17 @@ type FetchOptions = RequestInit & {
     includeAuth?: boolean
     /** See `FetchWithSentryOptions.silentTimeout`. Rides through on the spread. */
     silentTimeout?: boolean
+    /** See `FetchWithSentryOptions.callerReportsFailures`. Rides through on the spread. */
+    callerReportsFailures?: boolean
     /** Hide sensitive URL, request, response and error data in fetch telemetry. */
     redactTelemetry?: boolean
+    /** See `FetchWithSentryOptions.idempotent`. Rides through on the spread. */
+    idempotent?: boolean
 }
 
 async function callApi(path: string, options?: FetchOptions): Promise<Response> {
-    // Native-only demo mode: route to synthetic data before any header/network
-    // work. isDemoMode() is false on web, so this is unreachable for real users.
-    // Lazy import keeps the demo module (and its viem-using fixtures) out of the
-    // web bundle and out of every api-fetch importer's module graph.
+    // Explicit demo sessions route to synthetic data before any auth/network work.
+    // Lazy import keeps the fixtures out of the initial bundle.
     if (isDemoMode()) return import('./demo-api').then((m) => m.demoRespond(path, options))
 
     // Dev fixtures: `?__fixture=<name>` answers every call from a named app
@@ -66,6 +69,12 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     // application/json here would break attachment uploads (send-links, charges).
     if (fetchOptions.body && !hasContentType && !(fetchOptions.body instanceof FormData)) {
         headers['Content-Type'] = 'application/json'
+    }
+    // the api localizes copy (badges) from this. null on the server and before the
+    // startup locale is on screen; the api then uses the user's stored locale.
+    const locale = currentAppLocale()
+    if (locale && !Object.keys(callerHeaders).some((k) => k.toLowerCase() === 'accept-language')) {
+        headers['Accept-Language'] = locale
     }
     Object.assign(headers, includeAuth ? getAuthHeaders(callerHeaders) : callerHeaders)
 
@@ -140,7 +149,9 @@ function captureApiTiming({ route, method, startedAt, authWaitMs, response, erro
     // error name. Keep AbortError too for alternate/native transports.
     const errorName = error instanceof Error ? error.name : undefined
     const timedOut = errorName === 'ConnectionTimeoutError' || errorName === 'AbortError'
-    const outcome = error ? (timedOut ? 'timeout' : 'network_error') : response?.ok ? 'success' : 'http_error'
+    const interrupted = timedOut && (error as { interrupted?: unknown }).interrupted === true
+    const failureKind = interrupted ? 'interrupted' : timedOut ? 'timeout' : 'network_error'
+    const outcome = error ? failureKind : response?.ok ? 'success' : 'http_error'
     const serverDurationMs = parseServerTiming(response?.headers?.get?.('server-timing') ?? null)
     const properties = {
         route,
@@ -172,13 +183,7 @@ function captureApiTiming({ route, method, startedAt, authWaitMs, response, erro
         posthog.capture(ANALYTICS_EVENTS.API_REQUEST_PROBLEM, {
             ...properties,
             problem:
-                error != null
-                    ? timedOut
-                        ? 'timeout'
-                        : 'network_error'
-                    : statusCode !== undefined && statusCode >= 500
-                      ? 'server_error'
-                      : 'slow',
+                error != null ? failureKind : statusCode !== undefined && statusCode >= 500 ? 'server_error' : 'slow',
         })
     }
 }

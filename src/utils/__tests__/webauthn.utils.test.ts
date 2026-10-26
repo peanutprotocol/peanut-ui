@@ -1,5 +1,9 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import posthog from 'posthog-js'
 import {
+    isPasskeyBusyError,
+    isPasskeyCleanupPendingError,
     capturePasskeySignFailure,
     classifyPasskeyError,
     getPasskeyErrorSetupKey,
@@ -39,6 +43,17 @@ describe('capturePasskeySignFailure', () => {
         expect(posthog.capture).toHaveBeenCalledWith('passkey_sign_failed', {
             error_name: 'NotAllowedError',
             context: 'send-user-op',
+        })
+    })
+
+    test('counts a ceremony guard timeout as a signing failure', () => {
+        const timeout = Object.assign(new Error('passkey ceremony did not settle within 60000ms'), {
+            name: 'CeremonyTimeoutError',
+        })
+        capturePasskeySignFailure(timeout, 'sign-user-op')
+        expect(posthog.capture).toHaveBeenCalledWith('passkey_sign_failed', {
+            error_name: 'CeremonyTimeoutError',
+            context: 'sign-user-op',
         })
     })
 
@@ -86,6 +101,11 @@ describe('classifyPasskeyError', () => {
 
     test('falls back to LOGIN_ERROR for unknown errors', () => {
         expect(classifyPasskeyError(new Error('mystery')).code).toBe('LOGIN_ERROR')
+    })
+
+    test('maps a browser request still pending from an earlier prompt to PASSKEY_INTERRUPTED', () => {
+        const err = Object.assign(new Error('A request is already pending.'), { name: 'OperationError' })
+        expect(classifyPasskeyError(err).code).toBe('PASSKEY_INTERRUPTED')
     })
 })
 
@@ -214,15 +234,39 @@ describe('getPasskeyErrorSetupKey', () => {
         Object.assign(new Error('curated english copy'), { name: 'PasskeyError', code })
 
     test('maps a known PasskeyError code to its translated setup.* catalog key', () => {
-        expect(getPasskeyErrorSetupKey(passkeyError('LOGIN_CANCELED'))).toBe('waitlist.loginCanceled')
+        expect(getPasskeyErrorSetupKey(passkeyError('LOGIN_CANCELED'))).toBe('passkey.notCompleted')
         expect(getPasskeyErrorSetupKey(passkeyError('CEREMONY_TIMEOUT'))).toBe('passkey.tookTooLong')
         expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_NOT_READY'))).toBe('passkey.notReady')
         expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_STATE'))).toBe('passkey.deviceState')
         expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_INTERRUPTED'))).toBe('passkey.interrupted')
         expect(getPasskeyErrorSetupKey(passkeyError('NETWORK'))).toBe('passkey.serverUnreachable')
-        expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_UNSUPPORTED'))).toBe('passkey.unsupported')
         expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_ORIGIN'))).toBe('passkey.origin')
         expect(getPasskeyErrorSetupKey(passkeyError('LOGIN_ERROR'))).toBe('passkey.loginError')
+    })
+
+    test.each([
+        [
+            'Mac Chrome',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36',
+            'passkey.unsupportedDesktop',
+        ],
+        [
+            'Android',
+            'Mozilla/5.0 (Linux; Android 13; M2012K10C) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36',
+            'passkey.unsupported',
+        ],
+        [
+            'iPhone',
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0 Mobile/15E148 Safari/604.1',
+            'passkey.unsupportedIos',
+        ],
+    ])('gives %s its own unsupported-passkey guidance', (_platform, userAgent, key) => {
+        const ua = jest.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue(userAgent)
+        try {
+            expect(getPasskeyErrorSetupKey(passkeyError('PASSKEY_UNSUPPORTED'))).toBe(key)
+        } finally {
+            ua.mockRestore()
+        }
     })
 
     test('returns undefined for non-PasskeyError failures and unknown codes', () => {
@@ -257,6 +301,12 @@ describe('normalizeNativePasskeyError', () => {
         expect(classifyPasskeyError(err).code).toBe('PASSKEY_UNSUPPORTED')
     })
 
+    test('distinguishes a credential inaccessible to this app from cancellation', () => {
+        const err = normalizeNativePasskeyError(capacitorRejection('No matching passkey was found.', 'NotFoundError'))
+        expect((err as Error).name).toBe('NotFoundError')
+        expect(classifyPasskeyError(err).code).toBe('PASSKEY_NOT_FOUND')
+    })
+
     test('leaves an unattributable native failure alone rather than guessing', () => {
         const err = normalizeNativePasskeyError(capacitorRejection('Passkey registration failed.', 'UnknownError'))
         expect((err as Error).name).toBe('Error')
@@ -268,5 +318,54 @@ describe('normalizeNativePasskeyError', () => {
             name: 'CeremonyConflictError',
         })
         expect((normalizeNativePasskeyError(guardError) as Error).name).toBe('CeremonyConflictError')
+    })
+})
+
+describe('isPasskeyBusyError', () => {
+    it('matches an open prompt across platforms, wrapped or not', () => {
+        const ios = Object.assign(new Error('Another passkey request is already in progress'), {
+            name: 'InvalidStateError',
+        })
+        expect(isPasskeyBusyError(ios)).toBe(true)
+        expect(isPasskeyBusyError(new Error('A request is already pending.'))).toBe(true)
+        expect(isPasskeyBusyError(new Error('sign failed', { cause: ios }))).toBe(true)
+    })
+
+    it('matches our own CeremonyConflictError by name, whatever its message says', () => {
+        const conflict = Object.assign(new Error('ceremony busy'), { name: 'CeremonyConflictError' })
+        expect(isPasskeyBusyError(conflict)).toBe(true)
+        expect(isPasskeyBusyError(new Error('sign failed', { cause: conflict }))).toBe(true)
+    })
+
+    it('does not match other passkey failures', () => {
+        expect(isPasskeyBusyError(new Error('The operation either timed out or was not allowed'))).toBe(false)
+        expect(isPasskeyBusyError('already in progress')).toBe(false)
+    })
+})
+
+describe('isPasskeyCleanupPendingError', () => {
+    const cleanup = Object.assign(new Error('Passkey cleanup is unconfirmed; restart the app'), {
+        name: 'PasskeyCleanupPendingError',
+    })
+
+    it('matches the controller and scope errors by name, wrapped or not', () => {
+        const scope = Object.assign(new Error('A previous passkey flow is still pending'), {
+            name: 'PasskeyCleanupPendingError',
+        })
+        expect(isPasskeyCleanupPendingError(cleanup)).toBe(true)
+        expect(isPasskeyCleanupPendingError(scope)).toBe(true)
+        expect(isPasskeyCleanupPendingError(new Error('sign failed', { cause: cleanup }))).toBe(true)
+    })
+
+    it('matches the controller message when a wrapper drops the name', () => {
+        expect(isPasskeyCleanupPendingError(new Error('Passkey cleanup is unconfirmed; restart the app'))).toBe(true)
+    })
+
+    it('is distinct from a busy prompt the user can close and retry', () => {
+        const conflict = Object.assign(new Error('A previous passkey flow is still pending'), {
+            name: 'CeremonyConflictError',
+        })
+        expect(isPasskeyCleanupPendingError(conflict)).toBe(false)
+        expect(isPasskeyBusyError(cleanup)).toBe(false)
     })
 })

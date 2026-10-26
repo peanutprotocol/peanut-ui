@@ -8,7 +8,10 @@ const mockSignIn = jest.fn()
 let mockUser: { user: { userId: string } } | null = { user: { userId: 'qa' } }
 jest.mock('@/services/country-waitlist', () => ({ countryWaitlist: (...args: unknown[]) => mockRequest(...args) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser, userId: mockUser?.user.userId }) }))
-jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSignInModalOpen: mockSignIn }) }))
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ setIsSignInModalOpen: mockSignIn }),
+    useModalsContextOptional: () => undefined,
+}))
 jest.mock('@/components/Global/Drawer', () => ({
     Drawer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     DrawerContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

@@ -1,30 +1,51 @@
 import { setupSteps } from '@/components/Setup/Setup.consts'
-import { filterSetupStepsForResidence, setupFeatureScreensForResidence } from '../filterSetupSteps'
+import {
+    filterSetupStepsForCountry,
+    filterSetupStepsForInvite,
+    setupFeatureScreensForCountry,
+} from '../filterSetupSteps'
 
 const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
+const ids = (country: string | null) =>
+    filterSetupStepsForCountry(setupSteps, restrictions, country).map((step) => step.screenId)
+
 it.each([
-    ['PT', ['advantage-bank', 'advantage-card']],
-    ['AR', ['advantage-bank', 'advantage-local']],
-    ['BR', ['advantage-bank', 'advantage-local']],
-    [' ar ', ['advantage-bank', 'advantage-local']],
-    ['IN', ['advantage-bank', 'advantage-exchange']],
-    ['JP', ['advantage-exchange', 'advantage-card']],
-    ['RU', ['advantage-exchange', 'advantage-people']],
-    ['', ['advantage-exchange', 'advantage-people']],
-])('keeps exactly two ordered feature screens for %s', (residence, expected) => {
-    expect(setupFeatureScreensForResidence(restrictions, residence as string)).toEqual(expected)
-    const ids = filterSetupStepsForResidence(setupSteps, restrictions, residence as string).map((step) => step.screenId)
-    expect(ids.slice(ids.indexOf('residence') + 1, ids.indexOf('funding-methods') + 2)).toEqual([
-        expected[0],
-        'funding-methods',
-        expected[1],
-    ])
-    expect(new Set(ids).size).toBe(ids.length)
-    expect(ids).not.toContain('sign-test-transaction')
-    expect(setupSteps.find((step) => step.screenId === 'advantage-control')?.showBackButton).toBe(false)
+    ['PT', ['advantage-fees', 'advantage-card']],
+    ['AR', ['advantage-fees', 'advantage-card']],
+    [' pt ', ['advantage-fees', 'advantage-card']],
+    ['IN', ['advantage-fees']],
+    ['JP', ['advantage-card']],
+    ['RU', []],
+])('keeps only the sell screens offered in %s, between the inviter and residence', (country, expected) => {
+    expect(setupFeatureScreensForCountry(restrictions, country)).toEqual(expected)
+    const list = ids(country)
+    expect(list.slice(list.indexOf('invite') + 1, list.indexOf('residence'))).toEqual(expected)
+    expect(new Set(list).size).toBe(list.length)
+    expect(list).not.toContain('sign-test-transaction')
 })
-it('replaces a restricted bank slot with a backup even for Argentina and Brazil', () => {
-    const sets = { ...restrictions, bankingOnly: new Set(['AR', 'BR']) }
-    for (const residence of ['AR', 'BR'])
-        expect(setupFeatureScreensForResidence(sets, residence)).toEqual(['advantage-exchange', 'advantage-local'])
+
+it.each([null, '', '  '])('shows both sell screens when no country is suggested (%p)', (country) => {
+    expect(setupFeatureScreensForCountry(restrictions, country)).toEqual(['advantage-fees', 'advantage-card'])
+})
+
+it('keeps the sign-up order: username, inviter, sell screens, then residence and the plan', () => {
+    expect(ids('PT')).toEqual([
+        'landing',
+        'signup',
+        'invite',
+        'advantage-fees',
+        'advantage-card',
+        'residence',
+        'payment-plan',
+        'notification-email',
+        'notification-permission',
+        'advantage-control',
+    ])
+})
+
+it('asks for an inviter only when the signup has none', () => {
+    const list = (hasInvite: boolean) => filterSetupStepsForInvite(setupSteps, hasInvite).map((step) => step.screenId)
+    expect(list(false)).toContain('invite')
+    expect(list(true)).not.toContain('invite')
+    expect(list(true)).toEqual(list(false).filter((id) => id !== 'invite'))
 })

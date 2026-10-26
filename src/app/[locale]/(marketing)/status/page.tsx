@@ -54,10 +54,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
             ogSubtitle: i18n.statusPageSubtitle,
         }),
         alternates: { canonical, languages: getAlternatesFor(SUPPORTED_LOCALES, 'status') },
-        // Nothing here should compete with the marketing pages in search, and
-        // a stale cached copy of an outage is worse than none. Unfurls are
-        // unaffected — og:/twitter: tags are read regardless of robots.
-        robots: { index: false, follow: true },
     }
 }
 
@@ -102,7 +98,7 @@ export default async function StatusPage({ params }: { params: Promise<{ locale:
         // a hiccup.
         return (
             <div className="bg-background-page">
-                <Hero title={i18n.statusPageTitle} subtitle={i18n.statusWindowLabel} />
+                <Hero title={i18n.statusPageTitle} subtitle={i18n.statusWindowLabel} locale={locale} />
                 <div className="mx-auto w-full max-w-3xl px-6 pb-12">
                     <StatusBanner
                         state="down"

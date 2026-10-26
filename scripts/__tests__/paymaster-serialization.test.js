@@ -41,3 +41,44 @@ test('the installed ZeroDev SDK sends valid preview sponsorship metadata', () =>
         { cwd: root, stdio: 'pipe' }
     )
 })
+
+test('the installed SDK normalizes an UltraRelay gas-only response for safe QR reuse', () => {
+    const root = path.join(__dirname, '..', '..')
+    execFileSync(
+        process.execPath,
+        [
+            '--import',
+            'tsx',
+            '--input-type',
+            'module',
+            '--eval',
+            `
+        import assert from 'node:assert/strict';
+        import { createRequire } from 'node:module';
+        const require = createRequire(import.meta.url);
+        const { sponsorUserOperation } = require('@zerodev/sdk/actions');
+        const { entryPoint07Address } = require('viem/account-abstraction');
+        const { toSponsorshipRefresh } = require('./src/hooks/wallet/sponsorshipRefresh.ts');
+        const userOperation = { entryPointAddress: entryPoint07Address, maxFeePerGas: 0n, maxPriorityFeePerGas: 0n };
+        const response = await sponsorUserOperation({ chain: { id: 42161 }, request: async () => ({
+            callGasLimit: '0x123', verificationGasLimit: '0x456', preVerificationGas: '0x789',
+            paymasterVerificationGasLimit: '0x0', paymasterPostOpGasLimit: '0x0',
+        }) }, { userOperation, shouldConsume: true });
+        assert.equal(response.paymaster, undefined);
+        assert.equal(response.paymasterData, undefined);
+        const operation = { chainId: '42161', ...userOperation };
+        const refresh = toSponsorshipRefresh(response, operation);
+        assert.ok(refresh);
+        assert.equal(refresh.callGasLimit, 0x123n);
+        assert.equal(refresh.maxFeePerGas, 0n);
+        for (const key of ['paymaster', 'paymasterData'])
+            assert.equal(refresh[key], undefined);
+        assert.equal(refresh.paymasterVerificationGasLimit, 0n);
+        assert.equal(refresh.paymasterPostOpGasLimit, 0n);
+        assert.equal(toSponsorshipRefresh({ ...response, maxFeePerGas: 1n }, operation), null);
+        assert.equal(toSponsorshipRefresh(response, { ...operation, chainId: '8453' }), null);
+    `,
+        ],
+        { cwd: root, stdio: 'pipe' }
+    )
+})

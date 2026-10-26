@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 import {
     BADGE_ASSET_FALLBACKS,
     getBadgeDescription,
@@ -33,7 +34,28 @@ describe('backend-owned badge presentation', () => {
         expect(getBadgeIcon('WAITLIST_SKIP', '/badges/authoritative.avif')).toBe('/badges/authoritative.avif')
     })
 
+    it('still accepts every same-origin /badges/* path the catalog serves today', () => {
+        for (const iconPath of Object.values(BADGE_ASSET_FALLBACKS)) {
+            expect(getBadgeIcon('FUTURE_BADGE', iconPath)).toBe(iconPath)
+        }
+    })
+
+    it.each(['svg', 'png', 'webp', 'avif'])('accepts API badge art ending in .%s', (ext) => {
+        const iconUrl = `${PEANUT_API_URL}/badges/art/naija-2.${ext}`
+        expect(getBadgeIcon('WAITLIST_SKIP', iconUrl)).toBe(iconUrl)
+    })
+
     it.each([
+        'https://cdn.example/badges/art/naija.svg',
+        `${PEANUT_API_URL}.evil.example/badges/art/naija.svg`,
+        PEANUT_API_URL.replace(/\./g, 'x') + '/badges/art/naija.svg',
+        PEANUT_API_URL.replace(/^https:/, 'http:') + '/badges/art/naija.svg',
+        `${PEANUT_API_URL}/badges/art/naija.svg?v=1`,
+        `${PEANUT_API_URL}/badges/art/naija.svg#fragment`,
+        `${PEANUT_API_URL}/badges/art/../secret.svg`,
+        `${PEANUT_API_URL}/badges/art/naija.gif`,
+        `${PEANUT_API_URL}/badges/naija.svg`,
+        `${PEANUT_API_URL}/other/art/naija.svg`,
         'https://cdn.example/badge.svg',
         'data:image/svg+xml;base64,PHN2Zy8+',
         '/badges/../secret.svg',
@@ -113,6 +135,27 @@ describe('getBadgeShareText', () => {
         const text = getBadgeShareText(undefined, 'Some Badge', url)
         expect(text).toContain('Some Badge')
         expect(text).toContain(url)
+    })
+
+    it('uses the api share line in any locale, with the localized join line', () => {
+        const options = {
+            localizedFallback: 'fallback',
+            shareLine: 'Gané mi primera insignia',
+            joinLine: `Únete 👉 ${url}`,
+        }
+
+        expect(getBadgeShareText('CARD_FIRST_SWIPE', 'First Swipe', url, { locale: 'es-419', ...options })).toBe(
+            `Gané mi primera insignia\n\nÚnete 👉 ${url}`
+        )
+        expect(getBadgeShareText('CARD_FIRST_SWIPE', 'First Swipe', url, { locale: 'en', ...options })).toBe(
+            `Gané mi primera insignia\n\nÚnete 👉 ${url}`
+        )
+    })
+
+    it('falls back to app copy when the api sends no share line', () => {
+        const options = { locale: 'pt-BR', localizedFallback: 'fallback', shareLine: '  ', joinLine: 'join' }
+
+        expect(getBadgeShareText('CARD_FIRST_SWIPE', 'First Swipe', url, options)).toBe('fallback')
     })
 
     it('keeps the localized generic copy outside English', () => {

@@ -29,7 +29,8 @@ import type { Address } from 'viem'
 import { type IClaimScreenProps } from '../Claim.consts'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import useClaimLink from '../useClaimLink'
-import underMaintenanceConfig, { CROSS_CHAIN_DISABLED_MESSAGE } from '@/config/underMaintenance.config'
+import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
+import { CROSS_CHAIN_DISABLED_MESSAGE } from '@/features/kill-switches/kill-switches.consts'
 import { type ClaimXChainPreview } from '../Claim.consts'
 import { previewSdaTransfer } from '@/services/rhino-sda'
 import { findClaimRoute, resolveClaimQuoteRecipient } from '@/utils/claim-route.utils'
@@ -116,11 +117,8 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
         showVerificationModal,
         setShowVerificationModal,
         verificationPromptReason,
-        setVerificationPromptReason,
         setClaimToExternalWallet,
         resetFlow: resetClaimBankFlow,
-        claimToMercadoPago,
-        setClaimToMercadoPago,
         setRegionalMethodType,
         hideTokenSelector,
         setHideTokenSelector,
@@ -328,7 +326,7 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
 
                 // check if cross-chain claiming is needed
                 if (isXChain) {
-                    if (underMaintenanceConfig.disableXchainSend) {
+                    if (getKillSwitches().disableXchainSend) {
                         // skip throwing through the friendly-error mapper — surface the friendly maintenance message directly
                         setErrorState({ showError: true, errorMessage: CROSS_CHAIN_DISABLED_MESSAGE })
                         setLoadingState('Idle')
@@ -991,29 +989,23 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
             if (consumedStepRef.current) return
             if (stepFromURL) consumedStepRef.current = true
             removeParamStep()
-            if (stepFromURL === 'claim' && isPeanutWallet) {
+            // Mercado Pago / Pix (step=regional-claim) claim into the user's own
+            // wallet exactly like step=claim; the success screen then offers the
+            // withdraw to the method tapped BEFORE the auth redirect, which only
+            // the URL carried across. Every other mount clears it, so a later
+            // claim in this session does not inherit the offer. Without a valid
+            // param it stays null, never a default that could masquerade as a
+            // real choice.
+            setRegionalMethodType(
+                stepFromURL === 'regional-claim' && (methodFromURL === 'pix' || methodFromURL === 'mercadopago')
+                    ? methodFromURL
+                    : null
+            )
+            if ((stepFromURL === 'claim' || stepFromURL === 'regional-claim') && isPeanutWallet) {
                 handleClaimLink(false, true)
-            } else if (stepFromURL === 'regional-claim') {
-                // restore the method the user tapped BEFORE the auth redirect —
-                // context state didn't survive the remount, only the URL did.
-                // without a valid param the method stays null (unknown), never
-                // a default that could masquerade as a real choice.
-                if (methodFromURL === 'pix' || methodFromURL === 'mercadopago') {
-                    setRegionalMethodType(methodFromURL)
-                }
-                setClaimToMercadoPago(true)
             }
         }
     }, [user, stepFromURL, methodFromURL, isPeanutWallet, selectedTokenData, address])
-
-    useEffect(() => {
-        if (claimToMercadoPago && !user) {
-            // regional claim without an account: the sender's verification is
-            // irrelevant here, so don't render copy that blames them
-            setVerificationPromptReason('account-required')
-            setShowVerificationModal(true)
-        }
-    }, [claimToMercadoPago, user, setShowVerificationModal, setVerificationPromptReason])
 
     return {
         t,
@@ -1030,7 +1022,6 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
         claimBankFlowStep,
         claimToExternalWallet,
         setClaimToExternalWallet,
-        claimToMercadoPago,
         hideTokenSelector,
         showVerificationModal,
         setShowVerificationModal,

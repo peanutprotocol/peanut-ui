@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * Log-level contract for OTA update-check failures: transient failures stay at
  * info (invisible to Sentry's captureConsoleIntegration), known-fatal patterns
@@ -385,6 +387,19 @@ it('logs a known-fatal failure at error on the first launch', async () => {
     await launch()
     expect(error).toHaveBeenCalledWith('[capgo] update check failed:', 'Checksum mismatch for bundle')
     expect(info).not.toHaveBeenCalled()
+})
+
+it('reports a known-fatal failure once per binary build, not on every launch', async () => {
+    mockUpdater.getLatest.mockRejectedValue(new Error('disable_auto_update_under_native'))
+    await launch()
+    await launch()
+    expect(error).toHaveBeenCalledTimes(1)
+    expect(info).toHaveBeenCalledWith('[capgo] update check failed:', 'disable_auto_update_under_native')
+
+    // A store update to a build that is still refused is news again.
+    mockPlatform.binaryVersion = '1.6.0'
+    await launch()
+    expect(error).toHaveBeenCalledTimes(2)
 })
 
 it('escalates the same failure to error on the third consecutive launch', async () => {

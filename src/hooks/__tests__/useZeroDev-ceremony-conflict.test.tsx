@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { act, renderHook } from '@testing-library/react'
 import { useZeroDev } from '../useZeroDev'
 import { removeFromCookie } from '@/utils/general.utils'
@@ -10,7 +12,7 @@ let mockActiveCeremonyId: number | null = null
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
-        user: { user: { userId: 'u1', username: 'alice' } },
+        user: { user: { userId: 'u1', username: 'alice' }, accounts: [] },
         logoutUser: jest.fn(),
         hydrateLoginSession: jest.fn().mockResolvedValue({ user: { userId: 'u1' } }),
     }),
@@ -78,6 +80,7 @@ jest.mock('@/utils/walletCredential.utils', () => ({
 jest.mock('@sentry/nextjs', () => ({
     captureException: (...args: unknown[]) => mockCaptureException(...args),
     captureMessage: jest.fn(),
+    addBreadcrumb: jest.fn(),
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/utils/capacitor', () => ({

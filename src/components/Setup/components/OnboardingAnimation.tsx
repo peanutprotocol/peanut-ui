@@ -2,43 +2,31 @@
 
 import type { AnimationItem } from 'lottie-web'
 import { useEffect, useRef, useState } from 'react'
+import { LOOP_HOLD_MS, planLoop, stillFrame, type LoopMarker } from './loopPlayback.utils'
 
+/*
+ * The sign-up hero loops. Each file is one screen's loop; replacing a file swaps that
+ * screen's art with no code change. Sources and revisions: src/assets/onboarding/README.md.
+ */
 const loaders = {
-    local: () => import('@/assets/onboarding/local.json'),
-    exchange: () => import('@/assets/illustrations/lottie/coin-swap.json'),
-    people: () => import('@/assets/illustrations/lottie/plane-delivery.json'),
-    username: () => import('@/assets/onboarding/username-at.json'),
-    card: () => import('@/assets/illustrations/lottie/card-flip.json'),
-    bank: () => import('@/assets/illustrations/lottie/globe-world-route.json'),
-    fees: () => import('@/assets/illustrations/lottie/receipt.json'),
-    security: () => import('@/assets/onboarding/security.json'),
-    documents: () => import('@/assets/onboarding/documents.json'),
-    email: () => import('@/assets/illustrations/lottie/envelope-verify.json'),
+    invite: () => import('@/assets/onboarding/invite.json'),
+    residence: () => import('@/assets/onboarding/residence.json'),
+    'add-money': () => import('@/assets/onboarding/add-money.json'),
+    accounts: () => import('@/assets/onboarding/accounts.json'),
+    card: () => import('@/assets/onboarding/card.json'),
+    email: () => import('@/assets/onboarding/email.json'),
     notifications: () => import('@/assets/onboarding/notifications.json'),
-    'phone-to-phone': () => import('@/assets/illustrations/lottie/phone-to-phone.json'),
-    topup: () => import('@/assets/illustrations/lottie/wallet-topup.json'),
+    finish: () => import('@/assets/onboarding/finish.json'),
+    username: () => import('@/assets/onboarding/username-at.json'),
 }
 export type OnboardingAnimationName = keyof typeof loaders
-// Checklist, feature and email illustrations use 80% of their previous scale.
-const COMPACT_ANIMATIONS = new Set<OnboardingAnimationName>([
-    'phone-to-phone',
-    'bank',
-    'exchange',
-    'local',
-    'people',
-    'topup',
-    'email',
-])
-const REDUCED_MOTION_FRAMES: Partial<Record<OnboardingAnimationName, number>> = {
-    people: 30,
-    email: 40,
-    fees: 32,
-    exchange: 0,
-    'phone-to-phone': 36,
-    topup: 32,
-}
 
-/** Onboarding lab vectors plus the matching documents and email illustrations. */
+/**
+ * Plays a sign-up loop by its markers (see planLoop): the beat once, the held pose
+ * for a few seconds, then the beat again. Under prefers-reduced-motion it shows the
+ * held pose. The comp is not clipped to its box, so a loop can draw across the whole
+ * hero; the hero's own edge clips it.
+ */
 export default function OnboardingAnimation({
     name,
     background = false,
@@ -51,62 +39,103 @@ export default function OnboardingAnimation({
     useEffect(() => {
         let cancelled = false
         let animation: AnimationItem | undefined
-        let restartTimer: ReturnType<typeof setTimeout> | undefined
-        let waitingForRestart = false
+        let holdTimer: ReturnType<typeof setTimeout> | undefined
+        let phase: 'intro' | 'idle' | 'idle-once' | 'outro' = 'intro'
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
-        const clearRestart = () => {
-            if (restartTimer !== undefined) clearTimeout(restartTimer)
-            restartTimer = undefined
+        const clearHold = () => {
+            if (holdTimer !== undefined) clearTimeout(holdTimer)
+            holdTimer = undefined
+        }
+        const comp = (data: unknown) => data as { markers?: LoopMarker[]; pp?: { idle_once?: boolean } }
+        let plan = planLoop(undefined, 0)
+
+        const playIntro = () => {
+            if (!animation || plan.kind !== 'beat') return
+            phase = 'intro'
+            animation.loop = false
+            animation.playSegments(plan.intro, true)
+        }
+        const playOutro = () => {
+            if (!animation || plan.kind !== 'beat') return
+            if (!plan.outro) return playIntro()
+            phase = 'outro'
+            animation.loop = false
+            animation.playSegments(plan.outro, true)
+        }
+        const playIdle = () => {
+            if (!animation || plan.kind !== 'beat') return
+            clearHold()
+            if (plan.idleOnce) {
+                phase = 'idle-once'
+                animation.loop = false
+                animation.playSegments(plan.idle, true)
+                return
+            }
+            phase = 'idle'
+            animation.loop = true
+            animation.playSegments(plan.idle, true)
+            holdTimer = setTimeout(() => {
+                holdTimer = undefined
+                if (!cancelled) playOutro()
+            }, LOOP_HOLD_MS)
         }
         const play = () => {
             if (!animation) return
-            clearRestart()
-            // Show the completed objects instead of blank paper or a closed envelope.
+            clearHold()
             if (reducedMotion.matches) {
-                waitingForRestart = false
-                animation.goToAndStop(REDUCED_MOTION_FRAMES[name] ?? 0, true)
-            } else if (document.hidden) animation.pause()
-            else if (waitingForRestart) {
-                restartTimer = setTimeout(() => {
-                    if (cancelled) return
-                    restartTimer = undefined
-                    waitingForRestart = false
-                    animation?.goToAndPlay(0, true)
-                }, 1000)
-            } else animation.play()
+                animation.goToAndStop(stillFrame(plan), true)
+                return
+            }
+            if (document.hidden) {
+                animation.pause()
+                return
+            }
+            if (plan.kind === 'whole') {
+                animation.loop = true
+                animation.play()
+            } else if (plan.kind === 'idle') {
+                animation.loop = true
+                animation.playSegments(plan.idle, true)
+            } else playIntro()
         }
+
         void Promise.all([import('lottie-web/build/player/lottie_light'), loaders[name]()])
             .then(([lottie, data]) => {
                 if (cancelled || !container.current) return
                 animation = lottie.default.loadAnimation({
                     container: container.current,
                     renderer: 'svg',
-                    loop: name !== 'card',
+                    loop: false,
                     autoplay: false,
                     animationData: data.default,
                     rendererSettings: { preserveAspectRatio: 'xMidYMid meet' },
                 })
-                if (name === 'username') animation.setSpeed(4)
-                else if (name === 'fees' || name === 'email' || name === 'exchange') animation.setSpeed(0.5)
-                else animation.setSpeed(1)
-                if (name === 'card') {
-                    animation.addEventListener('complete', () => {
-                        waitingForRestart = true
-                        play()
-                    })
-                }
+                plan = planLoop(comp(data.default).markers, animation.totalFrames, !!comp(data.default).pp?.idle_once)
+                animation.addEventListener('complete', () => {
+                    if (phase === 'intro') playIdle()
+                    else if (phase === 'idle-once') playOutro()
+                    else if (phase === 'outro') playIntro()
+                })
                 animation.addEventListener('DOMLoaded', () => {
+                    const svg = container.current?.querySelector('svg')
+                    if (svg) {
+                        svg.style.overflow = 'visible'
+                        for (const group of Array.from(svg.children)) {
+                            if (group.tagName.toLowerCase() === 'g') group.removeAttribute('clip-path')
+                        }
+                    }
                     setReady(true)
                     play()
                 })
-                play()
             })
+            // A failed chunk must not escape: the app reloads on an unhandled
+            // ChunkLoadError, and a decorative loop is not worth a reload.
             .catch(() => {})
         reducedMotion.addEventListener('change', play)
         document.addEventListener('visibilitychange', play)
         return () => {
             cancelled = true
-            clearRestart()
+            clearHold()
             reducedMotion.removeEventListener('change', play)
             document.removeEventListener('visibilitychange', play)
             animation?.destroy()
@@ -118,21 +147,7 @@ export default function OnboardingAnimation({
             aria-hidden="true"
             data-onboarding-animation={name}
             data-lottie-ready={ready}
-            className={
-                background
-                    ? 'h-full w-full'
-                    : name === 'fees'
-                      ? 'aspect-square h-full w-auto max-w-none scale-[1.2]'
-                      : name === 'card'
-                        ? 'aspect-square h-full w-auto max-w-none scale-[1.344] md:scale-[1.152]'
-                        : COMPACT_ANIMATIONS.has(name)
-                          ? 'aspect-square h-full w-auto max-w-none scale-[1.12] md:scale-[0.96]'
-                          : name === 'security'
-                            ? 'aspect-square h-full w-auto max-w-none scale-[1.68] md:scale-[1.44]'
-                            : name === 'notifications'
-                              ? 'aspect-square h-full w-auto max-w-none scale-[1.54] md:scale-[1.32]'
-                              : 'aspect-square h-full w-auto max-w-none scale-[1.4] md:scale-[1.2]'
-            }
+            className={background ? 'h-full w-full' : 'aspect-[1050/1000] h-full w-auto max-w-none'}
         />
     )
 }

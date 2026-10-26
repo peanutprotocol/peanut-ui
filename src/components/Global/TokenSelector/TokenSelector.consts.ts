@@ -1,5 +1,3 @@
-import SOLANA_ICON from '@/assets/chains/solana.svg'
-import TRON_ICON from '@/assets/chains/tron.svg'
 import { networks } from '@/config/wagmi.config'
 import { CHAIN_REGISTRY } from '@/constants/chainRegistry.consts'
 import type { IPeanutChainDetails, IToken } from '@/interfaces/interfaces'
@@ -30,46 +28,6 @@ export interface TokenSelectorXChainProps extends TokenSelectorProps {
     onReset?: () => void
     isStatic?: boolean
 }
-
-// network configuration for the token selector
-export interface NetworkConfig {
-    chainId: string
-    name: string
-    iconUrl: string
-}
-
-export const TOKEN_SELECTOR_COMING_SOON_NETWORKS: NetworkConfig[] = [
-    {
-        chainId: 'solana',
-        name: 'Solana',
-        iconUrl: SOLANA_ICON,
-    },
-    {
-        chainId: 'tron',
-        name: 'Tron',
-        iconUrl: TRON_ICON,
-    },
-]
-
-// popular networks mapping for the token selector — chainId keys lookup into supportedChainsAndTokens for chain metadata
-export const TOKEN_SELECTOR_POPULAR_NETWORK_IDS = [
-    {
-        chainId: '42161',
-        name: 'ARB',
-    },
-    {
-        chainId: '1',
-        name: 'ETH',
-    },
-    {
-        chainId: '10',
-        name: 'OP',
-    },
-    {
-        chainId: '8453',
-        name: 'BASE',
-    },
-]
 
 // scroll excluded 2026-07-10: Rhino disabled it entirely, and Scroll isn't an
 // SDA deposit chain either, so every cross-chain route from it dead-ends.
@@ -105,3 +63,6 @@ export const TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS = networks
 export const RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN: Record<string, readonly string[]> = Object.fromEntries(
     CHAIN_REGISTRY.filter((c) => c.withdraw).map((c) => [c.id, c.withdraw!.tokens])
 )
+
+/** the withdraw destinations in registry order — the selector's network order */
+export const RHINO_WITHDRAW_CHAIN_IDS: readonly string[] = CHAIN_REGISTRY.filter((c) => c.withdraw).map((c) => c.id)

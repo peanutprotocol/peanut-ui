@@ -89,9 +89,15 @@ export const COLOR_TOKENS: ThemeToken[] = [
     },
     {
         "name": "background-setup-hero",
-        "value": "#d8e7ff",
+        "value": "var(--color-blue-300)",
         "section": "semantic",
         "previewClass": "bg-background-setup-hero"
+    },
+    {
+        "name": "background-marketing-sky",
+        "value": "var(--color-blue-300)",
+        "section": "semantic",
+        "previewClass": "bg-background-marketing-sky"
     },
     {
         "name": "background-icon-bubble-green",
@@ -208,6 +214,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "previewClass": "bg-foreground-inverse"
     },
     {
+        "name": "foreground-inverse-secondary",
+        "value": "#ffffff99",
+        "section": "semantic",
+        "previewClass": "bg-foreground-inverse-secondary"
+    },
+    {
         "name": "foreground-error",
         "value": "#ff3b30",
         "section": "semantic",
@@ -218,6 +230,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "value": "#885b00",
         "section": "semantic",
         "previewClass": "bg-foreground-attention"
+    },
+    {
+        "name": "foreground-brand",
+        "value": "var(--color-pink-500)",
+        "section": "semantic",
+        "previewClass": "bg-foreground-brand"
     },
     {
         "name": "foreground-over-color-primary",
@@ -392,6 +410,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "value": "#3b730c",
         "section": "semantic",
         "previewClass": "bg-avatar-green-foreground"
+    },
+    {
+        "name": "background-selection",
+        "value": "var(--color-blue-200)",
+        "section": "semantic",
+        "previewClass": "bg-background-selection"
     },
     {
         "name": "shadow-primary",
@@ -882,19 +906,6 @@ export const FONT_TOKENS: FontToken[] = [
         "section": "parity",
         "previewClass": "font-sans",
         "stack": "var(--font-roboto), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'"
-    },
-    {
-        "name": "display",
-        "section": "parity",
-        "previewClass": "font-display",
-        "stack": "var(--font-sniglet), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'"
-    },
-    {
-        "name": "condensed",
-        "section": "parity",
-        "previewClass": "font-condensed",
-        "stack": "var(--font-roboto)",
-        "fontVariationSettings": "'wdth' 50"
     }
 ]
 

@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * PendingVerificationTasks — the Home card mirroring Bridge's "additional
  * verification needed" dashboard state.

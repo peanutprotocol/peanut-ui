@@ -19,6 +19,13 @@ const tilts = ['-rotate-1', 'rotate-[0.8deg]', '-rotate-[0.6deg]']
  */
 export function ProblemFold({ strings }: { strings: LandingStrings }) {
     const { problem } = strings
+    // Ruled ramp only, as in NoFees: "PROBLEMA." clips the 342px column at
+    // 390 at heading 60, so a catalog whose longest word passes 8 characters
+    // stays on headingSmall 42 across mobile; the rest step down below xs.
+    const headingSize =
+        Math.max(...problem.heading.split(' ').map((word) => word.length)) > 8
+            ? 'text-headingSmall'
+            : 'text-headingSmall xs:text-heading'
 
     const cards = [
         {
@@ -48,10 +55,10 @@ export function ProblemFold({ strings }: { strings: LandingStrings }) {
     return (
         <section
             id="the-problem"
-            className="relative overflow-hidden bg-background-page px-4 py-20 text-foreground-primary md:py-28"
+            className="relative overflow-hidden bg-background-page px-6 py-16 text-foreground-primary md:px-4 md:py-24"
         >
-            <div className="mx-auto max-w-6xl">
-                <h2 className="font-roboto-flex-extrabold text-heading-l uppercase md:text-6xl lg:text-heading">
+            <div className="mx-auto max-w-7xl">
+                <h2 className={`font-roboto-flex-extrabold ${headingSize} uppercase md:text-headingMedium`}>
                     {problem.heading}
                 </h2>
 

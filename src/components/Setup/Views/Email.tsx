@@ -16,18 +16,21 @@ import type { IUserProfile } from '@/interfaces/interfaces'
 import { SetupDocLink } from '../components/SetupDocsDrawer'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { addBreadcrumb, captureException } from '@/utils/sentry-lazy'
+import { reportEmailSaveFailure } from '@/features/setup/report-email-save-failure'
 
 export default function EmailStep() {
     const t = useTranslations('setup.email')
     const { user, fetchUser } = useAuth()
     const queryClient = useQueryClient()
-    const { notificationEmail, setNotificationEmail } = useSetupFlowContext()
+    const { notificationEmail, setNotificationEmail, setIsLoading: setSetupLoading } = useSetupFlowContext()
     const { handleNext } = useSetupFlow()
     const [email, setEmail] = useState(notificationEmail || user?.user.email || '')
     const [error, setError] = useState<string>()
     const [emailInUse, setEmailInUse] = useState(false)
     const [saving, setSaving] = useState(false)
     const savingRef = useRef(false)
+    const saveAttemptsRef = useRef(0)
     const save = async (event: React.FormEvent) => {
         event.preventDefault()
         if (savingRef.current) return
@@ -44,16 +47,40 @@ export default function EmailStep() {
         }
         savingRef.current = true
         setSaving(true)
+        setSetupLoading(true)
         // The flow retains the draft across Next/Back remounts. Only leave
         // after the API confirms the required contact has been saved.
         setNotificationEmail(value)
         try {
+            // updateUserById returns every failure, including a network error
+            // after its one retry, as `result.error`. The button stays enabled
+            // after an error, so Continue retries the save; it never skips it.
             if (user.user.email !== value) {
-                const result = await updateUserById({ userId: user.user.userId, email: value })
+                saveAttemptsRef.current += 1
+                const result = await updateUserById({ userId: user.user.userId, email: value }).catch(() => ({
+                    error: 'request failed',
+                    failureKind: 'other' as const,
+                    status: undefined,
+                }))
                 if (result.error) {
                     const duplicate = result.error === 'This email is already associated with another account'
+                    if (duplicate) {
+                        // A user outcome, not a fault: on the trail, not an error event.
+                        addBreadcrumb({
+                            category: 'signup',
+                            level: 'info',
+                            message: 'Sign-up email already registered',
+                        })
+                    } else {
+                        reportEmailSaveFailure({
+                            failureKind: result.failureKind,
+                            status: result.status,
+                            attempt: saveAttemptsRef.current,
+                        })
+                    }
                     setEmailInUse(duplicate)
                     setError(t(duplicate ? 'alreadyRegistered' : 'saveFailed'))
+                    // The email is required: never advance without a confirmed save.
                     return
                 }
                 // Profile and KYC read this shared account cache. Reflect the
@@ -64,12 +91,17 @@ export default function EmailStep() {
                 })
                 void fetchUser().catch(() => {})
             }
-            await handleNext()
-        } catch {
-            setError(t('saveFailed'))
+            // A navigation failure is not a failed save: showing saveFailed
+            // here would ask the user to retry an email the API already has.
+            try {
+                await handleNext()
+            } catch (navigationError) {
+                captureException(navigationError)
+            }
         } finally {
             savingRef.current = false
             setSaving(false)
+            setSetupLoading(false)
         }
     }
     return (
@@ -99,6 +131,11 @@ export default function EmailStep() {
                     <Button type="submit" shadowSize="4" loading={saving} disabled={saving || !email.trim()}>
                         {t('continue')}
                     </Button>
+                }
+                secondary={
+                    <p className="w-full border-t border-border-subtle pt-4 text-center text-body-xs text-foreground-secondary compact:pt-2">
+                        {t('optOutNote')}
+                    </p>
                 }
             >
                 {emailInUse && (

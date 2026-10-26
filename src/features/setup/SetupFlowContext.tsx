@@ -3,11 +3,8 @@
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
 import { type SignupEntryFlow } from '@/features/setup/signup-analytics'
-import { EInviteType } from '@/services/services.types'
-import { clearInvite, readInviteCode, readInviteType, stashInvite } from '@/utils/invite-stash'
 
-type ManualInvite = { code: string; previousCode: string; previousType: EInviteType }
-export type SetupFundingMethod = 'bank' | 'cash' | 'crypto' | 'peanut'
+import type { SetupFundingChannel, SetupPaymentChannel } from './paymentChannels'
 
 /**
  * Setup flow memory that cannot live in the URL: the filtered step list (a
@@ -19,8 +16,10 @@ export type SetupFundingMethod = 'bank' | 'cash' | 'crypto' | 'peanut'
  * clamps (TASK-21404).
  */
 interface SetupFlowContextType {
-    fundingMethods: SetupFundingMethod[]
-    setFundingMethods: (methods: SetupFundingMethod[]) => void
+    fundingChannel: SetupFundingChannel | null
+    setFundingChannel: (channel: SetupFundingChannel | null) => void
+    paymentChannel: SetupPaymentChannel | null
+    setPaymentChannel: (channel: SetupPaymentChannel | null) => void
     notificationEmail: string
     setNotificationEmail: (email: string) => void
     notificationChoices: { push: boolean; email: boolean }
@@ -38,10 +37,16 @@ interface SetupFlowContextType {
     setDirection: (direction: number) => void
     username: string
     setUsername: (username: string) => void
-    inviterUsername: string
-    setInviterUsername: (username: string) => void
-    applyManualInvite: (code: string) => void
-    clearManualInvite: () => void
+    /** An inviter was accepted on the invite step in this session; the step then leaves the list. */
+    inviterAccepted: boolean
+    setInviterAccepted: (accepted: boolean) => void
+    /**
+     * The country the sell screens were chosen for, fixed once the account exists so
+     * the screens do not change under the person. Undefined until then: the layout
+     * follows the live country suggestion.
+     */
+    sellScreensCountry: string | null | undefined
+    setSellScreensCountry: (country: string | null | undefined) => void
     residenceCountry: string
     setResidenceCountry: (country: string) => void
     secondResidenceCountry: string
@@ -49,8 +54,8 @@ interface SetupFlowContextType {
     signupEntryFlow: SignupEntryFlow
     setSignupEntryFlow: (entryFlow: SignupEntryFlow) => void
     /**
-     * The point of no return: the no-back step the PAGE has confirmed visible
-     * (stepRendered — entry resolution done, no interstitial/modal). Guards
+     * The point of no return: the earliest safe step after registration
+     * (confirmed registration or resolved post-registration entry). Guards
      * refuse every earlier step while set. Context state, not a per-instance
      * ref: several components run their own useSetupFlow instance, and the
      * lock must be one fact — and it must NOT arm off a stale terminal URL
@@ -68,61 +73,45 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
     masterScreenIds,
 }) => {
     const [notificationEmail, setNotificationEmail] = useState('')
-    const [fundingMethods, setFundingMethods] = useState<SetupFundingMethod[]>([])
-    const [notificationChoices, setNotificationChoices] = useState({ push: true, email: true })
+    const [fundingChannel, setFundingChannel] = useState<SetupFundingChannel | null>(null)
+    const [paymentChannel, setPaymentChannel] = useState<SetupPaymentChannel | null>(null)
+    const [notificationChoices, setNotificationChoices] = useState({ push: false, email: true })
     const [signupCompleted, setSignupCompleted] = useState(false)
     const [steps, setSteps] = useState<ISetupStep[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [direction, setDirection] = useState(0)
     const [username, setUsername] = useState('')
-    const [inviterUsername, setInviterUsername] = useState('')
-    const [manualInvite, setManualInvite] = useState<ManualInvite | null>(null)
+    const [inviterAccepted, setInviterAccepted] = useState(false)
+    const [sellScreensCountry, setSellScreensCountry] = useState<string | null | undefined>(undefined)
     const [residenceCountry, setResidenceCountry] = useState('')
     const [secondResidenceCountry, setSecondResidenceCountry] = useState('')
     const [signupEntryFlow, setSignupEntryFlow] = useState<SignupEntryFlow>('default')
     const [noBackLockScreenId, setNoBackLockScreenId] = useState<ScreenId | null>(null)
 
-    const clearManualInvite = useCallback(() => {
-        if (manualInvite && manualInvite.code === readInviteCode()) {
-            if (manualInvite.previousCode) stashInvite(manualInvite.previousCode, manualInvite.previousType)
-            else clearInvite()
-        }
-        setManualInvite(null)
-    }, [manualInvite])
-
-    const applyManualInvite = useCallback(
-        (code: string) => {
-            const currentCode = readInviteCode()
-            if (manualInvite?.code === code && currentCode === code) return
-            const previousCode = manualInvite?.code === currentCode ? manualInvite.previousCode : currentCode
-            const previousType = manualInvite?.code === currentCode ? manualInvite.previousType : readInviteType()
-            stashInvite(code, EInviteType.DIRECT)
-            setManualInvite({ code, previousCode, previousType })
-        },
-        [manualInvite]
-    )
-
     // "start fresh" on the existing-session interstitial: the provider stays
     // mounted through the logout, so the typed state clears explicitly
     const resetSetupFlow = useCallback(() => {
         setIsLoading(false)
-        setFundingMethods([])
+        setFundingChannel(null)
+        setPaymentChannel(null)
         setNotificationEmail('')
-        setNotificationChoices({ push: true, email: true })
+        setNotificationChoices({ push: false, email: true })
         setSignupCompleted(false)
         setDirection(0)
         setUsername('')
-        setInviterUsername('')
-        clearManualInvite()
+        setInviterAccepted(false)
+        setSellScreensCountry(undefined)
         setResidenceCountry('')
         setSecondResidenceCountry('')
         setNoBackLockScreenId(null)
-    }, [clearManualInvite])
+    }, [])
 
     const value = useMemo(
         () => ({
-            fundingMethods,
-            setFundingMethods,
+            fundingChannel,
+            setFundingChannel,
+            paymentChannel,
+            setPaymentChannel,
             notificationEmail,
             setNotificationEmail,
             notificationChoices,
@@ -138,10 +127,10 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             setDirection,
             username,
             setUsername,
-            inviterUsername,
-            setInviterUsername,
-            applyManualInvite,
-            clearManualInvite,
+            inviterAccepted,
+            setInviterAccepted,
+            sellScreensCountry,
+            setSellScreensCountry,
             residenceCountry,
             setResidenceCountry,
             secondResidenceCountry,
@@ -153,7 +142,8 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             resetSetupFlow,
         }),
         [
-            fundingMethods,
+            fundingChannel,
+            paymentChannel,
             notificationEmail,
             notificationChoices,
             signupCompleted,
@@ -162,9 +152,8 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             isLoading,
             direction,
             username,
-            inviterUsername,
-            applyManualInvite,
-            clearManualInvite,
+            inviterAccepted,
+            sellScreensCountry,
             residenceCountry,
             secondResidenceCountry,
             signupEntryFlow,

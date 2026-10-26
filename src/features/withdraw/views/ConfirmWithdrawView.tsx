@@ -71,9 +71,9 @@ interface WithdrawConfirmViewProps {
     isFromSendFlow?: boolean
     /** Address-book nickname when the destination is already saved — "To" renders "Nickname · …abcd". */
     toNickname?: string | null
-    /** "Save to address book" prompt, rendered under the recipient card (only when not yet saved). */
+    /** "Save to favorites" prompt, rendered under the recipient card (only when not yet saved). */
     saveAddressPrompt?: React.ReactNode
-    /** Extra gate for the CTA — e.g. "Save to address book" ticked with no nickname yet. */
+    /** Extra gate for the CTA — e.g. "Save to favorites" ticked with no nickname yet. */
     confirmDisabled?: boolean
     /**
      * Funds already left the wallet for this charge and only the bookkeeping
@@ -118,6 +118,11 @@ export default function ConfirmWithdrawView({
         tokenAddress: token.address,
         tokenSymbol: token.symbol,
     })
+
+    // After this charge spends, a lower live balance is expected. Only a new
+    // spend needs affordability validation; processing keeps the CTA locked
+    // while the balance refreshes and payment recording finishes.
+    const balanceBlocksConfirmation = insufficientBalance && !alreadySpent
 
     const displayReceived = useMemo<string | null>(() => {
         if (!isCrossChain || !receiveAmount || !resolvedTokenSymbol) return null
@@ -266,9 +271,10 @@ export default function ConfirmWithdrawView({
                         // landed there is nothing left to gate: Retry only
                         // replays the record.
                         disabled={
-                            alreadySpent
+                            isProcessing ||
+                            (alreadySpent
                                 ? confirmDisabled
-                                : insufficientBalance || !!belowMinimumMessage || confirmDisabled
+                                : insufficientBalance || !!belowMinimumMessage || confirmDisabled)
                         }
                         loading={false}
                         className="w-full"
@@ -284,7 +290,7 @@ export default function ConfirmWithdrawView({
                         disabled={
                             isProcessing ||
                             isCalculating ||
-                            insufficientBalance ||
+                            balanceBlocksConfirmation ||
                             !!belowMinimumMessage ||
                             confirmDisabled
                         }
@@ -297,7 +303,7 @@ export default function ConfirmWithdrawView({
                     </Button>
                 )}
 
-                {insufficientBalance && !error && (
+                {balanceBlocksConfirmation && !isProcessing && !error && (
                     <Callout priority="error">{tErrors('notEnoughBalanceAddFunds')}</Callout>
                 )}
                 {belowMinimumMessage && !insufficientBalance && !error && (

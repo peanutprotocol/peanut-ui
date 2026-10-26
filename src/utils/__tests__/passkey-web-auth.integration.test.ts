@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import Cookies from 'js-cookie'
 import { installPasskeyVerifyCapture } from '../passkey-auth-capture'
 import { guardPasskeyCeremony } from '../passkeyCeremony.utils'

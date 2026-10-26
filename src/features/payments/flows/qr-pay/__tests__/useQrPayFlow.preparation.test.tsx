@@ -17,9 +17,20 @@
  */
 import React from 'react'
 import posthog from 'posthog-js'
-import { act, render, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
+import en from '@/i18n/app/messages/en.json'
+
+// Keep the real page selector and rate recovery UI; unrelated screens need no
+// providers in this payment-controller integration test.
+jest.mock('../views/QrPayFormView', () => ({ QrPayFormView: () => <div>Payment form</div> }))
+jest.mock('../views/QrPayStatusView', () => ({ QrPayStatusView: () => <div>Payment status</div> }))
+jest.mock('../views/QrPaySuccessView', () => ({ QrPaySuccessView: () => <div>Payment success</div> }))
+jest.mock('../views/QrPayKycGateView', () => ({ QrPayKycGateView: () => null }))
+jest.mock('../views/QrPayProviderRejectionView', () => ({ QrPayProviderRejectionView: () => null }))
+jest.mock('../views/QrPayBlockedView', () => ({ QrPayBlockedView: () => null }))
+jest.mock('../views/QrPayProcessingView', () => ({ QrPayProcessingView: () => <div>Processing payment</div> }))
 
 const ACCOUNT = '0xc97fffbf8768ca90cd62fae2e313b084fe13e553'
 const PAYMASTER = '0x2a1c0c8d0c0f0c8d0c0f0c8d0c0f0c8d0c0f0c8d'
@@ -49,10 +60,15 @@ jest.mock('@/hooks/usePointsCalculation', () => ({
 }))
 jest.mock('@/hooks/usePointsConfetti', () => ({ usePointsConfetti: jest.fn() }))
 jest.mock('@/hooks/useAppReviewNudge', () => ({ useAppReviewNudge: jest.fn() }))
-jest.mock('@/config/underMaintenance.config', () => ({
-    __esModule: true,
-    default: { disabledPaymentProviders: [] as string[] },
-}))
+jest.mock('@/features/kill-switches/kill-switches-store', () => {
+    const killSwitches = {
+        disabledPaymentProviders: [] as string[],
+        maintenanceBannerPaths: [],
+        enableFullMaintenance: false,
+        enableMaintenanceBanner: false,
+    }
+    return { getKillSwitches: () => killSwitches, subscribeKillSwitches: () => () => {} }
+})
 jest.mock('@/services/services.types', () => ({ PointsAction: { MANTECA_QR_PAYMENT: 'manteca_qr_payment' } }))
 jest.mock('@/app/actions/currency', () => ({ getCurrencyPrice: jest.fn(async () => ({ sell: 1200, buy: 1250 })) }))
 jest.mock('@/components/Global/DirectSendQR/utils', () => ({
@@ -188,6 +204,9 @@ import { resolveSpendStrategy, runCollateralSpendPreflight } from '@/hooks/walle
 import { rainApi } from '@/services/rain'
 import { LoadingStateContextProvider } from '@/context/loadingStates.context'
 import { QrPayFlowProvider, useQrPayFlow } from '../QrPayFlowContext'
+import { QrPayPage } from '../QrPayPage'
+import { getCurrencyPrice } from '@/app/actions/currency'
+import { SpendRecoveryQuoteReviewError } from '@/hooks/wallet/signSpendRetry'
 import type { QrPayFlowSurface } from '../useQrPayFlow'
 
 const mockResolveSpendStrategy = resolveSpendStrategy as jest.Mock
@@ -271,16 +290,20 @@ function renderFlow(
         timestamp: '1',
         qrType: 'MERCADO_PAGO',
     },
-    options: { strict?: boolean } = {}
+    options: { strict?: boolean; page?: boolean } = {}
 ) {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
     const tree = (
         <IntlWrapper>
             <QueryClientProvider client={queryClient}>
                 <LoadingStateContextProvider>
-                    <QrPayFlowProvider {...scan}>
-                        <Probe />
-                    </QrPayFlowProvider>
+                    {options.page ? (
+                        <QrPayPage {...scan} />
+                    ) : (
+                        <QrPayFlowProvider {...scan}>
+                            <Probe />
+                        </QrPayFlowProvider>
+                    )}
                 </LoadingStateContextProvider>
             </QueryClientProvider>
         </IntlWrapper>
@@ -701,6 +724,38 @@ describe('open-amount QR (no lock until Pay)', () => {
         await waitFor(() => expect(surface?.isSuccess).toBe(true))
     })
 
+    test('a failed live price blocks pricing with a retry instead of hanging or using a cached rate', async () => {
+        jest.mocked(getCurrencyPrice).mockRejectedValueOnce(new Error('FX rate unavailable from manteca (timeout)'))
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce(lockFixture({ code: '', paymentAgainstAmount: '0' }))
+        renderFlow()
+
+        await waitFor(() => expect(surface?.rateUnavailable).toBe(true))
+        expect(surface?.currency).toBeUndefined()
+        expect(getCurrencyPrice).toHaveBeenCalledTimes(1)
+
+        act(() => surface?.retryRate())
+
+        await waitFor(() => expect(surface?.currency).toBeDefined())
+        expect(surface?.rateUnavailable).toBe(false)
+        expect(getCurrencyPrice).toHaveBeenCalledTimes(2)
+    })
+
+    test('the full open-amount QR page shows Retry without a currency and reaches the form after recovery', async () => {
+        jest.mocked(getCurrencyPrice).mockRejectedValueOnce(new Error('FX rate unavailable from manteca (timeout)'))
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce(lockFixture({ code: '', paymentAgainstAmount: '0' }))
+        renderFlow(undefined, { page: true })
+
+        const retry = await screen.findByRole('button', { name: /retry/i })
+        expect(screen.queryByText('Payment form')).not.toBeInTheDocument()
+        expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
+        fireEvent.click(retry)
+
+        await screen.findByText('Payment form')
+        expect(screen.queryByRole('button', { name: /retry/i })).not.toBeInTheDocument()
+        expect(getCurrencyPrice).toHaveBeenCalledTimes(2)
+        expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
+    })
+
     test('the amount init is refused: lock_ready failed, attempt failed, nothing signed', async () => {
         mockMantecaApi.initiateQrPayment.mockResolvedValueOnce(lockFixture({ code: '', paymentAgainstAmount: '0' }))
         renderFlow()
@@ -720,5 +775,172 @@ describe('open-amount QR (no lock until Pay)', () => {
         ])
         expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
         expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+    })
+})
+
+// TASK-22518: a same-tick double tap reaches payQR twice before the loading
+// state renders. Only one attempt may run: one Rain draft, one signature, one
+// completion. The latch is released once the attempt ends, so a retry works.
+describe('single-flight Pay', () => {
+    const payTwiceInOneTick = async () => {
+        await act(async () => {
+            await Promise.all([surface!.payQR(), surface!.payQR()])
+        })
+    }
+
+    test('two taps in one tick on a locked amount: one Rain draft, one signature, one completion', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 5_000_000n })
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await payTwiceInOneTick()
+
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+        expect(fakeClient.account.signTypedData).toHaveBeenCalledTimes(1)
+        expect(fakeClient.account.signUserOperation).toHaveBeenCalledTimes(1)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+        expect(stages().filter((s) => s.stage === 'pay_clicked')).toHaveLength(1)
+        await waitFor(() => expect(surface?.isSuccess).toBe(true))
+    })
+
+    test('two taps in one tick on an open amount: one amount init, one signature, one completion', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce(lockFixture({ code: '', paymentAgainstAmount: '0' }))
+        renderFlow()
+        await waitFor(() => expect(surface?.paymentLock).not.toBeNull())
+        await act(async () => {
+            surface!.handleCurrencyAmountChange('5000')
+        })
+        await waitFor(() => expect(surface?.currencyAmount).toBe('5000'))
+
+        mockMantecaApi.initiateQrPayment.mockResolvedValue(lockFixture({ paymentAgainstAmount: '4.17' }))
+        await payTwiceInOneTick()
+
+        // the scan's init plus ONE amount init
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+        expect(fakeClient.account.signUserOperation).toHaveBeenCalledTimes(1)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(surface?.isSuccess).toBe(true))
+    })
+
+    test('the latch is released after a failure: the next tap runs a new attempt', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 5_000_000n })
+        mockPrepareWithdrawal.mockRejectedValueOnce(new Error('rain prepare unavailable'))
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+        expect(surface?.isSuccess).toBe(false)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+
+        await pay()
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(2)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(surface?.isSuccess).toBe(true))
+    })
+
+    test('the latch is released after a dismissed passkey: the next tap signs again', async () => {
+        fakeClient.account.signUserOperation.mockRejectedValueOnce(new Error('User action is not allowed'))
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+        expect(surface?.isSuccess).toBe(false)
+
+        await pay()
+        expect(fakeClient.account.signUserOperation).toHaveBeenCalledTimes(2)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(surface?.isSuccess).toBe(true))
+    })
+
+    test('the latch holds while a re-quote is in flight: a tap in that window never signs the old lock', async () => {
+        fakeClient.account.signUserOperation.mockRejectedValueOnce(
+            new SpendRecoveryQuoteReviewError(new Error('controller rotated'))
+        )
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+
+        let releaseRequote!: (lock: unknown) => void
+        mockMantecaApi.initiateQrPayment.mockImplementationOnce(
+            () => new Promise((resolve) => (releaseRequote = resolve))
+        )
+        // the closure a tap made before the re-quote state renders
+        const payQR = surface!.payQR
+        await act(async () => {
+            const first = payQR()
+            await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
+            const second = payQR()
+            releaseRequote(lockFixture({ code: 'LOCK456' }))
+            await Promise.all([first, second])
+        })
+
+        expect(fakeClient.account.signUserOperation).toHaveBeenCalledTimes(1)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+        await waitFor(() => expect(surface?.paymentLock?.code).toBe('LOCK456'))
+    })
+})
+
+// A signSpend failure is not always a signing failure: routing, the Rain draft
+// and the UserOp build all run before the passkey. Those must say nothing was
+// charged and leave Pay enabled for a retry.
+describe('honest Pay failure copy', () => {
+    const copy = en.qrPay.errors
+
+    test('the Rain draft fails before any signature: preparation copy, Pay stays enabled', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 5_000_000n })
+        mockPrepareWithdrawal.mockRejectedValue(new Error('rain prepare unavailable'))
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+
+        expect(surface?.errorMessage).toBe(copy.preparationFailed)
+        expect(surface?.isBlockingError).toBe(false)
+    })
+
+    test('the passkey ceremony itself fails: signing copy, Pay stays enabled', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance: 0n })
+        mockPrepareWithdrawal.mockResolvedValue({ ...RAIN_PREP, directTransfer: true })
+        fakeClient.account.signTypedData.mockRejectedValue(new Error('ceremony dismissed'))
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+
+        expect(surface?.errorMessage).toBe(copy.signFailed)
+        expect(surface?.isBlockingError).toBe(false)
+    })
+
+    test('another passkey request still open (iOS InvalidStateError): busy copy, Pay stays enabled', async () => {
+        const busy = new Error('Another passkey request is already in progress')
+        busy.name = 'InvalidStateError'
+        fakeClient.account.signUserOperation.mockRejectedValue(busy)
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+
+        expect(surface?.errorMessage).toBe(copy.passkeyBusy)
+        expect(surface?.isBlockingError).toBe(false)
+        // still reported, so the busy rate stays visible after the fix ships
+        expect(mockCaptureNetworkTriagedFailure).toHaveBeenCalledWith(busy, {
+            tags: expect.objectContaining({ qr_pay_step: 'sign', qr_pay_failure: 'passkey_busy' }),
+        })
+    })
+
+    test('unconfirmed Android passkey cleanup: restart copy, Pay disabled because every retry is refused', async () => {
+        const cleanup = new Error('Passkey cleanup is unconfirmed; restart the app')
+        cleanup.name = 'PasskeyCleanupPendingError'
+        fakeClient.account.signUserOperation.mockRejectedValue(cleanup)
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+
+        expect(surface?.errorMessage).toBe(copy.passkeyRestart)
+        expect(surface?.isBlockingError).toBe(true)
+        expect(mockCaptureNetworkTriagedFailure).toHaveBeenCalledWith(cleanup, {
+            tags: expect.objectContaining({ qr_pay_step: 'sign', qr_pay_failure: 'passkey_cleanup_pending' }),
+        })
     })
 })

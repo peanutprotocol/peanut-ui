@@ -10,7 +10,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { DataRowGroup } from '@/components/0_Bruddle/DataRowGroup'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { ReceiptAttachmentRow } from './ReceiptAttachmentRow'
 import { ReceiptTokenRows } from '@/components/TransactionDetails/ReceiptTokenRows'
 import { receiptDataRowCardClassName } from '@/components/TransactionDetails/receipt-data-row-layout'
 import { type ReceiptViewModel } from '@/components/TransactionDetails/useReceiptViewModel'
@@ -61,12 +61,14 @@ export function ReceiptDetailsCard({
     vm,
     shouldShowQrShare,
     inDrawer,
+    isActive = true,
 }: {
     transaction: TransactionDetails
     vm: ReceiptViewModel
     shouldShowQrShare: boolean
     /** the card sits in the details drawer, so the provider sheet stacks on top */
     inDrawer?: boolean
+    isActive?: boolean
 }) {
     const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
@@ -92,7 +94,12 @@ export function ReceiptDetailsCard({
     const statusDate = receiptStatusDate(transaction)
     const statusDateLabel = (kind: ReceiptStatusDateKind) => {
         if (kind === 'claimed') return t('rows.claimed')
-        if (kind === 'cancelled') return t('rows.cancelled')
+        if (kind === 'cancelled') {
+            // a verification deposit went back to the sender: Returned, not Cancelled
+            return transaction.extraDataForDrawer?.depositKind === 'verification'
+                ? t('returnedStatus')
+                : t('rows.cancelled')
+        }
         // a deposit the bank sent back is Returned everywhere on the receipt,
         // never Refunded (design.md status words)
         if (kind === 'refunded') {
@@ -198,11 +205,26 @@ export function ReceiptDetailsCard({
                     <DataRow label={tCommon('exchangeRate')} value={exchangeRate} />
                 )}
 
-                {rowVisibilityConfig.networkFee && (
+                {rowVisibilityConfig.networkFee && transaction.networkFeeDetails && (
                     <DataRow
                         label={t('rows.networkFee')}
-                        value={transaction.networkFeeDetails!.amountDisplay}
-                        moreInfoText={transaction.networkFeeDetails!.moreInfoText}
+                        value={
+                            transaction.networkFeeDetails.state === 'charged'
+                                ? transaction.networkFeeDetails.amountDisplay
+                                : transaction.networkFeeDetails.state === 'pending'
+                                  ? // the quote, as an estimate, until the fee settles
+                                    transaction.networkFeeDetails.amountDisplay
+                                      ? `≈ ${transaction.networkFeeDetails.amountDisplay}`
+                                      : tCommon('pending')
+                                  : tCommon('sponsoredByPeanut')
+                        }
+                    />
+                )}
+
+                {rowVisibilityConfig.recipientReceives && (
+                    <DataRow
+                        label={t('rows.recipientReceives')}
+                        value={`$${formatAmount(transaction.recipientReceivesUsd as number)}`}
                     />
                 )}
 
@@ -224,7 +246,7 @@ export function ReceiptDetailsCard({
                 {rowVisibilityConfig.provider && vm.providerId && (
                     <ProviderRow
                         providerId={vm.providerId}
-                        label={vm.providerId === 'third-national' ? 'cardIssuer' : 'provider'}
+                        label={vm.providerId === 'third-national' ? 'cardProvider' : 'provider'}
                         nested={inDrawer}
                     />
                 )}
@@ -324,15 +346,7 @@ export function ReceiptDetailsCard({
                 )}
 
                 {rowVisibilityConfig.attachment && transaction.attachmentUrl && (
-                    <DataRow
-                        label={t('rows.attachment')}
-                        value={
-                            <LinkButton href={transaction.attachmentUrl} external>
-                                {t('rows.download')}
-                                <Icon name="download" size={14} className="shrink-0" />
-                            </LinkButton>
-                        }
-                    />
+                    <ReceiptAttachmentRow url={transaction.attachmentUrl} isActive={isActive} />
                 )}
             </DataRowGroup>
 

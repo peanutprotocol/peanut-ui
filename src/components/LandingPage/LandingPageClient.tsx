@@ -1,7 +1,7 @@
 'use client'
 
 import { useFooterVisibility } from '@/context/footerVisibility'
-import { Suspense, useMemo, type ReactNode } from 'react'
+import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
 // Imported directly, not through the barrel: `export *` pulls every sibling
 // into this chunk, including dropLink's nine repeat: Infinity animations,
 // which the landing page never renders.
@@ -11,13 +11,14 @@ import { NoFees } from '@/components/LandingPage/noFees'
 import { ShhhhhFold } from '@/components/LandingPage/ShhhhhFold'
 import dynamic from 'next/dynamic'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { LANDING_CARD_FOLD_DISABLED_FLAG } from '@/constants/card-flags.consts'
+import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import type { LandingStrings } from './landingStrings'
 import { AppModalProvider } from '@/components/Migration/AppModalProvider'
 import { LandingDownloadCta } from './LandingDownloadCta'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import type { LandingContentHrefs } from './landingContentHrefs'
 import type { MarqueeChip } from '@/lib/landingContent'
 
@@ -62,10 +63,15 @@ export function LandingPageClient({
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
     const migrationOn = useMigrationFlag()
+    const locale = useLocale()
     // Card features under the homepage card offer.
     const tDoorMarquee = useTranslations('shhhhh.marquee')
-    // The card offer and its feature strip share one maintenance switch.
-    const doorFoldOn = !underMaintenanceConfig.disableLandingCardFold
+    // The card offer and its feature strip share one PostHog flag. Read after
+    // mount: cached flags can resolve before hydration, and the server renders the fold.
+    const flagEnabled = useFeatureFlags()
+    const [mounted, setMounted] = useState(false)
+    useEffect(() => setMounted(true), [])
+    const doorFoldOn = !(mounted && flagEnabled(LANDING_CARD_FOLD_DISABLED_FLAG))
 
     const primaryCta = migrationOn ? undefined : heroConfig.primaryCta
 
@@ -107,12 +113,11 @@ export function LandingPageClient({
     )
 
     return (
-        <AppModalProvider>
+        <AppModalProvider marketingPage="home" marketingLocale={locale}>
             <Hero
                 primaryCta={primaryCta}
                 buttonVisible={!isFooterVisible}
                 strings={strings}
-                contentHrefs={contentHrefs}
                 customCta={migrationOn ? <LandingDownloadCta subtext={heroConfig.primaryCta.subtext} /> : undefined}
             />
             <Marquee {...marqueeProps} />

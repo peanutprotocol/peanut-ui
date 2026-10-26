@@ -39,6 +39,16 @@ function channelVersion(row, channelName) {
     return row.version.name
 }
 
+function highestRelease(names) {
+    const cores = names.map((name) => name.split('-')[0])
+    cores.sort((a, b) => {
+        const x = a.split('.').map(Number),
+            y = b.split('.').map(Number)
+        return y[0] - x[0] || y[1] - x[1] || y[2] - x[2]
+    })
+    return cores[0] ?? 'builtin'
+}
+
 function required(env, name) {
     if (!env[name]) throw new Error(`${name} is required`)
     return env[name]
@@ -175,7 +185,25 @@ export function verifyPolicies(
 export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
     const appId = required(env, 'CAPGO_APP_ID')
     const apiKey = required(env, 'CAPGO_API_KEY')
+    // A DNS blip or a Capgo 5xx used to fail a release halfway (Oct 9 2026).
+    // Every request here is a read or an idempotent channel write, so a
+    // network error, 429 or 5xx is retried with backoff. Other HTTP errors
+    // still fail at once.
+    const retryDelayMs = Number(env.CAPGO_RETRY_DELAY_MS ?? 2000)
     const json = async (url, init = {}) => {
+        for (let attempt = 1; ; attempt++) {
+            try {
+                return await jsonOnce(url, init)
+            } catch (error) {
+                const transient =
+                    error.status === undefined ? !error.capgoResponse : error.status === 429 || error.status >= 500
+                if (!transient || attempt >= 3) throw error
+                console.error(`capgo-release-guard: ${error.message}; retry ${attempt} of 2`)
+                await new Promise((resolve) => setTimeout(resolve, retryDelayMs * 2 ** (attempt - 1)))
+            }
+        }
+    }
+    const jsonOnce = async (url, init = {}) => {
         const response = await fetchImpl(url, { ...init, signal: AbortSignal.timeout(30000), redirect: 'error' })
         if (!response.ok) {
             let details
@@ -193,7 +221,14 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
             error.moreInfo = details?.moreInfo
             throw error
         }
-        return response.json()
+        try {
+            return await response.json()
+        } catch (cause) {
+            // A body that is not JSON is a Capgo answer, not a network error.
+            const error = new Error(`Capgo returned an unreadable response at ${new URL(url).pathname}`, { cause })
+            error.capgoResponse = true
+            throw error
+        }
     }
     const request = async (resource, { query = {}, body } = {}) => {
         const url = new URL(`https://api.capgo.app/${resource}`)
@@ -291,6 +326,31 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
         if (allowMissing) return 'missing'
         throw new Error(`bundle ${version} was not found`)
     }
+    const releaseNames = async ({ includeNative = false } = {}) => {
+        const names = (await policies())
+            .filter((row) => Object.values(PRODUCTION_CHANNELS).includes(row.name))
+            .map((row) => channelVersion(row, row.name))
+            .filter(
+                (name) =>
+                    name !== 'builtin' && !legacyBridgeVersion('ios', name) && !legacyBridgeVersion('android', name)
+            )
+        // Include failed/partial and deleted platform uploads: their names
+        // remain reserved. The 1.5.1000+ iOS and 1.6.1000+ Android bridge
+        // lanes are internal compatibility IDs, not public release numbers.
+        // Exclude staging's commit-count version sequence too.
+        names.push(
+            ...(await bundles())
+                .map((row) => row.name)
+                .filter(
+                    (name) =>
+                        (/^\d+\.\d+\.\d+-(ios|android)$/.test(name) ||
+                            (includeNative && CORE.test(name ?? '') && name.endsWith('.0'))) &&
+                        !legacyBridgeVersion('ios', name) &&
+                        !legacyBridgeVersion('android', name)
+                )
+        )
+        return names
+    }
     switch (mode) {
         case 'prepare-candidate':
             await request('channel', {
@@ -327,36 +387,14 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
                 name
             )
         }
-        case 'current-release': {
-            const current = (await policies())
-                .filter((row) => Object.values(PRODUCTION_CHANNELS).includes(row.name))
-                .map((row) => channelVersion(row, row.name))
-                .filter(
-                    (name) =>
-                        name !== 'builtin' && !legacyBridgeVersion('ios', name) && !legacyBridgeVersion('android', name)
-                )
-            // Include failed/partial and deleted platform uploads: their names
-            // remain reserved. The 1.5.1000+ iOS and 1.6.1000+ Android bridge
-            // lanes are internal compatibility IDs, not public release numbers.
-            // Exclude staging's commit-count version sequence too.
-            current.push(
-                ...(await bundles())
-                    .map((row) => row.name)
-                    .filter(
-                        (name) =>
-                            /^\d+\.\d+\.\d+-(ios|android)$/.test(name) &&
-                            !legacyBridgeVersion('ios', name) &&
-                            !legacyBridgeVersion('android', name)
-                    )
-            )
-            const cores = current.map((name) => name.split('-')[0])
-            cores.sort((a, b) => {
-                const x = a.split('.').map(Number),
-                    y = b.split('.').map(Number)
-                return y[0] - x[0] || y[1] - x[1] || y[2] - x[2]
-            })
-            return cores[0] ?? 'builtin'
-        }
+        case 'current-release':
+            return highestRelease(await releaseNames())
+        case 'reserved-release':
+            // The store build also counts past a plain native `.0` record that
+            // never reached a channel: a run that uploaded it and then failed
+            // before promotion. Reusing that number fails the exact-source check
+            // after both store uploads.
+            return highestRelease(await releaseNames({ includeNative: true }))
         case 'next-ios-bridge': {
             await policies({ allowIosBridge: true })
             const used = (await bundles())
@@ -509,6 +547,22 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
                 throw new Error(`${name} did not persist the exclusive promotion`)
             }
             return `${name} exclusively serves ${version}`
+        }
+        case 'restore-production': {
+            // Undo one platform's promotion when the other platform's promotion
+            // failed in the same run, so both channels keep serving one release.
+            // Only for channels promoted with promote-production: a bridge or a
+            // cutover also changed the native-version policy, which this keeps.
+            const name = PRODUCTION_CHANNELS[platform(env)]
+            const previous = required(env, 'PREVIOUS_VERSION')
+            if (previous !== 'builtin' && !CHANNEL_VERSION.test(previous)) throw new Error('invalid previous version')
+            await policies()
+            await request('channel', { body: { channel: name, version: previous, rolloutEnabled: false } })
+            const row = (await policies()).find((entry) => entry.name === name)
+            if (channelVersion(row, name) !== previous || row.rollout_enabled !== false) {
+                throw new Error(`${name} did not return to ${previous}`)
+            }
+            return `${name} serves ${previous} again`
         }
         case 'verify-production': {
             const name = PRODUCTION_CHANNELS[platform(env)]

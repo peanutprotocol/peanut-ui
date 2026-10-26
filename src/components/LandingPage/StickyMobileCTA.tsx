@@ -1,14 +1,11 @@
 'use client'
 
-import { useEffect, useRef, useState, useMemo } from 'react'
-import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { LandingStrings } from './landingStrings'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
-import { useTranslations } from 'next-intl'
-import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
+import DownloadAppLink from '@/components/Migration/DownloadAppLink'
 
 export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
     const [visible, setVisible] = useState(false)
@@ -20,12 +17,6 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
     const rafId = useRef(0)
     const lastVisible = useRef(false)
     const migrationOn = useMigrationFlag()
-    const tMigration = useTranslations('migration')
-    const { deviceType } = useDeviceType()
-    const store = deviceType === DeviceType.ANDROID ? 'android' : 'ios'
-    // memoized: this bar re-renders through scroll-driven animation frames,
-    // and the android href builds the hand-off payload (cookie reads)
-    const storeHref = useMemo(() => storeAnchorHref(store), [store])
 
     useEffect(() => {
         if (visible) {
@@ -75,30 +66,17 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                     }`}
                 >
                     {migrationOn ? (
-                        // this bar is md:hidden so the visitor is on a phone —
-                        // deep-link their store during the migration window
-                        <a
-                            href={storeHref}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="pointer-events-auto block"
-                            onClick={() => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_HERO)}
-                        >
-                            <Button
-                                variant="primary"
-                                shadowSize="4"
-                                icon={store === 'ios' ? 'apple-logo' : 'google-play'}
-                                className="w-full uppercase"
-                            >
-                                {tMigration('downloadNow')}
-                            </Button>
-                        </a>
+                        <DownloadAppLink
+                            surface={MIGRATION_SURFACES.LANDING_HERO}
+                            variant="primary"
+                            className="pointer-events-auto w-full"
+                        />
                     ) : (
-                        <Link prefetch={false} href="/setup" className="pointer-events-auto block">
-                            <Button variant="primary" shadowSize="4" className="w-full">
-                                {strings.signUpNow}
-                            </Button>
-                        </Link>
+                        // full width on purpose: this is the pinned-footer CTA
+                        // (design.md page recipes), not a hugging marketing CTA
+                        <Button prefetch={false} href="/setup" variant="primary" className="pointer-events-auto w-full">
+                            {strings.signUpNow}
+                        </Button>
                     )}
                 </div>
             }

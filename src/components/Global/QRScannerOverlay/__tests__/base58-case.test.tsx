@@ -1,4 +1,6 @@
 /** @jest-environment jsdom */
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * QR scanner case handling (TASK-21111 regression pin).
  *
@@ -39,9 +41,12 @@ jest.mock('@/utils/capacitor', () => ({
 }))
 
 // The ops kill-switch keeps a scanned Solana address out of the payout flow.
-// Off by default here, as in production config.
+// Off by default here, as in the built-in default.
 const mockMaintenance = { disableXchainWithdraw: false }
-jest.mock('@/config/underMaintenance.config', () => ({ __esModule: true, default: mockMaintenance }))
+jest.mock('@/features/kill-switches/kill-switches-store', () => ({
+    getKillSwitches: () => mockMaintenance,
+    subscribeKillSwitches: () => () => {},
+}))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { username: 'satoshi' } } }) }))
 jest.mock('@/context/ModalsContext', () => ({

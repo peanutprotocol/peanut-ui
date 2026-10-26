@@ -333,6 +333,45 @@ describe('buildReceiptPdfModel — variants', () => {
     })
 })
 
+describe('buildReceiptPdfModel — crypto withdrawal network fee (TASK-23487)', () => {
+    const withdraw = (status: string, networkFeeDetails: Record<string, unknown>, recipientReceivesUsd?: number) =>
+        withOverrides(
+            { status, direction: 'withdraw', amount: 64.5, fee: undefined, networkFeeDetails, recipientReceivesUsd },
+            { kind: 'CRYPTO_WITHDRAW', transactionCardType: 'withdraw' }
+        )
+
+    test('a charged fee prints the fee and what the recipient received, after the money rows', () => {
+        const model = buildReceiptPdfModel(
+            withdraw('completed', { state: 'charged', amountDisplay: '$1.43' }, 63.067329),
+            t,
+            'en'
+        )
+        expect(row(model, 'transaction.rows.networkFee')).toBe('$1.43')
+        expect(row(model, 'transaction.rows.recipientReceives')).toBe('$63.07')
+        const order = labels(model)
+        expect(order.indexOf('transaction.rows.recipientReceives')).toBe(
+            order.indexOf('transaction.rows.networkFee') + 1
+        )
+        expect(model.amountDisplay).toBe('-$64.50')
+    })
+
+    test.each([{ state: 'pending' }, { state: 'sponsored' }])('a %o fee prints no fee rows', (details) => {
+        const model = buildReceiptPdfModel(withdraw('completed', details, 63.07), t, 'en')
+        expect(labels(model)).not.toContain('transaction.rows.networkFee')
+        expect(labels(model)).not.toContain('transaction.rows.recipientReceives')
+    })
+
+    test.each(['failed', 'cancelled', 'refunded'])('a %s withdrawal prints no fee rows', (status) => {
+        const model = buildReceiptPdfModel(
+            withdraw(status, { state: 'charged', amountDisplay: '$1.43' }, 63.07),
+            t,
+            'en'
+        )
+        expect(labels(model)).not.toContain('transaction.rows.networkFee')
+        expect(labels(model)).not.toContain('transaction.rows.recipientReceives')
+    })
+})
+
 describe('buildReceiptPdfModel — app locales', () => {
     // the leading row is the status date: one "Date", from the same rule as
     // the screen's status row
@@ -472,9 +511,9 @@ describe('buildReceiptPdfModel — provider', () => {
         expect(model.provider?.addressLines).toEqual(['33, Boulevard Prince Henri', 'L-1724 Luxembourg'])
     })
 
-    test('a card spend names the card issuer with its legal name and office', () => {
+    test('a card spend names rain as the card provider and keeps the issuer legal name and office', () => {
         const model = buildReceiptPdfModel(withOverrides({}, { provider: 'RAIN' }), t, 'en')
-        expect(row(model, 'provider.label.cardIssuer')).toBe('Third National')
+        expect(row(model, 'provider.label.cardProvider')).toBe('Rain')
         expect(model.provider?.name).toBe('Nimbus LLC, doing business as Third National')
         expect(model.provider?.addressLines).toContain('San Juan, PR 00917')
     })

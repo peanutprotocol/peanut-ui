@@ -6,7 +6,7 @@
  * PostHog dimensions on every signup. Typos silently fork the funnel — funneling
  * through `withUtm()` makes the typo a typecheck error instead.
  *
- * Team conventions + closed-enum rationale live in `mono/strategy/utm-tracking.md`.
+ * Team conventions + closed-enum rationale live in `ops/strategy/utm-tracking.md`.
  * Read that before adding a new medium.
  */
 
@@ -14,7 +14,7 @@
  * Channel category — the analytical bucket we slice the funnel by.
  *
  * Keep this set small. Every new medium dilutes dashboards; adding one is a
- * team conversation (see `mono/strategy/utm-tracking.md`).
+ * team conversation (see `ops/strategy/utm-tracking.md`).
  */
 export const UTM_MEDIUMS = {
     /** Co-branded merchant landing pages (`/m/[slug]`). */
@@ -33,6 +33,8 @@ export const UTM_MEDIUMS = {
     CPM: 'cpm',
     /** Paid ambassador / creator partnership (distinct from organic referral). */
     AMBASSADOR: 'ambassador',
+    /** Links inside the SEO hub pages (`/content/*`). */
+    CONTENT: 'content',
 } as const
 
 /**
@@ -45,8 +47,6 @@ export const UTM_SOURCES = {
     MERCHANT_LANDING: 'm',
     /** In-app share buttons / native share sheets. */
     APP_SHARE: 'app',
-    /** `/content/*` SEO hub. */
-    CONTENT_HUB: 'c',
     /** Beehiiv-driven email. */
     BEEHIIV: 'beehiiv',
     /** OneSignal-delivered messages (push + email blasts). Split by medium. */
@@ -59,6 +59,26 @@ export const UTM_SOURCES = {
     GOOGLE: 'google',
     /** Meta ads (Facebook + Instagram). */
     META: 'meta',
+    /** QR codes drawn on the star-feature landing pages (a scan is a new device with no attribution). */
+    STAR_LP: 'star-lp',
+    /** Registered landing-page download QR codes. */
+    MARKETING_QR: 'marketing-qr',
+    /** Existing content template sources from the shared UTM taxonomy. */
+    BLOG: 'blog',
+    COMPARE: 'compare',
+    COUNTRIES: 'countries',
+    COUNTRY_HUB: 'country-hub',
+    DEPOSIT_ACCOUNT: 'deposit-account',
+    DEPOSIT_FROM: 'deposit-from',
+    PAY_WITH_METHOD: 'pay-with-method',
+    PRICING: 'pricing',
+    RECEIVE_FROM_COUNTRY: 'receive-from-country',
+    SEND_TO_COUNTRY: 'send-to-country',
+    SEND_TO_COUNTRY_FROM: 'send-to-country-from',
+    STORIES: 'stories',
+    SUPPORTED_NETWORKS: 'supported-networks',
+    USE_CASES: 'use-cases',
+    WITHDRAW: 'withdraw',
 } as const
 
 export type UtmMedium = (typeof UTM_MEDIUMS)[keyof typeof UTM_MEDIUMS]

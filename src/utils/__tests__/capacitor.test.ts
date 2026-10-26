@@ -368,12 +368,59 @@ describe('openExternalUrl Help Center context', () => {
         expect(mockBrowserOpen).toHaveBeenCalledWith({ url: 'https://peanut.me/en/help?fromNativeApp=1' })
     })
 
+    it('opens the slashless page for a native export link, so it never redirects inside the sheet', async () => {
+        window.Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
+        const { openExternalUrl } = require('../capacitor')
+        await openExternalUrl('https://peanut.me/en/help/')
+        expect(mockBrowserOpen).toHaveBeenCalledWith({ url: 'https://peanut.me/en/help?fromNativeApp=1' })
+    })
+
     it('does not mark normal browser visits', async () => {
         const open = jest.spyOn(window, 'open').mockReturnValue(window)
         const { openExternalUrl } = require('../capacitor')
         await openExternalUrl('https://peanut.me/en/help')
         expect(open).toHaveBeenCalledWith('https://peanut.me/en/help', '_blank')
         expect(mockBrowserOpen).not.toHaveBeenCalled()
+    })
+})
+
+describe('openExternalUrl cancellation', () => {
+    beforeEach(() => {
+        jest.resetModules()
+        mockBrowserOpen.mockReset().mockResolvedValue(undefined)
+        mockBrowserClose.mockReset().mockResolvedValue(undefined)
+    })
+
+    afterEach(() => {
+        delete window.Capacitor
+        jest.restoreAllMocks()
+    })
+
+    it.each(['web', 'android', 'ios'])('does not open a cancelled URL on %s', async (platform) => {
+        if (platform !== 'web') window.Capacitor = { getPlatform: () => platform, isNativePlatform: () => true }
+        const open = jest.spyOn(window, 'open').mockReturnValue(window)
+        const cap = require('../capacitor') as typeof import('../capacitor')
+        const controller = new AbortController()
+        controller.abort()
+        await expect(cap.openExternalUrl('https://example.com', controller.signal)).rejects.toMatchObject({
+            name: 'AbortError',
+        })
+        expect(open).not.toHaveBeenCalled()
+        expect(mockBrowserOpen).not.toHaveBeenCalled()
+        await cap.closeInAppBrowser()
+        expect(mockBrowserClose).not.toHaveBeenCalled()
+    })
+
+    it.each(['android', 'ios'])('does not open a stale URL after the %s Browser import', async (platform) => {
+        window.Capacitor = { getPlatform: () => platform, isNativePlatform: () => true }
+        const cap = require('../capacitor') as typeof import('../capacitor')
+        const controller = new AbortController()
+        const pending = cap.openExternalUrl('https://example.com', controller.signal)
+        controller.abort()
+        await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+        expect(mockBrowserOpen).not.toHaveBeenCalled()
+        await cap.closeInAppBrowser()
+        expect(mockBrowserClose).not.toHaveBeenCalled()
     })
 })
 
@@ -422,5 +469,50 @@ describe('closeInAppBrowser', () => {
         await cap.closeInAppBrowser()
         expect(onClosed).not.toHaveBeenCalled()
         document.removeEventListener(cap.IN_APP_BROWSER_CLOSED_EVENT, onClosed)
+    })
+})
+
+describe('isIOSNativeBridge', () => {
+    const originalEnv = process.env
+
+    beforeEach(() => {
+        jest.resetModules()
+        process.env = { ...originalEnv }
+        delete window.Capacitor
+    })
+
+    afterEach(() => {
+        process.env = originalEnv
+        delete window.Capacitor
+    })
+
+    it('is true only when the bridge is live on iOS', () => {
+        window.Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
+        expect((require('../capacitor') as typeof import('../capacitor')).isIOSNativeBridge()).toBe(true)
+    })
+
+    it.each([
+        ['an Android bridge', { getPlatform: () => 'android', isNativePlatform: () => true }],
+        ['a bundled web build', { getPlatform: () => 'web', isNativePlatform: () => false }],
+    ])('is false for %s', (_, capacitor) => {
+        window.Capacitor = capacitor
+        expect((require('../capacitor') as typeof import('../capacitor')).isIOSNativeBridge()).toBe(false)
+    })
+
+    it('is false in iPhone Safari on a capacitor-flavoured web build', () => {
+        process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+        const originalUserAgent = navigator.userAgent
+        const setUserAgent = (ua: string) =>
+            Object.defineProperty(navigator, 'userAgent', { value: ua, configurable: true })
+        setUserAgent(
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 26_5 like Mac OS X) AppleWebKit/605.1.15 Version/26.5 Mobile/15E148 Safari/604.1'
+        )
+        try {
+            const cap = require('../capacitor') as typeof import('../capacitor')
+            expect(cap.isIOSNative()).toBe(true)
+            expect(cap.isIOSNativeBridge()).toBe(false)
+        } finally {
+            setUserAgent(originalUserAgent)
+        }
     })
 })

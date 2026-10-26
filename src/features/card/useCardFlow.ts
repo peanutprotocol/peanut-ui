@@ -1,16 +1,17 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useIsFetching, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { USER } from '@/constants/query.consts'
 import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { computeCardState, type CardTopLevelState } from '@/components/Card/cardState.utils'
 import { pollUntilApplyAdvances, pollUntilReady } from '@/components/Card/cardApply.utils'
-import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
+import { initiateSelfHealResubmission, startKycAction } from '@/app/actions/sumsub'
 import { rainApi, type ApplyForCardResponse } from '@/services/rain'
 import { cardConsentDocuments } from '@/services/consent'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
@@ -21,6 +22,7 @@ import { offerPushPrompt } from '@/hooks/useNotifications'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { writeStoredValue } from '@/utils/safe-storage'
+import { isRainBalanceKnown } from '@/utils/balance.utils'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
 /**
  * flow hook for the card page — owns every behaviour so the page stays dumb
@@ -31,7 +33,7 @@ export function useCardFlow() {
     const queryClient = useQueryClient()
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
-    const { hasSufficientSpendableBalance } = useWallet()
+    const { balance, hasSufficientSpendableBalance } = useWallet()
     const isCardFunded = hasSufficientSpendableBalance(10)
     const [fundingRequired, setFundingRequired] = useState(false)
     useEffect(() => {
@@ -51,8 +53,44 @@ export function useCardFlow() {
     })
 
     const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
+    // `isCardFunded` sums the smart account and Rain collateral. Both must be read
+    // values: a failed first read or an unavailable Rain balance counts as 0 there.
+    const isBalanceKnown = balance !== undefined && isRainBalanceKnown(overview)
+    const needsFundingBeforeApply =
+        !overview?.status.hasApplication && overview?.status.railStatus !== 'ENABLED' && !isCardFunded
     const { serializeGrant } = useGrantSessionKey()
     const { railsForProvider, nextActionsForRail, isLoading: capabilitiesLoading } = useCapabilities()
+    const cardRail = railsForProvider('rain')[0]
+    const reasonCode = cardRail?.reason?.code ?? null
+    const applicationStatus = overview?.status.applicationStatus ?? null
+    const railStatus = overview?.status.railStatus ?? null
+    const hasOverviewStatus = !!overview?.status
+    const showsCapabilityReason =
+        !!overview?.status.hasApplication && railStatus !== 'PENDING' && railStatus !== 'ENABLED'
+    const userFetching = useIsFetching({ queryKey: [USER] })
+    const lastOverviewStatusRef = useRef<{
+        userId: string
+        railStatus: string | null
+        applicationStatus: string | null
+    } | null>(null)
+    useEffect(() => {
+        if (!userId) {
+            lastOverviewStatusRef.current = null
+            return
+        }
+        if (!hasOverviewStatus) return
+        const previous = lastOverviewStatusRef.current
+        lastOverviewStatusRef.current = { userId, railStatus, applicationStatus }
+        const firstSight = previous?.userId !== userId
+        const changed =
+            !!previous &&
+            !firstSight &&
+            (previous.railStatus !== railStatus || previous.applicationStatus !== applicationStatus)
+        // The cached profile can predate the first overview, so a screen that shows the capability reason refreshes it once.
+        if (changed || (firstSight && showsCapabilityReason)) {
+            void queryClient.invalidateQueries({ queryKey: [USER] })
+        }
+    }, [userId, hasOverviewStatus, railStatus, applicationStatus, showsCapabilityReason, queryClient])
     const { setIsSupportModalOpen } = useModalsContext()
     const onBack = useSafeBack('/home')
 
@@ -95,12 +133,16 @@ export function useCardFlow() {
     useEffect(() => {
         if (state === 'loading') return
         if (lastReportedStateRef.current === state) return
+        // Wait out a profile refresh so reason_code matches the overview status; reads the client, not the hook, to see a refetch started this commit.
+        if (queryClient.isFetching({ queryKey: [USER] }) > 0) return
         posthog.capture(ANALYTICS_EVENTS.CARD_STATE_VIEWED, {
             state,
             previous_state: lastReportedStateRef.current,
+            application_status: applicationStatus,
+            reason_code: reasonCode,
         })
         lastReportedStateRef.current = state
-    }, [state])
+    }, [state, applicationStatus, reasonCode, userFetching, queryClient])
 
     // Write-only URL mirror for the computed state. Lets you see at a glance
     // which screen the user is on (?card_state=add-card, etc.) without
@@ -138,7 +180,6 @@ export function useCardFlow() {
     // classified the application as PoA-fixable (kind 'sumsub' + levelKey
     // 'proof_of_address' — emitted for WRONG_ADDRESS-class denials). Absent →
     // the status screens keep their contact-support-only shape.
-    const cardRail = railsForProvider('rain')[0]
     const poaAction = cardRail
         ? nextActionsForRail(cardRail.id).find(
               (action) => action.kind === 'sumsub' && action.levelKey === 'proof_of_address'
@@ -178,6 +219,59 @@ export function useCardFlow() {
         : undefined
     const { start: startIdentityUpload, error: identityUploadError } = useHostedVerification('rain-hosted')
     const onUploadIdentity = identityAction ? () => void startIdentityUpload() : undefined
+
+    const informationActions = cardRail
+        ? nextActionsForRail(cardRail.id).filter(
+              (action) =>
+                  action.kind === 'sumsub' &&
+                  action.purpose === 'rain-card' &&
+                  (action.levelKey === 'tax_identification_number' || action.levelKey === 'birth_details')
+          )
+        : []
+    const [informationSession, setInformationSession] = useState<{ key: string; token: string } | null>(null)
+    const [informationError, setInformationError] = useState<string | null>(null)
+    const informationStartingRef = useRef<object | null>(null)
+    const informationUserRef = useRef(userId)
+    informationUserRef.current = userId
+    useEffect(() => {
+        setInformationSession(null)
+        setInformationError(null)
+        return () => {
+            informationStartingRef.current = null
+        }
+    }, [userId])
+    const startInformationAction = useCallback(
+        async (key: string) => {
+            if (!userId || informationStartingRef.current || informationSession) return
+            const attempt = {}
+            informationStartingRef.current = attempt
+            setInformationError(null)
+            try {
+                const response = await startKycAction(key)
+                if (informationStartingRef.current !== attempt || informationUserRef.current !== userId) return
+                if (response.error || !response.data?.token) {
+                    setInformationError(
+                        response.code ? t('informationStartFailed') : (response.error ?? t('informationStartFailed'))
+                    )
+                    return
+                }
+                setInformationSession({ key, token: response.data.token })
+            } catch {
+                if (informationStartingRef.current === attempt && informationUserRef.current === userId) {
+                    setInformationError(t('informationStartFailed'))
+                }
+            } finally {
+                if (informationStartingRef.current === attempt) informationStartingRef.current = null
+            }
+        },
+        [userId, informationSession, t]
+    )
+    const refreshInformationToken = useCallback(async () => {
+        if (!informationSession) throw new Error('No card information action to refresh')
+        const response = await startKycAction(informationSession.key)
+        if (!response.data?.token) throw new Error(response.error ?? 'Failed to refresh token')
+        return response.data.token
+    }, [informationSession])
 
     // Once the backend's own state takes over (the rail's sumsub action gives
     // way to the review-wait state, an approval, or a different ask), drop the
@@ -307,7 +401,7 @@ export function useCardFlow() {
         async (termsAccepted = false, serializedApproval?: string) => {
             // A cached display balance cannot unlock a new application. Existing
             // applications and approved reissues retain their recovery paths.
-            if (!overview?.status.hasApplication && overview?.status.railStatus !== 'ENABLED' && !isCardFunded) {
+            if (needsFundingBeforeApply) {
                 setFundingRequired(true)
                 setPendingTerms(null)
                 return
@@ -341,7 +435,7 @@ export function useCardFlow() {
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse, pendingTerms, overview, isCardFunded, userId, t]
+        [advanceFromApplyResponse, pendingTerms, needsFundingBeforeApply, userId, t]
     )
 
     const handleAcceptTerms = useCallback(async () => {
@@ -525,6 +619,8 @@ export function useCardFlow() {
         // data
         user,
         isCardFunded,
+        isBalanceKnown,
+        needsFundingBeforeApply,
         fundingRequired,
         fetchUser,
         cardInfo,
@@ -560,6 +656,12 @@ export function useCardFlow() {
         // identity re-upload
         onUploadIdentity,
         identityUploadError,
+        informationActions,
+        informationSession,
+        setInformationSession,
+        informationError,
+        startInformationAction,
+        refreshInformationToken,
         // card-application sumsub
         sumsubToken,
         handleSumsubComplete,

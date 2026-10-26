@@ -1,4 +1,6 @@
 'use client'
+import { useNativePlatform } from '@/utils/native-platform'
+import { ChargeFulfillmentNotice } from './ChargeFulfillmentNotice'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
@@ -36,6 +38,7 @@ interface DirectRequestInitialViewProps {
 }
 
 const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) => {
+    const native = useNativePlatform()
     const t = useTranslations('request')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
@@ -66,6 +69,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         rawFile: undefined,
     })
     const [currentInputValue, setCurrentInputValue] = useState<string>('')
+    const [createdChargeId, setCreatedChargeId] = useState<string | null>(null)
     const [view, setView] = useState<'initial' | 'confirm' | 'success'>('initial')
     const { setLoadingState, loadingState } = useContext(loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -81,6 +85,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     } = useUserByUsername(username)
 
     const resetRequestState = () => {
+        setCreatedChargeId(null)
         setView('initial')
         setCurrentInputValue('')
         setAttachmentOptions({
@@ -131,13 +136,14 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 throw new Error('No recipient address available')
             }
 
-            await usersApi.requestByUsername({
+            const createdCharge = await usersApi.requestByUsername({
                 username: recipientUser!.username,
                 amount: currentInputValue,
                 toAddress,
                 attachment: attachmentOptions,
             })
             setLoadingState('Idle')
+            setCreatedChargeId(createdCharge.data?.id ?? null)
             setView('success')
             void offerPushPrompt(PUSH_PROMPT_TRIGGERS.REQUEST_CREATED)
         } catch (error) {
@@ -276,7 +282,11 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                             <Button variant="primary" className="w-full" onClick={onJoin}>
                                 {handoffActive ? tMigration('downloadPeanut') : t('validation.createWallet')}
                             </Button>
-                            <Button variant="secondary" className="w-full" href={profileUrl(username)}>
+                            <Button
+                                variant="secondary"
+                                className="w-full"
+                                href={profileUrl(username, native.isCapacitor)}
+                            >
                                 {t('blocked.viewProfile')}
                             </Button>
                         </div>
@@ -322,7 +332,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                                         variant="primary"
                                         className="w-full"
                                         icon="arrow-up-right"
-                                        href={sendUrl(username)}
+                                        href={sendUrl(username, native.isCapacitor)}
                                     >
                                         {t('blocked.sendCta', { username })}
                                     </Button>
@@ -349,6 +359,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 )}
 
                 <PageStack.Center className="gap-4">
+                    {createdChargeId && <ChargeFulfillmentNotice chargeId={createdChargeId} />}
                     <PaymentSuccessView
                         user={recipientUser}
                         // currencyAmount is shown as given, in place of an amount the requestee chooses

@@ -1,6 +1,7 @@
 import { type IconStatusType, type StatusType } from '@/components/Global/Badges/Badge'
 import {
     type DepositReturnReasonCode,
+    type NetworkFeeDetails,
     type TransactionDirection,
     type TransactionType as TransactionCardType,
 } from '@/components/TransactionDetails/transaction-types'
@@ -20,7 +21,9 @@ import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/servic
 import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
 import { TRANSACTION_NAME_KEYS, reaperFailKey, type TransactionNameKey } from './transaction-name-keys'
 import { parseWireAmount, senderNoteText } from './transaction-details.utils'
+import { networkFeeDetailsForEntry } from './network-fee.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
+import { formatBankAmount } from '@/utils/currency'
 
 /** Sender account types that are not a payer's bank account. */
 const NON_BANK_SENDER_TYPES: ReadonlySet<string> = new Set(['peanut-wallet', 'evm-address', 'address'])
@@ -266,6 +269,10 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
             return goalCents > 0 && collectedCents >= goalCents ? 'completed' : 'pending'
         }
         case 'CLOSED':
+            // The API stamps `completedAt` only on a request that was paid off.
+            // A bank-paid request can close a few cents short in USD, so the
+            // collected total cannot decide this.
+            if (entry.completedAt) return 'completed'
             // 0 collected → treated as cancelled, not closed
             return entry.totalAmountCollected === 0 ? 'cancelled' : 'closed'
         default: {
@@ -396,6 +403,9 @@ export interface TransactionDetails {
     fee?: number | string
     /** What the bank received after a paid rail's fee, in USD; set only when there was a fee. */
     payoutReceivedUsd?: number
+    /** What a crypto withdrawal's recipient received after the network fee, in
+     *  USD — the backend's figure. Set only when a fee was charged. */
+    recipientReceivesUsd?: number
     memo?: string
     /** Catalog key (under `transaction`) for FE-generated memos (the test
      *  deposit). Render sites prefer `t(memoKey)` over the raw `memo`. */
@@ -454,10 +464,24 @@ export interface TransactionDetails {
         wasReturned?: boolean
         /** Why the bank sent the deposit back; picks the receipt's reason line. */
         returnReasonCode?: DepositReturnReasonCode
+        /** A bank deposit that never reaches the balance — a bank's
+         *  verification micro-deposit, or one under the rail minimum. */
+        depositKind?: 'verification' | 'below_minimum'
+        /** The exact amount the bank sent ("$0.07", "€0.05"), shown instead
+         *  of the converted USD amount on those two kinds. */
+        depositAmountDisplay?: string
+        /** `below_minimum` only: the rail minimum, e.g. "€1". */
+        minimumAmountDisplay?: string
         /** The reference we sent out on a fiat payout — the user's own text
          *  when they typed one, otherwise the default our payment partner
          *  composed. Owner-only: it never reaches a public receipt. */
         paymentReference?: string
+        /** Request rollups: the requester opted in to payment by bank transfer. */
+        bankInstructionsShared?: boolean
+        /** Request rollups: the amount the requester asked, in `requestCurrency` (decimal string). */
+        requestedAmount?: string
+        /** Request rollups: the currency the requester asked in. The USD figures stay the money truth. */
+        requestCurrency?: string
         avatarUrl?: string
         perkReward?: HistoryEntryPerkReward
         perk?: {
@@ -526,10 +550,7 @@ export interface TransactionDetails {
         chainName?: string
         chainIconUrl?: string
     }
-    networkFeeDetails?: {
-        amountDisplay: string
-        moreInfoText?: string
-    }
+    networkFeeDetails?: NetworkFeeDetails
     peanutFeeDetails?: {
         amountDisplay: string
     }
@@ -623,6 +644,31 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         isPeerActuallyUser = false
     }
 
+    // A bank's account-check micro-deposit (TASK-23245). The user needs the
+    // exact amount to type into the other app, so the row names it plainly
+    // instead of "Bank account". The wire status stays CANCELLED, because the
+    // money goes back to the sender and never reaches the balance.
+    const wireDepositKind = entry.extraData?.depositKind
+    const depositKind =
+        direction === 'bank_deposit' && (wireDepositKind === 'verification' || wireDepositKind === 'below_minimum')
+            ? wireDepositKind
+            : undefined
+    if (depositKind === 'verification') {
+        nameForDetails = 'Verification deposit'
+        nameKey = TRANSACTION_NAME_KEYS.verificationDeposit
+        nameParams = undefined
+        nameDetail = undefined
+    }
+    const depositCurrency = entry.extraData?.depositCurrency?.trim().toUpperCase()
+    const depositAmountDisplay =
+        depositKind && depositCurrency && entry.extraData?.depositAmount
+            ? formatBankAmount(entry.extraData.depositAmount, depositCurrency)
+            : undefined
+    const minimumAmountDisplay =
+        depositKind === 'below_minimum' && depositCurrency && entry.extraData?.minimumAmount
+            ? formatBankAmount(entry.extraData.minimumAmount, depositCurrency)
+            : undefined
+
     // Strategy uiStatus wins (e.g. SEND_LINK BOTH → 'cancelled'); otherwise
     // map raw entry.status via the shared helper.
     if (!strategyOverrodeUiStatus) uiStatus = mapEntryStatusToUiStatus(entry, direction)
@@ -656,15 +702,18 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         uiStatus = 'pending'
     }
 
-    // parse the amount from the usdamount string in extradata
-    const baseAmount = entry.extraData?.usdAmount ? parseWireAmount(entry.extraData.usdAmount) : 0
-    // Bake the cross-chain network fee into the displayed amount (product
-    // convention: fees are part of the amount, never a separate line — see the
-    // `fee: undefined` note below). The BE only sets `networkFeeUsd` for a
-    // CRYPTO_WITHDRAW whose kernel actually debited principal + fee (SDA path),
-    // so this shows the true amount deducted instead of just the principal.
-    const networkFeeUsd = typeof entry.extraData?.networkFeeUsd === 'number' ? entry.extraData.networkFeeUsd : 0
-    const amount = baseAmount + networkFeeUsd
+    // An API that states `networkFeeStatus` states the gross. One that predates
+    // the field states a v2 withdrawal's net and the fee beside it; add them back
+    // as before, so the headline never drops by the fee during a deploy window.
+    const preContractFee =
+        entry.extraData?.networkFeeStatus === undefined && typeof entry.extraData?.networkFeeUsd === 'number'
+            ? entry.extraData.networkFeeUsd
+            : 0
+    const amount = (entry.extraData?.usdAmount ? parseWireAmount(entry.extraData.usdAmount) : 0) + preContractFee
+    // The settled network fee and what the recipient received, both stated by
+    // the backend. Only a crypto withdrawal carries them.
+    const { networkFeeDetails, recipientReceivesUsd } =
+        intentKindOf(entry) === 'CRYPTO_WITHDRAW' ? networkFeeDetailsForEntry(entry.extraData) : {}
     // The one fee shown as its own line: a wire's, which the user picked and
     // saw before confirming (TASK-23054). The bank receives the amount less it.
     const payoutFeeUsd =
@@ -738,6 +787,10 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // the backend's own figure (Bridge's final_amount, or its payout helper
         // before then), never a subtraction here
         payoutReceivedUsd: payoutFeeUsd !== undefined ? usdBankAmount(entry.currency) : undefined,
+        // A crypto withdrawal's network fee has its own row: it comes out of
+        // what the recipient receives, and the receipt states both.
+        networkFeeDetails,
+        recipientReceivesUsd,
         // memo carries free-form user notes from non-card flows (link memos,
         // request comments). Card spends + Rain refunds suppress this — the
         // merchant name and any decline reason render inside CardPaymentRows
@@ -781,13 +834,22 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             fulfillmentType: entry.extraData?.fulfillmentType,
             bridgeTransferId: entry.extraData?.bridgeTransferId,
             senderReference: senderNoteText(entry.extraData?.senderReference),
-            isDepositAccountDeposit: isDepositAccountDeposit || undefined,
+            isDepositAccountDeposit: isDepositAccountDeposit || !!depositKind || undefined,
             // The bank sent the money back after it settled, so the
             // conversion happened even though the row reads as failed.
             wasReturned: returnedStatus === 'RETURNED' || returnedStatus === 'REFUNDED' || undefined,
             returnReasonCode: isDepositReturned ? entry.extraData?.returnReason?.code : undefined,
-            payerName: isDepositAccountDeposit ? entry.senderAccount?.fullName?.trim() || undefined : undefined,
+            payerName:
+                isDepositAccountDeposit || depositKind
+                    ? entry.extraData?.senderName?.trim() || entry.senderAccount?.fullName?.trim() || undefined
+                    : undefined,
+            depositKind,
+            depositAmountDisplay,
+            minimumAmountDisplay,
             paymentReference: entry.extraData?.paymentReference?.trim() || undefined,
+            bankInstructionsShared: entry.extraData?.bankInstructionsShared || undefined,
+            requestedAmount: entry.extraData?.requestedAmount || undefined,
+            requestCurrency: entry.extraData?.requestCurrency || undefined,
             // Card-payment specifics — populated only for Rain CARD_SPEND /
             // card-refund entries. Drawer reads these to render the merchant
             // hero, status timeline, decline reason, and "Adjusted from $X"

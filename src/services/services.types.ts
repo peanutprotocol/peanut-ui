@@ -29,6 +29,11 @@ export interface CreateRequestRequest {
      * body an API without the field accepts.
      */
     requestedAmount?: { amount: string; currency: string }
+    /**
+     * One key per user submission. The API answers a resend with the same key
+     * with the request it already made. An API without the field drops it.
+     */
+    idempotencyKey?: string
 }
 
 /**
@@ -101,6 +106,8 @@ export interface TRequestResponse {
      */
     paidAt: string | null
     receivedAmount: string | null
+    /** CLOSED once paid in full or closed by the requester; a closed request takes no more payments */
+    status: 'OPEN' | 'CLOSED'
     bankFulfilment?: BankFulfilment
     payerName?: string | null
     bankInstructionsShared: boolean
@@ -140,6 +147,12 @@ export interface ChargeEntry {
     fulfillmentPayment: Payment | null
     timeline: TimelineEntry[]
     requestLink: RequestLink
+    /** What the charge has booked, as a decimal ("33"); null before any money arrived. */
+    settledAmount?: string | null
+    /** The charge's TransactionIntentStatus (PENDING, PROCESSING, COMPLETED…). */
+    status?: string
+    /** The charge completed short of its own amount; the request stays open for the rest. */
+    partialPayment?: boolean
 }
 
 export interface RequestLink {
@@ -287,6 +300,12 @@ export interface TRequestChargeResponse {
      */
     openAmount?: boolean
     timeline: TimelineEntry[]
+    /** What the charge has booked, as a decimal ("33"); null before any money arrived. */
+    settledAmount?: string | null
+    /** The charge's TransactionIntentStatus (PENDING, PROCESSING, COMPLETED…). */
+    status?: string
+    /** The charge completed short of its own amount; the request stays open for the rest. */
+    partialPayment?: boolean
     requestee?: {
         userId: string
         username: string

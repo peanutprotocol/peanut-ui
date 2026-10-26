@@ -1,7 +1,10 @@
 import { execFileSync } from 'node:child_process'
+import { existsSync, readdirSync } from 'node:fs'
 import { repositoryApiPath } from './repository-api.mjs'
 import { reviewHeadRevision, reviewProvenance } from './review-provenance.mjs'
 import { verifiedExternalBaselineSource } from './baseline-runs.mjs'
+import { parseCaptureArtifact } from './capture-artifacts.mjs'
+import { CAPTURE_LOCALES } from './capture-locales.mjs'
 
 const repo = process.env.REPOSITORY,
     runId = process.env.RUN_ID
@@ -29,6 +32,16 @@ if (!binding) throw new Error('Unable to resolve the pull request base revision'
 const expectedBase = binding.before
 if (!/^[a-f0-9]{40}$/.test(expectedBase)) throw new Error('Unable to resolve the merge-base revision')
 
+// The publisher still requires every locale its trusted plan needs; this only sizes the search.
+const capturedLocales = existsSync('incoming')
+    ? CAPTURE_LOCALES.filter((locale) =>
+          readdirSync('incoming').some((name) => {
+              const artifact = parseCaptureArtifact(name)
+              return artifact?.side === 'after' && artifact.locale === locale
+          })
+      )
+    : []
+const locales = capturedLocales.length ? capturedLocales : CAPTURE_LOCALES
 const artifactsFor = (run) => api(`actions/runs/${run.id}/artifacts?per_page=100`).artifacts ?? []
 const publishSource = (run, artifacts) => {
     process.stdout.write(`run_id=${run.id}\n`)
@@ -54,6 +67,7 @@ for (const run of integrationRuns) {
         repository: repo,
         expectedCommit: expectedBase,
         defaultBranch,
+        locales,
     })
     if (verified?.kind === 'integration') publishSource(run, verified.artifacts)
 }
@@ -73,6 +87,7 @@ for (const run of baselineRuns) {
         repository: repo,
         expectedCommit: expectedBase,
         defaultBranch,
+        locales,
     })
     if (verified?.kind === 'baseline') publishSource(run, verified.artifacts)
 }

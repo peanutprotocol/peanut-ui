@@ -4,6 +4,8 @@ import { toInviteCode } from '@/utils/invite-code.utils'
 import { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
+import { UTM_MEDIUMS, UTM_SOURCES, withUtm } from '@/utils/utm.utils'
+import { type ReferralSource } from '@/constants/analytics.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import * as Sentry from '@/utils/sentry-lazy'
 import type { Address, TransactionReceipt } from 'viem'
@@ -16,6 +18,7 @@ import * as wagmiChains from 'wagmi/chains'
  */
 import { type ChainId } from '@/app/actions/clients'
 import { type ChargeEntry } from '@/services/services.types'
+import { contributedAmount } from '@/utils/request-pot.utils'
 import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS } from '@/constants/tokens.consts'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/userop.consts'
@@ -324,11 +327,13 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
         let s = amount.trim()
         if (s === '') return ''
 
-        // Handle comma: could be decimal separator (Argentina) or thousands separator (US paste)
-        // Heuristic: comma followed by exactly 3 digits = thousands separator
-        // Otherwise: decimal separator
-        s = s.replace(/,(\d{3})/g, '$1') // Remove commas before exactly 3 digits (thousands)
-        s = s.replace(/,/g, '.') // Convert remaining commas to dots (decimal separators)
+        // a lone comma is the decimal separator (es/pt): "0,125" is 0.125, never 125.
+        // commas are thousands only in a well-formed group with a second signal:
+        // a dot after them ("10,000.50") or more than one comma ("1,234,567").
+        // anything else with a comma ("1,2,3") ends up invalid and is rejected.
+        const loneComma = /^[^,.]*,[^,.]*$/.test(s)
+        const isThousands = !loneComma && /^\d{1,3}(,\d{3})+(\.\d*)?$/.test(s)
+        s = isThousands ? s.replace(/,/g, '') : s.replace(/,/g, '.')
 
         const m = s.match(/^(\d*)(?:\.(\d*))?$/)
         if (!m) return '' // invalid → empty
@@ -411,9 +416,9 @@ export type UserPreferences = {
     hasSeenBalanceWarning?: { value: boolean; expiry: number }
     /** tracks surprise moment claim count for referral CTA copy (rewards v2). 0=first, 1=second, 2+=normal */
     rewards_surprise_claim_count?: number
-    /** Carousel CTAs the user has dismissed, with the ISO timestamp of each dismissal.
-     *  Read by useHomeCarouselCTAs to apply a per-CTA cooldown before re-showing.
-     *  Legacy shape was `string[]` (permanent dismissal); both are accepted on read. */
+    /** Home CTAs the user has dismissed, with the ISO timestamp of each dismissal.
+     *  A dismissal is permanent, except the allow-list in RECURRING_CAROUSEL_CTAS
+     *  (home-carousel.utils.ts). Legacy shape was `string[]`; both are accepted on read. */
     dismissedCarouselCTAs?: string[] | Record<string, string>
     /** Last fully-settled spendable total (smart + Rain), in USDC base units as a
      *  string. DISPLAY-only seed so a cold start paints the previous number instead
@@ -1237,9 +1242,22 @@ export const inviteFlowUrl = (inviteCode: string, redirectUri: string): string =
     return `/setup?step=signup&redirect_uri=${redirectUri}`
 }
 
-export const generateInviteCodeLink = (username: string) => {
+/**
+ * The inviter's shareable invite link. `source` names the share button that
+ * emits it and rides as `utm_content`, so PostHog can credit the signup to
+ * that button (TASK-23382). Every share button passes a `source`. Without
+ * `source` the link stays plain: in-app navigation (guest modal) and the QR
+ * claim target are not shares.
+ */
+export const generateInviteCodeLink = (username: string, source?: ReferralSource, origin?: string) => {
     const inviteCode = toInviteCode(username)
-    const inviteLink = shareableUrl(`/invite?code=${inviteCode}`)
+    const inviteLink = source
+        ? withUtm(
+              shareableUrl('/invite', origin),
+              { source: UTM_SOURCES.APP_SHARE, medium: UTM_MEDIUMS.REFERRAL, campaign: 'referral', content: source },
+              { code: inviteCode }
+          )
+        : shareableUrl(`/invite?code=${inviteCode}`, origin)
     return { inviteLink, inviteCode }
 }
 
@@ -1262,7 +1280,7 @@ export const extractInviteeName = (reason: string | undefined | null, fallback =
     return fallback
 }
 
-export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) => {
+export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string, origin?: string | null) => {
     let decodedRedirect = redirectUrl
     try {
         decodedRedirect = decodeURIComponent(redirectUrl)
@@ -1270,7 +1288,7 @@ export const getValidRedirectUrl = (redirectUrl: string, fallbackRoute: string) 
         // if decoding URI fails, push to /login as fallback
         return fallbackRoute
     }
-    const sanitizedRedirectUrl = sanitizeRedirectURL(decodedRedirect)
+    const sanitizedRedirectUrl = sanitizeRedirectURL(decodedRedirect, origin)
     // Only redirect if the URL is safe (same-origin)
     if (sanitizedRedirectUrl) {
         return sanitizedRedirectUrl
@@ -1299,7 +1317,8 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
             return {
                 uuid: charge.uuid,
                 payments: charge.payments,
-                amount: charge.tokenAmount,
+                // what the contributor paid, which can be less than the charge asked
+                amount: contributedAmount(charge),
                 username,
                 fulfillmentPayment: charge.fulfillmentPayment,
                 // FOLLOW-UP (tracked, not in this PR pair): the charges/payments BE flow

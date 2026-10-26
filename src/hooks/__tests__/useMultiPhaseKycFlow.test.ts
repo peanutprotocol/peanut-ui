@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { act } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import posthog from 'posthog-js'
@@ -6,10 +8,12 @@ import {
     getVerificationSession,
     refreshVerificationSession,
     initiateSumsubKyc,
+    restartIdentityVerification,
     startResidenceChangeVerification,
 } from '@/app/actions/sumsub'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
 
 // Pins the KYC_REJECTED capture + user-store refresh effect: it must be
 // edge-triggered on the status (its other deps churn during resubmit rounds)
@@ -53,6 +57,7 @@ const mockInitiate = initiateSumsubKyc as jest.MockedFunction<typeof initiateSum
 const mockResidenceChange = startResidenceChangeVerification as jest.MockedFunction<
     typeof startResidenceChangeVerification
 >
+const mockRestartIdentity = restartIdentityVerification as jest.MockedFunction<typeof restartIdentityVerification>
 const mockCapture = posthog.capture as jest.MockedFunction<typeof posthog.capture>
 
 const rejectedCaptures = () => mockCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.KYC_REJECTED)
@@ -448,5 +453,294 @@ describe('deposit session regression contracts', () => {
             restrictions: [],
         }
         expect(deriveCapabilityPhaseSignals(capabilities as never, 'LATAM', 'AR').allSettled).toBe(false)
+    })
+})
+
+describe('useMultiPhaseKycFlow — submission analytics per attempt', () => {
+    const submittedCaptures = () => mockCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.KYC_SUBMITTED)
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockInitiate.mockReset()
+        mockInitiate.mockResolvedValue({ data: { token: 'tok_1', applicantId: 'app_1', status: 'PENDING' } })
+        mockFetchUser.mockResolvedValue(null)
+        mockWs.handler = undefined
+    })
+
+    it.each([
+        [undefined, 'sdk_submitted'],
+        ['sdk_submitted', 'sdk_submitted'],
+        ['sdk_teardown', 'sdk_teardown'],
+    ] as const)(
+        'preserves source %s and region while deduplicating submitted then complete',
+        async (source, expectedSource) => {
+            const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+            await act(async () => {
+                await result.current.handleInitiateKyc('EU')
+            })
+            act(() => result.current.handleSdkSubmitted(source))
+            act(() => result.current.handleSdkSubmitted(source))
+            act(() => result.current.handleSdkComplete())
+            act(() => result.current.handleSdkComplete())
+            expect(submittedCaptures()).toHaveLength(1)
+            expect(submittedCaptures()[0][1]).toEqual(
+                expect.objectContaining({
+                    region_intent: 'EU',
+                    submit_source: expectedSource,
+                })
+            )
+        }
+    )
+
+    it('deduplicates complete then both submitted callback sources', async () => {
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc('ROW')
+        })
+        act(() => result.current.handleSdkComplete())
+        act(() => result.current.handleSdkSubmitted())
+        act(() => result.current.handleSdkSubmitted('sdk_teardown'))
+        act(() => result.current.handleSdkComplete())
+        expect(submittedCaptures()).toHaveLength(1)
+        expect(submittedCaptures()[0][1]).toEqual(
+            expect.objectContaining({
+                region_intent: 'ROW',
+                submit_source: 'sdk_complete',
+            })
+        )
+    })
+
+    it('deduplicates callbacks occurring within the same React turn', async () => {
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc('ROW')
+        })
+        act(() => {
+            result.current.handleSdkSubmitted('sdk_teardown')
+            result.current.handleSdkSubmitted()
+            result.current.handleSdkComplete()
+        })
+        expect(submittedCaptures()).toHaveLength(1)
+        expect(submittedCaptures()[0][1]).toEqual(
+            expect.objectContaining({
+                region_intent: 'ROW',
+                submit_source: 'sdk_teardown',
+            })
+        )
+    })
+
+    it('allows a new capture with the new region after another initiation', async () => {
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc('ROW')
+        })
+        act(() => result.current.handleSdkSubmitted('sdk_teardown'))
+        act(() => result.current.handleSdkComplete())
+        await act(async () => {
+            await result.current.handleInitiateKyc('EU')
+        })
+        act(() => result.current.handleSdkComplete())
+        act(() => result.current.handleSdkSubmitted())
+        expect(submittedCaptures()).toHaveLength(2)
+        expect(submittedCaptures().map(([, properties]) => properties)).toEqual([
+            expect.objectContaining({ region_intent: 'ROW', submit_source: 'sdk_teardown' }),
+            expect.objectContaining({ region_intent: 'EU', submit_source: 'sdk_complete' }),
+        ])
+    })
+
+    it.each([false, true])(
+        'keeps late callbacks scoped to their original attempt (previously submitted: %s)',
+        async (oldAlreadySubmitted) => {
+            const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+            await act(async () => {
+                await result.current.handleInitiateKyc('ROW')
+            })
+            const oldSubmitted = result.current.handleSdkSubmitted
+            if (oldAlreadySubmitted) act(() => oldSubmitted('sdk_teardown'))
+
+            await act(async () => {
+                await result.current.handleInitiateKyc('EU')
+            })
+            act(() => oldSubmitted('sdk_teardown'))
+            act(() => result.current.handleSdkComplete())
+            act(() => result.current.handleSdkSubmitted())
+            act(() => oldSubmitted('sdk_teardown'))
+
+            expect(submittedCaptures()).toHaveLength(2)
+            expect(submittedCaptures().map(([, properties]) => properties)).toEqual([
+                expect.objectContaining({ region_intent: 'ROW', submit_source: 'sdk_teardown' }),
+                expect.objectContaining({ region_intent: 'EU', submit_source: 'sdk_complete' }),
+            ])
+        }
+    )
+
+    it('records a new submission when restart identity reopens the SDK after a reported attempt', async () => {
+        mockRestartIdentity.mockResolvedValue({ data: { token: 'tok_restart' } } as never)
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc('ROW')
+        })
+        act(() => result.current.handleSdkComplete())
+        expect(result.current.showWrapper).toBe(false)
+
+        await act(async () => {
+            await result.current.handleRestartIdentity()
+        })
+        expect(result.current.showWrapper).toBe(true)
+        act(() => result.current.handleSdkSubmitted('sdk_teardown'))
+        act(() => result.current.handleSdkComplete())
+
+        expect(submittedCaptures().map(([, properties]) => properties)).toEqual([
+            expect.objectContaining({ region_intent: 'ROW', submit_source: 'sdk_complete' }),
+            expect.objectContaining({ region_intent: 'ROW', submit_source: 'sdk_teardown' }),
+        ])
+    })
+
+    it('never counts a residence-change teardown as an identity submission, even late', async () => {
+        mockResidenceChange.mockResolvedValue({
+            data: {
+                token: 'residence-token',
+                applicantId: 'applicant-1',
+                levelName: 'peanut-residence-change',
+                targetCountry: 'PT',
+            },
+        })
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+        const residenceSubmitted = result.current.handleSdkSubmitted
+        act(() => residenceSubmitted('sdk_teardown'))
+        expect(submittedCaptures()).toHaveLength(0)
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('ROW')
+        })
+        act(() => residenceSubmitted('sdk_teardown'))
+        expect(submittedCaptures()).toHaveLength(0)
+        act(() => result.current.handleSdkComplete())
+        expect(submittedCaptures()).toHaveLength(1)
+        expect(submittedCaptures()[0][1]).toEqual(
+            expect.objectContaining({ region_intent: 'ROW', submit_source: 'sdk_complete' })
+        )
+    })
+
+    it('excludes residence completion and still records a subsequent identity attempt', async () => {
+        mockResidenceChange.mockResolvedValue({
+            data: {
+                token: 'residence-token',
+                applicantId: 'applicant-1',
+                levelName: 'peanut-residence-change',
+                targetCountry: 'PT',
+            },
+        })
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+        act(() => result.current.handleSdkComplete())
+        expect(submittedCaptures()).toHaveLength(0)
+        await act(async () => {
+            await result.current.handleInitiateKyc('ROW')
+        })
+        act(() => result.current.handleSdkComplete())
+        expect(submittedCaptures()).toHaveLength(1)
+        expect(submittedCaptures()[0][1]).toEqual(
+            expect.objectContaining({
+                region_intent: 'ROW',
+                submit_source: 'sdk_complete',
+            })
+        )
+    })
+})
+
+/**
+ * Bridge's ToS page can record the signature and then move its own frame away
+ * without reporting it (TASK-23881). The wrapper reports that as `returned`,
+ * and Bridge's answer decides. A manual exit stays on the terms step.
+ */
+describe('useMultiPhaseKycFlow — Bridge ToS page close', () => {
+    const mockGetTosLink = getBridgeTosLink as jest.MockedFunction<typeof getBridgeTosLink>
+    const mockConfirm = confirmBridgeTos as jest.MockedFunction<typeof confirmBridgeTos>
+    const enabledBridgeRail = {
+        capabilities: {
+            rails: [
+                {
+                    provider: 'bridge',
+                    channel: 'bank',
+                    country: 'EU',
+                    currency: 'EUR',
+                    status: 'enabled',
+                    operations: { deposit: 'enabled' },
+                },
+            ],
+            nextActions: [],
+            restrictions: [],
+        },
+    }
+
+    beforeEach(() => {
+        jest.useFakeTimers()
+        jest.clearAllMocks()
+        mockGetTosLink.mockResolvedValue({ data: { tosLink: 'https://compliance.test/tos' } })
+        mockFetchUser.mockResolvedValue(enabledBridgeRail)
+    })
+    afterEach(() => jest.useRealTimers())
+
+    const openTerms = async (onKycSuccess = jest.fn()) => {
+        const hook = renderHook(() => useMultiPhaseKycFlow({ onKycSuccess }))
+        await act(async () => {
+            await hook.result.current.handleAcceptTerms()
+        })
+        return { ...hook, onKycSuccess }
+    }
+    const close = async (
+        result: { current: ReturnType<typeof useMultiPhaseKycFlow> },
+        source: 'manual' | 'returned' | 'tos_accepted'
+    ) => {
+        await act(async () => {
+            const pending = result.current.handleTosIframeClose(source)
+            await jest.runAllTimersAsync()
+            await pending
+        })
+    }
+
+    it('records that the terms page opened', async () => {
+        const { result } = await openTerms()
+        expect(result.current.showTosIframe).toBe(true)
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_TOS_OPENED)
+    })
+
+    it('completes the flow when the page moved away after the user signed', async () => {
+        mockConfirm.mockResolvedValue({ data: { accepted: true } })
+        const { result, onKycSuccess } = await openTerms()
+
+        await close(result, 'returned')
+
+        expect(result.current.showTosIframe).toBe(false)
+        expect(onKycSuccess).toHaveBeenCalled()
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED, { source: 'returned' })
+    })
+
+    it('says why when the page closed by itself without a signature', async () => {
+        mockConfirm.mockResolvedValue({ data: { accepted: false } })
+        const { result, onKycSuccess } = await openTerms()
+
+        await close(result, 'returned')
+
+        expect(result.current.modalPhase).toBe('bridge_tos')
+        expect(result.current.tosError).toMatch(/weren't accepted/)
+        expect(onKycSuccess).not.toHaveBeenCalled()
+    })
+
+    it('leaves a manual exit on the terms step without asking Bridge', async () => {
+        const { result, onKycSuccess } = await openTerms()
+
+        await close(result, 'manual')
+
+        expect(result.current.showTosIframe).toBe(false)
+        expect(result.current.tosError).toBeNull()
+        expect(mockConfirm).not.toHaveBeenCalled()
+        expect(onKycSuccess).not.toHaveBeenCalled()
     })
 })

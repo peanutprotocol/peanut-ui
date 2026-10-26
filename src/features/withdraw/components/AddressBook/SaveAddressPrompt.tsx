@@ -15,7 +15,7 @@ interface SaveAddressPromptProps {
 }
 
 /**
- * Review-screen prompt: "Save to address book" + a name (≤15 chars). The field
+ * Review-screen prompt: "Save to favorites" + a name (≤15 chars). The field
  * is called "Name" here and in the edit drawer, so one thing has one name.
  */
 export default function SaveAddressPrompt({
@@ -29,13 +29,19 @@ export default function SaveAddressPrompt({
     // The missing name is a helper line until the user has been in the field;
     // after that it is a field error they can fix.
     const [touched, setTouched] = useState(false)
+    // The name field takes focus only when the user ticks the box. A box that
+    // starts ticked must not pull the keyboard up over the amount.
+    const [focusName, setFocusName] = useState(false)
     const missing = !nickname.trim()
     return (
         <Card className="flex flex-col gap-3 p-4">
             <Checkbox
                 label={t('savedAddresses.savePrompt')}
                 value={checked}
-                onChange={(e) => onCheckedChange(e.target.checked)}
+                onChange={(e) => {
+                    setFocusName(e.target.checked)
+                    onCheckedChange(e.target.checked)
+                }}
             />
             {checked && (
                 <Field
@@ -48,7 +54,7 @@ export default function SaveAddressPrompt({
                 >
                     <BaseInput
                         id={inputId}
-                        autoFocus
+                        autoFocus={focusName}
                         value={nickname}
                         maxLength={SAVED_ADDRESS_NICKNAME_MAX}
                         onChange={(e) => onNicknameChange(e.target.value)}

@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * logoutUser, through the provider.
  *
@@ -21,12 +23,14 @@ const mockClearSignupAttribution = jest.fn().mockResolvedValue(undefined)
 
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
+const mockUserData = { user: { userId: 'u1', username: 'probe' }, accounts: [] }
+const mockQueryClient = { clear: mockClear, cancelQueries: mockCancelQueries, getQueryData: () => mockUserData }
 jest.mock('@tanstack/react-query', () => ({
-    useQueryClient: () => ({ clear: mockClear, cancelQueries: mockCancelQueries }),
+    useQueryClient: () => mockQueryClient,
 }))
 jest.mock('@/hooks/query/user', () => ({
     useUserQuery: () => ({
-        data: { user: { userId: 'u1', username: 'probe' }, accounts: [] },
+        data: mockUserData,
         isLoading: false,
         refetch: mockRefetch,
         error: null,
@@ -65,7 +69,13 @@ jest.mock('@/services/pending-invite-attribution', () => ({
 }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { identify: jest.fn(), reset: jest.fn(), register: jest.fn() },
+    default: {
+        identify: jest.fn(),
+        get_distinct_id: jest.fn(),
+        setPersonProperties: jest.fn(),
+        reset: jest.fn(),
+        register: jest.fn(),
+    },
 }))
 
 import { AuthProvider, useAuth } from '../authContext'
@@ -145,6 +155,18 @@ describe('logoutUser', () => {
         })
 
         expect(hasHeldSession()).toBe(false)
+    })
+
+    it('forgets the analytics identity fingerprint, so the next user starts clean', async () => {
+        localStorage.setItem('posthog-person-properties-sent', 'abc123')
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(localStorage.getItem('posthog-person-properties-sent')).toBeNull()
     })
 
     it('releases the latch when the hard navigation never happens', async () => {

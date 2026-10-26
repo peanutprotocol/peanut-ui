@@ -1,6 +1,6 @@
 'use client'
 
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO } from '@/assets/brand'
 import DevPageShell from '@/app/(mobile-ui)/dev/_components/DevPageShell'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -48,7 +48,7 @@ export default function LoadingWordsPreview() {
             <Section title='Production match — Loading variant="mascot"'>
                 <Card className="items-center justify-center gap-6 bg-action-secondary px-6 py-16" shadowSize="4">
                     <div className="animate-spin">
-                        <Image src={PEANUTMAN} alt="Peanut" className="h-10 w-10" />
+                        <Image src={LOGO} alt="Peanut" className="h-10 w-10" />
                     </div>
                     <LoadingMessage word={WORDS[index]} className="text-body-m" />
                 </Card>
@@ -68,11 +68,6 @@ export default function LoadingWordsPreview() {
                     <SizeSwatch label="xl · bold" word={WORDS[index]} className="text-heading-xs" />
                     <SizeSwatch label="2xl · bold" word={WORDS[index]} className="text-heading-s" />
                     <SizeSwatch label="2xl · extrabold" word={WORDS[index]} className="text-heading-s" />
-                    <SizeSwatch
-                        label="display (Sniglet) · bold · xl"
-                        word={WORDS[index]}
-                        className="font-display text-heading-xs"
-                    />
                 </div>
             </Section>
 

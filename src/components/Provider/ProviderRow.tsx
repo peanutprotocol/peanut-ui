@@ -7,7 +7,7 @@ import type { ProviderLabel } from '@/types/provider.types'
 import { ProviderHelp, type ProviderHelpProps } from './ProviderHelp'
 
 interface ProviderRowProps extends Omit<ProviderHelpProps, 'className'> {
-    /** Provider for money, Account provider for accounts, Card issuer for the card */
+    /** Provider for money, Account provider for accounts, Card provider for the card */
     label?: ProviderLabel
 }
 

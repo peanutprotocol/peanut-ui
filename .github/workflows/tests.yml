@@ -86,6 +86,7 @@ jobs:
     screen-tests:
         needs: backdoor-scan
         runs-on: ubuntu-latest
+        timeout-minutes: 10
         steps:
             - uses: actions/checkout@v4
               with:
@@ -97,11 +98,17 @@ jobs:
 
             - uses: actions/setup-node@v4
               with:
-                  node-version: '20'
+                  node-version: '22'
                   cache: 'pnpm'
 
             - run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
-            - run: pnpm screens:test
+            - name: Install isolated Worker dependencies
+              working-directory: scripts/screens/deploy
+              run: npm ci --ignore-scripts --no-audit --no-fund
+            - name: Resolve the locked Worker JWT verifier
+              run: ln -s ../deploy/node_modules scripts/screens/worker/node_modules
+            - name: Run the full screen-library suite
+              run: pnpm screens:test
 
     # DS debt ratchet (DS 10, TASK-21450). Runs scripts/ds-lint-counts.mjs
     # --check against the committed baseline: debt counts (raw hex, inline
@@ -413,6 +420,9 @@ jobs:
                   path: test-results/junit.xml
                   retention-days: 7
 
+    # Feeds ds-shots and i18n-overflow. ds-shots skips PRs into dev (dev
+    # captures are opt-in via /ds-shots, ds-shots-request.yml); i18n-overflow
+    # runs on them.
     # Can this PR move a pixel? Answered from the PR file list over the API, so
     # a docs-only, workflow-only or test-only PR skips the capture with no
     # checkout and no install.
@@ -472,11 +482,11 @@ jobs:
     # block a merge. It is a review aid.
     #
     # Two roles, one set of steps, because the capture half is the same work:
-    #   • push to dev, main or feat/design-system (the DS release train) →
+    #   • push to main or feat/design-system (the DS release train) →
     #     capture that commit and cache it as a baseline.
     #     The cache has to be written from the base branch: an entry written by
     #     a PR run is scoped to that PR, and no sibling PR can read it. Written
-    #     from dev, ten PRs on that base restore it instead of building it.
+    #     from the base branch, sibling PRs restore it instead of building it.
     #   • pull request → capture the head, diff it against that baseline, and
     #     keep one comment up to date.
     ds-shots:
@@ -487,12 +497,13 @@ jobs:
         # it after a failed backdoor-scan, so that result is checked by hand.
         if: >-
             always() && needs.backdoor-scan.result == 'success' &&
-            ((github.event_name == 'push' && contains(fromJSON('["dev","main","feat/design-system"]'), github.ref_name))
-            || needs.ds-shots-filter.outputs.render == 'true')
+            ((github.event_name == 'push' && contains(fromJSON('["main","feat/design-system"]'), github.ref_name))
+            || (github.event.pull_request.base.ref != 'dev' && needs.ds-shots-filter.outputs.render == 'true'))
         runs-on: ubuntu-latest
-        # Build, capture, regression specs, and the i18n overflow gate took
-        # more than 30m on PR #3521 while tests were still passing. Allow
-        # enough time for the full suite, including runner variance.
+        # Build, capture, regression specs, and the i18n overflow gate (since
+        # moved to i18n-overflow) took more than 30m on PR #3521 while tests
+        # were still passing. Allow enough time for the full suite, including
+        # runner variance.
         timeout-minutes: 45
         # Read-only on purpose. This job checks out the PR and runs its
         # install, build and test code, and a later step is not an isolation
@@ -770,18 +781,6 @@ jobs:
             - name: Run regression specs
               run: pnpm test:e2e:regression
 
-            # i18n overflow gate (TASK-22366): renders the fixture set, the
-            # localized landing routes and the setup screens in es-419 at
-            # 320px and fails when translated copy is clipped. Absolute DOM
-            # check, no baseline — so it runs the same way on push and PR.
-            # Advisory the same way this whole job is (not in
-            # ci-success.needs); give it its own blocking job after a week of
-            # PRs with zero false positives.
-            # Failure screenshots land in e2e/__results__/, which the
-            # failure upload below already ships.
-            - name: i18n overflow gate
-              run: pnpm test:i18n-overflow:run
-
             # The page snapshot in error-context.md is the only way to see
             # WHAT rendered on the runner when a spec dies in CI but passes
             # locally. Without this upload the failure is undebuggable.
@@ -790,6 +789,119 @@ jobs:
               uses: actions/upload-artifact@v4
               with:
                   name: regression-results-${{ github.run_number }}
+                  path: e2e/__results__/
+                  retention-days: 7
+
+    # i18n overflow gate (TASK-22366, TASK-22585): renders the fixture set,
+    # the localized landing routes and the setup screens in es-419, pt-BR and
+    # es-AR at 320px, plus the cut-copy screens at 375px, and fails when copy
+    # is clipped. Absolute DOM check, no baseline.
+    #
+    # Its own job so it runs on PRs into dev, where ds-shots no longer runs.
+    # ADVISORY for a one-week trial (runtime and catch rate): NOT in
+    # ci-success.needs. Add it there to make it blocking.
+    i18n-overflow:
+        name: i18n-overflow
+        needs: [backdoor-scan, ds-shots-filter]
+        # `always()` because a skipped ds-shots-filter would skip this job too;
+        # the backdoor-scan result is checked by hand for the same reason.
+        if: >-
+            always() && needs.backdoor-scan.result == 'success' &&
+            needs.ds-shots-filter.outputs.render == 'true'
+        runs-on: ubuntu-latest
+        # Build ~5m + gate ~9m + stress gate. A hang past this is a bug, not a
+        # slow day.
+        timeout-minutes: 45
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile
+
+            - name: Resolve Playwright version
+              id: pw
+              run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+            - name: Cache Playwright browsers
+              id: pw-cache
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+            - name: Install Playwright browsers
+              if: steps.pw-cache.outputs.cache-hit != 'true'
+              timeout-minutes: 6
+              run: npx playwright install --with-deps chromium
+
+            # Same apt-stall retry as press-contract.
+            - name: Install Playwright system deps
+              if: steps.pw-cache.outputs.cache-hit == 'true'
+              timeout-minutes: 9
+              run: |
+                  for attempt in 1 2 3; do
+                      if timeout --kill-after=15s 150 npx playwright install-deps chromium; then
+                          exit 0
+                      fi
+                      echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
+                      sudo rm -rf /var/lib/apt/lists/partial/* || true
+                      if [ "${attempt}" = 1 ]; then
+                          sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' \
+                              /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
+                      fi
+                      sleep 5
+                  done
+                  echo "::error::playwright install-deps failed after 3 attempts"
+                  exit 1
+
+            # Same build env as ds-shots: preview enables ?__fixture=, and the
+            # base URL matches the server in playwright.shots.config.ts.
+            - name: Build
+              id: build
+              env:
+                  NEXT_PUBLIC_VERCEL_ENV: preview
+                  NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
+                  # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
+                  NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+              run: pnpm build
+
+            - name: i18n overflow gate
+              run: pnpm test:i18n-overflow:run
+
+            - name: Upload results on failure
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: i18n-overflow-results-${{ github.run_number }}
+                  path: e2e/__results__/
+                  retention-days: 7
+
+            # Stress gate (TASK-23132): every fixture with worst-case data and
+            # with large system text. Reuses the build above. ADVISORY until it
+            # has one clean week: a failure shows as a warning, not a red job.
+            - name: Stress gate (advisory)
+              id: stress
+              if: always() && steps.build.outcome == 'success'
+              continue-on-error: true
+              run: pnpm test:stress:run
+
+            - name: Upload stress results on failure
+              if: always() && steps.stress.outcome == 'failure'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: stress-results-${{ github.run_number }}
                   path: e2e/__results__/
                   retention-days: 7
 
@@ -892,6 +1004,74 @@ jobs:
               with:
                   name: press-contract-results-${{ github.run_number }}
                   path: e2e/__results__/
+                  retention-days: 7
+
+    # A production-domain build catches inherited noindex and canonical drift.
+    # Preview builds intentionally block crawlers, so they cannot test this.
+    seo-contract:
+        needs: backdoor-scan
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        permissions:
+            contents: read
+        env:
+            NEXT_PUBLIC_BASE_URL: https://peanut.me
+            NEXT_PUBLIC_VERCEL_ENV: production
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+            - uses: pnpm/action-setup@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+            - run: pnpm install --frozen-lockfile
+            - name: Get Playwright version
+              id: pw
+              run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+            - name: Cache Playwright browsers
+              id: pw-cache
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+            - name: Install Chromium
+              if: steps.pw-cache.outputs.cache-hit != 'true'
+              timeout-minutes: 6
+              run: pnpm exec playwright install chromium
+            # Use the same bounded apt retry as the other browser contracts.
+            - name: Install Playwright system deps
+              timeout-minutes: 9
+              run: |
+                  for attempt in 1 2 3; do
+                      if timeout --kill-after=15s 150 pnpm exec playwright install-deps chromium; then
+                          exit 0
+                      fi
+                      echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
+                      sudo rm -rf /var/lib/apt/lists/partial/* || true
+                      if [ "${attempt}" = 1 ]; then
+                          sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' \
+                              /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
+                      fi
+                      sleep 5
+                  done
+                  echo "::error::playwright install-deps failed after 3 attempts"
+                  exit 1
+            - name: Build with production indexing policy
+              env:
+                  NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+              run: pnpm build
+            - name: Check every rendered sitemap URL
+              run: pnpm test:seo:rendered
+            - name: Upload failures
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: seo-contract-results-${{ github.run_number }}
+                  path: e2e/__seo_results__/
                   retention-days: 7
 
     # Coverage + test-summary aggregator. Mirrors the pattern from
@@ -1221,6 +1401,7 @@ jobs:
                 native-export,
                 unit,
                 press-contract,
+                seo-contract,
                 report,
                 human-authors,
             ]
@@ -1239,6 +1420,7 @@ jobs:
                       echo "  native-export: ${{ needs['native-export'].result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
                       echo "  press-contract: ${{ needs['press-contract'].result }}"
+                      echo "  seo-contract: ${{ needs['seo-contract'].result }}"
                       echo "  report:    ${{ needs.report.result }}"
                       echo "  human-authors: ${{ needs['human-authors'].result }}"
                       exit 1

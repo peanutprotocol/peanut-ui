@@ -1,4 +1,4 @@
-import { chromium, devices } from '@playwright/test'
+import { chromium, devices, expect } from '@playwright/test'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { release } from 'node:os'
@@ -8,12 +8,21 @@ import { SCREENS } from '../../src/dev/screens/catalogue'
 import { APP_LOCALES, type AppLocale } from '../../src/i18n/app/config'
 import { answer, ADAPTER_VERSION } from './adapter'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
+import { canonicalScope, scopeCapture } from './capture-scope.mjs'
+import { fixtureIdentityFiles } from './capture-impact.mjs'
+import { knownNonvisual } from './capture-plan.mjs'
+import { harnessIdentityFiles, fileIdentity } from './capture-identity.mjs'
 import { captureExitCode } from './capture-status.mjs'
 import { captureProfile } from './capture-profiles.mjs'
 import { installCaptureSafeArea } from './capture-safe-area.mjs'
 import { localizedCaptureText } from './capture-copy.mjs'
 import { isRemoteOptimizedImage, REMOTE_IMAGE_PLACEHOLDER } from './capture-images.mjs'
-import { FIXTURE_BANNER_CANDIDATE_SELECTOR, hideFixtureBanners } from './capture-ui.mjs'
+import {
+    CAPTURE_STATIC_CSS,
+    FIXTURE_BANNER_CANDIDATE_SELECTOR,
+    finishOverlayAnimations,
+    hideFixtureBanners,
+} from './capture-ui.mjs'
 
 import { routePatterns, routePatternFor } from './routes.mjs'
 import { inventory } from './inventory.mjs'
@@ -74,13 +83,7 @@ async function main() {
         readdirSync(p, { withFileTypes: true }).flatMap((e) =>
             e.isDirectory() ? walk(join(p, e.name)) : [join(p, e.name)]
         )
-    const identity = (paths: string[]) =>
-        hash(
-            paths
-                .sort()
-                .map((p) => `${p}\0${readFileSync(p)}`)
-                .join('\0')
-        )
+    const identity = fileIdentity
     let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined
     let launchError: unknown
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -122,22 +125,23 @@ async function main() {
     const results: Record<string, unknown>[] = []
     const selected = arg('only').split(',').filter(Boolean)
     const requireFullCatalogue = arg('full-catalogue') === 'true'
+    const scope =
+        arg('scope') === 'targeted'
+            ? canonicalScope({ mode: 'targeted', screenIds: selected }, new Set(SCREENS.map((screen) => screen.id)))
+            : undefined
     if (requireFullCatalogue && selected.length) throw new Error('Full catalogue capture cannot use --only')
     const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;locale=${captureLocale};device=${profile.device.platform};browser=${profile.browserProfile};safe-area=${Object.values(profile.device.safeArea).join(',')};UTC;light;reduced-motion`
-    const harness = identity([
-        ...walk('scripts/screens').filter((p) => !p.endsWith('.test.mjs')),
-        ...walk('src/dev/screens'),
-        ...walk('src/dev/surfaces'),
-        'pnpm-lock.yaml',
-    ])
-    const fixtures = identity([
-        ...walk('src/dev/fixtures'),
-        'src/utils/demo-api.ts',
-        'src/constants/demo-data.ts',
-        'src/constants/residence.consts.ts',
-    ])
-    const manifest = () =>
-        validateCapture({
+    const harness = identity(harnessIdentityFiles())
+    const fixtures = identity(
+        fixtureIdentityFiles([
+            ...walk('src/dev/fixtures').filter((path) => !knownNonvisual(path)),
+            'src/utils/demo-api.ts',
+            'src/constants/demo-data.ts',
+            'src/constants/residence.consts.ts',
+        ])
+    )
+    const manifest = () => {
+        const capture = {
             schema: 1,
             type: 'capture',
             commit,
@@ -162,7 +166,9 @@ async function main() {
                     : []),
                 ...assetOverlays.map(({ file, before, after }) => ({ path: file, before, after })),
             ],
-        })
+        }
+        return validateCapture(scope ? scopeCapture(capture, scope) : capture)
+    }
     try {
         for (const screen of SCREENS) {
             const metadata = {
@@ -170,6 +176,7 @@ async function main() {
                 name: screen.name,
                 flow: screen.flow,
                 kind: screen.kind,
+                defaultScreen: screen.defaultScreen,
                 order: screen.order,
                 ...(screen.journey ? { journey: screen.journey } : {}),
             }
@@ -436,6 +443,7 @@ async function main() {
                 }
                 for (const action of actions ?? []) {
                     if ('click' in action) await page.getByText(action.click, { exact: false }).first().click()
+                    else if ('clickSelector' in action) await page.locator(action.clickSelector).first().click()
                     else {
                         await page.locator(action.fill.selector).fill(action.fill.value)
                         // Pause like a person before the next tap. The app writes a typed value to the
@@ -448,6 +456,8 @@ async function main() {
                 if (screen.entryRoute)
                     await page.waitForURL((destination) => destination.pathname === url.pathname, { timeout: 30000 })
                 await page.waitForLoadState('networkidle', { timeout: 15000 })
+                if (screen.expectSelector)
+                    await expect(page.locator(screen.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
                 if (screen.event) {
                     await page.waitForFunction(() => document.body.innerText.trim().length > 60)
                     await page.evaluate(
@@ -467,10 +477,9 @@ async function main() {
                         })
                     )
                 )
-                await page.addStyleTag({
-                    content:
-                        '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important;scroll-behavior:auto!important} [data-testid="fixture-banner"],a[href*="__fixture=off"]{display:none!important}',
-                })
+                await page.evaluate(() => document.fonts.ready)
+                await page.evaluate(finishOverlayAnimations)
+                await page.addStyleTag({ content: CAPTURE_STATIC_CSS })
                 await page.locator(FIXTURE_BANNER_CANDIDATE_SELECTOR).evaluateAll(hideFixtureBanners)
                 await page.evaluate(() => document.fonts.ready)
                 if (screen.videoFrame !== undefined) await page.locator('video').first().waitFor({ state: 'attached' })
@@ -557,6 +566,8 @@ async function main() {
                 if (!stable) throw new Error('Screen did not stabilize')
                 if (expectedText && !(await page.getByText(expectedText, { exact: false }).first().isVisible()))
                     throw new Error('Expected screen content disappeared before capture')
+                if (screen.expectSelector)
+                    await expect(page.locator(screen.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
                 if (transportFailures.size)
                     throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
                 if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)

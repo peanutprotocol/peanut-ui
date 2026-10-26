@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { act, render as rtlRender, screen, waitFor, type RenderOptions } from '@testing-library/react'
 import { type ReactElement, type ReactNode } from 'react'
 import { NextIntlClientProvider } from 'next-intl'
@@ -117,7 +119,7 @@ describe('SumsubNativeSdk', () => {
         })
 
         expect(launch).toHaveBeenCalledTimes(1)
-        expect(capture).toHaveBeenCalledWith('kyc_sdk_launched', { platform: 'native' })
+        expect(capture).toHaveBeenCalledWith('kyc_sdk_launched')
     })
 
     it('does not launch without an access token', async () => {
@@ -252,7 +254,10 @@ describe('SumsubNativeSdk', () => {
         })
 
         expect(await screen.findByText(/failed to load verification/i)).toBeInTheDocument()
-        expect(capture).toHaveBeenCalledWith('kyc_sdk_init_failed', expect.objectContaining({ platform: 'native' }))
+        expect(capture).toHaveBeenCalledWith(
+            'kyc_sdk_init_failed',
+            expect.objectContaining({ reason: expect.any(String) })
+        )
         expect(captureException).toHaveBeenCalled()
     })
 
@@ -332,6 +337,147 @@ describe('SumsubNativeSdk', () => {
         expect(dismiss).toHaveBeenCalledTimes(1)
     })
 
+    describe('submission telemetry survives cancellation', () => {
+        const submittedStatuses = ['Pending', 'Approved', 'TemporarilyDeclined', 'FinallyRejected', 'ActionCompleted']
+        const deferredLaunch = () => {
+            let resolve: (value: unknown) => void = () => {}
+            let reject: (reason: Error) => void = () => {}
+            launch.mockReturnValueOnce(
+                new Promise((res, rej) => {
+                    resolve = res
+                    reject = rej
+                })
+            )
+            return { resolve, reject }
+        }
+
+        it.each(submittedStatuses)('reports %s on hide once, even when its launch settles later', async (status) => {
+            const pending = deferredLaunch()
+            const props = { ...baseProps(), onSubmitted: jest.fn() }
+            const { rerender, unmount } = render(<SumsubNativeSdk visible {...props} />)
+            await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
+            act(() => statusHandler?.({ newStatus: status }))
+            expect(props.onSubmitted).not.toHaveBeenCalled()
+
+            act(() => rerender(<SumsubNativeSdk visible={false} {...props} />))
+            expect(props.onSubmitted).toHaveBeenCalledTimes(1)
+            expect(props.onSubmitted).toHaveBeenCalledWith('sdk_teardown')
+            await act(async () => pending.resolve({ success: true, status }))
+            unmount()
+            expect(props.onSubmitted).toHaveBeenCalledTimes(1)
+            expect(props.onComplete).not.toHaveBeenCalled()
+            expect(props.onClose).not.toHaveBeenCalled()
+        })
+
+        it.each(submittedStatuses)('reports late %s after unmount without completion or close', async (status) => {
+            const pending = deferredLaunch()
+            const props = { ...baseProps(), onSubmitted: jest.fn() }
+            const { unmount } = render(<SumsubNativeSdk visible {...props} />)
+            await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
+            unmount()
+            expect(props.onSubmitted).not.toHaveBeenCalled()
+            await act(async () => pending.resolve({ success: true, status }))
+            expect(props.onSubmitted).toHaveBeenCalledTimes(1)
+            expect(props.onSubmitted).toHaveBeenCalledWith('sdk_teardown')
+            expect(props.onComplete).not.toHaveBeenCalled()
+            expect(props.onClose).not.toHaveBeenCalled()
+        })
+
+        it.each(['Initial', 'missing', 'rejected'])('does not infer submission from a late %s result', async (kind) => {
+            const pending = deferredLaunch()
+            const props = { ...baseProps(), onSubmitted: jest.fn() }
+            const { unmount } = render(<SumsubNativeSdk visible {...props} />)
+            await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
+            act(() => statusHandler?.({ newStatus: 'Initial' }))
+            unmount()
+            await act(async () => {
+                if (kind === 'rejected') pending.reject(new Error('cancelled native launch'))
+                else pending.resolve(kind === 'missing' ? { success: true } : { success: true, status: 'Initial' })
+            })
+            expect(props.onSubmitted).not.toHaveBeenCalled()
+            expect(props.onComplete).not.toHaveBeenCalled()
+            expect(props.onClose).not.toHaveBeenCalled()
+        })
+
+        it.each(['cleanup', 'late result'])('contains a throwing submitted callback during %s', async (path) => {
+            const pending = deferredLaunch()
+            const props = {
+                ...baseProps(),
+                onSubmitted: jest.fn(() => {
+                    throw new Error('telemetry callback failed')
+                }),
+            }
+            const { unmount } = render(<SumsubNativeSdk visible {...props} />)
+            await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
+            if (path === 'cleanup') act(() => statusHandler?.({ newStatus: 'Pending' }))
+            expect(() => unmount()).not.toThrow()
+            await act(async () => pending.resolve({ success: true, status: 'Pending' }))
+            expect(props.onSubmitted).toHaveBeenCalledTimes(1)
+            expect(props.onSubmitted).toHaveBeenCalledWith('sdk_teardown')
+            expect(props.onComplete).not.toHaveBeenCalled()
+            expect(props.onClose).not.toHaveBeenCalled()
+        })
+
+        it('keeps cancelled telemetry bound to the callback that owned its launch', async () => {
+            const first = deferredLaunch()
+            const second = deferredLaunch()
+            const original = { ...baseProps(), onSubmitted: jest.fn() }
+            const replacement = { ...baseProps(), onSubmitted: jest.fn() }
+            const { rerender, unmount } = render(<SumsubNativeSdk visible {...original} />)
+            await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
+            act(() => rerender(<SumsubNativeSdk visible {...replacement} />))
+            expect(launch).toHaveBeenCalledTimes(1)
+            act(() => rerender(<SumsubNativeSdk visible={false} {...replacement} />))
+            act(() => rerender(<SumsubNativeSdk visible {...replacement} />))
+            await waitFor(() => expect(launch).toHaveBeenCalledTimes(2))
+
+            await act(async () => first.resolve({ success: true, status: 'Approved' }))
+            expect(original.onSubmitted).toHaveBeenCalledTimes(1)
+            expect(original.onSubmitted).toHaveBeenCalledWith('sdk_teardown')
+            expect(replacement.onSubmitted).not.toHaveBeenCalled()
+            expect(original.onComplete).not.toHaveBeenCalled()
+            expect(original.onClose).not.toHaveBeenCalled()
+            expect(replacement.onComplete).not.toHaveBeenCalled()
+            expect(replacement.onClose).not.toHaveBeenCalled()
+
+            unmount()
+            await act(async () => second.resolve({ success: true, status: 'Pending' }))
+            expect(original.onSubmitted).toHaveBeenCalledTimes(1)
+            expect(replacement.onSubmitted).toHaveBeenCalledTimes(1)
+            expect(replacement.onSubmitted).toHaveBeenCalledWith('sdk_teardown')
+            expect(replacement.onComplete).not.toHaveBeenCalled()
+            expect(replacement.onClose).not.toHaveBeenCalled()
+        })
+
+        it.each([false, true])(
+            'does not add teardown telemetry after normal completion (multi-level: %s)',
+            async (isMultiLevel) => {
+                const pending = deferredLaunch()
+                const events: string[] = []
+                const props = {
+                    ...baseProps(),
+                    isMultiLevel,
+                    onSubmitted: jest.fn(() => {
+                        events.push('submitted')
+                    }),
+                    onComplete: jest.fn(() => {
+                        events.push('complete')
+                    }),
+                    onClose: jest.fn(() => {
+                        events.push('close')
+                    }),
+                }
+                const { unmount } = render(<SumsubNativeSdk visible {...props} />)
+                await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
+                act(() => statusHandler?.({ newStatus: 'Pending' }))
+                await act(async () => pending.resolve({ success: true, status: 'Pending' }))
+                expect(events).toEqual(isMultiLevel ? ['submitted', 'close'] : ['complete'])
+                unmount()
+                expect(events).toEqual(isMultiLevel ? ['submitted', 'close'] : ['complete'])
+            }
+        )
+    })
+
     // TASK-22030: Android can destroy the SDK screen without the plugin calling
     // back (an app-icon tap cleared the task). launch() then never settles, the
     // instance lock stays held and Verify does nothing until the app is killed.
@@ -365,7 +511,7 @@ describe('SumsubNativeSdk', () => {
             expect(resetSdk).toHaveBeenCalledTimes(1)
             expect(props.onClose).toHaveBeenCalledTimes(1)
             expect(props.onComplete).not.toHaveBeenCalled()
-            expect(capture).toHaveBeenCalledWith('kyc_sdk_orphaned', { platform: 'native' })
+            expect(capture).toHaveBeenCalledWith('kyc_sdk_orphaned')
         })
 
         it('lets a normal close callback win inside the grace period', async () => {

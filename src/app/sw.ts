@@ -1,7 +1,8 @@
 import { defaultCache } from '@serwist/next/worker'
-import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist'
-import { NetworkOnly, Serwist } from 'serwist'
+import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig } from 'serwist'
+import { NetworkOnly, Serwist, Strategy } from 'serwist'
 import { isSensitivePaymentNetworkUrl, purgeSensitivePaymentNetworkCacheEntries } from './payment-network-sw-privacy'
+import { navigationRedirectPlugin } from './sw-navigation-redirects'
 
 // This declares the value of `injectionPoint` to TypeScript.
 // `injectionPoint` is the string that will be replaced by the
@@ -16,32 +17,50 @@ declare global {
 // @ts-expect-error — service-worker global redeclaration intentional
 declare const self: ServiceWorkerGlobalScope
 
+// A controlled service worker sees cross-origin fetches initiated by its
+// clients. Keep privacy-sensitive API routes ahead of every default rule.
+//
+// /relay/* is the PostHog reverse-proxy path (see next.config.js rewrites).
+// Workbox's defaultCache strategies threw "no-response" on the recorder +
+// dead-clicks scripts, polluting the console. PostHog assets carry their
+// own versioning + cache headers; let the network handle them. NetworkOnly
+// first so it wins ahead of any defaultCache JS-asset rule.
+const runtimeCaching: RuntimeCaching[] = [
+    {
+        matcher: ({ url }) =>
+            url.pathname === '/q' || url.pathname.startsWith('/q/') || url.pathname === '/api/marketing-qr/open',
+        handler: new NetworkOnly(),
+    },
+    {
+        matcher: ({ url }) => url.pathname === '/api/marketing-qr/open',
+        method: 'POST',
+        handler: new NetworkOnly(),
+    },
+    {
+        // Covers the protected document/RSC path on peanut.me and the
+        // /invites/graph API path on every origin, regardless of query.
+        matcher: ({ url }) => isSensitivePaymentNetworkUrl(url),
+        handler: new NetworkOnly(),
+    },
+    {
+        matcher: ({ url }) => url.pathname.startsWith('/relay/'),
+        handler: new NetworkOnly(),
+    },
+    ...defaultCache,
+]
+
+// On every strategy, so a navigation is covered whichever rule it matched —
+// the way serwist's own `fallbacks` option attaches its plugin.
+for (const { handler } of runtimeCaching) {
+    if (handler instanceof Strategy) handler.plugins.push(navigationRedirectPlugin)
+}
+
 const serwist = new Serwist({
     precacheEntries: self.__SW_MANIFEST,
     skipWaiting: true,
     clientsClaim: true,
     navigationPreload: true,
-    // A controlled service worker sees cross-origin fetches initiated by its
-    // clients. Keep privacy-sensitive API routes ahead of every default rule.
-    //
-    // /relay/* is the PostHog reverse-proxy path (see next.config.js rewrites).
-    // Workbox's defaultCache strategies threw "no-response" on the recorder +
-    // dead-clicks scripts, polluting the console. PostHog assets carry their
-    // own versioning + cache headers; let the network handle them. NetworkOnly
-    // first so it wins ahead of any defaultCache JS-asset rule.
-    runtimeCaching: [
-        {
-            // Covers the protected document/RSC path on peanut.me and the
-            // /invites/graph API path on every origin, regardless of query.
-            matcher: ({ url }) => isSensitivePaymentNetworkUrl(url),
-            handler: new NetworkOnly(),
-        },
-        {
-            matcher: ({ url }) => url.pathname.startsWith('/relay/'),
-            handler: new NetworkOnly(),
-        },
-        ...defaultCache,
-    ],
+    runtimeCaching,
     disableDevLogs: false,
 })
 
@@ -53,7 +72,7 @@ self.addEventListener('push', (event) => {
             body: data.message,
             tag: 'notification',
             vibrate: [100, 50, 100],
-            icon: '/icons/icon-192x192.png',
+            icon: '/icons/icon-192x192-maskable.png',
         })
     )
 })

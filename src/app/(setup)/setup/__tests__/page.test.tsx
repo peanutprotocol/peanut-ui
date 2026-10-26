@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
@@ -6,6 +8,11 @@ import * as Sentry from '@sentry/nextjs'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
 
+let mockNoBackLock: string | null = null
+let mockSignupCompleted = false
+const mockSetNoBackLock = jest.fn()
+const mockSetSellScreensCountry = jest.fn()
+let mockSellScreensCountry: string | null | undefined = undefined
 const mockSupport = jest.fn()
 const mockResolve = jest.fn()
 const mockRouter = { replace: jest.fn(), push: jest.fn() }
@@ -46,7 +53,11 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({
         ...mockStore,
         resetSetupFlow: jest.fn(),
-        setNoBackLockScreenId: jest.fn(),
+        noBackLockScreenId: mockNoBackLock,
+        signupCompleted: mockSignupCompleted,
+        setNoBackLockScreenId: mockSetNoBackLock,
+        sellScreensCountry: mockSellScreensCountry,
+        setSellScreensCountry: mockSetSellScreensCountry,
         setSignupEntryFlow: jest.fn(),
     }),
 }))
@@ -60,11 +71,16 @@ jest.mock('@/services/badge-campaigns', () => ({
     claimAndSettlePendingBadgeCampaigns: (campaigns: readonly string[]) =>
         mockClaimAndSettlePendingBadgeCampaigns(campaigns),
 }))
-jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => mockFlow }))
+jest.mock('@/hooks/useSetupFlow', () => ({ postRegistrationScreen: () => 'residence', useSetupFlow: () => mockFlow }))
 jest.mock('@/features/setup/useSetupStepAnalytics', () => ({ useSetupStepAnalytics: jest.fn() }))
 jest.mock('@/hooks/useSetupBackHandler', () => ({ useSetupBackHandler: jest.fn() }))
 jest.mock('@/hooks/useGeoLocation', () => ({ useGeoLocation: jest.fn() }))
-jest.mock('@/features/setup/useSetupCountrySignals', () => ({ useSetupCountrySignals: jest.fn() }))
+jest.mock('@/features/setup/useSetupCountrySignals', () => ({
+    useSetupCountrySignals: () => ({
+        ...jest.requireActual('@/features/setup/country-signals').EMPTY_SETUP_COUNTRY_SIGNALS,
+        vercelIpCountry: 'PT',
+    }),
+}))
 jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { WEB: 'web' },
     useDeviceType: () => ({ deviceType: 'android' }),
@@ -77,6 +93,8 @@ jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockPwaSunset
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: jest.fn(),
     getStoredRedirect: () => mockStoredRedirect,
+    getValidRedirectUrl: (redirectUrl: string, fallbackRoute: string) =>
+        jest.requireActual('@/utils/general.utils').getValidRedirectUrl(redirectUrl, fallbackRoute),
     saveToCookie: jest.fn(),
     toInviteCode: jest.fn(),
 }))
@@ -86,8 +104,17 @@ jest.mock('@/components/Setup/setup-entry', () => ({
 }))
 jest.mock('@/components/Setup/Setup.utils', () => ({ isLikelyWebview: () => false, isDeviceOsSupported: () => true }))
 jest.mock('@/components/Setup/components/SetupWrapper', () => ({
-    SetupWrapper: ({ children, showLogoutButton }: { children: React.ReactNode; showLogoutButton?: boolean }) => (
+    SetupWrapper: ({
+        children,
+        showLogoutButton,
+        showBackButton,
+    }: {
+        children: React.ReactNode
+        showLogoutButton?: boolean
+        showBackButton?: boolean
+    }) => (
         <div>
+            {showBackButton && <button>Go back</button>}
             {showLogoutButton && <button>Logout</button>}
             {children}
         </div>
@@ -119,6 +146,9 @@ const advance = (ms: number) =>
 beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
+    mockNoBackLock = null
+    mockSignupCompleted = false
+    mockSellScreensCountry = undefined
     mockResolve.mockReset().mockReturnValue('landing')
     mockStore.steps = [landing]
     mockFlow.step = landing
@@ -293,6 +323,45 @@ it('treats a stale legacy no-access profile as an authenticated account', async 
 
     expect(mockRouter.replace).toHaveBeenCalledWith('/home')
     expect(screen.getByRole('status')).toBeInTheDocument()
+})
+
+/*
+ * A guest funding row sends a user to /setup?redirect_uri=%2Fadd-money. A
+ * user who is already signed in must land on that page, not /home (TASK-23974).
+ */
+it.each([
+    { label: 'a same-origin redirect_uri', query: 'redirect_uri=%2Fadd-money', destination: '/add-money' },
+    { label: 'an external redirect_uri', query: 'redirect_uri=https%3A%2F%2Fevil.example', destination: '/home' },
+    { label: 'a redirect_uri back into setup', query: 'redirect_uri=%2Fsetup%3Fstep%3Dsignup', destination: '/home' },
+    { label: 'no redirect_uri', query: '', destination: '/home' },
+])('sends a completed session with $label to $destination', async ({ query, destination }) => {
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams(query)
+
+    renderWithIntl(<SetupPage />)
+
+    expect(mockRouter.replace).toHaveBeenCalledTimes(1)
+    expect(mockRouter.replace).toHaveBeenCalledWith(destination)
+    expect(screen.getByRole('status')).toBeInTheDocument()
+})
+
+it('does not let stored redirect state redirect a completed session', async () => {
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true } }
+    mockStoredRedirect = { destination: '/card', origin: 'deep-link', generationId: 'g1' }
+
+    renderWithIntl(<SetupPage />)
+
+    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+})
+
+it('sends a completed session to its redirect_uri once a native badge claim settles', async () => {
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer&redirect_uri=%2Fadd-money')
+
+    renderWithIntl(<SetupPage />)
+
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith('/add-money'))
+    expect(mockRouter.replace).not.toHaveBeenCalledWith('/home')
 })
 
 it.each([true, false])('preserves the resolved entry flow (native=%s)', async (native) => {
@@ -559,4 +628,58 @@ it('hides Logout on the final ready-to-start confirmation screen', async () => {
     await advance(100)
     expect(screen.getByText('Ready confirmation')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Logout' })).not.toBeInTheDocument()
+})
+
+it.each([
+    'invite',
+    'payment-plan',
+    'advantage-fees',
+    'advantage-card',
+    'notification-email',
+    'notification-permission',
+    'advantage-control',
+] as const)('shows Back on %s after registration and arms the lock at residence', async (screenId) => {
+    const step = { ...landing, screenId, showBackButton: true }
+    mockStore.steps = [step]
+    mockFlow.step = step
+    mockResolve.mockReturnValue(screenId)
+    mockNoBackLock = 'residence'
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument()
+    expect(mockSetNoBackLock).toHaveBeenCalledWith('residence')
+})
+it('fixes the sell screens to the suggested country once the account exists', async () => {
+    const step = { ...landing, screenId: 'invite' as const, showBackButton: true }
+    mockStore.steps = [step]
+    mockFlow.step = step
+    mockResolve.mockReturnValue(step.screenId)
+    mockSellScreensCountry = undefined
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(mockSetSellScreensCountry).toHaveBeenCalledWith('PT')
+})
+it.each(['landing', 'signup'] as const)('does not arm the registration lock on %s', async (screenId) => {
+    const step = { ...landing, screenId, showBackButton: true }
+    mockStore.steps = [step]
+    mockFlow.step = step
+    mockResolve.mockReturnValue(screenId)
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(mockSetNoBackLock).not.toHaveBeenCalled()
+})
+it('hides Back at the residence boundary once registered, and during celebration', async () => {
+    const step = { ...landing, screenId: 'residence' as const, showBackButton: true }
+    mockStore.steps = [step]
+    mockFlow.step = step
+    mockResolve.mockReturnValue(step.screenId)
+    mockNoBackLock = 'residence'
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(mockSetNoBackLock).toHaveBeenCalledWith('residence')
+    expect(screen.queryByRole('button', { name: 'Go back' })).not.toBeInTheDocument()
+    mockSignupCompleted = true
+    mockFlow.step = { ...step, screenId: 'advantage-control' }
+    view.rerender(<SetupPage />)
+    expect(screen.queryByRole('button', { name: 'Go back' })).not.toBeInTheDocument()
 })

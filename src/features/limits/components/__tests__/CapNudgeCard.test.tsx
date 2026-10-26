@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * CapNudgeCard — the limits-page surface for the Manteca cap-nudge.
  *

@@ -2,6 +2,9 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { CTA_MOTION, PROSE_WIDTH } from '../constants'
 
 const marketingClouds = [
     { top: '15%', width: 160, speed: '45s', direction: 'ltr' as const },
@@ -16,40 +19,47 @@ interface HeroProps {
     ctaHref?: string
     /** @deprecated — ignored. Use standalone <ExchangeWidget> in MDX body instead. */
     currency?: string
+    /** Injected by createMdxComponents — never authored in MDX. */
+    locale?: Locale
+    /** Language of `subtitle` when it differs from the prose around the Hero (a route-locale string on an English fallback page). */
+    subtitleLang?: Locale
 }
 
 /**
  * MDX Hero — large bold title (Roboto Flex), subtitle, white CTA button
  * on pink background.
  */
-export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
+export function Hero({ title, subtitle, cta, ctaHref, locale = DEFAULT_LOCALE, subtitleLang }: HeroProps) {
+    const i18n = getTranslations(locale)
     return (
         <>
-            <section className="relative overflow-hidden bg-action-primary px-4 py-16 text-center md:px-8 md:py-24">
+            <section className="relative overflow-hidden bg-background-brand px-6 py-16 text-center md:px-8 md:py-24">
                 <CloudsCss clouds={marketingClouds} />
-                <div className="relative z-10 mx-auto max-w-4xl">
-                    {/* break-words + hyphens: one long word ("COMMUNICATIONS",
-                        "INSTANTANEAMENTE") must wrap, not clip, at 320px
-                        (TASK-22366 sweep) */}
-                    <h1 className="font-roboto-flex-extrabold text-[2.5rem] leading-[0.95] font-extraBlack break-words hyphens-auto text-foreground-primary uppercase md:text-[4.5rem]">
+                <div className={`relative z-10 mx-auto ${PROSE_WIDTH}`}>
+                    {/* break-words only, no hyphens-auto: it split brand names
+                        mid-word ("PEA-NUT", "BI-NANCE") on es/pt pages. A too-long
+                        word ("ESTABELECIMENTO") still soft-wraps instead of
+                        clipping at 320px (TASK-22366 sweep); the real fix for
+                        those is shorter h1 copy (content-side, ruled 15 Oct) —
+                        hero sizes stay fixed (standing exception 2026-09-17). */}
+                    <h1 className="font-roboto-flex-extrabold text-[2.5rem] leading-[0.95] font-extraBlack break-words text-foreground-primary uppercase md:text-[4.5rem]">
                         {title}
                     </h1>
                     {subtitle && (
-                        <p className="font-roboto-flex-extrabold mt-6 text-[1.25rem] text-foreground-primary uppercase md:mt-8 md:text-[2rem]">
+                        <p
+                            lang={subtitleLang}
+                            className="font-roboto-flex-extrabold mt-6 text-[1.25rem] text-foreground-primary uppercase md:mt-8 md:text-[2rem]"
+                        >
                             {subtitle}
                         </p>
                     )}
                     {cta && ctaHref && (
                         <div className="mt-8">
-                            {/* white-on-pink CTA: secondary is the closest board
-                                variant, and the two overrides keep it looking
-                                exactly as it does today — the unconditional
-                                white bg cancels secondary's press-to-pink, and the
-                                hover shadow cancels secondary's hover flatten. */}
                             <Button
+                                size="large"
                                 variant="secondary"
                                 href={ctaHref}
-                                className="inline-flex w-auto bg-background-default px-8 font-extrabold hover:bg-background-default/90 hover:shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)]"
+                                className={`mx-auto w-fit ${CTA_MOTION}`}
                             >
                                 {cta}
                             </Button>
@@ -57,11 +67,14 @@ export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
                     )}
                 </div>
             </section>
-            <MarqueeComp
-                message={['No fees', 'Instant', '24/7', 'Dollars', 'USDT/USDC']}
-                imageSrc={HandThumbsUp.src}
-                backgroundColor="bg-action-secondary"
-            />
+            {/* marquee words come from the route-locale catalog, not the MDX file */}
+            <div lang={locale}>
+                <MarqueeComp
+                    message={[i18n.heroMarqueeNoFees, i18n.heroMarqueeInstant, '24/7', i18n.heroMarqueeDollars]}
+                    imageSrc={HandThumbsUp.src}
+                    backgroundColor="bg-action-secondary"
+                />
+            </div>
             {/* Spacer ensures consistent gap between Hero block and prose content */}
             <div className="h-10 md:h-14" />
         </>

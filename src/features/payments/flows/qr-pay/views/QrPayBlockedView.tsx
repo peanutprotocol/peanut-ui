@@ -7,6 +7,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { useModalsContext } from '@/context/ModalsContext'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useQrPayFlow } from '../QrPayFlowContext'
 
 /**
@@ -16,8 +17,17 @@ import { useQrPayFlow } from '../QrPayFlowContext'
  */
 export function QrPayBlockedView() {
     const t = useAppTranslations('qrPay')
-    const { view, paymentMethodName, errorInitiatingPayment, initErrorNeedsSupport, onBack, retryOrderNotReady } =
-        useQrPayFlow()
+    const {
+        view,
+        paymentMethodName,
+        errorInitiatingPayment,
+        initErrorNeedsSupport,
+        initErrorNeedsVerification,
+        gate,
+        targetMantecaCountry,
+        onBack,
+        retryOrderNotReady,
+    } = useQrPayFlow()
     const { setIsSupportModalOpen } = useModalsContext()
 
     const supportLink = (
@@ -34,6 +44,10 @@ export function QrPayBlockedView() {
     // no title. The support link appears only for the refusals whose copy
     // sends the user to support, so the one instruction on screen is reachable.
     if (view === 'INIT_ERROR') {
+        // A refusal for identity starts the verification from here, unless the
+        // ID check already ended on a final decision: then only support helps.
+        const canVerify = initErrorNeedsVerification && !gate.isTerminalFailure
+        const isVerificationClosed = initErrorNeedsVerification && gate.isTerminalFailure
         return (
             <PageStack>
                 <PageStack.Center className="gap-4">
@@ -41,14 +55,29 @@ export function QrPayBlockedView() {
                         {/* terminal init failure — error tone, not the attention yellow
                             the maintenance/waiting states use */}
                         <IconBubble icon="alert" color="red" size="m" />
-                        <p className="text-body-m"> {errorInitiatingPayment || t('errors.genericQrDetails')}</p>
+                        <p className="text-body-m">
+                            {isVerificationClosed
+                                ? t('kyc.blockedDescription')
+                                : errorInitiatingPayment || t('errors.genericQrDetails')}
+                        </p>
 
-                        <Button onClick={onBack} variant="primary">
+                        {canVerify ? (
+                            <Button
+                                onClick={() => gate.startVerification(targetMantecaCountry)}
+                                loading={gate.sumsubFlow.isLoading}
+                                variant="primary"
+                                icon="check-circle"
+                            >
+                                {t('kyc.unlockCta')}
+                            </Button>
+                        ) : null}
+                        <Button onClick={onBack} variant={canVerify ? 'secondary' : 'primary'}>
                             {t('maintenance.goBack')}
                         </Button>
                     </Card>
-                    {initErrorNeedsSupport ? supportLink : null}
+                    {initErrorNeedsSupport || isVerificationClosed ? supportLink : null}
                 </PageStack.Center>
+                {canVerify ? <SumsubKycModals flow={gate.sumsubFlow} /> : null}
             </PageStack>
         )
     }

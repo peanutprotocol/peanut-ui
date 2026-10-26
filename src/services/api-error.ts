@@ -42,6 +42,11 @@ export const API_ERROR_CODES = {
      *  file. Deterministic, never retried. */
     MANTECA_SENDER_REJECTED: 'MANTECA_SENDER_REJECTED',
     MANTECA_TEMPORARILY_UNAVAILABLE: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+    /** The provider refused a Manteca deposit or withdrawal for a reason of the
+     *  user's account (a document it still needs, a bank account it does not
+     *  accept). Sent with 422 before any money moved. Deterministic: a retry
+     *  gets the same answer. */
+    PROVIDER_REJECTED: 'PROVIDER_REJECTED',
     QR_PAYMENT_CANCELLED: 'QR_PAYMENT_CANCELLED',
     /** The payment destination (e.g. a PIX key) does not exist at the provider. */
     PAYMENT_DESTINATION_NOT_FOUND: 'PAYMENT_DESTINATION_NOT_FOUND',
@@ -56,6 +61,8 @@ export const API_ERROR_CODES = {
     XCHAIN_WITHDRAW_LIMIT_REACHED: 'XCHAIN_WITHDRAW_LIMIT_REACHED',
     DEPOSIT_ACCOUNTS_NOT_AVAILABLE: 'DEPOSIT_ACCOUNTS_NOT_AVAILABLE',
     XCHAIN_WITHDRAW_DISABLED: 'XCHAIN_WITHDRAW_DISABLED',
+    /** POST /charges on a request that is no longer OPEN. Sent with 409. */
+    REQUEST_CLOSED: 'REQUEST_CLOSED',
 } as const
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES]

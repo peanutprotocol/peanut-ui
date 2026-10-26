@@ -16,8 +16,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useHomeDrawer } from '@/features/home/useHomeDrawer'
-import { type OnboardingState, canHideChecklist } from '@/utils/activation-step.utils'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { type OnboardingState } from '@/utils/activation-step.utils'
 import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
@@ -96,13 +95,11 @@ const SubtitleSkeleton = () => (
 const GettingStartedChecklist = ({
     onboarding,
     showWelcome = true,
-    onHide,
     onStartIdentityCheck,
     onStartQrIdentityCheck,
 }: {
     onboarding: OnboardingState
     showWelcome?: boolean
-    onHide?: () => void
     /** opens the shared ID-check start (ActivationCTAs owns the flow and its modals) */
     onStartIdentityCheck?: () => void
     /** starts the QR ID check (ActivationCTAs owns the flow and its modals) */
@@ -175,7 +172,7 @@ const GettingStartedChecklist = ({
             },
             {
                 id: 'add-money',
-                bubble: CONCEPT_ICONS.addMoney,
+                bubble: { ...CONCEPT_ICONS.addMoney, icon: 'plus' },
                 label: t('addMoney'),
                 // A residence no bank provider onboards drops the bank half
                 // rather than offering a route that cannot deliver.
@@ -315,22 +312,6 @@ const GettingStartedChecklist = ({
                     )
                 })}
             </ListGroup>
-            {onHide && canHideChecklist(onboarding) && (
-                // tertiary dismiss (design.md), only once the payment row is the one
-                // left, so nobody hides the list before money is in. mt-4 on the
-                // section's gap-2 keeps the 24px the hit area needs under a row
-                <LinkButton
-                    onClick={() => {
-                        posthog.capture(ANALYTICS_EVENTS.HOME_CHECKLIST_HIDDEN, {
-                            first_payment_route: firstPaymentRoute,
-                        })
-                        onHide()
-                    }}
-                    className="mt-4 self-center text-body-s text-foreground-primary"
-                >
-                    {t('hide')}
-                </LinkButton>
-            )}
             {(isStatusDrawerOpen || keepStatusDrawerMounted) && (
                 <KycStatusDrawer
                     isOpen={isStatusDrawerOpen}

@@ -6,6 +6,7 @@ export const CLAIM_LINK = 'claimLink'
 export const CLAIM_LINK_XCHAIN = 'claimLinkXChain'
 export const LIMITS = 'limits'
 export const BADGE_CATALOG = 'badge-catalog'
+export const AVATAR_ART = 'avatar-art'
 
 // Balance-decreasing operations (for mutation tracking)
 export const BALANCE_DECREASE = 'balance-decrease'
@@ -13,3 +14,6 @@ export const SEND_MONEY = 'send-money'
 export const SEND_LINK = 'send-link'
 export const OWN_ACCOUNT_IDENTITY = 'own-account-identity'
 export const VERIFIED_ADDRESS = 'verified-address'
+
+export const REQUEST_FULFILLMENT = 'request-fulfillment'
+export const REQUEST_FULFILLMENT_POLL_MS = 5_000

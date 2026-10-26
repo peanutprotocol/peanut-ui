@@ -10,20 +10,24 @@ import { Banner } from '@/components/Global/Banner'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
-import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
-import SunsetScreen from '@/components/Migration/SunsetScreen'
-import { shouldShowSunsetBlock } from '@/utils/migration.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
-import { filterSetupStepsForResidence } from '@/features/setup/filterSetupSteps'
+import { filterSetupStepsForCountry, filterSetupStepsForInvite } from '@/features/setup/filterSetupSteps'
+import { setupCountrySuggestion } from '@/features/setup/country-signals'
+import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
+import { useAuth } from '@/context/authContext'
+import { readInviteCode } from '@/utils/invite-stash'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
-    const { setSteps, residenceCountry } = useSetupFlowContext()
+    const { setSteps, sellScreensCountry, inviterAccepted } = useSetupFlowContext()
     const residenceRestrictions = useResidenceRestrictionSets()
+    const { user } = useAuth()
+    const invitedBy = user?.invitedBy
+    // The sell screens come before residence: they follow the signals' suggestion until
+    // the account exists, then the country the page fixed at that point.
+    const suggestedCountry = setupCountrySuggestion(useSetupCountrySignals())?.country ?? null
+    const sellCountry = sellScreensCountry === undefined ? suggestedCountry : sellScreensCountry
     const { deviceType } = useDeviceType()
-    const migrationOn = useMigrationFlag()
-    const hasKeepWebBypass = useKeepWebBypass()
 
     /*
      * Bottom-inset fill color. The content directly above the bottom inset (iOS
@@ -51,23 +55,20 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
                 // below instead of surfacing as unhandled rejections in Sentry
                 await StatusBar.setOverlaysWebView({ overlay: false })
                 await StatusBar.setStyle({ style: Style.Light })
-                await StatusBar.setBackgroundColor({ color: '#D8E7FF' }) // --color-background-setup-hero; capacitor takes a literal
+                await StatusBar.setBackgroundColor({ color: '#90A8ED' }) // --color-background-setup-hero (blue-300); capacitor takes a literal
             })
             .catch(() => {})
     }, [])
 
+    // The invite stash is read when the list is rebuilt, not watched. Registration
+    // settles it, and fixing the sell-screen country on the first step after
+    // registration rebuilds the list before the person can leave that step.
     useEffect(() => {
-        setSteps(filterSetupStepsForResidence(setupSteps, residenceRestrictions, residenceCountry))
-    }, [setSteps, residenceRestrictions, residenceCountry])
+        const steps = filterSetupStepsForCountry(setupSteps, residenceRestrictions, sellCountry)
+        setSteps(filterSetupStepsForInvite(steps, inviterAccepted || !!invitedBy || !!readInviteCode()))
+    }, [setSteps, residenceRestrictions, sellCountry, invitedBy, inviterAccepted])
 
     usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
-
-    // Past the cutover, web signup is switched off too. Use the same
-    // block as the mobile-ui layout (this route group has its own layout, so
-    // it needs its own gate). keep-web cookie/param bypasses.
-    if (shouldShowSunsetBlock({ migrationOn, hasKeepWebBypass })) {
-        return <SunsetScreen />
-    }
 
     return (
         <AppShell

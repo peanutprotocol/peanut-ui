@@ -1,7 +1,9 @@
+import { beginAndroidPasskeyScope } from './android-passkey-scope'
 import { addBreadcrumb, captureException } from '@/utils/sentry-lazy'
 import { isCapacitor } from '@/utils/capacitor'
 import { setAuthToken } from '@/utils/auth-token'
 import { setCachedStepUpToken } from '@/services/step-up-cache'
+import { openCredentialCall } from '@/utils/webauthn-ceremony-telemetry'
 
 /**
  * Guards for the passkey ceremony (TASK-21782).
@@ -62,13 +64,15 @@ export const isCeremonyGuardError = (err: unknown): err is Error =>
     (err.name === 'CeremonyTimeoutError' ||
         err.name === 'PasskeyShimNotReadyError' ||
         err.name === 'PasskeyShimFailedError' ||
-        err.name === 'CeremonyConflictError')
+        err.name === 'CeremonyConflictError' ||
+        err.name === 'PasskeyCleanupPendingError')
 
 const GUARD_ERROR_TAG: Record<string, string> = {
     CeremonyTimeoutError: 'ceremony_timeout',
     PasskeyShimNotReadyError: 'shim_not_ready',
     PasskeyShimFailedError: 'shim_failed',
     CeremonyConflictError: 'ceremony_conflict',
+    PasskeyCleanupPendingError: 'cleanup_pending',
 }
 
 // A second tap while a ceremony owns the window is a rejected interaction, not
@@ -87,7 +91,7 @@ const reportedConflictCeremonies = new Set<number>()
  */
 export const captureCeremonyGuardError = (
     err: Error,
-    flow: 'login' | 'register',
+    flow: 'login' | 'register' | 'sign',
     extra?: Record<string, unknown>
 ): void => {
     if (err.name === 'CeremonyConflictError') {
@@ -105,9 +109,16 @@ export const captureCeremonyGuardError = (
             reportedConflictCeremonies.add(ceremonyId)
         }
     }
+    const osCall = openCredentialCall()
     captureException(err, {
         tags: { error_type: `${flow}_${GUARD_ERROR_TAG[err.name] ?? 'ceremony_guard'}` },
-        extra: { shimInstalled: isPasskeyShimInstalled(), isCapacitor: isCapacitor(), ...extra },
+        extra: {
+            shimInstalled: isPasskeyShimInstalled(),
+            isCapacitor: isCapacitor(),
+            osCallInFlight: osCall?.inFlight,
+            osCallElapsedMs: osCall?.elapsedMs,
+            ...extra,
+        },
     })
 }
 
@@ -181,12 +192,31 @@ export const stashCeremonyStepUpToken = (token: string, expiresIn: number, issui
  * and the ceremony-active window has closed, so a late success can neither
  * log the user in nor store its token.
  */
-export const raceCeremonyTimeout = <T>(promise: Promise<T>, ms: number = CEREMONY_TIMEOUT_MS): Promise<T> => {
+export const raceCeremonyTimeout = <T>(
+    promise: Promise<T>,
+    ms: number = CEREMONY_TIMEOUT_MS,
+    onTimeout?: () => void
+): Promise<T> => {
     let timer: ReturnType<typeof setTimeout>
     const timeout = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new CeremonyTimeoutError(ms)), ms)
+        timer = setTimeout(() => {
+            onTimeout?.()
+            reject(new CeremonyTimeoutError(ms))
+        }, ms)
     })
     return Promise.race([promise, timeout]).finally(() => clearTimeout(timer)) as Promise<T>
+}
+
+/**
+ * A browser keeps an abandoned get()/create() pending and rejects the retry
+ * with "A request is already pending" (PEANUT-UI-TBB). The ceremony's abort
+ * signal belongs to @simplewebauthn's shared service, which the zerodev SDK
+ * and step-up both start through. The native shim ignores a mid-call abort.
+ */
+const cancelBrowserCeremony = (): void => {
+    void import('@simplewebauthn/browser')
+        .then(({ WebAuthnAbortService }) => WebAuthnAbortService.cancelCeremony())
+        .catch(() => {})
 }
 
 /**
@@ -209,14 +239,26 @@ export const guardPasskeyCeremony = async <T>(startCeremony: () => Promise<T>): 
     if (native) await waitForPasskeyShim()
     // re-check: another ceremony may have claimed the window during the wait
     if (activeCeremonyId !== null) throw new CeremonyConflictError()
+    const androidScope = native ? beginAndroidPasskeyScope() : undefined
     const ceremonyId = ++ceremonySeq
     activeCeremonyId = ceremonyId
     stashedVerifyToken = null
     stashedStepUp = null
     try {
+        let operation: Promise<T>
+        try {
+            operation = startCeremony()
+        } catch (error) {
+            androidScope?.finish()
+            throw error
+        }
+        // Keep the scope after a UI timeout until the SDK continuation terminates.
+        // An options response arriving late cannot open another native prompt.
+        const scopedOperation = operation.finally(() => androidScope?.finish())
         const result = await raceCeremonyTimeout(
-            startCeremony(),
-            native ? CEREMONY_TIMEOUT_MS : WEB_CEREMONY_TIMEOUT_MS
+            scopedOperation,
+            native ? CEREMONY_TIMEOUT_MS : WEB_CEREMONY_TIMEOUT_MS,
+            native ? () => androidScope?.expire() : cancelBrowserCeremony
         )
         if (stashedVerifyToken !== null) setAuthToken(stashedVerifyToken)
         const stepUp = takeStashedStepUp()

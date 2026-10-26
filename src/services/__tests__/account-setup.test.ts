@@ -98,3 +98,38 @@ describe('completeAccountSetup', () => {
         expect(fetchProfile).not.toHaveBeenCalled()
     })
 })
+
+it('only reconciles a selected plan once both saved choices are in the profile', async () => {
+    const signupPreferences = { fundingChannel: 'brlBank' as const, paymentChannel: 'qr' as const }
+    const request = jest.fn().mockRejectedValueOnce(new TypeError('Lost response')).mockResolvedValueOnce(response(200))
+    const fetchProfile = jest
+        .fn()
+        .mockResolvedValueOnce(profile(true))
+        .mockResolvedValueOnce({ ...profile(true), signupPreferences })
+    await expect(
+        completeAccountSetup({
+            accountIdentifier: ADDRESS,
+            accountType: AccountType.PEANUT_WALLET,
+            signupPreferences,
+            request,
+            fetchProfile,
+            retryDelayMs: 0,
+            wait: jest.fn().mockResolvedValue(undefined),
+        })
+    ).resolves.toEqual({ status: 'created', requestAttempts: 2 })
+    expect(request).toHaveBeenCalledTimes(2)
+})
+it('reconciles a lost response when the wallet and choices were committed together', async () => {
+    const signupPreferences = { fundingChannel: 'bank' as const, paymentChannel: 'card' as const }
+    await expect(
+        completeAccountSetup({
+            accountIdentifier: ADDRESS,
+            accountType: AccountType.PEANUT_WALLET,
+            signupPreferences,
+            request: jest.fn().mockRejectedValue(new TypeError('Lost response')),
+            fetchProfile: jest.fn().mockResolvedValue({ ...profile(true), signupPreferences }),
+            retryDelayMs: 0,
+            wait: jest.fn().mockResolvedValue(undefined),
+        })
+    ).resolves.toEqual({ status: 'reconciled', requestAttempts: 1 })
+})

@@ -57,6 +57,8 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 jest.mock('@tanstack/react-query', () => ({
     useQueryClient: () => ({ invalidateQueries: jest.fn() }),
 }))
+// the charge's history entry has not loaded: the receipt is the one the flow built
+jest.mock('@/hooks/useHistoryEntry', () => ({ useHistoryEntry: () => ({ data: undefined }) }))
 
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),

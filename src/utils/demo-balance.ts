@@ -100,5 +100,5 @@ function subscribe(listener: () => void): () => void {
 
 /** Reactive demo balance (re-renders consumers when debited). */
 export function useDemoBalanceUnits(): bigint {
-    return useSyncExternalStore(subscribe, getDemoBalanceUnits, getDemoBalanceUnits)
+    return useSyncExternalStore(subscribe, getDemoBalanceUnits, () => DEMO_BALANCE_UNITS)
 }

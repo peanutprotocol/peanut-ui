@@ -1,9 +1,6 @@
-/** Prose content column width class. Matches Wise's ~600px content width for readability. */
-export const PROSE_WIDTH = 'max-w-[640px]'
-
-/** Content-hub column. Wider than the prose column because the hub lists rows,
- *  not sentences. Two constants, two roles — they are not interchangeable. */
-export const HUB_WIDTH = 'max-w-[720px]'
+/** Column widths live in constants/layout.consts.ts (see the note there) and
+ *  are re-exported so marketing code keeps one import for its shared classes. */
+export { PROSE_WIDTH, HUB_WIDTH } from '@/constants/layout.consts'
 
 /** Standard hover/active classes for interactive cards with Bruddle shadow.
  *  Hover: card lifts up-left, shadow grows to compensate (appears stationary).
@@ -20,3 +17,12 @@ export const CARD_HOVER =
  *  element map and any component that writes its own anchor cannot drift. */
 export const PROSE_LINK =
     'text-foreground-primary underline decoration-foreground-primary/30 underline-offset-2 hover:decoration-foreground-primary'
+
+/** The marketing CTA motion layer: a mount entrance and a hover drop-and-tilt,
+ *  `.cta-motion` in globals.css. Put it on the DS Button of every marketing CTA,
+ *  next to `w-fit` and `size="large"` (48px, 24px inset: the medium default's
+ *  12px inset is a fill-width geometry and reads cramped on a hugging pill) —
+ *  one class, never a per-site variant. It changes no geometry, colour or
+ *  variant, and it stands down under prefers-reduced-motion. App screens never
+ *  take it. */
+export const CTA_MOTION = 'cta-motion'

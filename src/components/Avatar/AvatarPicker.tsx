@@ -14,6 +14,7 @@ import { twMerge } from '@/utils/tw'
 import { AVATAR_PICKER_BADGE_PARAM, avatarPickerBadgeParser } from './avatar.consts'
 import { badgeAvatarKeys, basicAvatarKeys, dealHand } from './avatar.utils'
 import { isLetterAvatarKey, storeLetterAvatar } from './avatar-letter.storage'
+import { useAvatarArt } from './useAvatarArt'
 import { useAvatarKey } from './useAvatarKey'
 import { roveAvatarTiles } from './avatarPicker.utils'
 import { UserAvatar } from './UserAvatar'
@@ -40,7 +41,9 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const saved = useAvatarKey(user?.user.avatarKey, userId)
     const badges = user?.user.badges ?? []
     const held = badges.map((badge) => badge.code)
-    const unlocked = badgeAvatarKeys(held)
+    // the served map also unlocks badge art this bundle predates
+    const art = useAvatarArt()
+    const unlocked = badgeAvatarKeys(held, art)
 
     // Non-Latin initials have no sticker key; null renders the username's first character.
     const first = username?.trim().charAt(0) ?? ''
@@ -98,22 +101,26 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const [turns, setTurns] = useState(0)
     useEffect(() => {
         // Deal on open and when auth resolves. Keep an in-flight pick when reopening.
-        if (open) setHand(dealHand(pick, unlocked, { prefer: preferBadge ?? undefined }))
+        // ponytail: a map that lands after open is used from the next open or roll
+        if (open) setHand(dealHand(pick, unlocked, { prefer: preferBadge ?? undefined, art }))
         // Taps and ordinary user refetches must not reshuffle the hand.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, userId])
 
     useEffect(() => {
         if (!open || pending !== undefined || !saved) return
-        const earned = badgeAvatarKeys((user?.user.badges ?? []).map((badge) => badge.code))
-        if (!basicAvatarKeys().includes(saved) && !earned.includes(saved)) return
+        const earned = badgeAvatarKeys(
+            (user?.user.badges ?? []).map((badge) => badge.code),
+            art
+        )
+        if (!basicAvatarKeys(art).includes(saved) && !earned.includes(saved)) return
         // A failed save after a roll can restore a saved sticker that is no longer in the hand.
-        setHand((current) => (current.length && !current.includes(saved) ? dealHand(saved, earned) : current))
-    }, [open, pending, saved, user?.user.badges])
+        setHand((current) => (current.length && !current.includes(saved) ? dealHand(saved, earned, { art }) : current))
+    }, [open, pending, saved, user?.user.badges, art])
 
     const roll = () => {
         setTurns((n) => n + 1)
-        setHand(dealHand(pick, unlocked))
+        setHand(dealHand(pick, unlocked, { art }))
     }
 
     // A legacy pick of another letter has no matching tile; do not mark the user's initial instead.
@@ -167,12 +174,12 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         // tile instead of stepping at a breakpoint. The 12px top padding lets the Earned tag
                                         // (4px down, 20px tall) overlap only the sticker's top corner, never the text or the
                                         // face. A name that wraps grows every row alike. The chosen tile follows the selected-rows
-                                        // rule in design.md: action-primary fill, over-color ink on every line, and a second
+                                        // rule in design.md: pale-blue background-selection fill, over-color ink on every line, and a second
                                         // channel besides colour (WCAG 1.4.1), here a 1px inset ring inside the 1px border:
                                         // it reads as a 2px edge but takes no layout, so the tile does not shift (QA-42).
                                         // inset-ring, not ring: globals.css redefines the bare ring utility.
                                         `relative flex flex-col items-center ${CARD_SURFACE} px-1 pt-3 pb-2 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
-                                        checked && 'bg-action-primary inset-ring inset-ring-border-default'
+                                        checked && 'bg-background-selection inset-ring inset-ring-border-default'
                                     )}
                                 >
                                     {earned && (

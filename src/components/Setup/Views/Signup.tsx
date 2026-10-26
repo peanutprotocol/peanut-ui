@@ -1,20 +1,25 @@
 import { Button } from '@/components/0_Bruddle/Button'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import SetupFooter from '../components/SetupFooter'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
+import { PasskeySetupHelpDrawer } from './PasskeySetupHelpDrawer'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useQueryClient } from '@tanstack/react-query'
+import { USER } from '@/constants/query.consts'
+import { DEMO_USER } from '@/constants/demo-data'
+import { enableDemoMode, isDemoUsername } from '@/utils/demo'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { invitesApi } from '@/services/invites'
-import { toInviteCode } from '@/utils/invite-code.utils'
+import { useSignupPasskey } from '@/features/setup/useSignupPasskey'
 import { apiFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 
 // Valid username-shaped ideas, so the joke can double as inspiration.
@@ -31,20 +36,23 @@ const USERNAME_IDEAS = [
     'peanutpirate?',
 ] as const
 
+/** Claim username: validates the handle, then "Claim" creates the passkey and the account. */
 const SignupStep = () => {
     const t = useTranslations('setup')
-    const { username, setUsername, inviterUsername, setInviterUsername, applyManualInvite, clearManualInvite } =
-        useSetupFlowContext()
+    const {
+        username,
+        setUsername,
+        setResidenceCountry,
+        setSecondResidenceCountry,
+        setSignupCompleted,
+        setNoBackLockScreenId,
+    } = useSetupFlowContext()
+    const queryClient = useQueryClient()
     const [error, setError] = useState('')
-    const { handleNext, isLoading } = useSetupFlow()
+    const { isLoading, setScreenId } = useSetupFlow()
+    const passkey = useSignupPasskey(username)
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
-    const [showInviterInput, setShowInviterInput] = useState(Boolean(inviterUsername))
-    const [inviterValid, setInviterValid] = useState(false)
-    const [inviterChanging, setInviterChanging] = useState(false)
-    const [inviterError, setInviterError] = useState('')
-    const inviterValueRef = useRef(inviterUsername)
-    const inviterInputId = useId()
     const prefersReducedMotion = useReducedMotion()
     const [suggestionIndex, setSuggestionIndex] = useState(-1)
     const [placeholderStopped, setPlaceholderStopped] = useState(false)
@@ -67,45 +75,31 @@ const SignupStep = () => {
         }
     }, [username, placeholderStopped, prefersReducedMotion])
 
-    const validateInviter = async (value: string): Promise<boolean> => {
-        setInviterError('')
-        const result = await invitesApi.validateInviteCode(value)
-        const valid = result.success && result.attributionResolved
-        if (inviterValueRef.current !== value) return valid
-        posthog.capture(ANALYTICS_EVENTS.INVITE_CODE_VALIDATED, { valid, source: 'signup_optional_inviter' })
-        if (!valid) setInviterError(t('signupStep.inviterNotFound'))
-        return valid
-    }
+    const busy = passkey.isClaiming || isLoading
 
-    const toggleInviterInput = () => {
-        if (showInviterInput) {
-            inviterValueRef.current = ''
-            clearManualInvite()
-            setInviterUsername('')
-            setInviterValid(false)
-            setInviterChanging(false)
-            setInviterError('')
-        } else {
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_PROMPT_OPENED)
+    const onClaim = async () => {
+        if (!isValid || isChanging || busy) return
+        if (isDemoUsername(username)) {
+            enableDemoMode()
+            // Retire any pre-demo user request before seeding the synthetic session.
+            await queryClient.cancelQueries({ queryKey: [USER] })
+            queryClient.setQueryData([USER], DEMO_USER)
+            setResidenceCountry('BR')
+            setSecondResidenceCountry('')
+            setNoBackLockScreenId('advantage-control')
+            setSignupCompleted(true)
+            setScreenId('advantage-control')
+            return
         }
-        setShowInviterInput(!showInviterInput)
+        await passkey.claim()
     }
-
-    const onNext = () =>
-        handleNext(async () => {
-            if (!isValid) return false
-            const code = toInviteCode(inviterUsername)
-            if (showInviterInput && code) {
-                if (!inviterValid || inviterChanging) return false
-                applyManualInvite(code)
-                posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_ADDED)
-            }
-            return true
-        })
 
     const checkUsernameValidity = async (username: string): Promise<boolean> => {
         // clear error when starting a new validation
         setError('')
+
+        // Reserved local demo entry: typing validates it, but only submission activates the session.
+        if (isDemoUsername(username)) return true
 
         // handle empty input
         if (!username) {
@@ -116,16 +110,19 @@ const SignupStep = () => {
         // check length requirement
         if (username.length < USERNAME_MIN_LENGTH) {
             setError(t('signupStep.errors.tooShort'))
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'too_short', username })
             return false
         }
         if (username.length > 12) {
             setError(t('signupStep.errors.tooLong'))
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'too_long', username })
             return false
         }
 
         // check character requirement
         if (!username.match(/^[a-z][a-z0-9]{3,11}$/)) {
             setError(t('signupStep.errors.invalidFormat'))
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'format', username })
             return false
         }
 
@@ -200,6 +197,8 @@ const SignupStep = () => {
         }
     }
 
+    const passkeyMessage = passkey.inlineError ?? passkey.preflightWarning
+
     return (
         <>
             <div className="flex h-full flex-1 flex-col justify-between gap-6">
@@ -213,15 +212,18 @@ const SignupStep = () => {
                             }}
                         >
                             <ValidatedInput
-                                aria-label={t('signupStep.usernamePlaceholder')}
+                                aria-label={t('signupStep.usernameLabel')}
                                 placeholder={suggestionIndex < 0 ? t('signupStep.usernamePlaceholder') : ''}
                                 value={username}
                                 debounceTime={750}
+                                // no `shouldValidate` gate: a short handle still marks the field red, so
+                                // it must also get its "too short" line. The length check runs before the
+                                // availability lookup, so a short handle never reaches the API.
                                 validate={checkUsernameValidity}
-                                shouldValidate={(v) => v.length >= USERNAME_MIN_LENGTH}
                                 onUpdate={handleInputUpdate}
                                 isSetupFlow
                                 isInputChanging={isChanging}
+                                prefix="@"
                                 className="rounded-sm"
                             />
                             <AnimatePresence>
@@ -233,104 +235,84 @@ const SignupStep = () => {
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -5 }}
                                         transition={{ duration: 0.18 }}
-                                        className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-body-s text-foreground-secondary"
+                                        className="pointer-events-none absolute inset-y-0 left-8 flex items-center text-body-s text-foreground-secondary"
                                     >
                                         {USERNAME_IDEAS[suggestionIndex]}
                                     </motion.span>
                                 )}
                             </AnimatePresence>
                         </div>
-                        <div className="min-h-8">{error && <FieldError>{error}</FieldError>}</div>
+                        <div className="min-h-8 compact:min-h-6">
+                            {/* The rules show before any error; an error replaces them (form-field board). */}
+                            {error ? (
+                                <FieldError>{error}</FieldError>
+                            ) : (
+                                <p className="text-body-xs text-foreground-secondary">
+                                    {t('signupStep.usernameRules')}
+                                </p>
+                            )}
+                        </div>
                     </div>
-
-                    <button
-                        type="button"
-                        onClick={toggleInviterInput}
-                        aria-expanded={showInviterInput}
-                        aria-controls={inviterInputId}
-                        className="self-center text-body-s text-foreground-secondary underline underline-offset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus"
-                    >
-                        {t('signupStep.whoInvitedYou')}
-                    </button>
-
-                    <AnimatePresence initial={false}>
-                        {showInviterInput && (
-                            <motion.div
-                                id={inviterInputId}
-                                initial={prefersReducedMotion ? false : { opacity: 0, y: -8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={prefersReducedMotion ? undefined : { opacity: 0, y: -8 }}
-                                transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
-                                className="flex w-full flex-col gap-1"
+                    {passkey.usernameTaken && (
+                        <div className="flex flex-col gap-3">
+                            <Callout priority="error">{t('passkey.usernameTaken')}</Callout>
+                            <Button
+                                loading={passkey.isLoggingIn}
+                                disabled={passkey.isLoggingIn}
+                                variant="secondary"
+                                onClick={passkey.logIn}
+                                shadowSize="4"
                             >
-                                <ValidatedInput
-                                    aria-label={t('signupStep.inviterUsernameLabel')}
-                                    placeholder={t('signupStep.inviterUsernamePlaceholder')}
-                                    value={inviterUsername}
-                                    debounceTime={750}
-                                    validate={validateInviter}
-                                    shouldValidate={(value) => toInviteCode(value).length >= USERNAME_MIN_LENGTH}
-                                    onUpdate={({ value, isValid, isChanging }) => {
-                                        inviterValueRef.current = value
-                                        setInviterUsername(value)
-                                        setInviterValid(isValid)
-                                        setInviterChanging(isChanging)
-                                        if (isChanging) {
-                                            clearManualInvite()
-                                            setInviterError('')
-                                        }
-                                    }}
-                                    isSetupFlow
-                                    isInputChanging={inviterChanging}
-                                />
-                                {inviterError ? (
-                                    <FieldError>{inviterError}</FieldError>
-                                ) : (
-                                    <p className="text-body-xs text-foreground-secondary">
-                                        {t('signupStep.inviterHelp')}
-                                    </p>
-                                )}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                                {t('logIn')}
+                            </Button>
+                        </div>
+                    )}
+                    {passkeyMessage && <Callout priority="error">{passkeyMessage}</Callout>}
                 </div>
                 <SetupFooter
                     actions={
                         <Button
                             size="medium"
                             className="w-full"
-                            loading={isLoading}
+                            loading={busy}
                             shadowSize="4"
-                            onClick={onNext}
-                            disabled={
-                                !isValid ||
-                                isChanging ||
-                                isLoading ||
-                                (showInviterInput &&
-                                    !!toInviteCode(inviterUsername) &&
-                                    (!inviterValid || inviterChanging))
-                            }
+                            onClick={onClaim}
+                            disabled={!isValid || isChanging || busy}
                         >
                             {t('cta.claimName')}
                         </Button>
                     }
-                >
-                    <p className="w-full border-t border-border-subtle pt-4 text-center text-body-xs text-foreground-secondary">
-                        {t.rich('signupStep.termsAgreement', {
-                            terms: (chunks) => (
-                                <SetupDocLink kind="terms" href="/terms" className="underline underline-offset-2">
-                                    {chunks}
-                                </SetupDocLink>
-                            ),
-                            privacy: (chunks) => (
-                                <SetupDocLink kind="privacy" href="/privacy" className="underline underline-offset-2">
-                                    {chunks}
-                                </SetupDocLink>
-                            ),
-                        })}
-                    </p>
-                </SetupFooter>
+                    secondary={
+                        <p className="w-full border-t border-border-subtle pt-4 text-center text-body-xs text-foreground-secondary compact:pt-2">
+                            {t.rich('signupStep.termsAgreement', {
+                                terms: (chunks) => (
+                                    <SetupDocLink kind="terms" href="/terms" className="underline underline-offset-2">
+                                        {chunks}
+                                    </SetupDocLink>
+                                ),
+                                privacy: (chunks) => (
+                                    <SetupDocLink
+                                        kind="privacy"
+                                        href="/privacy"
+                                        className="underline underline-offset-2"
+                                    >
+                                        {chunks}
+                                    </SetupDocLink>
+                                ),
+                            })}
+                        </p>
+                    }
+                />
             </div>
+            {passkey.helpErrorName && (
+                <PasskeySetupHelpDrawer
+                    visible={passkey.isHelpOpen}
+                    onClose={passkey.closeHelp}
+                    onRetry={passkey.retryFromHelp}
+                    errorName={passkey.helpErrorName}
+                    platform={passkey.deviceType}
+                />
+            )}
         </>
     )
 }

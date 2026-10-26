@@ -1,9 +1,11 @@
 'use client'
 
+import { useHydrationSnapshot } from '@/utils/native-platform'
 import Loading from '@/components/Global/Loading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import { type ScreenId } from '@/components/Setup/Setup.types'
-import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
+import { setupCountrySuggestion } from '@/features/setup/country-signals'
 import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
 import { dispatchBackPress } from '@/utils/back-handler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -11,13 +13,14 @@ import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { MASCOT_ANIMATION_LOADERS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { readInviteCode, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { harnessPasskeyBypass } from '@/constants/harness.consts'
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
-import { getStoredRedirect, toInviteCode } from '@/utils/general.utils'
+import { getStoredRedirect, getValidRedirectUrl, toInviteCode } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
@@ -39,6 +42,18 @@ import { claimAndSettlePendingBadgeCampaigns } from '@/services/badge-campaigns'
 import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration } from '@/utils/deep-link-state'
 import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
 
+// The steps after registration; reaching any of them arms the no-back lock.
+const POST_REGISTRATION_SCREENS: readonly ScreenId[] = [
+    'residence',
+    'invite',
+    'advantage-fees',
+    'advantage-card',
+    'payment-plan',
+    'notification-email',
+    'notification-permission',
+    'advantage-control',
+]
+
 function setupTargetMatchesSearchParams(target: string | null, searchParamsString: string): boolean {
     if (!target) return false
     try {
@@ -58,19 +73,35 @@ function setupTargetMatchesSearchParams(target: string | null, searchParamsStrin
 }
 
 function SetupPageContent() {
-    const t = useTranslations('setup')
     const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
-    const { steps, setNoBackLockScreenId, setSignupEntryFlow, setSignupCompleted, signupCompleted } =
-        useSetupFlowContext()
-    const { step, currentIndex: currentStepIndex, direction, handleNext, handleBack, setScreenId } = useSetupFlow()
+    const {
+        steps,
+        noBackLockScreenId,
+        setNoBackLockScreenId,
+        sellScreensCountry,
+        setSellScreensCountry,
+        setSignupEntryFlow,
+        setSignupCompleted,
+        signupCompleted,
+    } = useSetupFlowContext()
+    const {
+        step,
+        currentIndex: currentStepIndex,
+        direction,
+        handleNext,
+        handleBack,
+        setScreenId,
+        isLoading: flowLoading,
+    } = useSetupFlow()
     useEffect(() => {
         const nextImage = steps[currentStepIndex + 1]?.image
         if (nextImage && 'pose' in nextImage) {
             void MASCOT_ANIMATION_LOADERS[nextImage.pose]().catch(() => {})
         }
     }, [steps, currentStepIndex])
-    const { logoutUser, isLoggingOut, user, isFetchingUser, fetchUser } = useAuth()
+    const stepCopy = useSetupStepCopy(step)
+    const { user, isFetchingUser, fetchUser } = useAuth()
     const router = useRouter()
     // The entry effect must run once per steps-identity, never per step change:
     // setScreenId's identity moves with the cursor, so it rides a ref.
@@ -87,7 +118,7 @@ function SetupPageContent() {
     // Warm the geo cache at entry, not when the residence step mounts: the
     // lookup is a network round trip, and asking for it three steps early is
     // what lets that select render its suggestion already filled in.
-    useSetupCountrySignals()
+    const countrySignals = useSetupCountrySignals()
     const searchParams = useSearchParams()
     // The init effect must key on the VALUES it reads, not the searchParams
     // object: the stepper rewrites ?screen= on every step, and a dep on the
@@ -96,10 +127,13 @@ function SetupPageContent() {
     const inviteCodeParam = searchParams.get('code')
     const legacyStepParam = searchParams.get('step')
     const searchParamsString = searchParams.toString()
-    const signupEntryFlow = useMemo(() => {
-        const explicitRedirect = new URLSearchParams(searchParamsString).get('redirect_uri')
-        return resolveSignupEntryFlow(explicitRedirect, explicitRedirect === null ? getStoredRedirect() : null)
-    }, [searchParamsString])
+    const signupEntryFlow = useHydrationSnapshot(
+        () => {
+            const explicitRedirect = new URLSearchParams(searchParamsString).get('redirect_uri')
+            return resolveSignupEntryFlow(explicitRedirect, explicitRedirect === null ? getStoredRedirect() : null)
+        },
+        () => resolveSignupEntryFlow(new URLSearchParams(searchParamsString).get('redirect_uri'), null)
+    )
     useEffect(() => setSignupEntryFlow(signupEntryFlow), [setSignupEntryFlow, signupEntryFlow])
     const urlBadgeCampaigns = useMemo(
         () => badgeCampaignsFromSearchParams(new URLSearchParams(searchParamsString)),
@@ -107,12 +141,12 @@ function SetupPageContent() {
     )
     const [sessionChecked, setSessionChecked] = useState(false)
     /*
-     * A completed session is on its way to /home (see the session effect
-     * below), but the soft nav takes a beat and this page keeps rendering and
-     * resolving its entry step meanwhile. Nothing here is a fault the user
-     * should see: an authenticated pop back into /setup — the signup flow
-     * leaves a history entry per step — showed the recovery screen instead of
-     * the bounce it was already performing.
+     * A completed session is on its way to /home or its explicit redirect_uri
+     * (see the session effect below), but the soft nav takes a beat and this
+     * page keeps rendering and resolving its entry step meanwhile. Nothing
+     * here is a fault the user should see: an authenticated pop back into
+     * /setup — the signup flow leaves a history entry per step — showed the
+     * recovery screen instead of the bounce it was already performing.
      */
     const [isLeavingForHome, setIsLeavingForHome] = useState(false)
     const [isSettlingNativeBadgeCampaigns, setIsSettlingNativeBadgeCampaigns] = useState(false)
@@ -177,16 +211,30 @@ function SetupPageContent() {
         !showDeviceNotSupportedModal &&
         !showBrowserNotSupportedModal
 
-    // Arm the point of no return only for a step the user actually SEES —
-    // stepRendered excludes entry-resolution loading and unsupported modals.
-    // A stale terminal URL
-    // (?screen=sign-test-transaction in a fresh session) must stay unlockable
-    // so the entry resolver can replace it (Chip review round 2).
+    // Registration happens on the username step and is irreversible: every
+    // later step locks the way back at the first step after it, while the steps
+    // after that stay revisitable. This also restores the boundary for a resumed
+    // later step, and follows the list when it changes. The sell screens' country
+    // is fixed here too, so they do not change under the person.
     useEffect(() => {
-        if (stepRendered && step && step.showBackButton === false) {
-            setNoBackLockScreenId(step.screenId)
+        if (stepRendered && !signupCompleted && step && POST_REGISTRATION_SCREENS.includes(step.screenId)) {
+            setNoBackLockScreenId(postRegistrationScreen(steps.map((entry) => entry.screenId)))
+            if (sellScreensCountry === undefined) {
+                setSellScreensCountry(setupCountrySuggestion(countrySignals)?.country ?? null)
+            }
         }
-    }, [stepRendered, step, setNoBackLockScreenId])
+    }, [
+        stepRendered,
+        step,
+        steps,
+        signupCompleted,
+        setNoBackLockScreenId,
+        sellScreensCountry,
+        setSellScreensCountry,
+        countrySignals,
+    ])
+    const showBackButton =
+        !!step?.showBackButton && step.screenId !== noBackLockScreenId && !signupCompleted && !flowLoading
 
     useSetupStepAnalytics({
         enabled: stepRendered,
@@ -194,7 +242,7 @@ function SetupPageContent() {
         steps,
         signupEntryFlow,
     })
-    useSetupBackHandler({ step, canStepBack: stepRendered, onBack: handleBack })
+    useSetupBackHandler({ step, canStepBack: stepRendered && showBackButton, onBack: handleBack })
 
     /*
      * A device can arrive at /setup already authenticated: a half-completed
@@ -229,6 +277,15 @@ function SetupPageContent() {
             // Signup is open to every authenticated account. A stale legacy
             // hasAppAccess=false profile must not resurrect the retired
             // waitlist or offer to replace an already-created account.
+            //
+            // A completed account still honours an explicit redirect_uri: a
+            // link that sends it here on the way to a page (/add-money) must
+            // reach that page, not /home. Only the explicit param counts;
+            // stored redirect state is left alone. A redirect back into /setup
+            // would keep this page mounted behind its loader, so it goes home.
+            const explicitRedirect = new URLSearchParams(searchParamsString).get('redirect_uri')
+            const safeRedirect = explicitRedirect ? getValidRedirectUrl(explicitRedirect, '/home') : '/home'
+            const signedInExit = safeRedirect.startsWith('/setup') ? '/home' : safeRedirect
             const nativeClaimDeepLinkGeneration = getDeepLinkGeneration()
             const nativeClaimCampaignsKey = pendingBadgeCampaigns.join('\u0000')
             const shouldSettleNativeBadgeCampaigns =
@@ -272,7 +329,7 @@ function SetupPageContent() {
                     .finally(() => {
                         if (isCurrentNativeClaim()) {
                             setIsSettlingNativeBadgeCampaigns(false)
-                            router.replace('/home')
+                            router.replace(signedInExit)
                         } else if (isSetupMountedRef.current && nativeClaimRunIdRef.current === nativeClaimRunId) {
                             // A newer native link may keep this setup instance
                             // mounted while Next transitions to its new URL.
@@ -285,13 +342,13 @@ function SetupPageContent() {
             }
             if (isNewSetupDeepLink) {
                 setIsSettlingNativeBadgeCampaigns(false)
-                router.replace('/home')
+                router.replace(signedInExit)
                 return
             }
             if (!isInitialSessionCheck) return
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
             setIsLeavingForHome(true)
-            router.replace('/home')
+            router.replace(signedInExit)
             return
         }
     }, [
@@ -334,9 +391,9 @@ function SetupPageContent() {
             // route a returning user past Landing onto Signup (regression from PR #2346).
             /*
              * ?code= arrives from an /invite deep link (native maps
-             * peanut.me/invite?code=X here — see native-routes.ts). Persist it
-             * as the same session cookie the web InvitesPage writes, so it
-             * survives the multi-step signup and reaches registration.
+             * peanut.me/invite?code=X here — see native-routes.ts). Stash it
+             * like the web InvitesPage does, so it survives the multi-step
+             * signup and reaches registration.
              */
             const codeFromUrl = inviteCodeParam
             if (codeFromUrl && toInviteCode(codeFromUrl)) {
@@ -495,9 +552,6 @@ function SetupPageContent() {
 
     if (!step) return null
 
-    const titleKey = `steps.${step.screenId}.title` as Parameters<typeof t>[0]
-    const descriptionKey = `steps.${step.screenId}.description` as Parameters<typeof t>[0]
-
     return (
         <SetupWrapper
             fullScreen={step.fullScreen}
@@ -505,9 +559,8 @@ function SetupPageContent() {
             layoutType={step.layoutType}
             screenId={step.screenId}
             image={step.image}
-            title={!step.titleInView ? t(titleKey) : undefined}
-            description={!step.descriptionInView && t.has(descriptionKey) ? t(descriptionKey) : undefined}
-            showBackButton={step.showBackButton}
+            {...stepCopy}
+            showBackButton={showBackButton}
             showSkipButton={step.showSkipButton}
             imageClassName={step.imageClassName}
             // The visible back button walks the same handler stack as hardware
@@ -516,18 +569,17 @@ function SetupPageContent() {
             // handler below it steps back when nothing consumed the press.
             onBack={dispatchBackPress}
             onSkip={() => handleNext()}
-            onLogout={logoutUser}
-            isLoggingOut={isLoggingOut}
             step={currentStepIndex}
-            totalSteps={steps.length}
             direction={direction}
             titleClassName={step.titleClassName}
             contentClassName={step.contentClassName}
         >
             <step.component
+                entryDirection={direction}
                 onComplete={
                     step.screenId === 'advantage-control'
                         ? () => {
+                              setNoBackLockScreenId('advantage-control')
                               setSignupCompleted(true)
                           }
                         : undefined

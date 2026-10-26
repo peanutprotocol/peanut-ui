@@ -6,10 +6,10 @@ import path from 'path'
 export const runtime = 'nodejs'
 
 const fontDir = path.join(process.cwd(), 'src', 'assets', 'fonts')
-const publicDir = path.join(process.cwd(), 'public')
+const brandDir = path.join(process.cwd(), 'src', 'assets', 'brand')
 const getFont = async (file: string) => fs.readFile(path.join(fontDir, file))
 const getSvgDataUri = async (file: string) => {
-    const svg = await fs.readFile(path.join(publicDir, file), 'utf-8')
+    const svg = await fs.readFile(path.join(brandDir, file), 'utf-8')
     return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
 }
 
@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
     const [medium, semibold, peanutIcon, peanutLogo] = await Promise.all([
         getFont('montserrat-medium.ttf'),
         getFont('montserrat-semibold.ttf'),
-        getSvgDataUri('icons/peanut-icon.svg'),
-        getSvgDataUri('logos/peanut-logo.svg'),
+        getSvgDataUri('logo.svg'),
+        getSvgDataUri('wordmark.svg'),
     ])
 
     // Scale title font size down for longer text to prevent overflow

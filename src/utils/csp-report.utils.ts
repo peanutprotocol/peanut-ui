@@ -57,10 +57,24 @@ const EXTENSION_SCHEMES = [
     'about:', // about:blank / about:srcdoc injections
 ]
 
+/**
+ * Hosts injected by tooling that never runs in production: Vercel's preview
+ * toolbar loads from vercel.live on staging and preview deploys only
+ * (PEANUT-UI-R9R, R9S).
+ */
+const NON_PRODUCTION_TOOLING_HOSTS = ['vercel.live']
+
 function isUnfixableOrigin(value: unknown): boolean {
     if (typeof value !== 'string') return false
     const lower = value.toLowerCase()
-    return EXTENSION_SCHEMES.some((scheme) => lower.startsWith(scheme))
+    if (EXTENSION_SCHEMES.some((scheme) => lower.startsWith(scheme))) return true
+    let host = lower
+    try {
+        host = new URL(lower).hostname
+    } catch {
+        // some browsers send a bare host as the blocked-uri
+    }
+    return NON_PRODUCTION_TOOLING_HOSTS.some((tool) => host === tool || host.endsWith(`.${tool}`))
 }
 
 /**

@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * Guards the analytics-emit gating in locale-store (TASK-20922): dedupe,
  * register-always vs $set-only-on-identified-change, and the fence that keeps
@@ -48,6 +50,17 @@ jest.mock('@capacitor/device', () => ({
     Device: { getLanguageTag: (...args: unknown[]) => mockGetLanguageTag(...args) },
 }))
 
+// survives freshStore's module reset, like the device's real Preferences
+const mockPrefs = new Map<string, string>()
+
+jest.mock('@capacitor/preferences', () => ({
+    Preferences: {
+        get: async ({ key }: { key: string }) => ({ value: mockPrefs.get(key) ?? null }),
+        set: async ({ key, value }: { key: string; value: string }) => void mockPrefs.set(key, value),
+        remove: async ({ key }: { key: string }) => void mockPrefs.delete(key),
+    },
+}))
+
 const mockGetBinaryInfo = jest.fn()
 
 // Mocked at the consumer boundary, not as @capacitor/app: a module mock of the
@@ -88,6 +101,7 @@ beforeEach(() => {
     // resetAllMocks (not clearAllMocks) so a mockImplementation set in one test
     // — e.g. the posthog-throw cases — can never leak into the next.
     jest.resetAllMocks()
+    mockPrefs.clear()
     mockIsIdentified.mockReturnValue(true)
     mockIsCapacitor.mockReturnValue(false)
     mockIsNativeBridge.mockReturnValue(false)
@@ -371,5 +385,118 @@ describe('localeReady', () => {
         await pending
         expect(mockCookiesSet).not.toHaveBeenCalledWith('app-locale', 'pt-BR', expect.anything())
         expect(window.localStorage.getItem('app-locale')).toBe('es-419')
+    })
+})
+
+// The device locale includes the per-app language in iOS/Android settings, so
+// it has to keep applying until the user picks a language in-app.
+describe('native locale', () => {
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+    function arrangeDevice(tag: string): void {
+        arrangeNativeBridge()
+        mockGetLanguageTag.mockResolvedValue({ value: tag })
+    }
+
+    it('follows the device language without storing it', async () => {
+        arrangeDevice('pt-BR')
+        await expect(freshStore().localeReady()).resolves.toBe('pt-BR')
+        await settle()
+        expect(mockPrefs.size).toBe(0)
+    })
+
+    it('stores an in-app pick with the device locale it was made under', async () => {
+        arrangeDevice('en-US')
+        freshStore().persistLocale('es-AR')
+        await settle()
+        expect(Object.fromEntries(mockPrefs)).toEqual({ 'app-locale': 'es-AR', 'app-locale-device': 'en-US' })
+    })
+
+    it('keeps the pick while the device stays on that locale', async () => {
+        mockPrefs.set('app-locale', 'es-AR')
+        mockPrefs.set('app-locale-device', 'en')
+        arrangeDevice('en-GB')
+        await expect(freshStore().localeReady()).resolves.toBe('es-AR')
+    })
+
+    it('drops the pick once the device locale moves, as when set in OS settings', async () => {
+        mockPrefs.set('app-locale', 'es-AR')
+        mockPrefs.set('app-locale-device', 'en')
+        arrangeDevice('pt-BR')
+        await expect(freshStore().localeReady()).resolves.toBe('pt-BR')
+        await settle()
+        expect(mockPrefs.size).toBe(0)
+    })
+
+    // fr-FR and en-US both resolve to en, so comparing resolved locales would miss this move
+    it('drops a pick made on an unsupported phone language once the device moves to English', async () => {
+        arrangeDevice('fr-FR')
+        freshStore().persistLocale('es-AR')
+        await settle()
+        expect(Object.fromEntries(mockPrefs)).toEqual({ 'app-locale': 'es-AR', 'app-locale-device': 'fr-FR' })
+
+        arrangeDevice('en-US')
+        await expect(freshStore().localeReady()).resolves.toBe('en')
+        await settle()
+        expect(mockPrefs.size).toBe(0)
+    })
+
+    it('keeps the pick when the device moves onto a language the app does not support', async () => {
+        mockPrefs.set('app-locale', 'es-AR')
+        mockPrefs.set('app-locale-device', 'en-US')
+        arrangeDevice('fr-FR')
+        await expect(freshStore().localeReady()).resolves.toBe('es-AR')
+        await settle()
+        expect(mockPrefs.get('app-locale')).toBe('es-AR')
+    })
+
+    it('drops an older bundle value matching the device, so the device language applies from now on', async () => {
+        mockPrefs.set('app-locale', 'en')
+        arrangeDevice('en-US')
+        await expect(freshStore().localeReady()).resolves.toBe('en')
+        await settle()
+        expect(mockPrefs.size).toBe(0)
+    })
+
+    it('keeps an older bundle value that differs from the device as a pick under today’s locale', async () => {
+        mockPrefs.set('app-locale', 'pt-BR')
+        arrangeDevice('en-US')
+        await expect(freshStore().localeReady()).resolves.toBe('pt-BR')
+        await settle()
+        expect(Object.fromEntries(mockPrefs)).toEqual({ 'app-locale': 'pt-BR', 'app-locale-device': 'en-US' })
+    })
+
+    it('keeps the pick when the device lookup stalls, since nothing shows the locale moved', async () => {
+        jest.useFakeTimers()
+        mockPrefs.set('app-locale', 'es-AR')
+        mockPrefs.set('app-locale-device', 'en')
+        arrangeNativeBridge()
+        setNavigatorLanguage('pt-BR')
+        mockGetLanguageTag.mockReturnValue(new Promise(() => {}))
+        const pending = freshStore().localeReady()
+        await jest.advanceTimersByTimeAsync(1500)
+        await expect(pending).resolves.toBe('es-AR')
+        expect(mockPrefs.get('app-locale-device')).toBe('en')
+    })
+
+    it('leaves a pick unpaired when the device lookup stalls, for startup to pair', async () => {
+        jest.useFakeTimers()
+        mockPrefs.set('app-locale-device', 'es-419')
+        arrangeNativeBridge()
+        mockGetLanguageTag.mockReturnValue(new Promise(() => {}))
+        freshStore().persistLocale('pt-BR')
+        await jest.advanceTimersByTimeAsync(1500)
+        expect(Object.fromEntries(mockPrefs)).toEqual({ 'app-locale': 'pt-BR' })
+    })
+
+    it('never undoes a pick made while startup was still resolving', async () => {
+        mockPrefs.set('app-locale', 'en')
+        arrangeDevice('en-US')
+        const store = freshStore()
+        const pending = store.localeReady()
+        store.persistLocale('es-419')
+        await pending
+        await settle()
+        expect(Object.fromEntries(mockPrefs)).toEqual({ 'app-locale': 'es-419', 'app-locale-device': 'en-US' })
     })
 })

@@ -1,0 +1,16 @@
+import { Hero } from '@/components/LandingPage/hero'
+import { landingStrings } from '@/components/LandingPage/landingStrings'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE } from '@/i18n/types'
+
+// Bare render of the REAL main-LP hero for the /dev/ds/marketing frames: the
+// key visual — Knerd artwork + mascot + doodles on
+// pink — leads home and /lp, nowhere else.
+export default function KeyVisualHeroPreview() {
+    const strings = landingStrings(getTranslations(DEFAULT_LOCALE))
+    return (
+        <main className="bg-background-page">
+            <Hero strings={strings} primaryCta={{ label: strings.signUp, href: '/setup' }} buttonVisible />
+        </main>
+    )
+}

@@ -17,6 +17,8 @@ import { type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAc
 export type VerificationPromptReason =
     /** The claimer has no account yet — nothing to do with the sender. */
     | 'account-required'
+    /** Mercado Pago or Pix: the link goes to the new account, then the claimer withdraws. */
+    | 'regional-account-required'
     /** We positively established the sender cannot receive a bank off-ramp. */
     | 'sender-unverified'
 
@@ -56,13 +58,12 @@ interface ClaimBankFlowContextType {
     setSelectedBankAccount: (account: Account | null) => void
     justCompletedKyc: boolean
     setJustCompletedKyc: (status: boolean) => void
-    claimToMercadoPago: boolean
-    setClaimToMercadoPago: (claimToMercadoPago: boolean) => void
     /**
-     * The regional claim method the user EXPLICITLY chose (tap or URL param) —
-     * null until then. Never default this to a concrete method: the default
-     * used to be 'mercadopago', and after the auth redirect remounted the flow
-     * it masqueraded as a real choice (sending AR geo for a Pix/BR claim).
+     * The regional method (Mercado Pago or Pix) the claimer EXPLICITLY chose
+     * (tap or URL param) — null until then. The link is claimed to the
+     * claimer's own Peanut account and the success screen offers the withdraw
+     * to this method. Never default it to a concrete method: after the auth
+     * redirect a default would masquerade as a real choice.
      */
     regionalMethodType: 'mercadopago' | 'pix' | null
     setRegionalMethodType: (regionalMethodType: 'mercadopago' | 'pix' | null) => void
@@ -87,7 +88,6 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
     const [savedAccounts, setSavedAccounts] = useState<Account[]>([])
     const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
     const [justCompletedKyc, setJustCompletedKyc] = useState(false)
-    const [claimToMercadoPago, setClaimToMercadoPago] = useState(false)
     const [regionalMethodType, setRegionalMethodType] = useState<'mercadopago' | 'pix' | null>(null)
     const [hideTokenSelector, setHideTokenSelector] = useState(false)
 
@@ -105,7 +105,6 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
         setSavedAccounts([])
         setSelectedBankAccount(null)
         setJustCompletedKyc(false)
-        setClaimToMercadoPago(false)
         setRegionalMethodType(null)
         setHideTokenSelector(false)
     }, [])
@@ -139,8 +138,6 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             setSelectedBankAccount,
             justCompletedKyc,
             setJustCompletedKyc,
-            claimToMercadoPago,
-            setClaimToMercadoPago,
             regionalMethodType,
             setRegionalMethodType,
             hideTokenSelector,
@@ -161,8 +158,6 @@ export const ClaimBankFlowContextProvider: React.FC<{ children: ReactNode }> = (
             savedAccounts,
             selectedBankAccount,
             justCompletedKyc,
-            claimToMercadoPago,
-            setClaimToMercadoPago,
             regionalMethodType,
             hideTokenSelector,
         ]

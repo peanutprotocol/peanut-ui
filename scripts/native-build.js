@@ -20,6 +20,7 @@ const APP_DIR = path.join(__dirname, '..', 'src', 'app')
 // everything else (marketing, blog, locale pages) is web-only.
 const ITEMS_TO_DISABLE = [
     { path: 'api', type: 'dir' },
+    { path: 'q', type: 'dir' }, // marketing QR handoff is web-only
     { path: 'sitemap.ts', type: 'file' },
     { path: 'robots.ts', type: 'file' },
     { path: 'manifest.ts', type: 'file' },
@@ -36,6 +37,11 @@ const ITEMS_TO_DISABLE = [
     { path: 'terms', type: 'dir' }, // legal pages
     { path: 'careers', type: 'dir' }, // careers page
     { path: 'lp', type: 'dir' }, // landing pages
+    { path: 'us-europe-accounts', type: 'dir' }, // star-feature LP (web-only)
+    { path: 'qr-payments', type: 'dir' }, // star-feature LP (web-only)
+    { path: 'peanut-card', type: 'dir' }, // star-feature LP (web-only)
+    { path: 'request-links', type: 'dir' }, // star-feature LP (web-only)
+    { path: 'self-custody', type: 'dir' }, // star-feature LP (web-only)
     { path: 'maintenance', type: 'dir' }, // maintenance page
     { path: 'not-found.tsx', type: 'file' }, // custom 404 (not needed in native)
     { path: 'crisp-proxy', type: 'dir' }, // crisp iframe proxy (handled differently in native)
@@ -607,6 +613,10 @@ async function main() {
         } else {
             console.warn('⚠️  .env.production.local not found — using default rpId (peanut.me)')
         }
+
+        // Keep deferred web attribution readable in native bundles. The sitemap
+        // is disabled below, so generation must happen before any route moves.
+        execSync('pnpm generate:signup-attribution-paths', { cwd: path.join(__dirname, '..'), stdio: 'inherit' })
 
         copyComponentsBeforeDisable()
 

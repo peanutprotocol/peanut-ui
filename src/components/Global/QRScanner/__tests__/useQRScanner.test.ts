@@ -1,4 +1,6 @@
 /** @jest-environment jsdom */
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * The camera path's onScan failure is reported to Sentry under its own tag,
  * with the full scanned payload (accepted trade-off, PR #2757).
@@ -614,18 +616,103 @@ it('reports native permission denial once without starting the camera', async ()
     })
     expect(result.current.isPermissionDenied).toBe(true)
     expect(startCalls).toBe(0)
-    expect(posthog.capture).toHaveBeenCalledTimes(1)
+    expect(
+        jest.mocked(posthog.capture).mock.calls.filter(([event]) => event === 'qr_camera_permission_denied')
+    ).toHaveLength(1)
     expect(posthog.capture).toHaveBeenCalledWith('qr_camera_permission_denied', {
-        platform: 'android',
+        os: 'android',
         permission: 'denied',
         source: 'native_camera_permission',
     })
     expect(addBreadcrumb).toHaveBeenCalledWith(
         expect.objectContaining({
-            data: { platform: 'android', permission: 'denied', source: 'native_camera_permission' },
+            data: { os: 'android', permission: 'denied', source: 'native_camera_permission' },
         })
     )
     unmount()
     mockCapacitor = false
     jest.mocked(ensureNativeCameraPermission).mockResolvedValue(true)
+})
+
+/*
+ * The OS camera prompt and the permission recovery are invisible to session
+ * replay, so every camera start reports how it ended, by state and error name.
+ */
+describe('camera analytics', () => {
+    const CAMERA_START_TIMEOUT_MS = 5000
+
+    const permissionEvents = () =>
+        jest
+            .mocked(posthog.capture)
+            .mock.calls.filter(([event]) => event === 'qr_camera_permission')
+            .map(([, data]) => data)
+
+    async function mountScanning() {
+        const { result } = renderHook(() => useQRScanner(jest.fn(), undefined, true))
+        ;(result.current.videoRef as React.MutableRefObject<HTMLVideoElement | null>).current =
+            document.createElement('video')
+        await act(async () => {
+            jest.advanceTimersByTime(100) // CONFIG.VIDEO_ELEMENT_RETRY_DELAY_MS
+        })
+        return result
+    }
+
+    beforeEach(() => {
+        jest.mocked(posthog.capture).mockClear()
+        attachStream = true
+    })
+
+    afterEach(() => {
+        startBehaviour = () => Promise.resolve()
+        resetBrowserCamera()
+    })
+
+    it('reports the scanner opening once and the camera coming up', async () => {
+        await mountScanning()
+
+        expect(jest.mocked(posthog.capture).mock.calls.filter(([event]) => event === 'qr_scanner_opened')).toHaveLength(
+            1
+        )
+        expect(permissionEvents()).toEqual([{ state: 'granted', error_name: null }])
+    })
+
+    it('reports a denied camera with the browser error name', async () => {
+        browserCamera.devices = [{ kind: 'videoinput' }]
+        browserCamera.probe = () => Promise.reject(new DOMException('Permission denied', 'NotAllowedError'))
+        startBehaviour = () => Promise.reject(QR_SCANNER_REJECTION)
+
+        await mountScanning()
+
+        expect(permissionEvents()).toEqual([{ state: 'denied', error_name: 'NotAllowedError' }])
+    })
+
+    it('reports a device with no camera as unavailable, not denied', async () => {
+        startBehaviour = () => Promise.reject(QR_SCANNER_REJECTION)
+
+        await mountScanning()
+
+        expect(permissionEvents()).toEqual([{ state: 'unavailable', error_name: 'NotFoundError' }])
+    })
+
+    it('reports a web prompt still unanswered at the deadline as pending', async () => {
+        startBehaviour = () => new Promise<void>(() => {})
+
+        await mountScanning()
+        await act(async () => {
+            jest.advanceTimersByTime(CAMERA_START_TIMEOUT_MS)
+        })
+
+        expect(permissionEvents()).toEqual([{ state: 'pending', error_name: null }])
+    })
+
+    it('reports an iOS preflight denial as denied', async () => {
+        mockCapacitor = true
+        jest.mocked(ensureNativeCameraPermission).mockResolvedValue(false)
+
+        await mountScanning()
+
+        expect(permissionEvents()).toEqual([{ state: 'denied', error_name: 'NotAllowedError' }])
+        mockCapacitor = false
+        jest.mocked(ensureNativeCameraPermission).mockResolvedValue(true)
+    })
 })

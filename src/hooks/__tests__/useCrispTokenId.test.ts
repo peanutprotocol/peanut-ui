@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 import { renderHook, waitFor } from '@testing-library/react'
 import { useCrispTokenId } from '@/hooks/useCrispTokenId'
 
@@ -16,6 +18,9 @@ jest.mock('@/utils/crisp', () => ({
     resetCrispProxySessions: (...args: unknown[]) => mockResetCrispSessions(...args),
 }))
 
+const mockCapture = jest.fn()
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => mockCapture(...a) } }))
+
 const mockIsCapacitor = jest.fn()
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => mockIsCapacitor(),
@@ -29,6 +34,7 @@ describe('useCrispTokenId', () => {
         mockUseAuth.mockReset()
         mockResetCrispSessions.mockReset().mockResolvedValue(undefined)
         mockIsCapacitor.mockReset().mockReturnValue(false)
+        mockCapture.mockReset()
     })
 
     it('returns undefined and never calls the API when unauthenticated', () => {
@@ -129,5 +135,44 @@ describe('useCrispTokenId', () => {
         expect(result.current).toBeUndefined()
         await waitFor(() => expect(mockResetCrispSessions).toHaveBeenCalledTimes(1))
         await waitFor(() => expect(result.current).toBe('new-token'))
+    })
+
+    // Without a token support sits on its loader and no screen says why.
+    it('reports a token fetch that gave up, by reason and status code only', async () => {
+        mockUseAuth.mockReturnValue({ userId: 'user-eee' })
+        apiFetchMock.mockResolvedValue({ ok: false, status: 503, json: async () => ({}) } as unknown as Response)
+
+        renderHook(() => useCrispTokenId())
+
+        await waitFor(() => expect(mockCapture).toHaveBeenCalled(), { timeout: 3000 })
+        expect(apiFetchMock).toHaveBeenCalledTimes(3)
+        expect(mockCapture).toHaveBeenCalledTimes(1)
+        expect(mockCapture).toHaveBeenCalledWith('support_chat_token_failed', {
+            reason: 'http_error',
+            http_status: 503,
+        })
+    })
+
+    it('reports a native session reset that failed', async () => {
+        mockIsCapacitor.mockReturnValue(true)
+        mockResetCrispSessions.mockRejectedValue(new Error('plugin gone'))
+        mockUseAuth.mockReturnValue({ userId: 'user-fff', user: { user: { email: null } } })
+
+        renderHook(() => useCrispTokenId())
+
+        await waitFor(() =>
+            expect(mockCapture).toHaveBeenCalledWith('support_chat_token_failed', { reason: 'session_reset_failed' })
+        )
+        expect(apiFetchMock).not.toHaveBeenCalled()
+    })
+
+    it('reports nothing when the token arrives', async () => {
+        mockUseAuth.mockReturnValue({ userId: 'user-ggg' })
+        apiFetchMock.mockResolvedValue(jsonResponse({ crispTokenId: 'tok-ggg', userId: 'user-ggg' }))
+
+        const { result } = renderHook(() => useCrispTokenId())
+
+        await waitFor(() => expect(result.current).toBe('tok-ggg'))
+        expect(mockCapture).not.toHaveBeenCalled()
     })
 })

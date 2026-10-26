@@ -12,7 +12,7 @@ import { useCapabilities } from './useCapabilities'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import type { StaticImageData } from 'next/image'
 import { useModalsContext } from '@/context/ModalsContext'
-import { DeviceType, useDeviceType } from './useGetDeviceType'
+import { useDeviceType } from './useGetDeviceType'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { useGeoLocation } from './useGeoLocation'
 import { useCardInfo } from './useCardInfo'
@@ -22,12 +22,12 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { PEANUTMAN_MOBILE } from '@/assets/mascot'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { useMigrationFlag } from './useMigrationFlag'
-import { openStore } from '@/utils/migration.utils'
+import { openStore, storeForDevice } from '@/utils/migration.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { USER_INTERVIEW_CAL_URL } from '@/constants/general.consts'
 import { useFeatureFlags } from './useFeatureFlag'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { CARD_PROMOTION_DISABLED_FLAG } from '@/constants/card-flags.consts'
 import { QrKycState } from '@/constants/kyc.consts'
 import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
 import { useIdentityVerification } from './useIdentityVerification'
@@ -71,6 +71,7 @@ export const useHomeCarouselCTAs = ({
     // No mounted guard needed (cf. useMigrationFlag): the value is only read in
     // generateCarouselCTAs, which runs after mount in an effect.
     const interviewInviteOn = flagEnabled('user-interviews-invite', { nonProdBypass: true })
+    const cardPromotionDisabled = flagEnabled(CARD_PROMOTION_DISABLED_FLAG)
     const [carouselCTAs, setCarouselCTAs] = useState<CarouselCTA[]>([])
     const { user } = useAuth()
     const dismissedRef = useRef<Map<string, Date>>(new Map())
@@ -154,11 +155,9 @@ export const useHomeCarouselCTAs = ({
                 logo: PEANUTMAN_MOBILE,
                 iconSize: 16,
                 onClick: () => {
-                    if (deviceType === DeviceType.WEB) {
-                        setIsGetAppModalOpen(true)
-                    } else {
-                        openStore(deviceType === DeviceType.ANDROID ? 'android' : 'ios', MIGRATION_SURFACES.HOME_BANNER)
-                    }
+                    const store = storeForDevice(deviceType)
+                    if (store) openStore(store, MIGRATION_SURFACES.HOME_BANNER)
+                    else setIsGetAppModalOpen(true)
                 },
             })
         }
@@ -263,10 +262,10 @@ export const useHomeCarouselCTAs = ({
         // by ActivationCTAs (checklist / spend step), which carries its own
         // card arm. Excluded: known prohibited residences, anyone with a card
         // relationship (any card-channel rail: active card or in-flight
-        // application), and the same kill switch as every other card prompt.
+        // application), and the same flag as every other card prompt.
         const hasCardRelationship = rails.some((rail) => channelOf(rail) === 'card')
         if (
-            !underMaintenanceConfig.disableCardPromotion &&
+            !cardPromotionDisabled &&
             isActivated === true &&
             cardInfo &&
             !cardInfo.geoProhibited &&
@@ -332,6 +331,7 @@ export const useHomeCarouselCTAs = ({
         isTerminalFailure,
         identityStatus,
         isActivated,
+        cardPromotionDisabled,
         hasMadeQrPayment,
         hasSentInvites,
         hasSupportSurvivorBadge,

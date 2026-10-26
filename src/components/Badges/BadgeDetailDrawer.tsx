@@ -1,4 +1,5 @@
 'use client'
+import { useAppOrigin } from '@/hooks/useAppOrigin'
 
 import type { StaticImageData } from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
@@ -11,6 +12,7 @@ import { useAuth } from '@/context/authContext'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { badgeAvatarKeys } from '@/components/Avatar/avatar.utils'
+import { useAvatarArt } from '@/components/Avatar/useAvatarArt'
 import { twMerge } from '@/utils/tw'
 
 type BadgeDetailDrawerProps = {
@@ -19,6 +21,7 @@ type BadgeDetailDrawerProps = {
     code?: string
     title: string
     description: string
+    shareLine?: string
     logo: string | StaticImageData
     earned?: boolean
     unlockText?: string
@@ -33,28 +36,34 @@ export const BadgeDetailDrawer = ({
     code,
     title,
     description,
+    shareLine,
     logo,
     earned = true,
     unlockText,
 }: BadgeDetailDrawerProps) => {
+    const origin = useAppOrigin()
     const t = useTranslations('badges')
     const locale = useLocale()
     const { user: authUser } = useAuth()
     const username = authUser?.user?.username
     // the sharer's own invite link, so a guest signup credits them
-    const shareLink = getBadgeShareLink(username)
+    const shareLink = getBadgeShareLink(username, REFERRAL_SOURCES.BADGE_DETAIL, origin)
     useBadgeShareImpression(isOpen && earned, REFERRAL_SOURCES.BADGE_DETAIL, username)
 
     const shareText = getBadgeShareText(code, title, shareLink, {
         locale,
         localizedFallback: t('shareText', { badge: title, link: shareLink }),
+        shareLine,
+        joinLine: t('shareJoin', { link: shareLink }),
     })
 
     // What holding the badge gives: the avatars it unlocks, counted from the
-    // generated manifest, so a badge gets its box the day its art lands. Perk
+    // generated manifest and the API's served art, so a badge gets its box the
+    // day its art lands. Perk
     // rewards stay out on purpose: a reward tied to the card needs Rain's review
     // before any copy names it.
-    const avatarCount = code ? badgeAvatarKeys([code]).length : 0
+    const art = useAvatarArt()
+    const avatarCount = code ? badgeAvatarKeys([code], art).length : 0
 
     return (
         <Drawer

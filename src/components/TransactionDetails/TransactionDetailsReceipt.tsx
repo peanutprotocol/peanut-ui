@@ -5,6 +5,7 @@ import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import React from 'react'
 import { twMerge } from '@/utils/tw'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+import { RequestBankTransferCard } from '@/features/deposit-accounts/components/RequestBankTransferCard'
 import Card from '@/components/Global/Card'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -28,7 +29,7 @@ import {
     isRequestEntry,
     isSendLinkEntry,
 } from './transaction-predicates'
-import { receiptHeadlineAmount } from './transaction-details.utils'
+import { receiptHeadlineAmount, requestedInCurrency } from './transaction-details.utils'
 import { useReceiptViewModel } from './useReceiptViewModel'
 import { PublicReceiptIssuer } from './PublicReceiptIssuer'
 
@@ -44,6 +45,7 @@ export const TransactionDetailsReceipt = ({
     avatarUrl,
     isPublic = false,
     showPublicIssuer = false,
+    isActive = true,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
@@ -57,8 +59,11 @@ export const TransactionDetailsReceipt = ({
     avatarUrl?: string
     isPublic?: boolean
     showPublicIssuer?: boolean
+    /** the drawer becomes inactive before its closing animation unmounts it. */
+    isActive?: boolean
 }) => {
     const t = useAppTranslations('transaction')
+    const tRequest = useAppTranslations('request')
 
     // All derived row-visibility / status / share-receipt state lives in the
     // hook so this component stays focused on composition.
@@ -88,12 +93,18 @@ export const TransactionDetailsReceipt = ({
     // pot used to lead with its goal here and with its collected total there,
     // so a $100 pot that collected $40 printed two different headlines.
     const headline = receiptHeadlineAmount(transaction, safeAmount, getTransactionSign(transaction))
-    const amountDisplay = headline.isCollectedTotal
-        ? t('amountCollected', { amount: formattedTotalAmountCollected })
-        : formatBankAmount(Math.abs(headline.amount), 'USD')
+    // a deposit that never reaches the balance leads with the exact amount the
+    // bank sent, unsigned (TASK-23245)
+    const depositKind = transaction.extraDataForDrawer?.depositKind
+    const depositAmountDisplay = depositKind ? transaction.extraDataForDrawer?.depositAmountDisplay : undefined
+    const amountDisplay =
+        depositAmountDisplay ??
+        (headline.isCollectedTotal
+            ? t('amountCollected', { amount: formattedTotalAmountCollected })
+            : formatBankAmount(Math.abs(headline.amount), 'USD'))
 
     // '-' out, '+' in. Pots show a collected total, never a sign.
-    const headSign = headline.sign
+    const headSign = depositKind ? '' : headline.sign
 
     // Why a deposit went back: the one reason line under the Returned badge
     // (design.md status words). A reason code the API recognised gets our own
@@ -106,6 +117,16 @@ export const TransactionDetailsReceipt = ({
             : transaction.extraDataForDrawer?.returnReasonCode === 'third_party'
               ? t('returnedReasonThirdParty')
               : t('returnedReason')
+    const minimumAmountDisplay = transaction.extraDataForDrawer?.minimumAmountDisplay
+    // a request asked in euros says so under its dollar headline
+    const requestedAmountDisplay = requestedInCurrency(transaction)
+    const statusNote =
+        depositKind === 'verification'
+            ? t('verificationDepositNote')
+            : depositKind === 'below_minimum' && minimumAmountDisplay
+              ? t('belowMinimumNote', { min: minimumAmountDisplay })
+              : (returnReasonLine ??
+                (requestedAmountDisplay ? t('requestedInCurrency', { amount: requestedAmountDisplay }) : undefined))
 
     // QR + Share + Cancel block: pending, has a link, and either the sender of
     // a send-link OR the recipient of a request. Both gates route through the
@@ -185,7 +206,8 @@ export const TransactionDetailsReceipt = ({
                 showFullName={transaction.showFullName}
                 fullName={transaction.fullName}
                 countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
-                statusNote={returnReasonLine}
+                statusNote={statusNote}
+                isVerificationDeposit={depositKind === 'verification'}
             />
 
             {/* Perk eligibility banner */}
@@ -227,7 +249,26 @@ export const TransactionDetailsReceipt = ({
                 vm={vm}
                 shouldShowQrShare={shouldShowQrShare}
                 inDrawer={!!setIsModalOpen}
+                isActive={isActive}
             />
+
+            {/* What a payer is told to pay by bank transfer, for the requester
+                of a pending request that accepts it. Only inside the drawer:
+                the public receipt is not the requester's screen, and the
+                details open in a nested drawer that needs a parent drawer. */}
+            {!isPublic &&
+                setIsModalOpen &&
+                vm.isPendingRequester &&
+                transaction.isRequestPotLink &&
+                transaction.extraDataForDrawer?.bankInstructionsShared && (
+                    <RequestBankTransferCard
+                        requestId={transaction.id}
+                        title={tRequest('paidByBank.rowLabel')}
+                        nested
+                        canShare
+                        onOpenChange={setIsModalOpen}
+                    />
+                )}
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse

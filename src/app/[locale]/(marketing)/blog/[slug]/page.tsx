@@ -3,10 +3,12 @@ import { type Metadata } from 'next'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { getAllPosts, getPostBySlug } from '@/lib/blog'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
+import { Hero } from '@/components/Marketing/mdx/Hero'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { Breadcrumb } from '@/components/0_Bruddle/Breadcrumb'
-import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
-import { availableContentLocales, contentLocaleFor } from '@/lib/content'
+import { SUPPORTED_LOCALES, HREFLANG_MAP, isValidLocale } from '@/i18n/config'
+import { contentArticleMetadata, getLocaleFallbacks, isPublished, readPageContent } from '@/lib/content'
+import { BASE_URL } from '@/constants/general.consts'
 import type { Locale } from '@/i18n/types'
 import { getTranslations } from '@/i18n'
 
@@ -15,10 +17,13 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
+    // Include every post available through the locale's prose fallback, even
+    // when the locale already has some translated posts.
     return SUPPORTED_LOCALES.flatMap((locale) => {
-        let posts = getAllPosts(locale as Locale)
-        if (posts.length === 0) posts = getAllPosts('en')
-        return posts.map((post) => ({ locale, slug: post.slug }))
+        const slugs = new Set(
+            getLocaleFallbacks(locale).flatMap((lang) => getAllPosts(lang as Locale).map(({ slug }) => slug))
+        )
+        return [...slugs].map((slug) => ({ locale, slug }))
     })
 }
 
@@ -30,22 +35,40 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (!isValidLocale(locale)) return {}
 
     // A fallback-served page canonicalizes to the locale that owns the prose.
-    const contentLocale = contentLocaleFor('blog', slug, locale) as Locale
-    const post = await getPostBySlug(slug, contentLocale)
+    const post = await getPostBySlug(slug, locale)
     if (!post) return {}
+    const contentLocale = post.locale
+
+    const publishedLocales = SUPPORTED_LOCALES.filter((lang) => isPublished(readPageContent('blog', slug, lang)))
+    const languages = Object.fromEntries(
+        publishedLocales.map((lang) => [HREFLANG_MAP[lang], `${BASE_URL}/${lang}/blog/${slug}`])
+    )
 
     return {
         ...metadataHelper({
-            locale,
+            locale: contentLocale,
             title: `${post.frontmatter.title} | Peanut`,
             description: post.frontmatter.description,
             canonical: `/${contentLocale}/blog/${slug}`,
         }),
         alternates: {
             canonical: `/${contentLocale}/blog/${slug}`,
-            languages: getAlternatesFor(availableContentLocales('blog', slug), 'blog', slug),
+            languages: {
+                ...languages,
+                'x-default': `${BASE_URL}/${publishedLocales[0]}/blog/${slug}`,
+            },
         },
     }
+}
+
+// An ISO date parses as UTC midnight, so format in UTC or a viewer west of
+// Greenwich would see the day before. Unparseable dates show as authored.
+function formatPostDate(date: string, locale: Locale): string {
+    const parsed = new Date(date)
+    if (Number.isNaN(parsed.getTime())) return date
+    return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(
+        parsed
+    )
 }
 
 export default async function BlogPostPageLocalized({ params }: PageProps) {
@@ -54,22 +77,25 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
 
     // Resolve through the full fallback chain (es-ar → es-419 → en), not
     // straight to English.
-    const contentLocale = contentLocaleFor('blog', slug, locale) as Locale
-    const post = await getPostBySlug(slug, contentLocale)
+    const post = await getPostBySlug(slug, locale)
     if (!post) notFound()
+    const contentLocale = post.locale
 
     const i18n = getTranslations(locale)
 
-    const blogPostSchema = {
+    const article = contentArticleMetadata(post, `/${contentLocale}/blog/${slug}`)
+    const blogPostSchema = article && {
         '@context': 'https://schema.org',
-        '@type': 'BlogPosting',
+        '@type': article.schemaType,
         headline: post.frontmatter.title,
         description: post.frontmatter.description,
-        datePublished: post.frontmatter.date,
+        ...(article.datePublished ? { datePublished: article.datePublished } : {}),
+        ...(article.dateModified ? { dateModified: article.dateModified } : {}),
         inLanguage: contentLocale,
         author: { '@type': 'Organization', name: post.frontmatter.author ?? 'Peanut' },
         publisher: { '@type': 'Organization', name: 'Peanut', url: 'https://peanut.me' },
-        mainEntityOfPage: `https://peanut.me/${locale}/blog/${slug}`,
+        // the canonical URL: a fallback-served post canonicalizes to its content locale
+        mainEntityOfPage: `https://peanut.me/${contentLocale}/blog/${slug}`,
     }
 
     // FAQ schema from frontmatter (optional)
@@ -109,26 +135,39 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
 
     return (
         <>
-            <JsonLd data={blogPostSchema} />
+            {blogPostSchema && <JsonLd data={blogPostSchema} />}
             <JsonLd data={breadcrumbSchema} />
             {faqSchema && <JsonLd data={faqSchema} />}
-            {/* No width prop: MarketingShell never merged its className, so blog has
-                always rendered at the shell's own width. Passing max-w-2xl now that
-                the merge works would silently narrow every post. */}
-            <MarketingShell>
-                <header className="mb-8 border-b border-border-default pb-6">
-                    <h1 className="text-heading-m md:text-heading-l">{post.frontmatter.title}</h1>
-                    <p className="mt-2 text-body-l text-foreground-secondary">{post.frontmatter.description}</p>
-                    <time className="mt-3 block text-body-s text-foreground-secondary">{post.frontmatter.date}</time>
+            {/* The post title opens the page as the content hero band, like every
+                other content page. The title is in the content
+                locale; the Hero marks its own marquee with the route locale. */}
+            <div lang={contentLocale}>
+                <Hero
+                    title={post.frontmatter.title}
+                    subtitle={post.frontmatter.heroCta?.subtitle}
+                    cta={post.frontmatter.heroCta?.text}
+                    ctaHref={post.frontmatter.heroCta?.href}
+                    locale={locale}
+                />
+            </div>
+            {/* px-0: the mdx element map already carries the 24px prose inset
+                (mx-auto PROSE_WIDTH px-6 md:px-4), so the shell's own padding
+                would wrap the body in a second gutter (the old 40px column). */}
+            <MarketingShell className="px-0 md:px-0">
+                <header className="mx-6 mb-8 border-b border-border-default pb-6 md:mx-4">
+                    <p className="text-body-l text-foreground-secondary">{post.frontmatter.description}</p>
+                    <time dateTime={post.frontmatter.date} className="mt-3 block text-body-s text-foreground-secondary">
+                        {formatPostDate(post.frontmatter.date, locale)}
+                    </time>
                 </header>
                 {/* No `prose` wrapper: the body is compiled through createMdxComponents
                     like every other content route, and the element map already carries
                     the type tokens. The plugin classes only layered a second, divergent
                     set on top. */}
-                <article>{post.content}</article>
+                <article lang={contentLocale}>{post.content}</article>
                 {/* Foot of the page, not the top: the header already gives the way
                     back — same placement as every ContentPage route. */}
-                <Breadcrumb items={breadcrumbs} className="pt-8" />
+                <Breadcrumb items={breadcrumbs} label={i18n.breadcrumbLabel} className="px-6 pt-8 md:px-4" />
             </MarketingShell>
         </>
     )

@@ -1,7 +1,6 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
@@ -9,9 +8,7 @@ import { TransactionDetailsReceipt } from '@/components/TransactionDetails/Trans
 import { ReceiptUnavailable } from '@/components/TransactionDetails/ReceiptUnavailable'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
-import { TRANSACTIONS } from '@/constants/query.consts'
-import { apiFetch } from '@/utils/api-fetch'
-import { completeHistoryEntry, isFinalState, type HistoryEntry } from '@/utils/history.utils'
+import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 
 // Client twin of the web /receipt/[entryId] page. That one is a server component
 // and is stripped from the static export (scripts/native-build.js), so a receipt
@@ -22,22 +19,8 @@ export default function NativeReceiptPage() {
     const entryId = searchParams.get('id')
     const kind = resolveReceiptKind(searchParams.get('kind') ?? undefined, searchParams.get('t') ?? undefined)
 
-    const {
-        data: entry,
-        isLoading,
-        isError,
-        refetch,
-    } = useQuery({
-        queryKey: [TRANSACTIONS, 'entry', entryId, kind],
-        enabled: Boolean(entryId && kind),
-        queryFn: async (): Promise<HistoryEntry> => {
-            const response = await apiFetch(`/history/${encodeURIComponent(entryId!)}?kind=${kind}`)
-            if (!response.ok) throw new Error(`Failed to fetch history entry: ${response.status}`)
-            return completeHistoryEntry(await response.json())
-        },
-        // A pending transaction can still settle while the receipt is open.
-        refetchInterval: (query) => (query.state.data && !isFinalState(query.state.data) ? 15_000 : false),
-    })
+    // Polls while the transaction or its network fee can still settle.
+    const { data: entry, isLoading, isError, refetch } = useHistoryEntry(entryId, kind)
 
     // `isError` also trips on a failed background poll, so gate the bail-out on
     // having no data at all — a flaky refetch must not yank the user off a

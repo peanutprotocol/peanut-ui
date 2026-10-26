@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 /**
  * SupportDrawer — Crisp session isolation gate.
  *
@@ -73,6 +75,8 @@ jest.mock('../../Loading', () => ({
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn() }))
 jest.mock('@/utils/camera-permission', () => ({ ensureNativeCameraPermission: jest.fn(async () => true) }))
 jest.mock('@capgo/capacitor-crisp', () => ({ CapacitorCrisp: nativeCrisp }))
+const mockCapture = jest.fn()
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => mockCapture(...a) } }))
 
 const supportIframe = () => screen.queryByTitle('Support Chat')
 
@@ -468,6 +472,28 @@ describe('SupportDrawer Crisp session gate — native (Capacitor)', () => {
         jest.mocked(ensureNativeCameraPermission).mockClear()
     })
 
+    it('never paints web chrome during native open, close and re-entry, including the token wait', async () => {
+        mockUseCrispUserData.mockReturnValue({ userId: 'user-abc' })
+        mockUseCrispTokenId.mockReturnValue(undefined)
+        const view = render(<SupportDrawer />)
+        expect(view.container).toBeEmptyDOMElement()
+        expect(nativeCrisp.openMessenger).not.toHaveBeenCalled()
+
+        mockUseCrispTokenId.mockReturnValue('token-abc')
+        view.rerender(<SupportDrawer />)
+        expect(view.container).toBeEmptyDOMElement()
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(1))
+
+        modalsState.isSupportModalOpen = false
+        view.rerender(<SupportDrawer />)
+        expect(view.container).toBeEmptyDOMElement()
+        modalsState.isSupportModalOpen = true
+        view.rerender(<SupportDrawer />)
+        expect(view.container).toBeEmptyDOMElement()
+        await waitFor(() => expect(nativeCrisp.openMessenger).toHaveBeenCalledTimes(2))
+        expect(view.container).toBeEmptyDOMElement()
+    })
+
     it('does NOT open the native messenger while a logged-in user’s token is still resolving', async () => {
         mockUseCrispUserData.mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
         mockUseCrispTokenId.mockReturnValue(undefined)
@@ -764,5 +790,119 @@ describe('SupportDrawer — stock Crisp launcher marker', () => {
             dispatchBackPress()
         })
         expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(false)
+    })
+})
+
+/*
+ * The native messenger is invisible to session replay, and the web chat lives
+ * in an iframe, so these events are how a journey review sees support at all.
+ * They never carry the topic text, only whether there was one.
+ */
+describe('SupportDrawer — support chat analytics', () => {
+    const eventsNamed = (name: string) =>
+        mockCapture.mock.calls.filter(([event]) => event === name).map(([, data]) => data)
+
+    beforeEach(() => {
+        mockCapture.mockReset()
+        mockUseCrispUserData.mockReset().mockReturnValue({ userId: 'user-abc', email: 'a@b.com' })
+        mockUseCrispTokenId.mockReset().mockReturnValue('token-abc')
+        Object.values(nativeCrisp).forEach((fn) => fn.mockReset())
+        modalsState.supportPrefilledMessage = undefined
+        modalsState.isSupportModalOpen = true
+    })
+
+    afterEach(() => {
+        modalsState.supportPrefilledMessage = undefined
+    })
+
+    it('reports the native messenger opening, with no topic text', async () => {
+        mockIsCapacitor.mockReset().mockReturnValue(true)
+        modalsState.supportPrefilledMessage = 'my withdrawal is stuck'
+
+        await act(async () => {
+            render(<SupportDrawer />)
+        })
+
+        await waitFor(() =>
+            expect(eventsNamed('support_chat_opened')).toEqual([{ messenger: 'native', has_topic: true }])
+        )
+        expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('withdrawal')
+    })
+
+    it('reports a native open that failed, by error name and plugin code', async () => {
+        mockIsCapacitor.mockReset().mockReturnValue(true)
+        jest.spyOn(console, 'warn').mockImplementation(() => {})
+        nativeCrisp.openMessenger.mockImplementation(() => {
+            throw Object.assign(new Error('Not implemented on ios'), { code: 'UNIMPLEMENTED' })
+        })
+
+        await act(async () => {
+            render(<SupportDrawer />)
+        })
+
+        await waitFor(() =>
+            expect(eventsNamed('support_chat_open_failed')).toEqual([
+                { messenger: 'native', error_name: 'Error', error_code: 'UNIMPLEMENTED' },
+            ])
+        )
+        expect(eventsNamed('support_chat_opened')).toEqual([])
+        jest.mocked(console.warn).mockRestore()
+    })
+
+    it('reports an open the plugin rejects later as failed, not opened', async () => {
+        mockIsCapacitor.mockReset().mockReturnValue(true)
+        nativeCrisp.openMessenger.mockRejectedValue(
+            Object.assign(new Error('Not implemented on android'), { code: 'UNIMPLEMENTED' })
+        )
+
+        await act(async () => {
+            render(<SupportDrawer />)
+        })
+
+        await waitFor(() =>
+            expect(eventsNamed('support_chat_open_failed')).toEqual([
+                { messenger: 'native', error_name: 'Error', error_code: 'UNIMPLEMENTED' },
+            ])
+        )
+        expect(eventsNamed('support_chat_opened')).toEqual([])
+    })
+
+    it('reports the web chat once it is on screen, once per open', async () => {
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+
+        const view = render(<SupportDrawer />)
+        expect(eventsNamed('support_chat_opened')).toEqual([])
+
+        postCrispMessage('CRISP_READY')
+        postCrispMessage('CRISP_READY')
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+
+        expect(eventsNamed('support_chat_opened')).toEqual([{ messenger: 'web', has_topic: false }])
+    })
+
+    it('reports a web chat that failed to load', () => {
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+
+        render(<SupportDrawer />)
+        postCrispMessage('CRISP_FAILED')
+
+        expect(eventsNamed('support_chat_open_failed')).toEqual([{ messenger: 'web', error_name: 'crisp_load_failed' }])
+        expect(eventsNamed('support_chat_opened')).toEqual([])
+    })
+
+    it('does not report a failed open when a proxy fails with support closed', async () => {
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+        const view = render(<SupportDrawer />)
+        postCrispMessage('CRISP_READY')
+
+        modalsState.isSupportModalOpen = false
+        await act(async () => {
+            view.rerender(<SupportDrawer />)
+        })
+        postCrispMessage('CRISP_FAILED')
+
+        expect(eventsNamed('support_chat_open_failed')).toEqual([])
     })
 })

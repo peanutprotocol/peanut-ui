@@ -8,6 +8,9 @@
  * into the withdraw flow, which dead-ended on its no-amount guard; the
  * backend add is idempotent for the same user's account, so falling through
  * is safe.
+ *
+ * The same number with another routing number is not the saved account: it is
+ * a correction, and it goes to the API (TASK-23891).
  */
 import React from 'react'
 import { render, act, screen, fireEvent, waitFor } from '@testing-library/react'
@@ -41,6 +44,7 @@ jest.mock('@/hooks/useSendFlowOrigin', () => ({
 const SAVED_US_ACCOUNT = {
     id: 'acct-1',
     identifier: '123456789',
+    routingNumber: '021000021',
     type: 'us',
     details: { countryCode: 'USA' },
 }
@@ -144,6 +148,7 @@ const renderForm = (props: {
     onSuccess: jest.Mock
     onExistingAccount?: (account: unknown) => void
     flow: 'claim' | 'withdraw'
+    initialData?: Partial<typeof US_INITIAL_DATA>
 }) => {
     const ref = React.createRef<{ handleSubmit: () => void }>()
     render(
@@ -151,7 +156,7 @@ const renderForm = (props: {
             ref={ref}
             country="USA"
             flow={props.flow}
-            initialData={US_INITIAL_DATA}
+            initialData={{ ...US_INITIAL_DATA, ...props.initialData }}
             error={null}
             onSuccess={props.onSuccess}
             onExistingAccount={props.onExistingAccount}
@@ -181,6 +186,29 @@ describe('DynamicBankAccountForm — existing-account branch (Chip round 9)', ()
 
         expect(onExistingAccount).toHaveBeenCalledWith(expect.objectContaining({ identifier: '123456789' }))
         expect(onSuccess).not.toHaveBeenCalled()
+    })
+
+    it('withdraw flow: the saved number with a corrected routing number goes to the API, not the saved account', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const onExistingAccount = jest.fn()
+        // valid ABA checksum, another bank than the saved account's
+        const ref = renderForm({
+            flow: 'withdraw',
+            onSuccess,
+            onExistingAccount,
+            initialData: { routingNumber: '026009593' },
+        })
+
+        await act(async () => {
+            ref.current!.handleSubmit()
+        })
+
+        expect(onExistingAccount).not.toHaveBeenCalled()
+        expect(onSuccess).toHaveBeenCalledTimes(1)
+        expect(onSuccess).toHaveBeenCalledWith(
+            expect.objectContaining({ accountNumber: '123456789', routingNumber: '026009593' }),
+            expect.anything()
+        )
     })
 
     it('claim flow (no handler): an already-saved account proceeds to onSuccess instead of navigating', async () => {
@@ -1000,5 +1028,203 @@ describe('DynamicBankAccountForm — the owner of a US account lives anywhere', 
         const onSuccess = jest.fn(async () => ({}))
         renderBareForm(onSuccess, 'MX')
         expect(screen.queryByRole('combobox', { name: 'withdraw.bankForm.countryLabel' })).toBeNull()
+    })
+})
+
+// ---------- someone else's US account, and the provider's US address rules ----------
+
+/**
+ * TASK-23477: a user paid out to a third party's US account. The country
+ * started at the payer's own residence (United States), and a Shanghai street
+ * went in under it. The provider flagged the address ("missing street
+ * number"), and every transfer to the account failed.
+ */
+describe('DynamicBankAccountForm — the owner address of someone else’s account', () => {
+    const countryField = () => screen.getByRole('combobox', { name: 'withdraw.bankForm.countryLabel' })
+    // a name is known, so the own-account box shows; no address, so nothing else fills
+    const NAME_ONLY: MockOwnIdentity = { ownerName: 'Anna Rossi', address: null, isLoading: false }
+
+    const typeAccount = async (street: string) => {
+        await act(async () => {
+            fireEvent.change(input('accountNumber')!, { target: { value: '123456780' } })
+            fireEvent.change(input('routingNumber')!, { target: { value: '021000021' } })
+            fireEvent.change(input('accountOwnerName')!, { target: { value: 'Huan Li' } })
+            fireEvent.change(input('street')!, { target: { value: street } })
+            fireEvent.change(input('city')!, { target: { value: 'Lisboa' } })
+            fireEvent.change(input('postalCode')!, { target: { value: '1100-048' } })
+        })
+    }
+
+    const pickCountry = async (search: string, name: RegExp) => {
+        await act(async () => {
+            fireEvent.click(countryField())
+            fireEvent.change(countryField(), { target: { value: search } })
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('option', { name }))
+        })
+    }
+
+    it('starts the country empty when the account is not the person’s own, and will not submit without one', async () => {
+        mockResidence = { declared: 'PT', declaredSecond: null, verified: 'PT' }
+        mockOwnIdentity = NAME_ONLY
+        const onSuccess = jest.fn(async () => ({}))
+        const { ref } = renderBareForm(onSuccess, 'USA')
+        expect(countryField()).toHaveValue('Portugal')
+
+        await act(async () => {
+            fireEvent.click(ownAccountBox()!)
+        })
+        expect(countryField()).toHaveValue('')
+
+        await typeAccount('Rua Augusta 1')
+        await act(async () => {
+            ref.current!.handleSubmit()
+        })
+        expect(onSuccess).not.toHaveBeenCalled()
+
+        // ticking it again brings the residence back
+        await act(async () => {
+            fireEvent.click(ownAccountBox()!)
+        })
+        expect(countryField()).toHaveValue('Portugal')
+    })
+
+    it('keeps a country the user picked when the box is unticked', async () => {
+        mockOwnIdentity = NAME_ONLY
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, 'USA')
+        await pickCountry('Argen', /Argentina/)
+
+        await act(async () => {
+            fireEvent.click(ownAccountBox()!)
+        })
+        expect(countryField()).toHaveValue('Argentina')
+    })
+
+    it('does not offer China, which the provider refuses as an owner address', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, 'USA')
+        await act(async () => {
+            fireEvent.click(countryField())
+            fireEvent.change(countryField(), { target: { value: 'China' } })
+        })
+        expect(screen.queryByRole('option', { name: /^China/ })).toBeNull()
+    })
+
+    it('does not default to a refused residence, and says why the country is empty', () => {
+        mockResidence = { declared: 'CN', declaredSecond: null, verified: 'CN' }
+        mockOwnIdentity = NAME_ONLY
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, 'USA')
+        expect(countryField()).toHaveValue('')
+        expect(screen.getByText('withdraw.bankForm.countryUnavailable')).toBeInTheDocument()
+    })
+
+    it('drops the residence default when the verified own address is in a refused country', async () => {
+        // a US residence, but the verified address is in Shanghai: the US
+        // default would hide the refusal and send a Chinese street as USA
+        mockResidence = { declared: 'US', declaredSecond: null, verified: 'US' }
+        mockOwnIdentity = { ...KNOWN_IDENTITY, address: { ...KNOWN_IDENTITY.address!, countryCode: 'CN', state: '' } }
+        const onSuccess = jest.fn(async () => ({}))
+        const { ref } = renderBareForm(onSuccess, 'USA')
+
+        await waitFor(() => expect(countryField()).toHaveValue(''))
+        expect(screen.getByText('withdraw.bankForm.countryUnavailable')).toBeInTheDocument()
+
+        await typeAccount('88 Century Avenue')
+        await act(async () => {
+            ref.current!.handleSubmit()
+        })
+        expect(onSuccess).not.toHaveBeenCalled()
+    })
+})
+
+describe('DynamicBankAccountForm — US street rules follow the address country', () => {
+    const countryField = () => screen.getByRole('combobox', { name: 'withdraw.bankForm.countryLabel' })
+
+    const fillUsAddress = async (street: string) => {
+        await act(async () => {
+            fireEvent.change(input('accountNumber')!, { target: { value: '123456780' } })
+            fireEvent.change(input('routingNumber')!, { target: { value: '021000021' } })
+            fireEvent.change(input('accountOwnerName')!, { target: { value: 'Ana Silva' } })
+            fireEvent.change(input('street')!, { target: { value: street } })
+            fireEvent.change(input('city')!, { target: { value: 'Milwaukee' } })
+            fireEvent.change(input('postalCode')!, { target: { value: '53202' } })
+        })
+        await act(async () => {
+            fireEvent.blur(input('street')!)
+        })
+    }
+
+    // the state select is mocked out, so the state arrives as initial data
+    const renderUsAddressForm = (onSuccess: jest.Mock) => {
+        const ref = React.createRef<{ handleSubmit: () => void }>()
+        render(
+            <DynamicBankAccountForm
+                ref={ref}
+                country="USA"
+                flow="withdraw"
+                error={null}
+                onSuccess={onSuccess}
+                initialData={{ addressCountry: 'US', state: 'WI' }}
+            />
+        )
+        return ref
+    }
+
+    it.each([
+        ['No Yuyao Road', 'withdraw.bankForm.streetNumberRequired'],
+        ['PO Box 123', 'withdraw.bankForm.streetNoPoBox'],
+    ])('a US address "%s" is refused under the field', async (street, message) => {
+        const onSuccess = jest.fn(async () => ({}))
+        const ref = renderUsAddressForm(onSuccess)
+        expect(countryField()).toHaveValue('United States')
+
+        await fillUsAddress(street)
+        expect(screen.getByText(message)).toBeInTheDocument()
+        await act(async () => {
+            ref.current!.handleSubmit()
+        })
+        expect(onSuccess).not.toHaveBeenCalled()
+    })
+
+    it.each(['N123W456 Main Rd', 'Apt 4B, 123 Main St', 'Urb Las Gladiolas 150 Calle A'])(
+        'a US address "%s" shows the hint and still submits',
+        async (street) => {
+            const onSuccess = jest.fn(async () => ({}))
+            const ref = renderUsAddressForm(onSuccess)
+
+            await fillUsAddress(street)
+            expect(screen.getByText('withdraw.bankForm.streetNumberHint')).toBeInTheDocument()
+            await act(async () => {
+                ref.current!.handleSubmit()
+            })
+            await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+            expect(payloadOf(onSuccess)).toMatchObject({ address: { street, country: 'USA', state: 'WI' } })
+        }
+    )
+
+    it('a US address that starts with its number shows no hint', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        renderUsAddressForm(onSuccess)
+        await fillUsAddress('123 Main St')
+        expect(screen.queryByText('withdraw.bankForm.streetNumberHint')).toBeNull()
+    })
+
+    it('a street with no number is a real address outside the US: no error, no hint', async () => {
+        mockResidence = { declared: 'EG', declaredSecond: null, verified: 'EG' }
+        const onSuccess = jest.fn(async () => ({}))
+        const { ref } = renderBareForm(onSuccess, 'USA')
+        expect(countryField()).toHaveValue('Egypt')
+
+        await fillUsAddress('Tahrir Square')
+        expect(screen.queryByText('withdraw.bankForm.streetNumberRequired')).toBeNull()
+        expect(screen.queryByText('withdraw.bankForm.streetNumberHint')).toBeNull()
+        await act(async () => {
+            ref.current!.handleSubmit()
+        })
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(payloadOf(onSuccess)).toMatchObject({ address: { street: 'Tahrir Square', country: 'EGY' } })
     })
 })

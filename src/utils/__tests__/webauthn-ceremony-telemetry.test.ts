@@ -1,3 +1,5 @@
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
+
 const capture = jest.fn()
 
 jest.mock('posthog-js', () => ({
@@ -17,6 +19,8 @@ import {
     clearCeremonyLog,
     getCeremonyLog,
     installCeremonyTelemetry,
+    latestCeremony,
+    openCredentialCall,
     withCeremonyFlow,
     withCeremonyPurpose,
 } from '@/utils/webauthn-ceremony-telemetry'
@@ -81,6 +85,44 @@ describe('webauthn ceremony telemetry', () => {
             errorName: 'NotAllowedError',
             errorCode: 'LOGIN_CANCELED',
         })
+    })
+
+    it('counts every native device failure and its later successful recovery without raw error data', async () => {
+        const error = Object.assign(
+            new Error('The operation couldn’t be completed. Device must be unlocked to perform request.'),
+            { name: 'NotAllowedError' }
+        )
+        get.mockRejectedValueOnce(error)
+        await expect(withCeremonyPurpose('login', () => navigator.credentials.get({}))).rejects.toBe(error)
+        await withCeremonyPurpose('login', () => navigator.credentials.get({}))
+        const ceremonies = events('webauthn_ceremony')
+        expect(ceremonies).toHaveLength(2)
+        expect(ceremonies[0]).toMatchObject({
+            outcome: 'error',
+            native_reason: 'device_locked',
+            error_code: 'PASSKEY_DEVICE_LOCKED',
+        })
+        expect(ceremonies[0]).not.toHaveProperty('message')
+        expect(ceremonies[1]).toMatchObject({ outcome: 'ok' })
+    })
+
+    it('records the platform code of an ambiguous refusal, never the message', async () => {
+        const error = Object.assign(
+            new Error(
+                'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1000.)'
+            ),
+            { name: 'NotAllowedError' }
+        )
+        create.mockRejectedValueOnce(error)
+        await expect(withCeremonyPurpose('registration', () => navigator.credentials.create({}))).rejects.toBe(error)
+        const [ceremony] = events('webauthn_ceremony')
+        expect(ceremony).toMatchObject({
+            outcome: 'error',
+            error_code: 'LOGIN_CANCELED',
+            native_error_code: 'AuthorizationError:1000',
+        })
+        expect(ceremony.native_reason).toBeUndefined()
+        expect(JSON.stringify(ceremony)).not.toContain('operation couldn')
     })
 
     it('counts every ceremony a flow triggered — the 2-vs-3 prompt question', async () => {
@@ -167,6 +209,95 @@ describe('webauthn ceremony telemetry', () => {
             id: 'cred',
         })
         expect(getCeremonyLog()).toHaveLength(1)
+    })
+
+    it('reports the newest OS call still pending, and nothing once it settles', async () => {
+        let settle!: (value: unknown) => void
+        get.mockReturnValueOnce(new Promise((resolve) => (settle = resolve)))
+        const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(1_000)
+        try {
+            const pending = navigator.credentials.get({})
+            expect(openCredentialCall()).toEqual({ inFlight: true, elapsedMs: 0 })
+            nowSpy.mockReturnValue(61_000)
+            expect(openCredentialCall()).toEqual({ inFlight: true, elapsedMs: 60_000 })
+
+            settle({ id: 'cred' })
+            await pending
+            expect(openCredentialCall()).toEqual({ inFlight: false })
+        } finally {
+            nowSpy.mockRestore()
+        }
+    })
+
+    describe('clientDataJSON layout (TASK-23931)', () => {
+        const challenge = 'dGVzdC1jaGFsbGVuZ2UtdmFsdWU'
+        const sortedGet = `{"androidPackageName":"me.peanut.wallet","challenge":"${challenge}","origin":"android:apk-key-hash:x","type":"webauthn.get"}`
+        const standardGet = `{"type":"webauthn.get","challenge":"${challenge}","origin":"https://peanut.me"}`
+        const standardCreate = `{"type":"webauthn.create","challenge":"${challenge}","origin":"https://peanut.me"}`
+        // the native shim hands both fields over as ArrayBuffers
+        const clientData = (json: string) => new TextEncoder().encode(json)
+        const authenticatorData = (flags: number) => {
+            const bytes = new Uint8Array(37)
+            bytes[32] = flags
+            return bytes.buffer
+        }
+
+        it('records a sorted-keys assertion from a device-bound passkey, never the challenge', async () => {
+            get.mockResolvedValueOnce({
+                response: { clientDataJSON: clientData(sortedGet), authenticatorData: authenticatorData(0x05) },
+            })
+            await withCeremonyPurpose('user_op', () => navigator.credentials.get({}))
+
+            expect(getCeremonyLog()[0]).toMatchObject({ challengeOffset: 41, backupEligible: false })
+            expect(events('webauthn_ceremony')[0]).toMatchObject({ challenge_offset: 41, backup_eligible: false })
+            const { addBreadcrumb } = jest.requireMock('@sentry/nextjs')
+            expect(JSON.stringify([capture.mock.calls, addBreadcrumb.mock.calls])).not.toContain(challenge)
+        })
+
+        it('records the standard layouts: 23 for an assertion, 26 for a registration', async () => {
+            get.mockResolvedValueOnce({
+                response: { clientDataJSON: clientData(standardGet), authenticatorData: authenticatorData(0x1d) },
+            })
+            create.mockResolvedValueOnce({ response: { clientDataJSON: clientData(standardCreate) } })
+            await withCeremonyPurpose('user_op', () => navigator.credentials.get({}))
+            await withCeremonyPurpose('registration', () => navigator.credentials.create({}))
+
+            const [assertion, registration] = events('webauthn_ceremony')
+            expect(assertion).toMatchObject({ challenge_offset: 23, backup_eligible: true })
+            expect(registration).toMatchObject({ challenge_offset: 26, backup_eligible: undefined })
+        })
+
+        it('records neither fact when the shim hands over empty buffers', async () => {
+            const empty = { response: { clientDataJSON: new ArrayBuffer(0), authenticatorData: new ArrayBuffer(0) } }
+            get.mockResolvedValueOnce(empty)
+
+            await expect(withCeremonyPurpose('user_op', () => navigator.credentials.get({}))).resolves.toBe(empty)
+            expect(getCeremonyLog()[0]).toMatchObject({ outcome: 'ok' })
+            expect(getCeremonyLog()[0]).not.toHaveProperty('challengeOffset')
+            expect(getCeremonyLog()[0]).not.toHaveProperty('backupEligible')
+        })
+
+        it('finds the newest user_op assertion of the current attempt only', async () => {
+            const nowSpy = jest.spyOn(Date, 'now')
+            try {
+                nowSpy.mockReturnValue(1_000)
+                await withCeremonyPurpose('user_op', () => navigator.credentials.get({}))
+                nowSpy.mockReturnValue(2_000)
+                get.mockResolvedValueOnce({
+                    response: { clientDataJSON: clientData(sortedGet), authenticatorData: authenticatorData(0x05) },
+                })
+                await withCeremonyPurpose('kernel_migration', () =>
+                    withCeremonyPurpose('user_op', () => navigator.credentials.get({}))
+                )
+                nowSpy.mockReturnValue(3_000)
+                await withCeremonyPurpose('login', () => navigator.credentials.get({}))
+
+                expect(latestCeremony('get', 'user_op', 1_500)).toMatchObject({ seq: 2, challengeOffset: 41 })
+                expect(latestCeremony('get', 'user_op', 2_500)).toBeUndefined()
+            } finally {
+                nowSpy.mockRestore()
+            }
+        })
     })
 
     it('patches navigator.credentials only once', async () => {

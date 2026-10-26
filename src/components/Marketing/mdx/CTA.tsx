@@ -2,7 +2,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import PeanutMascot from '@/components/Global/PeanutMascot'
-import { PROSE_WIDTH } from '../constants'
+import { CTA_MOTION, PROSE_WIDTH } from '../constants'
 
 interface CTAProps {
     text: string
@@ -43,18 +43,19 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
         return (
             <div className={`mx-auto ${PROSE_WIDTH} px-6 pt-24 pb-10 md:px-4 md:pt-28 md:pb-14`}>
                 <div className="relative">
+                    {/* no alt: the mascot is decorative, so it stays out of the
+                        accessibility tree instead of announcing English */}
                     <PeanutMascot
                         pose="pointing-down"
-                        alt="Peanut mascot"
                         className="absolute -top-24 left-1/2 -z-0 h-40 w-40 -translate-x-1/2 md:-top-28 md:h-48 md:w-48"
                     />
                     <Card shadowSize="4" className="relative z-10 items-center gap-4 p-6 text-center md:p-10">
                         <Button
+                            size="large"
                             href={href}
                             plainAnchor={plainAnchor}
-                            shadowSize="4"
                             variant="primary"
-                            className="w-full justify-center px-8 sm:w-auto md:px-12"
+                            className={`w-fit ${CTA_MOTION}`}
                         >
                             {text}
                         </Button>
@@ -68,11 +69,11 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
     return (
         <div className={`mx-auto ${PROSE_WIDTH} px-6 py-8 md:px-4 md:py-12`}>
             <Button
+                size="large"
                 href={href}
                 plainAnchor={plainAnchor}
-                shadowSize="4"
                 variant="primary"
-                className="mx-auto w-full justify-center px-8 sm:w-auto md:px-12"
+                className={`mx-auto w-fit ${CTA_MOTION}`}
             >
                 {text}
             </Button>
