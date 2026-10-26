@@ -29,6 +29,15 @@ describe('mantecaApi.deposit refusals', () => {
         })
     })
 
+    it('passes MANTECA_KYC_REQUIRED through so the screen can open the KYC gate', async () => {
+        respond(400, { error: 'User needs to do manteca KYC first', code: 'MANTECA_KYC_REQUIRED' })
+
+        await expect(mantecaApi.deposit(params)).resolves.toEqual({
+            error: 'User needs to do manteca KYC first',
+            code: 'MANTECA_KYC_REQUIRED',
+        })
+    })
+
     it('an untyped failure carries no code', async () => {
         respond(500, { error: 'Unexpected error', message: 'boom' })
 
