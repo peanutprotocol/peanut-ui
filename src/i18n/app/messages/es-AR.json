@@ -1046,7 +1046,8 @@
             "scanWithBankApp": "Escaneá con la app de tu banco o copiá el código Pix."
         },
         "confirmationModal": {
-            "youMust": "Debés:"
+            "title": "Copiá la referencia tal cual",
+            "body": "La siguiente pantalla muestra los datos bancarios y una referencia de depósito. Pegala en el campo de referencia del banco."
         },
         "bankDetails": {
             "sendExactAmount": "¡Enviá exactamente este monto!",

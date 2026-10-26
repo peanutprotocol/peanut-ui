@@ -1980,15 +1980,9 @@
             "scanWithBankApp": "Scan with your bank app, or copy the Pix code."
         },
         "confirmationModal": {
-            "title": "Important",
-            "nextStep": "Coming next:",
-            "bankDetailsItem": "Bank details to send money to",
-            "referenceCodeItem": "A deposit reference code",
-            "youMust": "Required:",
-            "copyReferenceCode": "Copy the one-time reference code exactly",
-            "pasteReference": "Paste it in the description/reference field",
-            "mismatchTitle": "If the reference is missing or wrong:",
-            "mismatchDescription": "Your deposit will fail and it will take 2 to 10 days to return to your bank and might incur fees. The reference code is single use."
+            "title": "Copy the reference exactly",
+            "body": "The next screen shows the bank details and a deposit reference. Paste the reference into the bank's reference field.",
+            "missingReference": "Without the exact reference, the deposit can be delayed or returned to your bank."
         },
         "bankDetails": {
             "amountToSend": "Amount to send",

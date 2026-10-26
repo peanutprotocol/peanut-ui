@@ -1980,15 +1980,9 @@
             "scanWithBankApp": "Escaneie com o app do seu banco ou copie o código Pix."
         },
         "confirmationModal": {
-            "title": "Importante",
-            "nextStep": "A seguir:",
-            "bankDetailsItem": "Os dados bancários para enviar o dinheiro",
-            "referenceCodeItem": "Um código de referência do depósito",
-            "youMust": "É preciso:",
-            "copyReferenceCode": "Copiar o código de referência de uso único exatamente",
-            "pasteReference": "Colar no campo de descrição/referência",
-            "mismatchTitle": "Se a referência faltar ou estiver errada:",
-            "mismatchDescription": "Seu depósito vai falhar e vai levar de 2 a 10 dias para voltar ao seu banco, e pode ter taxas. O código de referência é de uso único."
+            "title": "Copie a referência exata",
+            "body": "A próxima tela mostra os dados bancários e uma referência de depósito. Cole a referência no campo de referência do banco.",
+            "missingReference": "Sem a referência exata, o depósito pode atrasar ou voltar para o seu banco."
         },
         "bankDetails": {
             "amountToSend": "Valor a enviar",
