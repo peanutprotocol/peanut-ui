@@ -1478,8 +1478,8 @@
             "restartDescription": "Pagamentos com QR precisam de um documento de um país compatível. Você pode verificar com outro documento.",
             "blockedDescription": "Pagamentos com QR não estão disponíveis para a sua conta. Fale com o suporte para receber ajuda.",
             "uploadDocument": "Enviar documento",
-            "verifyAgainTitle": "Verificar identidade novamente",
-            "verifyAgainDescription": "Os pagamentos com QR estão pausados até você verificar de novo."
+            "verifyAgainTitle": "Precisamos de mais alguns dados",
+            "verifyAgainDescription": "Faltam alguns dados. Conclua a verificação adicional."
         },
         "info": {
             "exchangeRate": "Taxa de câmbio",

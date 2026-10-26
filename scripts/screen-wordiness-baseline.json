@@ -69,7 +69,7 @@
         "features/payments/flows/qr-pay/views/QrPayBlockedView.tsx": 133,
         "features/payments/flows/qr-pay/views/QrPayFormView.tsx": 229,
         "features/payments/flows/qr-pay/views/QrPayKycGateView.tsx": 113,
-        "features/payments/flows/qr-pay/views/QrPayProviderRejectionView.tsx": 143,
+        "features/payments/flows/qr-pay/views/QrPayProviderRejectionView.tsx": 148,
         "features/payments/flows/qr-pay/views/QrPaySuccessView.tsx": 74,
         "features/payments/flows/semantic-request/views/SemanticRequestInputView.tsx": 69,
         "features/payments/flows/semantic-request/views/SemanticRequestReceiptView.tsx": 769,

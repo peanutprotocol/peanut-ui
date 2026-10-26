@@ -1478,8 +1478,8 @@
             "restartDescription": "QR payments need a document from a supported country. You can verify with a different ID.",
             "blockedDescription": "QR payments are not available for your account. Contact support for help.",
             "uploadDocument": "Upload document",
-            "verifyAgainTitle": "Verify identity again",
-            "verifyAgainDescription": "QR payments are paused until you verify again."
+            "verifyAgainTitle": "We need a few more details",
+            "verifyAgainDescription": "We're missing a few details. Please complete the additional verification."
         },
         "info": {
             "exchangeRate": "Exchange Rate",
