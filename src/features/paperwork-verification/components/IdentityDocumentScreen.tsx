@@ -22,17 +22,10 @@ import { localizedCountryName } from '@/utils/country-name.utils'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 import { twMerge } from '@/utils/tw'
 import { IdCardScanAnimation } from './IdCardScanAnimation'
+import { DOCUMENT_KEYS } from '../paperworkVerification.utils'
 import { useInsetColor } from '../useInsetColor'
 
 const SCREEN_HEIGHT = 'min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]'
-
-export const DOCUMENT_KEYS = {
-    PASSPORT: 'passport',
-    ID_CARD: 'idCard',
-    DRIVERS: 'drivers',
-    RESIDENCE_PERMIT: 'residencePermit',
-    TEMPORARY_PROTECTION: 'temporaryProtection',
-} as const
 
 /** The list's order: what a resident most likely holds first. */
 const MAIN_TYPES = ['RESIDENCE_PERMIT', 'PASSPORT', 'ID_CARD'] as const

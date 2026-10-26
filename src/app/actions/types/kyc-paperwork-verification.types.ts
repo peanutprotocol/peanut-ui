@@ -66,3 +66,20 @@ export interface PaperworkVerificationDocument {
     type: string
     issuingCountry: string
 }
+
+/** What sign-up and verification collected (GET /users/kyc/details). */
+export interface KycCollectedDetails {
+    /** The ID the check verified, as Peanut records it. */
+    document: { type: string; country: string } | null
+    /** The address Peanut stores from the earlier bank sign-up. */
+    address: {
+        line1: string
+        line2: string | null
+        city: string
+        state: string | null
+        postCode: string | null
+        country: string
+    } | null
+    /** Collected, but only Sumsub holds them: the page shows them as not stored at Peanut. */
+    heldBySumsub: string[]
+}

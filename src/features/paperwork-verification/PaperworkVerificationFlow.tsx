@@ -33,7 +33,7 @@ import {
 } from '@/app/actions/types/kyc-workflow.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
-import { DOCUMENT_KEYS, IdentityDocumentScreen } from './components/IdentityDocumentScreen'
+import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
 import { QuestionStepScreen, trackSaveOutcome } from './components/QuestionStepScreen'
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
 import { VerifySetupPrelude } from './components/VerifySetupPrelude'
@@ -59,6 +59,7 @@ import {
 import { usePaperworkVerificationIdentity } from './usePaperworkVerificationIdentity'
 import {
     citizenshipOf,
+    DOCUMENT_KEYS,
     entryStep,
     FAILED_STATUSES,
     IN_REVIEW_STATUSES,

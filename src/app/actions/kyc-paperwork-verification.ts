@@ -4,6 +4,7 @@ import { paperworkVerificationHeaders } from '@/features/paperwork-verification/
 import { validSession } from './kyc-workflow'
 import type { KycAttemptSession, KycFeatures, KycFeatureReports } from './types/kyc-workflow.types'
 import type {
+    KycCollectedDetails,
     KycPlace,
     SaveAnswersResult,
     PaperworkVerificationAnswers,
@@ -28,6 +29,14 @@ export async function skipProofOfAddress(): Promise<boolean> {
     } catch {
         return false
     }
+}
+
+/** What sign-up and verification collected, for Profile; throws when it cannot be read. */
+export async function getKycDetails(): Promise<KycCollectedDetails> {
+    const response = await call('/users/kyc/details')
+    const body = response.ok ? await json(response) : null
+    if (!body || !Array.isArray(body.heldBySumsub)) throw new Error('KYC details unavailable')
+    return body as KycCollectedDetails
 }
 
 /** Places of birth to suggest; an empty list on any failure, since the typed name is accepted as it is. */

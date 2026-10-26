@@ -139,6 +139,7 @@ export const Profile = () => {
                         {showCardMenuItem && (
                             <ProfileMenuItem icon="credit-card" label={t('menu.peanutCard')} href={cardHref} />
                         )}
+                        <ProfileMenuItem icon="docs" label={t('menu.statements')} href="/profile/statements" />
                         <ProfileMenuItem
                             icon="exchange"
                             label={t('menu.exchangeRatesAndFees')}
@@ -154,6 +155,7 @@ export const Profile = () => {
                             onClick={openInviteFriendsModal}
                             href="/dummy" // Dummy link, wont be called
                         />
+                        <ProfileMenuItem icon="user" label={t('menu.profile')} href="/profile/details" />
                         <ProfileMenuItem icon="achievements" label={t('menu.yourBadges')} href="/badges" />
                         <ProfileMenuItem
                             icon={<Image src={STAR_STRAIGHT_ICON} alt={t('menu.starAlt')} width={20} height={20} />}
@@ -169,8 +171,6 @@ export const Profile = () => {
                             endText={LOCALE_LABELS[locale]}
                             href="/settings/language"
                         />
-                        {/* a document glyph: `download` already marks "Update available" in this group */}
-                        <ProfileMenuItem icon="docs" label={t('menu.statements')} href="/profile/statements" />
                         <ProfileMenuItem
                             icon="upload-cloud"
                             label={t('menu.backup')}

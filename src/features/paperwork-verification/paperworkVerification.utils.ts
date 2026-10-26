@@ -11,6 +11,15 @@ import type {
 import { callingCodeFor, isE164 } from './callingCodes'
 
 /** Accounts with its residence drawer open: where a verified user's move and its new check happen. */
+/** ID document types → their names under `kyc.documents`. */
+export const DOCUMENT_KEYS = {
+    PASSPORT: 'passport',
+    ID_CARD: 'idCard',
+    DRIVERS: 'drivers',
+    RESIDENCE_PERMIT: 'residencePermit',
+    TEMPORARY_PROTECTION: 'temporaryProtection',
+} as const
+
 export const RESIDENCE_CHANGE_HREF = '/profile/accounts?open=residence'
 
 /** The server's next step when it names one, else the first one still open. */

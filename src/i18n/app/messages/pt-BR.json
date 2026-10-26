@@ -300,7 +300,8 @@
             "starAlt": "estrela",
             "help": "Central de Ajuda",
             "about": "Sobre o Peanut",
-            "updateAvailable": "Atualização disponível"
+            "updateAvailable": "Atualização disponível",
+            "profile": "Perfil"
         },
         "logOut": "Sair",
         "edit": {
@@ -606,6 +607,40 @@
                 "failed": "Não foi possível alterar o canal de atualizações.",
                 "revealed": "O interruptor de atualizações beta está visível abaixo.",
                 "appOnly": "As atualizações beta só estão disponíveis no app do Peanut."
+            }
+        },
+        "details": {
+            "title": "Perfil",
+            "notStored": "Não armazenado na Peanut",
+            "rows": {
+                "name": "Nome",
+                "surname": "Sobrenome",
+                "email": "E-mail",
+                "declaredResidence": "Residência declarada",
+                "verifiedResidence": "Residência verificada",
+                "secondResidence": "Segunda residência",
+                "citizenship": "Cidadania",
+                "dateOfBirth": "Data de nascimento",
+                "countryOfBirth": "País de nascimento",
+                "cityOfBirth": "Cidade de nascimento",
+                "document": "Documento de identidade",
+                "phone": "Número de telefone",
+                "address": "Endereço",
+                "taxId": "Número fiscal",
+                "occupation": "Profissão",
+                "employmentStatus": "Situação profissional",
+                "annualSalary": "Renda anual",
+                "expectedMonthlyVolume": "Gasto mensal no cartão",
+                "bankMonthlyPayments": "Pagamentos mensais da conta",
+                "sourceOfFunds": "Origem dos recursos",
+                "bankPurpose": "Uso da conta",
+                "cardPurpose": "Uso do cartão",
+                "actingAsIntermediary": "Envios para outras pessoas",
+                "sex": "Sexo",
+                "maritalStatus": "Estado civil",
+                "isPep": "Cargo público",
+                "isFatca": "Cidadão ou residente fiscal dos EUA",
+                "isFep": "Sujeito obrigado perante a UIF"
             }
         }
     },

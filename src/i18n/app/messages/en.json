@@ -300,7 +300,8 @@
             "starAlt": "star",
             "help": "Help center",
             "about": "About Peanut",
-            "updateAvailable": "Update available"
+            "updateAvailable": "Update available",
+            "profile": "Profile"
         },
         "logOut": "Log out",
         "edit": {
@@ -606,6 +607,40 @@
                 "failed": "Could not change the update channel.",
                 "revealed": "Beta updates switch revealed below.",
                 "appOnly": "Beta updates are only available in the Peanut app."
+            }
+        },
+        "details": {
+            "title": "Profile",
+            "notStored": "Not stored at Peanut",
+            "rows": {
+                "name": "Name",
+                "surname": "Surname",
+                "email": "Email",
+                "declaredResidence": "Declared residence",
+                "verifiedResidence": "Verified residence",
+                "secondResidence": "Second residence",
+                "citizenship": "Citizenship",
+                "dateOfBirth": "Date of birth",
+                "countryOfBirth": "Country of birth",
+                "cityOfBirth": "City of birth",
+                "document": "ID document",
+                "phone": "Phone number",
+                "address": "Address",
+                "taxId": "Tax number",
+                "occupation": "Occupation",
+                "employmentStatus": "Employment",
+                "annualSalary": "Yearly income",
+                "expectedMonthlyVolume": "Monthly card spending",
+                "bankMonthlyPayments": "Monthly account payments",
+                "sourceOfFunds": "Source of funds",
+                "bankPurpose": "Account use",
+                "cardPurpose": "Card use",
+                "actingAsIntermediary": "Sending money for others",
+                "sex": "Sex",
+                "maritalStatus": "Marital status",
+                "isPep": "Public office",
+                "isFatca": "US citizen or tax resident",
+                "isFep": "UIF reporting duty"
             }
         }
     },

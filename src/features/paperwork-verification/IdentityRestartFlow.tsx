@@ -16,7 +16,8 @@ import {
 import type { KycAttemptSession, KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import type { PaperworkVerificationDocument } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
-import { DOCUMENT_KEYS, IdentityDocumentScreen } from './components/IdentityDocumentScreen'
+import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
+import { DOCUMENT_KEYS } from './paperworkVerification.utils'
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
 import { ReviewScreen } from './components/StatusScreens'
 import {
