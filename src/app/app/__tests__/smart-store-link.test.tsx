@@ -208,31 +208,10 @@ describe('/app smart store link', () => {
     })
 })
 
-const originalMarketingGate = process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
-
 const MARKETING_QUERY =
     '?marketing_qr=home-hero-en&qr_analytics=allow&utm_source=google&utm_medium=cpc&utm_campaign=accounts-launch'
 
 describe('registered marketing QR handoff', () => {
-    beforeEach(() => {
-        process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = 'true'
-    })
-    afterAll(() => {
-        if (originalMarketingGate === undefined) delete process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
-        else process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = originalMarketingGate
-    })
-
-    it('keeps issued URLs functional without creating attribution while rollout is disabled', () => {
-        process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = 'false'
-        mockFlagOn = false
-        visit(MARKETING_QUERY)
-        renderPage()
-        expect(mockNotFound).not.toHaveBeenCalled()
-        expect(storeButton(/google play/i)).toBeInTheDocument()
-        expect(readSignupAttribution()).toBeNull()
-        expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
-    })
-
     it('builds an Android campaign payload before redirect and excludes ambient functional campaigns', () => {
         mockDeviceType = 'android'
         stashInvite('alice', EInviteType.DIRECT)

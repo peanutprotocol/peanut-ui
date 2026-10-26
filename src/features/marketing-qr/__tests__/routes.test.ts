@@ -5,7 +5,6 @@ import { GET, HEAD } from '@/app/q/[placement]/route'
 
 jest.mock('next/server', () => ({ after: jest.fn() }))
 const originalEnv = {
-    switch: process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING,
     key: process.env.NEXT_PUBLIC_POSTHOG_KEY,
     deployment: process.env.VERCEL_ENV,
 }
@@ -31,7 +30,6 @@ const request = (value: unknown = payload(), headers: Record<string, string> = {
 const context = { params: Promise.resolve({ placement: 'home-hero-en' }) }
 beforeEach(() => {
     tasks.length = 0
-    process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = 'true'
     process.env.NEXT_PUBLIC_POSTHOG_KEY = 'test-project-token'
     process.env.VERCEL_ENV = 'production'
     global.fetch = jest.fn().mockResolvedValue(new Response(null, { status: 200 }))
@@ -42,7 +40,6 @@ beforeEach(() => {
 afterAll(() => {
     global.fetch = originalFetch
     for (const [name, value] of Object.entries({
-        NEXT_PUBLIC_MARKETING_QR_TRACKING: originalEnv.switch,
         NEXT_PUBLIC_POSTHOG_KEY: originalEnv.key,
         VERCEL_ENV: originalEnv.deployment,
     })) {
@@ -94,7 +91,6 @@ it('returns before capture and sends only the stable, anonymous allowlisted even
 })
 
 it.each([
-    ['NEXT_PUBLIC_MARKETING_QR_TRACKING', 'false'],
     ['NEXT_PUBLIC_POSTHOG_KEY', ''],
     ['VERCEL_ENV', 'preview'],
     ['VERCEL_ENV', 'development'],
