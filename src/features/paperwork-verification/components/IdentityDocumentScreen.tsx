@@ -15,7 +15,6 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
-import { SetupLanguageSwitcher } from '@/components/Setup/components/SetupLanguageSwitcher'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import type { PaperworkVerificationDocument } from '@/app/actions/types/kyc-paperwork-verification.types'
 import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
@@ -27,7 +26,7 @@ import { useInsetColor } from '../useInsetColor'
 
 const SCREEN_HEIGHT = 'min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]'
 
-const DOCUMENT_KEYS = {
+export const DOCUMENT_KEYS = {
     PASSPORT: 'passport',
     ID_CARD: 'idCard',
     DRIVERS: 'drivers',
@@ -197,6 +196,12 @@ export function IdentityDocumentScreen({
         type: 'TEMPORARY_PROTECTION',
         issuingCountry,
     }))
+    // What a Ukrainian displaced by the war holds where they live, so it leads for them.
+    const protectionInMain = citizenship === 'UA'
+    // The citizenship's own passport and ID the route refuses: shown greyed, so nobody takes them to Sumsub.
+    const refused: Choice[] = away
+        ? ['PASSPORT', 'ID_CARD'].filter((type) => !allowed(type, away)).map((type) => ({ type, issuingCountry: away }))
+        : []
 
     const [otherOpen, setOtherOpen] = useState(false)
     const [picking, setPicking] = useState<'type' | 'country' | null>(null)
@@ -209,9 +214,11 @@ export function IdentityDocumentScreen({
             document_type_count: types.length,
             issuing_country_count: countries.length,
             main_options: main.length,
-            other_options: other.length + protectionChoices.length,
+            other_options: other.length + (protectionInMain ? 0 : protectionChoices.length),
+            refused_options: refused.length,
             citizenship_known: !!citizenship,
             temporary_protection_offered: !!protection,
+            temporary_protection_in_main: protectionInMain && !!protection,
         })
         // Once per visit to the midpoint.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -246,7 +253,7 @@ export function IdentityDocumentScreen({
             <ListItem
                 key={key}
                 title={typeName(c.type)}
-                body={c.type === 'TEMPORARY_PROTECTION' ? `${issued} ${t('midpoint.temporaryProtectionNote')}` : issued}
+                body={issued}
                 bodyWrap
                 leading={<Flag country={c.issuingCountry} />}
                 trailing={busy && chosen === key ? <Spinner /> : undefined}
@@ -257,6 +264,22 @@ export function IdentityDocumentScreen({
             />
         )
     }
+
+    const refusedRow = (c: Choice) => (
+        <ListItem
+            key={`refused-${keyOf(c)}`}
+            title={typeName(c.type)}
+            body={t('documentList.notAccepted', { country: countryName(c.issuingCountry) })}
+            bodyWrap
+            leading={
+                <span className="opacity-50 grayscale">
+                    <Flag country={c.issuingCountry} />
+                </span>
+            }
+            disabled
+            data-testid={`verify-id-refused-${keyOf(c)}`}
+        />
+    )
 
     const anotherCountryTypes = [...types, ...(protection ? ['TEMPORARY_PROTECTION'] : [])]
     const countriesFor = (type: string) => (type === 'TEMPORARY_PROTECTION' ? (protection?.countries ?? []) : countries)
@@ -271,7 +294,7 @@ export function IdentityDocumentScreen({
 
     return (
         <div className={twMerge('flex w-full flex-col bg-white', SCREEN_HEIGHT)} data-testid="verify-id">
-            <div className="absolute inset-x-0 top-[calc(var(--safe-top)_+_1rem)] z-20 mx-auto grid w-full max-w-md grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center px-4">
+            <div className="absolute inset-x-0 top-4 z-20 mx-auto grid w-full max-w-md grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center px-4">
                 <Button
                     variant="ghost"
                     onClick={onBack}
@@ -290,10 +313,10 @@ export function IdentityDocumentScreen({
                     <span className="size-2 rounded-full bg-black/30" />
                     <span className="size-2 rounded-full bg-black/30" />
                 </div>
-                <SetupLanguageSwitcher />
+                <span />
             </div>
-            <div className="setup-hero-background relative h-60 w-full shrink-0 short:h-48">
-                <IdCardScanAnimation className="absolute bottom-2.5 left-1/2 h-[10.875rem] w-[13.125rem] -translate-x-1/2 short:h-36" />
+            <div className="setup-hero-background relative h-68 w-full shrink-0 short:h-52">
+                <IdCardScanAnimation className="absolute bottom-2.5 left-1/2 h-51 w-61.5 -translate-x-1/2 short:h-36 short:w-43.5" />
             </div>
             <div className="flex min-h-0 flex-1 flex-col gap-3 px-6 pt-6 pb-6">
                 <h1 className="text-heading-m whitespace-pre-line text-foreground-primary">
@@ -305,6 +328,8 @@ export function IdentityDocumentScreen({
                 {document && (
                     <ListGroup>
                         {main.map((c) => row(c, 'list'))}
+                        {protectionInMain && protectionChoices.map((c) => row(c, 'list'))}
+                        {refused.map(refusedRow)}
                         <ListItem
                             title={t('documentList.other')}
                             body={t('documentList.otherHint')}
@@ -319,11 +344,7 @@ export function IdentityDocumentScreen({
                         />
                     </ListGroup>
                 )}
-                {!document && documentsLoading && (
-                    <div className="flex justify-center py-6" data-testid="verify-id-loading">
-                        <Spinner />
-                    </div>
-                )}
+                {!document && documentsLoading && <DocumentListSkeleton />}
                 {(error || (!document && !documentsLoading)) && (
                     <Callout priority="error" className="w-full text-left" data-testid="verify-id-error">
                         {error ?? t('midpoint.unavailable')}
@@ -347,7 +368,7 @@ export function IdentityDocumentScreen({
                         <DrawerTitle>{t('documentList.otherTitle')}</DrawerTitle>
                         <p className="text-body-s text-foreground-secondary">{t('documentList.otherDescription')}</p>
                         <ListGroup>
-                            {[...other, ...protectionChoices].map((c) => row(c, 'other'))}
+                            {[...other, ...(protectionInMain ? [] : protectionChoices)].map((c) => row(c, 'other'))}
                             <ListItem
                                 title={t('documentList.anotherCountry')}
                                 body={t('documentList.anotherCountryHint')}
@@ -398,6 +419,27 @@ export function IdentityDocumentScreen({
                 leading={(option) => <Flag country={option} />}
                 onChoose={(issuingCountry) => choose({ type: pickedType, issuingCountry }, 'another_country')}
             />
+        </div>
+    )
+}
+
+/** The list's shape while the plan is read again for its documents. */
+function DocumentListSkeleton() {
+    return (
+        <div
+            aria-hidden
+            className="flex flex-col divide-y divide-border-default rounded-sm border border-border-default"
+            data-testid="verify-id-loading"
+        >
+            {[0, 1].map((row) => (
+                <div key={row} className="flex items-center gap-3 px-4 py-4">
+                    <span className="size-8 shrink-0 animate-pulse rounded-full bg-foreground-primary/10 motion-reduce:animate-none" />
+                    <span className="flex flex-1 flex-col gap-2">
+                        <span className="h-4 w-36 animate-pulse rounded-full bg-foreground-primary/10 motion-reduce:animate-none" />
+                        <span className="h-3 w-24 animate-pulse rounded-full bg-foreground-primary/10 motion-reduce:animate-none" />
+                    </span>
+                </div>
+            ))}
         </div>
     )
 }

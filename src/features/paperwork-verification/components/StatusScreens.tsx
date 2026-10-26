@@ -35,17 +35,26 @@ const primary = (label: string, onClick: () => void, testId: string, loading = f
 type StepState = 'done' | 'current' | 'next'
 type StepRow = { key: 'residence' | 'questions' | 'photo' | 'selfie' | 'review' | 'unlock'; state: StepState }
 
-/** Where the user is on the way to verified: the questions show only when the features ask any. */
+const SKELETON_ROWS = 6
+const skeleton = 'animate-pulse bg-foreground-primary/10 motion-reduce:animate-none'
+
+/**
+ * Where the user is on the way to verified: the questions show only when the
+ * features ask any. `loading` is every visit's first frame while the server
+ * says which steps are left: the screen with its rows still to fill.
+ */
 export function StepsScreen({
-    hasQuestions,
-    questionsDone,
+    hasQuestions = true,
+    questionsDone = false,
+    loading = false,
     onBack,
     onContinue,
 }: {
-    hasQuestions: boolean
-    questionsDone: boolean
+    hasQuestions?: boolean
+    questionsDone?: boolean
+    loading?: boolean
     onBack: () => void
-    onContinue: () => void
+    onContinue?: () => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     useInsetColor(false)
@@ -76,37 +85,69 @@ export function StepsScreen({
                 </h1>
                 <span />
             </div>
-            <ol className="mt-10 flex flex-col" data-testid="verify-steps">
-                {rows.map((row, index) => (
-                    <li
-                        key={row.key}
-                        aria-current={row.state === 'current' ? 'step' : undefined}
-                        className="relative grid min-h-[4.625rem] grid-cols-[2rem_minmax(0,1fr)] gap-x-4 pb-6 last:min-h-8 last:pb-0"
-                    >
-                        {index < rows.length - 1 && (
-                            <span aria-hidden className="absolute top-8 bottom-0 left-[15.5px] w-px bg-border-subtle" />
-                        )}
-                        <span
-                            aria-hidden
-                            className={twMerge(
-                                'relative z-10 flex size-8 items-center justify-center rounded-full text-body-m-semibold text-foreground-primary',
-                                row.state === 'done'
-                                    ? 'bg-background-icon-bubble-green'
-                                    : row.state === 'current'
-                                      ? 'bg-background-icon-bubble-yellow'
-                                      : 'bg-background-icon-bubble-gray'
-                            )}
+            {loading ? (
+                <ol aria-hidden className="mt-10 flex flex-col" data-testid="verify-steps-loading">
+                    {Array.from({ length: SKELETON_ROWS }, (_, index) => (
+                        <li
+                            key={index}
+                            className="relative grid min-h-[4.625rem] grid-cols-[2rem_minmax(0,1fr)] gap-x-4 pb-6 last:min-h-8 last:pb-0"
                         >
-                            {row.state === 'done' ? <Icon name="check" size={16} /> : index + 1}
-                        </span>
-                        <span className="flex h-8 items-center text-body-m-semibold text-foreground-primary">
-                            {t(`steps.${row.key}`)}
-                            {row.state === 'done' && <span className="sr-only"> {t('steps.done')}</span>}
-                        </span>
-                    </li>
-                ))}
-            </ol>
-            <div className="mt-auto pt-8">{primary(t('continue'), onContinue, 'verify-steps-continue')}</div>
+                            {index < SKELETON_ROWS - 1 && (
+                                <span className="absolute top-8 bottom-0 left-[15.5px] w-px bg-border-subtle" />
+                            )}
+                            <span className={twMerge('relative z-10 size-8 rounded-full', skeleton)} />
+                            <span className="flex h-8 items-center">
+                                <span className={twMerge('h-4 rounded-full', skeleton, index % 2 ? 'w-36' : 'w-52')} />
+                            </span>
+                        </li>
+                    ))}
+                </ol>
+            ) : (
+                <ol className="mt-10 flex flex-col" data-testid="verify-steps">
+                    {rows.map((row, index) => (
+                        <li
+                            key={row.key}
+                            aria-current={row.state === 'current' ? 'step' : undefined}
+                            className="relative grid min-h-[4.625rem] grid-cols-[2rem_minmax(0,1fr)] gap-x-4 pb-6 last:min-h-8 last:pb-0"
+                        >
+                            {index < rows.length - 1 && (
+                                <span
+                                    aria-hidden
+                                    className="absolute top-8 bottom-0 left-[15.5px] w-px bg-border-subtle"
+                                />
+                            )}
+                            <span
+                                aria-hidden
+                                className={twMerge(
+                                    'relative z-10 flex size-8 items-center justify-center rounded-full text-body-m-semibold text-foreground-primary',
+                                    row.state === 'done'
+                                        ? 'bg-background-icon-bubble-green'
+                                        : row.state === 'current'
+                                          ? 'bg-background-icon-bubble-yellow'
+                                          : 'bg-background-icon-bubble-gray'
+                                )}
+                            >
+                                {row.state === 'done' ? <Icon name="check" size={16} /> : index + 1}
+                            </span>
+                            <span className="flex h-8 items-center text-body-m-semibold text-foreground-primary">
+                                {t(`steps.${row.key}`)}
+                                {row.state === 'done' && <span className="sr-only"> {t('steps.done')}</span>}
+                            </span>
+                        </li>
+                    ))}
+                </ol>
+            )}
+            <div className="mt-auto pt-8">
+                <Button
+                    shadowSize="4"
+                    className="w-full"
+                    onClick={onContinue}
+                    disabled={loading || !onContinue}
+                    data-testid="verify-steps-continue"
+                >
+                    {t('continue')}
+                </Button>
+            </div>
         </div>
     )
 }

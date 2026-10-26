@@ -47,6 +47,7 @@ export const SumsubNativeSdk = ({
     accessToken,
     documentConfig,
     preselection,
+    identityStepTitle,
     email,
     onClose,
     onComplete,
@@ -69,6 +70,8 @@ export const SumsubNativeSdk = ({
     documentConfigRef.current = documentConfig
     const preselectionRef = useRef(preselection)
     preselectionRef.current = preselection
+    const identityStepTitleRef = useRef(identityStepTitle)
+    identityStepTitleRef.current = identityStepTitle
     const emailRef = useRef(email)
     emailRef.current = email
     const isMultiLevelRef = useRef(isMultiLevel)
@@ -169,6 +172,9 @@ export const SumsubNativeSdk = ({
                 .withLocale(sumsubLocaleRef.current)
                 .withApplicantConf(emailRef.current ? { email: emailRef.current } : {})
                 .withDebug(process.env.NODE_ENV === 'development')
+            // Sumsub's intro calls every ID "Identity document"; name the one the user picked.
+            if (identityStepTitleRef.current && typeof builder.withStrings === 'function')
+                builder = builder.withStrings({ sns_step_IDENTITY_title: identityStepTitleRef.current })
             const documentDefinitions = documentConfigRef.current?.documentDefinitions
             if (documentDefinitions) {
                 if (typeof builder.withPreferredDocumentDefinitions === 'function') {

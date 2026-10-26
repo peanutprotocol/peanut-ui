@@ -49,6 +49,7 @@ const dismiss = jest.fn()
 const resetSdk = jest.fn()
 const configureApplicant = jest.fn()
 const configureDocuments = jest.fn()
+const configureStrings = jest.fn()
 let builtInstances: { sendEvent: jest.Mock; getNewAccessToken: jest.Mock }[] = []
 let statusHandler: ((event: { newStatus?: string }) => void) | undefined
 
@@ -65,6 +66,10 @@ function installSdk({ supportsDocumentPreselection = true }: { supportsDocumentP
         }
     }
     builder.withLocale = () => builder
+    builder.withStrings = (strings: unknown) => {
+        configureStrings(strings)
+        return builder
+    }
     builder.withDebug = () => builder
     builder.withApplicantConf = (conf: unknown) => {
         configureApplicant(conf)
@@ -102,6 +107,18 @@ describe('SumsubNativeSdk', () => {
         }
         render(<SumsubNativeSdk {...baseProps()} visible documentConfig={documentConfig} />)
         expect(configureDocuments).toHaveBeenCalledWith(documentConfig.documentDefinitions)
+    })
+
+    // Slava, 2026-10-26: Sumsub's intro said "Identity document" for the residence permit he picked.
+    it('names the picked document on the ID step, and leaves Sumsub’s own title without one', () => {
+        installSdk()
+        const { unmount } = render(<SumsubNativeSdk {...baseProps()} visible identityStepTitle="Residence permit" />)
+        expect(configureStrings).toHaveBeenCalledWith({ sns_step_IDENTITY_title: 'Residence permit' })
+        unmount()
+
+        configureStrings.mockClear()
+        render(<SumsubNativeSdk {...baseProps()} visible />)
+        expect(configureStrings).not.toHaveBeenCalled()
     })
 
     it('launches with preferred document choices when the native builder does not support preselection', async () => {

@@ -1571,8 +1571,7 @@
                 "restartTitle": "Verificate con otro documento",
                 "restartDescription": "Elegí el documento que vas a usar ahora. Después tomá fotos de él y una selfie rápida.",
                 "failed": "No pudimos iniciar la verificación. Intentá de nuevo.",
-                "unavailable": "No podemos mostrar los documentos ahora. Intentá más tarde.",
-                "temporaryProtectionNote": "El documento que recibiste como persona desplazada de Ucrania. Sirve un certificado en papel; sacale una foto a la página con tus datos."
+                "unavailable": "No podemos mostrar los documentos ahora. Intentá más tarde."
             },
             "failed": {
                 "description": "Tu verificación necesita algo de vos. En el inicio vas a ver qué hacer."

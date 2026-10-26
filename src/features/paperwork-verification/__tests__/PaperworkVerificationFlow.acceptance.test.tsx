@@ -150,9 +150,11 @@ function renderFlow(search = '') {
     )
 }
 
+// The steps overview opens at once as a skeleton; Continue works once the server's read fills it.
 async function startFlow(search = '') {
     const view = renderFlow(search)
-    fireEvent.click(await screen.findByTestId('verify-steps-continue'))
+    await screen.findByTestId('verify-steps')
+    fireEvent.click(screen.getByTestId('verify-steps-continue'))
     return view
 }
 

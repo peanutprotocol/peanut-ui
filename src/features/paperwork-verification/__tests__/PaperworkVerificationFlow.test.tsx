@@ -145,9 +145,11 @@ function renderFlow(search = '', client = new QueryClient()) {
 }
 
 /** A visit with questions or the ID ahead opens on the steps overview; Continue goes on to the open step. */
+// The steps overview opens at once as a skeleton; Continue works once the server's read fills it.
 async function startFlow(search = '') {
     const view = renderFlow(search)
-    fireEvent.click(await screen.findByTestId('verify-steps-continue'))
+    await screen.findByTestId('verify-steps')
+    fireEvent.click(screen.getByTestId('verify-steps-continue'))
     return view
 }
 
@@ -218,11 +220,26 @@ describe('PaperworkVerificationFlow: an account missing signup answers', () => {
         expect(mockReplace).not.toHaveBeenCalledWith('/home')
 
         fireEvent.click(prelude)
-        expect(await screen.findByTestId('verify-steps-continue')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-steps')).toBeInTheDocument()
     })
 })
 
 describe('PaperworkVerificationFlow: the steps overview', () => {
+    // Slava, 2026-10-26: the loading mascot showed before the steps on APK #6.
+    it('opens at once as a skeleton of the steps, never the loading mascot, Continue off until filled', async () => {
+        let answer: (value: PaperworkVerificationQuestions) => void = () => {}
+        mockQuestions.mockImplementation(() => new Promise((resolve) => (answer = resolve)))
+        renderFlow()
+        expect(screen.getByTestId('verify-steps-loading')).toBeInTheDocument()
+        expect(screen.getByText(/A few steps to/)).toBeInTheDocument()
+        expect(screen.getByTestId('verify-steps-continue')).toBeDisabled()
+        expect(screen.queryByText('loading')).not.toBeInTheDocument()
+
+        await act(async () => answer(build({ purpose: false }, 'purpose')))
+        expect(await screen.findByTestId('verify-steps')).toBeInTheDocument()
+        expect(screen.getByTestId('verify-steps-continue')).toBeEnabled()
+    })
+
     it('opens on the steps, with the questions as the current step, and Continue resumes the open question', async () => {
         mockQuestions.mockResolvedValue(build({ purpose: false }, 'purpose'))
         renderFlow()

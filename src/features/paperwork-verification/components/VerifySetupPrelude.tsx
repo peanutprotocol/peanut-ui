@@ -112,7 +112,7 @@ function PreludeStep({ screens, onExit }: { screens: ScreenId[]; onExit: () => v
     useEffect(() => {
         if (currentIndex < 0) setScreenId(screens[0], { history: 'replace' })
     }, [currentIndex, screens, setScreenId])
-    if (!step) return <VerifyLoading />
+    if (!step) return <VerifyLoading onBack={onExit} />
     const View = step.component
     return (
         <SetupWrapper

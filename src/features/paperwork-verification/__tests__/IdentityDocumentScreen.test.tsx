@@ -4,7 +4,6 @@ import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import { IdentityDocumentScreen } from '../components/IdentityDocumentScreen'
 
 jest.mock('../components/IdCardScanAnimation', () => ({ IdCardScanAnimation: () => null }))
-jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 
 const plan = (
     countries: string[],
@@ -135,18 +134,56 @@ describe('IdentityDocumentScreen: temporary protection', () => {
     const withProtection = (countries: string[]) =>
         ({ ...plan(['PL', 'UA']), temporaryProtection: { countries, until: '2027-03-04' } }) as KycDocumentPlan
 
-    it('offers the document where the user lives and sends it issued by that country', () => {
+    // Slava, 2026-10-26: a Ukrainian holds it where they live, so it leads their list.
+    it('leads the main list for a Ukrainian, issued where they live, and sends it as picked', () => {
         const onContinue = render({ documentPlan: withProtection(['PL']), residence: 'PL', citizenship: 'UA' })
-        fireEvent.click(screen.getByTestId('verify-id-other'))
         const row = screen.getByTestId('verify-id-option-TEMPORARY_PROTECTION-PL')
-        expect(row).toHaveTextContent('A paper certificate is fine')
+        expect(row).toHaveTextContent('Temporary protection for Ukrainians')
+        expect(row).toHaveTextContent('Issued by Poland')
+        expect(row).not.toHaveTextContent('paper')
+        fireEvent.click(screen.getByTestId('verify-id-other'))
+        expect(
+            within(screen.getByTestId('verify-id-other-drawer')).queryByTestId(
+                'verify-id-option-TEMPORARY_PROTECTION-PL'
+            )
+        ).toBeNull()
         fireEvent.click(row)
         expect(onContinue).toHaveBeenCalledWith({ type: 'TEMPORARY_PROTECTION', issuingCountry: 'PL' })
+    })
+
+    it('stays under Other documents for anyone else', () => {
+        render({ documentPlan: withProtection(['PL']), residence: 'PL', citizenship: 'DE' })
+        expect(option('TEMPORARY_PROTECTION', 'PL')).toBeNull()
+        fireEvent.click(screen.getByTestId('verify-id-other'))
+        expect(
+            within(screen.getByTestId('verify-id-other-drawer')).getByTestId('verify-id-option-TEMPORARY_PROTECTION-PL')
+        ).toBeInTheDocument()
     })
 
     it('is not offered when the API sends no temporary protection', () => {
         render({ documentPlan: plan(['PL', 'UA']), residence: 'PL' })
         fireEvent.click(screen.getByTestId('verify-id-other'))
-        expect(screen.queryByText('Temporary protection (Ukraine)')).toBeNull()
+        expect(screen.queryByText('Temporary protection for Ukrainians')).toBeNull()
+    })
+})
+
+// Slava, 2026-10-26: the citizenship's own passport and ID stay in view, greyed, when the route refuses them.
+describe('IdentityDocumentScreen: a citizenship whose IDs the route refuses', () => {
+    it('shows its passport and ID card greyed, not tappable, as not accepted', () => {
+        const onContinue = render({ documentPlan: plan(['PT']), residence: 'PT', citizenship: 'UA' })
+        for (const type of ['PASSPORT', 'ID_CARD']) {
+            const row = screen.getByTestId(`verify-id-refused-${type}-UA`)
+            expect(row).toHaveTextContent('Issued by Ukraine. Can’t be used. Not accepted.')
+            expect(row).toHaveAttribute('aria-disabled', 'true')
+            fireEvent.click(row)
+        }
+        expect(onContinue).not.toHaveBeenCalled()
+        expect(option('RESIDENCE_PERMIT', 'PT')).toBeInTheDocument()
+    })
+
+    it('shows none when the route takes the citizenship’s IDs', () => {
+        render({ documentPlan: plan(['PT', 'UA']), residence: 'PT', citizenship: 'UA' })
+        expect(screen.queryByTestId('verify-id-refused-PASSPORT-UA')).toBeNull()
+        expect(option('PASSPORT', 'UA')).toBeInTheDocument()
     })
 })

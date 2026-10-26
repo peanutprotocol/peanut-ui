@@ -33,7 +33,7 @@ import {
 } from '@/app/actions/types/kyc-workflow.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
-import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
+import { DOCUMENT_KEYS, IdentityDocumentScreen } from './components/IdentityDocumentScreen'
 import { QuestionStepScreen, trackSaveOutcome } from './components/QuestionStepScreen'
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
 import { VerifySetupPrelude } from './components/VerifySetupPrelude'
@@ -184,7 +184,7 @@ export function PaperworkVerificationFlow() {
     // The signup prelude's wrapper paints the native status bar and leaves it painted.
     useEffect(() => restoreNativeStatusBar, [])
 
-    if (state.kind === 'loading') return <VerifyLoading />
+    if (state.kind === 'loading') return <VerifyLoading onBack={exit} />
     if (state.kind === 'failed') return <LoadFailed onRetry={() => void load()} onHome={() => router.push('/home')} />
     if (state.kind === 'setup') return <VerifySetupPrelude needs={state.needs} onDone={load} onExit={exit} />
     return (
@@ -211,9 +211,12 @@ function PaperworkVerificationSteps({
     introShown: React.MutableRefObject<boolean>
 }) {
     const t = useTranslations('kyc.paperworkVerification')
+    const tDocuments = useTranslations('kyc.documents')
     const locale = useLocale()
     const router = useRouter()
     const { user, fetchUser } = useAuth()
+    // The picked document's name for Sumsub's ID step; a retry without a pick keeps the last one.
+    const [identityStepTitle, setIdentityStepTitle] = useState<string>()
     const exit = useSafeBack('/home')
     const [questions, setQuestions] = useState(initial.questions)
     const [plan, setPlan] = useState(initial.plan)
@@ -393,6 +396,10 @@ function PaperworkVerificationSteps({
 
     const startIdentity = async (document?: { type: string; issuingCountry: string }) => {
         setIdError(null)
+        if (document) {
+            const key = DOCUMENT_KEYS[document.type as keyof typeof DOCUMENT_KEYS]
+            setIdentityStepTitle(key ? tDocuments(key) : undefined)
+        }
         let attemptId = identity.attemptIdRef.current ?? questions.attemptId ?? plan?.activeAttemptId ?? null
         if (!attemptId) {
             const fresh = await getKycQuestions().catch(() => null)
@@ -634,6 +641,7 @@ function PaperworkVerificationSteps({
                 documentConfig={identity.session?.sdkConfig}
                 sessionKey={identity.session?.attemptId}
                 preselection="preferred"
+                identityStepTitle={identityStepTitle}
                 onClose={() => {
                     track(ANALYTICS_EVENTS.KYC_PV_IDENTITY_CLOSED)
                     identity.close()

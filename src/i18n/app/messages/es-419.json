@@ -3406,7 +3406,7 @@
             "drivers": "Licencia de conducir",
             "residencePermit": "Permiso de residencia",
             "otherDocument": "Documento de respaldo",
-            "temporaryProtection": "Protección temporal (Ucrania)"
+            "temporaryProtection": "Protección temporal para ucranianos"
         },
         "supplement": {
             "proofOfAddressTitle": "Agrega un comprobante de domicilio",
@@ -3665,8 +3665,7 @@
                 "issuedBy": "País de emisión",
                 "privacy": "Sumsub maneja tus documentos de forma segura.",
                 "failed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
-                "unavailable": "No podemos mostrar los documentos ahora. Inténtalo más tarde.",
-                "temporaryProtectionNote": "El documento que recibiste como persona desplazada de Ucrania. Sirve un certificado en papel; fotografía la página con tus datos."
+                "unavailable": "No podemos mostrar los documentos ahora. Inténtalo más tarde."
             },
             "review": {
                 "title": "Revisando tu documento",
@@ -3769,6 +3768,7 @@
                 "otherTitle": "Otros documentos",
                 "otherDescription": "También puedes verificarte con uno de estos. Le tomarás fotos y te tomarás una selfie.",
                 "otherNotAccepted": "No se pueden usar visas, permisos de trabajo ni credenciales de estudiante para verificar tu identidad.",
+                "notAccepted": "Emitido en {country}. No se puede usar. No se acepta.",
                 "anotherCountry": "Un documento de otro país",
                 "anotherCountryHint": "Elige el documento y luego el país que lo emitió.",
                 "backToList": "Volver a la lista",

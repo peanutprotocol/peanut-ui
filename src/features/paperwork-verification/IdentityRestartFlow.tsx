@@ -16,7 +16,7 @@ import {
 import type { KycAttemptSession, KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import type { PaperworkVerificationDocument } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
-import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
+import { DOCUMENT_KEYS, IdentityDocumentScreen } from './components/IdentityDocumentScreen'
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
 import { ReviewScreen } from './components/StatusScreens'
 import {
@@ -74,7 +74,7 @@ export function IdentityRestartFlow({ onExit }: { onExit: () => void }) {
         void load()
     }, [load])
 
-    if (state.kind === 'loading') return <VerifyLoading />
+    if (state.kind === 'loading') return <VerifyLoading onBack={onExit} />
     if (state.kind === 'failed') return <LoadFailed onRetry={() => void load()} onHome={() => router.push('/home')} />
     return <RestartSteps plan={state.plan} onExit={onExit} />
 }
@@ -88,6 +88,7 @@ function RestartSteps({ plan, onExit }: { plan: KycDocumentPlan; onExit: () => v
     const residence = user?.residence?.declared ?? null
     const [submitted, setSubmitted] = useState(false)
     const [busy, setBusy] = useState(false)
+    const [identityStepTitle, setIdentityStepTitle] = useState<string>()
     const [error, setError] = useState<string | null>(null)
     const [session, setSession] = useState<KycAttemptSession | null>(null)
     const busyRef = useRef(false)
@@ -138,6 +139,7 @@ function RestartSteps({ plan, onExit }: { plan: KycDocumentPlan; onExit: () => v
         if (busyRef.current || !route || !identity || !plan.policyVersion) return
         busyRef.current = true
         setBusy(true)
+        setIdentityStepTitle(t(`documents.${DOCUMENT_KEYS[document.type as keyof typeof DOCUMENT_KEYS]}`))
         setError(null)
         requestKeyRef.current ??= newRequestKey()
         try {
@@ -207,6 +209,7 @@ function RestartSteps({ plan, onExit }: { plan: KycDocumentPlan; onExit: () => v
                 documentConfig={session?.sdkConfig}
                 sessionKey={session?.attemptId}
                 preselection="preferred"
+                identityStepTitle={identityStepTitle}
                 onClose={() => {
                     track(ANALYTICS_EVENTS.KYC_PV_IDENTITY_CLOSED)
                     closeSession()

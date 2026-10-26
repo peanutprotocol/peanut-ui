@@ -104,7 +104,7 @@ export function VerifyHeroLayout({
     return (
         <div className={twMerge('flex w-full flex-col bg-white', SCREEN_HEIGHT)}>
             {onBack && (
-                <div className="absolute top-[calc(var(--safe-top)_+_1rem)] z-20 px-4">
+                <div className="absolute top-4 z-20 px-4">
                     <BackButton onBack={onBack} />
                 </div>
             )}

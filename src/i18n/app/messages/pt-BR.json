@@ -3406,7 +3406,7 @@
             "drivers": "Carteira de habilitação",
             "residencePermit": "Permissão de residência",
             "otherDocument": "Documento de apoio",
-            "temporaryProtection": "Proteção temporária (Ucrânia)"
+            "temporaryProtection": "Proteção temporária para ucranianos"
         },
         "supplement": {
             "proofOfAddressTitle": "Adicione um comprovante de endereço",
@@ -3665,8 +3665,7 @@
                 "issuedBy": "País de emissão",
                 "privacy": "A Sumsub cuida dos seus documentos com segurança.",
                 "failed": "Não conseguimos iniciar a verificação. Tente de novo.",
-                "unavailable": "Não conseguimos mostrar os documentos agora. Tente mais tarde.",
-                "temporaryProtectionNote": "O documento que você recebeu como pessoa deslocada da Ucrânia. Um certificado em papel serve; fotografe a página com seus dados."
+                "unavailable": "Não conseguimos mostrar os documentos agora. Tente mais tarde."
             },
             "review": {
                 "title": "Verificando seu documento",
@@ -3769,6 +3768,7 @@
                 "otherTitle": "Outros documentos",
                 "otherDescription": "Você também pode se verificar com um destes. Você vai tirar fotos dele e uma selfie.",
                 "otherNotAccepted": "Vistos, autorizações de trabalho e carteiras de estudante não servem para verificar sua identidade.",
+                "notAccepted": "Emitido por {country}. Não pode ser usado. Não é aceito.",
                 "anotherCountry": "Um documento de outro país",
                 "anotherCountryHint": "Escolha o documento e depois o país que o emitiu.",
                 "backToList": "Voltar à lista",
