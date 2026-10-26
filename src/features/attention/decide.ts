@@ -117,6 +117,16 @@ function interruptRefusal(
     }
 }
 
+/** Never shown first, then the oldest show; rank breaks ties (the list is in priority order). */
+function leastRecentlyShown(asks: readonly AttentionAsk[], ledger: Ledger): AttentionAsk | undefined {
+    let best: AttentionAsk | undefined
+    for (const ask of asks) {
+        const last = ledger[ask.id]?.lastSessionShown ?? -1
+        if (!best || last < (ledger[best.id]?.lastSessionShown ?? -1)) best = ask
+    }
+    return best
+}
+
 /** A T3+ card that held the zone for its allowed run yields for one session. */
 function isFatigued(ask: AttentionAsk, entry: LedgerEntry | undefined, session: Session): boolean {
     if (ask.tier < 3 || !entry?.lastSessionShown) return false
@@ -212,9 +222,10 @@ function pickZone(
         (ask) => ask.surfaces.includes('zone') && verdicts[ask.id] === 'unknown' && (!best || byPriority(ask, best) < 0)
     )
     if (higherUnknown && !session.settleDeadlinePassed) return null
-    const fresh = candidates.find((ask) => !isFatigued(ask, ledger[ask.id], session))
-    // every candidate is resting: better the top one again than an empty zone
-    const pick = fresh ?? candidates[0]
+    const fresh = candidates.filter((ask) => !isFatigued(ask, ledger[ask.id], session))
+    // the top card keeps Home unless it is resting; then the yield goes to the card shown least
+    // recently, so a third live card cannot starve behind the top two. Every card resting: the top one again.
+    const pick = fresh[0] === candidates[0] ? candidates[0] : (leastRecentlyShown(fresh, ledger) ?? candidates[0])
     if (pick && anchor && pick.id !== anchor.id) return { id: pick.id, mode: 'ask', underlay: anchor.id }
     if (pick) return { id: pick.id, mode: 'ask' }
     const pending = sorted.find((ask) => verdicts[ask.id] === 'pending' && ask.surfaces.includes('zone'))
