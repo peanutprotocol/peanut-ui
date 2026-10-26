@@ -2577,7 +2577,7 @@
         "pendingCallout": "waiting for you. Start spending to claim.",
         "noPendingRewards": "No pending rewards right now.",
         "lifetimeRewards": "Lifetime rewards: {amount}. To earn more, invite friends.",
-        "inviteNow": "Invite Now",
+        "inviteNow": "Invite now",
         "pointsLabel": "{count, plural, one {point} other {points}}",
         "pointsAbbrev": "{count, plural, one {pt} other {pts}}",
         "pointsToNextTier": "{count, plural, one {# point} other {# points}} to next tier",
@@ -2587,7 +2587,7 @@
         "peopleYouInvited": "People invited",
         "noInvitesYet": "No invites yet",
         "shareInviteLinkPrompt": "Send your invite link to start earning more rewards",
-        "shareInviteLink": "Share Invite link",
+        "shareInviteLink": "Share invite link",
         "loadPointsFailed": "Error loading points!",
         "loadInvitesFailed": "Error loading invites!",
         "contactSupport": "Please contact Support.",
@@ -3564,7 +3564,7 @@
             "title": "Invite friends!",
             "description": "Share your link. Every time a friend you brought makes a payment, you earn rewards.",
             "shareSheetTitle": "Share invite link",
-            "shareCta": "Share Invite Link",
+            "shareCta": "Share invite link",
             "descriptionNoRewards": "Share your link so friends can join you on Peanut."
         },
         "confirmInviteModal": {
@@ -3577,7 +3577,7 @@
             "title": "Earn from invites",
             "description": "From now on, Peanut is open to anyone. You can still invite your friends to earn rewards if they sign up.",
             "shareSheetTitle": "Share invite link",
-            "shareCta": "Share Invite link",
+            "shareCta": "Share invite link",
             "learnMore": "Learn more"
         },
         "noMoreJailModal": {

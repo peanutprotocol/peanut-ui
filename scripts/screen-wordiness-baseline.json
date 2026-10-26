@@ -13,7 +13,7 @@
         "app/(mobile-ui)/profile/view/page.tsx": 144,
         "app/(mobile-ui)/receipt/page.tsx": 798,
         "app/(mobile-ui)/recover-funds/page.tsx": 99,
-        "app/(mobile-ui)/rewards/page.tsx": 81,
+        "app/(mobile-ui)/rewards/page.tsx": 78,
         "app/(mobile-ui)/withdraw/[country]/bank/page.tsx": 141,
         "app/(mobile-ui)/withdraw/[country]/page.tsx": 404,
         "app/(mobile-ui)/withdraw/crypto/page.tsx": 128,
