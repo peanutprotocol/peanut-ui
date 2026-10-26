@@ -1519,8 +1519,23 @@
             "restartDescription": "QR payments need a document from a supported country. You can verify with a different ID.",
             "blockedDescription": "QR payments are not available for your account. Contact support for help.",
             "uploadDocument": "Upload document",
-            "verifyAgainTitle": "Verify identity again",
-            "verifyAgainDescription": "QR payments are paused until you verify again."
+            "verifyAgain": {
+                "documentMissing": {
+                    "title": "Add your ID once more",
+                    "description": "We moved to a new identity partner, and your ID photo didn’t come across. That’s on us. Upload your ID and take a quick selfie, and QR payments work again.",
+                    "cta": "Upload your ID"
+                },
+                "restartPending": {
+                    "title": "Finish your new ID check",
+                    "description": "You started verifying with a new ID. Until we’ve checked it, QR payments are paused, so we never pay with details that may be out of date. Pick up where you left off. It takes a few minutes.",
+                    "cta": "Continue verification"
+                },
+                "unreadable": {
+                    "title": "We couldn’t read your ID number",
+                    "description": "To pay by QR, our payment partner needs your full name and ID number, and we couldn’t read them from the ID you sent. Sorry for the extra step. Upload your ID again and you’re set.",
+                    "cta": "Upload your ID"
+                }
+            }
         },
         "info": {
             "exchangeRate": "Exchange Rate",

@@ -787,20 +787,18 @@ const QR_PAY_BLOCKED_RAIL = {
 }
 
 /**
- * QR rails the API paused because the identity evidence behind the approval is
- * gone (`SUMSUB_IDENTITY_MISSING`): the fix is the identity restart.
+ * QR rails the API paused because the identity behind the approval is not
+ * usable (`SUMSUB_IDENTITY_MISSING`), by cause: the fix is the identity restart.
  */
-const QR_IDENTITY_MISSING_CAPABILITIES = {
-    rails: [
-        {
-            ...QR_PAY_BLOCKED_RAIL,
-            blockingActions: ['restart-identity'],
-            reason: { code: 'identity_missing', userMessage: 'Verify your identity again to restore QR payments.' },
-        },
-    ],
-    nextActions: [{ key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_missing' }],
+const qrIdentityPausedCapabilities = (code: string, userMessage: string) => ({
+    rails: [{ ...QR_PAY_BLOCKED_RAIL, blockingActions: ['restart-identity'], reason: { code, userMessage } }],
+    nextActions: [{ key: 'restart-identity', kind: 'restart-identity', purpose: code }],
     restrictions: [],
-}
+})
+const QR_IDENTITY_MISSING_CAPABILITIES = qrIdentityPausedCapabilities(
+    'identity_missing',
+    'We could not read the name and ID number on your ID. Upload it again to pay by QR.'
+)
 
 /** A static Pix QR with no amount: the scan screen's own route. */
 const PIX_QR_ROUTE =
@@ -1420,8 +1418,32 @@ export const FIXTURES: Record<string, Fixture> = {
     // TASK-22698: the restart, not the start route that answers "already approved".
     'qr-pay-identity-missing': {
         route: PIX_QR_ROUTE,
-        about: 'QR rails paused for missing identity evidence: the gate restarts the identity check.',
+        about: "QR paused: the payment partner can't read the name and ID number on the user's ID. They upload it again.",
         responses: { 'GET /users/me': { capabilities: QR_IDENTITY_MISSING_CAPABILITIES } },
+    },
+    'qr-pay-identity-restart-pending': {
+        route: PIX_QR_ROUTE,
+        about: 'QR paused: the user started a new ID check and has not finished it. They continue it.',
+        responses: {
+            'GET /users/me': {
+                capabilities: qrIdentityPausedCapabilities(
+                    'identity_restart_pending',
+                    'Finish your new ID check to pay by QR again.'
+                ),
+            },
+        },
+    },
+    'qr-pay-identity-document-missing': {
+        route: PIX_QR_ROUTE,
+        about: 'QR paused: an account imported from Manteca has no ID on file. They upload it and take a selfie.',
+        responses: {
+            'GET /users/me': {
+                capabilities: qrIdentityPausedCapabilities(
+                    'identity_document_missing',
+                    'We need an identity document and a selfie to complete your verification.'
+                ),
+            },
+        },
     },
     // Activity after a PIX-key payment: the owner's name, not the key.
     'history-pix-key-owner': {

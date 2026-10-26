@@ -7,7 +7,12 @@ import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { QR_IDENTITY_CHECK_INTENT, qrVerificationNeedsRestart, selectQrKycGate } from './qrKycGate.utils'
+import {
+    QR_IDENTITY_CHECK_INTENT,
+    qrIdentityRestartReason,
+    qrVerificationNeedsRestart,
+    selectQrKycGate,
+} from './qrKycGate.utils'
 
 // MIGRATION-REVIEW: QR-pay KYC gate, formerly useQrKycGate + useKycStatus.
 // Derived inline from the backend capability model. Mapping:
@@ -73,6 +78,10 @@ export function useQrPayKycGate() {
         () => qrVerificationNeedsRestart({ mantecaRails: railsForProvider('manteca'), nextActions }),
         [railsForProvider, nextActions]
     )
+    const identityRestartReason = useMemo(
+        () => qrIdentityRestartReason({ mantecaRails: railsForProvider('manteca'), nextActions }),
+        [railsForProvider, nextActions]
+    )
     // The one "Verify identity" step of every QR screen. An approved user whose
     // identity evidence is missing needs the restart: the start route answers
     // "already approved" for them and opens nothing.
@@ -125,6 +134,7 @@ export function useQrPayKycGate() {
         isKycApproved,
         isTerminalFailure,
         needsIdentityRestart,
+        identityRestartReason,
         startVerification,
         sumsubFlow,
     }
