@@ -4348,7 +4348,8 @@
             "clear": "Borrar búsqueda",
             "removeCountry": "Quitar {country}"
         },
-        "feedbackBanner": "Ayúdanos a mejorar Peanut. Comparte tus comentarios aquí."
+        "feedbackBanner": "Ayúdanos a mejorar Peanut. Comparte tus comentarios aquí.",
+        "testBuild": "Versión de prueba: rama {branch}"
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",
