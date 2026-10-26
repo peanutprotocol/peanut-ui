@@ -1,4 +1,4 @@
-import { chromium, devices, expect } from '@playwright/test'
+import { chromium, devices, expect, type Request } from '@playwright/test'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { release } from 'node:os'
@@ -228,6 +228,10 @@ async function main() {
             page.setDefaultTimeout(15000)
             const unknown = new Set<string>()
             const transportFailures = new Set<string>()
+            const inFlight = new Map<Request, string>()
+            page.on('request', (request) => inFlight.set(request, `${request.method()} ${request.url()}`))
+            page.on('requestfinished', (request) => inFlight.delete(request))
+            page.on('requestfailed', (request) => inFlight.delete(request))
             try {
                 await page.addInitScript('window.__name = (target) => target')
                 await page.addInitScript(installCaptureSafeArea, profile.device)
@@ -455,7 +459,12 @@ async function main() {
                 }
                 if (screen.entryRoute)
                     await page.waitForURL((destination) => destination.pathname === url.pathname, { timeout: 30000 })
-                await page.waitForLoadState('networkidle', { timeout: 15000 })
+                await page.waitForLoadState('networkidle', { timeout: 15000 }).catch((error: Error) => {
+                    // a bare timeout names neither the request that never settled nor an unmapped API call
+                    throw new Error(
+                        `${error.message}\nIn flight: ${[...inFlight.values()].join(', ') || 'none'}\nUnmapped: ${[...unknown].join(', ') || 'none'}`
+                    )
+                })
                 if (screen.expectSelector)
                     await expect(page.locator(screen.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
                 if (screen.event) {
