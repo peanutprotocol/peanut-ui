@@ -41,6 +41,8 @@ import {
 import { claimAndSettlePendingBadgeCampaigns } from '@/services/badge-campaigns'
 import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration } from '@/utils/deep-link-state'
 import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
+import { AccountType, type IUserProfile } from '@/interfaces/interfaces'
+import { isDemoMode } from '@/utils/demo'
 
 // The steps after registration; reaching any of them arms the no-back lock.
 const POST_REGISTRATION_SCREENS: readonly ScreenId[] = [
@@ -53,6 +55,11 @@ const POST_REGISTRATION_SCREENS: readonly ScreenId[] = [
     'notification-permission',
     'advantage-control',
 ]
+
+/** The last step creates the wallet: a registered account without one left the flow before finishing it. */
+function hasUnfinishedSignup(profile: IUserProfile): boolean {
+    return !isDemoMode() && !profile.accounts?.some((account) => account.type === AccountType.PEANUT_WALLET)
+}
 
 function setupTargetMatchesSearchParams(target: string | null, searchParamsString: string): boolean {
     if (!target) return false
@@ -109,6 +116,8 @@ function SetupPageContent() {
     useLayoutEffect(() => {
         setScreenIdRef.current = setScreenId
     }, [setScreenId])
+    const resolvedEntry = useRef<string | null>(null)
+    const resumeSignup = useRef(false)
     const [isLoading, setIsLoading] = useState(true)
     const [initializationError, setInitializationError] = useState<string | null>(null)
     const initializationExpired = useRef(false)
@@ -346,6 +355,23 @@ function SetupPageContent() {
                 return
             }
             if (!isInitialSessionCheck) return
+            if (hasUnfinishedSignup(user)) {
+                /*
+                 * A reload (a deploy's service worker, chunk recovery, pull to
+                 * refresh) mid-signup lands here signed in. /home would send it
+                 * to /setup/finish, which only creates the wallet: the email and
+                 * every other step after registration were silently skipped.
+                 * Entry never trusts a reloaded ?screen=, so restart at the
+                 * first step after registration.
+                 */
+                resumeSignup.current = true
+                if (resolvedEntry.current !== null) {
+                    setScreenIdRef.current(postRegistrationScreen(steps.map((entry) => entry.screenId)), {
+                        history: 'replace',
+                    })
+                }
+                return
+            }
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
             setIsLeavingForHome(true)
             router.replace(signedInExit)
@@ -360,9 +386,9 @@ function SetupPageContent() {
         urlBadgeCampaigns,
         deepLinkGeneration,
         searchParamsString,
+        steps,
     ])
 
-    const resolvedEntry = useRef<string | null>(null)
     useEffect(() => {
         let cancelled = false
         const isObsolete = () => cancelled || initializationExpired.current
@@ -379,6 +405,8 @@ function SetupPageContent() {
             setIsLoading(true)
             await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
             if (isObsolete()) return
+            const entryScreen = (target: ScreenId): ScreenId =>
+                resumeSignup.current ? postRegistrationScreen(steps.map((entry) => entry.screenId)) : target
 
             // The entry-step rules (invite code / ?step=signup opening the form
             // directly, ?step=login, a known device going to Log In) live in
@@ -419,7 +447,7 @@ function SetupPageContent() {
             // webview gates so every browser can reach Landing's Log In and
             // native-store actions, including devices that cannot onboard.
             if (webSignupClosed) {
-                const targetStep = resolveSetupEntryStep(entryInput)
+                const targetStep = entryScreen(resolveSetupEntryStep(entryInput))
                 if (!steps.some((s) => s.screenId === targetStep)) throw new Error('Setup entry step is missing')
                 resolvedEntry.current = entryKey
                 setScreenIdRef.current(targetStep, { history: 'replace' })
@@ -429,7 +457,7 @@ function SetupPageContent() {
 
             // In Capacitor, passkeys are handled natively. Skip browser, webview, and OS checks.
             if (isCapacitor()) {
-                const targetStep = resolveSetupEntryStep(entryInput)
+                const targetStep = entryScreen(resolveSetupEntryStep(entryInput))
                 // replace, not push: the entry step overwrites any stale
                 // ?screen= from a reload or shared link — the URL is only the
                 // source of truth for IN-FLOW navigation (TASK-21460)
@@ -500,7 +528,7 @@ function SetupPageContent() {
             }
 
             // if no modal was triggered, proceed to determine actual setup step
-            determinedSetupInitialStepId = resolveSetupEntryStep(entryInput)
+            determinedSetupInitialStepId = entryScreen(resolveSetupEntryStep(entryInput))
 
             // Entry always REPLACES — a stale ?screen= must never survive a
             // fresh load into a step whose prerequisite state is gone.
