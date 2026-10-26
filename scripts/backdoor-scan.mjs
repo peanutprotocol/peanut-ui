@@ -193,6 +193,22 @@ export function lineHash(text) {
 	return createHash('sha256').update(text.trim()).digest('hex')
 }
 
+// A column-aligned `# note` cannot run: it paged Squirrel-Core on animation scripts on 2026-10-23.
+// Only `#` languages, and only when the comment holds no quote or backslash, because a `#` inside a
+// string (s = "x   #"; os.system(...)) would otherwise hide the code after the string closes.
+const HASH_COMMENT_FILE = /\.(py|sh|bash|zsh|ya?ml)$|(^|\/)(Dockerfile|Makefile)$/i
+
+export function offScreenIsComment(path, text) {
+	if (!HASH_COMMENT_FILE.test(path)) return false
+	const gap = text.match(/[ \t]{60,}/)
+	const offScreen = text.slice(gap.index + gap[0].length)
+	// A Python comment line can end an open string only with a triple quote; shell strings span lines.
+	const stringEnd = /\.py$/i.test(path) ? /"""|'''|\\/ : /["'`\\]/
+	const wholeLine = text.trimStart().startsWith('#') && !stringEnd.test(text)
+	const trailing = offScreen.startsWith('#') && !/["'`\\]/.test(offScreen)
+	return wholeLine || trailing
+}
+
 /** Deterministic findings for the added lines. */
 export function scanLines(lines, { allow = new Set() } = {}) {
 	const findings = []
@@ -210,7 +226,12 @@ export function scanLines(lines, { allow = new Set() } = {}) {
 		if (BIDI.test(entry.text)) add('block', 'bidi-control', entry, 'right-to-left/isolate control character (Trojan Source)')
 		if (HIDDEN_RUN.test(entry.text)) {
 			const run = entry.text.match(/[ \t]{60,}/)[0].length
-			add('block', 'hidden-code', entry, `${run} spaces, then more code off-screen`)
+			// A .json file nothing runs is data: off-screen text there is a string, not code. It paged
+			// Squirrel-Core on an archived PostHog query export on 2026-10-20. JSON that runs
+			// (package.json, .vscode, .devcontainer, rc files) is on the exec surface and still blocks.
+			const data = /\.json$/i.test(entry.path) && !tier
+			const comment = offScreenIsComment(entry.path, entry.text)
+			add(data || comment ? 'warn' : 'block', 'hidden-code', entry, `${run} spaces, then more ${data ? 'text' : comment ? 'comment' : 'code'} off-screen`)
 		}
 		if (entry.text.length > LONG_LINE) {
 			add(tier ? 'block' : 'warn', 'very-long-line', entry, `${entry.text.length} characters on one line`)
