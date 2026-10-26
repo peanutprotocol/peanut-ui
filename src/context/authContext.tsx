@@ -32,6 +32,7 @@ import {
     reconcileNotificationIdentity,
     resumeNotificationIdentity,
 } from '@/services/onesignal/identity'
+import { reportPushIdentityFailure } from '@/services/onesignal/identity-report'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react'
@@ -243,8 +244,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return result.data ?? null
         }, cancel)
         if (generation === logoutGeneration.current && pushLogoutVersion === getNotificationLogoutVersion()) {
-            void resumeNotificationIdentity(profile.user.userId).catch(() => {
-                captureException(new Error('Push identity login failed'), { tags: { source: 'push_identity_login' } })
+            void resumeNotificationIdentity(profile.user.userId).catch((error) => {
+                reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
             })
         }
         return profile
@@ -272,10 +273,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 if (!active || loggingOut.current || isDemoMode()) return null
                 if (result.error) throw result.error
                 return result.data?.user?.userId ?? null
-            }).catch(() => {
-                captureException(new Error('Push identity reconciliation failed'), {
-                    tags: { source: 'push_identity_reconcile' },
-                })
+            }).catch((error) => {
+                reportPushIdentityFailure('Push identity reconciliation failed', 'push_identity_reconcile', error)
             })
         }
         const unsubscribe = onNotificationIdentityLoginAvailable(reconcile)
@@ -341,8 +340,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }),
         })
         if (generation === logoutGeneration.current && pushLogoutVersion === getNotificationLogoutVersion()) {
-            void resumeNotificationIdentity(userId).catch(() => {
-                captureException(new Error('Push identity login failed'), { tags: { source: 'push_identity_login' } })
+            void resumeNotificationIdentity(userId).catch((error) => {
+                reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
             })
         }
         return outcome
@@ -447,10 +446,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // that by storing the current path as the post-auth destination.
             beginIntentionalLogout()
             // Start before any auth await; SDK events cannot relink the old user.
-            const pushLogout = logoutNotificationIdentity().catch(() => {
-                captureException(new Error('Push identity logout failed or timed out'), {
-                    tags: { source: 'push_identity_logout' },
-                })
+            const pushLogout = logoutNotificationIdentity().catch((error) => {
+                reportPushIdentityFailure('Push identity logout failed or timed out', 'push_identity_logout', error)
             })
             try {
                 /*
