@@ -22,7 +22,7 @@ import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import { useAuth } from '@/context/authContext'
 import { getShakeClass } from '@/utils/perk.utils'
 import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-payment.utils'
-import { formatNumberForDisplay } from '@/utils/general.utils'
+import { formatCurrency } from '@/utils/general.utils'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { useQrPayFlow } from '../QrPayFlowContext'
@@ -70,7 +70,7 @@ export function QrPaySuccessView() {
         ? savingsInCents < 100
             ? t('success.savedVsCardCents', { count: savingsInCents })
             : t('success.savedVsCardDollars', {
-                  amount: formatNumberForDisplay((savingsInCents / 100).toString(), { maxDecimals: 2 }),
+                  amount: formatCurrency(savingsInCents / 100),
               })
         : ''
 
@@ -100,14 +100,11 @@ export function QrPaySuccessView() {
                             </h1>
                             <div className="text-heading-s">
                                 {currency.symbol}{' '}
-                                {formatNumberForDisplay(
-                                    qrPayment?.details.paymentAssetAmount ?? paymentLock?.paymentAssetAmount,
-                                    { maxDecimals: 2 }
+                                {formatCurrency(
+                                    qrPayment?.details.paymentAssetAmount ?? paymentLock?.paymentAssetAmount
                                 )}
                             </div>
-                            <div className="text-heading-card">
-                                ≈ {formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })} USD
-                            </div>
+                            <div className="text-heading-card">≈ {formatCurrency(usdAmount ?? undefined)} USD</div>
                             {/* Savings Message (Argentina Manteca only) */}
                             {showSavingsMessage && savingsMessage && (
                                 <p className="text-body-s text-foreground-secondary italic">{savingsMessage}</p>

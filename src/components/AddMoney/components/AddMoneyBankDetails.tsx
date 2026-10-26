@@ -9,13 +9,12 @@ import { useRouter, useParams } from 'next/navigation'
 import { useReturnTo } from '@/hooks/useSafeBack'
 import { useCallback, useEffect, useMemo } from 'react'
 import { countryData } from '@/components/AddMoney/consts'
-import { formatBankAmount } from '@/utils/currency'
+import { formatAmountNumber, formatBankAmount } from '@/utils/currency'
 import { shortDepositReference } from '@/utils/format.utils'
 import { applyBridgeCrossCurrencyFee, getCurrencySymbol } from '@/utils/bridge.utils'
 import { bankDepositAccountRows, bankDepositCurrency, bankDepositRail } from '@/utils/bank-deposit.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
-import { formatAmount } from '@/utils/general.utils'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
@@ -166,9 +165,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                 // fiat rail (fee-free USD↔USDC) and 'usdc' as the stablecoin. The "$" shown
                 // to the user is just display; the on-chain transfer is EUR/GBP/MXN → USDC.
                 const netUsd = applyBridgeCrossCurrencyFee(grossUsd, onrampCurrency, 'USDC')
-                return '≈ ' + usdCurrencySymbol + ' ' + formatAmount(netUsd)
+                return '≈ ' + usdCurrencySymbol + ' ' + formatAmountNumber(netUsd)
             }
-            return '≈ ' + currencySymbolBasedOnCountry + ' ' + formatAmount(baseAmount * exchangeRate)
+            return '≈ ' + currencySymbolBasedOnCountry + ' ' + formatAmountNumber(baseAmount * exchangeRate)
         },
         [
             exchangeRate,

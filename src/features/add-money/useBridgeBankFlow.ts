@@ -4,7 +4,6 @@ import { useNativePlatform } from '@/utils/native-platform'
 import { countryData } from '@/components/AddMoney/consts'
 import countryCurrencyMappings, { isNonEuroSepaCountry, isUKCountry } from '@/constants/countryCurrencyMapping'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
@@ -24,14 +23,13 @@ import { getCurrencyConfig, getMinimumAmount, railJurisdictionForBank } from '@/
 import { nextDepositStep, isVerifiableGate } from '@/utils/capability-gate'
 import { headsUpDeadline } from '@/utils/bridge-tasks.utils'
 import { upliftTriggerFromGate } from '@/utils/eea-uplift.utils'
-import { formatAmount } from '@/utils/general.utils'
+import { formatUsdcBalance } from '@/utils/balance.utils'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
 import { useLocale, useTranslations } from 'next-intl'
 import { useParams } from 'next/navigation'
 import { useQueryState, useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import posthog from 'posthog-js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { formatUnits } from 'viem'
 import type { BridgeBankStep } from './types'
 
 /**
@@ -159,7 +157,7 @@ export function useBridgeBankFlow() {
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     const peanutWalletBalance = useMemo(() => {
-        return balance !== undefined ? formatAmount(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS)) : ''
+        return balance !== undefined ? formatUsdcBalance(balance) : ''
     }, [balance])
 
     const minimumAmount = useMemo(() => {
