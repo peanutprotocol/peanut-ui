@@ -13,10 +13,6 @@ import RecordSectionCard from './RecordSectionCard'
 const POSTHOG_PERSON_URL = 'https://eu.posthog.com/project/138913/person/'
 const SUMSUB_APPLICANT_URL = 'https://cockpit.sumsub.com/checkus#/applicant/'
 
-function jumpTo(anchor: string) {
-    document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-
 export default function UserRecordView({ userId }: { userId: string }) {
     const record = useQuery({
         queryKey: ['dev-user-records', 'user', userId],
@@ -73,15 +69,14 @@ export default function UserRecordView({ userId }: { userId: string }) {
 
             <nav aria-label="Tables" className="flex gap-2 overflow-x-auto py-1">
                 {[{ table: 'users', total: user.columns.length, error: undefined }, ...filled].map((section) => (
-                    <button
+                    <a
                         key={section.table}
-                        type="button"
-                        onClick={() => jumpTo(sectionAnchor(section.table))}
+                        href={`#${sectionAnchor(section.table)}`}
                         className="shrink-0 rounded-full border border-border-default bg-background-default px-3 py-1 font-mono text-body-xs whitespace-nowrap"
                     >
                         {section.table}{' '}
                         <span className="text-foreground-secondary">{section.error ? '!' : section.total}</span>
-                    </button>
+                    </a>
                 ))}
             </nav>
 

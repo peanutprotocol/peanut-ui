@@ -73,7 +73,8 @@ export default function UserRecordsPage() {
                 <aside
                     className={twMerge(
                         CARD_SURFACE,
-                        'flex flex-col overflow-hidden md:sticky md:top-4 md:max-h-[calc(100dvh-2rem)]'
+                        // On a phone the record renders under the list: cap the list so a selection is in view.
+                        'flex max-h-[45dvh] flex-col overflow-hidden md:sticky md:top-4 md:max-h-[calc(100dvh-2rem)]'
                     )}
                 >
                     <div className="flex flex-col gap-3 border-b border-border-default p-4">

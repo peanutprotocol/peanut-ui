@@ -3,6 +3,8 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { twMerge } from '@/utils/tw'
 import { fetchUserList } from '../userRecords.api'
 import type { UserSort } from '../userRecords.types'
@@ -36,32 +38,36 @@ export default function UserList({
 
     return (
         <div className="flex flex-col">
-            <ol className="divide-y divide-border-default">
-                {users.map((user) => (
+            <ol>
+                {users.map((user, index) => (
                     <li key={user.user_id}>
-                        <button
-                            type="button"
+                        <ListItem
+                            title={displayName(user)}
+                            truncate
+                            position={getCardPosition(index, users.length)}
                             onClick={() => onSelect(user.user_id)}
-                            aria-current={user.user_id === selectedId ? 'true' : undefined}
+                            trailing={<KycBadge status={user.kyc_status} />}
+                            // the list sits inside a bordered card: drop the row's own side borders and radius
                             className={twMerge(
-                                'flex w-full flex-col gap-1 px-4 py-3 text-left hover:bg-background-badge-accent/30',
+                                'rounded-none border-x-0 px-4 py-3 first:border-t-0 hover:bg-background-badge-accent/30',
                                 user.user_id === selectedId && 'bg-background-selection'
                             )}
-                        >
-                            <span className="flex w-full items-center justify-between gap-2">
-                                <span className="truncate text-body-s-semibold">{displayName(user)}</span>
-                                <KycBadge status={user.kyc_status} />
-                            </span>
-                            <span className="flex min-w-0 gap-3 text-body-xs text-foreground-secondary">
-                                {user.username && <span className="shrink-0">@{user.username}</span>}
-                                {user.email && <span className="truncate">{user.email}</span>}
-                            </span>
-                            <span className="flex gap-3 text-body-xs text-foreground-secondary">
-                                <span>{listDate(user, sort)}</span>
-                                {user.residence_country && <span className="font-mono">{user.residence_country}</span>}
-                                {user.is_active === false && <span>Inactive</span>}
-                            </span>
-                        </button>
+                            body={
+                                <span className="flex min-w-0 flex-col gap-0.5 text-body-xs">
+                                    <span className="flex min-w-0 gap-3">
+                                        {user.username && <span className="shrink-0">@{user.username}</span>}
+                                        {user.email && <span className="truncate">{user.email}</span>}
+                                    </span>
+                                    <span className="flex gap-3">
+                                        <span>{listDate(user, sort)}</span>
+                                        {user.residence_country && (
+                                            <span className="font-mono">{user.residence_country}</span>
+                                        )}
+                                        {user.is_active === false && <span>Inactive</span>}
+                                    </span>
+                                </span>
+                            }
+                        />
                     </li>
                 ))}
             </ol>

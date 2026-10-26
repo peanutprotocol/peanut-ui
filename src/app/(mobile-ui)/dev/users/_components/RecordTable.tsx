@@ -41,7 +41,7 @@ export default function RecordTable({ section }: { section: RecordSection }) {
                                 aria-expanded={open === index}
                                 title="Show all fields"
                                 className={twMerge(
-                                    'cursor-pointer hover:bg-background-badge-accent/30 focus-visible:bg-background-badge-accent/30 focus-visible:outline-none',
+                                    'cursor-pointer hover:bg-background-badge-accent/30 focus-visible:outline-[3px] focus-visible:-outline-offset-[3px] focus-visible:outline-action-focus',
                                     open === index && 'bg-background-selection'
                                 )}
                                 onClick={() => toggle(index)}
