@@ -34,6 +34,19 @@ jobs:
               run: pnpm add --global vercel@62.2.0
             - name: Link to Project
               run: vercel link --yes --project=peanut-wallet --scope=squirrellabs --token=${{ secrets.VERCEL_TOKEN }}
+            # The project build command starts with `git submodule update`. A CLI
+            # upload has no .git, so that step fails. The checkout above already
+            # holds src/content, so this runner-only vercel.json override runs the
+            # rest of the project build command. Keep it in sync with the project
+            # setting.
+            - name: Skip the submodule fetch in the Vercel build
+              run: |
+                  node -e "
+                  const fs = require('fs');
+                  const config = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
+                  config.buildCommand = 'pnpm generate:signup-attribution-paths && pnpm exec next build --webpack';
+                  fs.writeFileSync('vercel.json', JSON.stringify(config, null, 4));
+                  "
             # Build on Vercel, not on this runner. The project's env vars are
             # "sensitive", so `vercel pull` only returns the literal [SENSITIVE];
             # a remote build reads the real values.
