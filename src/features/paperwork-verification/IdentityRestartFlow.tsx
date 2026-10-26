@@ -86,7 +86,8 @@ function RestartSteps({ plan, onExit }: { plan: KycDocumentPlan; onExit: () => v
     const locale = useLocale()
     const router = useRouter()
     const { user } = useAuth()
-    const residence = user?.residence?.declared ?? null
+    // a requested change is the residence the new check is for
+    const residence = user?.residence?.declared?.country ?? user?.residence?.verified?.country ?? null
     const [submitted, setSubmitted] = useState(false)
     const [busy, setBusy] = useState(false)
     const [identityStepTitle, setIdentityStepTitle] = useState<string>()

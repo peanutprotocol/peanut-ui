@@ -155,7 +155,7 @@ const onTerms: UserCapabilities = {
 }
 const verifiedUser = (capabilities: UserCapabilities) => ({
     identityVerification: { status: 'verified' },
-    residence: { declared: 'BR', verified: 'BR' },
+    residence: { verified: { country: 'BR', status: 'VERIFIED', updatedAt: null }, declared: null },
     capabilities,
 })
 

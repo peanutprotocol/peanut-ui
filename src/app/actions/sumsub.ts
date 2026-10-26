@@ -123,9 +123,9 @@ export const initiateSumsubKyc = async (params?: {
     try {
         const response = await serverFetch('/users/identity', {
             method: 'POST',
-            body: JSON.stringify(body),
             // lets the API refuse today's start to a user it put on Smart Paperwork Verification
-            headers: paperworkVerificationHeaders(),
+            headers: { 'x-residence-format': 'compact', ...paperworkVerificationHeaders() },
+            body: JSON.stringify(body),
         })
 
         const responseJson = await response.json()
@@ -225,7 +225,7 @@ export const restartIdentityVerification = async (
         const intent = regionIntent && RESTART_REGION_INTENTS.has(regionIntent) ? regionIntent : undefined
         const response = await serverFetch('/users/identity/restart', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact' },
             body: JSON.stringify({ ...(intent && { regionIntent: intent }), ...(replacement && { replacement }) }),
         })
         const responseJson = await response.json()

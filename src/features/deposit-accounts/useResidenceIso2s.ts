@@ -31,8 +31,15 @@ export function useResidenceIso2s(): string[] {
 
     return useMemo(() => {
         // the server's answer wins whenever it sends the field, `null` included
-        const second = residence?.declaredSecond === undefined ? localSecond : residence.declaredSecond
-        const declared = residence?.declared ?? localDeclared
-        return gatingResidenceIso2s({ verified: residence?.verified, declared, second })
-    }, [residence?.verified, residence?.declared, residence?.declaredSecond, localDeclared, localSecond])
+        const second =
+            residence?.secondaryDeclaredCountry === undefined ? localSecond : residence.secondaryDeclaredCountry
+        const declared = residence?.declared?.country ?? localDeclared
+        return gatingResidenceIso2s({ verified: residence?.verified?.country, declared, second })
+    }, [
+        residence?.verified?.country,
+        residence?.declared?.country,
+        residence?.secondaryDeclaredCountry,
+        localDeclared,
+        localSecond,
+    ])
 }

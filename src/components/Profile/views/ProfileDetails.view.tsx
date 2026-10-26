@@ -77,7 +77,8 @@ export const ProfileDetailsView = () => {
     const { name, surname } = splitName(user?.user.fullName)
     const email = user?.user.email?.trim()
     const residence = user?.residence
-    const residenceCountry = residence?.verified ?? residence?.declared ?? null
+    // a requested change stays declared until verified: the verified country is still the residence
+    const residenceCountry = residence?.verified?.country ?? residence?.declared?.country ?? null
     const held = new Set(details?.heldBySumsub ?? [])
     const notStored = <span className="text-body-s text-foreground-secondary">{t('notStored')}</span>
 
@@ -119,8 +120,8 @@ export const ProfileDetailsView = () => {
                             t(residence?.verified ? 'rows.verifiedResidence' : 'rows.declaredResidence'),
                             country(residenceCountry)
                         )}
-                    {residence?.declaredSecond &&
-                        row('secondResidence', t('rows.secondResidence'), country(residence.declaredSecond))}
+                    {residence?.secondaryDeclaredCountry &&
+                        row('secondResidence', t('rows.secondResidence'), country(residence.secondaryDeclaredCountry))}
                     {heldRows(IDENTITY_ROWS)}
                     {documentName && row('document', t('rows.document'), documentName)}
                 </DataRowGroup>

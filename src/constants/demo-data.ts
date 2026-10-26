@@ -151,7 +151,11 @@ export const DEMO_USER: IUserProfile = {
     invitesSent: [],
     showEarlyUserModal: false,
     invitedBy: null,
-    residence: { declared: 'BR', declaredSecond: null, verified: null, kycReported: null },
+    residence: {
+        verified: null,
+        declared: { country: 'BR', status: 'UNVERIFIED', updatedAt: null, secondCountry: null },
+        secondaryDeclaredCountry: null,
+    },
     capabilities: DEMO_CAPABILITIES,
     identityVerification: DEMO_IDENTITY_VERIFICATION,
     accounts: [

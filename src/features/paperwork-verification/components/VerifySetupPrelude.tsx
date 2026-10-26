@@ -71,7 +71,7 @@ function PreludeScreens({
 
     useLayoutEffect(() => setSteps(setupSteps.filter((step) => screens.includes(step.screenId))), [screens, setSteps])
     // the payment plan's options follow the residence, which a features-only visit already has
-    const declared = user?.residence?.declared
+    const declared = user?.residence?.declared?.country ?? user?.residence?.verified?.country
     useLayoutEffect(() => {
         if (!needs.includes('residence') && declared && !residenceCountry) setResidenceCountry(declared)
     }, [needs, declared, residenceCountry, setResidenceCountry])

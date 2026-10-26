@@ -8,6 +8,7 @@ import { screen, within } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { getKycDetails } from '@/app/actions/kyc-paperwork-verification'
 import type { KycCollectedDetails } from '@/app/actions/types/kyc-paperwork-verification.types'
+import { normalizeResidence } from '@/utils/residence-profile'
 import { ProfileDetailsView } from '../ProfileDetails.view'
 
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
@@ -15,7 +16,7 @@ jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: (
 jest.mock('@/app/actions/kyc-paperwork-verification', () => ({ getKycDetails: jest.fn() }))
 const mockUser = {
     user: { fullName: 'Ivan Petrenko', email: 'ivan@example.com' },
-    residence: { declared: 'PT', declaredSecond: null as string | null, verified: 'PT' as string | null },
+    residence: normalizeResidence({ declared: 'PT', declaredSecond: null, verified: 'PT' }),
 }
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
 
@@ -40,7 +41,7 @@ const rowValue = (label: string) => {
 
 beforeEach(() => {
     jest.mocked(getKycDetails).mockResolvedValue(details())
-    mockUser.residence = { declared: 'PT', declaredSecond: null, verified: 'PT' }
+    mockUser.residence = normalizeResidence({ declared: 'PT', declaredSecond: null, verified: 'PT' })
 })
 
 describe('ProfileDetailsView', () => {
@@ -66,7 +67,7 @@ describe('ProfileDetailsView', () => {
     })
 
     it('names an unverified residence as declared, and shows a stored address as written', async () => {
-        mockUser.residence = { declared: 'ES', declaredSecond: 'PT', verified: null }
+        mockUser.residence = normalizeResidence({ declared: 'ES', declaredSecond: 'PT', verified: null })
         jest.mocked(getKycDetails).mockResolvedValue(
             details({
                 heldBySumsub: [],

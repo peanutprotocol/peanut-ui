@@ -141,6 +141,9 @@ dependencies {
     // play install referrer — deferred deep linking (InstallReferrerPlugin.java)
     implementation "com.android.installreferrer:installreferrer:2.2"
 
+    // Current Play country for transient product availability (not install attribution).
+    implementation "com.android.billingclient:billing:8.3.0"
+
     // sentry native crash reporting (TASK-20964) — configured via AndroidManifest
     // meta-data, auto-inits before Application. deliberately the aggregate
     // artifact (core + ndk): the webview renderer and capacitor plugins crash at

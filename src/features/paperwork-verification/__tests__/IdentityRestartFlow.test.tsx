@@ -31,7 +31,15 @@ jest.mock('@/app/actions/kyc-workflow', () => ({
     startKycDocumentReplacement: jest.fn(),
 }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { username: 'tester' }, residence: { declared: 'PT' } } }),
+    useAuth: () => ({
+        user: {
+            user: { username: 'tester' },
+            residence: {
+                verified: null,
+                declared: { country: 'PT', status: 'UNVERIFIED', updatedAt: null, secondCountry: null },
+            },
+        },
+    }),
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))

@@ -32,6 +32,7 @@ import {
     type KycPlanNeed,
 } from '@/app/actions/types/kyc-workflow.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
+import { pendingResidenceCountry } from '@/utils/residence-profile'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
 import { QuestionStepScreen, trackSaveOutcome } from './components/QuestionStepScreen'
@@ -624,10 +625,10 @@ function PaperworkVerificationSteps({
                     visible={residenceOpen}
                     onClose={() => setResidenceOpen(false)}
                     userId={user?.user.userId}
-                    declared={user?.residence?.declared ?? questions.residence}
-                    declaredSecond={user?.residence?.declaredSecond}
-                    verified={user?.residence?.verified ?? null}
-                    pending={user?.residence?.pending ?? null}
+                    declared={user?.residence?.declared?.country ?? questions.residence}
+                    declaredSecond={user?.residence?.secondaryDeclaredCountry}
+                    verified={user?.residence?.verified?.country ?? null}
+                    pending={pendingResidenceCountry(user?.residence)}
                     onSaved={async () => {
                         // The questions follow the residence: the server rebuilds them for the new country.
                         await fetchUser()

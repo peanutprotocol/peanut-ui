@@ -932,7 +932,7 @@ export const useMultiPhaseKycFlow = ({
         }
     }, [readsRefusals])
 
-    const residence = user?.residence?.verified ?? user?.residence?.declared ?? null
+    const residence = user?.residence?.verified?.country ?? user?.residence?.declared?.country ?? null
     const setupStatus = setupFeatures
         ? {
               // the SDK and the terms take the screen; the status waits under them
