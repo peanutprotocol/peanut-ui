@@ -1479,7 +1479,8 @@
             "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contacta a soporte para recibir ayuda.",
             "uploadDocument": "Subir documento",
             "verifyAgainTitle": "Necesitamos algunos datos más",
-            "verifyAgainDescription": "Nos faltan algunos datos. Completa la verificación adicional."
+            "verifyAgainDescription": "Nos faltan algunos datos. Completa la verificación adicional.",
+            "verifyAgainCta": "Continuar"
         },
         "info": {
             "exchangeRate": "Tipo de cambio",

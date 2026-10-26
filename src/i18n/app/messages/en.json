@@ -1479,7 +1479,8 @@
             "blockedDescription": "QR payments are not available for your account. Contact support for help.",
             "uploadDocument": "Upload document",
             "verifyAgainTitle": "We need a few more details",
-            "verifyAgainDescription": "We're missing a few details. Please complete the additional verification."
+            "verifyAgainDescription": "We're missing a few details. Please complete the additional verification.",
+            "verifyAgainCta": "Continue"
         },
         "info": {
             "exchangeRate": "Exchange Rate",
