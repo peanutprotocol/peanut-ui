@@ -612,6 +612,8 @@
         "details": {
             "title": "Profile",
             "notStored": "Not stored at Peanut",
+            "yes": "Yes",
+            "no": "No",
             "rows": {
                 "name": "Name",
                 "surname": "Surname",

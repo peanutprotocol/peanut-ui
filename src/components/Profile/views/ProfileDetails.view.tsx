@@ -9,15 +9,17 @@ import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { receiptDataRowCardClassName } from '@/components/TransactionDetails/receipt-data-row-layout'
 import { getKycDetails } from '@/app/actions/kyc-paperwork-verification'
-import type { KycCollectedDetails } from '@/app/actions/types/kyc-paperwork-verification.types'
+import type { KycCollectedDetails, KycStoredDetail } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { useAuth } from '@/context/authContext'
+import { humanizeOccupation, useOccupationLabels } from '@/features/paperwork-verification/occupations/labels'
 import { DOCUMENT_KEYS } from '@/features/paperwork-verification/paperworkVerification.utils'
+import { useOptionLabel } from '@/features/paperwork-verification/useOptionLabel'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { localizedCountryName } from '@/utils/country-name.utils'
 
 export const PROFILE_DETAILS_QUERY_KEY = ['kyc-details'] as const
 
-// What verification asked that only Sumsub holds, in the page's order, by theme.
+// What verification collected, in the page's order, by theme.
 const IDENTITY_ROWS = ['citizenship', 'dateOfBirth', 'countryOfBirth', 'cityOfBirth'] as const
 const CONTACT_ROWS = ['phone', 'address', 'taxId'] as const
 const MONEY_ROWS = [
@@ -32,7 +34,7 @@ const MONEY_ROWS = [
     'actingAsIntermediary',
 ] as const
 const PERSONAL_ROWS = ['sex', 'maritalStatus', 'isPep', 'isFatca', 'isFep'] as const
-type HeldRow = (typeof IDENTITY_ROWS | typeof CONTACT_ROWS | typeof MONEY_ROWS | typeof PERSONAL_ROWS)[number]
+type DetailRow = (typeof IDENTITY_ROWS | typeof CONTACT_ROWS | typeof MONEY_ROWS | typeof PERSONAL_ROWS)[number]
 
 const skeleton = 'animate-pulse rounded-full bg-foreground-primary/10 motion-reduce:animate-none'
 
@@ -56,10 +58,19 @@ function SkeletonRows() {
     )
 }
 
+/** A stored birth date in the reader's words, kept on its calendar day whatever the time zone. */
+function birthDate(locale: string, iso: string) {
+    const date = new Date(`${iso}T00:00:00Z`)
+    return Number.isNaN(date.getTime())
+        ? iso
+        : new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: 'UTC' }).format(date)
+}
+
 /**
  * Profile: what Peanut collected at sign-up and in verification. Peanut's own
- * records show their values; what only Sumsub holds says so instead of a value
- * (Slava, 2026-10-26). A row shows only for something collected.
+ * records show their values, every answer included but the address and the tax
+ * number; what only Sumsub holds says so instead of a value (Slava,
+ * 2026-10-26). A row shows only for something collected.
  */
 export const ProfileDetailsView = () => {
     const t = useTranslations('profile.details')
@@ -80,13 +91,44 @@ export const ProfileDetailsView = () => {
     // a requested change stays declared until verified: the verified country is still the residence
     const residenceCountry = residence?.verified?.country ?? residence?.declared?.country ?? null
     const held = new Set(details?.heldBySumsub ?? [])
+    const stored = details?.stored ?? {}
+    const optionLabel = useOptionLabel()
+    const occupationLabels = useOccupationLabels(!!stored.occupation)
     const notStored = <span className="text-body-s text-foreground-secondary">{t('notStored')}</span>
 
     const row = (key: string, label: string, value: ReactNode) => (
         <DataRow key={key} label={label} value={value} wrapLabel />
     )
-    const heldRows = (keys: readonly HeldRow[]) =>
-        keys.filter((key) => held.has(key)).map((key) => row(key, t(`rows.${key}`), notStored))
+    const shown = (key: KycStoredDetail, value: string): ReactNode => {
+        switch (key) {
+            case 'citizenship':
+            case 'countryOfBirth':
+                return country(value)
+            case 'dateOfBirth':
+                return birthDate(locale, value)
+            case 'occupation':
+                return occupationLabels?.[value] ?? humanizeOccupation(value)
+            case 'isPep':
+            case 'isFatca':
+            case 'isFep':
+                return t(value === 'yes' ? 'yes' : 'no')
+            case 'cityOfBirth':
+            case 'phone':
+                return value
+            default:
+                return optionLabel(key, value)
+        }
+    }
+    const storedRow = (key: KycStoredDetail) => {
+        const value = stored[key]
+        return value ? row(key, t(`rows.${key}`), shown(key, value)) : null
+    }
+    const detailRows = (keys: readonly DetailRow[]) =>
+        keys.map(
+            (key) =>
+                (key !== 'address' && key !== 'taxId' && storedRow(key)) ||
+                (held.has(key) ? row(key, t(`rows.${key}`), notStored) : null)
+        )
 
     const document = details?.document
     const documentName = document
@@ -122,7 +164,7 @@ export const ProfileDetailsView = () => {
                         )}
                     {residence?.secondaryDeclaredCountry &&
                         row('secondResidence', t('rows.secondResidence'), country(residence.secondaryDeclaredCountry))}
-                    {heldRows(IDENTITY_ROWS)}
+                    {detailRows(IDENTITY_ROWS)}
                     {documentName && row('document', t('rows.document'), documentName)}
                 </DataRowGroup>
                 {isPending ? (
@@ -130,12 +172,12 @@ export const ProfileDetailsView = () => {
                 ) : (
                     <>
                         <DataRowGroup>
-                            {heldRows(['phone'])}
-                            {addressText ? row('address', t('rows.address'), addressText) : heldRows(['address'])}
-                            {heldRows(['taxId'])}
+                            {detailRows(['phone'])}
+                            {addressText ? row('address', t('rows.address'), addressText) : detailRows(['address'])}
+                            {detailRows(['taxId'])}
                         </DataRowGroup>
-                        <DataRowGroup>{heldRows(MONEY_ROWS)}</DataRowGroup>
-                        <DataRowGroup>{heldRows(PERSONAL_ROWS)}</DataRowGroup>
+                        <DataRowGroup>{detailRows(MONEY_ROWS)}</DataRowGroup>
+                        <DataRowGroup>{detailRows(PERSONAL_ROWS)}</DataRowGroup>
                     </>
                 )}
             </Card>

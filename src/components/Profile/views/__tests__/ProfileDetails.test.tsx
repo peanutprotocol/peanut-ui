@@ -1,7 +1,8 @@
 /**
  * Slava, 2026-10-26: Profile lists what sign-up and verification collected.
- * Peanut's records show their values; what only Sumsub holds says "Not stored
- * at Peanut"; a row shows only for something collected; no location row.
+ * Peanut's records show their values, every answer included but the address and
+ * the tax number; what only Sumsub holds says "Not stored at Peanut"; a row shows
+ * only for something collected; no location row.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { screen, within } from '@testing-library/react'
@@ -23,7 +24,18 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) 
 const details = (overrides: Partial<KycCollectedDetails> = {}): KycCollectedDetails => ({
     document: { type: 'RESIDENCE_PERMIT', country: 'PT' },
     address: null,
-    heldBySumsub: ['citizenship', 'dateOfBirth', 'taxId', 'bankPurpose', 'address'],
+    stored: {
+        citizenship: 'UA',
+        dateOfBirth: '1990-04-02',
+        cityOfBirth: 'Odesa',
+        phone: '+351912345678',
+        occupation: 'airline_pilot_copilot_and_flight_engineer',
+        annualSalary: '25k_50k',
+        bankPurpose: 'investment_purposes',
+        isPep: 'no',
+        isFatca: 'yes',
+    },
+    heldBySumsub: ['taxId', 'address'],
     ...overrides,
 })
 
@@ -53,14 +65,34 @@ describe('ProfileDetailsView', () => {
         expect(rowValue('Email')).toBe('ivan@example.com')
         expect(rowValue('Verified residence')).toBe('Portugal')
         expect(rowValue('ID document')).toBe('Residence permit, Portugal')
-        for (const label of ['Citizenship', 'Date of birth', 'Tax number', 'Account use', 'Address'])
-            expect(rowValue(label)).toBe('Not stored at Peanut')
+        for (const label of ['Tax number', 'Address']) expect(rowValue(label)).toBe('Not stored at Peanut')
+    })
+
+    it('shows the answers Peanut keeps in words', async () => {
+        render()
+        expect(await screen.findByText('Airline pilot, copilot, and flight engineer')).toBeInTheDocument()
+        expect(rowValue('Citizenship')).toBe('Ukraine')
+        expect(rowValue('Date of birth')).toBe('April 2, 1990')
+        expect(rowValue('City of birth')).toBe('Odesa')
+        expect(rowValue('Phone number')).toBe('+351912345678')
+        expect(rowValue('Yearly income')).toBe('$25,000–$49,999')
+        expect(rowValue('Account use')).toBe('Investing')
+        expect(rowValue('Public office')).toBe('No')
+        expect(rowValue('US citizen or tax resident')).toBe('Yes')
+    })
+
+    it('an answer Peanut could not copy yet still reads as held by Sumsub', async () => {
+        jest.mocked(getKycDetails).mockResolvedValue(details({ stored: {}, heldBySumsub: ['dateOfBirth', 'taxId'] }))
+        render()
+        expect(await screen.findByText('Date of birth')).toBeInTheDocument()
+        expect(rowValue('Date of birth')).toBe('Not stored at Peanut')
+        expect(screen.queryByText('Citizenship')).toBeNull()
     })
 
     it('hides what was never collected, the funding and spending methods, and location', async () => {
         render()
         await screen.findByText('Citizenship')
-        for (const label of ['Card use', 'Phone number', 'Second residence', 'Occupation', 'Sex'])
+        for (const label of ['Card use', 'Second residence', 'Employment', 'Sex', 'Marital status'])
             expect(screen.queryByText(label)).toBeNull()
         expect(screen.queryByText(/location/i)).toBeNull()
         expect(screen.queryByText(/funding|spending method/i)).toBeNull()

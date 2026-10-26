@@ -80,6 +80,30 @@ export interface KycCollectedDetails {
         postCode: string | null
         country: string
     } | null
-    /** Collected, but only Sumsub holds them: the page shows them as not stored at Peanut. */
+    /** What Peanut keeps from verification, by row: option codes, ISO-2 countries, an E.164 phone, a YYYY-MM-DD date of birth. */
+    stored?: Partial<Record<KycStoredDetail, string>>
+    /** Collected, but only Sumsub holds them (the address and the tax number): the page shows them as not stored at Peanut. */
     heldBySumsub: string[]
 }
+
+/** Every answer Peanut keeps; never the address or the tax number (Slava, 2026-10-26). */
+export type KycStoredDetail =
+    | 'citizenship'
+    | 'dateOfBirth'
+    | 'countryOfBirth'
+    | 'cityOfBirth'
+    | 'phone'
+    | 'occupation'
+    | 'employmentStatus'
+    | 'annualSalary'
+    | 'expectedMonthlyVolume'
+    | 'bankMonthlyPayments'
+    | 'sourceOfFunds'
+    | 'bankPurpose'
+    | 'cardPurpose'
+    | 'actingAsIntermediary'
+    | 'sex'
+    | 'maritalStatus'
+    | 'isPep'
+    | 'isFatca'
+    | 'isFep'

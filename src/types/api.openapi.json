@@ -31175,11 +31175,74 @@
                                                 "type": "string"
                                             },
                                             "type": "array"
+                                        },
+                                        "stored": {
+                                            "properties": {
+                                                "actingAsIntermediary": {
+                                                    "type": "string"
+                                                },
+                                                "annualSalary": {
+                                                    "type": "string"
+                                                },
+                                                "bankMonthlyPayments": {
+                                                    "type": "string"
+                                                },
+                                                "bankPurpose": {
+                                                    "type": "string"
+                                                },
+                                                "cardPurpose": {
+                                                    "type": "string"
+                                                },
+                                                "citizenship": {
+                                                    "type": "string"
+                                                },
+                                                "cityOfBirth": {
+                                                    "type": "string"
+                                                },
+                                                "countryOfBirth": {
+                                                    "type": "string"
+                                                },
+                                                "dateOfBirth": {
+                                                    "type": "string"
+                                                },
+                                                "employmentStatus": {
+                                                    "type": "string"
+                                                },
+                                                "expectedMonthlyVolume": {
+                                                    "type": "string"
+                                                },
+                                                "isFatca": {
+                                                    "type": "string"
+                                                },
+                                                "isFep": {
+                                                    "type": "string"
+                                                },
+                                                "isPep": {
+                                                    "type": "string"
+                                                },
+                                                "maritalStatus": {
+                                                    "type": "string"
+                                                },
+                                                "occupation": {
+                                                    "type": "string"
+                                                },
+                                                "phone": {
+                                                    "type": "string"
+                                                },
+                                                "sex": {
+                                                    "type": "string"
+                                                },
+                                                "sourceOfFunds": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "required": [
                                         "document",
                                         "address",
+                                        "stored",
                                         "heldBySumsub"
                                     ],
                                     "type": "object"

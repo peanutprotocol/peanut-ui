@@ -15725,6 +15725,27 @@ export interface paths {
                                 type: string;
                             } | null;
                             heldBySumsub: string[];
+                            stored: {
+                                actingAsIntermediary?: string;
+                                annualSalary?: string;
+                                bankMonthlyPayments?: string;
+                                bankPurpose?: string;
+                                cardPurpose?: string;
+                                citizenship?: string;
+                                cityOfBirth?: string;
+                                countryOfBirth?: string;
+                                dateOfBirth?: string;
+                                employmentStatus?: string;
+                                expectedMonthlyVolume?: string;
+                                isFatca?: string;
+                                isFep?: string;
+                                isPep?: string;
+                                maritalStatus?: string;
+                                occupation?: string;
+                                phone?: string;
+                                sex?: string;
+                                sourceOfFunds?: string;
+                            };
                         };
                     };
                 };
