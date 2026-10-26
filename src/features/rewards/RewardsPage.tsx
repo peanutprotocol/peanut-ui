@@ -27,6 +27,7 @@ import dynamic from 'next/dynamic'
 import { useState } from 'react'
 import { useRewardsFlow } from './useRewardsFlow'
 import { getTierBadge, getTierProgressPercent } from './utils'
+import { twMerge } from '@/utils/tw'
 
 const InvitesGraph = dynamic(() => import('@/components/Global/InvitesGraph'), { ssr: false })
 const InviteFriendsModal = dynamic(() => import('@/components/Global/InviteFriendsModal'), { ssr: false })
@@ -278,7 +279,10 @@ export function RewardsPage() {
                                         position={getCardPosition(i, Math.min(5, invites.invitees.length))}
                                         // An invitee who never finished signup has no profile to open.
                                         onClick={username ? () => router.push(profileUrl(username)) : undefined}
-                                        className="cursor-pointer focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                                        className={twMerge(
+                                            username && 'cursor-pointer',
+                                            'focus-visible:outline-[3px] focus-visible:outline-action-focus'
+                                        )}
                                     >
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="flex items-center gap-3">
