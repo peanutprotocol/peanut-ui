@@ -166,7 +166,7 @@ const InvitesPage = () => {
                                 position={getCardPosition(i, invites.invitees.length)}
                                 // An invitee who never finished signup has no profile to open.
                                 onClick={username ? () => router.push(profileUrl(username)) : undefined}
-                                className="cursor-pointer"
+                                className={username ? 'cursor-pointer' : undefined}
                             >
                                 <div className="flex items-center justify-between gap-4">
                                     <div className="flex items-center gap-3">

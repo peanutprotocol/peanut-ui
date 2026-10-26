@@ -1379,6 +1379,11 @@
         "route": "/rewards/invites"
     },
     {
+        "id": "fixture-rewards-invites-unnamed",
+        "flow": "Rewards",
+        "route": "/rewards/invites"
+    },
+    {
         "id": "fixture-badges",
         "flow": "Rewards",
         "route": "/badges"
