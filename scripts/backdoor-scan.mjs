@@ -209,6 +209,22 @@ export function offScreenIsComment(path, text) {
 	return wholeLine || trailing
 }
 
+// A browser never runs `<script type="application/json">`: its body is data. Saved web pages carry
+// one inline, with long space runs inside its strings; App Store snapshots paged Konrad on
+// 2026-10-25. A body counts only when it parses as JSON, and `[^<]*` keeps it from closing its tag.
+const INERT_JSON_BLOCK = /<script type="application\/json"(?: id="[A-Za-z0-9_-]+")?>([^<]*)<\/script>/g
+
+export function withoutInertJson(text) {
+	return text.replace(INERT_JSON_BLOCK, (block, body) => {
+		try {
+			JSON.parse(body)
+			return ''
+		} catch {
+			return block
+		}
+	})
+}
+
 /** Deterministic findings for the added lines. */
 export function scanLines(lines, { allow = new Set() } = {}) {
 	const findings = []
@@ -229,7 +245,7 @@ export function scanLines(lines, { allow = new Set() } = {}) {
 			// A .json file nothing runs is data: off-screen text there is a string, not code. It paged
 			// Squirrel-Core on an archived PostHog query export on 2026-10-20. JSON that runs
 			// (package.json, .vscode, .devcontainer, rc files) is on the exec surface and still blocks.
-			const data = /\.json$/i.test(entry.path) && !tier
+			const data = !tier && (/\.json$/i.test(entry.path) || !HIDDEN_RUN.test(withoutInertJson(entry.text)))
 			const comment = offScreenIsComment(entry.path, entry.text)
 			add(data || comment ? 'warn' : 'block', 'hidden-code', entry, `${run} spaces, then more ${data ? 'text' : comment ? 'comment' : 'code'} off-screen`)
 		}
