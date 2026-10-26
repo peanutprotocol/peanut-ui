@@ -17,7 +17,7 @@ import type { KycAttemptSession, KycDocumentPlan } from '@/app/actions/types/kyc
 import type { PaperworkVerificationDocument } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
-import { DOCUMENT_KEYS } from './paperworkVerification.utils'
+import { DOCUMENT_KEYS, linkedToUkraine } from './paperworkVerification.utils'
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
 import { ReviewScreen } from './components/StatusScreens'
 import {
@@ -199,6 +199,7 @@ function RestartSteps({ plan, onExit }: { plan: KycDocumentPlan; onExit: () => v
                     plan={plan}
                     residence={residence}
                     restart
+                    ukraineLinked={linkedToUkraine(null, user, residence)}
                     busy={busy}
                     error={error}
                     onBack={() => void stepper.back()}

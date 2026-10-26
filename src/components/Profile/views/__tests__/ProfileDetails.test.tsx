@@ -22,10 +22,11 @@ const mockUser = {
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
 
 const details = (overrides: Partial<KycCollectedDetails> = {}): KycCollectedDetails => ({
+    name: { first: null, last: null },
+    citizenship: 'UA',
     document: { type: 'RESIDENCE_PERMIT', country: 'PT' },
     address: null,
     stored: {
-        citizenship: 'UA',
         dateOfBirth: '1990-04-02',
         cityOfBirth: 'Odesa',
         phone: '+351912345678',
@@ -82,11 +83,26 @@ describe('ProfileDetailsView', () => {
     })
 
     it('an answer Peanut could not copy yet still reads as held by Sumsub', async () => {
-        jest.mocked(getKycDetails).mockResolvedValue(details({ stored: {}, heldBySumsub: ['dateOfBirth', 'taxId'] }))
+        jest.mocked(getKycDetails).mockResolvedValue(
+            details({ citizenship: null, stored: {}, heldBySumsub: ['dateOfBirth', 'taxId'] })
+        )
         render()
         expect(await screen.findByText('Date of birth')).toBeInTheDocument()
         expect(rowValue('Date of birth')).toBe('Not stored at Peanut')
         expect(screen.queryByText('Citizenship')).toBeNull()
+    })
+
+    // Slava, 2026-10-26: what the database holds shows as a value, never as "Not stored".
+    it("shows the verified name and the ID's citizenship that Peanut stores", async () => {
+        jest.mocked(getKycDetails).mockResolvedValue(
+            details({ name: { first: 'Іван', last: 'Петренко' }, citizenship: 'UA', heldBySumsub: ['taxId'] })
+        )
+        render()
+        expect(await screen.findByText('Citizenship')).toBeInTheDocument()
+        expect(rowValue('Name')).toBe('Іван')
+        expect(rowValue('Surname')).toBe('Петренко')
+        expect(rowValue('Citizenship')).toBe('Ukraine')
+        expect(rowValue('Tax number')).toBe('Not stored at Peanut')
     })
 
     it('hides what was never collected, the funding and spending methods, and location', async () => {

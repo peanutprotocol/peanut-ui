@@ -3698,8 +3698,6 @@
             "midpoint": {
                 "restartTitle": "Verifícate con otro documento",
                 "restartDescription": "Elige el documento que usarás ahora. Luego toma fotos de él y una selfie rápida.",
-                "document": "Tipo de documento",
-                "issuedBy": "País de emisión",
                 "privacy": "Sumsub maneja tus documentos de forma segura.",
                 "failed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
                 "unavailable": "No podemos mostrar los documentos ahora. Inténtalo más tarde."
@@ -3806,8 +3804,6 @@
                 "otherDescription": "También puedes verificarte con uno de estos. Le tomarás fotos y te tomarás una selfie.",
                 "otherNotAccepted": "No se pueden usar visas, permisos de trabajo ni credenciales de estudiante para verificar tu identidad.",
                 "notAccepted": "Emitido en {country}. No se puede usar. No se acepta.",
-                "anotherCountry": "Un documento de otro país",
-                "anotherCountryHint": "Elige el documento y luego el país que lo emitió.",
                 "backToList": "Volver a la lista",
                 "noneFit": "¿No tienes ninguno de estos?",
                 "changeResidence": "Cambiar residencia",

@@ -32,12 +32,14 @@ function render({
     documentPlan,
     residence,
     citizenship = null,
+    ukraineLinked = false,
     onContinue = jest.fn(),
     onChangeResidence,
 }: {
     documentPlan: KycDocumentPlan
     residence: string
     citizenship?: string | null
+    ukraineLinked?: boolean
     onContinue?: jest.Mock
     onChangeResidence?: jest.Mock
 }) {
@@ -46,6 +48,7 @@ function render({
             plan={documentPlan}
             residence={residence}
             citizenship={citizenship}
+            ukraineLinked={ukraineLinked}
             busy={false}
             error={null}
             onBack={jest.fn()}
@@ -120,13 +123,13 @@ describe('IdentityDocumentScreen: other documents', () => {
         expect(onContinue).toHaveBeenCalledWith({ type: 'DRIVERS', issuingCountry: 'ES' })
     })
 
-    it('a document from another country: the type, then the issuing country, opens it', () => {
-        const onContinue = render({ documentPlan: plan(['DE', 'ES', 'PL']), residence: 'ES', citizenship: 'DE' })
+    // Slava, 2026-10-26: no picking a document from a country of the user's choice.
+    it('offers no document from another country', () => {
+        render({ documentPlan: plan(['DE', 'ES', 'PL']), residence: 'ES', citizenship: 'DE' })
         fireEvent.click(screen.getByTestId('verify-id-other'))
-        fireEvent.click(screen.getByTestId('verify-id-another-country'))
-        fireEvent.click(screen.getByLabelText('Passport'))
-        fireEvent.click(screen.getByLabelText('Poland'))
-        expect(onContinue).toHaveBeenCalledWith({ type: 'PASSPORT', issuingCountry: 'PL' })
+        expect(screen.queryByText('A document from another country')).toBeNull()
+        expect(screen.queryByTestId('verify-id-another-country')).toBeNull()
+        expect(option('PASSPORT', 'PL')).toBeNull()
     })
 })
 
@@ -136,7 +139,12 @@ describe('IdentityDocumentScreen: temporary protection', () => {
 
     // Slava, 2026-10-26: a Ukrainian holds it where they live, so it leads their list.
     it('leads the main list for a Ukrainian, issued where they live, and sends it as picked', () => {
-        const onContinue = render({ documentPlan: withProtection(['PL']), residence: 'PL', citizenship: 'UA' })
+        const onContinue = render({
+            documentPlan: withProtection(['PL']),
+            residence: 'PL',
+            citizenship: 'UA',
+            ukraineLinked: true,
+        })
         const row = screen.getByTestId('verify-id-option-TEMPORARY_PROTECTION-PL')
         expect(row).toHaveTextContent('Temporary protection for Ukrainians')
         expect(row).toHaveTextContent('Issued by Poland')
@@ -151,13 +159,20 @@ describe('IdentityDocumentScreen: temporary protection', () => {
         expect(onContinue).toHaveBeenCalledWith({ type: 'TEMPORARY_PROTECTION', issuingCountry: 'PL' })
     })
 
-    it('stays under Other documents for anyone else', () => {
-        render({ documentPlan: withProtection(['PL']), residence: 'PL', citizenship: 'DE' })
+    it('stays under Other documents for anyone else tied to Ukraine', () => {
+        render({ documentPlan: withProtection(['PL']), residence: 'PL', citizenship: 'DE', ukraineLinked: true })
         expect(option('TEMPORARY_PROTECTION', 'PL')).toBeNull()
         fireEvent.click(screen.getByTestId('verify-id-other'))
         expect(
             within(screen.getByTestId('verify-id-other-drawer')).getByTestId('verify-id-option-TEMPORARY_PROTECTION-PL')
         ).toBeInTheDocument()
+    })
+
+    // Slava, 2026-10-26: only with a citizenship, residence or location in Ukraine.
+    it('is not offered to an account with no tie to Ukraine', () => {
+        render({ documentPlan: withProtection(['PL']), residence: 'PL', citizenship: 'DE' })
+        fireEvent.click(screen.getByTestId('verify-id-other'))
+        expect(screen.queryByText('Temporary protection for Ukrainians')).toBeNull()
     })
 
     it('is not offered when the API sends no temporary protection', () => {

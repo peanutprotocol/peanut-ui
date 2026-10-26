@@ -31148,6 +31148,16 @@
                                                 }
                                             ]
                                         },
+                                        "citizenship": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
                                         "document": {
                                             "anyOf": [
                                                 {
@@ -31176,6 +31186,35 @@
                                             },
                                             "type": "array"
                                         },
+                                        "name": {
+                                            "properties": {
+                                                "first": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last"
+                                            ],
+                                            "type": "object"
+                                        },
                                         "stored": {
                                             "properties": {
                                                 "actingAsIntermediary": {
@@ -31191,9 +31230,6 @@
                                                     "type": "string"
                                                 },
                                                 "cardPurpose": {
-                                                    "type": "string"
-                                                },
-                                                "citizenship": {
                                                     "type": "string"
                                                 },
                                                 "cityOfBirth": {
@@ -31240,11 +31276,44 @@
                                         }
                                     },
                                     "required": [
+                                        "name",
+                                        "citizenship",
                                         "document",
                                         "address",
                                         "stored",
                                         "heldBySumsub"
                                     ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "errors": {
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            },
+                                            "type": "object"
+                                        },
+                                        "step": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
                                     "type": "object"
                                 }
                             }

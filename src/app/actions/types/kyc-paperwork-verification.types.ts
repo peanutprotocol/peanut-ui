@@ -69,6 +69,10 @@ export interface PaperworkVerificationDocument {
 
 /** What sign-up and verification collected (GET /users/kyc/details). */
 export interface KycCollectedDetails {
+    /** The name on the account: the verified one once KYC set it. */
+    name: { first: string | null; last: string | null }
+    /** The citizenship the ID check read, else the one typed for Bridge, as Peanut records it. */
+    citizenship: string | null
     /** The ID the check verified, as Peanut records it. */
     document: { type: string; country: string } | null
     /** The address Peanut stores from the earlier bank sign-up. */
@@ -86,9 +90,8 @@ export interface KycCollectedDetails {
     heldBySumsub: string[]
 }
 
-/** Every answer Peanut keeps; never the address or the tax number (Slava, 2026-10-26). */
+/** Every answer Peanut keeps beside citizenship; never the address or the tax number (Slava, 2026-10-26). */
 export type KycStoredDetail =
-    | 'citizenship'
     | 'dateOfBirth'
     | 'countryOfBirth'
     | 'cityOfBirth'

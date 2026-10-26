@@ -1,11 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { usePaperworkVerificationTrack } from '../analytics'
 import { useLocale, useTranslations } from 'next-intl'
 import Image from 'next/image'
-import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -42,93 +41,22 @@ function Flag({ country }: { country: string }) {
     )
 }
 
-// A list this long gets a search box (the issuing countries of a catalogue).
-const SEARCH_FROM = 12
-
-const normalize = (text: string) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-
-function OptionDrawer({
-    open,
-    onOpenChange,
-    title,
-    searchLabel,
-    options,
-    label,
-    leading,
-    onChoose,
-}: {
-    open: boolean
-    onOpenChange: (open: boolean) => void
-    title: string
-    searchLabel?: string
-    options: string[]
-    label: (option: string) => string
-    leading?: (option: string) => React.ReactNode
-    onChoose: (option: string) => void
-}) {
-    const [query, setQuery] = useState('')
-    const searchable = !!searchLabel && options.length >= SEARCH_FROM
-    const needle = normalize(query.trim())
-    const shown = needle ? options.filter((o) => normalize(label(o)).includes(needle)) : options
-    return (
-        <Drawer
-            open={open}
-            onOpenChange={(next) => {
-                if (!next) setQuery('')
-                onOpenChange(next)
-            }}
-        >
-            <DrawerContent>
-                <div className={searchable ? 'flex min-h-[75vh] flex-col gap-4 pb-4' : 'flex flex-col gap-4 pb-4'}>
-                    <DrawerTitle>{title}</DrawerTitle>
-                    {searchable && (
-                        <div className="sticky top-0 z-10 bg-white">
-                            <BaseInput
-                                type="search"
-                                autoComplete="off"
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                placeholder={searchLabel}
-                                aria-label={searchLabel}
-                                leftContent={<Icon name="search" size={20} className="text-foreground-secondary" />}
-                            />
-                        </div>
-                    )}
-                    <ListGroup>
-                        {shown.map((option) => (
-                            <ListItem
-                                key={option}
-                                title={label(option)}
-                                leading={leading?.(option)}
-                                aria-label={label(option)}
-                                onClick={() => {
-                                    onChoose(option)
-                                    setQuery('')
-                                }}
-                            />
-                        ))}
-                    </ListGroup>
-                </div>
-            </DrawerContent>
-        </Drawer>
-    )
-}
-
 type Choice = PaperworkVerificationDocument
 
 /**
  * The midpoint: the questions are done and the user picks the ID they hold.
  * Each row is a document and the country that issued it (the residence for a
  * permit or a licence, the citizenship for a passport or a national ID), and a
- * tap opens Sumsub on it. Anything else is in "Other document", including any
- * document the plan accepts from another country. `restart`: a verified user
- * picks the ID of a new identity check.
+ * tap opens Sumsub on it. Anything else is in "Other document"; a document
+ * from a country not on these lists cannot be picked (Slava, 2026-10-26).
+ * `restart`: a verified user picks the ID of a new identity check.
  */
 export function IdentityDocumentScreen({
     plan,
     residence,
     citizenship = null,
     restart = false,
+    ukraineLinked = false,
     documentsLoading = false,
     busy,
     error,
@@ -141,6 +69,8 @@ export function IdentityDocumentScreen({
     /** The citizenship the questions asked, when they did. */
     citizenship?: string | null
     restart?: boolean
+    /** Temporary protection shows only for an account tied to Ukraine (linkedToUkraine). */
+    ukraineLinked?: boolean
     /** the plan is being read again for the documents */
     documentsLoading?: boolean
     busy: boolean
@@ -154,15 +84,8 @@ export function IdentityDocumentScreen({
     useInsetColor(true)
     const locale = useLocale()
     const document = identityDocuments(plan?.routes[0])[0]
-    const collator = useMemo(() => new Intl.Collator(locale), [locale])
     const countryName = (code: string) => localizedCountryName(locale, code, code)
-    const countries = useMemo(
-        () =>
-            [...(document?.countries ?? [])].sort((a, b) =>
-                collator.compare(localizedCountryName(locale, a, a), localizedCountryName(locale, b, b))
-            ),
-        [document, collator, locale]
-    )
+    const countries = document?.countries ?? []
     const protection = plan?.temporaryProtection ?? null
     const types = document?.types ?? []
     const allowed = (type: string, country: string | null): country is string =>
@@ -185,7 +108,7 @@ export function IdentityDocumentScreen({
         // A dual resident's documents from the residence, when the main list shows the citizenship's.
         ...(away ? ['PASSPORT', 'ID_CARD'].map((type) => ({ type, issuingCountry: residence })) : []),
     ])
-    const protectionChoices: Choice[] = (protection?.countries ?? []).map((issuingCountry) => ({
+    const protectionChoices: Choice[] = (ukraineLinked ? (protection?.countries ?? []) : []).map((issuingCountry) => ({
         type: 'TEMPORARY_PROTECTION',
         issuingCountry,
     }))
@@ -197,8 +120,6 @@ export function IdentityDocumentScreen({
         : []
 
     const [otherOpen, setOtherOpen] = useState(false)
-    const [picking, setPicking] = useState<'type' | 'country' | null>(null)
-    const [pickedType, setPickedType] = useState('')
     const [chosen, setChosen] = useState<string | null>(null)
     const track = usePaperworkVerificationTrack()
     useEffect(() => {
@@ -210,8 +131,8 @@ export function IdentityDocumentScreen({
             other_options: other.length + (protectionInMain ? 0 : protectionChoices.length),
             refused_options: refused.length,
             citizenship_known: !!citizenship,
-            temporary_protection_offered: !!protection,
-            temporary_protection_in_main: protectionInMain && !!protection,
+            temporary_protection_offered: protectionChoices.length > 0,
+            temporary_protection_in_main: protectionInMain && protectionChoices.length > 0,
         })
         // Once per visit to the midpoint.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -223,11 +144,10 @@ export function IdentityDocumentScreen({
         country !== residence && (plan?.proofOfAddressIdCountries ?? []).includes(country)
     const keyOf = (c: Choice) => `${c.type}-${c.issuingCountry}`
 
-    const choose = (c: Choice, source: 'list' | 'other' | 'another_country') => {
+    const choose = (c: Choice, source: 'list' | 'other') => {
         if (busy) return
         setChosen(keyOf(c))
         setOtherOpen(false)
-        setPicking(null)
         track(ANALYTICS_EVENTS.KYC_PV_ID_SUBMITTED, {
             step: 'id',
             document_type: c.type,
@@ -273,17 +193,6 @@ export function IdentityDocumentScreen({
             data-testid={`verify-id-refused-${keyOf(c)}`}
         />
     )
-
-    const anotherCountryTypes = [...types, ...(protection ? ['TEMPORARY_PROTECTION'] : [])]
-    const countriesFor = (type: string) => (type === 'TEMPORARY_PROTECTION' ? (protection?.countries ?? []) : countries)
-    const openPicker = (next: 'type' | 'country' | null) => {
-        if (next)
-            track(ANALYTICS_EVENTS.KYC_PV_PICKER_OPENED, {
-                step: 'id',
-                field: next === 'type' ? 'document_type' : 'issuing_country',
-            })
-        setPicking(next)
-    }
 
     return (
         <div className={twMerge('flex w-full flex-col bg-white', SCREEN_HEIGHT)} data-testid="verify-id">
@@ -362,19 +271,6 @@ export function IdentityDocumentScreen({
                         <p className="text-body-s text-foreground-secondary">{t('documentList.otherDescription')}</p>
                         <ListGroup>
                             {[...other, ...(protectionInMain ? [] : protectionChoices)].map((c) => row(c, 'other'))}
-                            <ListItem
-                                title={t('documentList.anotherCountry')}
-                                body={t('documentList.anotherCountryHint')}
-                                bodyWrap
-                                leading={<IconBubble icon="globe" size="s" color="gray" />}
-                                chevron
-                                disabled={busy}
-                                onClick={() => {
-                                    setOtherOpen(false)
-                                    openPicker('type')
-                                }}
-                                data-testid="verify-id-another-country"
-                            />
                         </ListGroup>
                         <p className="flex items-start gap-2 text-body-s text-foreground-secondary">
                             <Icon name="info" size={16} className="mt-0.5 shrink-0" />
@@ -391,27 +287,6 @@ export function IdentityDocumentScreen({
                     </div>
                 </DrawerContent>
             </Drawer>
-            <OptionDrawer
-                open={picking === 'type'}
-                onOpenChange={(open) => openPicker(open ? 'type' : null)}
-                title={t('midpoint.document')}
-                options={anotherCountryTypes}
-                label={typeName}
-                onChoose={(type) => {
-                    setPickedType(type)
-                    openPicker('country')
-                }}
-            />
-            <OptionDrawer
-                open={picking === 'country'}
-                onOpenChange={(open) => openPicker(open ? 'country' : null)}
-                title={t('midpoint.issuedBy')}
-                searchLabel={t('search.country')}
-                options={countriesFor(pickedType)}
-                label={countryName}
-                leading={(option) => <Flag country={option} />}
-                onChoose={(issuingCountry) => choose({ type: pickedType, issuingCountry }, 'another_country')}
-            />
         </div>
     )
 }

@@ -85,7 +85,10 @@ export const ProfileDetailsView = () => {
     })
 
     const country = (code: string) => localizedCountryName(locale, code, code)
-    const { name, surname } = splitName(user?.user.fullName)
+    // KYC's verified name when the account has one, else the one given at sign-up
+    const signupName = splitName(user?.user.fullName)
+    const name = details?.name?.first ?? signupName.name
+    const surname = details?.name?.last ?? signupName.surname
     const email = user?.user.email?.trim()
     const residence = user?.residence
     // a requested change stays declared until verified: the verified country is still the residence
@@ -101,7 +104,6 @@ export const ProfileDetailsView = () => {
     )
     const shown = (key: KycStoredDetail, value: string): ReactNode => {
         switch (key) {
-            case 'citizenship':
             case 'countryOfBirth':
                 return country(value)
             case 'dateOfBirth':
@@ -126,7 +128,7 @@ export const ProfileDetailsView = () => {
     const detailRows = (keys: readonly DetailRow[]) =>
         keys.map(
             (key) =>
-                (key !== 'address' && key !== 'taxId' && storedRow(key)) ||
+                (key !== 'citizenship' && key !== 'address' && key !== 'taxId' && storedRow(key)) ||
                 (held.has(key) ? row(key, t(`rows.${key}`), notStored) : null)
         )
 
@@ -164,6 +166,7 @@ export const ProfileDetailsView = () => {
                         )}
                     {residence?.secondaryDeclaredCountry &&
                         row('secondResidence', t('rows.secondResidence'), country(residence.secondaryDeclaredCountry))}
+                    {details?.citizenship && row('citizenship', t('rows.citizenship'), country(details.citizenship))}
                     {detailRows(IDENTITY_ROWS)}
                     {documentName && row('document', t('rows.document'), documentName)}
                 </DataRowGroup>

@@ -15720,18 +15720,22 @@ export interface paths {
                                 postCode: string | null;
                                 state: string | null;
                             } | null;
+                            citizenship: string | null;
                             document: {
                                 country: string;
                                 type: string;
                             } | null;
                             heldBySumsub: string[];
+                            name: {
+                                first: string | null;
+                                last: string | null;
+                            };
                             stored: {
                                 actingAsIntermediary?: string;
                                 annualSalary?: string;
                                 bankMonthlyPayments?: string;
                                 bankPurpose?: string;
                                 cardPurpose?: string;
-                                citizenship?: string;
                                 cityOfBirth?: string;
                                 countryOfBirth?: string;
                                 dateOfBirth?: string;
@@ -15746,6 +15750,21 @@ export interface paths {
                                 sex?: string;
                                 sourceOfFunds?: string;
                             };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
                         };
                     };
                 };
