@@ -3630,6 +3630,12 @@
                 "phone": "What’s your phone number?",
                 "declarations": "Do any of these apply to you?"
             },
+            "sections": {
+                "purpose": "Purpose",
+                "work": "Work",
+                "money": "Money",
+                "birth": "About you"
+            },
             "descriptions": {
                 "address": "Your home address, as it appears on a bill or bank statement.",
                 "phone": {

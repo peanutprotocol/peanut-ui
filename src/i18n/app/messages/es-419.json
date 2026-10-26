@@ -3630,6 +3630,12 @@
                 "phone": "¿Cuál es tu número de teléfono?",
                 "declarations": "¿Alguna de estas opciones aplica a ti?"
             },
+            "sections": {
+                "purpose": "Propósito",
+                "work": "Trabajo",
+                "money": "Dinero",
+                "birth": "Sobre ti"
+            },
             "descriptions": {
                 "address": "Tu domicilio, como aparece en una factura o estado de cuenta.",
                 "phone": {

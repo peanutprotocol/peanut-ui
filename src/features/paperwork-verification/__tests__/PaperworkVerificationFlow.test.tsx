@@ -281,6 +281,9 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         expect(await screen.findByTestId('verify-pick-annualSalary')).toBeInTheDocument()
         expect(screen.getByTestId('verify-pick-cardPurpose')).toBeInTheDocument()
         expect(screen.getByRole('progressbar', { name: 'Step 2 of 4' })).toBeInTheDocument()
+        // Each step's sentences sit under its own label.
+        expect(screen.getByText('Purpose')).toBeInTheDocument()
+        expect(screen.getByText('Money')).toBeInTheDocument()
     })
 
     it('the last answer celebrates before the document choice, and Back from the ID skips the celebration', async () => {

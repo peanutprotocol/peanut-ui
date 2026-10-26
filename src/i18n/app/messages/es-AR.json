@@ -1564,6 +1564,9 @@
                 "address": "¿Dónde vivís?",
                 "declarations": "¿Alguna de estas opciones aplica a vos?"
             },
+            "sections": {
+                "birth": "Sobre vos"
+            },
             "labels": {
                 "countryLocked": "Tu país de residencia. Podés cambiarlo en Perfil."
             },
@@ -1660,7 +1663,8 @@
             "tax_id_unresolved": "No pudimos leer el número de identificación fiscal que necesitan los depósitos y retiros locales. Podés verificarte de nuevo para proporcionarlo. Los pagos con QR no se ven afectados.",
             "uk_resident_blocked": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
             "residence_bank_restricted": "Las transferencias bancarias no están disponibles para residentes de tu país. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
-            "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no va a cambiar el resultado."
+            "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no va a cambiar el resultado.",
+            "pep_documentation": "Como vos o alguien cercano a vos ocupa un cargo público, necesitamos una declaración jurada de tus bienes e ingresos, o un documento que muestre el origen de tu dinero."
         }
     },
     "recoverFunds": {

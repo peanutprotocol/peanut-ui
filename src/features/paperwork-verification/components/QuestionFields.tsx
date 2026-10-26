@@ -10,8 +10,10 @@ import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { MINI_HEADER_CLASS } from '@/components/0_Bruddle/MiniHeader'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
+import { twMerge } from '@/utils/tw'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import type {
     PaperworkVerificationAnswers,
@@ -63,10 +65,13 @@ export function QuestionFields({
     sentenceSize = 'm',
     sentencesAsHeading = true,
     phonePartner = 'card',
+    sections,
     onFieldBlur,
     onChangeResidence,
 }: {
     fields: PaperworkVerificationField[]
+    /** The steps the fields come from: sentences of two or more steps are set apart under each step's label. */
+    sections?: Array<{ id: string; keys: string[] }>
     values: PaperworkVerificationAnswers
     errors: Record<string, string>
     residence: string | null
@@ -83,6 +88,11 @@ export function QuestionFields({
     const Sentences = sentencesAsHeading ? 'h1' : 'p'
     const id = useId()
     const sentences = fields.filter(isSentenceField)
+    const sentenceSections = (sections ?? [])
+        .map((section) => ({ id: section.id, fields: sentences.filter((f) => section.keys.includes(f.key)) }))
+        .filter((section) => section.fields.length > 0)
+    const sectioned = sentenceSections.length > 1
+    const sentenceGroups = sectioned ? sentenceSections : [{ id: null, fields: sentences }]
     const typed = fields.filter((f) => !isSentenceField(f))
     const errorText = (key: string) => (errors[key] ? t(`errors.${fieldErrorKey(errors[key])}` as never) : null)
     const pill = (field: PaperworkVerificationField) =>
@@ -114,20 +124,41 @@ export function QuestionFields({
                                 : 'text-heading-s leading-[2.5rem] compact:leading-[2.25rem]'
                         }
                     >
-                        {sentences.map((field, index) => (
-                            <Fragment key={field.key}>
-                                {index > 0 && (
+                        {sentenceGroups.map((group, groupIndex) => (
+                            <Fragment key={group.id ?? 'sentences'}>
+                                {group.id && (
                                     <span
-                                        aria-hidden="true"
-                                        className={sentenceSize === 'm' ? 'block h-4 compact:h-2' : 'block h-1'}
-                                    />
+                                        className={twMerge(
+                                            MINI_HEADER_CLASS,
+                                            'block leading-5',
+                                            groupIndex > 0 ? 'mt-8 compact:mt-6' : undefined
+                                        )}
+                                    >
+                                        {t(`sections.${group.id}` as never)}
+                                    </span>
                                 )}
-                                {t.has(`sentence.${field.key}` as never)
-                                    ? t.rich(`sentence.${field.key}` as 'sentence.cardPurpose', {
-                                          nw: nowrap,
-                                          pill: () => pill(field),
-                                      })
-                                    : pill(field)}
+                                {group.fields.map((field, index) => (
+                                    <Fragment key={field.key}>
+                                        {index > 0 && (
+                                            <span
+                                                aria-hidden="true"
+                                                className={
+                                                    sectioned
+                                                        ? 'block h-1'
+                                                        : sentenceSize === 'm'
+                                                          ? 'block h-4 compact:h-2'
+                                                          : 'block h-1'
+                                                }
+                                            />
+                                        )}
+                                        {t.has(`sentence.${field.key}` as never)
+                                            ? t.rich(`sentence.${field.key}` as 'sentence.cardPurpose', {
+                                                  nw: nowrap,
+                                                  pill: () => pill(field),
+                                              })
+                                            : pill(field)}
+                                    </Fragment>
+                                ))}
                             </Fragment>
                         ))}
                     </Sentences>

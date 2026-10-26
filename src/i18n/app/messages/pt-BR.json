@@ -3630,6 +3630,12 @@
                 "phone": "Qual é o seu número de telefone?",
                 "declarations": "Alguma destas opções se aplica a você?"
             },
+            "sections": {
+                "purpose": "Finalidade",
+                "work": "Trabalho",
+                "money": "Dinheiro",
+                "birth": "Sobre você"
+            },
             "descriptions": {
                 "address": "Seu endereço residencial, como aparece em uma conta ou extrato bancário.",
                 "phone": {

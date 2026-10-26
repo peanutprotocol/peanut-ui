@@ -348,6 +348,7 @@ export function QuestionStepScreen({
                         sentenceSize={compact ? 's' : 'm'}
                         sentencesAsHeading={!title}
                         phonePartner={phonePartner(steps)}
+                        sections={steps.map((s) => ({ id: s.id, keys: s.fields.map((f) => f.key) }))}
                     />
                     {/* Return on the last typed field submits, as the CTA does. */}
                     <button type="submit" className="sr-only" aria-hidden tabIndex={-1} />
