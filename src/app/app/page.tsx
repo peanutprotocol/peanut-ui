@@ -25,7 +25,7 @@ import {
 } from '@/utils/deferred-link'
 import { isPwaSunsetOn, storeForDevice, storeIcon, trackStoreClick } from '@/utils/migration.utils'
 import { captureSignupAttribution } from '@/utils/signup-attribution'
-import { marketingQrTrackingEnabled, parseMarketingQrHandoff } from '@/features/marketing-qr/contract'
+import { parseMarketingQrHandoff } from '@/features/marketing-qr/contract'
 import { marketingQrAnalyticsAllowed } from '@/features/marketing-qr/consent'
 
 const FLAG_WAIT_MS = 4000
@@ -49,7 +49,7 @@ export default function SmartStoreRedirect() {
         const marketing = parseMarketingQrHandoff(new URLSearchParams(search))
         if (marketing && !isNativeBridge()) {
             setMarketingEntry(true)
-            if (marketingQrTrackingEnabled() && marketing.analyticsAllowed && marketingQrAnalyticsAllowed()) {
+            if (marketing.analyticsAllowed && marketingQrAnalyticsAllowed()) {
                 try {
                     captureSignupAttribution()
                     const makePayload = (store: 'android' | 'ios') => {

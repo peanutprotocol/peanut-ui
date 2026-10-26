@@ -40,14 +40,8 @@ jest.mock('react-qr-code', () => ({
     ),
 }))
 
-const originalGate = process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
 beforeEach(() => {
     mockMigrationOn = true
-    process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = 'true'
-})
-afterAll(() => {
-    if (originalGate === undefined) delete process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
-    else process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = originalGate
 })
 
 it.each(['us-europe-accounts', 'qr-argentina', 'qr-brazil', 'request-links', 'self-custody'] as const)(
@@ -85,16 +79,6 @@ it.each([
     expect(screen.getByTestId('qr')).toHaveAttribute(
         'data-value',
         starLpQrUrl({ origin: window.location.origin, campaign, slot, migrationOn: false })
-    )
-    expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'L')
-})
-
-it('leaves inline legacy URLs intact while the new rollout is disabled', () => {
-    process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = 'false'
-    render(<StarLpQrCode campaign="qr-brazil" slot="ways-in" />)
-    expect(screen.getByTestId('qr')).toHaveAttribute(
-        'data-value',
-        starLpQrUrl({ origin: window.location.origin, campaign: 'qr-brazil', slot: 'ways-in', migrationOn: true })
     )
     expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'L')
 })
