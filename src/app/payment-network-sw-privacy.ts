@@ -4,14 +4,19 @@ const PAYMENT_GRAPH_API_PATH = '/invites/graph'
 // written down anywhere; a cached copy in the browser would outlive the session
 // that was allowed to read it.
 const VERIFIED_ADDRESS_API_PATH = '/users/me/verified-address'
+// Team-only customer records: the /dev/users page and the /admin/users API behind it.
+const USER_RECORDS_PAGE_PATH = '/dev/users'
+const USER_RECORDS_API_PATH = '/admin/users'
+
+const isPathOrChild = (pathname: string, path: string) => pathname === path || pathname.startsWith(`${path}/`)
 
 export function isSensitivePaymentNetworkPathname(pathname: string): boolean {
     return (
-        pathname === PAYMENT_GRAPH_PAGE_PATH ||
-        pathname.startsWith(`${PAYMENT_GRAPH_PAGE_PATH}/`) ||
-        pathname === PAYMENT_GRAPH_API_PATH ||
-        pathname.startsWith(`${PAYMENT_GRAPH_API_PATH}/`) ||
-        pathname === VERIFIED_ADDRESS_API_PATH
+        isPathOrChild(pathname, PAYMENT_GRAPH_PAGE_PATH) ||
+        isPathOrChild(pathname, PAYMENT_GRAPH_API_PATH) ||
+        pathname === VERIFIED_ADDRESS_API_PATH ||
+        isPathOrChild(pathname, USER_RECORDS_PAGE_PATH) ||
+        isPathOrChild(pathname, USER_RECORDS_API_PATH)
     )
 }
 

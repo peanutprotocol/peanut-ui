@@ -18,7 +18,7 @@ import { startWebVitalsShim } from '@/utils/web-vitals-shim'
 import { noteAppReviewFriction } from '@/utils/app-review-friction'
 import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejection'
 import { isExpectedExceptionChain } from '@/utils/expected-exception'
-import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
+import { installPaymentNetworkGoogleAnalyticsGuard, isPrivateDataPath } from '@/utils/private-routes'
 import { captureSignupAttribution, signupAttributionPosthogProperties } from '@/utils/signup-attribution'
 import { initialSuperProperties, isAnalyticsCaptureBuild, posthogProjectKey } from '@/utils/posthog-setup'
 import {
@@ -48,7 +48,7 @@ if (
     typeof window !== 'undefined' &&
     process.env.NODE_ENV !== 'development' &&
     !PERF_BARE &&
-    !isPaymentNetworkExplorerPath(window.location.pathname)
+    !isPrivateDataPath(window.location.pathname)
 ) {
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com'
     const isNativeBuild = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true'
@@ -94,7 +94,7 @@ if (
             // Doubles as the review nudge's friction tap: every money-flow failure
             // already funnels through here, so the suppressor needs no call sites.
             before_send: (event) => {
-                if (isPaymentNetworkExplorerPath(window.location.pathname)) return null
+                if (isPrivateDataPath(window.location.pathname)) return null
                 // Handled WebKit/Chromium connectivity blips: Sentry already filters
                 // this class server-side; exception autocapture must not double-report
                 // it here (TASK-22408).
@@ -198,10 +198,9 @@ if (
                 // non-Error, the explicit captureMessage calls) so they attribute
                 // to a call site — see the web init in sentry-init.ts.
                 attachStacktrace: true,
-                beforeSend: (event) =>
-                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
+                beforeSend: (event) => (isPrivateDataPath(window.location.pathname) ? null : beforeSendHandler(event)),
                 beforeSendTransaction: (event) =>
-                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactSentryTelemetry(event),
+                    isPrivateDataPath(window.location.pathname) ? null : redactSentryTelemetry(event),
                 // A WebView that can't reach the bundler can't reach ingest either,
                 // so the report of the failure died with the session. The offline
                 // transport parks undeliverable envelopes in IndexedDB and flushes

@@ -2,7 +2,7 @@ import type { ErrorEvent } from '@sentry/nextjs'
 import {
     beforeSendRouteAwareHandler,
     beforeSendRouteAwareTransaction,
-    isPaymentNetworkSentryEvent,
+    isPrivateDataSentryEvent,
 } from '../../../../sentry.utils'
 
 const mockSentryInit = jest.fn()
@@ -17,9 +17,11 @@ describe('server and edge payment explorer Sentry guard', () => {
         'https://peanut.me/dev/payment-graph?user=marker-user&password=marker-password',
         'https://peanut.me/dev/payment-graph?focus=marker-focus',
         '/dev/payment-graph?focus=marker-focus',
+        'https://peanut.me/dev/users?user=aaaaaaaa-0000-4000-8000-000000000001&q=ana',
+        '/dev/users',
     ])('drops an error event carrying a sensitive explorer URL: %s', (url) => {
         const event = { request: { url }, message: 'marker error' } as ErrorEvent
-        expect(isPaymentNetworkSentryEvent(event)).toBe(true)
+        expect(isPrivateDataSentryEvent(event)).toBe(true)
         expect(beforeSendRouteAwareHandler(event)).toBeNull()
     })
 
@@ -27,6 +29,10 @@ describe('server and edge payment explorer Sentry guard', () => {
         const privateTransaction = { transaction: 'GET /dev/payment-graph?focus=marker-focus' }
         const normalTransaction = { transaction: 'GET /home', request: { url: 'https://peanut.me/home' } }
         expect(beforeSendRouteAwareTransaction(privateTransaction)).toBeNull()
+        expect(beforeSendRouteAwareTransaction({ transaction: 'GET /dev/users' })).toBeNull()
+        expect(beforeSendRouteAwareTransaction({ transaction: 'GET /dev/users-old' })).toEqual({
+            transaction: 'GET /dev/users-old',
+        })
         expect(beforeSendRouteAwareTransaction(normalTransaction)).toBe(normalTransaction)
         // jsdom exposes navigator.onLine, so the kept event gains the ambient
         // browser connectivity tag; the server/edge shape is the case below.
