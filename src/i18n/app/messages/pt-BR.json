@@ -3003,7 +3003,6 @@
             "titleBlocked": "Não conseguimos desbloquear",
             "titleRestartIdentity": "Verifique com outro documento",
             "titleIdentityDocumentMissing": "Conclua sua verificação",
-            "titleProviderRejection": "Precisamos de documentos adicionais",
             "titleCrossRegion": "Desbloquear {region}",
             "titleCrossRegionGeneric": "Desbloquear esta região",
             "titleRegionUnavailable": "Indisponível para residentes do Reino Unido",

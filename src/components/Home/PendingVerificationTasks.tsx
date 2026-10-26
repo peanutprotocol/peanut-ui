@@ -17,6 +17,7 @@ import {
     bridgeDocumentActionKey,
     isBridgeDocumentTask,
     isCardDocumentTask,
+    isDocumentTaskProvider,
     selectBridgeTasks,
     selectHomeTasks,
 } from '@/utils/bridge-tasks.utils'
@@ -175,7 +176,7 @@ export default function PendingVerificationTasks({
             const byKey = new Map(nextActions.map((action) => [action.key, action]))
             const rail = rails.find(
                 (rail) =>
-                    rail.provider === 'bridge' &&
+                    isDocumentTaskProvider(rail.provider) &&
                     rail.status === 'requires-info' &&
                     railVerdict(rail, byKey).status === 'fixable' &&
                     railVerdict(rail, byKey).nextAction?.key === bridgeDocumentActionKey(task)
@@ -243,7 +244,7 @@ export default function PendingVerificationTasks({
                 const reason = taskReason(task)
                 const key = reasonCodeKey(reason?.code)
                 return {
-                    title: tKyc('initiate.titleProviderRejection'),
+                    title: tKyc('documentRequest.title'),
                     description: isIdRetake(task)
                         ? tKyc('initiate.descriptionRetakeId')
                         : key

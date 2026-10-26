@@ -15,6 +15,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { DocumentRequestState } from '@/components/Kyc/DocumentRequestState'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
@@ -90,7 +91,7 @@ interface InitiateKycModalProps {
 
 // confirmation modal shown before starting identity check or document resubmission.
 // default            → "Unlock your account" — verb is "unlock", ID check is the means
-// provider_rejection → "We need extra documents"
+// provider_rejection → "One more document needed"
 // blocked            → "We couldn't unlock this — contact support"
 // restart_identity   → "Verify with a different document" (self-fix for country mismatch);
 //                      with the identity_document_missing reason code it is
@@ -390,7 +391,7 @@ export const InitiateKycModal = ({
         if (!visible) return null
         /*
          * On the happy path the screen title is the header and nothing repeats
-         * it. Every other variant IS its title — "We need extra documents",
+         * it. Every other variant IS its title — "One more document needed",
          * "Verify with a different document" — and that belongs under the icon
          * where it can wrap; NavHeader truncates at the width between its two
          * side buttons.
@@ -399,20 +400,22 @@ export const InitiateKycModal = ({
         const headerTitle = navTitle ?? getTitle()
         if (isProviderRejection && !error)
             return (
-                <div className="flex flex-col gap-6">
+                <PageStack>
                     <NavHeader title={navTitle ?? getTitle()} onPrev={onBack} />
-                    <DocumentRequestState
-                        title={getTitle()}
-                        ctaIcon={isHostedCheck ? null : undefined}
-                        reason={description(false)}
-                        reasonTestId={descriptionTestId}
-                        ctaLabel={cta.text}
-                        onCta={cta.onClick}
-                        ctaLoading={isLoading}
-                        ctaTestId={cta.testId}
-                        onContactSupport={onContactSupport}
-                    />
-                </div>
+                    <PageStack.Center>
+                        <DocumentRequestState
+                            title={getTitle()}
+                            ctaIcon={isHostedCheck ? null : undefined}
+                            reason={description(false)}
+                            reasonTestId={descriptionTestId}
+                            ctaLabel={cta.text}
+                            onCta={cta.onClick}
+                            ctaLoading={isLoading}
+                            ctaTestId={cta.testId}
+                            onContactSupport={onContactSupport}
+                        />
+                    </PageStack.Center>
+                </PageStack>
             )
         return (
             <div className="flex flex-col gap-6">

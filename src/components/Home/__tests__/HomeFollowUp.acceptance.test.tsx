@@ -100,6 +100,32 @@ describe('Home follow-up', () => {
             reasonCode: 'bridge_answers_rejected',
         })
     })
+    it('a Manteca document request reads as the same request, in its own words', () => {
+        mockRails = [
+            {
+                ...documentRail,
+                id: 'manteca.bank_transfer_ar',
+                provider: 'manteca',
+                method: 'BANK_TRANSFER_AR',
+                country: 'AR',
+                currency: 'ARS',
+                reason: { code: 'pep_documentation', userMessage: 'Upload a declaration' },
+                resolved: {
+                    status: 'fixable',
+                    blocking: {
+                        code: 'pep_documentation',
+                        userMessage: 'Upload a declaration',
+                        selfHealable: true,
+                        selfHealKind: 'document-resubmit',
+                    },
+                    nextAction: { key: 'sumsub:pep_documentation', kind: 'sumsub', purpose: 'manteca-documents' },
+                },
+            },
+        ]
+        render(<PendingVerificationTasks placement="home" />)
+        expect(screen.getByText('One more document needed')).toBeInTheDocument()
+        expect(screen.getByText(/holds public office/)).toBeInTheDocument()
+    })
     it('the activation surface labels questionnaires by their action', () => {
         render(<ActivationCTAs onboarding={onboarding} />)
         expect(screen.getByRole('button', { name: 'Answer questions' })).toBeInTheDocument()

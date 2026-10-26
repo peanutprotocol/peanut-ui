@@ -55,7 +55,7 @@ const MantecaAddMoney: FC = () => {
     const locale = useLocale()
     const t = useTranslations('addMoney')
     const tErrors = useTranslations('errors')
-    const { openSupportWithMessage } = useModalsContext()
+    const { openSupportWithMessage, setIsSupportModalOpen } = useModalsContext()
     // rewinds to home past every entry the flow pushed; a replace kept the
     // earlier entries, so back from home re-entered the flow
     const leaveToHome = useReturnTo(readReturnTo(searchParams) ?? '/home')
@@ -389,6 +389,7 @@ const MantecaAddMoney: FC = () => {
                     presentation={documentRequest ? 'page' : 'modal'}
                     navTitle={documentRequest ? t('title') : undefined}
                     onBack={documentRequest ? onBack : undefined}
+                    onContactSupport={documentRequest ? () => setIsSupportModalOpen(true) : undefined}
                     cooldownActive={!!sumsubFlow.errorCooldown}
                     prepPath="extended"
                     taxIdCountry={selectedCountry?.id === 'BR' ? 'BR' : selectedCountry?.id === 'AR' ? 'AR' : undefined}

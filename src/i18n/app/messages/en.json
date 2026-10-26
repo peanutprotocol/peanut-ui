@@ -3003,7 +3003,6 @@
             "titleBlocked": "We couldn't unlock this",
             "titleRestartIdentity": "Verify with a different document",
             "titleIdentityDocumentMissing": "Complete your verification",
-            "titleProviderRejection": "We need extra documents",
             "titleCrossRegion": "Unlock {region}",
             "titleCrossRegionGeneric": "Unlock this region",
             "titleRegionUnavailable": "Not available for UK residents",

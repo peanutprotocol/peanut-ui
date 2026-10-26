@@ -153,7 +153,7 @@ const ApplicationStatusScreen: FC<Props> = ({
         return (
             <PageStack>
                 <NavHeader title={t('navAddCard')} onPrev={onPrev} />
-                <div className="my-auto">
+                <PageStack.Center>
                     <DocumentRequestState
                         reason={reasonText}
                         body={t(bodyKey)}
@@ -162,7 +162,7 @@ const ApplicationStatusScreen: FC<Props> = ({
                         error={uploadError}
                         onContactSupport={onContactSupport}
                     />
-                </div>
+                </PageStack.Center>
             </PageStack>
         )
     return (
