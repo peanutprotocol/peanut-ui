@@ -388,6 +388,28 @@ describe('localeReady', () => {
     })
 })
 
+// A web pick waits in storage until the account saves it, so a pick made
+// signed out or before a reload still reaches the account (TASK-24042).
+describe('pending locale pick', () => {
+    it('stores a web pick until it is cleared', () => {
+        const store = freshStore()
+        store.persistLocale('es-419')
+        expect(freshStore().pendingLocalePick()).toBe('es-419')
+
+        store.clearPendingLocalePick()
+        expect(store.pendingLocalePick()).toBeNull()
+    })
+
+    it('stores no pending pick in the phone app, which sends its language on every start', async () => {
+        arrangeNativeBridge()
+        const store = freshStore()
+        store.persistLocale('es-AR')
+        expect(store.pendingLocalePick()).toBeNull()
+        // let the native pick write land inside this test
+        await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+})
+
 // The device locale includes the per-app language in iOS/Android settings, so
 // it has to keep applying until the user picks a language in-app.
 describe('native locale', () => {

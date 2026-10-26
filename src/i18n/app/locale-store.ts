@@ -9,7 +9,7 @@ import posthog from 'posthog-js'
 import { APP_RELEASE } from '@/constants/app-release'
 import { getPlatform, isCapacitor, isNativeBridge } from '@/utils/capacitor'
 import { resolveDeviceIdentity, type DeviceIdentity } from '@/utils/device-identity'
-import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
+import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { resolveLocale, resolveLocaleOrNull, type AppLocale } from './config'
 
 const LOCALE_KEY = 'app-locale'
@@ -272,15 +272,25 @@ export function localeReady(): Promise<AppLocale> {
 
 let explicitlyChosen = false
 
-/** True once the user picked a language this session (switcher, banner, IntlCore.setLocale). */
-export function isLocaleExplicitlyChosen(): boolean {
-    return explicitlyChosen
-}
+// Web only: an explicit pick the account has not saved yet. Stored, not held in
+// memory, so a pick made signed out or before a reload still reaches the
+// account as a pick after sign-in. The phone app sends its language anyway.
+const PENDING_PICK_KEY = 'app-locale-pick-pending'
 
 /** An explicit choice (switcher, suggestion banner): outranks the startup write. */
 export function persistLocale(locale: AppLocale): void {
     explicitlyChosen = true
+    if (!isCapacitor()) writeStoredValue(PENDING_PICK_KEY, locale)
     writeLocale(locale)
+}
+
+/** Web: the explicit pick the account has not saved yet, or null. */
+export function pendingLocalePick(): string | null {
+    return readStoredValue(PENDING_PICK_KEY)
+}
+
+export function clearPendingLocalePick(): void {
+    removeStoredValue(PENDING_PICK_KEY)
 }
 
 function writeLocale(locale: AppLocale): void {

@@ -1,14 +1,15 @@
 import { updateUserById } from '@/app/actions/users'
 import { isCapacitor } from '@/utils/capacitor'
+import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import type { AppLocale } from './config'
-import { isLocaleExplicitlyChosen } from './locale-store'
+import { clearPendingLocalePick, pendingLocalePick } from './locale-store'
 
 const SYNCED_KEY = 'app-locale-synced'
 
 type LocaleSource = 'device' | 'pick' | 'browser'
 
-// Native dedupe lives in memory, so every app start sends once per (user, locale).
-let lastNativeSynced: string | null = null
+// Phone app: in memory only, so each app start sends once per (user, locale).
+let deviceSynced: string | null = null
 
 /**
  * Persists the user's resolved app locale to the BE (`users.locale`, via
@@ -16,38 +17,42 @@ let lastNativeSynced: string | null = null
  *
  * Pushes go to the phone, so the phone's language wins. The phone app sends
  * its language on every start and every switch (`device`). The website sends
- * `browser`, which the API only stores when the account has no language yet,
- * or `pick` after an explicit choice. Best-effort: a failed write retries on
- * the next call because the dedupe marker is only stored on success.
+ * `pick` for an explicit choice the account has not saved yet, else `browser`,
+ * which the API only stores when the account has no language. Best-effort: a
+ * failed write retries on the next call.
  */
 export function syncLocaleToBackend(userId: string, locale: AppLocale): void {
-    const native = isCapacitor()
-    const localeSource: LocaleSource = native ? 'device' : isLocaleExplicitlyChosen() ? 'pick' : 'browser'
-    const synced = native ? `${userId}:${locale}` : `${userId}:${locale}:${localeSource}`
+    if (isCapacitor()) syncDeviceLocale(userId, locale)
+    else syncWebLocale(userId, locale)
+}
 
-    if (native) {
-        if (lastNativeSynced === synced) return
-    } else {
-        try {
-            if (localStorage.getItem(SYNCED_KEY) === synced) return
-        } catch {
-            // storage unavailable → sync every startup; the write is idempotent
-        }
-    }
-    void updateUserById({ userId, locale, localeSource })
-        .then(({ error }) => {
-            if (error) return
-            if (native) {
-                lastNativeSynced = synced
-                return
-            }
-            try {
-                localStorage.setItem(SYNCED_KEY, synced)
-            } catch {
-                // marker lost → re-sync next startup, still idempotent
-            }
-        })
+function syncDeviceLocale(userId: string, locale: AppLocale): void {
+    const synced = `${userId}:${locale}`
+    if (deviceSynced === synced) return
+    // claimed before the request: a cold start syncs twice in quick succession
+    deviceSynced = synced
+    void send(userId, locale, 'device').then((ok) => {
+        if (!ok && deviceSynced === synced) deviceSynced = null
+    })
+}
+
+function syncWebLocale(userId: string, locale: AppLocale): void {
+    const picked = pendingLocalePick() === locale
+    const synced = `${userId}:${locale}`
+    if (!picked && readStoredValue(SYNCED_KEY) === synced) return
+    void send(userId, locale, picked ? 'pick' : 'browser').then((ok) => {
+        if (!ok) return
+        // a newer pick made while this request ran stays pending
+        if (picked && pendingLocalePick() === locale) clearPendingLocalePick()
+        writeStoredValue(SYNCED_KEY, synced)
+    })
+}
+
+function send(userId: string, locale: AppLocale, localeSource: LocaleSource): Promise<boolean> {
+    return updateUserById({ userId, locale, localeSource }).then(
+        ({ error }) => !error,
         // updateUserById resolves with { error } today, but best-effort must
         // stay best-effort even if it ever starts rejecting
-        .catch(() => {})
+        () => false
+    )
 }

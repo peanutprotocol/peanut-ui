@@ -9,9 +9,12 @@ jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => mockIsCapacitor(),
 }))
 
-const mockChosen = jest.fn()
+let mockPendingPick: string | null = null
 jest.mock('../locale-store', () => ({
-    isLocaleExplicitlyChosen: () => mockChosen(),
+    pendingLocalePick: () => mockPendingPick,
+    clearPendingLocalePick: () => {
+        mockPendingPick = null
+    },
 }))
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
@@ -28,13 +31,12 @@ function startApp(): SyncFn {
 }
 
 describe('syncLocaleToBackend', () => {
-    let mockUpdate: jest.MockedFunction<typeof updateUserById>
+    const mockUpdate = updateUserById as jest.MockedFunction<typeof updateUserById>
 
     beforeEach(() => {
         localStorage.clear()
+        mockPendingPick = null
         mockIsCapacitor.mockReturnValue(false)
-        mockChosen.mockReturnValue(false)
-        mockUpdate = updateUserById as jest.MockedFunction<typeof updateUserById>
         mockUpdate.mockReset()
         mockUpdate.mockResolvedValue({ data: {} as never })
     })
@@ -48,7 +50,7 @@ describe('syncLocaleToBackend', () => {
             expect(mockUpdate).toHaveBeenCalledWith({ userId: 'u1', locale: 'pt-BR', localeSource: 'device' })
         })
 
-        it('sends again on a new start, even with a web-style marker in storage', async () => {
+        it('sends again on a new start, even with a web marker in storage', async () => {
             localStorage.setItem('app-locale-synced', 'u1:pt-BR')
             startApp()('u1', 'pt-BR')
             await flush()
@@ -57,10 +59,10 @@ describe('syncLocaleToBackend', () => {
             expect(mockUpdate).toHaveBeenCalledTimes(2)
         })
 
-        it('dedupes a repeat within one start and sends again after a switch', async () => {
+        // LocaleSync runs twice on a cold start, before the first request returns
+        it('sends once for two calls in one start and again after a switch', async () => {
             const sync = startApp()
             sync('u1', 'pt-BR')
-            await flush()
             sync('u1', 'pt-BR')
             await flush()
             expect(mockUpdate).toHaveBeenCalledTimes(1)
@@ -83,26 +85,55 @@ describe('syncLocaleToBackend', () => {
     })
 
     describe('web', () => {
-        it('sends browser at startup and dedupes the repeat', async () => {
-            const sync = startApp()
-            sync('u1', 'pt-BR')
+        it('sends browser and dedupes the repeat across starts', async () => {
+            startApp()('u1', 'pt-BR')
             await flush()
             expect(mockUpdate).toHaveBeenCalledWith({ userId: 'u1', locale: 'pt-BR', localeSource: 'browser' })
 
-            sync('u1', 'pt-BR')
+            startApp()('u1', 'pt-BR')
             await flush()
             expect(mockUpdate).toHaveBeenCalledTimes(1)
         })
 
-        it('sends pick for the same locale after an explicit choice', async () => {
+        // a pick made signed out, or before a reload, is only sent after sign-in
+        it('sends a pending pick even when the locale already synced, then clears it', async () => {
+            localStorage.setItem('app-locale-synced', 'u1:pt-BR')
+            mockPendingPick = 'pt-BR'
+            startApp()('u1', 'pt-BR')
+            await flush()
+            expect(mockUpdate).toHaveBeenCalledWith({ userId: 'u1', locale: 'pt-BR', localeSource: 'pick' })
+            expect(mockPendingPick).toBeNull()
+        })
+
+        it('sends browser when the pending pick is for another locale', async () => {
+            mockPendingPick = 'es-AR'
+            startApp()('u1', 'pt-BR')
+            await flush()
+            expect(mockUpdate).toHaveBeenCalledWith({ userId: 'u1', locale: 'pt-BR', localeSource: 'browser' })
+            expect(mockPendingPick).toBe('es-AR')
+        })
+
+        it('keeps a newer pick made while the request ran', async () => {
+            mockPendingPick = 'pt-BR'
+            startApp()('u1', 'pt-BR')
+            mockPendingPick = 'es-AR'
+            await flush()
+            expect(mockPendingPick).toBe('es-AR')
+        })
+
+        it('keeps the pick pending after a failed write and sends it again', async () => {
+            mockUpdate.mockResolvedValueOnce({ error: 'nope' })
+            mockPendingPick = 'pt-BR'
             const sync = startApp()
             sync('u1', 'pt-BR')
             await flush()
-            mockChosen.mockReturnValue(true)
+            expect(mockPendingPick).toBe('pt-BR')
+
             sync('u1', 'pt-BR')
             await flush()
             expect(mockUpdate).toHaveBeenCalledTimes(2)
             expect(mockUpdate).toHaveBeenLastCalledWith({ userId: 'u1', locale: 'pt-BR', localeSource: 'pick' })
+            expect(mockPendingPick).toBeNull()
         })
 
         it('re-syncs when the locale or user changes', async () => {
