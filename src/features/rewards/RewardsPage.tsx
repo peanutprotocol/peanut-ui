@@ -26,7 +26,7 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { useState } from 'react'
 import { useRewardsFlow } from './useRewardsFlow'
-import { getTierBadge, getTierProgressPercent } from './utils'
+import { getTierBadge, getTierProgressPercent, inviteeDisplayName } from './utils'
 import { twMerge } from '@/utils/tw'
 
 const InvitesGraph = dynamic(() => import('@/components/Global/InvitesGraph'), { ssr: false })
@@ -268,11 +268,9 @@ export function RewardsPage() {
                         <div ref={inviteesRef}>
                             {invites.invitees?.slice(0, 5).map((invite: PointsInvite, i: number) => {
                                 const username = invite.username
-                                const fullName = invite.fullName
                                 const isVerified = invite.kycVerified
                                 const pointsEarned = invite.contributedPoints ?? 0
-                                // respect user's showFullName preference for avatar and display name
-                                const displayName = invite.showFullName && fullName ? fullName : username
+                                const displayName = inviteeDisplayName(invite)
                                 return (
                                     <Card
                                         key={invite.inviteeId}

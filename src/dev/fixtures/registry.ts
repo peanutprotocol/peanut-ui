@@ -135,10 +135,10 @@ const INVITES_ONE = {
         {
             inviteeId: 'fixture-invitee-1',
             username: 'testfriend1',
+            // A friend who shows their name: the API sends it in fullName.
             fullName: 'Test Friend',
             kycVerified: true,
             contributedPoints: 50,
-            showFullName: false,
             lifetimeEarnedUsd: 0.5,
         },
     ],

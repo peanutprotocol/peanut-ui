@@ -549,41 +549,13 @@ export interface TierInfo {
     pointsToNextTier: number
 }
 
-export interface PointsInvite {
-    inviteeId: string
-    /** Null for an invitee who never finished signup. */
-    username: string | null
-    fullName: string | null
-    showFullName?: boolean
-    /** Invitee's picked profile avatar; null means the username-letter fallback. */
-    avatarKey?: string | null
-    invitedAt: string
-    kycStatus: BridgeKycStatus | null
-    kycVerified: boolean
-    directPoints: number
-    totalPoints: number
-    contributedPoints: number
-    hasInvitedOthers: boolean
-    inviteesCount: number
-    /** usd earned from this invitee's transactions (rewards v2) */
-    lifetimeEarnedUsd?: number
-}
-
-export interface PointsInvitesResponse {
-    invitees: PointsInvite[]
-    summary: {
-        multiplier: number
-        pendingInvites: number
-        totalContributedPoints: number
-        totalDirectPoints: number
-        totalInvites: number
-        verifiedInvites: number
-        /** total usd earned from all invitees (rewards v2) */
-        totalLifetimeEarnedUsd?: number
-        /** total pending usd across all invitees (rewards v2) */
-        totalPendingUsd?: number
-    }
-}
+/**
+ * GET /points/invites, as the API declares it (TASK-24090). Generated from the
+ * OpenAPI spec, never hand-written: a hand-written `username: string` hid the
+ * null that crashed the rewards screens (TASK-24036).
+ */
+export type PointsInvitesResponse = paths['/points/invites']['get']['responses'][200]['content']['application/json']
+export type PointsInvite = PointsInvitesResponse['invitees'][number]
 
 export enum PointsAction {
     BRIDGE_TRANSFER = 'BRIDGE_TRANSFER',

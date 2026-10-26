@@ -28,6 +28,7 @@ import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 import { profileUrl } from '@/utils/native-routes'
+import { inviteeDisplayName } from '@/features/rewards/utils'
 
 const InvitesPage = () => {
     const nativePlatform = useNativePlatform()
@@ -155,11 +156,9 @@ const InvitesPage = () => {
                 <div ref={listRef}>
                     {invites?.invitees?.map((invite: PointsInvite, i: number) => {
                         const username = invite.username
-                        const fullName = invite.fullName
                         const isVerified = invite.kycVerified
                         const pointsEarned = invite.contributedPoints ?? 0
-                        // respect user's showFullName preference for avatar and display name
-                        const displayName = invite.showFullName && fullName ? fullName : username
+                        const displayName = inviteeDisplayName(invite)
                         return (
                             <Card
                                 key={invite.inviteeId}
