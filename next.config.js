@@ -207,7 +207,12 @@ let gitCommitHash = 'unknown'
 try {
     gitCommitHash = execSync('git rev-parse --short=7 HEAD').toString().trim()
 } catch (error) {
-    console.warn('Could not get git commit hash:', error.message)
+    // CLI preview uploads have no .git, so preview.yaml passes the SHA in.
+    if (process.env.GIT_COMMIT_SHA) {
+        gitCommitHash = process.env.GIT_COMMIT_SHA.slice(0, 7)
+    } else {
+        console.warn('Could not get git commit hash:', error.message)
+    }
 }
 const interfaces = os.networkInterfaces()
 let ipAddress = 'Unable to determine IP address'

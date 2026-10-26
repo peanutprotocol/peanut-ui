@@ -51,4 +51,4 @@ jobs:
             # "sensitive", so `vercel pull` only returns the literal [SENSITIVE];
             # a remote build reads the real values.
             - name: Deploy to Vercel
-              run: vercel deploy --archive=tgz --logs --target=preview --scope=squirrellabs --token=${{ secrets.VERCEL_TOKEN }}
+              run: vercel deploy --archive=tgz --logs --build-env GIT_COMMIT_SHA=${{ github.event.pull_request.head.sha || github.sha }} --target=preview --scope=squirrellabs --token=${{ secrets.VERCEL_TOKEN }}
