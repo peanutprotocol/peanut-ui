@@ -43,13 +43,17 @@ export default function UserList({
                 {users.map((user, index) => {
                     const selected = user.user_id === selectedId
                     // design.md "selected list rows": fill + over-colour text + a trailing check, never colour alone.
-                    // ListItem forwards no selected state, so the row's <li> carries aria-current.
+                    // ListItem forwards no selected state: the <li> carries aria-current, and the hidden
+                    // ", selected" lands in the focused row's accessible name so focus announces it.
                     const textColor = selected && 'text-foreground-over-color-primary'
                     return (
                         <li key={user.user_id} aria-current={selected ? 'true' : undefined}>
                             <ListItem
                                 title={
-                                    <span className={twMerge('block truncate', textColor)}>{displayName(user)}</span>
+                                    <span className={twMerge('block truncate', textColor)}>
+                                        {displayName(user)}
+                                        {selected && <span className="sr-only">, selected</span>}
+                                    </span>
                                 }
                                 position={getCardPosition(index, users.length)}
                                 onClick={() => onSelect(user.user_id)}
