@@ -1478,8 +1478,9 @@
             "restartDescription": "Pagamentos com QR precisam de um documento de um país compatível. Você pode verificar com outro documento.",
             "blockedDescription": "Pagamentos com QR não estão disponíveis para a sua conta. Fale com o suporte para receber ajuda.",
             "uploadDocument": "Enviar documento",
-            "verifyAgainTitle": "Verificar identidade novamente",
-            "verifyAgainDescription": "Os pagamentos com QR estão pausados até você verificar de novo."
+            "verifyAgainTitle": "Precisamos de mais alguns dados",
+            "verifyAgainDescription": "Faltam alguns dados. Conclua a verificação adicional.",
+            "verifyAgainCta": "Continuar"
         },
         "info": {
             "exchangeRate": "Taxa de câmbio",
@@ -1980,15 +1981,9 @@
             "scanWithBankApp": "Escaneie com o app do seu banco ou copie o código Pix."
         },
         "confirmationModal": {
-            "title": "Importante",
-            "nextStep": "A seguir:",
-            "bankDetailsItem": "Os dados bancários para enviar o dinheiro",
-            "referenceCodeItem": "Um código de referência do depósito",
-            "youMust": "É preciso:",
-            "copyReferenceCode": "Copiar o código de referência de uso único exatamente",
-            "pasteReference": "Colar no campo de descrição/referência",
-            "mismatchTitle": "Se a referência faltar ou estiver errada:",
-            "mismatchDescription": "Seu depósito vai falhar e vai levar de 2 a 10 dias para voltar ao seu banco, e pode ter taxas. O código de referência é de uso único."
+            "title": "Copie a referência exata",
+            "body": "A próxima tela mostra os dados bancários e uma referência de depósito. Cole a referência no campo de referência do banco.",
+            "missingReference": "Sem a referência exata, o depósito pode atrasar ou voltar para o seu banco."
         },
         "bankDetails": {
             "amountToSend": "Valor a enviar",
@@ -2107,12 +2102,6 @@
             "arrives": "Chega",
             "bankReceives": "O banco recebe",
             "reference": "Referência (opcional)",
-            "referenceHelperSepa": "O banco do destinatário mostra com o pagamento. De 6 a 140 caracteres: letras a-z, números, espaços e & - . /",
-            "referenceHelperAch": "O banco do destinatário mostra com o pagamento. Até 10 caracteres: letras a-z, números e espaços.",
-            "referenceHelperWire": "O banco do destinatário mostra com o pagamento. Até 140 caracteres: letras a-z, números, espaços e & - . /",
-            "referenceHelperFasterPayments": "O banco do destinatário mostra com o pagamento. Até 18 caracteres: letras a-z, números, espaços e & - . /",
-            "referenceHelperSpei": "O banco do destinatário mostra com o pagamento. Até 40 caracteres: letras a-z, números e espaços.",
-            "referenceHelperCoBankTransfer": "O banco do destinatário mostra com o pagamento. Até 18 caracteres: letras a-z, números, espaços e & - . /",
             "referenceTooShort": "Mínimo de {min} caracteres, ou deixe em branco.",
             "referenceTooLong": "Máximo de {max} caracteres.",
             "referenceInvalidCharsSepa": "Use apenas letras a-z, números, espaços e & - . /",
@@ -2120,7 +2109,6 @@
             "referenceInvalidCharsSpei": "Use apenas letras a-z, números e espaços.",
             "payoutReferenceReplacesDefaultSepa": "A referência que você escrever substitui o texto que a Bridge envia por padrão com o pagamento.",
             "payoutDefaultReferenceCarriesNameSepa": "Esse texto padrão leva o seu nome.",
-            "referenceFormattingMayChange": "Os espaços e as letras maiúsculas podem mudar no caminho.",
             "payoutSenderAch": "O pagamento chega da Bridge, não em seu nome.",
             "payoutSenderSpei": "O pagamento chega do banco local da Bridge, não em seu nome.",
             "payoutSenderWire": "O pagamento chega da Bridge, não em seu nome.",
@@ -3542,8 +3530,7 @@
             "continue": "Continuar",
             "okay": "Entendi",
             "directSendCrossChain": "A Peanut aceita pagamentos entre redes.",
-            "directSendConfirm": "Confirme os dados do pagamento antes de enviar",
-            "directSendAcknowledge": "Eu entendo e vou confirmar os dados do pagamento.",
+            "directSendAcknowledge": "Vou conferir os dados do pagamento.",
             "externalUrlIntro": "A Peanut não aceita este QR, mas você pode abri-lo no seu navegador.",
             "externalUrlTrust": "Confirme que você confia neste site!",
             "openLink": "Abrir link",

@@ -1478,8 +1478,9 @@
             "restartDescription": "QR payments need a document from a supported country. You can verify with a different ID.",
             "blockedDescription": "QR payments are not available for your account. Contact support for help.",
             "uploadDocument": "Upload document",
-            "verifyAgainTitle": "Verify identity again",
-            "verifyAgainDescription": "QR payments are paused until you verify again."
+            "verifyAgainTitle": "We need a few more details",
+            "verifyAgainDescription": "We're missing a few details. Please complete the additional verification.",
+            "verifyAgainCta": "Continue"
         },
         "info": {
             "exchangeRate": "Exchange Rate",
@@ -1980,15 +1981,9 @@
             "scanWithBankApp": "Scan with your bank app, or copy the Pix code."
         },
         "confirmationModal": {
-            "title": "Important",
-            "nextStep": "Coming next:",
-            "bankDetailsItem": "Bank details to send money to",
-            "referenceCodeItem": "A deposit reference code",
-            "youMust": "Required:",
-            "copyReferenceCode": "Copy the one-time reference code exactly",
-            "pasteReference": "Paste it in the description/reference field",
-            "mismatchTitle": "If the reference is missing or wrong:",
-            "mismatchDescription": "Your deposit will fail and it will take 2 to 10 days to return to your bank and might incur fees. The reference code is single use."
+            "title": "Copy the reference exactly",
+            "body": "The next screen shows the bank details and a deposit reference. Paste the reference into the bank's reference field.",
+            "missingReference": "Without the exact reference, the deposit can be delayed or returned to your bank."
         },
         "bankDetails": {
             "amountToSend": "Amount to send",
@@ -2107,12 +2102,6 @@
             "arrives": "Arrives",
             "bankReceives": "Bank receives",
             "reference": "Reference (optional)",
-            "referenceHelperSepa": "The recipient's bank shows it with the payment. 6 to 140 characters: letters a-z, numbers, spaces and & - . /",
-            "referenceHelperAch": "The recipient's bank shows it with the payment. Up to 10 characters: letters a-z, numbers and spaces.",
-            "referenceHelperWire": "The recipient's bank shows it with the payment. Up to 140 characters: letters a-z, numbers, spaces and & - . /",
-            "referenceHelperFasterPayments": "The recipient's bank shows it with the payment. Up to 18 characters: letters a-z, numbers, spaces and & - . /",
-            "referenceHelperSpei": "The recipient's bank shows it with the payment. Up to 40 characters: letters a-z, numbers and spaces.",
-            "referenceHelperCoBankTransfer": "The recipient's bank shows it with the payment. Up to 18 characters: letters a-z, numbers, spaces and & - . /",
             "referenceTooShort": "Use at least {min} characters, or leave it empty.",
             "referenceTooLong": "Use at most {max} characters.",
             "referenceInvalidCharsSepa": "Use only letters a-z, numbers, spaces and & - . /",
@@ -2120,7 +2109,6 @@
             "referenceInvalidCharsSpei": "Use only letters a-z, numbers and spaces.",
             "payoutReferenceReplacesDefaultSepa": "A reference you type replaces the default text Bridge sends with the payment.",
             "payoutDefaultReferenceCarriesNameSepa": "That default text carries your name.",
-            "referenceFormattingMayChange": "The spacing and capital letters may change on the way.",
             "payoutSenderAch": "The payment arrives from Bridge, not from your own name.",
             "payoutSenderSpei": "The payment arrives from Bridge's local bank, not from your own name.",
             "payoutSenderWire": "The payment arrives from Bridge, not from your own name.",
@@ -2584,7 +2572,7 @@
         "pendingCallout": "waiting for you. Start spending to claim.",
         "noPendingRewards": "No pending rewards right now.",
         "lifetimeRewards": "Lifetime rewards: {amount}. To earn more, invite friends.",
-        "inviteNow": "Invite Now",
+        "inviteNow": "Invite now",
         "pointsLabel": "{count, plural, one {point} other {points}}",
         "pointsAbbrev": "{count, plural, one {pt} other {pts}}",
         "pointsToNextTier": "{count, plural, one {# point} other {# points}} to next tier",
@@ -2594,7 +2582,7 @@
         "peopleYouInvited": "People invited",
         "noInvitesYet": "No invites yet",
         "shareInviteLinkPrompt": "Send your invite link to start earning more rewards",
-        "shareInviteLink": "Share Invite link",
+        "shareInviteLink": "Share invite link",
         "loadPointsFailed": "Error loading points!",
         "loadInvitesFailed": "Error loading invites!",
         "contactSupport": "Please contact Support.",
@@ -3542,8 +3530,7 @@
             "continue": "Continue",
             "okay": "Okay",
             "directSendCrossChain": "Peanut supports cross-chain payments.",
-            "directSendConfirm": "Please confirm the payment details before sending",
-            "directSendAcknowledge": "I understand and will confirm payment details.",
+            "directSendAcknowledge": "I'll check the payment details.",
             "externalUrlIntro": "Peanut doesn't support this QR but you can open it with your browser.",
             "externalUrlTrust": "Make sure you trust this website!",
             "openLink": "Open link",
@@ -3557,7 +3544,7 @@
             "titleArgentinaAlias": "Can't pay an alias",
             "titleNotSupported": "{qrName} not supported yet.",
             "titleWillBeNotified": "You're on the list!",
-            "titleDirectSend": "Payment Confirmation",
+            "titleDirectSend": "Payment confirmation",
             "titleExternalUrl": "This is an external link!",
             "eip681ParseError": "Error parsing EIP-681 URL",
             "notPeanutUrl": "QR not recognized as Peanut URL",
@@ -3572,7 +3559,7 @@
             "title": "Invite friends!",
             "description": "Share your link. Every time a friend you brought makes a payment, you earn rewards.",
             "shareSheetTitle": "Share invite link",
-            "shareCta": "Share Invite Link",
+            "shareCta": "Share invite link",
             "descriptionNoRewards": "Share your link so friends can join you on Peanut."
         },
         "confirmInviteModal": {
@@ -3585,7 +3572,7 @@
             "title": "Earn from invites",
             "description": "From now on, Peanut is open to anyone. You can still invite your friends to earn rewards if they sign up.",
             "shareSheetTitle": "Share invite link",
-            "shareCta": "Share Invite link",
+            "shareCta": "Share invite link",
             "learnMore": "Learn more"
         },
         "noMoreJailModal": {

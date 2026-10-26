@@ -15,18 +15,7 @@ const OUT_DIR = process.env.OPTIONS_OUT ?? 'e2e/__shots__/options'
 const FIXTURE = 'profile-edit'
 const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
 
-const IDS = [
-    'opt-passkey-a',
-    'opt-passkey-b',
-    'opt-passkey-c',
-    'opt-passkey-d',
-    'opt-onramp-a',
-    'opt-onramp-b',
-    'opt-onramp-c',
-    'opt-onramp-d',
-    'opt-kyc-a',
-    'opt-kyc-b',
-]
+const IDS = ['opt-passkey-a', 'opt-passkey-b', 'opt-passkey-c', 'opt-passkey-d', 'opt-kyc-a', 'opt-kyc-b']
 
 const FREEZE_CSS = `
 *, *::before, *::after {
