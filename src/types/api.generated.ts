@@ -15720,11 +15720,31 @@ export interface paths {
                                 postCode: string | null;
                                 state: string | null;
                             } | null;
+                            citizenship: string | null;
                             document: {
                                 country: string;
                                 type: string;
                             } | null;
                             heldBySumsub: string[];
+                            name: {
+                                first: string | null;
+                                last: string | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
                         };
                     };
                 };
