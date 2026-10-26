@@ -81,10 +81,6 @@ export function resolveMarketingQrRegistration(context: MarketingQrContext): Mar
     return getMarketingQrRegistration(`${context.page}-${context.placement}-${locale}`)
 }
 
-export function marketingQrTrackingEnabled(): boolean {
-    return process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING === 'true'
-}
-
 // Deliberately narrower than signup-attribution's marketing-value sanitizer.
 // The endpoint accepts campaign labels, never URLs or common user identifiers.
 function validLabel(value: unknown, max: number): value is string {
@@ -183,7 +179,6 @@ export function buildMarketingQrUrl({
     savedCampaign?: Partial<MarketingQrCampaign> | null
     analyticsEnabled?: boolean
 }): string | null {
-    if (!marketingQrTrackingEnabled()) return null
     const registration = resolveMarketingQrRegistration(context)
     if (!registration) return null
     let base: string

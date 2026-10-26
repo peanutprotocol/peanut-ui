@@ -1,9 +1,4 @@
-import {
-    MARKETING_QR_EVENT,
-    getMarketingQrRegistration,
-    marketingQrTrackingEnabled,
-    parseMarketingQrQuery,
-} from './contract'
+import { MARKETING_QR_EVENT, getMarketingQrRegistration, parseMarketingQrQuery } from './contract'
 
 export const MARKETING_QR_HEADERS = {
     'Cache-Control': 'private, no-store, max-age=0',
@@ -81,13 +76,7 @@ export type MarketingQrOpening = NonNullable<ReturnType<typeof parseMarketingQrO
 /** Called only from Next's after(): browser navigation never waits for this request. */
 export async function captureMarketingQrOpening(opening: MarketingQrOpening, requestOrigin: string): Promise<void> {
     const key = process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim()
-    if (
-        !marketingQrTrackingEnabled() ||
-        process.env.VERCEL_ENV !== 'production' ||
-        requestOrigin !== 'https://peanut.me' ||
-        !key
-    )
-        return
+    if (process.env.VERCEL_ENV !== 'production' || requestOrigin !== 'https://peanut.me' || !key) return
     const { registration, campaign } = opening
     try {
         await fetch('https://eu.i.posthog.com/i/v0/e/', {

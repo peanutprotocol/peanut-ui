@@ -8,19 +8,11 @@ jest.mock('@/utils/signup-attribution', () => ({ readSignupAttribution: jest.fn(
 jest.mock('../consent', () => ({ marketingQrAnalyticsAllowed: jest.fn(() => true) }))
 
 const context: MarketingQrContext = { page: 'home', placement: 'hero', locale: 'en' }
-const originalGate = process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
-
 beforeEach(() => {
     jest.clearAllMocks()
-    process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = 'true'
     jest.mocked(marketingQrAnalyticsAllowed).mockReturnValue(true)
     jest.mocked(readSignupAttribution).mockReset()
     window.history.replaceState({}, '', '/')
-})
-
-afterAll(() => {
-    if (originalGate === undefined) delete process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
-    else process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = originalGate
 })
 
 it('carries campaign labels without identifiers or unrelated query parameters', () => {
@@ -54,13 +46,6 @@ it('never reads browser attribution or replaces a QR when its caller is ineligib
     expect(result.current).toBeNull()
     expect(readSignupAttribution).not.toHaveBeenCalled()
     expect(marketingQrAnalyticsAllowed).not.toHaveBeenCalled()
-})
-
-it('keeps the rollout disabled by default', () => {
-    delete process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
-    const { result } = renderHook(() => useMarketingQrUrl({ origin: 'https://peanut.me', context }))
-    expect(result.current).toBeNull()
-    expect(readSignupAttribution).not.toHaveBeenCalled()
 })
 
 it.each([{ utmSource: 'unknown-source', utmMedium: 'cpc', utmCampaign: 'newest' }, { utmSource: 'instagram' }])(

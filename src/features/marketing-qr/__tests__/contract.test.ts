@@ -11,18 +11,7 @@ import {
 const registration = getMarketingQrRegistration('home-hero-en')!
 const context = { page: 'home' as const, placement: 'hero', locale: 'en' }
 const campaign = { source: 'google', medium: 'cpc', campaign: 'accounts-launch', content: 'creative-a' }
-const originalSwitch = process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
-beforeEach(() => {
-    process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = 'true'
-})
-afterAll(() => {
-    if (originalSwitch === undefined) delete process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
-    else process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = originalSwitch
-})
-
-it('is disabled by default and never registers payment or account surfaces', () => {
-    delete process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
-    expect(buildMarketingQrUrl({ origin: 'https://peanut.me', context })).toBeNull()
+it('never registers payment or account surfaces', () => {
     expect(getMarketingQrRegistration('send-hero-en')).toBeNull()
     expect(getMarketingQrRegistration('peanut-card-hero-en')).toBeNull()
     expect(getMarketingQrRegistration('__proto__')).toBeNull()
