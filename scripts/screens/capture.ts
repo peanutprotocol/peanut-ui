@@ -392,6 +392,10 @@ async function main() {
                             }
                             return route.fulfill({ status: 200, contentType: 'image/png', body: bytes })
                         }
+                        // The receipt pdf route reads the entry server side, past the synthetic API, so a
+                        // fixture never resolves there; the request-pot kind held networkidle open for good.
+                        if (url.origin === base.origin && /^\/receipt\/[^/]+\/pdf$/.test(url.pathname))
+                            return route.fulfill({ status: 404, headers: { 'cache-control': 'no-store' }, body: '' })
                         if (url.origin === base.origin) {
                             const cacheable =
                                 request.method() === 'GET' &&
