@@ -1,6 +1,6 @@
 'use client'
 
-import { isPixKeyNotFound, verifiedPixKeyLabel } from '@/utils/pix.utils'
+import { isPixKeyNotFound, recipientBankNameOf, verifiedPixKeyLabel } from '@/utils/pix.utils'
 import { usePixKeyOwner } from '@/hooks/usePixKeyOwner'
 import { usePixKeySavePrompt } from './usePixKeySavePrompt'
 import {
@@ -31,7 +31,7 @@ import { useSignedSpendRecovery } from '@/hooks/wallet/useSignedSpendRecovery'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { SessionKeyGrantRequiredError, type SpendStrategy } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
-import { isPasskeyBusyError } from '@/utils/webauthn.utils'
+import { isPasskeyBusyError, isPasskeyCleanupPendingError } from '@/utils/webauthn.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
@@ -53,7 +53,7 @@ import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
-import maintenanceConfig from '@/config/underMaintenance.config'
+import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import {
     classifyQrInitError,
@@ -214,9 +214,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     }, [qrType])
 
     // Check if this payment provider is under maintenance
+    const { disabledPaymentProviders } = useKillSwitches()
     const isProviderDisabled = useMemo(() => {
-        return paymentProcessor ? maintenanceConfig.disabledPaymentProviders.includes(paymentProcessor) : false
-    }, [paymentProcessor])
+        return paymentProcessor ? disabledPaymentProviders.includes(paymentProcessor) : false
+    }, [paymentProcessor, disabledPaymentProviders])
 
     const gate = useQrPayKycGate()
     const { kycGateState, shouldBlockPay } = gate
@@ -607,6 +608,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         return pixKeyOwner?.name ?? pixKeyLabel ?? paymentLock.paymentRecipientName
     }, [paymentLock, pixKeyLabel, pixKeyOwner])
 
+    const recipientBankName = recipientBankNameOf(paymentLock)
+
     /*
      * Controller-rotation handoff. Nothing moved and no provider order exists
      * (a broadcast may well have happened and reverted definitively), so the
@@ -875,6 +878,16 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 // Looser than the classifier's 'not allowed by the user agent';
                 // kept as-is so this screen's matching doesn't narrow.
                 setErrorMessage(t('errors.confirmTransaction'), 'confirmTransaction')
+            } else if (isPasskeyCleanupPendingError(error)) {
+                // Blocking on purpose: the controller refuses every retry until a restart.
+                void captureNetworkTriagedFailure(error, {
+                    tags: {
+                        ...criticalFlowTags('qr-pay'),
+                        qr_pay_step: 'sign',
+                        qr_pay_failure: 'passkey_cleanup_pending',
+                    },
+                })
+                setErrorMessage(t('errors.passkeyRestart'))
             } else if (isPasskeyBusyError(error)) {
                 // an earlier passkey prompt still owns the authenticator; nothing was signed.
                 // still reported, tagged apart, so the busy rate stays visible
@@ -1262,6 +1275,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         balance,
         usdAmount,
         merchantName,
+        recipientBankName,
         pixKeyLabel,
         pixKeyOwner,
         isAwaitingPixKeyOwner,

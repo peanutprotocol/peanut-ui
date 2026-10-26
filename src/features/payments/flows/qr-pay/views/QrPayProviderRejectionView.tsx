@@ -78,11 +78,11 @@ export function QrPayProviderRejectionView() {
                           }
                         : isRestartIdentity
                           ? {
-                                text: isVerifyAgain ? t('kyc.unlockCta') : t('kyc.restartTitle'),
+                                text: isVerifyAgain ? t('kyc.verifyAgainCta') : t('kyc.restartTitle'),
                                 onClick: () => sumsubFlow.handleRestartIdentity(),
                                 variant: 'primary' as const,
                                 shadowSize: '4' as const,
-                                icon: (isVerifyAgain ? 'check-circle' : 'upload-cloud') satisfies IconName,
+                                icon: isVerifyAgain ? undefined : ('upload-cloud' satisfies IconName),
                             }
                           : {
                                 text: tCommon('contactSupport'),

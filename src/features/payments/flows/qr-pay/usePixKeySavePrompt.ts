@@ -6,7 +6,7 @@ import { accountDestination, destinationLabel } from '@/features/destinations/sa
 import { defaultPixKeyNickname } from '@/utils/pix.utils'
 
 /**
- * "Save to address book" on the PIX-key payment screen, as crypto withdrawals
+ * "Save to favorites" on the PIX-key payment screen, as crypto withdrawals
  * offer it. The box starts ticked, so a payment saves the key unless the user
  * unticks it. A key the user already saved gets its saved name instead. The
  * name starts as the key owner's name. The key is saved once the payment

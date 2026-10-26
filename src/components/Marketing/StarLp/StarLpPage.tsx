@@ -10,10 +10,10 @@ import type { StarLpPageProps } from './starLp.types'
  * useStoryStep), so no-JS visitors need no extra style. The Knerd variables
  * point at the preloaded faces (starLpFonts).
  */
-export function StarLpPage({ children, siteDirectory = true, localeSwitcher = true }: StarLpPageProps) {
+export function StarLpPage({ children, siteDirectory = true, localeSwitcher = true, marketingPage }: StarLpPageProps) {
     return (
         <LandingPageShell>
-            <AppModalProvider>
+            <AppModalProvider marketingPage={marketingPage} marketingLocale="en">
                 <main className={`${starLpKnerdOutline.variable} ${starLpKnerdFilled.variable} bg-background-page`}>
                     {children}
                 </main>

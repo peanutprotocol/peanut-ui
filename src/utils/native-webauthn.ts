@@ -1,3 +1,5 @@
+import { androidPasskeyScopesEnabled } from './android-passkey-scope'
+import { guardPasskeyCeremony } from './passkeyCeremony.utils'
 // native webauthn utilities for capacitor passkey integration
 // provides signing callback and public key parsing for @capgo/capacitor-passkey autoShim
 
@@ -186,11 +188,10 @@ export function createNativeSignMessageCallback(rpId: string, pinnedCredentialId
         let cred: PublicKeyCredential
         try {
             if (isCapacitor()) await waitForPasskeyShim()
-            cred = (await raceCeremonyTimeout(
-                navigator.credentials.get({
-                    publicKey: assertionOptions,
-                })
-            )) as PublicKeyCredential
+            const getCredential = () => navigator.credentials.get({ publicKey: assertionOptions })
+            cred = (await (androidPasskeyScopesEnabled()
+                ? guardPasskeyCeremony(getCredential)
+                : raceCeremonyTimeout(getCredential()))) as PublicKeyCredential
         } catch (error) {
             if (isCeremonyGuardError(error)) captureCeremonyGuardError(error, 'sign')
             throw error

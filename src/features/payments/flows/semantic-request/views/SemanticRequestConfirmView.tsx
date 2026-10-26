@@ -25,6 +25,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { formatAmount, isStableCoin } from '@/utils/general.utils'
+import { formatAmountNumber } from '@/utils/currency'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useMemo } from 'react'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
@@ -103,7 +104,7 @@ export function SemanticRequestConfirmView() {
         if (isTokenDenominated) {
             return `${formatAmount(amount)}`
         }
-        return `${formatAmount(usdAmount || amount)}`
+        return formatAmountNumber(usdAmount || amount)
     }, [amount, usdAmount, isTokenDenominated])
 
     // Receive amount from Rhino preview. Same-token bridges are 1:1 minus flat
@@ -113,8 +114,9 @@ export function SemanticRequestConfirmView() {
         if (!calculatedReceiveAmount) {
             return `$ ${charge?.tokenAmount}`
         }
-        const amount = formatAmount(calculatedReceiveAmount)
-        return isStableCoin(requestedResolvedTokenSymbol) ? `$ ${amount}` : `${amount} ${requestedResolvedTokenSymbol}`
+        return isStableCoin(requestedResolvedTokenSymbol)
+            ? `$ ${formatAmountNumber(calculatedReceiveAmount)}`
+            : `${formatAmount(calculatedReceiveAmount)} ${requestedResolvedTokenSymbol}`
     }, [calculatedReceiveAmount, charge?.tokenDecimals, charge?.tokenAmount, requestedResolvedTokenSymbol])
 
     // error message (route expiry auto-retries)

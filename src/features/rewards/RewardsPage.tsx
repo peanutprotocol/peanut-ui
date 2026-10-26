@@ -315,23 +315,13 @@ export function RewardsPage() {
                     </>
                 ) : (
                     <>
-                        {/* if user has no invites: canonical empty state with modal button */}
+                        {/* if user has no invites: canonical empty state, no button of its
+                            own — "Invite now" in the hero above opens the same modal */}
                         <EmptyState
                             concept="rewards"
                             title={t('noInvitesYet')}
                             description={t('shareInviteLinkPrompt')}
                             containerClassName="!mt-8"
-                            cta={
-                                <Button
-                                    variant="primary"
-                                    shadowSize="4"
-                                    size="small"
-                                    className="mt-2"
-                                    onClick={openInviteModal}
-                                >
-                                    {t('shareInviteLink')}
-                                </Button>
-                            }
                         />
                     </>
                 )}

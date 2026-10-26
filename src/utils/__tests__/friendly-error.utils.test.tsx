@@ -73,6 +73,17 @@ describe('friendlyError', () => {
         })
     })
 
+    test('unconfirmed Android passkey cleanup asks for a restart, wrapped or not', () => {
+        const cleanup = Object.assign(new Error('Passkey cleanup is unconfirmed; restart the app'), {
+            name: 'PasskeyCleanupPendingError',
+        })
+        expect(friendlyError(cleanup)).toEqual({ kind: 'code', code: 'passkeyRestartRequired' })
+        expect(friendlyError(new Error('sign failed', { cause: cleanup }))).toEqual({
+            kind: 'code',
+            code: 'passkeyRestartRequired',
+        })
+    })
+
     test('unknown errors still fall through to the support-fallback code', () => {
         expect(friendlyError(new Error('something nobody mapped'))).toEqual({ kind: 'code', code: 'genericSupport' })
     })
@@ -146,6 +157,7 @@ describe('friendly error copy catalog', () => {
         'insufficientBalance',
         'operationTimedOut',
         'passkeyNotCompleted',
+        'passkeyRestartRequired',
         'claimLinkFailed',
         'sendLinkAlreadyClaimed',
         'lowLiquidity',

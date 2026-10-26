@@ -26,7 +26,7 @@ export function QrBrazilAppLink({ children, className, label }: QrBrazilAppLinkP
             {...(label ? { 'aria-label': label } : { tabIndex: -1, 'aria-hidden': true })}
             className={twMerge('qr-br-press group block', className)}
             onClick={(event) => {
-                if (interceptAppCta(MIGRATION_SURFACES.STAR_LP)) event.preventDefault()
+                if (interceptAppCta(MIGRATION_SURFACES.STAR_LP, 'artwork')) event.preventDefault()
             }}
         >
             {children}

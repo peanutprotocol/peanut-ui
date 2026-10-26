@@ -20,7 +20,7 @@ export function generateReceiptTitle(transaction: TransactionDetails): string {
     // to the token/USD branch instead of the title reading "ARS 0".
     const hasValidCurrencyAmount = !!currency?.amount && Number.isFinite(Number(currency.amount))
     if (currency && currency.code !== 'USD' && !isStableCoin(currency.code) && hasValidCurrencyAmount) {
-        formattedAmount = `${currency.code} ${formatAmount(currency.amount)}`
+        formattedAmount = `${currency.code} ${formatCurrency(currency.amount)}`
     } else if (tokenSymbol && !isStableCoin(tokenSymbol)) {
         formattedAmount = `${formatAmount(Number(amount))} ${tokenSymbol}`
     } else {

@@ -23,12 +23,12 @@ const overview = (partial: Partial<RainCardOverview> = {}): RainCardOverview =>
 
 describe('buildBalanceSummary', () => {
     it('sums the two halves when both are answers', () => {
-        expect(buildBalanceSummary(100_000_000n, overview())).toBe('$123.45 spendable (wallet $100.00 · card $23.45)')
+        expect(buildBalanceSummary(100_000_000n, overview())).toBe('$123.45 spendable (wallet $100 · card $23.45)')
     })
 
     it('treats a user with no card application as a real zero, not unknown', () => {
         const noCard = overview({ status: { hasApplication: false }, balance: null })
-        expect(buildBalanceSummary(100_000_000n, noCard)).toBe('$100.00 spendable (wallet $100.00 · card $0.00)')
+        expect(buildBalanceSummary(100_000_000n, noCard)).toBe('$100 spendable (wallet $100 · card $0)')
     })
 
     /*
@@ -36,11 +36,11 @@ describe('buildBalanceSummary', () => {
      * who reads "$0.00" tells a funded user they have no money. "unavailable"
      * is strictly better than a confident wrong number.
      */
-    it('never prints $0.00 for a balance it could not read', () => {
+    it('never prints $0 for a balance it could not read', () => {
         const unreadable = overview({ balance: null, balanceUnavailable: true })
         const summary = buildBalanceSummary(100_000_000n, unreadable)
-        expect(summary).toBe('wallet $100.00 · card unavailable — total unknown')
-        expect(summary).not.toContain('$0.00')
+        expect(summary).toBe('wallet $100 · card unavailable — total unknown')
+        expect(summary).not.toContain('$0')
     })
 
     it('reports unavailable when nothing has been cached yet', () => {
@@ -103,7 +103,7 @@ describe('buildCardSummary', () => {
             cards: [{ last4: '1234', status: 'active' }],
         } as Partial<RainCardOverview>)
         expect(buildCardSummary(withCard)).toBe(
-            'application:approved · rail:ENABLED · limit $500.00 · due $0.00 · ··1234:active'
+            'application:approved · rail:ENABLED · limit $500 · due $0 · ··1234:active'
         )
     })
 

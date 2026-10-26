@@ -41,9 +41,12 @@ jest.mock('@/utils/capacitor', () => ({
 }))
 
 // The ops kill-switch keeps a scanned Solana address out of the payout flow.
-// Off by default here, as in production config.
+// Off by default here, as in the built-in default.
 const mockMaintenance = { disableXchainWithdraw: false }
-jest.mock('@/config/underMaintenance.config', () => ({ __esModule: true, default: mockMaintenance }))
+jest.mock('@/features/kill-switches/kill-switches-store', () => ({
+    getKillSwitches: () => mockMaintenance,
+    subscribeKillSwitches: () => () => {},
+}))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { username: 'satoshi' } } }) }))
 jest.mock('@/context/ModalsContext', () => ({
@@ -106,13 +109,13 @@ describe('QRScannerOverlay case handling', () => {
     describe('base58 addresses — case is data, so recognize the raw scan', () => {
         it('recognizes a Solana address whose case a lowercase pass would destroy', async () => {
             await scan(SOLANA_WITH_UPPERCASE_L)
-            expect(screen.getByText('Payment Confirmation')).toBeInTheDocument()
+            expect(screen.getByText('Payment confirmation')).toBeInTheDocument()
             expect(screen.queryByText('Unrecognized QR code')).not.toBeInTheDocument()
         })
 
         it('recognizes a Tron address, which always starts with an uppercase T', async () => {
             await scan(TRON)
-            expect(screen.getByText('Payment Confirmation')).toBeInTheDocument()
+            expect(screen.getByText('Payment confirmation')).toBeInTheDocument()
         })
 
         // The kill-switch is the honest answer while it is on, and it MUST refuse
@@ -153,7 +156,7 @@ describe('QRScannerOverlay case handling', () => {
     describe('all-uppercase payloads — QR alphanumeric mode uppercases, so retry lowercased', () => {
         it('accepts an uppercase EVM address', async () => {
             await scan(EVM_UPPERCASE)
-            expect(screen.getByText('Payment Confirmation')).toBeInTheDocument()
+            expect(screen.getByText('Payment confirmation')).toBeInTheDocument()
         })
 
         it('accepts an uppercase bech32 Bitcoin address', async () => {
@@ -174,7 +177,7 @@ describe('QRScannerOverlay case handling', () => {
         it('refuses an uppercase payload that only looks like Solana once lowercased', async () => {
             await scan(SOLANA_ONLY_AFTER_LOWERCASING)
             expect(screen.getByText('Unrecognized QR code')).toBeInTheDocument()
-            expect(screen.queryByText('Payment Confirmation')).not.toBeInTheDocument()
+            expect(screen.queryByText('Payment confirmation')).not.toBeInTheDocument()
             expect(mockPush).not.toHaveBeenCalled()
         })
     })
@@ -182,13 +185,13 @@ describe('QRScannerOverlay case handling', () => {
     describe('mixed case — the case is the user’s, so it must be honoured', () => {
         it('accepts a checksummed EVM address', async () => {
             await scan(EVM_CHECKSUMMED)
-            expect(screen.getByText('Payment Confirmation')).toBeInTheDocument()
+            expect(screen.getByText('Payment confirmation')).toBeInTheDocument()
         })
 
         it('rejects an EVM address with a bad EIP-55 checksum rather than laundering it', async () => {
             await scan(EVM_BAD_CHECKSUM)
             expect(screen.getByText('Unrecognized QR code')).toBeInTheDocument()
-            expect(screen.queryByText('Payment Confirmation')).not.toBeInTheDocument()
+            expect(screen.queryByText('Payment confirmation')).not.toBeInTheDocument()
         })
     })
 
@@ -206,7 +209,7 @@ describe('direct-send acknowledgement gate', () => {
         await act(async () => {
             await onScan(EVM_CHECKSUMMED)
         })
-        expect(screen.getByText('Payment Confirmation')).toBeInTheDocument()
+        expect(screen.getByText('Payment confirmation')).toBeInTheDocument()
         expect(continueButton()).toBeDisabled()
 
         fireEvent.click(screen.getByRole('checkbox'))

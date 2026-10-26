@@ -1388,6 +1388,22 @@ describe('QR_PAY to a looked-up PIX key', () => {
         expect(result.nameDetail).toBe('123.456.789-09')
     })
 
+    it('reads as a send, not a payment (TASK-24054)', () => {
+        const mapped = mapTransactionDataForDrawer(pixEntry())
+
+        expect(mapped.transactionDetails.direction).toBe('send')
+        expect(mapped.transactionCardType).toBe('send')
+    })
+
+    it('a scanned QR or copia e cola has no owner, so it stays a payment', () => {
+        const mapped = mapTransactionDataForDrawer(
+            pixEntry({ recipientAccount: { identifier: 'PADARIA REAL', type: 'BANK_CBU', isUser: false } })
+        )
+
+        expect(mapped.transactionDetails.direction).toBe('qr_payment')
+        expect(mapped.transactionCardType).toBe('pay')
+    })
+
     it('drops the key when a failed payment is relabelled', () => {
         const result = mapTransactionDataForDrawer(pixEntry({ status: EHistoryStatus.FAILED })).transactionDetails
 

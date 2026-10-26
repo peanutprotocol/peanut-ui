@@ -9,7 +9,7 @@
  */
 import React from 'react'
 import posthog from 'posthog-js'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import { PAYMENT_LOADING_WORD_KEYS } from '@/components/Global/Loading/words'
@@ -343,7 +343,7 @@ jest.mock('@/utils/history.utils', () => ({
 jest.mock('@/utils/general.utils', () => ({
     isTxReverted: jest.fn(() => false),
     saveRedirectUrl: jest.fn(),
-    formatNumberForDisplay: jest.fn((v: any) => v ?? '0'),
+    formatCurrency: jest.fn((v: any) => v?.toString() ?? ''),
 }))
 
 jest.mock('@/utils/perk.utils', () => ({
@@ -359,10 +359,10 @@ jest.mock('@/utils/qr-payment.utils', () => ({
     isArgentinaMantecaQrPayment: jest.fn(() => false),
 }))
 
-jest.mock('@/config/underMaintenance.config', () => ({
-    __esModule: true,
-    default: { disabledPaymentProviders: [] as string[] },
-}))
+jest.mock('@/features/kill-switches/kill-switches-store', () => {
+    const killSwitches = { disabledPaymentProviders: [] as string[] }
+    return { getKillSwitches: () => killSwitches, subscribeKillSwitches: () => () => {} }
+})
 
 // The app mounts the ToastProvider above every route; this harness does not.
 const mockToastError = jest.fn()
@@ -991,6 +991,29 @@ describe('GROUP 2: Payment Form States', () => {
         expect(mockMantecaApi.getPixKeyOwner).toHaveBeenCalledWith(pixKey)
     })
 
+    test('PIX-key transfer shows the bank the lock names, kept out of session recordings (TASK-23738)', async () => {
+        setupMantecaPayment({ code: '', paymentRecipientBankName: 'NU PAGAMENTOS S.A.' })
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******90' })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'maria@silva.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        const bankLine = (await screen.findByText('NU PAGAMENTOS S.A.')).closest('p')!
+        expect(bankLine).toHaveClass('ph-mask', 'ph-no-capture')
+        expect(within(bankLine).getByTestId('icon-bank')).toBeInTheDocument()
+    })
+
+    test('a lock that names no bank shows no bank line', async () => {
+        setupMantecaPayment({ code: '' })
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******90' })
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        const pixKey = 'maria@silva.com.br'
+        renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
+
+        await screen.findByText('MARIA DA SILVA')
+        expect(screen.queryByTestId('icon-bank')).not.toBeInTheDocument()
+    })
+
     test('a CPF key shows once, in full, instead of the key and its masked copy', async () => {
         setupMantecaPayment({ code: '' })
         mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******09' })
@@ -1059,7 +1082,7 @@ describe('GROUP 2: Payment Form States', () => {
         renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
 
         await screen.findByText('MARIA DA SILVA')
-        await waitFor(() => expect(screen.getByLabelText('Save to address book')).toBeChecked())
+        await waitFor(() => expect(screen.getByLabelText('Save to favorites')).toBeChecked())
         const name = screen.getByDisplayValue('MARIA DA SILVA')
         // A box ticked for the user does not pull the keyboard up over the amount.
         expect(name).not.toHaveFocus()
@@ -1079,8 +1102,8 @@ describe('GROUP 2: Payment Form States', () => {
         renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
 
         await screen.findByText('MARIA DA SILVA')
-        await waitFor(() => expect(screen.getByLabelText('Save to address book')).toBeChecked())
-        fireEvent.click(screen.getByLabelText('Save to address book'))
+        await waitFor(() => expect(screen.getByLabelText('Save to favorites')).toBeChecked())
+        fireEvent.click(screen.getByLabelText('Save to favorites'))
         await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
         await act(async () => {
             fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
@@ -1118,7 +1141,7 @@ describe('GROUP 2: Payment Form States', () => {
         const savedAs = screen.getByTestId('pix-key-saved-as')
         expect(savedAs).toHaveTextContent('Saved as Maria')
         expect(savedAs).toHaveClass('ph-mask', 'ph-no-capture')
-        expect(screen.queryByLabelText('Save to address book')).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('Save to favorites')).not.toBeInTheDocument()
     })
 
     test('a PIX-key payment still settling saves the key ticked by default', async () => {
@@ -1131,7 +1154,7 @@ describe('GROUP 2: Payment Form States', () => {
         renderQrPay({ qrCode: pixKeyToBRCode(pixKey), pixKey, type: 'PIX', t: '1' })
 
         await screen.findByText('MARIA DA SILVA')
-        await waitFor(() => expect(screen.getByLabelText('Save to address book')).toBeChecked())
+        await waitFor(() => expect(screen.getByLabelText('Save to favorites')).toBeChecked())
         await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
         await act(async () => {
             fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
@@ -1145,7 +1168,7 @@ describe('GROUP 2: Payment Form States', () => {
         setupMantecaPayment()
         renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
         await screen.findByText('PIX Merchant')
-        expect(screen.queryByLabelText('Save to address book')).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('Save to favorites')).not.toBeInTheDocument()
         expect(screen.queryByTestId('pix-key-saved-as')).not.toBeInTheDocument()
     })
 
@@ -1255,7 +1278,7 @@ describe('GROUP 2: Payment Form States', () => {
     })
 
     test('Provider maintenance shows maintenance banner and never calls /init', async () => {
-        const maintenanceConfig = require('@/config/underMaintenance.config').default
+        const maintenanceConfig = require('@/features/kill-switches/kill-switches-store').getKillSwitches()
         maintenanceConfig.disabledPaymentProviders = ['MANTECA']
 
         setupMantecaPayment()

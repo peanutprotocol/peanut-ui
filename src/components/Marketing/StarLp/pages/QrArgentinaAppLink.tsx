@@ -25,7 +25,7 @@ export function QrArgentinaAppLink({ children, className }: QrArgentinaAppLinkPr
             aria-hidden
             className={twMerge('block', className)}
             onClick={(event) => {
-                if (interceptAppCta(MIGRATION_SURFACES.STAR_LP)) event.preventDefault()
+                if (interceptAppCta(MIGRATION_SURFACES.STAR_LP, 'artwork')) event.preventDefault()
             }}
         >
             {children}

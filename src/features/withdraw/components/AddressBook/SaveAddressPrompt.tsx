@@ -15,7 +15,7 @@ interface SaveAddressPromptProps {
 }
 
 /**
- * Review-screen prompt: "Save to address book" + a name (≤15 chars). The field
+ * Review-screen prompt: "Save to favorites" + a name (≤15 chars). The field
  * is called "Name" here and in the edit drawer, so one thing has one name.
  */
 export default function SaveAddressPrompt({

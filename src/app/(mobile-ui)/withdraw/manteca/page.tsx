@@ -44,7 +44,7 @@ import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { countryData } from '@/components/AddMoney/consts'
 import { formatBankAmount } from '@/utils/currency'
-import { formatNumberForDisplay } from '@/utils/general.utils'
+import { formatCurrency } from '@/utils/general.utils'
 import { validateCbuCvuAlias, validatePixKey, normalizePixInput, isPixEmvcoQr } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import AmountInput from '@/components/Global/AmountInput'
@@ -99,7 +99,7 @@ import {
 } from '@/features/withdraw/manteca-withdraw-amount'
 import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
 import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/MantecaTransfersMaintenanceView'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
@@ -108,6 +108,7 @@ import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 
 export default function MantecaWithdrawFlow() {
     const searchParams = useSearchParams()
+    const { disabledMantecaCurrencies } = useKillSwitches()
     // Brazil PIX sends go through the Manteca QR-payment endpoint (send to any
     // PIX key), not the offramp/withdraw endpoint. Delegate to the lightweight
     // PIX-key entry, which wraps the key and hands off to /qr-pay. The gate
@@ -122,7 +123,7 @@ export default function MantecaWithdrawFlow() {
     // down. Placed AFTER the Brazil-PIX delegation so PIX-over-QR sends (which
     // ride the QR-payment endpoint, not Manteca offramp) stay open.
     const withdrawCurrency = countryData.find((c) => c.path === searchParams.get('country'))?.currency?.toUpperCase()
-    if (withdrawCurrency && (underMaintenanceConfig.disabledMantecaCurrencies as string[]).includes(withdrawCurrency)) {
+    if (withdrawCurrency && (disabledMantecaCurrencies as string[]).includes(withdrawCurrency)) {
         return <MantecaTransfersMaintenanceView action="withdrawals" />
     }
     return <MantecaBankWithdrawFlow />
@@ -1011,9 +1012,8 @@ function MantecaBankWithdrawFlow() {
     // The USD shows rounded up to the cent, what a card-funded withdrawal
     // debits. Before the lock, the amount the user did not type is an estimate.
     const estimate = priceLock ? '' : '≈ '
-    const localLine = `${isAmountTypedInUsd ? estimate : ''}${currencyCode} ${formatNumberForDisplay(
-        priceLock?.fiatAmount ?? currencyAmount,
-        { maxDecimals: 2 }
+    const localLine = `${isAmountTypedInUsd ? estimate : ''}${currencyCode} ${formatCurrency(
+        priceLock?.fiatAmount ?? currencyAmount
     )}`
     const usdLine = `${isAmountTypedInUsd ? '' : estimate}${formatBankAmount(
         priceLock ? lockedUsdDisplayAmount(priceLock.usdAmount) : (usdAmount ?? '0'),

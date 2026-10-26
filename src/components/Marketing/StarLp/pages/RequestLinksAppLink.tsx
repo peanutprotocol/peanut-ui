@@ -67,7 +67,7 @@ export function RequestLinksAppLink({ children, className, to, sink = 'sm' }: Re
             data-sink={sink}
             className={twMerge(LINK, className)}
             onClick={(event) => {
-                if (interceptAppCta(MIGRATION_SURFACES.STAR_LP)) event.preventDefault()
+                if (interceptAppCta(MIGRATION_SURFACES.STAR_LP, 'artwork')) event.preventDefault()
             }}
         >
             {children}
