@@ -8,7 +8,7 @@
  * /api/csp-report collector, instead of alongside the other Sentry filters.
  */
 
-import { isPaymentNetworkExplorerPath } from '@/utils/private-routes'
+import { isPrivateDataPath } from '@/utils/private-routes'
 
 /**
  * Legacy `report-uri` payload (`application/csp-report`). Still what Firefox
@@ -88,7 +88,7 @@ export function shouldIgnoreCspReport(report: CspReport): boolean {
     const documentUri = report['document-uri']
     if (typeof documentUri !== 'string') return false
     try {
-        return isPaymentNetworkExplorerPath(new URL(documentUri, 'https://peanut.invalid').pathname)
+        return isPrivateDataPath(new URL(documentUri, 'https://peanut.invalid').pathname)
     } catch {
         return false
     }

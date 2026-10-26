@@ -8,7 +8,7 @@ import FilterPanel from './FilterPanel'
 import FocusBanner from './FocusBanner'
 import Inspector from './Inspector'
 import NetworkCanvas from './NetworkCanvas'
-import { suppressPaymentNetworkTelemetry } from './privacy'
+import { suppressPrivateRouteTelemetry } from '@/utils/private-route-telemetry'
 import {
     defaultExplorerFilters,
     filterRelationships,
@@ -24,7 +24,7 @@ import { usePaymentNetworkExplorer } from './usePaymentNetworkExplorer'
 
 export default function PaymentNetworkExplorer() {
     // This runs during render, before sensitive DOM commits or feature effects start.
-    suppressPaymentNetworkTelemetry()
+    suppressPrivateRouteTelemetry()
     const legacyScrubbed = useRef(false)
     const [legacyChecked, setLegacyChecked] = useState(false)
     const [selection, setSelection] = useState<ExplorerSelection>(null)

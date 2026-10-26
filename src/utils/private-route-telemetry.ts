@@ -2,7 +2,7 @@
 
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
-import { disablePaymentNetworkGoogleAnalytics, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
+import { disablePaymentNetworkGoogleAnalytics, isPrivateDataPath } from '@/utils/private-routes'
 
 type StoppableReplay = { stop?: () => Promise<void> }
 
@@ -12,10 +12,10 @@ let suppressed = false
  * Stop analytics and replay before the explorer renders or fetches sensitive data.
  * A full reload is required to resume telemetry after this route.
  */
-export function suppressPaymentNetworkTelemetry(
+export function suppressPrivateRouteTelemetry(
     pathname = typeof window === 'undefined' ? '' : window.location.pathname
 ) {
-    if (suppressed || !isPaymentNetworkExplorerPath(pathname)) return
+    if (suppressed || !isPrivateDataPath(pathname)) return
     suppressed = true
     disablePaymentNetworkGoogleAnalytics(pathname)
 
@@ -37,6 +37,6 @@ export function suppressPaymentNetworkTelemetry(
     } catch {}
 }
 
-export function resetPaymentNetworkTelemetryGuardForTest(): void {
+export function resetPrivateRouteTelemetryGuardForTest(): void {
     suppressed = false
 }
