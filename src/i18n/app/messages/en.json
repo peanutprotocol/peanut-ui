@@ -3530,7 +3530,7 @@
             "continue": "Continue",
             "okay": "Okay",
             "directSendCrossChain": "Peanut supports cross-chain payments.",
-            "directSendAcknowledge": "I understand and will confirm payment details.",
+            "directSendAcknowledge": "I'll check the payment details.",
             "externalUrlIntro": "Peanut doesn't support this QR but you can open it with your browser.",
             "externalUrlTrust": "Make sure you trust this website!",
             "openLink": "Open link",

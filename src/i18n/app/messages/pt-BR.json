@@ -3530,7 +3530,7 @@
             "continue": "Continuar",
             "okay": "Entendi",
             "directSendCrossChain": "A Peanut aceita pagamentos entre redes.",
-            "directSendAcknowledge": "Eu entendo e vou confirmar os dados do pagamento.",
+            "directSendAcknowledge": "Vou conferir os dados do pagamento.",
             "externalUrlIntro": "A Peanut não aceita este QR, mas você pode abri-lo no seu navegador.",
             "externalUrlTrust": "Confirme que você confia neste site!",
             "openLink": "Abrir link",
