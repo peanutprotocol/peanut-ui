@@ -272,24 +272,30 @@ export function localeReady(): Promise<AppLocale> {
 
 let explicitlyChosen = false
 
-// Web only: an explicit pick the account has not saved yet. Stored, not held in
-// memory, so a pick made signed out or before a reload still reaches the
-// account as a pick after sign-in. The phone app sends its language anyway.
+// Web only: an explicit pick the account has not saved yet. Stored, so a pick
+// made signed out or before a reload still reaches the account as a pick after
+// sign-in; also held in memory, so a pick still counts in this document when
+// storage is unavailable. The phone app sends its language anyway.
 const PENDING_PICK_KEY = 'app-locale-pick-pending'
+let pendingPick: AppLocale | null = null
 
 /** An explicit choice (switcher, suggestion banner): outranks the startup write. */
 export function persistLocale(locale: AppLocale): void {
     explicitlyChosen = true
-    if (!isCapacitor()) writeStoredValue(PENDING_PICK_KEY, locale)
+    if (!isCapacitor()) {
+        pendingPick = locale
+        writeStoredValue(PENDING_PICK_KEY, locale)
+    }
     writeLocale(locale)
 }
 
 /** Web: the explicit pick the account has not saved yet, or null. */
 export function pendingLocalePick(): string | null {
-    return readStoredValue(PENDING_PICK_KEY)
+    return pendingPick ?? readStoredValue(PENDING_PICK_KEY)
 }
 
 export function clearPendingLocalePick(): void {
+    pendingPick = null
     removeStoredValue(PENDING_PICK_KEY)
 }
 

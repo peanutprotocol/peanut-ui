@@ -400,6 +400,17 @@ describe('pending locale pick', () => {
         expect(store.pendingLocalePick()).toBeNull()
     })
 
+    // some Android in-app browsers expose localStorage as null (PEANUT-UI-STC)
+    it('keeps a web pick for this document when storage is unavailable', () => {
+        stubLocalStorage(() => null)
+        const store = freshStore()
+        store.persistLocale('pt-BR')
+        expect(store.pendingLocalePick()).toBe('pt-BR')
+
+        store.clearPendingLocalePick()
+        expect(store.pendingLocalePick()).toBeNull()
+    })
+
     it('stores no pending pick in the phone app, which sends its language on every start', async () => {
         arrangeNativeBridge()
         const store = freshStore()
