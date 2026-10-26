@@ -248,7 +248,7 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent('Answer a few questions')
         expect(screen.getByText('Unlock eligible payments')).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-steps-continue'))
-        expect(await screen.findByRole('progressbar', { name: 'Step 2 of 5' })).toBeInTheDocument()
+        expect(await screen.findByRole('progressbar', { name: 'Step 2 of 4' })).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-back'))
         expect(await screen.findByTestId('verify-steps')).toBeInTheDocument()
         expect(mockExit).not.toHaveBeenCalled()
@@ -274,6 +274,13 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         renderFlow('?step=tax')
         expect(await screen.findByText('What’s your Social Security number?')).toBeInTheDocument()
         expect(screen.queryByTestId('verify-steps')).not.toBeInTheDocument()
+    })
+
+    it('a deep link to a step that shares a screen opens that screen', async () => {
+        renderFlow('?step=money')
+        expect(await screen.findByTestId('verify-pick-annualSalary')).toBeInTheDocument()
+        expect(screen.getByTestId('verify-pick-cardPurpose')).toBeInTheDocument()
+        expect(screen.getByRole('progressbar', { name: 'Step 2 of 4' })).toBeInTheDocument()
     })
 
     it('the last answer celebrates before the document choice, and Back from the ID skips the celebration', async () => {
@@ -304,7 +311,7 @@ describe('PaperworkVerificationFlow: the phone', () => {
             .mockResolvedValueOnce({ kind: 'saved', next: 'tax' })
         await startFlow()
         expect(await screen.findByText('Where do you live?')).toBeInTheDocument()
-        expect(screen.getByRole('progressbar', { name: 'Step 4 of 6' })).toBeInTheDocument()
+        expect(screen.getByRole('progressbar', { name: 'Step 3 of 5' })).toBeInTheDocument()
         expect(screen.getByText('For card security. We won’t send you codes.')).toBeInTheDocument()
         expect(screen.queryByTestId('verify-phone-no-spam')).not.toBeInTheDocument()
         fireEvent.change(screen.getByTestId('verify-input-street'), { target: { value: 'Main St 1' } })
@@ -317,7 +324,7 @@ describe('PaperworkVerificationFlow: the phone', () => {
             ['address', { street: 'Main St 1', town: 'Austin', postCode: '78701', country: 'US' }],
             ['phone', { phone: '+14155550132' }],
         ])
-        expect(screen.getByRole('progressbar', { name: 'Step 5 of 6' })).toBeInTheDocument()
+        expect(screen.getByRole('progressbar', { name: 'Step 4 of 5' })).toBeInTheDocument()
     })
 
     it('asked later on its own, keeps its own screen with the no-spam promise', async () => {
@@ -331,9 +338,9 @@ describe('PaperworkVerificationFlow: the phone', () => {
 })
 
 describe('PaperworkVerificationFlow', () => {
-    it('resumes at the first unanswered step the server names (app killed mid-way)', async () => {
+    it('resumes on the screen of the first unanswered step the server names (app killed mid-way)', async () => {
         await startFlow()
-        expect(await screen.findByRole('progressbar', { name: 'Step 3 of 5' })).toBeInTheDocument()
+        expect(await screen.findByRole('progressbar', { name: 'Step 2 of 4' })).toBeInTheDocument()
         expect(screen.getByTestId('verify-pick-annualSalary')).toHaveTextContent('$25,000–$49,999')
     })
 
@@ -346,6 +353,8 @@ describe('PaperworkVerificationFlow', () => {
         fireEvent.click(continueButton())
         fireEvent.click(continueButton())
         expect(await screen.findByText('What’s your Social Security number?')).toBeInTheDocument()
+        // The purpose shares the screen but was answered before, so only the money step is saved.
+        expect(screen.queryByTestId('verify-pick-cardPurpose')).not.toBeInTheDocument()
         expect(mockSave).toHaveBeenCalledTimes(1)
         expect(mockSave).toHaveBeenCalledWith('money', { annualSalary: '25k_50k' }, undefined)
         await act(async () => release({ kind: 'saved', next: 'tax' }))
@@ -494,7 +503,7 @@ describe('PaperworkVerificationFlow', () => {
         await waitFor(() =>
             expect(screen.getByTestId('verify-pick-occupation')).toHaveTextContent('Software developer, applications')
         )
-        expect(screen.getAllByTestId(/^verify-pick-/)).toHaveLength(1)
+        expect(screen.getAllByTestId('verify-pick-occupation')).toHaveLength(1)
     })
 
     it('an answer refused because the user already has today’s verification sends them Home', async () => {

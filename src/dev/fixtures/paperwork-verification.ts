@@ -366,7 +366,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
     },
     'paperwork-verification-us': {
         route: '/verify',
-        about: 'Smart Paperwork Verification questions for a US resident with bank + card; open any step with ?step=work|money|birth|address|tax (the phone shares the address screen).',
+        about: 'Smart Paperwork Verification questions for a US resident with bank + card; open any step with ?step=work|money|birth|address|tax (a step that shares a screen opens it: the pickers share one, the phone joins the address).',
         responses: asking('US', US_STEPS),
     },
     'paperwork-verification-ph': {

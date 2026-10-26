@@ -3,6 +3,7 @@ import type {
     PaperworkVerificationQuestions,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import {
+    composeScreens,
     entryStep,
     fieldErrorKey,
     formatTaxId,
@@ -11,7 +12,7 @@ import {
     markSaved,
     phoneJoinsAddress,
     resumeStep,
-    screenIds,
+    screenOfStep,
     stepComplete,
     stepPayload,
     stepProgress,
@@ -83,11 +84,68 @@ describe('entryStep', () => {
     })
 })
 
+const firstIds = (screens: string[][]) => screens.map((ids) => ids[0])
+
 describe('stepProgress', () => {
     it('counts sign-up as the done first step and the ID as the last', () => {
-        const ids = screenIds(questions(), false)
-        expect(stepProgress(ids, 'purpose')).toEqual({ current: 2, total: 5 })
-        expect(stepProgress(ids, 'tax')).toEqual({ current: 4, total: 5 })
+        const ids = firstIds(composeScreens(questions(), false)) as never
+        expect(stepProgress(ids, 'purpose')).toEqual({ current: 2, total: 4 })
+        expect(stepProgress(ids, 'tax')).toEqual({ current: 3, total: 4 })
+    })
+})
+
+describe('composeScreens', () => {
+    const picker = (id: string, ...kinds: PaperworkVerificationField['kind'][]) => ({
+        id,
+        features: ['card'],
+        answered: false,
+        fields: kinds.map((kind, i) => field(`${id}${i}`, { kind })),
+    })
+    const withSteps = (...steps: ReturnType<typeof picker>[]) => questions({ steps } as never)
+
+    it('puts picker-only steps on one screen and gives typed inputs and toggle rows their own', () => {
+        const ar = withSteps(
+            picker('purpose', 'choice'),
+            picker('work', 'choice', 'occupation'),
+            picker('money', 'choice', 'choice'),
+            picker('declarations', 'toggle', 'toggle', 'toggle'),
+            picker('birth', 'choice'),
+            picker('address', 'country', 'text', 'text'),
+            picker('tax', 'taxId')
+        )
+        expect(composeScreens(ar, false)).toEqual([
+            ['purpose', 'work', 'money', 'birth'],
+            ['declarations'],
+            ['address'],
+            ['tax'],
+        ])
+    })
+
+    it('opens a new picker screen past six pickers', () => {
+        const ph = withSteps(
+            picker('purpose', 'choice'),
+            picker('work', 'choice', 'occupation'),
+            picker('money', 'choice', 'choice', 'choice', 'choice', 'choice'),
+            picker('tax', 'taxId')
+        )
+        expect(composeScreens(ph, false)).toEqual([['purpose', 'work'], ['money'], ['tax']])
+    })
+
+    it('rides the joined phone on the address screen and maps every step to its screen', () => {
+        const us = withSteps(
+            picker('purpose', 'choice'),
+            picker('address', 'text'),
+            picker('phone', 'phone'),
+            picker('birth', 'country', 'place')
+        )
+        const screens = composeScreens(us, true)
+        expect(screens).toEqual([
+            ['purpose', 'birth'],
+            ['address', 'phone'],
+        ])
+        expect(screenOfStep(screens, 'birth')).toBe('purpose')
+        expect(screenOfStep(screens, 'phone')).toBe('address')
+        expect(screenOfStep(screens, 'id')).toBe('id')
     })
 })
 
@@ -109,13 +167,14 @@ describe('the phone on the address screen', () => {
     it('joins the address screen when both are asked together, and counts as one screen', () => {
         expect(phoneJoinsAddress(withAddress(false, false))).toBe(true)
         expect(phoneJoinsAddress(withAddress(true, true))).toBe(true)
-        expect(screenIds(withAddress(false, false), true)).toEqual(['address', 'tax'])
-        expect(stepProgress(screenIds(withAddress(false, false), true), 'tax')).toEqual({ current: 3, total: 4 })
+        const screens = firstIds(composeScreens(withAddress(false, false), true)) as never
+        expect(screens).toEqual(['address', 'tax'])
+        expect(stepProgress(screens, 'tax')).toEqual({ current: 3, total: 4 })
     })
 
     it('keeps its own screen when the address was given before, or when there is no address', () => {
         expect(phoneJoinsAddress(withAddress(true, false))).toBe(false)
-        expect(screenIds(withAddress(true, false), false)).toEqual(['address', 'phone', 'tax'])
+        expect(firstIds(composeScreens(withAddress(true, false), false))).toEqual(['address', 'phone', 'tax'])
         expect(phoneJoinsAddress(questions())).toBe(false)
     })
 })

@@ -4,6 +4,7 @@ import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import type {
     PaperworkVerificationAnswers,
     PaperworkVerificationField,
+    PaperworkVerificationFieldKind,
     PaperworkVerificationQuestions,
     PaperworkVerificationStep,
     PaperworkVerificationStepId,
@@ -66,11 +67,46 @@ export function phoneJoinsAddress(questions: PaperworkVerificationQuestions): bo
 export const citizenshipOf = (questions: PaperworkVerificationQuestions): string | null =>
     questions.steps.flatMap((s) => s.fields).find((f) => f.key === 'nationality')?.value ?? null
 
-/** The steps that get a screen of their own, in the server's order. */
-export const screenIds = (
+// Fields answered from a picker. They read as one sentence, so several steps of them share a screen.
+const PICKER_KINDS = new Set<PaperworkVerificationFieldKind>(['choice', 'occupation', 'country', 'place'])
+const MAX_PICKERS_PER_SCREEN = 6
+
+/**
+ * The question screens, in the server's order, each the ids of the steps it asks.
+ * Steps answered only from pickers share a screen, up to six pickers, so the first
+ * screen holds every picker step that fits even when inputs or toggle rows sit
+ * between them; a step with text inputs or toggle rows keeps a screen of its own,
+ * and a joined phone rides on the address screen. A screen is named by its first step.
+ */
+export function composeScreens(
     questions: PaperworkVerificationQuestions,
     phoneJoined: boolean
-): PaperworkVerificationStepId[] => questions.steps.map((s) => s.id).filter((id) => !(phoneJoined && id === 'phone'))
+): PaperworkVerificationStepId[][] {
+    const screens: PaperworkVerificationStepId[][] = []
+    let pickers: { ids: PaperworkVerificationStepId[]; count: number } | null = null
+    for (const step of questions.steps) {
+        if (phoneJoined && step.id === 'phone') continue
+        const pickerOnly = step.fields.length > 0 && step.fields.every((f) => PICKER_KINDS.has(f.kind))
+        if (!pickerOnly) {
+            screens.push(phoneJoined && step.id === 'address' ? ['address', 'phone'] : [step.id])
+            continue
+        }
+        if (pickers && pickers.count + step.fields.length <= MAX_PICKERS_PER_SCREEN) {
+            pickers.ids.push(step.id)
+            pickers.count += step.fields.length
+            continue
+        }
+        pickers = { ids: [step.id], count: step.fields.length }
+        screens.push(pickers.ids)
+    }
+    return screens
+}
+
+/** The screen a step is asked on. */
+export const screenOfStep = <S extends string>(
+    screens: PaperworkVerificationStepId[][],
+    step: S
+): S | PaperworkVerificationStepId => screens.find((ids) => (ids as string[]).includes(step))?.[0] ?? step
 
 /**
  * "Step n of m": sign-up counts as the done first step and the ID check as the
@@ -108,6 +144,13 @@ export function stepPayload(
     }
     return out
 }
+
+/** An answered step still holding the values it was saved with. */
+export const stepUnchanged = (step: PaperworkVerificationStep, values: PaperworkVerificationAnswers) =>
+    step.answered &&
+    step.fields.every(
+        (f) => (stepPayload([f], values)[f.key] ?? '') === (stepPayload([f], { [f.key]: f.value ?? '' })[f.key] ?? '')
+    )
 
 /** Continue waits for every required answer; the server still checks each one. */
 export const stepComplete = (fields: PaperworkVerificationField[], values: PaperworkVerificationAnswers) =>

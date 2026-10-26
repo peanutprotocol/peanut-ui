@@ -66,11 +66,13 @@ import {
     FAILED_STATUSES,
     IN_REVIEW_STATUSES,
     markSaved,
+    composeScreens,
     phoneJoinsAddress,
     RESIDENCE_CHANGE_HREF,
     resumeStep,
-    screenIds,
+    screenOfStep,
     stepProgress,
+    stepUnchanged,
     type VerifyStep,
 } from './paperworkVerification.utils'
 import { saveSteps, type AnswerFormError, type SaveOutcome } from './useAnswerForm'
@@ -231,9 +233,10 @@ function PaperworkVerificationSteps({
     const queryClient = useQueryClient()
     // Decided once per load, so Back shows the same screens the user came through.
     const [phoneJoined] = useState(() => phoneJoinsAddress(initial.questions))
-    const screenOf = (id: VerifyStep): VerifyStep => (phoneJoined && id === 'phone' ? 'address' : id)
+    const screens = useMemo(() => composeScreens(questions, phoneJoined), [questions, phoneJoined])
+    const screenOf = (id: VerifyStep): VerifyStep => screenOfStep(screens, id)
 
-    const questionIds = useMemo(() => screenIds(questions, phoneJoined), [questions, phoneJoined])
+    const questionIds = useMemo(() => screens.map((ids) => ids[0]), [screens])
     const steps = useMemo<VerifyStep[]>(
         () => [...questionIds, 'saved', 'id', 'review', 'verified', 'address-proof'],
         [questionIds]
@@ -252,7 +255,11 @@ function PaperworkVerificationSteps({
     const showIntro = intro && asking
     // While asking, the clean URL keeps meaning the step this visit opened on, so moving on to
     // a step that has since become the entry (the ID, once every answer is in) still writes it.
-    const [openedOn] = useState(entry)
+    // A deep link to a step that shares a screen opens that screen.
+    const [openedOn] = useState(() => {
+        const linked = stepParam ? screenOf(stepParam as VerifyStep) : null
+        return linked && linked !== stepParam ? linked : entry
+    })
     const stepper = useFlowStepper<VerifyStep>({
         steps,
         defaultStep: asking ? openedOn : entry,
@@ -308,30 +315,33 @@ function PaperworkVerificationSteps({
         seconds: number
     ) => {
         const ids = shown.map((s) => s.id)
+        // A shared screen also shows steps answered before; only new or edited answers are saved.
+        const changed = shown.filter((s) => !stepUnchanged(s, values))
         const updated = ids.reduce((current, id) => markSaved(current, id, values), questions)
         setQuestions(updated)
         setReturned(null)
         saveRefused.current = false
-        const last = ids[ids.length - 1]
-        const following =
-            updated.steps.slice(updated.steps.findIndex((s) => s.id === last) + 1).find((s) => !s.answered)?.id ??
-            updated.steps.find((s) => !s.answered)?.id
-        void stepper.goTo(following ? screenOf(following) : 'saved')
+        const open = (screen: PaperworkVerificationStepId[]) =>
+            screen.some((id) => updated.steps.find((s) => s.id === id)?.answered === false)
+        const at = screens.findIndex((screen) => screen.includes(ids[0]))
+        const following = (screens.slice(at + 1).find(open) ?? screens.find(open))?.[0]
+        void stepper.goTo(following ?? 'saved')
 
         const submission = ++submissions.current
         const stepTracking = { ...tracking, step: ids[0] }
-        saves.current = saves.current.then(async () => {
-            const outcome = await saveWithRetries(shown, values)
-            trackSaveOutcome(
-                (event, properties) =>
-                    trackPaperworkVerification(stepTracking, event, { steps: stepsLabel(shown), ...properties }),
-                outcome,
-                { seconds, rejectedBefore: rejections.current[ids[0]] ?? 0 }
-            )
-            if (outcome.ok) return
-            if (outcome.rejected) rejections.current[ids[0]] = (rejections.current[ids[0]] ?? 0) + 1
-            saveFailed(shown, outcome)
-        })
+        if (changed.length)
+            saves.current = saves.current.then(async () => {
+                const outcome = await saveWithRetries(changed, values)
+                trackSaveOutcome(
+                    (event, properties) =>
+                        trackPaperworkVerification(stepTracking, event, { steps: stepsLabel(changed), ...properties }),
+                    outcome,
+                    { seconds, rejectedBefore: rejections.current[ids[0]] ?? 0 }
+                )
+                if (outcome.ok) return
+                if (outcome.rejected) rejections.current[ids[0]] = (rejections.current[ids[0]] ?? 0) + 1
+                saveFailed(changed, outcome)
+            })
         if (following) return
         // The last answer reserves the attempt: read it and the ID's documents back before the midpoint needs them.
         settled.current = saves.current.then(async () => {
@@ -528,7 +538,6 @@ function PaperworkVerificationSteps({
         : ''
 
     const current = questions.steps.find((s) => s.id === step)
-    const phone = questions.steps.find((s) => s.id === 'phone')
     let screen: React.ReactNode = null
     if (showIntro) {
         screen = (
@@ -545,7 +554,9 @@ function PaperworkVerificationSteps({
     } else if (step === 'saved') {
         screen = <SavedScreen busy={savedBusy} onContinue={() => void continueFromSaved()} />
     } else if (current) {
-        const shown = phoneJoined && current.id === 'address' && phone ? [current, phone] : [current]
+        const shown = (screens.find((ids) => ids[0] === current.id) ?? [current.id])
+            .map((id) => questions.steps.find((s) => s.id === id))
+            .filter((s): s is PaperworkVerificationStep => !!s)
         screen = (
             <QuestionStepScreen
                 key={current.id}
