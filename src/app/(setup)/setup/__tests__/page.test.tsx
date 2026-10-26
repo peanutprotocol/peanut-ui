@@ -813,12 +813,12 @@ describe('a signup interrupted after registration', () => {
         expect(mockRouter.replace).toHaveBeenCalledWith('/home')
     })
 
-    // Its answers are in: only the wallet is missing, which /home hands to /setup/finish.
-    it('does not walk the steps again for an account that already gave its email', async () => {
+    // A saved email marks nothing after it: the payment choices and notification step were never sent.
+    it('resumes after a reload that followed the email step', async () => {
         mockAuth.user = { ...unfinished, user: { ...unfinished.user, email: 'test044@example.com' } }
         renderWithIntl(<SetupPage />)
         await advance(100)
-        expect(mockRouter.replace).toHaveBeenCalledWith('/home')
-        expect(mockFlow.setScreenId).not.toHaveBeenCalledWith('residence', { history: 'replace' })
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+        expect(mockFlow.setScreenId).toHaveBeenCalledWith('residence', { history: 'replace' })
     })
 })

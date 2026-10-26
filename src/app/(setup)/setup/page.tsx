@@ -307,9 +307,7 @@ function SetupPageContent() {
              * restart at the first step after registration, unless the flow
              * is already past it.
              */
-            const unfinishedRoute = isDemoMode() ? null : unfinishedSignupRoute(user)
-            // A flow already under way keeps going until its last step creates the wallet.
-            const resume = unfinishedRoute === '/setup' || (unfinishedRoute !== null && shownPostRegistration.current)
+            const resume = !isDemoMode() && unfinishedSignupRoute(user) === '/setup'
             if (resume) resumeSignup.current = true
             const exitSignedIn = () => {
                 if (!resume) {

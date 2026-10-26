@@ -13,8 +13,9 @@ describe('unfinishedSignupRoute', () => {
         expect(unfinishedSignupRoute(profile({ username: 'test044', email: '' }))).toBe('/setup')
     })
 
-    it('only creates the wallet once the email is there', () => {
-        expect(unfinishedSignupRoute(profile({ username: 'alice', email: 'alice@example.com' }))).toBe('/setup/finish')
+    // The payment choices and notification step after the email are saved nowhere until the wallet step.
+    it('walks the steps again after the email was saved too', () => {
+        expect(unfinishedSignupRoute(profile({ username: 'alice', email: 'alice@example.com' }))).toBe('/setup')
     })
 
     it('sends an account /setup cannot resume, one without a username, to the wallet step', () => {

@@ -31,15 +31,18 @@ afterEach(() => {
 })
 
 describe('useAccountSetupRedirect', () => {
-    it('sends a signup interrupted before the email back through the steps', () => {
-        mockAuth.user = account({ username: 'test044', email: '' })
+    it.each([
+        ['before', ''],
+        ['after', 'test044@example.com'],
+    ])('sends a signup interrupted %s its email back through the steps', (_label, email) => {
+        mockAuth.user = account({ username: 'test044', email })
         const { result } = renderHook(() => useAccountSetupRedirect())
         expect(result.current.needsRedirect).toBe(true)
         expect(mockPush).toHaveBeenCalledWith('/setup')
     })
 
-    it('sends an account that only lacks the wallet to the wallet step', () => {
-        mockAuth.user = account({ username: 'alice', email: 'alice@example.com' })
+    it('sends an account /setup cannot resume, one without a username, to the wallet step', () => {
+        mockAuth.user = account({ username: null, email: 'alice@example.com' })
         renderHook(() => useAccountSetupRedirect())
         expect(mockPush).toHaveBeenCalledWith('/setup/finish')
     })

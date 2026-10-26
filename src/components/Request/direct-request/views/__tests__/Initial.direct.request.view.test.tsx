@@ -175,9 +175,9 @@ describe('addressed requests', () => {
         expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
     })
 
-    test('sends an incomplete account that never gave an email back through the signup steps', async () => {
+    test('sends an incomplete account with a username back through the signup steps', async () => {
         mockAuth.user.accounts = []
-        mockAuth.user.user = { userId: 'sender', username: 'sender', email: '' }
+        mockAuth.user.user = { userId: 'sender', username: 'sender', email: 'sender@example.com' }
         renderView()
         await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/setup'))
         expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
