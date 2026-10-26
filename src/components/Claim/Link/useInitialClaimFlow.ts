@@ -29,7 +29,8 @@ import type { Address } from 'viem'
 import { type IClaimScreenProps } from '../Claim.consts'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import useClaimLink from '../useClaimLink'
-import underMaintenanceConfig, { CROSS_CHAIN_DISABLED_MESSAGE } from '@/config/underMaintenance.config'
+import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
+import { CROSS_CHAIN_DISABLED_MESSAGE } from '@/features/kill-switches/kill-switches.consts'
 import { type ClaimXChainPreview } from '../Claim.consts'
 import { previewSdaTransfer } from '@/services/rhino-sda'
 import { findClaimRoute, resolveClaimQuoteRecipient } from '@/utils/claim-route.utils'
@@ -325,7 +326,7 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
 
                 // check if cross-chain claiming is needed
                 if (isXChain) {
-                    if (underMaintenanceConfig.disableXchainSend) {
+                    if (getKillSwitches().disableXchainSend) {
                         // skip throwing through the friendly-error mapper — surface the friendly maintenance message directly
                         setErrorState({ showError: true, errorMessage: CROSS_CHAIN_DISABLED_MESSAGE })
                         setLoadingState('Idle')

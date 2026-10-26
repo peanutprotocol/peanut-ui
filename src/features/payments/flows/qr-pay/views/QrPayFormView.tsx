@@ -46,6 +46,7 @@ export function QrPayFormView() {
         paymentLock,
         qrPayment,
         merchantName,
+        recipientBankName,
         pixKeyLabel,
         pixKeyOwner,
         isAwaitingPixKeyOwner,
@@ -158,6 +159,18 @@ export function QrPayFormView() {
                                                 })}
                                             </span>
                                         )}
+                                    </p>
+                                )}
+                                {recipientBankName && (
+                                    <p className="ph-mask ph-no-capture flex items-start gap-1 text-body-s text-foreground-secondary">
+                                        <Icon
+                                            name="bank"
+                                            size={16}
+                                            role="img"
+                                            aria-label={t('recipientBank')}
+                                            className="mt-0.5 flex-shrink-0"
+                                        />
+                                        <span className="min-w-0 break-words">{recipientBankName}</span>
                                     </p>
                                 )}
                             </div>

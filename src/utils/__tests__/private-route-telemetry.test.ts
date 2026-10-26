@@ -3,9 +3,9 @@ import * as Sentry from '@sentry/nextjs'
 import {
     disablePaymentNetworkGoogleAnalytics,
     installPaymentNetworkGoogleAnalyticsGuard,
-    isPaymentNetworkExplorerPath,
+    isPrivateDataPath,
 } from '@/utils/private-routes'
-import { resetPaymentNetworkTelemetryGuardForTest, suppressPaymentNetworkTelemetry } from '../privacy'
+import { resetPrivateRouteTelemetryGuardForTest, suppressPrivateRouteTelemetry } from '../private-route-telemetry'
 
 jest.mock('posthog-js', () => ({
     __esModule: true,
@@ -36,7 +36,7 @@ jest.mock('@sentry/nextjs', () => ({
 
 describe('payment explorer privacy boundary', () => {
     beforeEach(() => {
-        resetPaymentNetworkTelemetryGuardForTest()
+        resetPrivateRouteTelemetryGuardForTest()
         jest.clearAllMocks()
         window.localStorage.clear()
         window.sessionStorage.clear()
@@ -47,17 +47,20 @@ describe('payment explorer privacy boundary', () => {
     })
 
     it('recognizes only the dedicated explorer route', () => {
-        expect(isPaymentNetworkExplorerPath('/dev/payment-graph')).toBe(true)
-        expect(isPaymentNetworkExplorerPath('/dev/payment-graph/')).toBe(true)
-        expect(isPaymentNetworkExplorerPath('/dev/full-graph')).toBe(false)
-        expect(isPaymentNetworkExplorerPath('/dev/payment-graphical')).toBe(false)
+        expect(isPrivateDataPath('/dev/payment-graph')).toBe(true)
+        expect(isPrivateDataPath('/dev/payment-graph/')).toBe(true)
+        expect(isPrivateDataPath('/dev/full-graph')).toBe(false)
+        expect(isPrivateDataPath('/dev/payment-graphical')).toBe(false)
+        expect(isPrivateDataPath('/dev/users')).toBe(true)
+        expect(isPrivateDataPath('/dev/users/')).toBe(true)
+        expect(isPrivateDataPath('/dev/userscape')).toBe(false)
     })
 
     it('stops capture and replay without persisting an analytics opt-out', () => {
         const localBefore = storageSnapshot(window.localStorage)
         const sessionBefore = storageSnapshot(window.sessionStorage)
         const cookieBefore = document.cookie
-        suppressPaymentNetworkTelemetry('/dev/payment-graph')
+        suppressPrivateRouteTelemetry('/dev/payment-graph')
 
         expect(posthog.stopSessionRecording).toHaveBeenCalledTimes(1)
         expect(posthog.set_config).toHaveBeenCalledWith({
@@ -81,10 +84,10 @@ describe('payment explorer privacy boundary', () => {
     })
 
     it('does nothing outside the explorer and is idempotent inside it', () => {
-        suppressPaymentNetworkTelemetry('/home')
+        suppressPrivateRouteTelemetry('/home')
         expect(posthog.set_config).not.toHaveBeenCalled()
-        suppressPaymentNetworkTelemetry('/dev/payment-graph')
-        suppressPaymentNetworkTelemetry('/dev/payment-graph')
+        suppressPrivateRouteTelemetry('/dev/payment-graph')
+        suppressPrivateRouteTelemetry('/dev/payment-graph')
         expect(posthog.set_config).toHaveBeenCalledTimes(1)
     })
 

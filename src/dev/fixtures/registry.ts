@@ -88,6 +88,23 @@ const NAMED_BANK_ACCOUNTS = [
     { ...BANK_ACCOUNTS[1], label: null, lastUsedAt: '2026-06-02T09:00:00.000Z' },
 ]
 
+// A PIX key saved to favorites after a payment, with the bank the PIX directory
+// named (TASK-23738). Offered under Send → Bank, never as a withdrawal.
+const PIX_FAVORITE = {
+    id: 'fixture-pix-favorite-1',
+    userId: 'demo-user',
+    bridgeAccountId: '',
+    type: 'manteca',
+    identifier: 'maria@silva.com.br',
+    label: 'Maria',
+    lastUsedAt: '2026-08-20T09:00:00.000Z',
+    details: { bankName: 'NU PAGAMENTOS S.A.', accountOwnerName: '', countryCode: 'BRA', countryName: 'brazil' },
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    chainId: null,
+    isPixRecipient: true,
+}
+
 // The activity list is not only transactions: it also injects a row per badge
 // in `user.badges` and one identity-verification row. An empty state needs all
 // three cleared, or "no transactions" still renders four rows.
@@ -955,6 +972,11 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': null },
     },
     home: { route: '/home', about: 'Home: balance, activity and CTAs for a verified user.' },
+    'full-maintenance': {
+        route: '/maintenance',
+        about: 'Full maintenance is on: every app page sends the user to the maintenance screen.',
+        responses: { 'GET /config/kill-switches': { enableFullMaintenance: true } },
+    },
     'home-verification-needed': {
         route: '/home',
         about: 'Home: Add, Send and Request beside an additional bank-transfer verification task.',
@@ -1260,15 +1282,19 @@ export const FIXTURES: Record<string, Fixture> = {
         fails: ['GET /manteca/prices'],
     },
     // A PIX-key send after the key screen resolved the owner: the owner's name is
-    // the heading, and the key with the masked CPF/CNPJ sits underneath.
+    // the heading, the key with the masked CPF/CNPJ sits underneath, and the bank
+    // the PIX directory names comes last (the API sent Manteca the bare key).
     'qr-pay-pix-key-owner': {
         route: '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&pixKey=maria%40silva.com.br&t=1',
-        about: "PIX-key payment showing the key owner's name, with the key and masked CPF/CNPJ below it.",
+        about: "PIX-key payment showing the key owner's name, with the key, masked CPF/CNPJ and bank below it.",
         waitFor: 'p.text-body-s.ph-mask',
         responses: {
             'POST /manteca/qr-payment/init': {
                 type: 'PIX',
-                paymentRecipientName: 'MARIA@SILVA.COM.BR',
+                paymentRecipientName: 'MARIA DA SILVA',
+                paymentRecipientLegalId: '12*******90',
+                paymentRecipientBankName: 'NU PAGAMENTOS S.A.',
+                paymentRecipientBankCode: '18236120',
                 paymentAsset: 'BRL',
                 paymentAgainst: 'USDC',
                 paymentPrice: '5.5',
@@ -1277,6 +1303,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     // A CPF key is the owner's own tax ID: it shows once, in full, labelled CPF.
+    // Its lock names no bank, as when the API had to send the BR Code.
     'qr-pay-pix-key-cpf': {
         route: '/qr-pay?qrCode=00020126330014br.gov.bcb.pix0111123456789095204000053039865802BR5911123456789096009SAO%20PAULO62070503***63047AC2&type=PIX&pixKey=12345678909&t=1',
         about: 'PIX payment to a CPF key: the owner, then the CPF in full, with no masked copy.',
@@ -1333,6 +1360,14 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             'GET /users/history': { entries: [CARD_SPEND_ENTRY, ...EARLIER_CARD_SPENDS], hasMore: false },
             'GET /users/me': { user: { badges: [] } },
+        },
+    },
+    // Send → Bank with a PIX key saved to favorites: the key's row names its bank.
+    'send-bank-pix-favorite': {
+        route: '/withdraw?method=bank',
+        about: 'Send to a bank account, with a PIX key saved to favorites that shows its bank.',
+        responses: {
+            'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS, PIX_FAVORITE] },
         },
     },
     // Named bank accounts beside the named address book: destinationLabel on

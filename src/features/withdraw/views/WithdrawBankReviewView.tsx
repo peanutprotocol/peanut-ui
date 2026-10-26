@@ -283,14 +283,6 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 <Field
                     label={t('bank.reference')}
                     htmlFor="withdraw-bank-reference"
-                    helper={
-                        <>
-                            {t(`bank.${referenceSpec.helperKey}`)}
-                            {/* The rail rewrites the text on some rails — the
-                                receipt is where the user reads the final value. */}
-                            {referenceSpec.rewrittenKey && <> {t(`bank.${referenceSpec.rewrittenKey}`)}</>}
-                        </>
-                    }
                     // After a failed submit there is nothing left to finish
                     // typing, so the reason shows without waiting for a blur.
                     error={

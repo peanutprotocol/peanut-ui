@@ -13,7 +13,7 @@ import {
     receiptExchangeRate,
 } from '@/components/TransactionDetails/receipt-conversion.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
-import { formatAmount, printableAddress } from '@/utils/general.utils'
+import { printableAddress } from '@/utils/general.utils'
 import { formatBankAmount } from '@/utils/currency'
 import { RECEIPT_COMPANY } from '@/components/TransactionDetails/receipt-company'
 import { PROVIDERS } from '@/constants/providers.consts'
@@ -169,12 +169,12 @@ export function buildReceiptPdfModel(
     if (transaction.networkFeeDetails?.state === 'charged' && deliveredSomething) {
         push(t('transaction.rows.networkFee'), transaction.networkFeeDetails.amountDisplay)
         if (transaction.recipientReceivesUsd !== undefined) {
-            push(t('transaction.rows.recipientReceives'), `$${formatAmount(transaction.recipientReceivesUsd)}`)
+            push(t('transaction.rows.recipientReceives'), formatBankAmount(transaction.recipientReceivesUsd, 'USD'))
         }
     }
 
     if (transaction.fee !== undefined && !isCancelled) {
-        push(t('transaction.rows.fee'), formatAmount(transaction.fee as number))
+        push(t('transaction.rows.fee'), formatBankAmount(transaction.fee, 'USD'))
     }
 
     // without the owner's residence bridge gets its brand-only record

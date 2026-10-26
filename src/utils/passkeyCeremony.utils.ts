@@ -1,3 +1,4 @@
+import { beginAndroidPasskeyScope } from './android-passkey-scope'
 import { addBreadcrumb, captureException } from '@/utils/sentry-lazy'
 import { isCapacitor } from '@/utils/capacitor'
 import { setAuthToken } from '@/utils/auth-token'
@@ -63,13 +64,15 @@ export const isCeremonyGuardError = (err: unknown): err is Error =>
     (err.name === 'CeremonyTimeoutError' ||
         err.name === 'PasskeyShimNotReadyError' ||
         err.name === 'PasskeyShimFailedError' ||
-        err.name === 'CeremonyConflictError')
+        err.name === 'CeremonyConflictError' ||
+        err.name === 'PasskeyCleanupPendingError')
 
 const GUARD_ERROR_TAG: Record<string, string> = {
     CeremonyTimeoutError: 'ceremony_timeout',
     PasskeyShimNotReadyError: 'shim_not_ready',
     PasskeyShimFailedError: 'shim_failed',
     CeremonyConflictError: 'ceremony_conflict',
+    PasskeyCleanupPendingError: 'cleanup_pending',
 }
 
 // A second tap while a ceremony owns the window is a rejected interaction, not
@@ -236,15 +239,26 @@ export const guardPasskeyCeremony = async <T>(startCeremony: () => Promise<T>): 
     if (native) await waitForPasskeyShim()
     // re-check: another ceremony may have claimed the window during the wait
     if (activeCeremonyId !== null) throw new CeremonyConflictError()
+    const androidScope = native ? beginAndroidPasskeyScope() : undefined
     const ceremonyId = ++ceremonySeq
     activeCeremonyId = ceremonyId
     stashedVerifyToken = null
     stashedStepUp = null
     try {
+        let operation: Promise<T>
+        try {
+            operation = startCeremony()
+        } catch (error) {
+            androidScope?.finish()
+            throw error
+        }
+        // Keep the scope after a UI timeout until the SDK continuation terminates.
+        // An options response arriving late cannot open another native prompt.
+        const scopedOperation = operation.finally(() => androidScope?.finish())
         const result = await raceCeremonyTimeout(
-            startCeremony(),
+            scopedOperation,
             native ? CEREMONY_TIMEOUT_MS : WEB_CEREMONY_TIMEOUT_MS,
-            native ? undefined : cancelBrowserCeremony
+            native ? () => androidScope?.expire() : cancelBrowserCeremony
         )
         if (stashedVerifyToken !== null) setAuthToken(stashedVerifyToken)
         const stepUp = takeStashedStepUp()

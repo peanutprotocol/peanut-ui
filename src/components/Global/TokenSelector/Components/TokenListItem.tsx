@@ -22,7 +22,8 @@ import { type CardPosition } from '@/components/Global/Card/card.utils'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { type IUserBalance } from '@/interfaces/interfaces'
-import { formatAmount, formatAmountWithSignificantDigits } from '@/utils/general.utils'
+import { formatAmountWithSignificantDigits } from '@/utils/general.utils'
+import { formatAmountNumber } from '@/utils/currency'
 import { twMerge } from '@/utils/tw'
 import React, { useContext, useMemo } from 'react'
 import { Icon } from '../../Icons/Icon'
@@ -102,7 +103,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                                 <span className={twMerge('text-body-xs', paint ?? 'text-foreground-secondary')}>
                                     {/* token value in usd */}
                                     {balance.price && balance.price * Number(formattedBalance) > 0
-                                        ? `$ ${formatAmount(balance.price * Number(formattedBalance))}`
+                                        ? `$ ${formatAmountNumber(balance.price * Number(formattedBalance))}`
                                         : '-'}
                                 </span>
                             </div>

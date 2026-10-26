@@ -61,6 +61,24 @@ export const UTM_SOURCES = {
     META: 'meta',
     /** QR codes drawn on the star-feature landing pages (a scan is a new device with no attribution). */
     STAR_LP: 'star-lp',
+    /** Registered landing-page download QR codes. */
+    MARKETING_QR: 'marketing-qr',
+    /** Existing content template sources from the shared UTM taxonomy. */
+    BLOG: 'blog',
+    COMPARE: 'compare',
+    COUNTRIES: 'countries',
+    COUNTRY_HUB: 'country-hub',
+    DEPOSIT_ACCOUNT: 'deposit-account',
+    DEPOSIT_FROM: 'deposit-from',
+    PAY_WITH_METHOD: 'pay-with-method',
+    PRICING: 'pricing',
+    RECEIVE_FROM_COUNTRY: 'receive-from-country',
+    SEND_TO_COUNTRY: 'send-to-country',
+    SEND_TO_COUNTRY_FROM: 'send-to-country-from',
+    STORIES: 'stories',
+    SUPPORTED_NETWORKS: 'supported-networks',
+    USE_CASES: 'use-cases',
+    WITHDRAW: 'withdraw',
 } as const
 
 export type UtmMedium = (typeof UTM_MEDIUMS)[keyof typeof UTM_MEDIUMS]

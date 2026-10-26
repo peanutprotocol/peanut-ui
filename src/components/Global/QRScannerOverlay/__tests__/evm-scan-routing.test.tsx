@@ -44,7 +44,10 @@ jest.mock('@/utils/capacitor', () => ({
 }))
 
 const mockMaintenance = { disableXchainWithdraw: false }
-jest.mock('@/config/underMaintenance.config', () => ({ __esModule: true, default: mockMaintenance }))
+jest.mock('@/features/kill-switches/kill-switches-store', () => ({
+    getKillSwitches: () => mockMaintenance,
+    subscribeKillSwitches: () => () => {},
+}))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 
 const SIGNED_IN = { user: { userId: 'user-1', username: 'satoshi' } }

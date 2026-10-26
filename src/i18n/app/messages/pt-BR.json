@@ -848,15 +848,17 @@
         "signupStep": {
             "usernameLabel": "Usuário",
             "usernamePlaceholder": "batman",
+            "usernameRules": "De 4 a 12 caracteres. Comece com uma letra. Só letras e números.",
             "inviterUsernameLabel": "Usuário de quem convidou você",
-            "inviterUsernamePlaceholder": "batman",
+            "inviterUsernamePlaceholder": "Usuário de quem convidou",
             "inviterNotFound": "Não encontramos esse usuário.",
+            "inviterIsSelf": "Esse é o seu próprio usuário.",
             "inviterCheckFailed": "Não conseguimos verificar esse usuário. Tente de novo.",
             "errors": {
                 "required": "O nome de usuário é obrigatório",
-                "tooShort": "O nome de usuário deve ter pelo menos 4 caracteres",
-                "tooLong": "O nome de usuário deve ter no máximo 12 caracteres",
-                "invalidFormat": "O nome de usuário só pode ter letras minúsculas e números, e deve começar com uma letra",
+                "tooShort": "Use pelo menos 4 caracteres.",
+                "tooLong": "Use até 12 caracteres.",
+                "invalidFormat": "Comece com uma letra. Use só letras e números.",
                 "taken": "Esse nome de usuário já está em uso",
                 "invalid": "O nome de usuário não é válido, use um diferente",
                 "checkFailed": "Não conseguimos verificar a disponibilidade do usuário. Tente de novo.",
@@ -981,6 +983,7 @@
             "unsupportedDesktop": "Este navegador não conseguiu acessar o serviço de passkeys do seu computador. Reinicie ou atualize o navegador e tente de novo, ou entre pelo seu celular.",
             "origin": "As passkeys estão indisponíveis neste app no momento. Atualize o Peanut ou fale com o suporte se o problema continuar.",
             "loginError": "Não foi possível verificar sua passkey. Tente de novo ou fale com o suporte se continuar acontecendo.",
+            "notFound": "Este app não conseguiu acessar sua passkey.",
             "notCompleted": "A verificação com passkey não foi concluída. Tente de novo quando quiser.",
             "associationUnavailable": "A verificação com passkey está indisponível no momento. Aguarde alguns segundos e tente de novo.",
             "deviceLocked": "Desbloqueie o dispositivo e tente de novo.",
@@ -1514,8 +1517,9 @@
             "restartDescription": "Pagamentos com QR precisam de um documento de um país compatível. Você pode verificar com outro documento.",
             "blockedDescription": "Pagamentos com QR não estão disponíveis para a sua conta. Fale com o suporte para receber ajuda.",
             "uploadDocument": "Enviar documento",
-            "verifyAgainTitle": "Verificar identidade novamente",
-            "verifyAgainDescription": "Os pagamentos com QR estão pausados até você verificar de novo."
+            "verifyAgainTitle": "Precisamos de mais alguns dados",
+            "verifyAgainDescription": "Faltam alguns dados. Conclua a verificação adicional.",
+            "verifyAgainCta": "Continuar"
         },
         "info": {
             "exchangeRate": "Taxa de câmbio",
@@ -1559,6 +1563,7 @@
             "signFailed": "Não conseguimos confirmar este pagamento. Você não foi cobrado. Tente novamente.",
             "preparationFailed": "Algo deu errado. Você não foi cobrado. Tente novamente.",
             "passkeyBusy": "Já existe outra confirmação aberta. Feche-a e toque em Pagar novamente. Você não foi cobrado.",
+            "passkeyRestart": "A última confirmação não terminou de fechar. Reinicie o app e toque em Pagar novamente. Você não foi cobrado.",
             "accountStateChanged": "A transação falhou por uma mudança no estado da conta. Tente de novo. Se o problema continuar, fale com o suporte.",
             "sessionExpired": "A sessão de pagamento expirou. Escaneie o código QR de novo.",
             "restartScan": "Não conseguimos iniciar este pagamento. Escaneie o código QR novamente.",
@@ -1634,6 +1639,7 @@
             }
         },
         "pixKeyOwnerTaxId": "{taxIdKind} {taxId}",
+        "recipientBank": "Banco",
         "pixKeySavedAs": "Salva como {name}"
     },
     "card": {
@@ -2014,15 +2020,9 @@
             "scanWithBankApp": "Escaneie com o app do seu banco ou copie o código Pix."
         },
         "confirmationModal": {
-            "title": "Importante",
-            "nextStep": "A seguir:",
-            "bankDetailsItem": "Os dados bancários para enviar o dinheiro",
-            "referenceCodeItem": "Um código de referência do depósito",
-            "youMust": "É preciso:",
-            "copyReferenceCode": "Copiar o código de referência de uso único exatamente",
-            "pasteReference": "Colar no campo de descrição/referência",
-            "mismatchTitle": "Se a referência faltar ou estiver errada:",
-            "mismatchDescription": "Seu depósito vai falhar e vai levar de 2 a 10 dias para voltar ao seu banco, e pode ter taxas. O código de referência é de uso único."
+            "title": "Copie a referência exata",
+            "body": "A próxima tela mostra os dados bancários e uma referência de depósito. Cole a referência no campo de referência do banco.",
+            "missingReference": "Sem a referência exata, o depósito pode atrasar ou voltar para o seu banco."
         },
         "bankDetails": {
             "amountToSend": "Valor a enviar",
@@ -2141,12 +2141,6 @@
             "arrives": "Chega",
             "bankReceives": "O banco recebe",
             "reference": "Referência (opcional)",
-            "referenceHelperSepa": "O banco do destinatário mostra com o pagamento. De 6 a 140 caracteres: letras a-z, números, espaços e & - . /",
-            "referenceHelperAch": "O banco do destinatário mostra com o pagamento. Até 10 caracteres: letras a-z, números e espaços.",
-            "referenceHelperWire": "O banco do destinatário mostra com o pagamento. Até 140 caracteres: letras a-z, números, espaços e & - . /",
-            "referenceHelperFasterPayments": "O banco do destinatário mostra com o pagamento. Até 18 caracteres: letras a-z, números, espaços e & - . /",
-            "referenceHelperSpei": "O banco do destinatário mostra com o pagamento. Até 40 caracteres: letras a-z, números e espaços.",
-            "referenceHelperCoBankTransfer": "O banco do destinatário mostra com o pagamento. Até 18 caracteres: letras a-z, números, espaços e & - . /",
             "referenceTooShort": "Mínimo de {min} caracteres, ou deixe em branco.",
             "referenceTooLong": "Máximo de {max} caracteres.",
             "referenceInvalidCharsSepa": "Use apenas letras a-z, números, espaços e & - . /",
@@ -2154,7 +2148,6 @@
             "referenceInvalidCharsSpei": "Use apenas letras a-z, números e espaços.",
             "payoutReferenceReplacesDefaultSepa": "A referência que você escrever substitui o texto que a Bridge envia por padrão com o pagamento.",
             "payoutDefaultReferenceCarriesNameSepa": "Esse texto padrão leva o seu nome.",
-            "referenceFormattingMayChange": "Os espaços e as letras maiúsculas podem mudar no caminho.",
             "payoutSenderAch": "O pagamento chega da Bridge, não em seu nome.",
             "payoutSenderSpei": "O pagamento chega do banco local da Bridge, não em seu nome.",
             "payoutSenderWire": "O pagamento chega da Bridge, não em seu nome.",
@@ -3576,8 +3569,7 @@
             "continue": "Continuar",
             "okay": "Entendi",
             "directSendCrossChain": "A Peanut aceita pagamentos entre redes.",
-            "directSendConfirm": "Confirme os dados do pagamento antes de enviar",
-            "directSendAcknowledge": "Eu entendo e vou confirmar os dados do pagamento.",
+            "directSendAcknowledge": "Vou conferir os dados do pagamento.",
             "externalUrlIntro": "A Peanut não aceita este QR, mas você pode abri-lo no seu navegador.",
             "externalUrlTrust": "Confirme que você confia neste site!",
             "openLink": "Abrir link",
@@ -3858,18 +3850,18 @@
             "cryptoWithdrawDescription": "Saque para uma carteira ou corretora"
         },
         "savedAccounts": {
-            "title": "Contas salvas",
+            "title": "Contas favoritas",
             "bankSectionTitle": "Contas bancárias",
             "selectNewMethod": "Escolher outro método",
             "flagAlt": "Bandeira de {country}",
             "flagAltGeneric": "Bandeira do país"
         },
         "savedAddresses": {
-            "title": "Agenda de endereços cripto",
+            "title": "Endereços cripto favoritos",
             "lastUsed": "{days, plural, =0 {Usado hoje} =1 {Usado ontem} other {Usado há # dias}}",
             "nicknamePlaceholder": "ex.: Binance",
             "deleteCta": "Excluir endereço",
-            "savePrompt": "Salvar na agenda",
+            "savePrompt": "Salvar nos favoritos",
             "rowAria": "{name}, {address} em {chain}",
             "nicknameRequired": "Adicione um nome para salvar este endereço."
         },
@@ -3985,7 +3977,8 @@
         "passkeyAssociationMismatch": "As passkeys estão indisponíveis neste app no momento. Atualize o Peanut ou fale com o suporte se o problema continuar.",
         "passkeyDeviceLocked": "Desbloqueie o dispositivo e tente de novo.",
         "passkeyBiometryRequired": "Use o Face ID ou Touch ID para verificar a passkey e tente de novo.",
-        "passkeyVerificationIncomplete": "A verificação com passkey não foi concluída. Tente de novo quando quiser."
+        "passkeyVerificationIncomplete": "A verificação com passkey não foi concluída. Tente de novo quando quiser.",
+        "passkeyRestartRequired": "A última solicitação de passkey não terminou de fechar. Reinicie o app e tente de novo."
     },
     "appLock": {
         "title": "Olá de novo!",

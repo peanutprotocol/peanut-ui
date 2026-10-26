@@ -127,7 +127,8 @@
         "passkeyAssociationMismatch": "Passkeys aren’t available in this app right now. Update Peanut, or contact support if this continues.",
         "passkeyDeviceLocked": "Unlock the device, then try again.",
         "passkeyBiometryRequired": "Use Face ID or Touch ID to verify the passkey, then try again.",
-        "passkeyVerificationIncomplete": "Passkey verification wasn’t completed. Try again when ready."
+        "passkeyVerificationIncomplete": "Passkey verification wasn’t completed. Try again when ready.",
+        "passkeyRestartRequired": "The last passkey request didn’t finish closing. Restart the app, then try again."
     },
     "migration": {
         "downloadPeanut": "Download Peanut",

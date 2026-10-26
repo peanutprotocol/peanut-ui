@@ -37,7 +37,7 @@ export function SelfCustodyClose() {
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-body-l">No password. Just your passkey.</p>
             <PopIn delay={0.35} className="mx-auto mt-8 w-fit">
-                <StarLpCta href={STAR_LP_HREF.signup} ground="pink">
+                <StarLpCta qrPlacement="close" href={STAR_LP_HREF.signup} ground="pink">
                     Create an account
                 </StarLpCta>
             </PopIn>

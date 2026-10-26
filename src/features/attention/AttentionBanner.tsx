@@ -2,8 +2,8 @@
 
 import { Suspense, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import maintenanceConfig from '@/config/underMaintenance.config'
 import { IS_PRODUCTION } from '@/constants/general.consts'
+import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { isDemoMode } from '@/utils/demo'
 import { useHydrationSnapshot } from '@/utils/native-platform'
 import { logRunMode } from '@/utils/mode'
@@ -22,6 +22,7 @@ export function AttentionBanner({ variant = 'global', className = 'mx-4 mt-2' }:
     const attention = useAttentionOptional()
     const pathname = usePathname()
     const demoMode = useHydrationSnapshot(isDemoMode, () => false)
+    const maintenanceConfig = useKillSwitches()
     const id = attention?.decision.banner
     const Surface = id ? BANNER_SURFACES[id] : undefined
     const openedSurface = attention?.openedSurface

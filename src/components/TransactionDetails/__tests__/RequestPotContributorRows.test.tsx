@@ -34,7 +34,7 @@ describe('RequestPotContributorRows', () => {
 
         expect(screen.getByText('Contributors (2)')).toBeInTheDocument()
         expect(screen.getByText('$40.65')).toBeInTheDocument()
-        expect(screen.getByText('$33.00')).toBeInTheDocument()
+        expect(screen.getByText('$33')).toBeInTheDocument()
         expect(screen.queryByText(/58\.51/)).toBeNull()
         expect(screen.queryByText(/paid/i)).toBeNull()
     })

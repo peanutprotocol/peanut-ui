@@ -26,8 +26,10 @@ export const ANALYTICS_EVENTS = {
     PASSKEY_LOGIN_RETRY: 'passkey_login_retry',
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
     SIGNUP_USERNAME_VALIDATED: 'signup_username_validated',
+    SIGNUP_USERNAME_INVALID: 'signup_username_invalid',
     SIGNUP_INVITER_PROMPT_OPENED: 'signup_inviter_prompt_opened',
     SIGNUP_INVITER_ADDED: 'signup_inviter_added',
+    SIGNUP_INVITE_SKIPPED: 'signup_invite_skipped',
     SIGNUP_EXISTING_SESSION_CONTINUED: 'signup_existing_session_continued',
     SIGNUP_PASSKEY_STARTED: 'signup_passkey_started',
     SIGNUP_PASSKEY_SUCCEEDED: 'signup_passkey_succeeded',
@@ -362,6 +364,7 @@ export const ANALYTICS_EVENTS = {
     // in. `webauthn_ceremony_flow` closes a flow with the total count — that
     // count is what says whether a 2–3 prompt report is our call sites, a retry,
     // or the native shim presenting extra sheets on its own.
+    PASSKEY_NATIVE_DIAGNOSTIC: 'passkey_native_diagnostic',
     WEBAUTHN_CEREMONY: 'webauthn_ceremony',
     WEBAUTHN_CEREMONY_FLOW: 'webauthn_ceremony_flow',
 

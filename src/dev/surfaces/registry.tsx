@@ -302,7 +302,6 @@ import RateUnavailable from '@/components/Global/RateUnavailable'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { SURFACE_META, type SurfaceMeta } from './list'
 import { PasskeyHelpA, PasskeyHelpB, PasskeyHelpC, PasskeyHelpD } from './options/PasskeyHelpOptions'
-import { OnrampA, OnrampB, OnrampC, OnrampD } from './options/OnrampOptions'
 import { KycChecklistA, KycChecklistB } from './options/KycChecklistOptions'
 
 export type Surface = SurfaceMeta & {
@@ -1073,10 +1072,6 @@ export const OPTION_SURFACES: Record<string, { name: string; render: () => React
     'opt-passkey-b': { name: 'PasskeySetupHelpDrawer — B', render: () => <PasskeyHelpB /> },
     'opt-passkey-c': { name: 'PasskeySetupHelpDrawer — C', render: () => <PasskeyHelpC /> },
     'opt-passkey-d': { name: 'PasskeySetupHelpDrawer — D', render: () => <PasskeyHelpD /> },
-    'opt-onramp-a': { name: 'OnrampConfirmationModal — A', render: () => <OnrampA /> },
-    'opt-onramp-b': { name: 'OnrampConfirmationModal — B', render: () => <OnrampB /> },
-    'opt-onramp-c': { name: 'OnrampConfirmationModal — C', render: () => <OnrampC /> },
-    'opt-onramp-d': { name: 'OnrampConfirmationModal — D', render: () => <OnrampD /> },
     'opt-kyc-a': { name: 'KycPrepChecklist — A (bullets)', render: () => <KycChecklistA /> },
     'opt-kyc-b': { name: 'KycPrepChecklist — B (DataRow)', render: () => <KycChecklistB /> },
 }

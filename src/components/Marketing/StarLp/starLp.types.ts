@@ -1,3 +1,4 @@
+import type { MarketingQrContext } from '@/features/marketing-qr/contract'
 import type { ReactNode } from 'react'
 import type { StaticImageData } from 'next/image'
 import type { TitleMark } from '@/components/0_Bruddle/Title.types'
@@ -97,6 +98,7 @@ export type StarLpHeroArtPlacement = 'headline' | 'edge'
 export type StarLpHeroArtTuck = 'deep' | 'rim' | 'none'
 
 export interface StarLpCtaProps {
+    qrPlacement?: string
     /** Destination when the PWA-sunset flag is off. With the flag on every CTA goes to /app. */
     href: string
     /** Where a signed-in visitor goes instead (e.g. '/card'). Omit to use `href` for everyone. */
@@ -178,6 +180,7 @@ export interface CloseFoldProps {
 }
 
 export interface StarLpPageProps {
+    marketingPage?: MarketingQrContext['page']
     children: ReactNode
     /** false drops the footer's site directory (its "Send to Argentina"-style
         links). The card page sets it: Rain §7/§11 bar country-named links there. */

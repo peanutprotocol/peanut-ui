@@ -27,17 +27,11 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }))
 jest.mock('@/utils/demo', () => ({ ...jest.requireActual('@/utils/demo'), isDemoMode: () => false }))
-jest.mock('@/config/underMaintenance.config', () => ({
-    // the spread drops the non-enumerable flag, and without it the default import resolves to this wrapper
-    __esModule: true,
-    ...jest.requireActual('@/config/underMaintenance.config'),
-    default: {
-        ...jest.requireActual('@/config/underMaintenance.config').default,
-        enableFullMaintenance: true,
-        enableMaintenanceBanner: false,
-        maintenanceBannerPaths: [],
-    },
-}))
+jest.mock('@/features/kill-switches/useKillSwitches', () => {
+    const { DEFAULT_KILL_SWITCHES } = jest.requireActual('@/features/kill-switches/kill-switches.consts')
+    const fullMaintenance = { ...DEFAULT_KILL_SWITCHES, enableFullMaintenance: true }
+    return { useKillSwitches: () => fullMaintenance }
+})
 
 let mockState: JourneyState
 jest.mock('../journeyState', () => ({ ...jest.requireActual('../journeyState'), useJourneyState: () => mockState }))
@@ -155,7 +149,7 @@ jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => null }
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: ({ name }: { name: string }) => <span data-icon={name} /> }))
 
 import { AttentionProvider, resetAttentionSessionForTests, useAttentionOptional } from '../AttentionProvider'
-import config from '@/config/underMaintenance.config'
+import { DEFAULT_KILL_SWITCHES } from '@/features/kill-switches/kill-switches.consts'
 import { selectMaintenance } from '../maintenance'
 
 // Export-shape tolerance follows the existing arbiter tests; the contracts are tested through public components.
@@ -485,7 +479,13 @@ describe('AttentionSlot', () => {
 describe('AttentionBanner', () => {
     test('without a provider it renders the maintenance callout selected for the route', () => {
         // "AttentionBanner with no provider evaluates selectMaintenance itself and renders the same callout."
-        expect(selectMaintenance({ pathname: mockPathname, config, demo: false })).toBe('full')
+        expect(
+            selectMaintenance({
+                pathname: mockPathname,
+                config: { ...DEFAULT_KILL_SWITCHES, enableFullMaintenance: true },
+                demo: false,
+            })
+        ).toBe('full')
         renderWithIntl(<AttentionBanner variant="global" />)
         // "otherwise the one-liner"
         expect(screen.getByText(en.global.maintenanceBanner)).toBeInTheDocument()

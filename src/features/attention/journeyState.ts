@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { usePathname } from 'next/navigation'
 import { formatUnits } from 'viem'
 import { useAuth } from '@/context/authContext'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { CARD_PROMOTION_DISABLED_FLAG } from '@/constants/card-flags.consts'
 import { QrKycState } from '@/constants/kyc.consts'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { useCapabilities } from '@/hooks/useCapabilities'
@@ -13,6 +13,7 @@ import { useCardInfo } from '@/hooks/useCardInfo'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useArrivalPrompt } from '@/features/home/useArrivalPrompt'
+import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useNotifications } from '@/hooks/useNotifications'
@@ -231,6 +232,8 @@ export function useJourneyState(): JourneyState {
     // the check runs once Home opens, as it did before the manager
     const { arrival, checked: arrivalChecked } = useArrivalPrompt(isSameRoute(pathname, '/home'))
     const flagEnabled = useFeatureFlags()
+    const cardPromotionDisabled = flagEnabled(CARD_PROMOTION_DISABLED_FLAG)
+    const killSwitches = useKillSwitches()
     // shares the React Query cache key with HomeHistory, so this read is free while Home is mounted
     const { data: latestHistory } = useTransactionHistory({ mode: 'latest', limit: 50, enabled: !!userId })
     const epoch = useJourneyEpoch()
@@ -308,9 +311,9 @@ export function useJourneyState(): JourneyState {
             loaded: !cardInfoLoading && (cardInfo !== undefined || !!cardInfoError),
             geoProhibited: !!cardInfo?.geoProhibited,
             hasCardRelationship: rails.some((rail) => channelOf(rail) === 'card'),
-            promotionDisabled: underMaintenanceConfig.disableCardPromotion,
+            promotionDisabled: cardPromotionDisabled,
         }),
-        [cardInfoLoading, cardInfo, cardInfoError, rails, channelOf]
+        [cardInfoLoading, cardInfo, cardInfoError, rails, channelOf, cardPromotionDisabled]
     )
 
     const capNudge = useMemo(
@@ -318,7 +321,7 @@ export function useJourneyState(): JourneyState {
         [capabilitiesLoading, rails, nextActions]
     )
     const demoMode = useHydrationSnapshot(isDemoMode, () => false)
-    const maintenance = selectMaintenance({ pathname, config: underMaintenanceConfig, demo: demoMode })
+    const maintenance = selectMaintenance({ pathname, config: killSwitches, demo: demoMode })
 
     return useMemo(
         () =>

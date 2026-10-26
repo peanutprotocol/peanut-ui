@@ -159,14 +159,24 @@ export function SavedAccountsMapping({
             {/* TODO(TASK-23054): badge a saved account that is one of the user's own virtual
                 accounts ("Virtual account"), to flag a round trip. Needs an exact match of
                 accounts.bank_identity to user_deposit_accounts instructions on the API side. */}
-            {rows.map(({ account, destination, countryCodeForFlag, countryName, path }) => (
+            {rows.map(({ account, destination, recipientBankName, countryCodeForFlag, countryName, path }) => (
                 // ph-mask: the row names a bank alias and an account, also in the edit
                 // button's accessible name. `contents` keeps the layout and the title's truncation.
                 <div key={account.id} className="ph-mask contents">
                     <ListItem
                         title={destinationLabel(destination)}
                         truncate
-                        body={destination.identifier}
+                        body={
+                            recipientBankName ? (
+                                // the key, then the bank on its own line, so neither is cut mid-name
+                                <>
+                                    <span className="block truncate">{destination.identifier}</span>
+                                    <span className="block break-words">{recipientBankName}</span>
+                                </>
+                            ) : (
+                                destination.identifier
+                            )
+                        }
                         position="solo"
                         onClick={() => onItemClick(account, path)}
                         chevron={!onItemEdit}
@@ -215,7 +225,7 @@ export function SavedAccountsMapping({
 
 /** Everything a row needs from one account: its destination shape, its flag and where it goes. */
 function describeAccount(account: Account, locale: string) {
-    let details: { countryCode?: string; countryName?: string; country?: string } = {}
+    let details: { countryCode?: string; countryName?: string; country?: string; bankName?: string | null } = {}
     if (typeof account.details === 'string') {
         try {
             details = JSON.parse(account.details)
@@ -242,6 +252,8 @@ function describeAccount(account: Account, locale: string) {
 
     return {
         destination: accountDestination(account, { countryName }),
+        // A PIX key saved from a payment keeps the bank the PIX directory named (TASK-23738).
+        recipientBankName: account.isPixRecipient ? details.bankName?.trim() || null : null,
         // The alpha-3 table covers the SEPA and Manteca countries alone, so a
         // Mexican account kept its "MEX" and asked for /flags/mex.svg, which does
         // not exist. The catalogue entry knows the two-letter code; a code that
