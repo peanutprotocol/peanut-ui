@@ -1,5 +1,5 @@
 import { getOneSignalAdapter, type OneSignalAdapter } from './index'
-import { createPushIdentitySync } from './identity-sync'
+import { createPushIdentitySync, PushIdentityTimeoutError } from './identity-sync'
 import { reportPushIdentityFailure } from './identity-report'
 import { captureException } from '@/utils/sentry-lazy'
 
@@ -145,7 +145,7 @@ export async function reconcileNotificationIdentity(
             Promise.resolve().then(verifyExternalId),
             new Promise<never>((_, reject) => {
                 timeout = setTimeout(
-                    () => reject(new Error('Push identity authentication verification timed out')),
+                    () => reject(new PushIdentityTimeoutError('Push identity authentication verification timed out')),
                     PUSH_IDENTITY_VERIFICATION_TIMEOUT_MS
                 )
             }),
@@ -182,7 +182,7 @@ export async function logoutNotificationIdentity(): Promise<void> {
             new Promise<never>((_, reject) => {
                 timeout = setTimeout(() => {
                     identity.expirePending()
-                    reject(new Error('Push identity logout timed out'))
+                    reject(new PushIdentityTimeoutError('Push identity logout timed out'))
                 }, PUSH_LOGOUT_TIMEOUT_MS)
             }),
         ])

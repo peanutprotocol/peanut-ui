@@ -55,7 +55,7 @@ describe('reportPushIdentityFailure', () => {
         native.mockReturnValue(true)
         reportPushIdentityFailure('Push identity login failed', 'push_identity_login', new PushIdentityTimeoutError())
         expect(capture).toHaveBeenCalledWith(new Error('Push identity login failed'), {
-            tags: { source: 'push_identity_login', cause: 'timeout', cause_name: 'Error' },
+            tags: { source: 'push_identity_login', cause: 'timeout', cause_name: 'PushIdentityTimeoutError' },
             extra: { causeMessage: 'Push identity operation timed out', causeStack: expect.any(String) },
         })
     })
