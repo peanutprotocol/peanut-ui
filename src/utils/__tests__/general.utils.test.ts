@@ -3,7 +3,9 @@ import {
     clearRedirectUrl,
     endIntentionalLogout,
     formatAmount,
+    formatCurrency,
     formatExtendedNumber,
+    formatNumberForDisplay,
     generateInviteCodeLink,
     getContributorsFromCharge,
     getRedirectOrigin,
@@ -155,29 +157,36 @@ describe('General Utilities', () => {
             })
 
             describe('numbers with 6 or fewer digits', () => {
+                // Unsuffixed, it is a money amount (design.md, copy → amounts):
+                // separators, cents kept, no ".00" on a round amount.
                 it('should not apply suffix for numbers with 6 or fewer digits', () => {
-                    expect(formatExtendedNumber(12345)).toBe('12345')
+                    expect(formatExtendedNumber(12345)).toBe('12,345')
                     expect(formatExtendedNumber(999)).toBe('999')
-                    expect(formatExtendedNumber(1000)).toBe('1000')
-                    expect(formatExtendedNumber(999999)).toBe('999999')
+                    expect(formatExtendedNumber(1000)).toBe('1,000')
+                    expect(formatExtendedNumber(999999)).toBe('999,999')
                 })
 
                 it('should handle decimal numbers with 6 or fewer total digits', () => {
                     expect(formatExtendedNumber(12.34)).toBe('12.34')
-                    expect(formatExtendedNumber(123.4)).toBe('123.4')
+                    expect(formatExtendedNumber(123.4)).toBe('123.40')
                     expect(formatExtendedNumber(0.123)).toBe('0.12')
-                    expect(formatExtendedNumber(1234.5)).toBe('1234.5')
+                    expect(formatExtendedNumber(1234.5)).toBe('1,234.50')
+                })
+
+                it('keeps the cents of a home balance', () => {
+                    expect(formatExtendedNumber('257.50')).toBe('257.50')
+                    expect(formatExtendedNumber('257.00')).toBe('257')
                 })
 
                 it('should handle negative numbers with 6 or fewer digits', () => {
-                    expect(formatExtendedNumber(-1234)).toBe('-1234')
+                    expect(formatExtendedNumber(-1234)).toBe('-1,234')
                     expect(formatExtendedNumber(-12.34)).toBe('-12.34')
-                    expect(formatExtendedNumber(-99999)).toBe('-99999')
+                    expect(formatExtendedNumber(-99999)).toBe('-99,999')
                 })
 
                 it('should handle string inputs with 6 or fewer digits', () => {
-                    expect(formatExtendedNumber('12345')).toBe('12345')
-                    expect(formatExtendedNumber('-1234')).toBe('-1234')
+                    expect(formatExtendedNumber('12345')).toBe('12,345')
+                    expect(formatExtendedNumber('-1234')).toBe('-1,234')
                     expect(formatExtendedNumber('999.99')).toBe('999.99')
                 })
             })
@@ -223,10 +232,10 @@ describe('General Utilities', () => {
 
             describe('boundary cases', () => {
                 it('should handle numbers at the 6-digit boundary', () => {
-                    expect(formatExtendedNumber(999999)).toBe('999999')
+                    expect(formatExtendedNumber(999999)).toBe('999,999')
                     expect(formatExtendedNumber(1000000)).toBe('1M')
-                    expect(formatExtendedNumber(999.9999)).toBe('1000')
-                    expect(formatExtendedNumber(999.99999)).toBe('1000')
+                    expect(formatExtendedNumber(999.9999)).toBe('1,000')
+                    expect(formatExtendedNumber(999.99999)).toBe('1,000')
                 })
 
                 it('should handle numbers at suffix boundaries', () => {
@@ -235,6 +244,47 @@ describe('General Utilities', () => {
                     expect(formatExtendedNumber(999999999999)).toBe('1T')
                 })
             })
+        })
+    })
+
+    // design.md, copy → amounts: a USD amount rounds half-up to the cent, keeps
+    // its cents, and shows no ".00" on a round amount.
+    describe('formatCurrency', () => {
+        it('rounds half-up to the cent', () => {
+            expect(formatCurrency('1.127608')).toBe('1.13')
+            expect(formatCurrency(1.125)).toBe('1.13')
+            expect(formatCurrency('1.124')).toBe('1.12')
+        })
+
+        it('keeps the cents and drops ".00" on a round amount', () => {
+            expect(formatCurrency('0.5')).toBe('0.50')
+            expect(formatCurrency(10)).toBe('10')
+            expect(formatCurrency('1999.999')).toBe('2,000')
+            expect(formatCurrency('22.25')).toBe('22.25')
+        })
+
+        it('widens to more decimals for a rate or a full-precision USDC amount', () => {
+            expect(formatCurrency('0.87694', 4)).toBe('0.8769')
+            expect(formatCurrency('902.4', 4)).toBe('902.40')
+            expect(formatCurrency('10.123456', 6)).toBe('10.123456')
+        })
+
+        it('is empty for no value', () => {
+            expect(formatCurrency(undefined)).toBe('')
+            expect(formatCurrency('')).toBe('')
+        })
+    })
+
+    describe('formatNumberForDisplay', () => {
+        it('rounds half-up, not down', () => {
+            expect(formatNumberForDisplay('1.127608', { maxDecimals: 2 })).toBe('1.13')
+            expect(formatNumberForDisplay('0.0004166666', { maxDecimals: 6 })).toBe('0.000417')
+        })
+
+        it("takes its decimals from the options, not from the input's trailing zeros", () => {
+            expect(formatNumberForDisplay('20.00', { maxDecimals: 2 })).toBe('20')
+            expect(formatNumberForDisplay('1.50', { maxDecimals: 6 })).toBe('1.5')
+            expect(formatNumberForDisplay('1.5', { maxDecimals: 2, minDecimals: 2 })).toBe('1.50')
         })
     })
 

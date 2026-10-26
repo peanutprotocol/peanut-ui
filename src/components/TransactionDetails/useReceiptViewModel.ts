@@ -329,7 +329,7 @@ export function useReceiptViewModel(
 
     const isQRPayment = transaction ? isQRPaymentTransaction(transaction) : false
     const isCardSpend = transaction ? isCardSpendTransaction(transaction) : false
-    const formattedTotalAmountCollected = formatCurrency(transaction?.totalAmountCollected?.toString() ?? '0', 2, 0)
+    const formattedTotalAmountCollected = formatCurrency(transaction?.totalAmountCollected?.toString() ?? '0')
 
     return {
         isGuestBankClaim,

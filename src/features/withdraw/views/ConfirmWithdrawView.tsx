@@ -12,7 +12,7 @@ import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { type ITokenPriceData } from '@/interfaces/interfaces'
-import { formatNumberForDisplay, isStableCoin } from '@/utils/general.utils'
+import { formatCurrency, isStableCoin } from '@/utils/general.utils'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { useMemo } from 'react'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
@@ -138,7 +138,7 @@ export default function ConfirmWithdrawView({
     const totalPayDisplay = useMemo<string | null>(() => {
         if (!isCrossChain || !payAmount) return null
         const parsed = parseFloat(payAmount)
-        return Number.isFinite(parsed) ? `$${formatNumberForDisplay(payAmount, { maxDecimals: 6 })}` : null
+        return Number.isFinite(parsed) ? `$${formatCurrency(payAmount, 6)}` : null
     }, [isCrossChain, payAmount])
 
     return (
@@ -151,7 +151,7 @@ export default function ConfirmWithdrawView({
                     transactionType={'WITHDRAW'}
                     recipientType="USERNAME"
                     recipientName={''}
-                    amount={formatNumberForDisplay(amount, { maxDecimals: 6 })}
+                    amount={formatCurrency(amount, 6)}
                     tokenSymbol="USDC"
                     isFromSendFlow={isFromSendFlow}
                 />

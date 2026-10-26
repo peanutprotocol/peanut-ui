@@ -388,7 +388,12 @@ describe('TransactionCard — secondary currency line requires a valid amount', 
 
     it('renders the "≈ CODE x" line for a real converted amount', () => {
         renderCard(currencyTx({ amount: '105.9', code: 'EUR' }))
-        expect(screen.getByText('≈ EUR 105.9')).toBeInTheDocument()
+        expect(screen.getByText('≈ EUR 105.90')).toBeInTheDocument()
+    })
+
+    it('shows no ".00" on a round converted amount', () => {
+        renderCard(currencyTx({ amount: '20.00', code: 'EUR' }))
+        expect(screen.getByText('≈ EUR 20')).toBeInTheDocument()
     })
 
     it('hides the line for a blanked (pending, unconverted) amount', () => {
