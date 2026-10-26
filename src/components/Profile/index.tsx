@@ -139,7 +139,7 @@ export const Profile = () => {
                         {showCardMenuItem && (
                             <ProfileMenuItem icon="credit-card" label={t('menu.peanutCard')} href={cardHref} />
                         )}
-                        <ProfileMenuItem icon="docs" label={t('menu.statements')} href="/profile/statements" />
+                        <ProfileMenuItem icon="file-text" label={t('menu.statements')} href="/profile/statements" />
                         <ProfileMenuItem
                             icon="exchange"
                             label={t('menu.exchangeRatesAndFees')}

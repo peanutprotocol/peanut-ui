@@ -1612,7 +1612,6 @@
                 "description": "Elegí uno para empezar la verificación. Le vas a sacar fotos y te vas a sacar una selfie.",
                 "issuedByWithProof": "Emitido en {country}. También vas a agregar un comprobante de domicilio.",
                 "otherDescription": "También podés verificarte con uno de estos. Le vas a sacar fotos y te vas a sacar una selfie.",
-                "anotherCountryHint": "Elegí el documento y después el país que lo emitió.",
                 "noneFit": "¿No tenés ninguno de estos?"
             }
         },

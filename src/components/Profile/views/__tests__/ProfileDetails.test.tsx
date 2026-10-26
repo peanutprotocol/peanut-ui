@@ -21,6 +21,8 @@ const mockUser = {
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
 
 const details = (overrides: Partial<KycCollectedDetails> = {}): KycCollectedDetails => ({
+    name: { first: null, last: null },
+    citizenship: null,
     document: { type: 'RESIDENCE_PERMIT', country: 'PT' },
     address: null,
     heldBySumsub: ['citizenship', 'dateOfBirth', 'taxId', 'bankPurpose', 'address'],
@@ -55,6 +57,19 @@ describe('ProfileDetailsView', () => {
         expect(rowValue('ID document')).toBe('Residence permit, Portugal')
         for (const label of ['Citizenship', 'Date of birth', 'Tax number', 'Account use', 'Address'])
             expect(rowValue(label)).toBe('Not stored at Peanut')
+    })
+
+    // Slava, 2026-10-26: what the database holds shows as a value, never as "Not stored".
+    it("shows the verified name and the ID's citizenship that Peanut stores", async () => {
+        jest.mocked(getKycDetails).mockResolvedValue(
+            details({ name: { first: 'Іван', last: 'Петренко' }, citizenship: 'UA', heldBySumsub: ['taxId'] })
+        )
+        render()
+        expect(await screen.findByText('Citizenship')).toBeInTheDocument()
+        expect(rowValue('Name')).toBe('Іван')
+        expect(rowValue('Surname')).toBe('Петренко')
+        expect(rowValue('Citizenship')).toBe('Ukraine')
+        expect(rowValue('Tax number')).toBe('Not stored at Peanut')
     })
 
     it('hides what was never collected, the funding and spending methods, and location', async () => {

@@ -38,6 +38,8 @@ jest.mock('@/context/authContext', () => ({
                 verified: null,
                 declared: { country: 'PT', status: 'UNVERIFIED', updatedAt: null, secondCountry: null },
             },
+            // signed up from Ukraine: temporary protection is offered
+            geo: { signup: { vercelIp: { country: 'UA', observedAt: '2026-10-01T10:00:00.000Z' } } },
         },
     }),
 }))

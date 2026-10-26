@@ -3,6 +3,7 @@ import { twMerge } from '@/utils/tw'
 import type { LucideIcon } from 'lucide-react'
 import {
     AlertCircle,
+    FileText,
     AlertTriangle,
     ArrowDown,
     ArrowDownLeft,
@@ -136,6 +137,7 @@ export type IconName =
     | 'qr-code'
     | 'history'
     | 'docs'
+    | 'file-text'
     | 'error'
     | 'clip'
     | 'info'
@@ -331,6 +333,8 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     // custom icons (unchanged)
     'txn-off': TxnOffIcon,
     docs: DocsIcon,
+    // DocsIcon is drawn heavier than the Lucide set; a menu row beside Lucide icons takes this one
+    'file-text': (props) => <LucideWrapper Icon={FileText} {...props} />,
     bulb: BulbIcon,
     'apple-logo': AppleLogoIcon,
     'google-play': GooglePlayIcon,

@@ -3696,8 +3696,6 @@
             "midpoint": {
                 "restartTitle": "Verify with a different document",
                 "restartDescription": "Pick the ID you’ll use now. Then take photos of it and a quick selfie.",
-                "document": "Document type",
-                "issuedBy": "Issuing country",
                 "privacy": "Your documents are handled securely by Sumsub.",
                 "failed": "We couldn’t start the ID check. Try again.",
                 "unavailable": "We can’t show the documents right now. Try again later."
@@ -3804,8 +3802,6 @@
                 "otherDescription": "You can also verify with one of these. You’ll take photos of it and a selfie.",
                 "otherNotAccepted": "Visas, work permits and student cards can’t be used to verify your ID.",
                 "notAccepted": "Issued by {country}. Can’t be used. Not accepted.",
-                "anotherCountry": "A document from another country",
-                "anotherCountryHint": "Pick the document, then the country that issued it.",
                 "backToList": "Back to the list",
                 "noneFit": "Don’t have any of those?",
                 "changeResidence": "Change residence",
