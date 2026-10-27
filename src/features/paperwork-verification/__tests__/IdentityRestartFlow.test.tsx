@@ -160,7 +160,7 @@ describe('IdentityRestartFlow', () => {
         expect(screen.getByTestId('sumsub')).toHaveAttribute('data-token', 'token-2')
     })
 
-    it('sends a temporary protection document as the residence permit Sumsub verifies', async () => {
+    it('sends a temporary protection document as the visa Sumsub verifies', async () => {
         mockPlan.mockResolvedValue({
             ...plan,
             temporaryProtection: { countries: ['PT'], until: '2028-03-04', proofOfAddress: false },
@@ -170,7 +170,7 @@ describe('IdentityRestartFlow', () => {
         fireEvent.click(screen.getByTestId('verify-id-option-TEMPORARY_PROTECTION-PT'))
         await waitFor(() => expect(mockReplacement).toHaveBeenCalled())
         expect(mockReplacement.mock.calls[0][0].documents).toEqual([
-            { key: 'identity', type: 'RESIDENCE_PERMIT', issuingCountry: 'PT' },
+            { key: 'identity', type: 'VISA', issuingCountry: 'PT' },
         ])
     })
 

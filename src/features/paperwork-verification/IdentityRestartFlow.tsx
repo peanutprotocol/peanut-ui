@@ -32,8 +32,8 @@ type RestartStep = (typeof STEPS)[number]
 const newRequestKey = () =>
     Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join('')
 
-// Sumsub has no temporary protection type; the host country's residence permit stands in, as on the first check.
-const sumsubDocumentType = (type: string) => (type === 'TEMPORARY_PROTECTION' ? 'RESIDENCE_PERMIT' : type)
+// Sumsub has no temporary protection type; the sheet goes as a visa from the host country, as on the first check.
+const sumsubDocumentType = (type: string) => (type === 'TEMPORARY_PROTECTION' ? 'VISA' : type)
 
 type Failure = Extract<KycReplacementResult, { kind: 'failed' }>
 
