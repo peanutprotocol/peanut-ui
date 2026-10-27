@@ -46,7 +46,7 @@ export function HomePersonaFold({ strings }: HomePersonaFoldProps) {
                                 disabled={reducedMotion}
                                 onClick={() => select(i)}
                                 className={twMerge(
-                                    'block rounded-full transition-[transform,opacity] duration-slow ease-spring motion-reduce:transform-none motion-reduce:transition-none',
+                                    'block rounded-full transition-[scale,rotate,opacity] duration-slow ease-spring motion-reduce:scale-100 motion-reduce:rotate-0 motion-reduce:transition-none',
                                     FOCUS_RING,
                                     i === index
                                         ? 'scale-125 -rotate-6 opacity-100'
