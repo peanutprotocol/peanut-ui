@@ -1,11 +1,9 @@
 import { Suspense } from 'react'
 import { CloseFold } from '@/components/Marketing/StarLp/CloseFold'
 import { CloseGloveCta } from '@/components/Marketing/StarLp/CloseGloveCta'
-import { PersonaFold } from '@/components/Marketing/StarLp/PersonaFold'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
 import { StarLpFaq } from '@/components/Marketing/StarLp/StarLpFaq'
 import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
-import { STAR_LP_EARNERS } from '@/components/Marketing/StarLp/starLpPersonas.consts'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { WALL_OF_LOVE_POSTS } from '@/constants/tweets.consts'
 import { singletonLocaleFor } from '@/lib/content'
@@ -14,6 +12,7 @@ import { HomeCardGate } from './HomeCardGate'
 import { HomeGetPaidFold } from './HomeGetPaidFold'
 import { HomeHingeFold } from './HomeHingeFold'
 import { HomePayLocalFold } from './HomePayLocalFold'
+import { HomePersonaFold } from './HomePersonaFold'
 import { HomeRequestFold } from './HomeRequestFold'
 import { HomeWallOfLove } from './HomeWallOfLove'
 import { NoFees } from './noFees'
@@ -33,21 +32,7 @@ export function HomeFolds({ locale, strings, contentHrefs, faqItems, closeCta }:
         <>
             <HomeGetPaidFold strings={strings.getPaid} />
             <StarLpMarquee between={['sky', 'yellow']} words={seams.accounts} />
-            <PersonaFold
-                title={strings.personas.heading}
-                cards={[
-                    {
-                        ...STAR_LP_EARNERS.designer,
-                        who: strings.personas.designerWho,
-                        line: strings.personas.designerLine,
-                    },
-                    {
-                        ...STAR_LP_EARNERS.developer,
-                        who: strings.personas.developerWho,
-                        line: strings.personas.developerLine,
-                    },
-                ]}
-            />
+            <HomePersonaFold strings={strings.personas} />
             <StarLpMarquee between={['yellow', 'sky']} words={seams.personas} />
             <HomeRequestFold strings={strings.request} locale={locale} />
             <StarLpMarquee between={['sky', 'cream']} words={seams.link} />

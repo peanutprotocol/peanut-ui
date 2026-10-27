@@ -2,7 +2,7 @@ import { type Translations } from '@/i18n/types'
 import type { HomeCardStrings } from './homeCard.types'
 import type { HomeGetPaidStrings, HomePayLocalStrings, HomeRequestStrings, HomeSeamStrings } from './homeFolds.types'
 import type { HomeHingeStrings } from './homeHinge.types'
-import type { HomePersonaStrings } from './landing.types'
+import type { HomePersonaStrings } from './homePersona.types'
 
 // Narrowed copy bag handed from the server landing page down through
 // LandingPageClient. Keeps the client bundle from importing all locale
@@ -76,10 +76,11 @@ export function landingStrings(i18n: Translations): LandingStrings {
         },
         personas: {
             heading: i18n.landingPersonasHeading,
-            designerWho: i18n.landingPersonaDesignerWho,
-            designerLine: i18n.landingPersonaDesignerLine,
-            developerWho: i18n.landingPersonaDeveloperWho,
-            developerLine: i18n.landingPersonaDeveloperLine,
+            designer: { who: i18n.landingPersonaDesignerWho, line: i18n.landingPersonaDesignerLine },
+            developer: { who: i18n.landingPersonaDeveloperWho, line: i18n.landingPersonaDeveloperLine },
+            editor: { who: i18n.landingPersonaEditorWho, line: i18n.landingPersonaEditorLine },
+            writer: { who: i18n.landingPersonaWriterWho, line: i18n.landingPersonaWriterLine },
+            photographer: { who: i18n.landingPersonaPhotographerWho, line: i18n.landingPersonaPhotographerLine },
         },
         request: {
             question: i18n.landingRequestQuestion,
