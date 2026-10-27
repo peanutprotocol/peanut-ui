@@ -28,7 +28,7 @@
             "addMoney": "Agregar dinero",
             "firstPaymentCardNote": "Pedí la tarjeta o pagá un QR",
             "firstPaymentQrNote": "Pagá un código QR",
-            "firstPaymentCardOnlyNote": "Pedí la tarjeta Peanut",
+            "firstPaymentCardOnlyNote": "Pedí la Peanut Card",
             "firstPaymentHeldCardNote": "Pagá con la tarjeta",
             "firstPaymentHeldCardQrNote": "Pagá con la tarjeta o un QR"
         },

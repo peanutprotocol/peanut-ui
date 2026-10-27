@@ -124,7 +124,7 @@
             "inReview": "Em análise",
             "firstPaymentCardNote": "Peça o cartão ou use QR",
             "firstPaymentQrNote": "Pague com código QR",
-            "firstPaymentCardOnlyNote": "Peça o cartão Peanut",
+            "firstPaymentCardOnlyNote": "Peça o Peanut Card",
             "verifyIdentityDone": "Identidade verificada",
             "addMoneyDone": "Dinheiro recebido",
             "firstPaymentHeldCardNote": "Pague com o cartão",
@@ -217,7 +217,7 @@
                 "description": "Receba dados de conta para receber transferências no seu saldo."
             },
             "nextPayment": {
-                "title": "Pague com a Peanut de novo",
+                "title": "Pague com o Peanut de novo",
                 "description": "Seu saldo está pronto. Escaneie um QR ou use seu cartão."
             },
             "shareBankDetails": {
@@ -4002,7 +4002,7 @@
         "downloadPeanut": "Baixar Peanut",
         "downloadPrompt": {
             "earlyTitle": "O app do Peanut chegou!",
-            "earlyDescription": "A Peanut agora é um app, na App Store e no Google Play. Mesma conta, experiência mais rápida e avisos na hora em que o dinheiro cai.",
+            "earlyDescription": "O Peanut agora é um app, na App Store e no Google Play. Mesma conta, experiência mais rápida e avisos na hora em que o dinheiro cai.",
             "maybeLater": "Baixo depois"
         },
         "sunset": {

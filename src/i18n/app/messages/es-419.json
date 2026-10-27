@@ -124,7 +124,7 @@
             "inReview": "En revisión",
             "firstPaymentCardNote": "Pide la tarjeta o paga un QR",
             "firstPaymentQrNote": "Paga un código QR",
-            "firstPaymentCardOnlyNote": "Pide la tarjeta Peanut",
+            "firstPaymentCardOnlyNote": "Pide la Peanut Card",
             "verifyIdentityDone": "Identidad verificada",
             "addMoneyDone": "Dinero recibido",
             "firstPaymentHeldCardNote": "Paga con la tarjeta",
