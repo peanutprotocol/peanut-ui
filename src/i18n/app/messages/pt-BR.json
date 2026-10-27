@@ -3684,9 +3684,7 @@
             "exitTitle": "Sair por enquanto?",
             "exitDescription": "Você pode voltar e terminar isso a qualquer momento.",
             "exit": "Sair",
-            "continueVerifying": "Continuar verificando",
-            "stopVerification": "Interromper o processo de verificação",
-            "havingTrouble": "Está com problemas?"
+            "continueVerifying": "Continuar verificando"
         },
         "supportDrawer": {
             "chatLoadFailed": "Não foi possível carregar o chat",

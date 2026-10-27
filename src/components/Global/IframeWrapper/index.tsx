@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Modal from '../Modal'
-import { Icon, type IconName } from '../Icons/Icon'
+import { type IconName } from '../Icons/Icon'
 import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
-import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { type ButtonVariant } from '@/components/0_Bruddle/Button'
+import VerificationFrameHeader from '../VerificationFrameHeader'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 
 /**
@@ -229,41 +229,26 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
             preventClose={true}
             hideOverlay={false}
         >
-            <div className="flex h-full flex-col gap-2 p-0 pt-safe-top">
-                <div className="h-full w-full flex-grow overflow-scroll">
-                    <iframe
-                        key={src}
-                        ref={attachFrame}
-                        src={src}
-                        onLoad={handleFrameLoad}
-                        allow="camera *; microphone *; fullscreen *"
-                        className="h-[85%] w-full rounded-sm border-0"
-                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation allow-media-devices"
-                    />
-                    {/* gap-4: the link's 44px hit area extends 14px past its text row */}
-                    <div className="flex h-[15%] w-full flex-col items-center justify-center gap-4 px-4">
-                        <Button
-                            variant={'secondary'}
-                            className={`max-w-md`}
-                            onClick={() => {
-                                setModalVariant('stop-verification')
-                                setIsHelpModalOpen(true)
-                            }}
-                        >
-                            {t('iframeWrapper.stopVerification')}
-                        </Button>
-
-                        <LinkButton
-                            onClick={() => {
-                                setModalVariant('trouble')
-                                setIsHelpModalOpen(true)
-                            }}
-                        >
-                            <Icon name="peanut-support" size={16} className="shrink-0" />
-                            {t('iframeWrapper.havingTrouble')}
-                        </LinkButton>
-                    </div>
-                </div>
+            <div className="flex h-full flex-col pt-safe-top">
+                <VerificationFrameHeader
+                    onSupport={() => {
+                        setModalVariant('trouble')
+                        setIsHelpModalOpen(true)
+                    }}
+                    onClose={() => {
+                        setModalVariant('stop-verification')
+                        setIsHelpModalOpen(true)
+                    }}
+                />
+                <iframe
+                    key={src}
+                    ref={attachFrame}
+                    src={src}
+                    onLoad={handleFrameLoad}
+                    allow="camera *; microphone *; fullscreen *"
+                    className="w-full flex-1 rounded-sm border-0"
+                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation allow-media-devices"
+                />
             </div>
             <ActionModal
                 visible={isHelpModalOpen}
