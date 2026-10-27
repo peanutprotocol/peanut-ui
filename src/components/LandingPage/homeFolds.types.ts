@@ -10,12 +10,10 @@ export interface HomeGetPaidFoldProps {
     strings: HomeGetPaidStrings
 }
 
-/** f4: request strips beside "Paid by someone on Peanut? Send a link." */
+/** f4: request strips beside "Just send a link." */
 export interface HomeRequestStrings {
-    /** First sentence of the h2, e.g. "Paid by someone on Peanut?". */
-    question: string
-    /** Second sentence of the h2, e.g. "Send a link.". */
-    action: string
+    /** The h2, e.g. "Just send a link.". */
+    heading: string
     /** Request strip caption with a `{username}` slot, e.g. "{username} is requesting". */
     requesting: string
     /** Paid strip line, e.g. "Paid". */

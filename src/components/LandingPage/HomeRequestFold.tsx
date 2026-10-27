@@ -12,18 +12,15 @@ import { formatUsd } from './homeHinge.utils'
  * request strips without the "where do I pay you?" beat. The home fold has no
  * CTA, so the strips render unlinked: no focusable link sits inside their
  * aria-hidden art. From md the strips take the first column and the title the
- * second; stacked, the title comes first.
+ * second; stacked, the title comes first. Anyone can pay a request link
+ * (product/request-links.md), so the title names no payer.
  */
 export function HomeRequestFold({ strings, locale }: HomeRequestFoldProps) {
     return (
         <Band ground="sky" id="home-request">
             <CloudsCss clouds={[...STAR_LP_SKY_CLOUDS]} className={STAR_LP_SKY_CLOUDS_CLASS} />
             <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
-                <SectionTitle className="md:order-last">
-                    {/* one flowing title on phones; from md each sentence starts its own line */}
-                    <span className="md:block">{strings.question}</span>{' '}
-                    <span className="md:block">{strings.action}</span>
-                </SectionTitle>
+                <SectionTitle className="md:order-last">{strings.heading}</SectionTitle>
                 <UsEuRequestStrips
                     linked={false}
                     // the page's own dollar format: a bare "$" reads as pesos in Argentina

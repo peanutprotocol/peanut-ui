@@ -7,19 +7,16 @@ jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => true }))
 jest.mock('@/components/Migration/AppModalProvider', () => ({ useAppModal: () => () => false }))
 
 const ES_AR: HomeRequestStrings = {
-    question: '¿Te paga alguien que usa Peanut?',
-    action: 'Mandale un link.',
+    heading: 'Solo mandá un link.',
     requesting: '{username} te está pidiendo',
     paid: 'Pagado',
     chatLabel: 'Chat: {main} manda un link de cobro de Peanut por {amount}; {payer} pagó',
 }
 
 describe('HomeRequestFold', () => {
-    it('titles the fold with both sentences in one h2', () => {
+    it('titles the fold with one short h2 that names no payer', () => {
         render(<HomeRequestFold strings={ES_AR} locale="es-ar" />)
-        expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(
-            '¿Te paga alguien que usa Peanut? Mandale un link.'
-        )
+        expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(/^Solo mandá un link\.$/)
     })
 
     it('names the strips in the page language, with the persona and amount filled in', () => {

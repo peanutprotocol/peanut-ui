@@ -83,8 +83,7 @@ export function landingStrings(i18n: Translations): LandingStrings {
             photographer: { who: i18n.landingPersonaPhotographerWho, line: i18n.landingPersonaPhotographerLine },
         },
         request: {
-            question: i18n.landingRequestQuestion,
-            action: i18n.landingRequestAction,
+            heading: i18n.landingRequestHeading,
             requesting: i18n.landingRequestRequesting,
             paid: i18n.landingRequestPaid,
             chatLabel: i18n.landingRequestChatLabel,

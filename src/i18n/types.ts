@@ -105,14 +105,13 @@ export interface Translations {
     landingPersonaDesignerLine: string
     landingPersonaDeveloperWho: string
     landingPersonaDeveloperLine: string
-    landingRequestQuestion: string
-    landingRequestAction: string
     landingPersonaEditorWho: string
     landingPersonaEditorLine: string
     landingPersonaWriterWho: string
     landingPersonaWriterLine: string
     landingPersonaPhotographerWho: string
     landingPersonaPhotographerLine: string
+    landingRequestHeading: string
     landingRequestRequesting: string // "{username} …"
     landingRequestPaid: string
     landingRequestChatLabel: string // "… {main} … {amount}; {payer} …"
