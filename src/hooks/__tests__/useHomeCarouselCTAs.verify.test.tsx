@@ -56,10 +56,16 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
 }))
 const mockGeo = { countryCode: 'US' }
 jest.mock('@/hooks/useGeoLocation', () => ({ useGeoLocation: () => mockGeo }))
-const mockCardInfo = { isEligible: false, cardInfo: { isEligible: false, geoProhibited: true } }
+const mockCardIneligible = { isEligible: false, cardInfo: { isEligible: false, geoProhibited: true } }
+let mockCardInfo = mockCardIneligible
 jest.mock('@/hooks/useCardInfo', () => ({ useCardInfo: () => mockCardInfo }))
-const mockActivation = { isActivated: false }
+const mockNotActivated = { isActivated: false }
+let mockActivation = mockNotActivated
 jest.mock('@/hooks/useActivationStatus', () => ({ useActivationStatus: () => mockActivation }))
+// useCardSurfaceAccess runs for real: the card offer must follow the nav's gate
+const mockUnrestricted = { banking: false, card: false }
+let mockRestrictions = mockUnrestricted
+jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => mockRestrictions }))
 const mockHistory = { data: { entries: [] } }
 jest.mock('@/hooks/useTransactionHistory', () => ({ useTransactionHistory: () => mockHistory }))
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
@@ -84,6 +90,9 @@ beforeEach(() => {
     mockRegionRestricted = false
     mockIdentityStatus = 'not_started'
     mockRails = []
+    mockCardInfo = mockCardIneligible
+    mockActivation = mockNotActivated
+    mockRestrictions = mockUnrestricted
 })
 
 describe('useHomeCarouselCTAs — the verify slide follows the QR-pay gate', () => {
@@ -122,5 +131,26 @@ describe('useHomeCarouselCTAs — the verify slide follows the QR-pay gate', () 
         const result = ids()
         await waitFor(() => expect(result.current.carouselCTAs).toBeDefined())
         expect(result.current.carouselCTAs.map((cta) => cta.id)).not.toContain('kyc-prompt')
+    })
+})
+
+describe('useHomeCarouselCTAs — the card offer follows the nav', () => {
+    beforeEach(() => {
+        mockActivation = { isActivated: true }
+        mockCardInfo = { isEligible: true, cardInfo: { isEligible: true, geoProhibited: false } }
+    })
+
+    it('an activated user the nav shows the card to gets the card offer', async () => {
+        const result = ids()
+        await waitFor(() => expect(result.current.carouselCTAs.map((cta) => cta.id)).toContain('card-offer'))
+    })
+
+    it('a residence restriction hides the card offer even when the card country is not prohibited', async () => {
+        // e.g. a pending move to a card-restricted residence: /users/me restricts
+        // the card, /card/info still answers for the current residence
+        mockRestrictions = { banking: false, card: true }
+        const result = ids()
+        await waitFor(() => expect(result.current.carouselCTAs).toBeDefined())
+        expect(result.current.carouselCTAs.map((cta) => cta.id)).not.toContain('card-offer')
     })
 })

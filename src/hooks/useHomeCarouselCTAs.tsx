@@ -16,6 +16,7 @@ import { useDeviceType } from './useGetDeviceType'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { useGeoLocation } from './useGeoLocation'
 import { useCardInfo } from './useCardInfo'
+import { useCardSurfaceAccess } from './useCardSurfaceAccess'
 import { useActivationStatus } from './useActivationStatus'
 import { useTransactionHistory } from './useTransactionHistory'
 import { useToast } from '@/components/0_Bruddle/Toast'
@@ -79,7 +80,7 @@ export const useHomeCarouselCTAs = ({
         useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { canDo, rails, channelOf, nextActions } = useCapabilities()
+    const { canDo, rails, nextActions } = useCapabilities()
     const { isRegionRestricted, isTerminalFailure, status: identityStatus } = useIdentityVerification()
     // Suppress the "verify your account" CTA when the user is already mid-flow
     // on ANY rail (`pending` = submitted/provisioning, `requires-info` = finish
@@ -90,6 +91,7 @@ export const useHomeCarouselCTAs = ({
     const { openSupportWithMessage, setIsGetAppModalOpen, setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
     const { isEligible: isCardEligible, cardInfo } = useCardInfo()
+    const { showCardSurface, hasCardRelationship } = useCardSurfaceAccess()
     const { isActivated } = useActivationStatus()
 
     // Completion signals — used to hide educational CTAs from users who've already
@@ -260,17 +262,11 @@ export const useHomeCarouselCTAs = ({
 
         // Public card offer for ACTIVATED users — pre-activation Home is owned
         // by ActivationCTAs (checklist / spend step), which carries its own
-        // card arm. Excluded: known prohibited residences, anyone with a card
-        // relationship (any card-channel rail: active card or in-flight
-        // application), and the same flag as every other card prompt.
-        const hasCardRelationship = rails.some((rail) => channelOf(rail) === 'card')
-        if (
-            !cardPromotionDisabled &&
-            isActivated === true &&
-            cardInfo &&
-            !cardInfo.geoProhibited &&
-            !hasCardRelationship
-        ) {
+        // card arm. Excluded: residences the nav hides the card from (the
+        // shared useCardSurfaceAccess gate), anyone with a card relationship
+        // (any card-channel rail: active card or in-flight application), and
+        // the same flag as every other card prompt.
+        if (!cardPromotionDisabled && isActivated === true && cardInfo && showCardSurface && !hasCardRelationship) {
             _carouselCTAs.push({
                 id: 'card-offer',
                 title: <span>{t.rich('card.title', { b })}</span>,
@@ -324,8 +320,9 @@ export const useHomeCarouselCTAs = ({
         userCountryCode,
         isCardEligible,
         cardInfo,
+        showCardSurface,
+        hasCardRelationship,
         rails,
-        channelOf,
         nextActions,
         isRegionRestricted,
         isTerminalFailure,
