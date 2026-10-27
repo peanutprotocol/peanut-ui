@@ -129,32 +129,54 @@ export function stepProgress(screens: PaperworkVerificationStepId[], step: Paper
 }
 
 /** The server's saved values; an empty phone starts with the residence's calling code, an unset toggle reads no. */
-// A status that is also an entry of the job list answers the job question too.
+// The job-list entry a work status that is not a job stands for; there is no homemaker job.
 const JOB_FROM_EMPLOYMENT_STATUS: Readonly<Record<string, string>> = {
     student: 'student',
     retired: 'retired',
     unemployed: 'unemployed',
+    homemaker: 'unemployed',
+}
+/** Job-list entries that are a status, not a job. */
+export const STATUS_JOBS: ReadonlySet<string> = new Set(Object.values(JOB_FROM_EMPLOYMENT_STATUS))
+
+type WorkFields = Pick<PaperworkVerificationField, 'key' | 'everyStatus'>[]
+
+/**
+ * How the form asks the job, by work status (Slava, 2026-10-27): 'current' for
+ * someone working or when no status is asked; 'last' for the retired, someone
+ * not working or a homemaker; 'future' for a student. Those two only when Bridge
+ * asks a job of every status; otherwise the status answers it ('none').
+ */
+export type JobMode = 'current' | 'last' | 'future' | 'none'
+export function jobModeOf(fields: WorkFields, status: string | undefined): JobMode {
+    const job = fields.find((f) => f.key === 'occupation')
+    if (!job || !status || !fields.some((f) => f.key === 'employmentStatus') || !JOB_FROM_EMPLOYMENT_STATUS[status])
+        return 'current'
+    if (!job.everyStatus) return 'none'
+    return status === 'student' ? 'future' : 'last'
 }
 
-/** The job a work status answers, when the form asks both. */
-export const jobFromEmploymentStatus = (
-    fields: Pick<PaperworkVerificationField, 'key'>[],
-    status: string | undefined
-): string | null =>
-    status && fields.some((f) => f.key === 'occupation') && fields.some((f) => f.key === 'employmentStatus')
-        ? (JOB_FROM_EMPLOYMENT_STATUS[status] ?? null)
-        : null
+/** The answer "no job to name" in each way of asking: a job-list entry Bridge files as not working. */
+export const NO_JOB: Readonly<Partial<Record<JobMode, string>>> = { last: 'unemployed', future: 'student' }
 
-/** A changed work status updates the job it answers, and drops one it no longer answers. */
+/** The job a work status answers, when the form asks both and Bridge does not need a job of it. */
+export const jobFromEmploymentStatus = (fields: WorkFields, status: string | undefined): string | null =>
+    jobModeOf(fields, status) === 'none' ? JOB_FROM_EMPLOYMENT_STATUS[status!] : null
+
+/** A job held for one way of asking, as the next way reads it: a status entry is no job anywhere. */
+const jobFor = (mode: JobMode, job: string | undefined) =>
+    job && STATUS_JOBS.has(job) ? (NO_JOB[mode] ?? '') : (job ?? '')
+
+/** A changed work status updates the job it answers, and reads a "no job" answer the new way. */
 export function withEmploymentStatus(
-    fields: Pick<PaperworkVerificationField, 'key'>[],
+    fields: WorkFields,
     values: PaperworkVerificationAnswers,
     status: string
 ): PaperworkVerificationAnswers {
     const next: PaperworkVerificationAnswers = { ...values, employmentStatus: status }
+    if (!fields.some((f) => f.key === 'occupation') || !fields.some((f) => f.key === 'employmentStatus')) return next
     const job = jobFromEmploymentStatus(fields, status)
-    if (job) next.occupation = job
-    else if (jobFromEmploymentStatus(fields, values.employmentStatus) === values.occupation) next.occupation = ''
+    next.occupation = job ?? jobFor(jobModeOf(fields, status), values.occupation)
     return next
 }
 
@@ -171,7 +193,10 @@ export const initialValues = (
         })
     )
     const job = jobFromEmploymentStatus(fields, values.employmentStatus)
-    return job && !values.occupation ? { ...values, occupation: job } : values
+    if (job) return values.occupation ? values : { ...values, occupation: job }
+    // Bridge files "no job" under one code, read back as any status entry: show it as this screen's own.
+    const mode = jobModeOf(fields, values.employmentStatus)
+    return NO_JOB[mode] && values.occupation ? { ...values, occupation: jobFor(mode, values.occupation) } : values
 }
 
 /** What a step sends: trimmed, locked fields as the server gave them, empty optional fields left out. */

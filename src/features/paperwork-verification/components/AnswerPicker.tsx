@@ -18,6 +18,7 @@ import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { humanizeOccupation, useOccupationLabels } from '../occupations/labels'
 import { normalizeSearch, searchOccupations } from '../occupations/search'
 import { useOptionLabel } from '../useOptionLabel'
+import { NO_JOB, STATUS_JOBS, type JobMode } from '../paperworkVerification.utils'
 
 const FIELD_ICONS: Record<string, IconName> = {
     cardPurpose: 'credit-card',
@@ -142,6 +143,7 @@ export function AnswerPicker({
     invalid,
     variant = 'pill',
     id,
+    jobMode,
 }: {
     field: PaperworkVerificationField
     value: string
@@ -150,6 +152,8 @@ export function AnswerPicker({
     /** 'pill' sits inside a sentence; 'field' is a full-width labelled control in a form. */
     variant?: 'pill' | 'field'
     id?: string
+    /** With the work status asked: the job list holds jobs only, plus this way of asking's "no job". */
+    jobMode?: JobMode
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     const locale = useLocale()
@@ -161,6 +165,7 @@ export function AnswerPicker({
     const searched = useRef(false)
     const reportedEmpty = useRef(false)
     const isJob = field.kind === 'occupation'
+    const noJob = isJob && jobMode ? NO_JOB[jobMode] : undefined
     const searchable = isJob || field.kind === 'country'
     const jobLabels = useOccupationLabels(isJob)
     const countries = useMemo(
@@ -168,13 +173,21 @@ export function AnswerPicker({
         [field.kind, locale]
     )
     const optionLabel = (option: string) => {
+        if (isJob && option === noJob) return t(`jobNone.${jobMode}` as never)
         if (isJob) return jobLabels?.[option] ?? humanizeOccupation(option)
         if (field.kind === 'country') return countries.find((c) => c.value === option)?.label ?? option
         return label(field.key, option)
     }
-    const options = field.kind === 'country' ? countries.map((c) => c.value) : (field.options ?? [])
+    const options =
+        field.kind === 'country'
+            ? countries.map((c) => c.value)
+            : (field.options ?? []).filter((o) => !(isJob && jobMode && STATUS_JOBS.has(o) && o !== noJob))
     const shown = value ? optionLabel(value) : t('choose')
-    const title = t(`pickerTitle.${field.key}` as never)
+    const title = t(
+        (isJob && (jobMode === 'last' || jobMode === 'future')
+            ? `pickerTitle.occupation_${jobMode}`
+            : `pickerTitle.${field.key}`) as never
+    )
 
     const words = normalizeSearch(query).split(/\s+/).filter(Boolean)
     const matches = !words.length
@@ -184,7 +197,9 @@ export function AnswerPicker({
           : options.filter((o) => matchesQuery(optionLabel(o), words) || o === query)
     const popularJobs =
         isJob && !words.length
-            ? [...new Set([value, ...POPULAR_JOBS])].filter((job) => job && options.includes(job))
+            ? [...new Set([value, noJob, ...POPULAR_JOBS])].filter(
+                  (job): job is string => !!job && options.includes(job)
+              )
             : []
     const popular = popularJobs.length ? popularJobs : null
     const listed = popular ?? (searchable ? matches.slice(0, MAX_RESULTS) : options)

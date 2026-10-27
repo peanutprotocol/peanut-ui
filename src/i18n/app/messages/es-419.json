@@ -3536,6 +3536,8 @@
                 "cardPurpose": "Usaré mi tarjeta <nw>para <pill></pill></nw>",
                 "bankPurpose": "Usaré mi cuenta <nw>para <pill></pill></nw>",
                 "occupation": "Mi trabajo se parece más <nw>a <pill></pill></nw>",
+                "occupation_last": "Mi último trabajo se parecía más <nw>a <pill></pill></nw>",
+                "occupation_future": "Mi futuro trabajo se parece más <nw>a <pill></pill></nw>",
                 "employmentStatus": "Mi situación laboral <nw>es <pill></pill></nw>",
                 "annualSalary": "<nw>Gano <pill></pill></nw> <nw>al año</nw>",
                 "expectedMonthlyVolume": "<nw>Gastaré <pill></pill></nw> <nw>al mes</nw>",
@@ -3552,6 +3554,8 @@
                 "cardPurpose": "Para qué usarás la tarjeta",
                 "bankPurpose": "Para qué usarás la cuenta",
                 "occupation": "Tu trabajo",
+                "occupation_last": "Tu último trabajo",
+                "occupation_future": "Tu futuro trabajo",
                 "employmentStatus": "Tu situación laboral",
                 "annualSalary": "Tus ingresos anuales",
                 "expectedMonthlyVolume": "Lo que gastarás cada mes",
@@ -3563,6 +3567,10 @@
                 "nationality": "Tu ciudadanía",
                 "maritalStatus": "Estado civil",
                 "sex": "Sexo"
+            },
+            "jobNone": {
+                "last": "Ninguno en los últimos 5 años",
+                "future": "Aún sin decidir"
             },
             "search": {
                 "occupation": "Buscar trabajos",
