@@ -1,4 +1,4 @@
-import { getTierBadge, getTierProgressPercent } from '../utils'
+import { getTierBadge, getTierProgressPercent, inviteeDisplayName } from '../utils'
 
 describe('getTierProgressPercent', () => {
     it('is maxed at tier 2 and above', () => {
@@ -23,5 +23,21 @@ describe('getTierBadge', () => {
     it('falls back to tier 0 for out-of-range tiers', () => {
         expect(getTierBadge(99)).toBe(getTierBadge(0))
         expect(getTierBadge(-1)).toBe(getTierBadge(0))
+    })
+})
+
+// TASK-24090: the API sends the name to show in fullName (the username when the
+// invitee hid their name), so the screens no longer wait for a showFullName flag.
+describe('inviteeDisplayName', () => {
+    it('shows the full name the API sends', () => {
+        expect(inviteeDisplayName({ fullName: 'Ana Lopez', username: 'ana' })).toBe('Ana Lopez')
+    })
+
+    it('falls back to the username when there is no full name', () => {
+        expect(inviteeDisplayName({ fullName: null, username: 'ana' })).toBe('ana')
+    })
+
+    it('is null for an invitee who never finished signup', () => {
+        expect(inviteeDisplayName({ fullName: null, username: null })).toBeNull()
     })
 })
