@@ -15,7 +15,7 @@ export function HomeBalanceActivityRow({ icon, title, detail, amount, tone, stac
                 tone === 'in' ? 'bg-background-badge-success' : 'bg-background-default'
             )}
         >
-            <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-border-default bg-yellow-500 text-label-l">
+            <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-border-default bg-background-icon-bubble-green text-label-l">
                 {icon}
             </span>
             <span className="grid min-w-28 flex-1">
@@ -25,7 +25,6 @@ export function HomeBalanceActivityRow({ icon, title, detail, amount, tone, stac
             <span
                 className={twMerge(
                     'ml-auto text-label-l whitespace-nowrap tabular-nums',
-                    tone === 'in' && 'text-green-800',
                     stacked && 'basis-full text-right'
                 )}
             >
