@@ -265,10 +265,9 @@ export const InitiateKycModal = ({
             return {
                 text: isLoading ? tCommon('loading') : t(kycActionCtaKey(nextAction, reasonCode)),
                 onClick: onVerify,
-                icon:
-                    kycActionCtaKey(nextAction, reasonCode) === 'initiate.ctaAnswerQuestions'
-                        ? undefined
-                        : 'upload-cloud',
+                icon: kycActionCtaKey(nextAction, reasonCode).startsWith('initiate.ctaAnswerQuestion')
+                    ? undefined
+                    : 'upload-cloud',
                 testId: reasonCode === 'requirements_missing' ? 'kyc-supplement-cta' : undefined,
             }
         }

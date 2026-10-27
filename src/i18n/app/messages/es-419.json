@@ -3051,7 +3051,8 @@
             "ctaRetakeId": "Volver a fotografiar el documento",
             "supportMessageDuplicateAccount": "¡Hola! Mi verificación está bloqueada porque mi correo ya está vinculado a otra cuenta de Peanut. ¿Me ayudan a resolver qué cuenta conservar?",
             "supportMessageImportedIdentity": "¡Hola! Mis transferencias bancarias están bloqueadas porque el socio de pagos no pudo verificar el documento de mi verificación anterior. ¿Me ayudan a enviarle un documento vigente?",
-            "descriptionRetakeId": "Nuestro socio de pagos necesita una foto nueva y clara de tu documento de identidad. Usa un documento vigente y que se vea completo."
+            "descriptionRetakeId": "Nuestro socio de pagos necesita una foto nueva y clara de tu documento de identidad. Usa un documento vigente y que se vea completo.",
+            "ctaAnswerQuestion": "Responder la pregunta"
         },
         "documentRequest": {
             "title": "Se necesita un documento más"
@@ -3124,7 +3125,8 @@
             "termsNeeded": "Faltan los términos",
             "documentDescription": "Nuestro socio de pagos necesita un documento más para terminar de abrir esta cuenta.",
             "proofOfAddressDescription": "Nuestro socio de pagos necesita un comprobante de domicilio para terminar de abrir tu cuenta bancaria.",
-            "termsDescription": "Acepta los términos actualizados para seguir usando las transferencias bancarias."
+            "termsDescription": "Acepta los términos actualizados para seguir usando las transferencias bancarias.",
+            "questionsNeeded": "Falta una respuesta"
         },
         "bridgeTos": {
             "description": "Acepta los términos del proveedor para activar las transferencias bancarias.",
@@ -3970,7 +3972,8 @@
             "card_unavailable_for_verification": "No disponible con la verificación actual",
             "local_tax_id_missing": "Necesita un número fiscal: CPF en Brasil, CUIT o CUIL en Argentina",
             "under_minimum_age": "Solo a partir de los 18 años",
-            "bridge_processing_slow": "Está tardando más de lo normal. Nuestro socio de pagos todavía está revisando tus datos. Contacta a soporte y lo revisamos."
+            "bridge_processing_slow": "Está tardando más de lo normal. Nuestro socio de pagos todavía está revisando tus datos. Contacta a soporte y lo revisamos.",
+            "questions_missing": "Responde una pregunta más para terminar de configurarlo."
         }
     },
     "recoverFunds": {

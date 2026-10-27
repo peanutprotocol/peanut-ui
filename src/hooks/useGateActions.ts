@@ -10,6 +10,7 @@ import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import type { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { gateRemedy, gateSupportCase, type GateState } from '@/utils/capability-gate'
 import { buildSupportCaseMessage, SUPPORT_CASE_MESSAGE_KEYS } from '@/utils/contact-support.utils'
+import { paperworkVerificationFeaturePath } from '@/features/paperwork-verification/paperworkVerificationEntry'
 
 type GateFlow = Pick<
     ReturnType<typeof useMultiPhaseKycFlow>,
@@ -49,6 +50,10 @@ export function useGateActions(flow: GateFlow) {
                     return
                 case 'hosted-check':
                     router.push(ADDITIONAL_VERIFICATION_ROUTE)
+                    return
+                case 'questions':
+                    if (gate.kind === 'fixable-rejection' && gate.nextAction?.feature)
+                        router.push(paperworkVerificationFeaturePath(gate.nextAction.feature))
                     return
                 case 'verify':
                 case 'enroll': {

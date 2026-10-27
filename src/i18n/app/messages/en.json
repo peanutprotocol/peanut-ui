@@ -3051,7 +3051,8 @@
             "ctaRetakeId": "Retake ID photo",
             "supportMessageDuplicateAccount": "Hi! My verification is blocked because my email is already linked to another Peanut account. Can you help me sort out which account to keep?",
             "supportMessageImportedIdentity": "Hi! My bank transfers are blocked because the payment partner couldn't verify the ID from my earlier verification. Can you help me send them a current ID?",
-            "descriptionRetakeId": "Our payment partner needs a new, clear photo of your ID. Use a valid document and show all of it."
+            "descriptionRetakeId": "Our payment partner needs a new, clear photo of your ID. Use a valid document and show all of it.",
+            "ctaAnswerQuestion": "Answer the question"
         },
         "documentRequest": {
             "title": "One more document needed"
@@ -3124,7 +3125,8 @@
             "termsNeeded": "Terms needed",
             "documentDescription": "Our payment partner needs one more document to finish opening this account.",
             "proofOfAddressDescription": "Our payment partner needs a proof of address to finish opening your bank account.",
-            "termsDescription": "Accept the updated terms to keep using bank transfers."
+            "termsDescription": "Accept the updated terms to keep using bank transfers.",
+            "questionsNeeded": "Answer needed"
         },
         "bridgeTos": {
             "title": "Accept terms",
@@ -3970,7 +3972,8 @@
             "card_unavailable_for_verification": "Not available with the current verification",
             "local_tax_id_missing": "Needs a tax ID: CPF in Brazil, CUIT or CUIL in Argentina",
             "under_minimum_age": "Only from age 18",
-            "bridge_processing_slow": "This is taking longer than usual. Our payment partner is still reviewing your details. Contact support and we'll check on it."
+            "bridge_processing_slow": "This is taking longer than usual. Our payment partner is still reviewing your details. Contact support and we'll check on it.",
+            "questions_missing": "Answer one more question to finish setting this up."
         }
     },
     "recoverFunds": {

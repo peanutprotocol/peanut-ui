@@ -178,7 +178,12 @@ export function railVerdict(rail: RailCapability, byKey: Map<string, NextAction>
         // The API counts a hosted step as no self-serve fix (it only ever sent
         // one unattached). On a requires-info rail it is the provider's own ask.
         const { status, nextAction, blocking } = rail.resolved
-        if (status === 'blocked' && rail.status === 'requires-info' && nextAction?.kind === 'bridge-hosted') {
+        // An open question is answered in the app, though the API counts it as no self-serve fix.
+        if (
+            status === 'blocked' &&
+            rail.status === 'requires-info' &&
+            (nextAction?.kind === 'bridge-hosted' || nextAction?.kind === 'questions')
+        ) {
             return {
                 ...rail.resolved,
                 status: 'fixable',
@@ -741,6 +746,7 @@ export function isVerifiableGate(kind: GateState['kind']): boolean {
  *   enroll            — needs-enrollment: open this corridor on the identity on file
  *   provider-fix      — fixable-rejection: the provider's own fix (resubmit or start-action)
  *   hosted-check      — fixable-rejection naming Bridge's hosted check
+ *   questions         — fixable-rejection waiting on an answer: the feature's add-later questions
  *   restart-identity  — the identity check again, with another document
  *   provide-email     — the email sheet
  *   support           — blocked-rejection: nothing the user can do in the app
@@ -753,6 +759,7 @@ export type GateRemedy =
     | 'enroll'
     | 'provider-fix'
     | 'hosted-check'
+    | 'questions'
     | 'restart-identity'
     | 'provide-email'
     | 'support'
@@ -778,6 +785,7 @@ export function gateRemedy(gate: GateState): GateRemedy {
         case 'blocked-rejection':
             return 'support'
         case 'fixable-rejection':
+            if (gate.nextAction?.kind === 'questions' && gate.nextAction.feature) return 'questions'
             return gate.nextAction?.kind === 'bridge-hosted' ? 'hosted-check' : 'provider-fix'
     }
 }

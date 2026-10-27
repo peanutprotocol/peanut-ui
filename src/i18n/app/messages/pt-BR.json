@@ -3051,7 +3051,8 @@
             "ctaRetakeId": "Tirar outra foto do documento",
             "supportMessageDuplicateAccount": "Olá! Minha verificação está bloqueada porque meu e-mail já está vinculado a outra conta Peanut. Vocês podem me ajudar a resolver qual conta manter?",
             "supportMessageImportedIdentity": "Olá! Minhas transferências bancárias estão bloqueadas porque o parceiro de pagamentos não conseguiu verificar o documento da minha verificação anterior. Vocês podem me ajudar a enviar um documento válido?",
-            "descriptionRetakeId": "Nosso parceiro de pagamentos precisa de uma foto nova e nítida do seu documento de identidade. Use um documento válido e mostre-o inteiro."
+            "descriptionRetakeId": "Nosso parceiro de pagamentos precisa de uma foto nova e nítida do seu documento de identidade. Use um documento válido e mostre-o inteiro.",
+            "ctaAnswerQuestion": "Responder à pergunta"
         },
         "documentRequest": {
             "title": "Mais um documento necessário"
@@ -3124,7 +3125,8 @@
             "termsNeeded": "Faltam os termos",
             "documentDescription": "Nosso parceiro de pagamentos precisa de mais um documento para terminar de abrir esta conta.",
             "proofOfAddressDescription": "Nosso parceiro de pagamentos precisa de um comprovante de endereço para terminar de abrir sua conta bancária.",
-            "termsDescription": "Aceite os termos atualizados para continuar usando transferências bancárias."
+            "termsDescription": "Aceite os termos atualizados para continuar usando transferências bancárias.",
+            "questionsNeeded": "Falta uma resposta"
         },
         "bridgeTos": {
             "description": "Aceite os termos do provedor para ativar as transferências bancárias.",
@@ -3970,7 +3972,8 @@
             "card_unavailable_for_verification": "Indisponível com a verificação atual",
             "local_tax_id_missing": "Precisa de um número fiscal: CPF no Brasil, CUIT ou CUIL na Argentina",
             "under_minimum_age": "Somente a partir de 18 anos",
-            "bridge_processing_slow": "Está demorando mais que o normal. Nosso parceiro de pagamentos ainda está analisando seus dados. Fale com o suporte e a gente confere."
+            "bridge_processing_slow": "Está demorando mais que o normal. Nosso parceiro de pagamentos ainda está analisando seus dados. Fale com o suporte e a gente confere.",
+            "questions_missing": "Responda mais uma pergunta para terminar de configurar."
         }
     },
     "recoverFunds": {

@@ -968,3 +968,32 @@ describe('plan refusals from the profile', () => {
         })
     })
 })
+
+describe('a provider waiting on an answer', () => {
+    const questions: NextAction = {
+        key: 'questions:bank',
+        kind: 'questions',
+        purpose: 'questions_missing',
+        feature: 'bank',
+    }
+
+    it('asks for the answer, with the action that opens the add-later questions', () => {
+        const caps = capabilities(
+            [
+                sepa({
+                    status: 'requires-info',
+                    reason: { code: 'questions_missing', userMessage: 'Answer one more question.' },
+                    blockingActions: [questions.key],
+                }),
+            ],
+            [questions]
+        )
+        const [row] = verified(caps, ONLY('bank'), 'DE')
+        expect(row).toMatchObject({
+            key: 'bank',
+            state: 'questions-needed',
+            reason: 'questions_missing',
+            step: { provider: 'bridge', action: questions },
+        })
+    })
+})

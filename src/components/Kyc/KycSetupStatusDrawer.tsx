@@ -20,6 +20,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useModalsContext } from '@/context/ModalsContext'
 import { CorridorFlag } from '@/features/deposit-accounts/components/CorridorFlag'
 import { localizedCountryName } from '@/utils/country-name.utils'
+import { paperworkVerificationFeaturePath } from '@/features/paperwork-verification/paperworkVerificationEntry'
 import {
     setupReasonKey,
     type KycFeatureKey,
@@ -53,6 +54,7 @@ type BadgeLabel =
     | 'available'
     | 'underReview'
     | 'documentNeeded'
+    | 'questionsNeeded'
     | 'termsNeeded'
     | 'agreementsNeeded'
     | 'verifyId'
@@ -66,6 +68,7 @@ const STATE_BADGE: Record<SetupRowState, { status: StatusType; label: BadgeLabel
     'under-review': { status: 'pending', label: 'underReview' },
     available: { status: 'completed', label: 'available' },
     'document-needed': { status: 'pending', label: 'documentNeeded' },
+    'questions-needed': { status: 'pending', label: 'questionsNeeded' },
     'terms-needed': { status: 'pending', label: 'termsNeeded' },
     'agreements-needed': { status: 'pending', label: 'agreementsNeeded' },
     'needs-local-id': { status: 'pending', label: 'verifyId' },
@@ -75,6 +78,7 @@ const STATE_BADGE: Record<SetupRowState, { status: StatusType; label: BadgeLabel
 
 type PrimaryStep =
     | { kind: 'terms' }
+    | { kind: 'questions'; feature: NonNullable<NonNullable<SetupRowStep['action']>['feature']> }
     | { kind: 'document'; step: SetupRowStep }
     | { kind: 'card' }
     | { kind: 'verify'; localId: boolean; card: boolean }
@@ -87,6 +91,8 @@ type PrimaryStep =
  */
 function primaryStep(rows: SetupRow[]): PrimaryStep | null {
     if (rows.some((row) => row.state === 'terms-needed')) return { kind: 'terms' }
+    const question = rows.find((row) => row.state === 'questions-needed')?.step?.action?.feature
+    if (question) return { kind: 'questions', feature: question }
     if (rows.some((row) => row.state === 'verify-again')) return { kind: 'verify', localId: false, card: false }
     const document = rows.find((row) => row.state === 'document-needed' && row.step)
     if (document?.step) return { kind: 'document', step: document.step }
@@ -153,6 +159,10 @@ export const KycSetupStatusDrawer = ({
     // the states whose badge does not say enough get one line under the title
     const rowBody = ({ key: feature, state, reason, step: rowStep, pendingSince }: SetupRow) => {
         if (isBridgeProcessingSlow(reason, pendingSince)) return tIdentity('reasons.bridge_processing_slow')
+        if (state === 'questions-needed') {
+            const key = setupReasonKey(reason)
+            return key ? tIdentity(key) : undefined
+        }
         if (state === 'document-needed' || state === 'terms-needed') {
             const key = setupReasonKey(reason)
             if (key) return tIdentity(key)
@@ -186,6 +196,14 @@ export const KycSetupStatusDrawer = ({
         switch (step?.kind) {
             case 'terms':
                 return { label: t('setup.reviewTerms'), onClick: onReviewTerms }
+            case 'questions':
+                return {
+                    label: t('initiate.ctaAnswerQuestion'),
+                    onClick: () => {
+                        onClose()
+                        router.push(paperworkVerificationFeaturePath(step.feature))
+                    },
+                }
             case 'document':
                 if (step.step.provider === 'rain') return { label: t('setup.continueCard'), onClick: openCardPage }
                 return {

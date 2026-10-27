@@ -18,6 +18,7 @@ export function isIdRetake(action?: NextAction): boolean {
 }
 
 export function kycActionCtaKey(action?: NextAction, reasonCode?: string | null) {
+    if (action?.kind === 'questions') return 'initiate.ctaAnswerQuestion' as const
     if (isIdRetake(action)) return 'initiate.ctaRetakeId' as const
     if (reasonCode === 'eea_tin_reupload') return 'initiate.ctaUploadDocument' as const
     const levels = [action?.levelKey, action?.key.split(':').pop(), reasonCode]
