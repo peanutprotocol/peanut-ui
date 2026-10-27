@@ -165,7 +165,7 @@
     "landingCardReceiptTitle": "Card purchase",
     "landingCardReceiptApproved": "Approved",
     "landingSeamCard": "Card\nMercado Pago\nPix",
-    "landingPayLocalLead": "Mercado Pago in {argentina}. Pix in {brazil}. With your passport.",
+    "landingPayLocalLead": "Mercado Pago in {argentina}. Pix in {brazil}. No DNI, no CPF.",
     "landingPayLocalArgentina": "Argentina",
     "landingPayLocalBrazil": "Brazil",
     "landingSecurityHeading": "SECURITY. CONTROL. SUPPORT.",
