@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { Locale } from '@/i18n/types'
 
 /** Copy for the Peanut Card fold (f6). */
@@ -22,3 +23,7 @@ export interface HomeCardFoldProps {
 }
 
 export type HomeCardReceiptProps = HomeCardFoldProps
+
+export interface HomeCardGateProps {
+    children: ReactNode
+}

@@ -49,3 +49,10 @@ export interface HomePayLocalFoldProps {
     /** Page locale: tags the stickers' marketing QR codes and picks the country pages they link to. */
     locale: Locale
 }
+
+export interface HomePayLocalLeadProps {
+    /** The lead with its `{argentina}` and `{brazil}` slots. */
+    lead: string
+    names: { argentina: string; brazil: string }
+    hrefs: { argentina: string; brazil: string }
+}
