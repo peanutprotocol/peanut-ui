@@ -21,11 +21,27 @@ export const formatBankAmount = (amount: string | number, currencyCode: string):
 /**
  * The number part of {@link formatBankAmount}: "2,000.50", "2,000", "0.10".
  * For a line that already carries its currency code ("≈ USD 0.10").
+ *
+ * This is the one place a money amount is rounded for display (design.md,
+ * copy → amounts): half-up to `maxDecimals`, at least `minDecimals` digits
+ * when there is a fraction, and no ".00" on a round amount. `formatCurrency`
+ * and `formatNumberForDisplay` delegate here. A spendable balance is floored
+ * to the cent before it gets here (`formatUsdcBalance`).
  */
-export const formatAmountNumber = (amount: string | number): string => {
+export const formatAmountNumber = (
+    amount: string | number,
+    maxDecimals: number = 2,
+    minDecimals: number = 2
+): string => {
     const value = typeof amount === 'string' ? parseFloat(amount) : amount
     if (isNaN(value)) return '0'
-    return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\.00$/, '')
+    return value
+        .toLocaleString('en-US', {
+            minimumFractionDigits: Math.min(minDecimals, maxDecimals),
+            maximumFractionDigits: maxDecimals,
+            roundingMode: 'halfExpand',
+        })
+        .replace(/\.0+$/, '')
 }
 
 /**

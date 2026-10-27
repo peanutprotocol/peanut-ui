@@ -26,7 +26,8 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { useState } from 'react'
 import { useRewardsFlow } from './useRewardsFlow'
-import { getTierBadge, getTierProgressPercent } from './utils'
+import { getTierBadge, getTierProgressPercent, inviteeDisplayName } from './utils'
+import { twMerge } from '@/utils/tw'
 
 const InvitesGraph = dynamic(() => import('@/components/Global/InvitesGraph'), { ssr: false })
 const InviteFriendsModal = dynamic(() => import('@/components/Global/InviteFriendsModal'), { ssr: false })
@@ -267,17 +268,19 @@ export function RewardsPage() {
                         <div ref={inviteesRef}>
                             {invites.invitees?.slice(0, 5).map((invite: PointsInvite, i: number) => {
                                 const username = invite.username
-                                const fullName = invite.fullName
                                 const isVerified = invite.kycVerified
                                 const pointsEarned = invite.contributedPoints ?? 0
-                                // respect user's showFullName preference for avatar and display name
-                                const displayName = invite.showFullName && fullName ? fullName : username
+                                const displayName = inviteeDisplayName(invite)
                                 return (
                                     <Card
                                         key={invite.inviteeId}
                                         position={getCardPosition(i, Math.min(5, invites.invitees.length))}
-                                        onClick={() => router.push(profileUrl(username))}
-                                        className="cursor-pointer focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                                        // An invitee who never finished signup has no profile to open.
+                                        onClick={username ? () => router.push(profileUrl(username)) : undefined}
+                                        className={twMerge(
+                                            username && 'cursor-pointer',
+                                            'focus-visible:outline-[3px] focus-visible:outline-action-focus'
+                                        )}
                                     >
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="flex items-center gap-3">
@@ -288,7 +291,7 @@ export function RewardsPage() {
                                                     // invitee without one keeps the display
                                                     // name — an empty name reads as "not a
                                                     // user" and drops to a wallet icon.
-                                                    userName={username || displayName}
+                                                    userName={username || displayName || undefined}
                                                     avatarKey={invite.avatarKey}
                                                     isLinkTransaction={false}
                                                     transactionType={'send'}
@@ -297,8 +300,8 @@ export function RewardsPage() {
                                             </div>
                                             <div className="min-w-0 flex-1 truncate font-roboto text-body-m">
                                                 <VerifiedUserLabel
-                                                    name={displayName}
-                                                    username={username}
+                                                    name={displayName ?? ''}
+                                                    username={username ?? ''}
                                                     isVerified={isVerified}
                                                 />
                                             </div>
@@ -315,23 +318,13 @@ export function RewardsPage() {
                     </>
                 ) : (
                     <>
-                        {/* if user has no invites: canonical empty state with modal button */}
+                        {/* if user has no invites: canonical empty state, no button of its
+                            own — "Invite now" in the hero above opens the same modal */}
                         <EmptyState
                             concept="rewards"
                             title={t('noInvitesYet')}
                             description={t('shareInviteLinkPrompt')}
                             containerClassName="!mt-8"
-                            cta={
-                                <Button
-                                    variant="primary"
-                                    shadowSize="4"
-                                    size="small"
-                                    className="mt-2"
-                                    onClick={openInviteModal}
-                                >
-                                    {t('shareInviteLink')}
-                                </Button>
-                            }
                         />
                     </>
                 )}

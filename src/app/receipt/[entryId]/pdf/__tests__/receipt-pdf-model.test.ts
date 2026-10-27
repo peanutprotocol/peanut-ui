@@ -91,7 +91,7 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
         expect(row(model, 'transaction.officialReceipt.pdf.type')).toBe('transaction.type.bank_withdraw')
         expect(row(model, 'transaction.officialReceipt.pdf.status')).toBe('common.status.completed')
         expect(row(model, 'transaction.rows.to')).toBe('kkonrad')
-        expect(row(model, 'transaction.rows.fee')).toBe('0.5')
+        expect(row(model, 'transaction.rows.fee')).toBe('$0.50')
         expect(row(model, 'transaction.rows.txId')).toBe(baseTx.txHash)
         expect(row(model, 'transaction.rows.transferId')).toBe(baseTx.id)
         expect(labels(model).slice(-2)).toEqual(['transaction.rows.txId', 'transaction.rows.transferId'])
@@ -139,7 +139,7 @@ describe('buildReceiptPdfModel — variants', () => {
             'en'
         )
         expect(model.convertedAmountDisplay).toBe('ARS 113,250.75')
-        expect(row(model, 'common.exchangeRate')).toBe('1 USD = ARS 902.4')
+        expect(row(model, 'common.exchangeRate')).toBe('1 USD = ARS 902.40')
     })
 
     test('bank account identifiers are always masked — the PDF is shareable', () => {

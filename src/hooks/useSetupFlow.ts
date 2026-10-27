@@ -20,10 +20,13 @@ export const SETUP_SCREEN_PARAM = 'screen'
 export const SETUP_DEFAULT_SCREEN: ScreenId = 'landing'
 
 /**
- * The first step after registration. The username step creates the account and
- * the passkey, so once it succeeds the flow locks every step before this one.
+ * The first step after registration: whatever follows the username step in the
+ * filtered list (the inviter question, a sell screen or residence, depending on
+ * the signup). The username step creates the account and the passkey, so once it
+ * succeeds the flow locks every step before this one.
  */
-export const SETUP_POST_REGISTRATION_SCREEN: ScreenId = 'residence'
+export const postRegistrationScreen = (screenIds: readonly ScreenId[]): ScreenId =>
+    screenIds[screenIds.indexOf('signup') + 1] ?? 'residence'
 
 /**
  * The setup flow's cursor: a named screen id in the URL (?screen=signup),

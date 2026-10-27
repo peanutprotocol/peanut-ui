@@ -88,7 +88,7 @@ export default function TitleBlockPage() {
     </TitleBlock>
 </Card>
 
-// what a call site passes as the cta
+// what a call site passes as the cta (rewards/invites: that page has no hero button, so the empty state carries the invite action)
 <EmptyState
     icon="trophy"
     title={t('noInvitesYet')}

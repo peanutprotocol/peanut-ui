@@ -11,13 +11,13 @@ import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces/interfaces'
 import { useBalance } from './useBalance'
 import { useSendMoney as useSendMoneyMutation } from './useSendMoney'
-import { formatCurrency } from '@/utils/general.utils'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '../useRainCardOverview'
 import {
     computeAvailableSpendable,
     rainCentsToUsdcUnits,
     isAmountWithinBalance,
     isRainBalanceKnown,
+    formatUsdcBalance,
 } from '@/utils/balance.utils'
 import { useSpendBundle } from './useSpendBundle'
 import type { SpendStrategy } from './spendPreflight'
@@ -308,8 +308,8 @@ export const useWallet = () => {
     // use `formattedSpendableBalance` below for user-facing widgets that
     // should reflect total spendable (smart + Rain collateral).
     const formattedBalance = useMemo(() => {
-        if (balance === undefined) return '0.00'
-        return formatCurrency(formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
+        if (balance === undefined) return '0'
+        return formatUsdcBalance(balance)
     }, [balance])
 
     // Total spendable (smart + Rain collateral) formatted for display. All
@@ -317,8 +317,8 @@ export const useWallet = () => {
     // a user with funds split across smart and collateral sees a smaller balance
     // than they actually have (2026-05-08 jotest097 report TASK-19573).
     const formattedSpendableBalance = useMemo(() => {
-        if (spendableBalance === undefined) return '0.00'
-        return formatCurrency(formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
+        if (spendableBalance === undefined) return '0'
+        return formatUsdcBalance(spendableBalance)
     }, [spendableBalance])
 
     // The same displayed spendable total as a plain number, for the amount

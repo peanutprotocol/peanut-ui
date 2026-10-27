@@ -114,7 +114,7 @@ describe('useWallet spendable balance', () => {
         await waitFor(() => expect(result.current.spendableBalance).toBe(usd(120.5)))
         expect(result.current.isSpendableBalanceStale).toBe(true)
         expect(result.current.isFetchingSpendableBalance).toBe(false)
-        expect(result.current.formattedSpendableBalance).toBe('120.5')
+        expect(result.current.formattedSpendableBalance).toBe('120.50')
     })
 
     it('replaces the cached value with the live sum once Rain answers, and re-caches it', async () => {

@@ -31,20 +31,19 @@ export function useReceiptActions(transaction: TransactionDetails | null) {
 
     const invalidateTransactions = () => queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
 
-    /** Requester closes their own request (pot → close, charge → cancel). */
+    /**
+     * Requester closes their own request link. An addressed charge is not
+     * theirs to cancel: only its payer may (TASK-24006).
+     */
     const closeRequest = async (): Promise<boolean> => {
-        if (!transaction) return false
+        if (!transaction?.isRequestPotLink) return false
         try {
-            if (transaction.isRequestPotLink) {
-                await requestsApi.close(transaction.id)
-            } else {
-                await chargesApi.cancel(transaction.id)
-            }
+            await requestsApi.close(transaction.id)
             await invalidateTransactions()
             return true
         } catch (error) {
             captureException(error)
-            console.error('Error canceling charge:', error)
+            console.error('Error closing request:', error)
             return false
         }
     }

@@ -127,7 +127,7 @@ test.describe('Button press physics', () => {
     // navigation row, and its circles were the last call site still drawing a
     // secondary button with the shadow stripped — a white chip on the #90a8ed
     // hero, which is the state the board does not have (kush QA 2026-09-21).
-    // The invite step's back circle renders that row with no backend and no
+    // The username step's back circle renders that row with no backend and no
     // login. (/setup/finish used to, through a log-out circle that moved under
     // its primary in the Release 164 smoke-test fixes.)
     test('the setup nav circle is a ring on the hero, not a white chip', async ({ page }) => {
@@ -143,7 +143,7 @@ test.describe('Button press physics', () => {
         const signUp = page.getByRole('button', { name: 'Sign up' })
         await expect(signUp).toBeVisible({ timeout: 60_000 })
         await signUp.click()
-        await expect(page).toHaveURL(/screen=invite/)
+        await expect(page).toHaveURL(/screen=signup/)
 
         const circle = page.getByRole('button', { name: 'Go back' })
         await expect(circle).toBeVisible()

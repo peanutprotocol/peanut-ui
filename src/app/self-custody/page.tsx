@@ -13,7 +13,7 @@ export const metadata = starLpMetadata({
 
 export default function Page() {
     return (
-        <StarLpPage>
+        <StarLpPage marketingPage="self-custody">
             <SelfCustodyLanding />
         </StarLpPage>
     )

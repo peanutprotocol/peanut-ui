@@ -116,39 +116,6 @@ export default function MiniHeaderPage() {
                         </div>
                     </div>
                 </ProductUsage.Example>
-
-                <ProductUsage.Example
-                    title="Add money — onramp confirmation drawer"
-                    path="src/components/AddMoney/components/OnrampConfirmationModal.tsx"
-                    description="Two topics, two grey headers, plain prose under each. Neither is a warning, which keeps the single Callout slot free for the real one."
-                    code={`<div className="flex flex-col gap-1">
-    <MiniHeader>{t('nextStep')}</MiniHeader>
-    <p className="text-body-s text-foreground-primary">{t('bankDetailsItem')}</p>
-    <p className="text-body-s text-foreground-primary">{t('referenceCodeItem')}</p>
-</div>
-<div className="flex flex-col gap-1">
-    <MiniHeader>{t('youMust')}</MiniHeader>
-    <p className="text-body-s text-foreground-primary">{t('copyReferenceCode')}</p>
-    <p className="text-body-s text-foreground-primary">{t('pasteReference')}</p>
-</div>`}
-                >
-                    <div className="flex flex-col gap-4 text-left">
-                        <div className="flex flex-col gap-1">
-                            <MiniHeader>Next step</MiniHeader>
-                            <p className="text-body-s text-foreground-primary">We show you the bank details</p>
-                            <p className="text-body-s text-foreground-primary">And a reference code</p>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <MiniHeader>Required</MiniHeader>
-                            <p className="text-body-s text-foreground-primary">
-                                Copy the one-time reference code exactly
-                            </p>
-                            <p className="text-body-s text-foreground-primary">
-                                Paste it in the description/reference field
-                            </p>
-                        </div>
-                    </div>
-                </ProductUsage.Example>
             </ProductUsage>
         </DocPage>
     )

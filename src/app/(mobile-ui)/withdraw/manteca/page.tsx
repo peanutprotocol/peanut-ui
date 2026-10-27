@@ -44,7 +44,7 @@ import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { countryData } from '@/components/AddMoney/consts'
 import { formatBankAmount } from '@/utils/currency'
-import { formatNumberForDisplay } from '@/utils/general.utils'
+import { formatCurrency } from '@/utils/general.utils'
 import { validateCbuCvuAlias, validatePixKey, normalizePixInput, isPixEmvcoQr } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import AmountInput from '@/components/Global/AmountInput'
@@ -1012,9 +1012,8 @@ function MantecaBankWithdrawFlow() {
     // The USD shows rounded up to the cent, what a card-funded withdrawal
     // debits. Before the lock, the amount the user did not type is an estimate.
     const estimate = priceLock ? '' : '≈ '
-    const localLine = `${isAmountTypedInUsd ? estimate : ''}${currencyCode} ${formatNumberForDisplay(
-        priceLock?.fiatAmount ?? currencyAmount,
-        { maxDecimals: 2 }
+    const localLine = `${isAmountTypedInUsd ? estimate : ''}${currencyCode} ${formatCurrency(
+        priceLock?.fiatAmount ?? currencyAmount
     )}`
     const usdLine = `${isAmountTypedInUsd ? '' : estimate}${formatBankAmount(
         priceLock ? lockedUsdDisplayAmount(priceLock.usdAmount) : (usdAmount ?? '0'),

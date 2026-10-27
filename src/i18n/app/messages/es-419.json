@@ -821,15 +821,17 @@
         "signupStep": {
             "usernameLabel": "Usuario",
             "usernamePlaceholder": "batman",
+            "usernameRules": "De 4 a 12 caracteres. Empieza con una letra. Solo letras y números.",
             "inviterUsernameLabel": "Usuario de quien te invitó",
-            "inviterUsernamePlaceholder": "batman",
+            "inviterUsernamePlaceholder": "Usuario de quien invita",
             "inviterNotFound": "No encontramos a este usuario.",
+            "inviterIsSelf": "Ese es tu propio usuario.",
             "inviterCheckFailed": "No pudimos revisar este usuario. Inténtalo de nuevo.",
             "errors": {
                 "required": "El nombre de usuario es obligatorio",
-                "tooShort": "El nombre de usuario debe tener al menos 4 caracteres",
-                "tooLong": "El nombre de usuario debe tener como máximo 12 caracteres",
-                "invalidFormat": "El nombre de usuario solo puede tener letras minúsculas y números, y debe empezar con una letra",
+                "tooShort": "Usa al menos 4 caracteres.",
+                "tooLong": "Usa 12 caracteres o menos.",
+                "invalidFormat": "Empieza con una letra. Usa solo letras y números.",
                 "taken": "Ese nombre de usuario ya está en uso",
                 "invalid": "El nombre de usuario no es válido, usa uno diferente",
                 "checkFailed": "No pudimos verificar la disponibilidad del usuario. Inténtalo de nuevo.",
@@ -1488,8 +1490,9 @@
             "restartDescription": "Los pagos con QR necesitan un documento de un país compatible. Puedes verificarte con otra identificación.",
             "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contacta a soporte para recibir ayuda.",
             "uploadDocument": "Subir documento",
-            "verifyAgainTitle": "Verificar identidad de nuevo",
-            "verifyAgainDescription": "Los pagos con QR están en pausa hasta que vuelvas a verificarte."
+            "verifyAgainTitle": "Necesitamos algunos datos más",
+            "verifyAgainDescription": "Nos faltan algunos datos. Completa la verificación adicional.",
+            "verifyAgainCta": "Continuar"
         },
         "info": {
             "exchangeRate": "Tipo de cambio",
@@ -1609,6 +1612,7 @@
             }
         },
         "pixKeyOwnerTaxId": "{taxIdKind} {taxId}",
+        "recipientBank": "Banco",
         "pixKeySavedAs": "Guardada como {name}"
     },
     "card": {
@@ -2009,15 +2013,9 @@
             "scanWithBankApp": "Escanea con la app de tu banco o copia el código Pix."
         },
         "confirmationModal": {
-            "title": "Importante",
-            "nextStep": "Luego vas a ver:",
-            "bankDetailsItem": "Los datos bancarios a los que enviar el dinero",
-            "referenceCodeItem": "Un código de referencia del depósito",
-            "youMust": "Debes:",
-            "copyReferenceCode": "Copiar el código de referencia de un solo uso tal cual",
-            "pasteReference": "Pegarlo en el campo de descripción/referencia",
-            "mismatchTitle": "Si falta la referencia o es incorrecta:",
-            "mismatchDescription": "Tu depósito fallará y tardará entre 2 y 10 días en volver a tu banco, y puede tener comisiones. El código de referencia es de un solo uso."
+            "title": "Copia la referencia tal cual",
+            "body": "La siguiente pantalla muestra los datos bancarios y una referencia de depósito. Pégala en el campo de referencia del banco.",
+            "missingReference": "Sin la referencia exacta, el depósito puede demorarse o volver a tu banco."
         },
         "bankDetails": {
             "amountToSend": "Monto a enviar",
@@ -2136,12 +2134,6 @@
             "arrives": "Llega",
             "bankReceives": "El banco recibe",
             "reference": "Referencia (opcional)",
-            "referenceHelperSepa": "El banco del destinatario la muestra con el pago. De 6 a 140 caracteres: letras a-z, números, espacios y & - . /",
-            "referenceHelperAch": "El banco del destinatario la muestra con el pago. Hasta 10 caracteres: letras a-z, números y espacios.",
-            "referenceHelperWire": "El banco del destinatario la muestra con el pago. Hasta 140 caracteres: letras a-z, números, espacios y & - . /",
-            "referenceHelperFasterPayments": "El banco del destinatario la muestra con el pago. Hasta 18 caracteres: letras a-z, números, espacios y & - . /",
-            "referenceHelperSpei": "El banco del destinatario la muestra con el pago. Hasta 40 caracteres: letras a-z, números y espacios.",
-            "referenceHelperCoBankTransfer": "El banco del destinatario la muestra con el pago. Hasta 18 caracteres: letras a-z, números, espacios y & - . /",
             "referenceTooShort": "Mínimo {min} caracteres, o déjala vacía.",
             "referenceTooLong": "Máximo {max} caracteres.",
             "referenceInvalidCharsSepa": "Solo letras a-z, números, espacios y & - . /",
@@ -2149,7 +2141,6 @@
             "referenceInvalidCharsSpei": "Solo letras a-z, números y espacios.",
             "payoutReferenceReplacesDefaultSepa": "La referencia que escribas reemplaza el texto que Bridge envía por defecto con el pago.",
             "payoutDefaultReferenceCarriesNameSepa": "Ese texto por defecto lleva tu nombre.",
-            "referenceFormattingMayChange": "Los espacios y las mayúsculas pueden cambiar en el camino.",
             "payoutSenderAch": "El pago llega de Bridge, no a tu nombre.",
             "payoutSenderSpei": "El pago llega del banco local de Bridge, no a tu nombre.",
             "payoutSenderWire": "El pago llega de Bridge, no a tu nombre.",
@@ -2622,8 +2613,8 @@
         "earnWhenFriendsUse": "¡Ganas recompensas cada vez que tus amigos usan Peanut!",
         "peopleYouInvited": "Personas invitadas",
         "noInvitesYet": "Aún no hay invitaciones",
-        "shareInviteLinkPrompt": "Envía tu link de invitación para empezar a ganar más recompensas",
-        "shareInviteLink": "Compartir link de invitación",
+        "shareInviteLinkPrompt": "Envía tu enlace de invitación para empezar a ganar más recompensas",
+        "shareInviteLink": "Compartir enlace de invitación",
         "loadPointsFailed": "¡Error al cargar los puntos!",
         "loadInvitesFailed": "¡Error al cargar las invitaciones!",
         "contactSupport": "Por favor contacta a Soporte.",
@@ -2643,7 +2634,7 @@
             "noPendingRewards": "Nada pendiente por ahora.",
             "lifetimeRewards": "Ganado hasta ahora: {amount}",
             "earnWhenFriendsUse": "¡Ganas puntos cada vez que tus amigos pagan con Peanut!",
-            "shareInviteLinkPrompt": "Envía tu link de invitación para empezar a ganar más puntos",
+            "shareInviteLinkPrompt": "Envía tu enlace de invitación para empezar a ganar más puntos",
             "howItWorks": {
                 "title": "Cómo funciona",
                 "step3": "Tus ganancias se acumulan en tu saldo.",
@@ -3571,8 +3562,7 @@
             "continue": "Continuar",
             "okay": "Entendido",
             "directSendCrossChain": "Peanut admite pagos entre cadenas.",
-            "directSendConfirm": "Confirma los datos del pago antes de enviarlo",
-            "directSendAcknowledge": "Entiendo y confirmaré los datos del pago.",
+            "directSendAcknowledge": "Revisaré los datos del pago.",
             "externalUrlIntro": "Peanut no admite este QR, pero puedes abrirlo con tu navegador.",
             "externalUrlTrust": "¡Asegúrate de confiar en este sitio web!",
             "openLink": "Abrir enlace",
@@ -3614,7 +3604,7 @@
             "title": "Gana con tus invitaciones",
             "description": "A partir de ahora, Peanut está abierto a cualquiera. Puedes seguir invitando a tus amigos para ganar recompensas si se registran.",
             "shareSheetTitle": "Compartir enlace de invitación",
-            "shareCta": "Compartir link de invitación",
+            "shareCta": "Compartir enlace de invitación",
             "learnMore": "Saber más"
         },
         "noMoreJailModal": {
@@ -3853,27 +3843,27 @@
             "cryptoWithdrawDescription": "Retira a una billetera o exchange"
         },
         "savedAccounts": {
-            "title": "Cuentas guardadas",
+            "title": "Cuentas favoritas",
             "bankSectionTitle": "Cuentas bancarias",
             "selectNewMethod": "Elegir otro método",
             "flagAlt": "Bandera de {country}",
             "flagAltGeneric": "Bandera del país"
         },
         "savedAddresses": {
-            "title": "Libreta de direcciones cripto",
+            "title": "Direcciones cripto favoritas",
             "lastUsed": "{days, plural, =0 {Usada hoy} =1 {Usada ayer} other {Usada hace # días}}",
             "nicknamePlaceholder": "p. ej. Binance",
             "deleteCta": "Eliminar dirección",
-            "savePrompt": "Guardar en la libreta",
+            "savePrompt": "Guardar en favoritos",
             "rowAria": "{name}, {address} en {chain}",
-            "nicknameRequired": "Agregá un nombre para guardar esta dirección."
+            "nicknameRequired": "Agrega un nombre para guardar esta dirección."
         },
         "savedDestinations": {
             "editTitle": "Editar nombre",
             "nameLabel": "Nombre",
             "namePlaceholder": "p. ej. Sueldo",
             "deleteCta": "Eliminar",
-            "editFailed": "No pudimos guardar el nombre. Intentá de nuevo.",
+            "editFailed": "No pudimos guardar el nombre. Inténtalo de nuevo.",
             "editAria": "Editar {name}"
         },
         "pointsCard": {

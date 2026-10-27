@@ -6,6 +6,7 @@ import {
     isValidSendAmount,
     printableUsdc,
     rainCentsToUsdcUnits,
+    formatUsdcBalance,
 } from '../balance.utils'
 
 describe('balance utils', () => {
@@ -32,6 +33,20 @@ describe('balance utils', () => {
             [303345000n, '303.34'],
         ])('should return the correct value for %i', (input, expected) => {
             expect(printableUsdc(input)).toBe(expected)
+        })
+    })
+
+    // A balance never shows more than the user can spend, and keeps its cents.
+    describe('formatUsdcBalance', () => {
+        it.each([
+            [257_509_999n, '257.50'],
+            [257_500_000n, '257.50'],
+            [1_127_608n, '1.12'],
+            [257_000_000n, '257'],
+            [1_234_560_000n, '1,234.56'],
+            [9_999n, '0'],
+        ])('formats %s base units as %s', (units, expected) => {
+            expect(formatUsdcBalance(units)).toBe(expected)
         })
     })
 

@@ -394,16 +394,22 @@ export const SetupWrapper = memo(function SetupWrapper({
     )
     const fullScreen = fullScreenProp || fullScreenOverride === screenId
     const prefersReducedMotion = useReducedMotion()
-    const previousStep = useRef(step)
+    // Only a new screen sets the direction. The index alone can move when the step list
+    // changes under the current screen; read as a Back, that flipped the slide mid-exit
+    // and the outgoing screen never left the page.
+    const previousStep = useRef({ step, screenId })
     const transitionDirection =
-        step !== undefined && previousStep.current !== undefined && step !== previousStep.current
-            ? step > previousStep.current
+        screenId !== previousStep.current.screenId &&
+        step !== undefined &&
+        previousStep.current.step !== undefined &&
+        step !== previousStep.current.step
+            ? step > previousStep.current.step
                 ? 1
                 : -1
             : direction
     useLayoutEffect(() => {
-        previousStep.current = step
-    }, [step])
+        previousStep.current = { step, screenId }
+    }, [step, screenId])
     useLayoutEffect(() => {
         // Safe-area strips follow the full-page checklist/celebration or blue hero.
         document.documentElement.style.setProperty(

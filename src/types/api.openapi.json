@@ -3378,6 +3378,7 @@
 						"name": "starting_after",
 						"required": false,
 						"schema": {
+							"format": "uuid",
 							"type": "string"
 						}
 					},
@@ -3386,6 +3387,7 @@
 						"name": "ending_before",
 						"required": false,
 						"schema": {
+							"format": "uuid",
 							"type": "string"
 						}
 					},
@@ -3937,9 +3939,11 @@
 							"schema": {
 								"properties": {
 									"chainId": {
+										"pattern": "^[1-9][0-9]{0,9}$",
 										"type": "string"
 									},
 									"hash": {
+										"pattern": "^0x[0-9a-fA-F]{64}$",
 										"type": "string"
 									},
 									"payerAddress": {
@@ -11916,172 +11920,6 @@
 				]
 			}
 		},
-		"/manteca/withdraw": {
-			"post": {
-				"description": "Create a withdraw order to convert crypto to fiat via Manteca. Optionally use a pre-locked price from /withdraw/init.",
-				"parameters": [
-					{
-						"in": "header",
-						"name": "Authorization",
-						"required": true,
-						"schema": {
-							"type": "string"
-						}
-					}
-				],
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"properties": {
-									"accountType": {
-										"anyOf": [
-											{
-												"enum": [
-													"SAVINGS"
-												],
-												"type": "string"
-											},
-											{
-												"enum": [
-													"CHECKING"
-												],
-												"type": "string"
-											},
-											{
-												"enum": [
-													"DEBIT"
-												],
-												"type": "string"
-											},
-											{
-												"enum": [
-													"PHONE"
-												],
-												"type": "string"
-											},
-											{
-												"enum": [
-													"VISTA"
-												],
-												"type": "string"
-											},
-											{
-												"enum": [
-													"RUT"
-												],
-												"type": "string"
-											}
-										]
-									},
-									"amount": {
-										"description": "Amount to withdraw in crypto asset",
-										"type": "string"
-									},
-									"bankCode": {
-										"type": "string"
-									},
-									"currency": {
-										"anyOf": [
-											{
-												"enum": [
-													"ARS"
-												],
-												"type": "string"
-											},
-											{
-												"enum": [
-													"BRL"
-												],
-												"type": "string"
-											},
-											{
-												"enum": [
-													"CLP"
-												],
-												"type": "string"
-											},
-											{
-												"enum": [
-													"COP"
-												],
-												"type": "string"
-											},
-											{
-												"enum": [
-													"PUSD"
-												],
-												"type": "string"
-											},
-											{
-												"enum": [
-													"CRC"
-												],
-												"type": "string"
-											},
-											{
-												"enum": [
-													"GTQ"
-												],
-												"type": "string"
-											},
-											{
-												"enum": [
-													"MXN"
-												],
-												"type": "string"
-											},
-											{
-												"enum": [
-													"PHP"
-												],
-												"type": "string"
-											},
-											{
-												"enum": [
-													"BOB"
-												],
-												"type": "string"
-											}
-										]
-									},
-									"destinationAddress": {
-										"description": "Destination address to withdraw to",
-										"type": "string"
-									},
-									"priceLockCode": {
-										"description": "Price lock code from /withdraw/init. If not provided, a new price lock is created.",
-										"type": "string"
-									},
-									"txHash": {
-										"description": "Transaction hash of the withdrawal",
-										"maxLength": 66,
-										"pattern": "^0x[0-9a-fA-F]{64}$",
-										"type": "string"
-									}
-								},
-								"required": [
-									"amount",
-									"txHash",
-									"destinationAddress"
-								],
-								"type": "object"
-							}
-						}
-					},
-					"required": true
-				},
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				},
-				"summary": "Create withdraw order (offramp)",
-				"tags": [
-					"manteca"
-				]
-			}
-		},
 		"/manteca/withdraw/complete-with-signed-tx": {
 			"post": {
 				"description": "Creates Manteca ramp-off order FIRST, then either broadcasts the signed UserOp or submits the signed Rain withdrawal via the session key. Prevents funds from being stuck if Manteca fails.",
@@ -13479,6 +13317,171 @@
 				],
 				"responses": {
 					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"invitees": {
+											"items": {
+												"properties": {
+													"avatarKey": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														],
+														"description": "The invitee's picked avatar, or null when they picked none or lost the badge behind it."
+													},
+													"contributedPoints": {
+														"description": "Estimated points contributed to the inviter (directPoints × the current-era multiplier).",
+														"type": "number"
+													},
+													"directPoints": {
+														"type": "number"
+													},
+													"fullName": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														],
+														"description": "The name to show: the invitee's full name, or their username when they hid their name. Null when neither exists."
+													},
+													"hasInvitedOthers": {
+														"type": "boolean"
+													},
+													"invitedAt": {
+														"format": "date-time",
+														"type": "string"
+													},
+													"inviteeId": {
+														"type": "string"
+													},
+													"inviteesCount": {
+														"type": "number"
+													},
+													"kycStatus": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
+													"kycVerified": {
+														"type": "boolean"
+													},
+													"lifetimeEarnedUsd": {
+														"description": "USD earned from this invitee's transactions (Rewards v2).",
+														"type": "number"
+													},
+													"totalPoints": {
+														"type": "number"
+													},
+													"username": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														],
+														"description": "Null for an invitee who never finished signup."
+													}
+												},
+												"required": [
+													"inviteeId",
+													"username",
+													"fullName",
+													"avatarKey",
+													"invitedAt",
+													"kycStatus",
+													"kycVerified",
+													"directPoints",
+													"totalPoints",
+													"contributedPoints",
+													"hasInvitedOthers",
+													"inviteesCount",
+													"lifetimeEarnedUsd"
+												],
+												"type": "object"
+											},
+											"type": "array"
+										},
+										"summary": {
+											"properties": {
+												"multiplier": {
+													"type": "number"
+												},
+												"pendingInvites": {
+													"type": "number"
+												},
+												"totalContributedPoints": {
+													"type": "number"
+												},
+												"totalDirectPoints": {
+													"type": "number"
+												},
+												"totalInvites": {
+													"type": "number"
+												},
+												"totalLifetimeEarnedUsd": {
+													"type": "number"
+												},
+												"totalPendingUsd": {
+													"type": "number"
+												},
+												"verifiedInvites": {
+													"type": "number"
+												}
+											},
+											"required": [
+												"totalInvites",
+												"verifiedInvites",
+												"pendingInvites",
+												"totalDirectPoints",
+												"totalContributedPoints",
+												"multiplier",
+												"totalLifetimeEarnedUsd"
+											],
+											"type": "object"
+										}
+									},
+									"required": [
+										"invitees",
+										"summary"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
 						"description": "Default Response"
 					}
 				}
@@ -21337,6 +21340,28 @@
 										"maxLength": 16,
 										"pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8}){0,2}$",
 										"type": "string"
+									},
+									"localeSource": {
+										"anyOf": [
+											{
+												"enum": [
+													"device"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"pick"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"browser"
+												],
+												"type": "string"
+											}
+										]
 									},
 									"pushSubscriptionId": {
 										"type": "string"

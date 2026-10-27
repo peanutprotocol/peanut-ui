@@ -71,7 +71,7 @@ describe('useCrispUserData', () => {
         const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
 
         expect(result.current.balance).toContain('unavailable')
-        expect(result.current.balance).not.toContain('$0.00')
+        expect(result.current.balance).not.toContain('$0')
         expect(result.current.segments).toContain('balance-unavailable')
     })
 
@@ -84,7 +84,7 @@ describe('useCrispUserData', () => {
         })
         const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
 
-        expect(result.current.balance).toBe('$100.00 spendable (wallet $100.00 · card $0.00)')
+        expect(result.current.balance).toBe('$100 spendable (wallet $100 · card $0)')
         expect(result.current.accountStats).toContain('1240 pts')
         expect(result.current.appContext).toContain('route:/withdraw/manteca')
     })
@@ -146,7 +146,7 @@ describe('useCrispUserData', () => {
             })
         })
 
-        expect(result.current.balance).toBe('$100.00 spendable (wallet $100.00 · card $0.00)')
+        expect(result.current.balance).toBe('$100 spendable (wallet $100 · card $0)')
         expect(result.current.segments).not.toContain('balance-unavailable')
     })
 
@@ -222,7 +222,7 @@ describe('useCrispUserData', () => {
             ),
         })
 
-        expect(result.current.balance).toBe('$100.00 spendable (wallet $100.00 · card $0.00)')
+        expect(result.current.balance).toBe('$100 spendable (wallet $100 · card $0)')
         expect(result.current.segments).not.toContain('balance-unavailable')
     })
 

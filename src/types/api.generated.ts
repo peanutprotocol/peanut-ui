@@ -6801,61 +6801,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/manteca/withdraw": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create withdraw order (offramp)
-         * @description Create a withdraw order to convert crypto to fiat via Manteca. Optionally use a pre-locked price from /withdraw/init.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        accountType?: "SAVINGS" | "CHECKING" | "DEBIT" | "PHONE" | "VISTA" | "RUT";
-                        /** @description Amount to withdraw in crypto asset */
-                        amount: string;
-                        bankCode?: string;
-                        currency?: "ARS" | "BRL" | "CLP" | "COP" | "PUSD" | "CRC" | "GTQ" | "MXN" | "PHP" | "BOB";
-                        /** @description Destination address to withdraw to */
-                        destinationAddress: string;
-                        /** @description Price lock code from /withdraw/init. If not provided, a new price lock is created. */
-                        priceLockCode?: string;
-                        /** @description Transaction hash of the withdrawal */
-                        txHash: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/manteca/withdraw/complete-with-signed-tx": {
         parameters: {
             query?: never;
@@ -7658,7 +7603,52 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            invitees: {
+                                /** @description The invitee's picked avatar, or null when they picked none or lost the badge behind it. */
+                                avatarKey: string | null;
+                                /** @description Estimated points contributed to the inviter (directPoints × the current-era multiplier). */
+                                contributedPoints: number;
+                                directPoints: number;
+                                /** @description The name to show: the invitee's full name, or their username when they hid their name. Null when neither exists. */
+                                fullName: string | null;
+                                hasInvitedOthers: boolean;
+                                /** Format: date-time */
+                                invitedAt: string;
+                                inviteeId: string;
+                                inviteesCount: number;
+                                kycStatus: string | null;
+                                kycVerified: boolean;
+                                /** @description USD earned from this invitee's transactions (Rewards v2). */
+                                lifetimeEarnedUsd: number;
+                                totalPoints: number;
+                                /** @description Null for an invitee who never finished signup. */
+                                username: string | null;
+                            }[];
+                            summary: {
+                                multiplier: number;
+                                pendingInvites: number;
+                                totalContributedPoints: number;
+                                totalDirectPoints: number;
+                                totalInvites: number;
+                                totalLifetimeEarnedUsd: number;
+                                totalPendingUsd?: number;
+                                verifiedInvites: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
                 };
             };
         };
@@ -12180,6 +12170,7 @@ export interface paths {
                         fullName?: string;
                         hasSeenEarlyUserModal?: boolean;
                         locale?: string;
+                        localeSource?: "device" | "pick" | "browser";
                         pushSubscriptionId?: string;
                         residenceCountry?: string;
                         secondResidenceCountry?: string;

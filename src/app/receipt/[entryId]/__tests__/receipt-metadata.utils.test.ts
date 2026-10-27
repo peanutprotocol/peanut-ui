@@ -24,16 +24,16 @@ describe('generateReceiptTitle', () => {
     // branch lands on the plain `$amount` branch, not a token-amount one.
     it('falls back to $amount when currency.amount is blanked (pending OFFRAMP)', () => {
         const tx = { ...baseTx, currency: { amount: '', code: 'ARS' } } as TransactionDetails
-        expect(generateReceiptTitle(tx)).toBe('Receipt - Withdrawal of $30.00')
+        expect(generateReceiptTitle(tx)).toBe('Receipt - Withdrawal of $30')
     })
 
     it('falls back to $amount when currency.amount is missing entirely', () => {
         const tx = { ...baseTx, currency: { code: 'ARS' } as any } as TransactionDetails // deliberately missing `amount`
-        expect(generateReceiptTitle(tx)).toBe('Receipt - Withdrawal of $30.00')
+        expect(generateReceiptTitle(tx)).toBe('Receipt - Withdrawal of $30')
     })
 
     it('uses the real converted local amount once it is valid (completed OFFRAMP)', () => {
         const tx = { ...baseTx, status: 'completed', currency: { amount: '30000', code: 'ARS' } } as TransactionDetails
-        expect(generateReceiptTitle(tx)).toBe('Receipt - Withdrawal of ARS 30000')
+        expect(generateReceiptTitle(tx)).toBe('Receipt - Withdrawal of ARS 30,000')
     })
 })

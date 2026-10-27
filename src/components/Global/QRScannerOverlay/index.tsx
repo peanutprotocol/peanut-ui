@@ -136,12 +136,7 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
         [EModalType.DIRECT_SEND]: {
             tone: 'info',
             title: t('qrScannerOverlay.titleDirectSend'),
-            description: (
-                <>
-                    <p>{t('qrScannerOverlay.directSendCrossChain')}</p>
-                    <p>{t('qrScannerOverlay.directSendConfirm')}</p>
-                </>
-            ),
+            description: t('qrScannerOverlay.directSendCrossChain'),
             checkbox: {
                 text: t('qrScannerOverlay.directSendAcknowledge'),
                 checked: acknowledged,

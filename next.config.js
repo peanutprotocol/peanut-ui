@@ -207,7 +207,12 @@ let gitCommitHash = 'unknown'
 try {
     gitCommitHash = execSync('git rev-parse --short=7 HEAD').toString().trim()
 } catch (error) {
-    console.warn('Could not get git commit hash:', error.message)
+    // CLI preview uploads have no .git, so preview.yaml passes the SHA in.
+    if (process.env.GIT_COMMIT_SHA) {
+        gitCommitHash = process.env.GIT_COMMIT_SHA.slice(0, 7)
+    } else {
+        console.warn('Could not get git commit hash:', error.message)
+    }
 }
 const interfaces = os.networkInterfaces()
 let ipAddress = 'Unable to determine IP address'
@@ -347,6 +352,9 @@ let nextConfig = {
         ],
         // Speed up webpack builds (used for production builds with --webpack flag)
         webpackBuildWorker: true,
+        // The Release 166 production build (c755ec556) was killed for memory on Vercel.
+        // Production builds also upload Sentry source maps, so they peak higher than previews.
+        webpackMemoryOptimizations: true,
     },
 
     webpack: (config, { isServer, dev, webpack }) => {
@@ -473,6 +481,14 @@ let nextConfig = {
                         key: 'Permissions-Policy',
                         value: 'camera=*, microphone=*, clipboard-read=(self), clipboard-write=(self)',
                     },
+                    { key: 'X-Content-Type-Options', value: 'nosniff' },
+                ],
+            },
+            {
+                // Standalone QR routes supply their own nonce CSP and no-referrer
+                // policy. Global headers would replace those response headers.
+                source: '/:path((?!q(?:/|$)|api/marketing-qr/open(?:/|$)).*)',
+                headers: [
                     // Security headers - prevents clickjacking and other attacks
                     // Using frame-ancestors instead of X-Frame-Options to allow specific domains
                     // object-src/base-uri are safe to enforce today: the app embeds no
@@ -483,7 +499,6 @@ let nextConfig = {
                     },
                     { key: 'Content-Security-Policy-Report-Only', value: contentSecurityPolicyReportOnly() },
                     ...reportingEndpointsHeader(),
-                    { key: 'X-Content-Type-Options', value: 'nosniff' },
                     { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
                 ],
             },

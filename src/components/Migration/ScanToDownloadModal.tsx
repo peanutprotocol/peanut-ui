@@ -6,12 +6,14 @@ import DownloadQR from '@/components/Migration/DownloadQR'
 import type { MigrationSurface } from '@/constants/migration.consts'
 import { localizeMarketingPath, type AppLocale } from '@/i18n/app/config'
 import type { StoreHandoff } from '@/utils/migration.utils'
+import type { MarketingQrContext } from '@/features/marketing-qr/contract'
 
 export default function ScanToDownloadModal({
     visible,
     onClose,
     surface,
     handoff,
+    marketingQr,
     showLogIn = false,
 }: {
     visible: boolean
@@ -19,6 +21,7 @@ export default function ScanToDownloadModal({
     surface: MigrationSurface
     /** Optional guest context, such as /shhhhh's campaign and /card destination. */
     handoff?: StoreHandoff
+    marketingQr?: MarketingQrContext
     /** Logged-out web visitors get "Log in" instead of the support link: signup is app-only, login is not. */
     showLogIn?: boolean
 }) {
@@ -33,7 +36,7 @@ export default function ScanToDownloadModal({
             title={t('qr.title')}
             content={
                 <div className="flex flex-col items-center gap-4">
-                    <DownloadQR surface={surface} handoff={handoff} />
+                    <DownloadQR surface={surface} handoff={handoff} marketingQr={marketingQr} />
                     {showLogIn ? (
                         <LinkButton href="/setup?step=login">{t('qr.logIn')}</LinkButton>
                     ) : (

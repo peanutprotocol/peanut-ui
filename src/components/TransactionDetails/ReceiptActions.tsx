@@ -84,6 +84,11 @@ export function ReceiptActions({
     const { setIsSupportModalOpen } = useModalsContext()
     const toast = useToast()
     const { isPendingBankRequest, isPendingRequestee, isPendingRequester, isPendingSentLink } = vm
+    // Only a request link (pot) can be closed by its requester. A charge
+    // addressed to someone can be cancelled only by its payer: the API answers
+    // 403 to the requester, because a cancel could land after the payer's
+    // broadcast and before the payment is recorded (TASK-24006).
+    const canCloseRequest = isPendingRequester && !!transaction.isRequestPotLink
 
     const [showCancelLinkDrawer, setShowCancelLinkDrawer] = useState(false)
     const [showMoreActions, setShowMoreActions] = useState(false)
@@ -96,7 +101,7 @@ export function ReceiptActions({
     const closeNeedsConfirm = transaction.totalAmountCollected > 0
     // gated like the cancel confirm: a request that stops being open while the
     // confirm is up must not leave the parent drawer locked
-    const closeRequestConfirmOpen = isPendingRequester && closeNeedsConfirm && showCloseRequestConfirm
+    const closeRequestConfirmOpen = canCloseRequest && closeNeedsConfirm && showCloseRequestConfirm
 
     // Every completed kind shares the same thing: the authenticated PDF file.
     // An action/payment URL is not necessarily a public receipt URL, so only
@@ -337,7 +342,7 @@ export function ReceiptActions({
                 </div>
             )}
 
-            {isPendingRequester && setIsLoading && onClose && (
+            {canCloseRequest && setIsLoading && onClose && (
                 <Button
                     icon="ban"
                     iconSize={18}
@@ -354,7 +359,7 @@ export function ReceiptActions({
 
             {/* design.md nested drawer confirm: the receipt sits inside the
                 transaction details drawer, where a modal would open behind it */}
-            {isPendingRequester && closeNeedsConfirm && setIsLoading && onClose && (
+            {canCloseRequest && closeNeedsConfirm && setIsLoading && onClose && (
                 <Drawer
                     nested={!!setIsModalOpen}
                     open={closeRequestConfirmOpen}
