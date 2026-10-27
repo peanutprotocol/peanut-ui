@@ -1,13 +1,12 @@
 import { type IconName } from '../Icons/Icon'
 
+/** `copyKey` picks the copy under `home.postVerification` in the app catalogs. */
 export const POST_SIGNUP_ACTIONS = [
     {
         // this regex will match any path that contains the word "claim", this helps in determing if the user is coming from a claim link
         pathPattern: /claim/,
         config: {
-            title: 'Verification complete!',
-            description: `Your identity has been successfully verified. You can now claim money directly to your bank account.`,
-            cta: 'Claim to bank',
+            copyKey: 'claim',
             icon: 'check' as IconName,
         },
     },
@@ -15,10 +14,8 @@ export const POST_SIGNUP_ACTIONS = [
         // this regex will match any path that resembles the request link, this helps in determing if the user is coming from a request link
         pathPattern: /^\/[^\/]+\/[^\/\?]+\?.*chargeId=/,
         config: {
-            title: 'Verification complete!',
-            description: `Your identity has been successfully verified. You can now send the money your friend requested!`,
-            cta: 'Send it!',
+            copyKey: 'request',
             icon: 'check' as IconName,
         },
     },
-]
+] as const

@@ -2,6 +2,7 @@
 
 import { clearRedirectUrl, getStoredRedirect } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { AskShell } from '@/features/attention/AskShell'
 import { POST_SIGNUP_ACTIONS } from './post-signup-action.consts'
@@ -16,6 +17,7 @@ import type { AskSurfaceProps } from '@/features/attention/types'
  */
 export default function PostSignupActionManager({ onActed, onDismissed, presentation }: AskSurfaceProps) {
     const router = useRouter()
+    const t = useTranslations('home.postVerification')
     const [snapshot] = useState(() => {
         const redirect = getStoredRedirect()
         const action = redirect && POST_SIGNUP_ACTIONS.find((a) => a.pathPattern.test(redirect.destination))
@@ -34,13 +36,13 @@ export default function PostSignupActionManager({ onActed, onDismissed, presenta
                 onDismissed()
             }}
             preventClose // Prevent closing the modal by clicking outside
-            title={config.title}
-            description={config.description}
+            title={t('title')}
+            description={t(`${config.copyKey}.description`)}
             tone="success"
             icon={config.icon}
             ctas={[
                 {
-                    text: config.cta,
+                    text: t(`${config.copyKey}.cta`),
                     onClick: () => {
                         router.push(redirect.destination)
                         clearRedirectUrl(redirect)
