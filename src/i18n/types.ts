@@ -99,9 +99,7 @@ export interface Translations {
     landingPayLocalHeading: string
 
     // Landing page — home folds (c1-v3 "Balance hinge")
-    landingGetPaidLead: string
-    landingGetPaidKnerd: string // "\n" between the Knerd lines
-    landingGetPaidKnerdJoin: string // the small Roboto word inside landingGetPaidKnerd ("and")
+    landingGetPaidHeading: string
     landingPersonasHeading: string
     landingPersonaDesignerWho: string
     landingPersonaDesignerLine: string
@@ -118,7 +116,7 @@ export interface Translations {
     landingHingeMoneyIn: string
     landingHingeScreenLabel: string // "… {balance} … {eur}, {usdIn} … {merchant}: {ars}, {usdOut}."
     landingCardLockup: string // brand name, the same in every locale
-    landingCardKnerd: string // "\n" between the Knerd lines
+    landingCardTagline: string // the h2's second sentence, after the brand name
     landingCardLine: string
     landingCardGetYourCard: string
     landingCardReceiptTitle: string
@@ -147,7 +145,7 @@ export interface Translations {
     landingSeamLink: string
     landingSeamBalance: string
     landingSeamAccountFees: string
-    landingSeamTransferFees: string
+    landingSeamWallOfLove: string
     landingSeamFaq: string
     landingSeamClose: string
     landingSeamFooter: string

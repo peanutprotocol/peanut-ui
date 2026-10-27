@@ -72,9 +72,7 @@ export function landingStrings(i18n: Translations): LandingStrings {
         dropLinkHeading: i18n.landingDropLinkHeading,
         dropLinkBody: i18n.landingDropLinkBody,
         getPaid: {
-            lead: i18n.landingGetPaidLead,
-            knerd: i18n.landingGetPaidKnerd,
-            join: i18n.landingGetPaidKnerdJoin,
+            heading: i18n.landingGetPaidHeading,
         },
         personas: {
             heading: i18n.landingPersonasHeading,
@@ -99,7 +97,7 @@ export function landingStrings(i18n: Translations): LandingStrings {
         },
         card: {
             lockup: i18n.landingCardLockup,
-            knerd: i18n.landingCardKnerd,
+            tagline: i18n.landingCardTagline,
             line: i18n.landingCardLine,
             cta: i18n.landingCardGetYourCard,
             receiptTitle: i18n.landingCardReceiptTitle,
@@ -125,7 +123,7 @@ export function landingStrings(i18n: Translations): LandingStrings {
             card: seamWords(i18n.landingSeamCard),
             passkey: seamWords(i18n.landingSeamPasskey),
             accountFees: seamWords(i18n.landingSeamAccountFees),
-            transferFees: seamWords(i18n.landingSeamTransferFees),
+            wallOfLove: seamWords(i18n.landingSeamWallOfLove),
             faq: seamWords(i18n.landingSeamFaq),
             close: seamWords(i18n.landingSeamClose),
             footer: seamWords(i18n.landingSeamFooter),

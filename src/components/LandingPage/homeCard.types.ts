@@ -5,8 +5,8 @@ import type { Locale } from '@/i18n/types'
 export interface HomeCardStrings {
     /** "Peanut Card": the brand name, the same in every locale */
     lockup: string
-    /** "In\ndollars", the two Knerd lines under the lockup */
-    knerd: string
+    /** "In dollars.", the h2's second sentence */
+    tagline: string
     /** "Spend your Peanut balance with a Visa Platinum card." */
     line: string
     /** "Get your card" */

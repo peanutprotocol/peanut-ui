@@ -2,15 +2,15 @@ import Sparkle from '@/assets/illustrations/sparkle.svg'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CTA_MOTION } from '@/components/Marketing/constants'
 import { Band } from '@/components/Marketing/StarLp/Band'
-import { DisplayLine } from '@/components/Marketing/StarLp/DisplayLine'
-import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { PeanutCardHeroFace } from '@/components/Marketing/StarLp/pages/PeanutCardHeroFace'
+import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
 import { STAR_LP_ROUTES } from '@/components/Marketing/StarLp/starLp.consts'
 import { HomeCardReceipt } from './HomeCardReceipt'
 import type { HomeCardFoldProps } from './homeCard.types'
 
 /**
- * f6: the card lockup from the /peanut-card hero, one line and its CTA, beside the
+ * f6: the card's name and promise as a Roboto fold title (Knerd stays in the hero
+ * and the close, per /dev/ds), one line and its CTA, beside the
  * card face with an approved purchase on it. The CTA goes to the card page, which
  * carries the card's fees (messaging.md § 11). No countries, flags or trust claims
  * here: card rules bar them. The art is decorative; the title and line say it.
@@ -30,13 +30,10 @@ export function HomeCardFold({ strings, locale }: HomeCardFoldProps) {
                         aria-hidden
                         className="pointer-events-none w-9"
                     />
-                    {/* the gap clears the Knerd's ink, accents included ("DÓLARES"), which rises above its line box */}
-                    <h2>
-                        <DisplayLine>{strings.lockup}</DisplayLine>
-                        <span className="mt-6 block md:mt-10 lg:mt-14">
-                            <KnerdTitle text={strings.knerd} size="hero" />
-                        </span>
-                    </h2>
+                    <SectionTitle>
+                        <span className="block">{strings.lockup}.</span>
+                        <span className="block">{strings.tagline}</span>
+                    </SectionTitle>
                     <p className="text-body-l">{strings.line}</p>
                     <Button
                         href={STAR_LP_ROUTES.peanutCard}

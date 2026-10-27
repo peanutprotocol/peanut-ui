@@ -1,13 +1,9 @@
 import type { Locale } from '@/i18n/types'
 
-/** f2: the h2 "Get paid from" over the Knerd "US\nand Europe". */
+/** f2: the fold's h2. */
 export interface HomeGetPaidStrings {
-    /** Roboto line of the h2, e.g. "Get paid from". */
-    lead: string
-    /** Knerd lines of the h2, "\n" between them, e.g. "US\nand Europe". */
-    knerd: string
-    /** The small Roboto word inside `knerd`, e.g. "and". */
-    join: string
+    /** e.g. "Get paid from the US and Europe." */
+    heading: string
 }
 
 export interface HomeGetPaidFoldProps {
@@ -68,7 +64,8 @@ export interface HomeSeamStrings {
     card: string[]
     passkey: string[]
     accountFees: string[]
-    transferFees: string[]
+    /** Under the fee fold: social words leading into the real posts, so the fees are said once, in the fold. */
+    wallOfLove: string[]
     faq: string[]
     close: string[]
     footer: string[]

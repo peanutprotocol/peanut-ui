@@ -43,8 +43,6 @@ export interface KnerdTitleProps {
     size: KnerdSize
     /** A decoration Title anchors on one word (the close fold's circled word). */
     mark?: TitleMark
-    /** A small Roboto word inside the lockup, e.g. "and" in "US\nand Europe" (Title's `join`). */
-    join?: string
 }
 
 export interface KnerdPullHeadlineProps {
