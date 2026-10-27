@@ -300,18 +300,30 @@ function PaperworkVerificationSteps({
         step: PaperworkVerificationStepId
         errors?: Record<string, string>
         formError?: AnswerFormError
+        message?: string
     } | null>(null)
     const [savedBusy, setSavedBusy] = useState(false)
 
-    const saveFailed = (shown: PaperworkVerificationStep[], outcome: SaveOutcome & { ok: false }) => {
-        if (outcome.error && outcome.error !== 'retry') return onConflict(outcome.error)
+    const saveFailed = (sent: PaperworkVerificationStep[], outcome: SaveOutcome & { ok: false }) => {
         saveRefused.current = true
-        const refused = outcome.rejected?.step ?? shown[0].id
+        const refused = outcome.step ?? outcome.rejected?.step ?? sent[0].id
+        // Saves stop at the refused step, so it and every step after it are still unsaved.
+        const from = Math.max(
+            0,
+            sent.findIndex((s) => s.id === refused)
+        )
+        const unsaved = new Set(sent.slice(from).map((s) => s.id))
         setQuestions((current) => ({
             ...current,
-            steps: current.steps.map((s) => (s.id === refused ? { ...s, answered: false } : s)),
+            steps: current.steps.map((s) => (unsaved.has(s.id) ? { ...s, answered: false } : s)),
         }))
-        setReturned({ step: refused, errors: outcome.rejected?.errors, formError: outcome.formError })
+        setReturned({
+            step: refused,
+            errors: outcome.rejected?.errors,
+            formError: outcome.formError,
+            message: outcome.message,
+        })
+        if (outcome.error && outcome.error !== 'retry' && onConflict(outcome.error, outcome.message)) return
         void stepper.goTo(screenOf(refused))
     }
 
@@ -406,11 +418,36 @@ function PaperworkVerificationSteps({
             })
     }, [needsDocuments])
 
-    const onConflict = (error: AnswerFormError) => {
+    /** Back to the ID picker, on the documents the server offers now. */
+    const backToDocuments = (error: string | null) => {
+        setDocumentRequired(true)
+        setStatus('NOT_STARTED')
+        setSubmitted(false)
+        setIdError(error)
+        void findKycDocumentPlan('verify')
+            .catch(() => null)
+            .then((current) => current && setPlan(current))
+        void stepper.goTo('id')
+    }
+
+    /** Takes the user where a refused save points; false leaves them on the refused step. */
+    const onConflict = (error: AnswerFormError, message?: string): boolean => {
         // Not (or no longer) a Smart Paperwork Verification user: today's flow starts from Home.
-        if (error === 'unavailable' || error === 'existing_verification') router.replace('/home')
-        // Another device submitted the ID, or the features changed: the server rebuilds the questions.
-        else if (error === 'identity_submitted' || error === 'feature_not_selected') void reload()
+        if (error === 'unavailable' || error === 'existing_verification') {
+            router.replace('/home')
+            return true
+        }
+        // The ID went in or the check ended (perhaps on another device), or the features changed:
+        // the status and the questions are read again.
+        if (error === 'identity_submitted' || error === 'verification_complete' || error === 'feature_not_selected') {
+            void reload()
+            return true
+        }
+        if (error === 'document_not_allowed') {
+            backToDocuments(message ?? null)
+            return true
+        }
+        return false
     }
 
     const startIdentity = async (document?: { type: string; issuingCountry: string }) => {
@@ -441,9 +478,12 @@ function PaperworkVerificationSteps({
             setDocumentRequired(true)
             setStatus('NOT_STARTED')
             setSubmitted(false)
+            if (outcome.message) setIdError(outcome.message)
             void stepper.goTo('id')
         }
-        if (outcome.kind === 'failed') setIdError(t('midpoint.failed'))
+        if (outcome.kind === 'document-not-allowed') backToDocuments(outcome.message ?? t('midpoint.failed'))
+        if (outcome.kind === 'complete') void reload()
+        if (outcome.kind === 'failed') setIdError(outcome.message ?? t('midpoint.failed'))
         if (outcome.kind === 'questions-missing') {
             setDocumentRequired(false)
             setStatus('NOT_STARTED')
@@ -451,6 +491,7 @@ function PaperworkVerificationSteps({
             const fresh = await getKycQuestions().catch(() => null)
             if (fresh) setQuestions(fresh)
             const target = outcome.step ?? (fresh && resumeStep(fresh))
+            if (target && outcome.message) setReturned({ step: target, message: outcome.message })
             if (target) void stepper.goTo(screenOf(target))
         }
     }

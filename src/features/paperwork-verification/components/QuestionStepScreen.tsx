@@ -35,6 +35,8 @@ const FORM_ERROR_KEYS: Record<AnswerFormError, string> = {
     rate_limited: 'errors.rateLimited',
     feature_not_selected: 'errors.featureNotSelected',
     identity_submitted: 'errors.identitySubmitted',
+    verification_complete: 'errors.identitySubmitted',
+    document_not_allowed: 'errors.unavailable',
     unavailable: 'errors.unavailable',
     existing_verification: 'errors.unavailable',
     conflict: 'errors.unavailable',
@@ -165,8 +167,8 @@ export function QuestionStepScreen({
     /** Continue hands the answers over and moves on; the caller saves them behind the next screen. */
     onSubmitted?: (values: Record<string, string>, secondsOnStep: number) => void
     /** a background save of these steps the server refused, shown on arrival */
-    returned?: { errors?: Record<string, string>; formError?: AnswerFormError }
-    onConflict?: (error: AnswerFormError) => void
+    returned?: { errors?: Record<string, string>; formError?: AnswerFormError; message?: string }
+    onConflict?: (error: AnswerFormError, message?: string) => void
     onContinueWithoutLocal?: () => Promise<void>
     /** The locked country row's "Change your country of residence". */
     onChangeResidence?: () => void
@@ -266,7 +268,7 @@ export function QuestionStepScreen({
                 return
             }
             if (outcome.rejected) rejections.current += 1
-            if (outcome.error && outcome.error !== 'retry') onConflict?.(outcome.error)
+            if (outcome.error && outcome.error !== 'retry') onConflict?.(outcome.error, outcome.message)
         } finally {
             submitting.current = false
         }
@@ -317,9 +319,9 @@ export function QuestionStepScreen({
                                 {t('continueWithoutLocal')}
                             </Button>
                         )}
-                        {form.formError && (
+                        {(form.formMessage || form.formError) && (
                             <Callout priority="error" className="w-full text-left" data-testid="verify-form-error">
-                                {t(FORM_ERROR_KEYS[form.formError] as never)}
+                                {form.formMessage ?? (form.formError && t(FORM_ERROR_KEYS[form.formError] as never))}
                             </Callout>
                         )}
                     </VerifyFooter>

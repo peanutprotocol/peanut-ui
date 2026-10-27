@@ -60,7 +60,7 @@ export type PaperworkVerificationAnswers = Record<string, string>
 export type SaveAnswersResult =
     | { kind: 'saved'; next: PaperworkVerificationStepId | null }
     | { kind: 'invalid'; errors: Record<string, string> }
-    | { kind: 'conflict'; code: string }
+    | { kind: 'conflict'; code: string; message?: string }
     | { kind: 'retry' }
     | { kind: 'blocked'; code: 'invalid_body' | 'unknown_step' | 'rate_limited' | 'unavailable' }
 

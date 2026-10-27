@@ -496,6 +496,86 @@ describe('PaperworkVerificationFlow', () => {
         expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
     })
 
+    it('a check that already ended reloads into the review', async () => {
+        mockSave.mockResolvedValue({ kind: 'conflict', code: 'verification_complete' })
+        await startFlow()
+        await screen.findByTestId('verify-pick-annualSalary')
+        mockStatus.mockResolvedValue('IN_REVIEW')
+        fireEvent.click(continueButton())
+        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+    })
+
+    it("an answer refused with a code the app does not know shows the server's line on that step, unsaved", async () => {
+        mockSave.mockResolvedValue({
+            kind: 'conflict',
+            code: 'policy_changed',
+            message: 'This answer can’t change now.',
+        })
+        await startFlow()
+        await screen.findByTestId('verify-pick-annualSalary')
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-form-error')).toHaveTextContent('This answer can’t change now.')
+        expect(screen.getByTestId('verify-pick-annualSalary')).toBeInTheDocument()
+        // Unsaved, so Continue sends it again rather than skipping it as unchanged.
+        mockSave.mockResolvedValue({ kind: 'saved', next: 'tax' })
+        fireEvent.click(continueButton())
+        await waitFor(() => expect(mockSave).toHaveBeenCalledTimes(2))
+        expect(mockSave).toHaveBeenLastCalledWith('money', { annualSalary: '25k_50k' }, undefined)
+    })
+
+    it('an old conflict body with no message still names the refusal', async () => {
+        mockSave.mockResolvedValue({ kind: 'conflict', code: 'policy_changed' })
+        await startFlow()
+        await screen.findByTestId('verify-pick-annualSalary')
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-form-error')).toHaveTextContent(
+            'This check isn’t available right now.'
+        )
+    })
+
+    it('an answer refused because the picked document is no longer allowed goes back to the picker', async () => {
+        mockSave.mockResolvedValue({
+            kind: 'conflict',
+            code: 'document_not_allowed',
+            message: 'Pick another document.',
+        })
+        await startFlow()
+        await screen.findByTestId('verify-pick-annualSalary')
+        const planReads = mockPlan.mock.calls.length
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-id-error')).toHaveTextContent('Pick another document.')
+        expect(screen.getByTestId('verify-id-option-PASSPORT-US')).toBeInTheDocument()
+        expect(mockPlan.mock.calls.length).toBeGreaterThan(planReads)
+    })
+
+    it("a pick the attempt no longer offers stays on the picker with the server's line, on a fresh plan", async () => {
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        mockToken.mockResolvedValue({ kind: 'document-not-allowed', message: 'That document isn’t accepted.' })
+        await startFlow()
+        const planReads = mockPlan.mock.calls.length
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
+        expect(await screen.findByTestId('verify-id-error')).toHaveTextContent('That document isn’t accepted.')
+        await waitFor(() => expect(mockPlan.mock.calls.length).toBeGreaterThan(planReads))
+        expect(screen.queryByText('sumsub-submit')).not.toBeInTheDocument()
+    })
+
+    it('a token refused because the check is over reloads the status', async () => {
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        mockToken.mockResolvedValue({ kind: 'complete' })
+        await startFlow()
+        mockStatus.mockResolvedValue('IN_REVIEW')
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
+        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+    })
+
+    it("any other refused token shows the server's line", async () => {
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        mockToken.mockResolvedValue({ kind: 'failed', message: 'Try again in a minute.' })
+        await startFlow()
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
+        expect(await screen.findByTestId('verify-id-error')).toHaveTextContent('Try again in a minute.')
+    })
+
     it('a card + bank user picks one job, from one list, shown by its label', async () => {
         const questions = build({ money: true, tax: true }, 'purpose')
         questions.steps.splice(1, 0, {
