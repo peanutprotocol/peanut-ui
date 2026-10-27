@@ -134,8 +134,11 @@ describe('IdentityDocumentScreen: other documents', () => {
 })
 
 describe('IdentityDocumentScreen: temporary protection', () => {
-    const withProtection = (countries: string[]) =>
-        ({ ...plan(['PL', 'UA']), temporaryProtection: { countries, until: '2027-03-04' } }) as KycDocumentPlan
+    const withProtection = (countries: string[], proofOfAddress = false) =>
+        ({
+            ...plan(['PL', 'UA']),
+            temporaryProtection: { countries, until: '2027-03-04', proofOfAddress },
+        }) as KycDocumentPlan
 
     // Slava, 2026-10-26: a Ukrainian holds it where they live, so it leads their list.
     it('leads the main list for a Ukrainian, issued where they live, and sends it as picked', () => {
@@ -157,6 +160,17 @@ describe('IdentityDocumentScreen: temporary protection', () => {
         ).toBeNull()
         fireEvent.click(row)
         expect(onContinue).toHaveBeenCalledWith({ type: 'TEMPORARY_PROTECTION', issuingCountry: 'PL' })
+    })
+
+    // Slava, 2026-10-26: a bank user verifying with it gives a proof of address too, and the row says so.
+    it('says when the sheet brings a proof of address', () => {
+        render({
+            documentPlan: withProtection(['PL'], true),
+            residence: 'PL',
+            citizenship: 'UA',
+            ukraineLinked: true,
+        })
+        expect(screen.getByTestId('verify-id-option-TEMPORARY_PROTECTION-PL')).toHaveTextContent('proof of address')
     })
 
     it('stays under Other documents for anyone else tied to Ukraine', () => {

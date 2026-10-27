@@ -13780,6 +13780,7 @@ export interface paths {
                             temporaryProtection: {
                                 countries: string[];
                                 until: string;
+                                proofOfAddress: boolean;
                             } | null;
                         };
                     };
@@ -14067,6 +14068,10 @@ export interface paths {
                                     value: string | null;
                                 }[];
                                 id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax";
+                            }[];
+                            closed: {
+                                feature: "qr" | "local" | "card" | "bank";
+                                reason: string;
                             }[];
                         };
                     };

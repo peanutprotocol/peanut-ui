@@ -26079,11 +26079,15 @@
                                                         },
                                                         "until": {
                                                             "type": "string"
+                                                        },
+                                                        "proofOfAddress": {
+                                                            "type": "boolean"
                                                         }
                                                     },
                                                     "required": [
                                                         "countries",
-                                                        "until"
+                                                        "until",
+                                                        "proofOfAddress"
                                                     ],
                                                     "type": "object"
                                                 },
@@ -27673,6 +27677,49 @@
                                                 "type": "object"
                                             },
                                             "type": "array"
+                                        },
+                                        "closed": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "feature": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "qr"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "local"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "card"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "bank"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "reason": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "feature",
+                                                    "reason"
+                                                ]
+                                            }
                                         }
                                     },
                                     "required": [
@@ -27682,7 +27729,8 @@
                                         "steps",
                                         "firstUnanswered",
                                         "progress",
-                                        "needs"
+                                        "needs",
+                                        "closed"
                                     ],
                                     "type": "object"
                                 }

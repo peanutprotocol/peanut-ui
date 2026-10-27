@@ -140,8 +140,11 @@ export function IdentityDocumentScreen({
 
     const typeName = (value: string) =>
         tDocuments(DOCUMENT_KEYS[value as keyof typeof DOCUMENT_KEYS] ?? 'otherDocument')
-    const needsProofOfAddress = (country: string) =>
-        country !== residence && (plan?.proofOfAddressIdCountries ?? []).includes(country)
+    // A temporary protection sheet is issued where the holder lives, so the API flags it on its own.
+    const needsProofOfAddress = (c: Choice) =>
+        c.type === 'TEMPORARY_PROTECTION'
+            ? !!plan?.temporaryProtection?.proofOfAddress
+            : c.issuingCountry !== residence && (plan?.proofOfAddressIdCountries ?? []).includes(c.issuingCountry)
     const keyOf = (c: Choice) => `${c.type}-${c.issuingCountry}`
 
     const choose = (c: Choice, source: 'list' | 'other') => {
@@ -153,13 +156,13 @@ export function IdentityDocumentScreen({
             document_type: c.type,
             source,
             issuing_country_is_residence: c.issuingCountry === residence,
-            proof_of_address_expected: needsProofOfAddress(c.issuingCountry),
+            proof_of_address_expected: needsProofOfAddress(c),
         })
         onContinue(c)
     }
     const row = (c: Choice, source: 'list' | 'other') => {
         const key = keyOf(c)
-        const issued = needsProofOfAddress(c.issuingCountry)
+        const issued = needsProofOfAddress(c)
             ? t('documentList.issuedByWithProof', { country: countryName(c.issuingCountry) })
             : t('documentList.issuedBy', { country: countryName(c.issuingCountry) })
         return (

@@ -161,7 +161,10 @@ describe('IdentityRestartFlow', () => {
     })
 
     it('sends a temporary protection document as the residence permit Sumsub verifies', async () => {
-        mockPlan.mockResolvedValue({ ...plan, temporaryProtection: { countries: ['PT'], until: '2028-03-04' } })
+        mockPlan.mockResolvedValue({
+            ...plan,
+            temporaryProtection: { countries: ['PT'], until: '2028-03-04', proofOfAddress: false },
+        })
         renderFlow()
         fireEvent.click(await screen.findByTestId('verify-id-other'))
         fireEvent.click(screen.getByTestId('verify-id-option-TEMPORARY_PROTECTION-PT'))
