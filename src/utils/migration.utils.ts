@@ -1,8 +1,12 @@
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { BASE_URL, IS_DEV } from '@/constants/general.consts'
-import { PWA_SUNSET_FLAG, STORE_URL, type MigrationSurface, type StoreKind } from '@/constants/migration.consts'
-import { isFeatureFlagEnabled } from '@/utils/featureFlag.utils'
+import {
+    PWA_SUNSET_QA_OVERRIDE_KEY,
+    STORE_URL,
+    type MigrationSurface,
+    type StoreKind,
+} from '@/constants/migration.consts'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import {
@@ -15,37 +19,31 @@ import {
 const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
 
 /**
- * Every Vercel preview deployment keeps the web signup flow while the
- * production PWA sunset flag is enabled: ad-hoc PR previews are temporary
- * review environments, and the `dev` branch preview backs staging, where the
- * team still creates accounts. Both read the production PostHog project, so
- * the flag alone cannot tell them apart from peanut.me.
+ * Every Vercel preview deployment keeps the web signup flow open: ad-hoc PR
+ * previews are temporary review environments, and the `dev` branch preview
+ * backs staging, where the team still creates accounts.
  *
  * Require a git ref as well as VERCEL_ENV: local visual builds set only
- * NEXT_PUBLIC_VERCEL_ENV=preview to enable fixtures and must keep following
- * the flag.
+ * NEXT_PUBLIC_VERCEL_ENV=preview to enable fixtures and must keep the
+ * production behaviour.
  */
 function isVercelPreviewDeployment(): boolean {
     return process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview' && Boolean(process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF)
 }
 
 /**
- * Read the flag from PostHog. Local, CI, staging and preview builds also
- * accept localStorage['pwa-sunset'] = 'true' because PostHog may be
- * unavailable there, and because it is how QA forces the migration state on
- * a deployment that otherwise ignores the flag. Production builds for
+ * Web signup is closed for good on peanut.me: new users sign up in the app.
+ * This is code, not a PostHog flag, so a PostHog outage can never reopen it.
+ * Vercel previews (PR previews and staging) keep it open. Local, CI and other
+ * non-production builds keep it open too, unless localStorage['pwa-sunset'] =
+ * 'true', which is how QA sees the closed state there. Production builds for
  * peanut.me ignore the override.
  */
 export function isPwaSunsetOn(): boolean {
-    if (
-        (IS_DEV || !IS_PROD_DOMAIN) &&
-        typeof localStorage !== 'undefined' &&
-        localStorage.getItem(PWA_SUNSET_FLAG) === 'true'
-    ) {
-        return true
+    if (IS_DEV || !IS_PROD_DOMAIN) {
+        return typeof localStorage !== 'undefined' && localStorage.getItem(PWA_SUNSET_QA_OVERRIDE_KEY) === 'true'
     }
-    if (isVercelPreviewDeployment()) return false
-    return isFeatureFlagEnabled(PWA_SUNSET_FLAG)
+    return !isVercelPreviewDeployment()
 }
 
 /** The store this device downloads from. Desktop has none: it gets the QR code instead. */

@@ -1,13 +1,14 @@
 /**
  * PWA → native app migration (pwa-sunset).
  *
- * Everything here is dark until the `pwa-sunset` PostHog flag is flipped ON
- * (no deploy needed). Flag ON closes web signup and shows download prompts and
- * store links. Existing accounts keep logging in on the web (ruled 2026-10-07,
- * hugo): signup is app-only, the web app is not switched off.
+ * Web signup on peanut.me is closed in code (see isPwaSunsetOn): the web shows
+ * download prompts and store links instead. Existing accounts keep logging in
+ * on the web (ruled 2026-10-07, hugo): signup is app-only, the web app is not
+ * switched off.
  */
 
-export const PWA_SUNSET_FLAG = 'pwa-sunset'
+/** localStorage key that shows the closed-signup state on non-production builds (QA). */
+export const PWA_SUNSET_QA_OVERRIDE_KEY = 'pwa-sunset'
 
 /**
  * Marks the already-native-associated `/home` route as an app-download entry
@@ -21,7 +22,7 @@ export const APP_ENTRY_QUERY_PARAM = 'app_entry'
 export const DOWNLOAD_PROMPT_SNOOZE_DAYS = 3
 
 // how long "Not now" on the notifications pre-prompt snoozes before re-asking
-// (only during the migration window; flag off keeps closed-forever)
+// (only while web signup is closed; elsewhere "Not now" closes it for good)
 export const NOTIF_PROMPT_SNOOZE_DAYS = 14
 
 // support escape hatch for users who can't install the app: support DMs

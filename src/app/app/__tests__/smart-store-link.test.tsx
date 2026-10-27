@@ -14,7 +14,6 @@ import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { STORE_URL } from '@/constants/migration.consts'
-import posthog from 'posthog-js'
 import { parseDeferredPayload } from '@/utils/deferred-link'
 import { readSignupAttribution } from '@/utils/signup-attribution'
 import { saveToCookie } from '@/utils/cookie-url.utils'
@@ -38,15 +37,7 @@ jest.mock('next/navigation', () => ({
     notFound: () => mockNotFound(),
 }))
 
-// flags land immediately: the page waits for this callback (or a 4s timeout)
-// before it is willing to 404
-jest.mock('posthog-js', () => ({
-    capture: jest.fn(),
-    onFeatureFlags: jest.fn((cb: () => void) => {
-        cb()
-        return jest.fn()
-    }),
-}))
+jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
 let mockNative = false
 jest.mock('@/utils/capacitor', () => ({
@@ -116,10 +107,6 @@ beforeEach(() => {
     for (const cookie of document.cookie.split(';')) {
         document.cookie = `${cookie.split('=')[0].trim()}=; Max-Age=0; path=/`
     }
-    jest.mocked(posthog.onFeatureFlags).mockImplementation((callback) => {
-        callback([], {})
-        return jest.fn()
-    })
     mockDeviceType = 'web'
     mockNative = false
     mockFlagOn = true
@@ -242,9 +229,8 @@ describe('registered marketing QR handoff', () => {
         expect(locationAssign).toHaveBeenCalledWith(STORE_URL.ios)
     })
 
-    it.each(['off', 'unknown'] as const)('keeps old marketing QR URLs usable when migration is %s', (flag) => {
+    it('keeps old marketing QR URLs usable where web signup is open', () => {
         mockFlagOn = false
-        if (flag === 'unknown') jest.mocked(posthog.onFeatureFlags).mockImplementation(() => jest.fn())
         visit(MARKETING_QUERY)
         renderPage()
         expect(mockNotFound).not.toHaveBeenCalled()
