@@ -39,7 +39,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 export type SettleOutcome = 'acted' | 'dismissed' | 'snoozed'
 
-interface AttentionContextValue {
+export interface AttentionContextValue {
     decision: Decision
     state: JourneyState
     ledger: Ledger

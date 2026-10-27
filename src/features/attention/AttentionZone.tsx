@@ -3,7 +3,7 @@
 import { Component, Suspense, useEffect, useRef, type ErrorInfo, type ReactNode } from 'react'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
-import { useAttention } from './AttentionProvider'
+import { useAttentionOptional, type AttentionContextValue } from './AttentionProvider'
 import { ZONE_SURFACES } from './zoneSurfaces'
 import type { AskId } from './types'
 
@@ -14,8 +14,14 @@ import type { AskId } from './types'
  * that ask is dealt with.
  */
 export function HomeAttention() {
+    const attention = useAttentionOptional()
+    // the manager crashed and its boundary renders the app without it: Home shows no card instead of crashing
+    return attention ? <ZoneHost attention={attention} /> : null
+}
+
+function ZoneHost({ attention }: { attention: AttentionContextValue }) {
     const t = useTranslations('home.attention')
-    const { decision, state, openedZone, crashed, acted, dismissed, snoozed } = useAttention()
+    const { decision, state, openedZone, crashed, acted, dismissed, snoozed } = attention
     const pick = decision.zone
     const id = pick?.id ?? null
     const Surface = id ? ZONE_SURFACES[id] : undefined

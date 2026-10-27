@@ -33,6 +33,8 @@ jest.mock('@/context/ModalsContext', () => ({ useModalsContextOptional: () => mo
 
 import { AttentionProvider, resetAttentionSessionForTests, useAttention } from '../AttentionProvider'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
+import { AttentionInterrupt } from '../AttentionInterrupt'
+import { HomeAttention } from '../AttentionZone'
 
 const state = (overrides: Partial<JourneyState> = {}): JourneyState => ({
     capNudge: null,
@@ -232,6 +234,23 @@ test('a throw inside the manager never takes the app down', async () => {
     await act(async () => {})
     expect(screen.getByText('app-shell')).toBeInTheDocument()
     expect(mockSentry).toHaveBeenCalledWith(mockThrow, expect.objectContaining({ tags: { feature: 'attention' } }))
+    spy.mockRestore()
+})
+
+test('after a throw, the hosts the layout always mounts render nothing instead of throwing again', async () => {
+    mockThrow = new Error('selector exploded')
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    render(
+        <AttentionProvider>
+            <div>app-shell</div>
+            <AttentionInterrupt />
+            <HomeAttention />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    expect(screen.getByText('app-shell')).toBeInTheDocument()
+    expect(screen.queryByTestId('home-attention')).not.toBeInTheDocument()
+    expect(mockSentry).toHaveBeenCalledTimes(1)
     spy.mockRestore()
 })
 
