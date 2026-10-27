@@ -29,6 +29,7 @@ jest.mock('@/app/actions/kyc-paperwork-verification', () => ({
 }))
 let mockDeclared: string | null = null
 jest.mock('@/context/authContext', () => ({
+    useOptionalAuth: () => null,
     useAuth: () => ({ user: { user: { userId: 'user-1' }, residence: { declared: mockDeclared } } }),
 }))
 jest.mock('@/hooks/useResidenceRestrictionSets', () => ({

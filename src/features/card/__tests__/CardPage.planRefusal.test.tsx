@@ -30,6 +30,7 @@ jest.mock('../components/CardAcquisitionScreen', () => ({
 }))
 jest.mock('@/components/Card/YourCardScreen', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/context/authContext', () => ({
+    useOptionalAuth: () => null,
     useAuth: () => ({ user: { accounts: [] }, fetchUser: jest.fn() }),
 }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))

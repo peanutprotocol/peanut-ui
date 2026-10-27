@@ -43,6 +43,7 @@ jest.mock('@/services/consent', () => ({
     cardConsentDocuments: jest.fn(() => []),
 }))
 jest.mock('@/context/authContext', () => ({
+    useOptionalAuth: () => null,
     useAuth: () => ({ user: mockUser, fetchUser: jest.fn() }),
 }))
 jest.mock('@/hooks/useRainCardOverview', () => ({

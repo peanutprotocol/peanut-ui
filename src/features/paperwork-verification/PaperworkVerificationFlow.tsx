@@ -108,9 +108,13 @@ const shapeOf = ({ questions, plan, status }: Loaded) =>
 
 const RETRY: SaveOutcome = { ok: false, error: 'retry', formError: 'retry' }
 
-async function saveWithRetries(steps: PaperworkVerificationStep[], values: PaperworkVerificationAnswers) {
+async function saveWithRetries(
+    steps: PaperworkVerificationStep[],
+    values: PaperworkVerificationAnswers,
+    userId: string | undefined
+) {
     for (let attempt = 0; ; attempt++) {
-        const outcome = await saveSteps(steps, values).catch(() => RETRY)
+        const outcome = await saveSteps(steps, values, undefined, userId).catch(() => RETRY)
         if (outcome.ok || outcome.error !== 'retry' || attempt >= SAVE_RETRY_DELAYS_MS.length) return outcome
         await new Promise((resolve) => setTimeout(resolve, SAVE_RETRY_DELAYS_MS[attempt]))
     }
@@ -332,7 +336,7 @@ function PaperworkVerificationSteps({
         const stepTracking = { ...tracking, step: ids[0] }
         if (changed.length)
             saves.current = saves.current.then(async () => {
-                const outcome = await saveWithRetries(changed, values)
+                const outcome = await saveWithRetries(changed, values, user?.user.userId)
                 trackSaveOutcome(
                     (event, properties) =>
                         trackPaperworkVerification(stepTracking, event, { steps: stepsLabel(changed), ...properties }),

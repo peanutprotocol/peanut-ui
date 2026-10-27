@@ -7,6 +7,8 @@ import type {
     PaperworkVerificationStepId,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import type { KycAttemptSession } from '@/app/actions/types/kyc-workflow.types'
+import { useOptionalAuth } from '@/context/authContext'
+import { forgetAnswerDraft } from './answerDraft'
 
 type Session = {
     attemptId: string
@@ -31,6 +33,7 @@ const preselected = (sdkConfig: KycAttemptSession['sdkConfig'] | undefined) =>
  * the same pick.
  */
 export function usePaperworkVerificationIdentity() {
+    const userId = useOptionalAuth()?.user?.user.userId
     const [session, setSession] = useState<Session | null>(null)
     const [busy, setBusy] = useState(false)
     const [documentRequired, setDocumentRequired] = useState(false)
@@ -56,6 +59,8 @@ export function usePaperworkVerificationIdentity() {
                 const result = await startPaperworkVerificationIdentity(attemptId, document)
                 if (active !== generation.current) return { kind: 'failed' }
                 if (result.kind !== 'session') return result
+                // The ID check opens only once every answer is saved.
+                forgetAnswerDraft(userId)
                 const next = {
                     attemptId: result.session.attemptId,
                     document,
@@ -71,7 +76,7 @@ export function usePaperworkVerificationIdentity() {
                 setBusy(false)
             }
         },
-        []
+        [userId]
     )
 
     const refreshToken = useCallback(async () => {

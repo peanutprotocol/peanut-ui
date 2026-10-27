@@ -40,6 +40,7 @@ import { captureException, setUser as setSentryUser } from '@/utils/sentry-lazy'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
 import { purgeCaches } from '@/utils/cache.utils'
 import { clearStepUpToken } from '@/services/step-up'
+import { forgetAnswerDraft } from '@/features/paperwork-verification/answerDraft'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { clearInvite } from '@/utils/invite-stash'
@@ -401,6 +402,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // A cached step-up proof outliving the session would let the next user
         // of this device skip verification on card and withdrawal screens.
         clearStepUpToken()
+
+        // Unsaved verification answers belong to this account only.
+        forgetAnswerDraft(user?.user.userId)
 
         // NOTE: main also cancelled/cleared queries here. That already happens
         // above, deliberately BEFORE the token wipe — an in-flight /users/me can

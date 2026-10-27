@@ -39,6 +39,7 @@ jest.mock('@/app/actions/kyc-workflow', () => ({
     getKycDocumentStatus: jest.fn(),
 }))
 jest.mock('@/context/authContext', () => ({
+    useOptionalAuth: () => null,
     useAuth: () => ({ user: { user: { username: 'tester' } }, fetchUser: jest.fn() }),
 }))
 jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: jest.fn() }))
