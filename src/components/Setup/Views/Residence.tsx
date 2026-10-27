@@ -31,7 +31,7 @@ const ResidenceStep = () => {
     const { handleNext, isLoading } = useSetupFlow()
     const countrySignals = useSetupCountrySignals()
     // server-authoritative tier lists with the bundled mirror as fallback
-    const { sets: restrictionSets } = useResidenceRestrictionSetsWithStatus()
+    const { sets: restrictionSets, settled: restrictionsSettled } = useResidenceRestrictionSetsWithStatus()
     const [view, setView] = useState<'question' | 'compare'>('question')
 
     /*
@@ -134,6 +134,7 @@ const ResidenceStep = () => {
                 citizenship={citizenship}
                 labelOf={labelOf}
                 restrictionSets={restrictionSets}
+                restrictionsSettled={restrictionsSettled}
                 busy={advancing}
                 onChoose={onChoose}
             />

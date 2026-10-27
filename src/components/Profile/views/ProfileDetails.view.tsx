@@ -136,18 +136,6 @@ export const ProfileDetailsView = () => {
     const documentName = document
         ? `${tDocuments(DOCUMENT_KEYS[document.type as keyof typeof DOCUMENT_KEYS] ?? 'otherDocument')}, ${country(document.country)}`
         : null
-    const address = details?.address
-    const addressText = address
-        ? [
-              [address.line1, address.line2].filter(Boolean).join(', '),
-              [address.postCode, address.city].filter(Boolean).join(' '),
-              address.state,
-              country(address.country),
-          ]
-              .filter(Boolean)
-              .join(', ')
-        : null
-
     return (
         <div className="flex w-full flex-col gap-6">
             <NavHeader title={t('title')} onPrev={onBack} />
@@ -167,6 +155,8 @@ export const ProfileDetailsView = () => {
                     {residence?.secondaryDeclaredCountry &&
                         row('secondResidence', t('rows.secondResidence'), country(residence.secondaryDeclaredCountry))}
                     {details?.citizenship && row('citizenship', t('rows.citizenship'), country(details.citizenship))}
+                    {details?.idNationality &&
+                        row('idNationality', t('rows.idNationality'), country(details.idNationality))}
                     {detailRows(IDENTITY_ROWS)}
                     {documentName && row('document', t('rows.document'), documentName)}
                 </DataRowGroup>
@@ -176,8 +166,7 @@ export const ProfileDetailsView = () => {
                     <>
                         <DataRowGroup>
                             {detailRows(['phone'])}
-                            {addressText ? row('address', t('rows.address'), addressText) : detailRows(['address'])}
-                            {detailRows(['taxId'])}
+                            {detailRows(['address', 'taxId'])}
                         </DataRowGroup>
                         <DataRowGroup>{detailRows(MONEY_ROWS)}</DataRowGroup>
                         <DataRowGroup>{detailRows(PERSONAL_ROWS)}</DataRowGroup>

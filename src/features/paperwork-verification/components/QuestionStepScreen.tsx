@@ -35,6 +35,8 @@ const FORM_ERROR_KEYS: Record<AnswerFormError, string> = {
     rate_limited: 'errors.rateLimited',
     feature_not_selected: 'errors.featureNotSelected',
     identity_submitted: 'errors.identitySubmitted',
+    verification_complete: 'errors.identitySubmitted',
+    document_not_allowed: 'errors.unavailable',
     unavailable: 'errors.unavailable',
     existing_verification: 'errors.unavailable',
     conflict: 'errors.unavailable',
@@ -46,6 +48,8 @@ export const phonePartner = (steps: PaperworkVerificationStep[]): 'card' | 'loca
 
 function useStepHeading(step: PaperworkVerificationStep) {
     const t = useTranslations('kyc.paperworkVerification')
+    // Asked on its own after the ID check, it says why the answer came filled in.
+    if (step.id === 'nationality') return { title: t('titles.nationality'), description: t('descriptions.nationality') }
     if (step.fields.some(isSentenceField)) return null
     if (step.id === 'phone')
         return { title: t('titles.phone'), description: t(`descriptions.phone.${phonePartner([step])}`) }
@@ -165,8 +169,8 @@ export function QuestionStepScreen({
     /** Continue hands the answers over and moves on; the caller saves them behind the next screen. */
     onSubmitted?: (values: Record<string, string>, secondsOnStep: number) => void
     /** a background save of these steps the server refused, shown on arrival */
-    returned?: { errors?: Record<string, string>; formError?: AnswerFormError }
-    onConflict?: (error: AnswerFormError) => void
+    returned?: { errors?: Record<string, string>; formError?: AnswerFormError; message?: string }
+    onConflict?: (error: AnswerFormError, message?: string) => void
     onContinueWithoutLocal?: () => Promise<void>
     /** The locked country row's "Change your country of residence". */
     onChangeResidence?: () => void
@@ -213,7 +217,8 @@ export function QuestionStepScreen({
     const hintKey = single && !heading ? `hints.${single.id}` : null
     const hint = hintKey && t.has(hintKey as never) ? t(hintKey as never) : null
     // Past three sentences the step uses the smaller heading, so its CTA stays on screen.
-    const compact = !!title || fields.filter(isSentenceField).length > 3
+    const titled = !!title || !!heading
+    const compact = titled || fields.filter(isSentenceField).length > 3
     const complete = stepComplete(fields, form.values)
 
     useEffect(() => {
@@ -266,7 +271,7 @@ export function QuestionStepScreen({
                 return
             }
             if (outcome.rejected) rejections.current += 1
-            if (outcome.error && outcome.error !== 'retry') onConflict?.(outcome.error)
+            if (outcome.error && outcome.error !== 'retry') onConflict?.(outcome.error, outcome.message)
         } finally {
             submitting.current = false
         }
@@ -317,9 +322,9 @@ export function QuestionStepScreen({
                                 {t('continueWithoutLocal')}
                             </Button>
                         )}
-                        {form.formError && (
+                        {(form.formMessage || form.formError) && (
                             <Callout priority="error" className="w-full text-left" data-testid="verify-form-error">
-                                {t(FORM_ERROR_KEYS[form.formError] as never)}
+                                {form.formMessage ?? (form.formError && t(FORM_ERROR_KEYS[form.formError] as never))}
                             </Callout>
                         )}
                     </VerifyFooter>
@@ -346,7 +351,7 @@ export function QuestionStepScreen({
                         onFieldBlur={onFieldBlur}
                         onChangeResidence={changeResidence}
                         sentenceSize={compact ? 's' : 'm'}
-                        sentencesAsHeading={!title}
+                        sentencesAsHeading={!titled}
                         phonePartner={phonePartner(steps)}
                         sections={steps.map((s) => ({ id: s.id, keys: s.fields.map((f) => f.key) }))}
                     />

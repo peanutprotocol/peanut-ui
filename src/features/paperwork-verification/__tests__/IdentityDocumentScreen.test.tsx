@@ -32,14 +32,12 @@ function render({
     documentPlan,
     residence,
     citizenship = null,
-    ukraineLinked = false,
     onContinue = jest.fn(),
     onChangeResidence,
 }: {
     documentPlan: KycDocumentPlan
     residence: string
     citizenship?: string | null
-    ukraineLinked?: boolean
     onContinue?: jest.Mock
     onChangeResidence?: jest.Mock
 }) {
@@ -48,7 +46,6 @@ function render({
             plan={documentPlan}
             residence={residence}
             citizenship={citizenship}
-            ukraineLinked={ukraineLinked}
             busy={false}
             error={null}
             onBack={jest.fn()}
@@ -72,9 +69,10 @@ describe('IdentityDocumentScreen: the list', () => {
         expect(onContinue).toHaveBeenCalledWith({ type: 'PASSPORT', issuingCountry: 'DE' })
     })
 
-    it('a citizen of the residence gets no residence permit row', () => {
+    // A citizenship that only defaulted to the residence must not hide the permit the user holds.
+    it('a citizenship equal to the residence still lists its residence permit', () => {
         render({ documentPlan: plan(['ES']), residence: 'ES', citizenship: 'ES' })
-        expect(option('RESIDENCE_PERMIT', 'ES')).toBeNull()
+        expect(option('RESIDENCE_PERMIT', 'ES')).toBeInTheDocument()
         expect(option('PASSPORT', 'ES')).toBeInTheDocument()
     })
 
@@ -161,7 +159,6 @@ describe('IdentityDocumentScreen: temporary protection', () => {
             documentPlan: withProtection(['PL']),
             residence: 'PL',
             citizenship: 'UA',
-            ukraineLinked: true,
         })
         const row = screen.getByTestId('verify-id-option-TEMPORARY_PROTECTION-PL')
         expect(screen.getAllByTestId(/^verify-id-option-/)[0]).toBe(row)
@@ -184,13 +181,12 @@ describe('IdentityDocumentScreen: temporary protection', () => {
             documentPlan: withProtection(['PL'], true),
             residence: 'PL',
             citizenship: 'UA',
-            ukraineLinked: true,
         })
         expect(screen.getByTestId('verify-id-option-TEMPORARY_PROTECTION-PL')).toHaveTextContent('proof of address')
     })
 
-    it('stays under Other documents for anyone else tied to Ukraine', () => {
-        render({ documentPlan: withProtection(['PL']), residence: 'PL', citizenship: 'DE', ukraineLinked: true })
+    it('stays under Other documents for anyone but a Ukrainian', () => {
+        render({ documentPlan: withProtection(['PL']), residence: 'PL', citizenship: 'DE' })
         expect(option('TEMPORARY_PROTECTION', 'PL')).toBeNull()
         fireEvent.click(screen.getByTestId('verify-id-other'))
         expect(
@@ -198,11 +194,13 @@ describe('IdentityDocumentScreen: temporary protection', () => {
         ).toBeInTheDocument()
     })
 
-    // Slava, 2026-10-26: only with a citizenship, residence or location in Ukraine.
-    it('is not offered to an account with no tie to Ukraine', () => {
-        render({ documentPlan: withProtection(['PL']), residence: 'PL', citizenship: 'DE' })
+    // The server's plan decides who is offered it; the app keeps no rule of its own.
+    it('is offered whenever the server plan carries it, with no tie to Ukraine on the device', () => {
+        render({ documentPlan: withProtection(['PL']), residence: 'PL', citizenship: null })
         fireEvent.click(screen.getByTestId('verify-id-other'))
-        expect(screen.queryByText('Temporary protection for Ukrainians')).toBeNull()
+        expect(
+            within(screen.getByTestId('verify-id-other-drawer')).getByTestId('verify-id-option-TEMPORARY_PROTECTION-PL')
+        ).toBeInTheDocument()
     })
 
     it('is not offered when the API sends no temporary protection', () => {

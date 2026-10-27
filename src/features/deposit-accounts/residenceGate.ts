@@ -20,31 +20,21 @@ export function isResidenceGated(corridor: DepositCorridor): boolean {
 }
 
 /**
- * The residences a residence gate reads, in one derivation for every gate.
+ * The residence a residence gate reads, in one derivation for every gate.
  *
  * The verified residence outranks the declared one, as it does on the
  * backend: the address collected at verification beats a self-asserted
  * declaration, so a declared country only counts while nothing is verified.
- * A second declared residence counts beside it (a dual resident).
+ * A second declared residence never counts: the API opens a Manteca local
+ * account by the one residence (rule `peanut.manteca-local-residence`), so a
+ * corridor opened by the second one could only end in a refusal.
  */
-export function gatingResidenceIso2s(residence: {
-    verified?: string | null
-    declared?: string | null
-    second?: string | null
-}): string[] {
-    const iso2s = [residence.verified ?? residence.declared, residence.second]
-        .filter((iso2): iso2 is string => !!iso2)
-        .map((iso2) => iso2.toUpperCase())
-    return [...new Set(iso2s)]
+export function gatingResidenceIso2s(residence: { verified?: string | null; declared?: string | null }): string[] {
+    const iso2 = residence.verified ?? residence.declared
+    return iso2 ? [iso2.toUpperCase()] : []
 }
 
-/**
- * Does one of this user's residences match the corridor's country?
- *
- * A dual resident passes on either country, the same softening the restriction
- * rules already apply — a residence the user declared is a residence they can
- * prove.
- */
+/** Does the user's residence match the corridor's country? */
 export function residenceAllows(corridor: DepositCorridor, residenceIso2s: string[]): boolean {
     const country = DEPOSIT_RAILS[corridor].residenceIso2
     if (!country) return true

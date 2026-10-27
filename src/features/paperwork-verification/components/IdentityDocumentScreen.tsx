@@ -56,7 +56,6 @@ export function IdentityDocumentScreen({
     residence,
     citizenship = null,
     restart = false,
-    ukraineLinked = false,
     documentsLoading = false,
     busy,
     error,
@@ -69,8 +68,6 @@ export function IdentityDocumentScreen({
     /** The citizenship the questions asked, when they did. */
     citizenship?: string | null
     restart?: boolean
-    /** Temporary protection shows only for an account tied to Ukraine (linkedToUkraine). */
-    ukraineLinked?: boolean
     /** the plan is being read again for the documents */
     documentsLoading?: boolean
     busy: boolean
@@ -95,20 +92,16 @@ export function IdentityDocumentScreen({
         type === 'RESIDENCE_PERMIT' || type === 'DRIVERS' ? residence : (away ?? residence)
     const keep = (candidates: { type: string; issuingCountry: string | null }[]) =>
         candidates.filter((c): c is Choice => allowed(c.type, c.issuingCountry))
-    // A citizen does not hold a residence permit from their own country.
-    const main = keep(
-        MAIN_TYPES.filter((type) => type !== 'RESIDENCE_PERMIT' || citizenship !== residence).map((type) => ({
-            type,
-            issuingCountry: issuerOf(type),
-        }))
-    )
+    // The citizenship may only have defaulted to the residence, so the residence permit always shows.
+    const main = keep(MAIN_TYPES.map((type) => ({ type, issuingCountry: issuerOf(type) })))
     const other = keep([
         { type: 'DRIVERS', issuingCountry: residence },
         { type: 'DRIVERS', issuingCountry: away },
         // A dual resident's documents from the residence, when the main list shows the citizenship's.
         ...(away ? ['PASSPORT', 'ID_CARD'].map((type) => ({ type, issuingCountry: residence })) : []),
     ])
-    const protectionChoices: Choice[] = (ukraineLinked ? (protection?.countries ?? []) : []).map((issuingCountry) => ({
+    // The server's plan decides who is offered temporary protection.
+    const protectionChoices: Choice[] = (protection?.countries ?? []).map((issuingCountry) => ({
         type: 'TEMPORARY_PROTECTION',
         issuingCountry,
     }))

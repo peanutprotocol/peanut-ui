@@ -9,8 +9,8 @@ import type {
     PaperworkVerificationStep,
     PaperworkVerificationStepId,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
-import { forgetSavedAnswers, keepAnswerDraft, readAnswerDraft, withAnswerDraft } from './answerDraft'
-import { initialValues, stepPayload, withEmploymentStatus } from './paperworkVerification.utils'
+import { draftResidenceOf, forgetSavedAnswers, keepAnswerDraft, readAnswerDraft, withAnswerDraft } from './answerDraft'
+import { initialValues, maskedUntouched, stepPayload, withEmploymentStatus } from './paperworkVerification.utils'
 
 export type AnswerFormError =
     | 'retry'
@@ -19,6 +19,8 @@ export type AnswerFormError =
     | 'rate_limited'
     | 'feature_not_selected'
     | 'identity_submitted'
+    | 'verification_complete'
+    | 'document_not_allowed'
     | 'unavailable'
     | 'existing_verification'
     | 'conflict'
@@ -29,11 +31,22 @@ export type SaveOutcome =
           error?: AnswerFormError
           /** the form-level message shown, if any */
           formError?: AnswerFormError
+          /** the server's own line for the refusal, shown in place of the form-level message */
+          message?: string
+          /** the step whose save failed; the steps after it were not sent */
+          step?: PaperworkVerificationStepId
           /** the step the server refused, with its field error codes */
           rejected?: { step: PaperworkVerificationStepId; errors: Record<string, string> }
       }
 
-const CONFLICTS = new Set(['feature_not_selected', 'identity_submitted', 'unavailable', 'existing_verification'])
+const CONFLICTS = new Set([
+    'feature_not_selected',
+    'identity_submitted',
+    'verification_complete',
+    'document_not_allowed',
+    'unavailable',
+    'existing_verification',
+])
 
 /** Saves the steps in the server's order, stopping at the first one it refuses. */
 export async function saveSteps(
@@ -44,14 +57,18 @@ export async function saveSteps(
 ): Promise<SaveOutcome> {
     let next: PaperworkVerificationStepId | null = null
     for (const step of steps) {
-        const result = await saveKycAnswers(step.id, stepPayload(step.fields, values), feature)
-        if (result.kind === 'invalid') return { ok: false, rejected: { step: step.id, errors: result.errors } }
+        const payload = stepPayload(step.fields, values)
+        // A saved, masked number left as it is: there is nothing to send.
+        if (!Object.keys(payload).length && step.fields.some((f) => maskedUntouched(f, values))) continue
+        const result = await saveKycAnswers(step.id, payload, feature)
+        if (result.kind === 'invalid')
+            return { ok: false, step: step.id, rejected: { step: step.id, errors: result.errors } }
         if (result.kind === 'conflict') {
             const error = CONFLICTS.has(result.code) ? (result.code as AnswerFormError) : 'conflict'
-            return { ok: false, error, formError: error }
+            return { ok: false, error, formError: error, message: result.message, step: step.id }
         }
-        if (result.kind === 'blocked') return { ok: false, formError: result.code }
-        if (result.kind === 'retry') return { ok: false, error: 'retry', formError: 'retry' }
+        if (result.kind === 'blocked') return { ok: false, formError: result.code, step: step.id }
+        if (result.kind === 'retry') return { ok: false, error: 'retry', formError: 'retry', step: step.id }
         forgetSavedAnswers(userId, Object.fromEntries(step.fields.map((f) => [f.key, values[f.key]])))
         next = result.next
     }
@@ -69,15 +86,22 @@ export function useAnswerForm(
     feature?: PaperworkVerificationFeature,
     residence: string | null = null,
     /** what a background save of these steps came back with */
-    returned?: { errors?: Record<string, string>; formError?: AnswerFormError }
+    returned?: { errors?: Record<string, string>; formError?: AnswerFormError; message?: string }
 ) {
-    const userId = useOptionalAuth()?.user?.user.userId
+    const user = useOptionalAuth()?.user
+    const userId = user?.user.userId
+    const declared = draftResidenceOf(user)
     const [values, setValues] = useState<PaperworkVerificationAnswers>(() => {
         const fields = steps.flatMap((s) => s.fields)
-        return withAnswerDraft(initialValues(fields, residence), fields, readAnswerDraft(userId))
+        return withAnswerDraft(initialValues(fields, residence), fields, readAnswerDraft(userId, declared))
     })
     const [errors, setErrors] = useState<Record<string, string>>(() => returned?.errors ?? {})
-    const [formError, setFormError] = useState<AnswerFormError | null>(() => returned?.formError ?? null)
+    const [formError, setFormErrorState] = useState<AnswerFormError | null>(() => returned?.formError ?? null)
+    const [formMessage, setFormMessage] = useState<string | null>(() => returned?.message ?? null)
+    const setFormError = useCallback((error: AnswerFormError | null, message?: string) => {
+        setFormErrorState(error)
+        setFormMessage(message ?? null)
+    }, [])
     const [saving, setSaving] = useState(false)
     const savingRef = useRef(false)
 
@@ -91,7 +115,8 @@ export function useAnswerForm(
             const job = key === 'employmentStatus' && fields.some((f) => f.key === 'occupation')
             keepAnswerDraft(
                 userId,
-                job ? { [key]: value, occupation: update(values).occupation ?? '' } : { [key]: value }
+                job ? { [key]: value, occupation: update(values).occupation ?? '' } : { [key]: value },
+                declared
             )
             setErrors((current) => {
                 if (!(key in current)) return current
@@ -100,7 +125,7 @@ export function useAnswerForm(
             })
             setFormError(null)
         },
-        [steps, userId, values]
+        [steps, userId, declared, values, setFormError]
     )
 
     const save = useCallback(
@@ -113,15 +138,15 @@ export function useAnswerForm(
                 const outcome = await saveSteps(toSave, values, feature, userId)
                 if (outcome.ok) setErrors({})
                 if (!outcome.ok && outcome.rejected) setErrors(outcome.rejected.errors)
-                if (!outcome.ok && outcome.formError) setFormError(outcome.formError)
+                if (!outcome.ok && outcome.formError) setFormError(outcome.formError, outcome.message)
                 return outcome
             } finally {
                 savingRef.current = false
                 setSaving(false)
             }
         },
-        [steps, values, feature, userId]
+        [steps, values, feature, userId, setFormError]
     )
 
-    return { values, errors, formError, saving, change, save, setFormError }
+    return { values, errors, formError, formMessage, saving, change, save, setFormError }
 }

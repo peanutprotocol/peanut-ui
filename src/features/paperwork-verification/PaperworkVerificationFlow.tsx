@@ -59,12 +59,14 @@ import {
 } from './usePaperworkVerificationStart'
 import { usePaperworkVerificationIdentity } from './usePaperworkVerificationIdentity'
 import {
+    APPROVED_STATUSES,
     citizenshipOf,
     DOCUMENT_KEYS,
     entryStep,
-    linkedToUkraine,
+    featureOpenAfterApproval,
     FAILED_STATUSES,
     IN_REVIEW_STATUSES,
+    RETRYABLE_STATUSES,
     markSaved,
     composeScreens,
     openFeatures,
@@ -77,6 +79,7 @@ import {
     type VerifyStep,
 } from './paperworkVerification.utils'
 import { saveSteps, type AnswerFormError, type SaveOutcome } from './useAnswerForm'
+import { paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
 
 const STATUS_POLL_MS = 15_000
 const SAVE_RETRY_DELAYS_MS = [1_000, 3_000]
@@ -168,6 +171,11 @@ export function PaperworkVerificationFlow() {
                 routerRef.current.replace('/home')
                 return
             }
+            const addLater = featureOpenAfterApproval(questions, status)
+            if (addLater) {
+                routerRef.current.replace(paperworkVerificationFeaturePath(addLater))
+                return
+            }
             const loaded = { questions, plan, status }
             if (quiet && shapeOf(loaded) === opened.current) {
                 setState((current) => (current.kind === 'ready' ? { ...current, fresh: loaded } : current))
@@ -247,7 +255,7 @@ function PaperworkVerificationSteps({
         [questionIds]
     )
     const allAnswered = questions.steps.every((s) => s.answered)
-    const approved = status === 'APPROVED'
+    const approved = !!status && APPROVED_STATUSES.has(status)
     const failed = !!status && FAILED_STATUSES.has(status)
     const reviewing = submitted || (!!status && IN_REVIEW_STATUSES.has(status))
     const asking = !approved && !reviewing && !failed
@@ -299,18 +307,30 @@ function PaperworkVerificationSteps({
         step: PaperworkVerificationStepId
         errors?: Record<string, string>
         formError?: AnswerFormError
+        message?: string
     } | null>(null)
     const [savedBusy, setSavedBusy] = useState(false)
 
-    const saveFailed = (shown: PaperworkVerificationStep[], outcome: SaveOutcome & { ok: false }) => {
-        if (outcome.error && outcome.error !== 'retry') return onConflict(outcome.error)
+    const saveFailed = (sent: PaperworkVerificationStep[], outcome: SaveOutcome & { ok: false }) => {
         saveRefused.current = true
-        const refused = outcome.rejected?.step ?? shown[0].id
+        const refused = outcome.step ?? outcome.rejected?.step ?? sent[0].id
+        // Saves stop at the refused step, so it and every step after it are still unsaved.
+        const from = Math.max(
+            0,
+            sent.findIndex((s) => s.id === refused)
+        )
+        const unsaved = new Set(sent.slice(from).map((s) => s.id))
         setQuestions((current) => ({
             ...current,
-            steps: current.steps.map((s) => (s.id === refused ? { ...s, answered: false } : s)),
+            steps: current.steps.map((s) => (unsaved.has(s.id) ? { ...s, answered: false } : s)),
         }))
-        setReturned({ step: refused, errors: outcome.rejected?.errors, formError: outcome.formError })
+        setReturned({
+            step: refused,
+            errors: outcome.rejected?.errors,
+            formError: outcome.formError,
+            message: outcome.message,
+        })
+        if (outcome.error && outcome.error !== 'retry' && onConflict(outcome.error, outcome.message)) return
         void stepper.goTo(screenOf(refused))
     }
 
@@ -405,11 +425,36 @@ function PaperworkVerificationSteps({
             })
     }, [needsDocuments])
 
-    const onConflict = (error: AnswerFormError) => {
+    /** Back to the ID picker, on the documents the server offers now. */
+    const backToDocuments = (error: string | null) => {
+        setDocumentRequired(true)
+        setStatus('NOT_STARTED')
+        setSubmitted(false)
+        setIdError(error)
+        void findKycDocumentPlan('verify')
+            .catch(() => null)
+            .then((current) => current && setPlan(current))
+        void stepper.goTo('id')
+    }
+
+    /** Takes the user where a refused save points; false leaves them on the refused step. */
+    const onConflict = (error: AnswerFormError, message?: string): boolean => {
         // Not (or no longer) a Smart Paperwork Verification user: today's flow starts from Home.
-        if (error === 'unavailable' || error === 'existing_verification') router.replace('/home')
-        // Another device submitted the ID, or the features changed: the server rebuilds the questions.
-        else if (error === 'identity_submitted' || error === 'feature_not_selected') void reload()
+        if (error === 'unavailable' || error === 'existing_verification') {
+            router.replace('/home')
+            return true
+        }
+        // The ID went in or the check ended (perhaps on another device), or the features changed:
+        // the status and the questions are read again.
+        if (error === 'identity_submitted' || error === 'verification_complete' || error === 'feature_not_selected') {
+            void reload()
+            return true
+        }
+        if (error === 'document_not_allowed') {
+            backToDocuments(message ?? null)
+            return true
+        }
+        return false
     }
 
     const startIdentity = async (document?: { type: string; issuingCountry: string }) => {
@@ -440,9 +485,12 @@ function PaperworkVerificationSteps({
             setDocumentRequired(true)
             setStatus('NOT_STARTED')
             setSubmitted(false)
+            if (outcome.message) setIdError(outcome.message)
             void stepper.goTo('id')
         }
-        if (outcome.kind === 'failed') setIdError(t('midpoint.failed'))
+        if (outcome.kind === 'document-not-allowed') backToDocuments(outcome.message ?? t('midpoint.failed'))
+        if (outcome.kind === 'complete') void reload()
+        if (outcome.kind === 'failed') setIdError(outcome.message ?? t('midpoint.failed'))
         if (outcome.kind === 'questions-missing') {
             setDocumentRequired(false)
             setStatus('NOT_STARTED')
@@ -450,6 +498,7 @@ function PaperworkVerificationSteps({
             const fresh = await getKycQuestions().catch(() => null)
             if (fresh) setQuestions(fresh)
             const target = outcome.step ?? (fresh && resumeStep(fresh))
+            if (target && outcome.message) setReturned({ step: target, message: outcome.message })
             if (target) void stepper.goTo(screenOf(target))
         }
     }
@@ -491,18 +540,25 @@ function PaperworkVerificationSteps({
         }, STATUS_POLL_MS)
         return () => clearInterval(timer)
     }, [step, failed])
+    // An approval that arrives during the visit, whether the review was opened here or on an earlier visit.
+    const approvedAtOpen = useRef(approved)
     const approvalHandled = useRef(false)
     useEffect(() => {
-        if (!approved || step !== 'review' || approvalHandled.current) return
+        if (!approved || approvedAtOpen.current || approvalHandled.current) return
         approvalHandled.current = true
         void fetchUser()
-        void findKycDocumentPlan()
-            .catch(() => null)
-            .then((fresh) => {
+        void Promise.all([findKycDocumentPlan().catch(() => null), getKycQuestions().catch(() => null)]).then(
+            ([fresh, freshQuestions]) => {
+                const addLater = freshQuestions && featureOpenAfterApproval(freshQuestions, status)
+                if (addLater) {
+                    router.replace(paperworkVerificationFeaturePath(addLater))
+                    return
+                }
                 if (fresh) setPlan(fresh)
                 void stepper.goTo(fresh?.proofOfAddress === 'suggested' ? 'address-proof' : 'verified')
-            })
-    }, [approved, step, fetchUser, stepper])
+            }
+        )
+    }, [approved, fetchUser, stepper, status, router])
 
     const tracking = useMemo<PaperworkVerificationTrackingContext>(
         () => ({ flow: 'paperwork_verification', residence: questions.residence, features: plan?.features }),
@@ -585,7 +641,6 @@ function PaperworkVerificationSteps({
                 plan={plan}
                 residence={questions.residence}
                 citizenship={citizenshipOf(questions)}
-                ukraineLinked={linkedToUkraine(citizenshipOf(questions), user, questions.residence)}
                 documentsLoading={documentsLoading}
                 busy={identity.busy}
                 error={idError}
@@ -605,7 +660,7 @@ function PaperworkVerificationSteps({
                 features={openFeatures(plan?.features, questions.closed)}
                 onHome={goHome}
                 onRetry={
-                    status === 'ACTION_REQUIRED'
+                    status && RETRYABLE_STATUSES.has(status)
                         ? () => {
                               track(ANALYTICS_EVENTS.KYC_PV_REVIEW_RETRY)
                               void startIdentity()

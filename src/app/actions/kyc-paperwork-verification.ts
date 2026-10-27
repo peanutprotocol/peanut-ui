@@ -22,6 +22,16 @@ const call = (path: string, init?: RequestInit) =>
 
 const json = (response: Response) => response.json().catch(() => null)
 
+/** A refusal's stable code; older API bodies name it `error`. */
+const codeOf = (body: { code?: unknown; error?: unknown } | null): string | null => {
+    const code = body?.code ?? body?.error
+    return typeof code === 'string' ? code : null
+}
+
+/** The server's user-facing line for a refusal, when it sends one. */
+const userMessageOf = (body: { userMessage?: unknown } | null): { message?: string } =>
+    typeof body?.userMessage === 'string' && body.userMessage.trim() ? { message: body.userMessage } : {}
+
 export async function skipProofOfAddress(): Promise<boolean> {
     try {
         const response = await call('/users/kyc/proof-of-address/skip', { method: 'POST', body: '{}' })
@@ -80,13 +90,13 @@ export async function saveKycAnswers(
     if (response.ok) return { kind: 'saved', next: body?.next ?? null }
     if (response.status === 422 && body?.errors && typeof body.errors === 'object')
         return { kind: 'invalid', errors: body.errors }
-    const code = body?.code ?? body?.error
-    if (response.status === 409 && typeof code === 'string') return { kind: 'conflict', code }
+    const code = codeOf(body)
+    if (response.status === 409 && code) return { kind: 'conflict', code, ...userMessageOf(body) }
     if (response.status === 429) return { kind: 'blocked', code: 'rate_limited' }
     if (response.status === 400)
         return {
             kind: 'blocked',
-            code: (body?.code ?? body?.error) === 'unknown_step' ? 'unknown_step' : 'invalid_body',
+            code: codeOf(body) === 'unknown_step' ? 'unknown_step' : 'invalid_body',
         }
     if (response.status === 404) return { kind: 'blocked', code: 'unknown_step' }
     if (response.status >= 400 && response.status < 500) return { kind: 'blocked', code: 'unavailable' }
@@ -95,9 +105,13 @@ export async function saveKycAnswers(
 
 export type PaperworkVerificationTokenResult =
     | { kind: 'session'; session: KycAttemptSession }
-    | { kind: 'document-required' }
-    | { kind: 'questions-missing'; step: PaperworkVerificationStepId | null }
-    | { kind: 'failed' }
+    | { kind: 'document-required'; message?: string }
+    /** the picked document is not one the attempt offers */
+    | { kind: 'document-not-allowed'; message?: string }
+    | { kind: 'questions-missing'; step: PaperworkVerificationStepId | null; message?: string }
+    /** the ID is already submitted or the check is over: the status has moved on */
+    | { kind: 'complete'; message?: string }
+    | { kind: 'failed'; message?: string }
 
 export async function startPaperworkVerificationIdentity(
     attemptId: string,
@@ -113,11 +127,15 @@ export async function startPaperworkVerificationIdentity(
         return { kind: 'failed' }
     }
     const body = await json(response)
-    if (response.status === 409 && (body?.code ?? body?.error) === 'questions_missing')
-        return { kind: 'questions-missing', step: body.step ?? null }
-    if (response.status === 409 && (body?.code ?? body?.error) === 'document_required')
-        return { kind: 'document-required' }
-    if (!response.ok) return { kind: 'failed' }
+    const message = userMessageOf(body)
+    if (response.status === 409) {
+        const code = codeOf(body)
+        if (code === 'questions_missing') return { kind: 'questions-missing', step: body.step ?? null, ...message }
+        if (code === 'document_required') return { kind: 'document-required', ...message }
+        if (code === 'document_not_allowed') return { kind: 'document-not-allowed', ...message }
+        if (code === 'verification_complete' || code === 'identity_submitted') return { kind: 'complete', ...message }
+    }
+    if (!response.ok) return { kind: 'failed', ...message }
     try {
         return { kind: 'session', session: validSession(body, !!document) }
     } catch {
@@ -157,7 +175,7 @@ export async function savePaperworkVerificationFeatures(
         if (owed) return { kind: 'refused', feature: owed, copy: 'supplement.unavailable' }
         return { kind: 'saved' }
     }
-    if (response.status === 409 && (body?.code ?? body?.error) === 'questions_missing')
+    if (response.status === 409 && codeOf(body) === 'questions_missing')
         return { kind: 'questions-missing', step: body.step ?? null }
     return { kind: 'failed' }
 }

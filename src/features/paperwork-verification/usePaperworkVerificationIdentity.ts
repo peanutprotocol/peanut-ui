@@ -19,9 +19,11 @@ type Session = {
 export type IdentityStartOutcome =
     | { kind: 'busy' }
     | { kind: 'opened'; attemptId: string }
-    | { kind: 'document-required' }
-    | { kind: 'questions-missing'; step: PaperworkVerificationStepId | null }
-    | { kind: 'failed' }
+    | { kind: 'document-required'; message?: string }
+    | { kind: 'document-not-allowed'; message?: string }
+    | { kind: 'questions-missing'; step: PaperworkVerificationStepId | null; message?: string }
+    | { kind: 'complete'; message?: string }
+    | { kind: 'failed'; message?: string }
 
 /** The server's preselected ID, so Sumsub never shows its own document list; a reopen without a pick gets the saved one. */
 const preselected = (sdkConfig: KycAttemptSession['sdkConfig'] | undefined) =>
@@ -84,7 +86,7 @@ export function usePaperworkVerificationIdentity() {
         if (!current) throw new Error('No verification session')
         const result = await startPaperworkVerificationIdentity(current.attemptId, current.document)
         if (sessionRef.current !== current) throw new Error('Verification session closed')
-        if (result.kind === 'document-required') {
+        if (result.kind === 'document-required' || result.kind === 'document-not-allowed') {
             sessionRef.current = null
             setSession(null)
             setDocumentRequired(true)

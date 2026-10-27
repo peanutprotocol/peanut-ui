@@ -496,6 +496,86 @@ describe('PaperworkVerificationFlow', () => {
         expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
     })
 
+    it('a check that already ended reloads into the review', async () => {
+        mockSave.mockResolvedValue({ kind: 'conflict', code: 'verification_complete' })
+        await startFlow()
+        await screen.findByTestId('verify-pick-annualSalary')
+        mockStatus.mockResolvedValue('IN_REVIEW')
+        fireEvent.click(continueButton())
+        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+    })
+
+    it("an answer refused with a code the app does not know shows the server's line on that step, unsaved", async () => {
+        mockSave.mockResolvedValue({
+            kind: 'conflict',
+            code: 'policy_changed',
+            message: 'This answer can’t change now.',
+        })
+        await startFlow()
+        await screen.findByTestId('verify-pick-annualSalary')
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-form-error')).toHaveTextContent('This answer can’t change now.')
+        expect(screen.getByTestId('verify-pick-annualSalary')).toBeInTheDocument()
+        // Unsaved, so Continue sends it again rather than skipping it as unchanged.
+        mockSave.mockResolvedValue({ kind: 'saved', next: 'tax' })
+        fireEvent.click(continueButton())
+        await waitFor(() => expect(mockSave).toHaveBeenCalledTimes(2))
+        expect(mockSave).toHaveBeenLastCalledWith('money', { annualSalary: '25k_50k' }, undefined)
+    })
+
+    it('an old conflict body with no message still names the refusal', async () => {
+        mockSave.mockResolvedValue({ kind: 'conflict', code: 'policy_changed' })
+        await startFlow()
+        await screen.findByTestId('verify-pick-annualSalary')
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-form-error')).toHaveTextContent(
+            'This check isn’t available right now.'
+        )
+    })
+
+    it('an answer refused because the picked document is no longer allowed goes back to the picker', async () => {
+        mockSave.mockResolvedValue({
+            kind: 'conflict',
+            code: 'document_not_allowed',
+            message: 'Pick another document.',
+        })
+        await startFlow()
+        await screen.findByTestId('verify-pick-annualSalary')
+        const planReads = mockPlan.mock.calls.length
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-id-error')).toHaveTextContent('Pick another document.')
+        expect(screen.getByTestId('verify-id-option-PASSPORT-US')).toBeInTheDocument()
+        expect(mockPlan.mock.calls.length).toBeGreaterThan(planReads)
+    })
+
+    it("a pick the attempt no longer offers stays on the picker with the server's line, on a fresh plan", async () => {
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        mockToken.mockResolvedValue({ kind: 'document-not-allowed', message: 'That document isn’t accepted.' })
+        await startFlow()
+        const planReads = mockPlan.mock.calls.length
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
+        expect(await screen.findByTestId('verify-id-error')).toHaveTextContent('That document isn’t accepted.')
+        await waitFor(() => expect(mockPlan.mock.calls.length).toBeGreaterThan(planReads))
+        expect(screen.queryByText('sumsub-submit')).not.toBeInTheDocument()
+    })
+
+    it('a token refused because the check is over reloads the status', async () => {
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        mockToken.mockResolvedValue({ kind: 'complete' })
+        await startFlow()
+        mockStatus.mockResolvedValue('IN_REVIEW')
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
+        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+    })
+
+    it("any other refused token shows the server's line", async () => {
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        mockToken.mockResolvedValue({ kind: 'failed', message: 'Try again in a minute.' })
+        await startFlow()
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
+        expect(await screen.findByTestId('verify-id-error')).toHaveTextContent('Try again in a minute.')
+    })
+
     it('a card + bank user picks one job, from one list, shown by its label', async () => {
         const questions = build({ money: true, tax: true }, 'purpose')
         questions.steps.splice(1, 0, {
@@ -563,6 +643,41 @@ describe('PaperworkVerificationFlow', () => {
         await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
     })
 
+    // An EEA bank user whose approved ID names no nationality is asked it on the add-later screen.
+    it('an approved user with a question still open goes to its feature’s add-later screen', async () => {
+        mockStatus.mockResolvedValue('APPROVED')
+        const questions = build({ money: true, tax: true }, 'nationality')
+        questions.steps.push({
+            id: 'nationality',
+            features: ['bank'],
+            answered: false,
+            fields: [{ key: 'nationality', kind: 'country', required: true, value: 'DE' }],
+        })
+        mockQuestions.mockResolvedValue(questions)
+        renderFlow()
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/verify?feature=bank'))
+        expect(screen.queryByText('Your ID is confirmed!')).not.toBeInTheDocument()
+    })
+
+    it('a review that turns approved with a question open goes to the add-later screen', async () => {
+        mockStatus.mockResolvedValue('IN_REVIEW')
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        renderFlow()
+        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+        const opened = build({ money: true, tax: true }, 'nationality')
+        opened.steps.push({
+            id: 'nationality',
+            features: ['bank'],
+            answered: false,
+            fields: [{ key: 'nationality', kind: 'country', required: true, value: 'DE' }],
+        })
+        mockQuestions.mockResolvedValue(opened)
+        const { useWebSocket } = jest.requireMock('@/hooks/useWebSocket') as { useWebSocket: jest.Mock }
+        const { onSumsubKycStatusUpdate } = useWebSocket.mock.calls.at(-1)[0]
+        act(() => onSumsubKycStatusUpdate('APPROVED'))
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/verify?feature=bank'))
+    })
+
     it('sends a user the server keeps on today’s flow back to Home', async () => {
         mockPlan.mockResolvedValue({ ...plan, flow: 'document-first' })
         renderFlow()
@@ -571,6 +686,8 @@ describe('PaperworkVerificationFlow', () => {
 
     it('an approved user lands on "Your ID is confirmed!", or on the proof-of-address suggestion', async () => {
         mockStatus.mockResolvedValue('APPROVED')
+        // approved, so every question was answered before the ID check
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         const { unmount } = renderFlow()
         expect(await screen.findByText('Your ID is confirmed!')).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-verified-home'))
@@ -586,6 +703,8 @@ describe('PaperworkVerificationFlow', () => {
     // A temporary protection sheet is the residence's own, so "your ID isn't from here" would be wrong.
     it('gives temporary protection as the reason when the approved ID was the sheet', async () => {
         mockStatus.mockResolvedValue('APPROVED')
+        // approved, so every question was answered before the ID check
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         mockPlan.mockResolvedValue({
             ...plan,
             proofOfAddress: 'suggested',
@@ -598,6 +717,8 @@ describe('PaperworkVerificationFlow', () => {
 
     it('rule 1: Upload starts the existing supplement action, Skip goes on with no task left behind', async () => {
         mockStatus.mockResolvedValue('APPROVED')
+        // approved, so every question was answered before the ID check
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         mockPlan.mockResolvedValue({ ...plan, proofOfAddress: 'suggested' })
         renderFlow()
         fireEvent.click(await screen.findByTestId('verify-poa-upload'))

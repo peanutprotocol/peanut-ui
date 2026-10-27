@@ -3937,9 +3937,11 @@
                             "schema": {
                                 "properties": {
                                     "chainId": {
+                                        "pattern": "^[1-9][0-9]{0,9}$",
                                         "type": "string"
                                     },
                                     "hash": {
+                                        "pattern": "^0x[0-9a-fA-F]{64}$",
                                         "type": "string"
                                     },
                                     "payerAddress": {
@@ -12119,172 +12121,6 @@
                 ]
             }
         },
-        "/manteca/withdraw": {
-            "post": {
-                "description": "Create a withdraw order to convert crypto to fiat via Manteca. Optionally use a pre-locked price from /withdraw/init.",
-                "parameters": [
-                    {
-                        "in": "header",
-                        "name": "Authorization",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "accountType": {
-                                        "anyOf": [
-                                            {
-                                                "enum": [
-                                                    "SAVINGS"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "CHECKING"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "DEBIT"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "PHONE"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "VISTA"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "RUT"
-                                                ],
-                                                "type": "string"
-                                            }
-                                        ]
-                                    },
-                                    "amount": {
-                                        "description": "Amount to withdraw in crypto asset",
-                                        "type": "string"
-                                    },
-                                    "bankCode": {
-                                        "type": "string"
-                                    },
-                                    "currency": {
-                                        "anyOf": [
-                                            {
-                                                "enum": [
-                                                    "ARS"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "BRL"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "CLP"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "COP"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "PUSD"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "CRC"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "GTQ"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "MXN"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "PHP"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "BOB"
-                                                ],
-                                                "type": "string"
-                                            }
-                                        ]
-                                    },
-                                    "destinationAddress": {
-                                        "description": "Destination address to withdraw to",
-                                        "type": "string"
-                                    },
-                                    "priceLockCode": {
-                                        "description": "Price lock code from /withdraw/init. If not provided, a new price lock is created.",
-                                        "type": "string"
-                                    },
-                                    "txHash": {
-                                        "description": "Transaction hash of the withdrawal",
-                                        "maxLength": 66,
-                                        "pattern": "^0x[0-9a-fA-F]{64}$",
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "amount",
-                                    "txHash",
-                                    "destinationAddress"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "Default Response"
-                    }
-                },
-                "summary": "Create withdraw order (offramp)",
-                "tags": [
-                    "manteca"
-                ]
-            }
-        },
         "/manteca/withdraw/complete-with-signed-tx": {
             "post": {
                 "description": "Creates Manteca ramp-off order FIRST, then either broadcasts the signed UserOp or submits the signed Rain withdrawal via the session key. Prevents funds from being stuck if Manteca fails.",
@@ -19950,6 +19786,28 @@
                                         "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8}){0,2}$",
                                         "type": "string"
                                     },
+                                    "localeSource": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "device"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "pick"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "browser"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
                                     "pushSubscriptionId": {
                                         "type": "string"
                                     },
@@ -20739,6 +20597,28 @@
                                                             "effectiveDate": {
                                                                 "type": "string"
                                                             },
+                                                            "feature": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "enum": [
+                                                                            "bank"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "card"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "local"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    }
+                                                                ]
+                                                            },
                                                             "key": {
                                                                 "type": "string"
                                                             },
@@ -20789,6 +20669,12 @@
                                                                     {
                                                                         "enum": [
                                                                             "restart-identity"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "questions"
                                                                         ],
                                                                         "type": "string"
                                                                     }
@@ -21096,6 +20982,28 @@
                                                                             "effectiveDate": {
                                                                                 "type": "string"
                                                                             },
+                                                                            "feature": {
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "bank"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "card"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "local"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    }
+                                                                                ]
+                                                                            },
                                                                             "key": {
                                                                                 "type": "string"
                                                                             },
@@ -21146,6 +21054,12 @@
                                                                                     {
                                                                                         "enum": [
                                                                                             "restart-identity"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "questions"
                                                                                         ],
                                                                                         "type": "string"
                                                                                     }
@@ -22936,6 +22850,28 @@
                                                 "effectiveDate": {
                                                     "type": "string"
                                                 },
+                                                "feature": {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "bank"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "card"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "local"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
                                                 "key": {
                                                     "type": "string"
                                                 },
@@ -22986,6 +22922,12 @@
                                                         {
                                                             "enum": [
                                                                 "restart-identity"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "questions"
                                                             ],
                                                             "type": "string"
                                                         }
@@ -24817,6 +24759,12 @@
                                                                 "tax"
                                                             ],
                                                             "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "nationality"
+                                                            ],
+                                                            "type": "string"
                                                         }
                                                     ]
                                                 },
@@ -24858,6 +24806,9 @@
                                                     "type": "null"
                                                 }
                                             ]
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
                                         }
                                     },
                                     "type": "object"
@@ -24889,6 +24840,9 @@
                                                     "type": "null"
                                                 }
                                             ]
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
                                         }
                                     },
                                     "type": "object"
@@ -24920,6 +24874,9 @@
                                                     "type": "null"
                                                 }
                                             ]
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
                                         }
                                     },
                                     "type": "object"
@@ -24951,6 +24908,9 @@
                                                     "type": "null"
                                                 }
                                             ]
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
                                         }
                                     },
                                     "type": "object"
@@ -24982,6 +24942,9 @@
                                                     "type": "null"
                                                 }
                                             ]
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
                                         }
                                     },
                                     "type": "object"
@@ -25013,6 +24976,9 @@
                                                     "type": "null"
                                                 }
                                             ]
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
                                         }
                                     },
                                     "type": "object"
@@ -25165,7 +25131,7 @@
                         },
                         "description": "Default Response"
                     },
-                    "409": {
+                    "400": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -25175,6 +25141,32 @@
                                         }
                                     },
                                     "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "code",
+                                        "userMessage",
                                         "error"
                                     ],
                                     "type": "object"
@@ -25356,6 +25348,205 @@
                                                     "type": "null"
                                                 }
                                             ]
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/kyc/details": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "citizenship": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "document": {
+                                            "anyOf": [
+                                                {
+                                                    "properties": {
+                                                        "country": {
+                                                            "type": "string"
+                                                        },
+                                                        "type": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "type",
+                                                        "country"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "heldBySumsub": {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "idNationality": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "name": {
+                                            "properties": {
+                                                "first": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "last": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "first",
+                                                "last"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "stored": {
+                                            "properties": {
+                                                "actingAsIntermediary": {
+                                                    "type": "string"
+                                                },
+                                                "annualSalary": {
+                                                    "type": "string"
+                                                },
+                                                "bankMonthlyPayments": {
+                                                    "type": "string"
+                                                },
+                                                "bankPurpose": {
+                                                    "type": "string"
+                                                },
+                                                "cardPurpose": {
+                                                    "type": "string"
+                                                },
+                                                "cityOfBirth": {
+                                                    "type": "string"
+                                                },
+                                                "countryOfBirth": {
+                                                    "type": "string"
+                                                },
+                                                "dateOfBirth": {
+                                                    "type": "string"
+                                                },
+                                                "employmentStatus": {
+                                                    "type": "string"
+                                                },
+                                                "expectedMonthlyVolume": {
+                                                    "type": "string"
+                                                },
+                                                "isFatca": {
+                                                    "type": "string"
+                                                },
+                                                "isFep": {
+                                                    "type": "string"
+                                                },
+                                                "isPep": {
+                                                    "type": "string"
+                                                },
+                                                "maritalStatus": {
+                                                    "type": "string"
+                                                },
+                                                "occupation": {
+                                                    "type": "string"
+                                                },
+                                                "phone": {
+                                                    "type": "string"
+                                                },
+                                                "sex": {
+                                                    "type": "string"
+                                                },
+                                                "sourceOfFunds": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": [
+                                        "name",
+                                        "citizenship",
+                                        "idNationality",
+                                        "document",
+                                        "stored",
+                                        "heldBySumsub"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "errors": {
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            },
+                                            "type": "object"
+                                        },
+                                        "step": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
                                         }
                                     },
                                     "type": "object"
@@ -25525,6 +25716,12 @@
                                                             {
                                                                 "enum": [
                                                                     "city_of_birth"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "citizenship"
                                                                 ],
                                                                 "type": "string"
                                                             },
@@ -25950,6 +26147,12 @@
                                                 }
                                             ]
                                         },
+                                        "proofOfAddressIdCountries": {
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
                                         "proofOfAddressReason": {
                                             "anyOf": [
                                                 {
@@ -25968,12 +26171,6 @@
                                                     "type": "null"
                                                 }
                                             ]
-                                        },
-                                        "proofOfAddressIdCountries": {
-                                            "items": {
-                                                "type": "string"
-                                            },
-                                            "type": "array"
                                         },
                                         "routes": {
                                             "items": {
@@ -26100,11 +26297,11 @@
                                                             },
                                                             "type": "array"
                                                         },
-                                                        "until": {
-                                                            "type": "string"
-                                                        },
                                                         "proofOfAddress": {
                                                             "type": "boolean"
+                                                        },
+                                                        "until": {
+                                                            "type": "string"
                                                         }
                                                     },
                                                     "required": [
@@ -27469,6 +27666,49 @@
                                         "available": {
                                             "type": "boolean"
                                         },
+                                        "closed": {
+                                            "items": {
+                                                "properties": {
+                                                    "feature": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "qr"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "local"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "card"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "bank"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "reason": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "feature",
+                                                    "reason"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        },
                                         "firstUnanswered": {
                                             "anyOf": [
                                                 {
@@ -27518,6 +27758,12 @@
                                                         {
                                                             "enum": [
                                                                 "tax"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "nationality"
                                                             ],
                                                             "type": "string"
                                                         }
@@ -27688,6 +27934,12 @@
                                                                     "tax"
                                                                 ],
                                                                 "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "nationality"
+                                                                ],
+                                                                "type": "string"
                                                             }
                                                         ]
                                                     }
@@ -27701,49 +27953,6 @@
                                                 "type": "object"
                                             },
                                             "type": "array"
-                                        },
-                                        "closed": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "feature": {
-                                                        "anyOf": [
-                                                            {
-                                                                "enum": [
-                                                                    "qr"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
-                                                                    "local"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
-                                                                    "card"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
-                                                                    "bank"
-                                                                ],
-                                                                "type": "string"
-                                                            }
-                                                        ]
-                                                    },
-                                                    "reason": {
-                                                        "type": "string"
-                                                    }
-                                                },
-                                                "required": [
-                                                    "feature",
-                                                    "reason"
-                                                ]
-                                            }
                                         }
                                     },
                                     "required": [
@@ -28020,6 +28229,28 @@
                                                             "effectiveDate": {
                                                                 "type": "string"
                                                             },
+                                                            "feature": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "enum": [
+                                                                            "bank"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "card"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "local"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    }
+                                                                ]
+                                                            },
                                                             "key": {
                                                                 "type": "string"
                                                             },
@@ -28070,6 +28301,12 @@
                                                                     {
                                                                         "enum": [
                                                                             "restart-identity"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "questions"
                                                                         ],
                                                                         "type": "string"
                                                                     }
@@ -28377,6 +28614,28 @@
                                                                             "effectiveDate": {
                                                                                 "type": "string"
                                                                             },
+                                                                            "feature": {
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "bank"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "card"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "local"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    }
+                                                                                ]
+                                                                            },
                                                                             "key": {
                                                                                 "type": "string"
                                                                             },
@@ -28427,6 +28686,12 @@
                                                                                     {
                                                                                         "enum": [
                                                                                             "restart-identity"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "questions"
                                                                                         ],
                                                                                         "type": "string"
                                                                                     }
@@ -31148,248 +31413,6 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
-        "/users/kyc/details": {
-            "get": {
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "address": {
-                                            "anyOf": [
-                                                {
-                                                    "properties": {
-                                                        "city": {
-                                                            "type": "string"
-                                                        },
-                                                        "country": {
-                                                            "type": "string"
-                                                        },
-                                                        "line1": {
-                                                            "type": "string"
-                                                        },
-                                                        "line2": {
-                                                            "anyOf": [
-                                                                {
-                                                                    "type": "string"
-                                                                },
-                                                                {
-                                                                    "type": "null"
-                                                                }
-                                                            ]
-                                                        },
-                                                        "postCode": {
-                                                            "anyOf": [
-                                                                {
-                                                                    "type": "string"
-                                                                },
-                                                                {
-                                                                    "type": "null"
-                                                                }
-                                                            ]
-                                                        },
-                                                        "state": {
-                                                            "anyOf": [
-                                                                {
-                                                                    "type": "string"
-                                                                },
-                                                                {
-                                                                    "type": "null"
-                                                                }
-                                                            ]
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "line1",
-                                                        "line2",
-                                                        "city",
-                                                        "state",
-                                                        "postCode",
-                                                        "country"
-                                                    ],
-                                                    "type": "object"
-                                                },
-                                                {
-                                                    "type": "null"
-                                                }
-                                            ]
-                                        },
-                                        "citizenship": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "string"
-                                                },
-                                                {
-                                                    "type": "null"
-                                                }
-                                            ]
-                                        },
-                                        "document": {
-                                            "anyOf": [
-                                                {
-                                                    "properties": {
-                                                        "country": {
-                                                            "type": "string"
-                                                        },
-                                                        "type": {
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "type",
-                                                        "country"
-                                                    ],
-                                                    "type": "object"
-                                                },
-                                                {
-                                                    "type": "null"
-                                                }
-                                            ]
-                                        },
-                                        "heldBySumsub": {
-                                            "items": {
-                                                "type": "string"
-                                            },
-                                            "type": "array"
-                                        },
-                                        "name": {
-                                            "properties": {
-                                                "first": {
-                                                    "anyOf": [
-                                                        {
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "type": "null"
-                                                        }
-                                                    ]
-                                                },
-                                                "last": {
-                                                    "anyOf": [
-                                                        {
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "type": "null"
-                                                        }
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "first",
-                                                "last"
-                                            ],
-                                            "type": "object"
-                                        },
-                                        "stored": {
-                                            "properties": {
-                                                "actingAsIntermediary": {
-                                                    "type": "string"
-                                                },
-                                                "annualSalary": {
-                                                    "type": "string"
-                                                },
-                                                "bankMonthlyPayments": {
-                                                    "type": "string"
-                                                },
-                                                "bankPurpose": {
-                                                    "type": "string"
-                                                },
-                                                "cardPurpose": {
-                                                    "type": "string"
-                                                },
-                                                "cityOfBirth": {
-                                                    "type": "string"
-                                                },
-                                                "countryOfBirth": {
-                                                    "type": "string"
-                                                },
-                                                "dateOfBirth": {
-                                                    "type": "string"
-                                                },
-                                                "employmentStatus": {
-                                                    "type": "string"
-                                                },
-                                                "expectedMonthlyVolume": {
-                                                    "type": "string"
-                                                },
-                                                "isFatca": {
-                                                    "type": "string"
-                                                },
-                                                "isFep": {
-                                                    "type": "string"
-                                                },
-                                                "isPep": {
-                                                    "type": "string"
-                                                },
-                                                "maritalStatus": {
-                                                    "type": "string"
-                                                },
-                                                "occupation": {
-                                                    "type": "string"
-                                                },
-                                                "phone": {
-                                                    "type": "string"
-                                                },
-                                                "sex": {
-                                                    "type": "string"
-                                                },
-                                                "sourceOfFunds": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "required": [
-                                        "name",
-                                        "citizenship",
-                                        "document",
-                                        "address",
-                                        "stored",
-                                        "heldBySumsub"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "code": {
-                                            "type": "string"
-                                        },
-                                        "errors": {
-                                            "additionalProperties": {
-                                                "type": "string"
-                                            },
-                                            "type": "object"
-                                        },
-                                        "step": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "string"
-                                                },
-                                                {
-                                                    "type": "null"
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        },
                         "description": "Default Response"
                     }
                 }

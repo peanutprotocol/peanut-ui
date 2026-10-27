@@ -24,6 +24,10 @@ jest.mock('@/hooks/useResidenceRestrictionSets', () => {
     return {
         ...actual,
         useResidenceRestrictionSets: () => actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
+        useResidenceRestrictionSetsWithStatus: () => ({
+            sets: actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
+            settled: true,
+        }),
     }
 })
 
@@ -67,11 +71,10 @@ describe('useBankRegionIntent', () => {
         expect(intentFor('europe')).toBe('EU')
     })
 
-    it('keeps the destination intent when a second residence is unrestricted', () => {
-        // dual resident: the bank level is still winnable under BR, so the
-        // offer stands (mirrors the intersection in useResidenceRestrictions)
+    // The API keys bank availability on the one residence; a second one never lifts it.
+    it('forces ROW for a restricted residence even with an unrestricted second one', () => {
         mockUser = { residence: normalizeResidence({ declared: 'GB', declaredSecond: 'BR' }) }
-        expect(intentFor('europe')).toBe('EU')
+        expect(intentFor('europe')).toBe('ROW')
     })
 
     it('honours the server answer over the local declaration', () => {

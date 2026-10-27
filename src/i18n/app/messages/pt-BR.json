@@ -642,7 +642,8 @@
                 "maritalStatus": "Estado civil",
                 "isPep": "Cargo público",
                 "isFatca": "Cidadão ou residente fiscal dos EUA",
-                "isFep": "Sujeito obrigado perante a UIF"
+                "isFep": "Sujeito obrigado perante a UIF",
+                "idNationality": "Nacionalidade no seu documento"
             }
         }
     },
@@ -3049,7 +3050,8 @@
             "ctaRetakeId": "Tirar outra foto do documento",
             "supportMessageDuplicateAccount": "Olá! Minha verificação está bloqueada porque meu e-mail já está vinculado a outra conta Peanut. Vocês podem me ajudar a resolver qual conta manter?",
             "supportMessageImportedIdentity": "Olá! Minhas transferências bancárias estão bloqueadas porque o parceiro de pagamentos não conseguiu verificar o documento da minha verificação anterior. Vocês podem me ajudar a enviar um documento válido?",
-            "descriptionRetakeId": "Nosso parceiro de pagamentos precisa de uma foto nova e nítida do seu documento de identidade. Use um documento válido e mostre-o inteiro."
+            "descriptionRetakeId": "Nosso parceiro de pagamentos precisa de uma foto nova e nítida do seu documento de identidade. Use um documento válido e mostre-o inteiro.",
+            "ctaAnswerQuestion": "Responder à pergunta"
         },
         "documentRequest": {
             "title": "Mais um documento necessário"
@@ -3122,7 +3124,8 @@
             "termsNeeded": "Faltam os termos",
             "documentDescription": "Nosso parceiro de pagamentos precisa de mais um documento para terminar de abrir esta conta.",
             "proofOfAddressDescription": "Nosso parceiro de pagamentos precisa de um comprovante de endereço para terminar de abrir sua conta bancária.",
-            "termsDescription": "Aceite os termos atualizados para continuar usando transferências bancárias."
+            "termsDescription": "Aceite os termos atualizados para continuar usando transferências bancárias.",
+            "questionsNeeded": "Falta uma resposta"
         },
         "bridgeTos": {
             "description": "Aceite os termos do provedor para ativar as transferências bancárias.",
@@ -3528,7 +3531,7 @@
                 "phone": "Nossos parceiros guardam seu número de telefone para proteger sua conta.",
                 "tax": "As contas no seu país precisam estar vinculadas ao seu número fiscal.",
                 "declarations": "As regras financeiras do seu país fazem estas perguntas a todos. Se alguma se aplicar, podemos pedir um documento depois.",
-                "nationality": "Bancos na UE precisam saber de todos os países onde você tem cidadania.",
+                "nationality": "Bancos na UE precisam saber sua nacionalidade, e seu documento não a mostra.",
                 "citizenship": "Usamos sua cidadania para mostrar o passaporte e o documento nacional de identidade com os quais você pode se verificar."
             },
             "sentence": {
@@ -3545,9 +3548,10 @@
                 "cityOfBirth": "na cidade <nw>de <pill></pill></nw>",
                 "bankMonthlyPayments": "Por mês, minha conta <nw>movimenta <pill></pill></nw>",
                 "actingAsIntermediary": "Vou enviar dinheiro <nw><pill></pill></nw>",
-                "nationality": "Tenho cidadania <nw>de <pill></pill></nw>",
+                "nationality": "Minha nacionalidade <nw>é <pill></pill></nw>",
                 "maritalStatus": "Meu estado civil <nw>é <pill></pill></nw>",
-                "sex": "Meu sexo no documento <nw>é <pill></pill></nw>"
+                "sex": "Meu sexo no documento <nw>é <pill></pill></nw>",
+                "citizenship": "Tenho cidadania <nw>de <pill></pill></nw>"
             },
             "pickerTitle": {
                 "cardPurpose": "Para que você vai usar o cartão",
@@ -3563,9 +3567,10 @@
                 "cityOfBirth": "Cidade de nascimento",
                 "bankMonthlyPayments": "Quanto sua conta vai movimentar por mês",
                 "actingAsIntermediary": "Em nome de quem você envia dinheiro",
-                "nationality": "Sua cidadania",
+                "nationality": "Sua nacionalidade",
                 "maritalStatus": "Estado civil",
-                "sex": "Sexo"
+                "sex": "Sexo",
+                "citizenship": "Sua cidadania"
             },
             "jobNone": {
                 "last": "Nenhum nos últimos 5 anos",
@@ -3661,13 +3666,15 @@
             "titles": {
                 "address": "Onde você mora?",
                 "phone": "Qual é o seu número de telefone?",
-                "declarations": "Alguma destas opções se aplica a você?"
+                "declarations": "Alguma destas opções se aplica a você?",
+                "nationality": "Confirme sua nacionalidade"
             },
             "sections": {
                 "purpose": "Finalidade",
                 "work": "Trabalho",
                 "money": "Dinheiro",
-                "birth": "Sobre você"
+                "birth": "Sobre você",
+                "nationality": "Nacionalidade"
             },
             "closed": {
                 "bank": {
@@ -3692,7 +3699,8 @@
                     "card": "O parceiro do seu cartão usa esse número para manter seu cartão seguro.",
                     "local": "Nosso parceiro de transferências locais guarda esse número na sua conta."
                 },
-                "declarations": "A maioria das pessoas deixa todas desligadas. Se alguma se aplicar, podemos pedir um documento depois."
+                "declarations": "A maioria das pessoas deixa todas desligadas. Se alguma se aplicar, podemos pedir um documento depois.",
+                "nationality": "Preenchemos sua cidadania. Mude se sua nacionalidade for outra."
             },
             "labels": {
                 "street": "Rua",
@@ -3744,7 +3752,8 @@
                     "curp": "18 caracteres.",
                     "cc": "Como aparece no seu documento.",
                     "other": "Como aparece nos seus documentos fiscais."
-                }
+                },
+                "replace": "Alterar o número"
             },
             "errors": {
                 "required": "Responda para continuar.",
@@ -3970,7 +3979,8 @@
             "card_unavailable_for_verification": "Indisponível com a verificação atual",
             "local_tax_id_missing": "Precisa de um número fiscal: CPF no Brasil, CUIT ou CUIL na Argentina",
             "under_minimum_age": "Somente a partir de 18 anos",
-            "bridge_processing_slow": "Está demorando mais que o normal. Nosso parceiro de pagamentos ainda está analisando seus dados. Fale com o suporte e a gente confere."
+            "bridge_processing_slow": "Está demorando mais que o normal. Nosso parceiro de pagamentos ainda está analisando seus dados. Fale com o suporte e a gente confere.",
+            "questions_missing": "Responda mais uma pergunta para terminar de configurar."
         }
     },
     "recoverFunds": {

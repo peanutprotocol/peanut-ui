@@ -1371,3 +1371,43 @@ describe('deriveGate — rejected imported identity', () => {
         expect(gateRemedy(gate)).toBe('support')
     })
 })
+
+// The send gate holds a provider until the app's add-later questions get an answer.
+describe('a rail waiting on an answer (the `questions` action)', () => {
+    const questions: NextAction = {
+        key: 'questions:bank',
+        kind: 'questions',
+        purpose: 'questions_missing',
+        feature: 'bank',
+    }
+    const reason = { code: 'questions_missing', userMessage: 'Answer one more question to finish setting this up.' }
+
+    test.each([
+        [
+            'as the API resolves it (blocked, no self-serve fix)',
+            {
+                resolved: {
+                    status: 'blocked' as const,
+                    blocking: { code: 'questions_missing', userMessage: reason.userMessage, selfHealable: false },
+                    nextAction: questions,
+                },
+            },
+        ],
+        ['on an API without the resolved verdict', {}],
+    ])('opens the questions of its feature %s', (_, extra) => {
+        const rail = bankRail({ status: 'requires-info', reason, blockingActions: [questions.key], ...extra })
+        const gate = deriveGate(state([rail], [questions]), 'deposit', { channel: 'bank' })
+        expect(gate).toMatchObject({ kind: 'fixable-rejection', nextAction: questions })
+        expect(gateRemedy(gate)).toBe('questions')
+        expect(isTerminalRailRejection(rail, new Map([[questions.key, questions]]))).toBe(false)
+    })
+
+    test('without a feature it falls back to the provider fix', () => {
+        const gate: GateState = {
+            kind: 'fixable-rejection',
+            userMessage: null,
+            nextAction: { ...questions, feature: undefined },
+        }
+        expect(gateRemedy(gate)).toBe('provider-fix')
+    })
+})

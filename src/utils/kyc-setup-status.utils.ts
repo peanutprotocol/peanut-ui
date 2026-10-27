@@ -12,6 +12,7 @@ export type KycFeatureKey = keyof KycFeatures
  * the drawer and, for the states with a step, one button.
  *
  * - `document-needed`: a provider asks for one more document
+ * - `questions-needed`: a provider waits on an answer the add-later questions collect
  * - `terms-needed`: the bank terms are still open
  * - `agreements-needed`: the card agreements are still open
  * - `needs-local-id`: the document's issuing country closes this feature; an ID issued by the residence country opens it
@@ -23,6 +24,7 @@ export type SetupRowState =
     | 'available'
     | 'under-review'
     | 'document-needed'
+    | 'questions-needed'
     | 'terms-needed'
     | 'agreements-needed'
     | 'needs-local-id'
@@ -115,6 +117,7 @@ const RANK: Record<SetupRowState, number> = {
     'verify-again': 6,
     'terms-needed': 5,
     'agreements-needed': 5,
+    'questions-needed': 5,
     'document-needed': 4,
     'not-available': 3,
     'under-review': 2,
@@ -144,6 +147,9 @@ function railOutcome(
     }
     if (action?.kind === 'restart-identity' || verdict.blocking?.selfHealKind === 'restart-identity') {
         return restartOutcome(action?.kind === 'restart-identity' ? (reason ?? action.purpose) : reason, rail.provider)
+    }
+    if (action?.kind === 'questions' && action.feature) {
+        return { state: 'questions-needed', step: { provider: rail.provider, action, reasonCode: reason }, reason }
     }
     if (action?.kind === 'accept-tos') {
         return submitted.terms

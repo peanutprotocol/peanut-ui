@@ -21,6 +21,7 @@ export function ResidenceCompare({
     citizenship,
     labelOf,
     restrictionSets,
+    restrictionsSettled,
     busy,
     onChoose,
 }: {
@@ -28,6 +29,8 @@ export function ResidenceCompare({
     citizenship: string
     labelOf: (country: string) => string
     restrictionSets: ResidenceRestrictionSets
+    /** false while the server's tier lists load: the bundled mirror is not enough to name an offer */
+    restrictionsSettled: boolean
     busy: boolean
     onChoose: (country: string) => void
 }) {
@@ -42,7 +45,9 @@ export function ResidenceCompare({
             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-4">
                 <Divider orientation="vertical" className="col-start-2 row-span-3 row-start-1" />
                 {[residence, citizenship].map((iso2) => {
-                    const summary = residenceAvailability(restrictionSets, iso2)
+                    const summary = restrictionsSettled
+                        ? residenceAvailability(restrictionSets, iso2)
+                        : { available: [], unavailable: [], multiCurrency: false }
                     return (
                         // subgrid rows: the lists and the notes line up when one country name wraps
                         <section key={iso2} className="row-span-3 grid grid-rows-subgrid">

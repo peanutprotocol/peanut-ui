@@ -207,7 +207,7 @@ const DE_STEPS = [
         fields: [
             { key: 'countryOfBirth', kind: 'country', required: true, value: 'DE' },
             { key: 'cityOfBirth', kind: 'place', required: true, countryField: 'countryOfBirth', value: null },
-            { key: 'nationality', kind: 'country', required: true, value: null },
+            { key: 'citizenship', kind: 'country', required: true, value: null },
         ],
     },
     address('DE', true),
