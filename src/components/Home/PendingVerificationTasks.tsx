@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
@@ -83,6 +83,7 @@ export default function PendingVerificationTasks({
 }) {
     const dismissible = placement === 'home'
     const t = useTranslations('home')
+    const locale = useLocale()
     const { nextActions, rails } = useCapabilities()
     const { user } = useAuth()
     const [activeTosTask, setActiveTosTask] = useState<NextAction | null>(null)
@@ -244,7 +245,7 @@ export default function PendingVerificationTasks({
                             const copy = taskCopy(task)
                             const isHosted = task.kind === 'bridge-hosted'
                             const isDocument = task.kind === 'sumsub'
-                            const deadline = formatEffectiveDate(task.effectiveDate)
+                            const deadline = formatEffectiveDate(task.effectiveDate, locale)
                             const startError =
                                 isDocument && documentFlow.startedTaskKey === task.key ? documentFlow.error : null
                             return (

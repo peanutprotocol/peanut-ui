@@ -169,7 +169,7 @@ describe('PendingVerificationTasks', () => {
             render(<PendingVerificationTasks />)
 
             expect(screen.getByText('One more document needed')).toBeInTheDocument()
-            expect(screen.getByText(`Complete before ${formatEffectiveDate(dueSoon)}`)).toBeInTheDocument()
+            expect(screen.getByText(`Complete before ${formatEffectiveDate(dueSoon, 'en')}`)).toBeInTheDocument()
             fireEvent.click(screen.getByRole('button', { name: 'Complete now' }))
 
             expect(mockHandleSelfHealResubmit).toHaveBeenCalledWith('BRIDGE', 'place_of_birth_missing')
