@@ -21,6 +21,7 @@ export function ResidenceCompare({
     citizenship,
     labelOf,
     restrictionSets,
+    restrictionsSettled,
     busy,
     onChoose,
 }: {
@@ -28,6 +29,8 @@ export function ResidenceCompare({
     citizenship: string
     labelOf: (country: string) => string
     restrictionSets: ResidenceRestrictionSets
+    /** false while the server's tier lists load: the bundled mirror is not enough to name an offer */
+    restrictionsSettled: boolean
     busy: boolean
     onChoose: (country: string) => void
 }) {
@@ -41,7 +44,9 @@ export function ResidenceCompare({
             {/* Client-derived from the restriction tiers and the same rail map as Unlock payments. */}
             <div className="grid grid-cols-2 gap-2">
                 {[residence, citizenship].map((iso2) => {
-                    const summary = residenceAvailability(restrictionSets, iso2)
+                    const summary = restrictionsSettled
+                        ? residenceAvailability(restrictionSets, iso2)
+                        : { available: [], unavailable: [], multiCurrency: false }
                     return (
                         <div key={iso2} className={`${CARD_SURFACE} min-w-0 p-3`}>
                             <p className="mb-2 flex items-center gap-2 text-label-m">

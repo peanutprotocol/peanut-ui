@@ -150,6 +150,8 @@ export interface ResolvedRail {
  *                           on; exchange the key for a URL via
  *                           startHostedVerification(), same handoff as
  *                           bridge-hosted.
+ *   - `questions`         — a provider waits on an answer the app asks: open
+ *                           the add-later questions of `feature`.
  */
 export type NextActionKind =
     | 'sumsub'
@@ -160,6 +162,7 @@ export type NextActionKind =
     | 'provide-email'
     | 'bridge-hosted'
     | 'rain-hosted'
+    | 'questions'
 
 export interface NextAction {
     key: string // stable id, referenced by RailCapability.blockingActions
@@ -191,6 +194,8 @@ export interface NextAction {
      * enrolled, so no rail names it.
      */
     refused?: { provider: ProviderCode; reason: string }[]
+    /** for kind:'questions' — the feature whose open questions the app shows. */
+    feature?: 'bank' | 'card' | 'local'
 }
 
 export interface CapabilityRestriction {

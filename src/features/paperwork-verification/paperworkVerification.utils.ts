@@ -1,9 +1,9 @@
-import type { IUserProfile } from '@/interfaces/interfaces'
 import type { SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import type {
     PaperworkVerificationAnswers,
     PaperworkVerificationClosedFeature,
+    PaperworkVerificationFeature,
     PaperworkVerificationField,
     PaperworkVerificationFieldKind,
     PaperworkVerificationQuestions,
@@ -22,31 +22,6 @@ export const DOCUMENT_KEYS = {
     RESIDENCE_PERMIT: 'residencePermit',
     TEMPORARY_PROTECTION: 'temporaryProtection',
 } as const
-
-/**
- * Temporary protection is for people displaced from Ukraine: offered only to an
- * account tied to it by citizenship, a residence, or where it signed up from
- * (Slava, 2026-10-26).
- */
-export function linkedToUkraine(
-    citizenship: string | null,
-    user: Pick<IUserProfile, 'residence' | 'geo'> | null | undefined,
-    residence: string | null = null
-): boolean {
-    const r = user?.residence
-    const signup = user?.geo?.signup
-    return [
-        citizenship,
-        residence,
-        r?.verified?.country,
-        r?.declared?.country,
-        r?.declared?.secondCountry,
-        r?.secondaryDeclaredCountry,
-        signup?.vercelIp?.country,
-        signup?.ipProvider?.country,
-        signup?.store?.country,
-    ].some((country) => country?.toUpperCase() === 'UA')
-}
 
 export const RESIDENCE_CHANGE_HREF = '/profile?open=residence'
 export const PAYMENT_METHODS_HREF = '/profile/payments'
@@ -71,7 +46,7 @@ export const whyKeyOf = (step: { id: PaperworkVerificationStepId; features: stri
 
 /** The citizenship the questions asked, saved or not; null when they did not ask. */
 export const citizenshipOf = (questions: PaperworkVerificationQuestions): string | null =>
-    questions.steps.flatMap((s) => s.fields).find((f) => f.key === 'nationality')?.value ?? null
+    questions.steps.flatMap((s) => s.fields).find((f) => f.key === 'citizenship')?.value ?? null
 
 // Fields answered from a picker. They read as one sentence, so several steps of them share a screen.
 const PICKER_KINDS = new Set<PaperworkVerificationFieldKind>(['choice', 'occupation', 'country', 'place'])
@@ -200,13 +175,23 @@ export const initialValues = (
     return NO_JOB[mode] && values.occupation ? { ...values, occupation: jobFor(mode, values.occupation) } : values
 }
 
-/** What a step sends: trimmed, locked fields as the server gave them, empty optional fields left out. */
+/**
+ * A saved value the server shows masked (the tax number as `•••• 1234`), not typed over. The
+ * value check stands in for an API that drops the `masked` flag: a masked value must never be sent.
+ */
+export const maskedUntouched = (field: PaperworkVerificationField, values: PaperworkVerificationAnswers) =>
+    !!field.value &&
+    (field.masked === true || (field.kind === 'taxId' && field.value.startsWith('•'))) &&
+    (values[field.key] ?? field.value) === field.value
+
+/** What a step sends: trimmed, locked fields as given, empty optional and untouched masked fields left out. */
 export function stepPayload(
     fields: PaperworkVerificationField[],
     values: PaperworkVerificationAnswers
 ): PaperworkVerificationAnswers {
     const out: PaperworkVerificationAnswers = {}
     for (const field of fields) {
+        if (maskedUntouched(field, values)) continue
         const raw = field.locked ? (field.value ?? '') : (values[field.key] ?? '')
         const value = field.kind === 'phone' ? raw.replace(/[\s()-]/g, '') : raw.trim()
         if (value) out[field.key] = value
@@ -284,8 +269,28 @@ export const looksLikeItin = (format: PaperworkVerificationTaxFormat | undefined
 export type VerifyPhase = 'saved' | 'id' | 'review' | 'verified' | 'address-proof'
 export type VerifyStep = PaperworkVerificationStepId | VerifyPhase
 
-export const IN_REVIEW_STATUSES = new Set<string>(['PENDING', 'IN_REVIEW', 'REVERIFYING'])
+// REVERIFYING is an approved user's selfie re-check; the API counts it as approved.
+export const APPROVED_STATUSES = new Set<string>(['APPROVED', 'REVERIFYING'])
+export const IN_REVIEW_STATUSES = new Set<string>(['PENDING', 'IN_REVIEW'])
 export const FAILED_STATUSES = new Set<string>(['ACTION_REQUIRED', 'REJECTED', 'FAILED'])
+// FAILED is our check erroring with nothing decided; only REJECTED is final.
+export const RETRYABLE_STATUSES = new Set<string>(['ACTION_REQUIRED', 'FAILED'])
+
+/**
+ * A question still open after approval (the nationality an EEA bank account needs when the ID
+ * names none) is that feature's add-later question: the feature to ask it for, if any.
+ */
+export function featureOpenAfterApproval(
+    questions: PaperworkVerificationQuestions,
+    status: SumsubKycStatus | undefined
+): PaperworkVerificationFeature | null {
+    if (!status || !APPROVED_STATUSES.has(status)) return null
+    for (const step of questions.steps) {
+        const feature = step.answered ? undefined : step.features.find((f) => f !== 'base')
+        if (feature) return feature
+    }
+    return null
+}
 
 /** Where a visit starts: approval and review win over the questions, the first open question over the midpoint. */
 export function entryStep(
@@ -296,7 +301,8 @@ export function entryStep(
     }: { questions: PaperworkVerificationQuestions; plan: KycDocumentPlan | null; status: SumsubKycStatus | undefined },
     submitted = false
 ): VerifyStep {
-    if (status === 'APPROVED') return plan?.proofOfAddress === 'suggested' ? 'address-proof' : 'verified'
+    if (status && APPROVED_STATUSES.has(status))
+        return plan?.proofOfAddress === 'suggested' ? 'address-proof' : 'verified'
     if (submitted || (status && (IN_REVIEW_STATUSES.has(status) || FAILED_STATUSES.has(status)))) return 'review'
     return resumeStep(questions) ?? 'id'
 }

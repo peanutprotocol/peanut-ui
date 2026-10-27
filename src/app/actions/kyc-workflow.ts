@@ -24,6 +24,7 @@ async function read<T>(path: string, options?: RequestInit): Promise<T> {
         const body = await response.json().catch(() => null)
         throw Object.assign(new Error('KYC request failed'), {
             code: body?.code ?? body?.error,
+            userMessage: typeof body?.userMessage === 'string' ? body.userMessage : undefined,
             feature: body?.feature,
             status: response.status,
         })
@@ -130,9 +131,13 @@ export async function resumeKycDocumentAttempt(attemptId: string) {
     const body = await response.json().catch(() => null)
     if (response.ok) return validSession(body, false)
     // A crash can leave the saved replacement before its remote reset. Only that explicit response resumes the authorised reset ledger.
-    if (response.status === 409 && body?.error === 'replacement_reset_required')
+    // Conflicts carry a stable `code`; older bodies name it only in `error`.
+    if (response.status === 409 && [body?.code, body?.error].includes('replacement_reset_required'))
         return validSession(await read<KycAttemptSession>('/users/identity/restart', { method: 'POST', body: '{}' }))
-    throw Object.assign(new Error('KYC request failed'), { code: body?.code ?? body?.error })
+    throw Object.assign(new Error('KYC request failed'), {
+        code: body?.code ?? body?.error,
+        userMessage: typeof body?.userMessage === 'string' ? body.userMessage : undefined,
+    })
 }
 
 /** Read-only fallback for a missed identity websocket event; never opens or refreshes an applicant. */

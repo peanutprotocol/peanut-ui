@@ -227,4 +227,27 @@ describe('KycSetupStatusDrawer', () => {
             expect(screen.getByTestId('kyc-setup-step')).toBeDisabled()
         })
     })
+
+    it('a provider waiting on an answer opens the add-later questions of that feature', () => {
+        const questions: NextAction = {
+            key: 'questions:bank',
+            kind: 'questions',
+            purpose: 'questions_missing',
+            feature: 'bank',
+        }
+        const { onClose } = renderDrawer([
+            { key: 'qr', state: 'available' },
+            {
+                key: 'bank',
+                state: 'questions-needed',
+                reason: 'questions_missing',
+                step: { provider: 'bridge', action: questions, reasonCode: 'questions_missing' },
+            },
+        ])
+        expect(row('bank').getByText('Answer needed')).toBeInTheDocument()
+        expect(row('bank').getByText('Answer one more question to finish setting this up.')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Answer the question' }))
+        expect(onClose).toHaveBeenCalled()
+        expect(push).toHaveBeenCalledWith('/verify?feature=bank')
+    })
 })

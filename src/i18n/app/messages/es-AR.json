@@ -1553,7 +1553,7 @@
             "why": {
                 "work": "Los bancos y emisores de tarjetas tienen que saber a qué te dedicás.",
                 "address": "Tu domicilio tiene que coincidir con donde vivís y aparece en los datos de tu cuenta.",
-                "nationality": "Los bancos de la UE tienen que conocer cada país del que tenés ciudadanía.",
+                "nationality": "Los bancos de la UE tienen que conocer tu nacionalidad, y tu documento no la muestra.",
                 "citizenship": "Usamos tu ciudadanía para mostrarte el pasaporte y el documento nacional de identidad con los que podés verificarte."
             },
             "search": {
@@ -1563,7 +1563,8 @@
             },
             "titles": {
                 "address": "¿Dónde vivís?",
-                "declarations": "¿Alguna de estas opciones aplica a vos?"
+                "declarations": "¿Alguna de estas opciones aplica a vos?",
+                "nationality": "Confirmá tu nacionalidad"
             },
             "sections": {
                 "birth": "Sobre vos"
@@ -1644,6 +1645,9 @@
                 "issuedByWithProof": "Emitido en {country}. También vas a agregar un comprobante de domicilio.",
                 "otherDescription": "También podés verificarte con uno de estos. Le vas a sacar fotos y te vas a sacar una selfie.",
                 "noneFit": "¿No tenés ninguno de estos?"
+            },
+            "descriptions": {
+                "nationality": "Completamos tu ciudadanía. Cambiala si tu nacionalidad es otra."
             }
         },
         "setup": {
@@ -1679,7 +1683,8 @@
             "uk_resident_blocked": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
             "residence_bank_restricted": "Las transferencias bancarias no están disponibles para residentes de tu país. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
             "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no va a cambiar el resultado.",
-            "pep_documentation": "Como vos o alguien cercano a vos ocupa un cargo público, necesitamos una declaración jurada de tus bienes e ingresos, o un documento que muestre el origen de tu dinero."
+            "pep_documentation": "Como vos o alguien cercano a vos ocupa un cargo público, necesitamos una declaración jurada de tus bienes e ingresos, o un documento que muestre el origen de tu dinero.",
+            "questions_missing": "Respondé una pregunta más para terminar de configurarlo."
         }
     },
     "recoverFunds": {

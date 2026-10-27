@@ -3,8 +3,13 @@ import type {
     PaperworkVerificationQuestions,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import {
+    APPROVED_STATUSES,
+    citizenshipOf,
     composeScreens,
+    featureOpenAfterApproval,
+    IN_REVIEW_STATUSES,
     openFeatures,
+    RETRYABLE_STATUSES,
     entryStep,
     fieldErrorKey,
     formatTaxId,
@@ -17,7 +22,7 @@ import {
     stepComplete,
     stepPayload,
     stepProgress,
-    linkedToUkraine,
+    stepUnchanged,
     whyKeyOf,
     withEmploymentStatus,
     jobModeOf,
@@ -78,6 +83,22 @@ describe('entryStep', () => {
         expect(entryStep({ questions: questions(), plan, status: 'IN_REVIEW' })).toBe('review')
         expect(entryStep({ questions: questions(), plan, status: 'ACTION_REQUIRED' })).toBe('review')
         expect(entryStep({ questions: questions(), plan, status: 'PENDING' }, true)).toBe('review')
+    })
+
+    it('shows a check that failed or was rejected as the review screen, where a retry is decided', () => {
+        expect(entryStep({ questions: questions(), plan, status: 'FAILED' as never })).toBe('review')
+        expect(entryStep({ questions: questions(), plan, status: 'REJECTED' })).toBe('review')
+    })
+
+    // The API counts REVERIFYING (an approved user's selfie re-check) as approved.
+    it('treats REVERIFYING as approved', () => {
+        expect(entryStep({ questions: questions(), plan, status: 'REVERIFYING' })).toBe('verified')
+        expect(IN_REVIEW_STATUSES.has('REVERIFYING')).toBe(false)
+        expect(APPROVED_STATUSES.has('REVERIFYING')).toBe(true)
+    })
+
+    it('offers a retry for ACTION_REQUIRED and FAILED only', () => {
+        expect([...RETRYABLE_STATUSES].sort()).toEqual(['ACTION_REQUIRED', 'FAILED'])
     })
 
     it('ends on verified, or on the proof-of-address suggestion (rule 1)', () => {
@@ -309,33 +330,6 @@ describe('tax numbers', () => {
     })
 })
 
-// Slava, 2026-10-26: temporary protection only with a tie to Ukraine.
-describe('linkedToUkraine', () => {
-    const residence = (declared: string | null, second: string | null = null) => ({
-        verified: null,
-        declared: declared
-            ? { country: declared, status: 'UNVERIFIED' as const, updatedAt: null, secondCountry: second }
-            : null,
-    })
-    it('is a Ukrainian citizenship, residence, second residence or sign-up location', () => {
-        expect(linkedToUkraine('UA', { residence: residence('PL') })).toBe(true)
-        expect(linkedToUkraine(null, { residence: residence('UA') })).toBe(true)
-        expect(linkedToUkraine(null, { residence: residence('PL', 'UA') })).toBe(true)
-        expect(
-            linkedToUkraine(null, {
-                residence: residence('PL'),
-                geo: { signup: { store: { country: 'UA', source: 'google-play', observedAt: '' } } },
-            })
-        ).toBe(true)
-        expect(linkedToUkraine(null, null, 'UA')).toBe(true)
-    })
-
-    it('is none of those for anyone else', () => {
-        expect(linkedToUkraine('DE', { residence: residence('PL') })).toBe(false)
-        expect(linkedToUkraine(null, null)).toBe(false)
-    })
-})
-
 describe('whyKeyOf', () => {
     it('explains a birth step that asks only the citizenship as the ID picker’s, every other step as its own', () => {
         expect(whyKeyOf({ id: 'birth', features: ['base'] })).toBe('citizenship')
@@ -368,6 +362,112 @@ describe('a work status that names the job', () => {
     it('fills the job from a stored status, and leaves the job alone when the form does not ask it', () => {
         expect(initialValues([{ ...work[0], value: 'student' }, work[1]])).toMatchObject({ occupation: 'student' })
         expect(withEmploymentStatus([work[0]], {}, 'retired')).toEqual({ employmentStatus: 'retired' })
+    })
+})
+
+// Slava, 2026-10-27: the citizenship the ID picker reads and the nationality Bridge needs are two fields.
+describe('citizenshipOf', () => {
+    it('reads the citizenship field, saved or not', () => {
+        const q = questions({
+            steps: [
+                {
+                    id: 'birth',
+                    features: ['base'],
+                    answered: false,
+                    fields: [field('citizenship', { kind: 'country', value: 'UA' })],
+                },
+            ],
+        })
+        expect(citizenshipOf(q)).toBe('UA')
+    })
+
+    it('never takes the nationality asked after the ID check for it', () => {
+        const q = questions({
+            steps: [
+                {
+                    id: 'nationality',
+                    features: ['bank'],
+                    answered: false,
+                    fields: [field('nationality', { kind: 'country', value: 'PL' })],
+                },
+            ],
+        })
+        expect(citizenshipOf(q)).toBeNull()
+    })
+})
+
+describe('the nationality step after approval', () => {
+    const nationality = (answered = false) => ({
+        id: 'nationality' as const,
+        features: ['bank' as const],
+        answered,
+        fields: [field('nationality', { kind: 'country', value: 'DE' })],
+    })
+    const afterApproval = (answered = false) =>
+        questions({
+            steps: [
+                {
+                    id: 'purpose',
+                    features: ['card'],
+                    answered: true,
+                    fields: [field('cardPurpose', { kind: 'choice' })],
+                },
+                nationality(answered),
+            ],
+            firstUnanswered: answered ? null : 'nationality',
+        })
+
+    it("is its feature's add-later question once the ID is approved", () => {
+        expect(featureOpenAfterApproval(afterApproval(), 'APPROVED')).toBe('bank')
+        expect(featureOpenAfterApproval(afterApproval(), 'REVERIFYING')).toBe('bank')
+    })
+
+    it('asks nothing when it is answered or the ID is not approved yet', () => {
+        expect(featureOpenAfterApproval(afterApproval(true), 'APPROVED')).toBeNull()
+        expect(featureOpenAfterApproval(afterApproval(), 'IN_REVIEW')).toBeNull()
+        expect(featureOpenAfterApproval(afterApproval(), undefined)).toBeNull()
+    })
+
+    it('is where the questions resume, on a picker screen of its own', () => {
+        expect(resumeStep(afterApproval())).toBe('nationality')
+        expect(composeScreens(afterApproval(), false)).toEqual([['purpose', 'nationality']])
+        expect(composeScreens(questions({ steps: [nationality()] }), false)).toEqual([['nationality']])
+    })
+
+    it('arrives filled with the citizenship and is still saved: it is unanswered', () => {
+        const step = nationality()
+        expect(stepUnchanged(step, { nationality: 'DE' })).toBe(false)
+        expect(stepPayload(step.fields, { nationality: 'DE' })).toEqual({ nationality: 'DE' })
+    })
+})
+
+// The saved tax number comes back masked; sending it back would overwrite the real one.
+describe('a masked tax number', () => {
+    const tax = (extra: Partial<PaperworkVerificationField> = {}) =>
+        field('taxId', { kind: 'taxId', format: 'cuit', value: '•••• 1234', masked: true, ...extra })
+    const taxStep = (answered = true) => ({
+        id: 'tax' as const,
+        features: ['base' as const],
+        answered,
+        fields: [tax()],
+    })
+
+    it('is left out of the payload while untouched', () => {
+        expect(stepPayload([tax()], { taxId: '•••• 1234' })).toEqual({})
+        expect(stepPayload([tax()], {})).toEqual({})
+    })
+
+    it('reads as unchanged, so the screen does not save it again', () => {
+        expect(stepUnchanged(taxStep(), { taxId: '•••• 1234' })).toBe(true)
+    })
+
+    it('a new number typed over it is sent', () => {
+        expect(stepPayload([tax()], { taxId: '20-12345678-6' })).toEqual({ taxId: '20-12345678-6' })
+        expect(stepUnchanged(taxStep(), { taxId: '20-12345678-6' })).toBe(false)
+    })
+
+    it('is never sent even when the API drops the masked flag', () => {
+        expect(stepPayload([tax({ masked: undefined })], { taxId: '•••• 1234' })).toEqual({})
     })
 })
 

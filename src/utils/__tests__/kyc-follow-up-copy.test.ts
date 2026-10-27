@@ -6,6 +6,15 @@ import { setupRows } from '@/utils/kyc-setup-status.utils'
 import type { RailCapability } from '@/types/capabilities'
 
 describe('KYC action copy', () => {
+    it('names the answer a provider waits on', () => {
+        expect(
+            kycActionCtaKey(
+                { key: 'questions:bank', kind: 'questions', purpose: 'questions_missing', feature: 'bank' },
+                'questions_missing'
+            )
+        ).toBe('initiate.ctaAnswerQuestion')
+    })
+
     test.each(['eea_uplift', 'eea_uplift_with_tin', 'source_of_funds', 'tax_identification_number', 'birth_details'])(
         '%s uses questionnaire wording even with an unknown reason',
         (levelKey) => {

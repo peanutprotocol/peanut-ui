@@ -8,9 +8,11 @@ import type { PaperworkVerificationStep } from '@/app/actions/types/kyc-paperwor
 import { useOptionalAuth } from '@/context/authContext'
 import {
     forgetAnswerDraft,
+    forgetAnswerDraftOnResidenceChange,
     forgetSavedAnswers,
     keepAnswerDraft,
     readAnswerDraft,
+    sweepExpiredAnswerDrafts,
     withAnswerDraft,
 } from '../answerDraft'
 import { useAnswerForm } from '../useAnswerForm'
@@ -19,7 +21,13 @@ jest.mock('@/app/actions/kyc-paperwork-verification', () => ({ saveKycAnswers: j
 jest.mock('@/context/authContext', () => ({ useOptionalAuth: jest.fn() }))
 const save = jest.mocked(saveKycAnswers)
 const auth = jest.mocked(useOptionalAuth)
-const signedIn = (userId: string) => auth.mockReturnValue({ user: { user: { userId } } } as never)
+const signedIn = (userId: string, declared?: string) =>
+    auth.mockReturnValue({
+        user: {
+            user: { userId },
+            ...(declared && { residence: { verified: null, declared: { country: declared } } }),
+        },
+    } as never)
 
 const PHONE: PaperworkVerificationStep = {
     id: 'phone',
@@ -95,6 +103,65 @@ describe('the device draft', () => {
         })
         expect(() => keepAnswerDraft('user-1', { phone: '+1' })).not.toThrow()
         setItem.mockRestore()
+    })
+})
+
+describe('expired drafts', () => {
+    test('of every account are removed at app start, fresh ones and other keys stay', () => {
+        jest.useFakeTimers({ now: new Date('2026-10-27T10:00:00Z') })
+        keepAnswerDraft('user-old', { phone: '+351 912 345 678' })
+        jest.setSystemTime(new Date('2026-11-02T10:00:00Z'))
+        keepAnswerDraft('user-fresh', { phone: '+14155550100' })
+        window.localStorage.setItem('peanut:kycAnswerDraft:user-broken', '{not json')
+        window.localStorage.setItem('peanut:declaredResidence:user-old', 'PT')
+        jest.setSystemTime(new Date('2026-11-03T10:00:01Z'))
+
+        sweepExpiredAnswerDrafts()
+
+        expect(window.localStorage.getItem('peanut:kycAnswerDraft:user-old')).toBeNull()
+        expect(window.localStorage.getItem('peanut:kycAnswerDraft:user-broken')).toBeNull()
+        expect(readAnswerDraft('user-fresh')).toEqual({ phone: '+14155550100' })
+        expect(window.localStorage.getItem('peanut:declaredResidence:user-old')).toBe('PT')
+    })
+})
+
+describe('a change of declared residence', () => {
+    test('drops answers typed for the old country', () => {
+        keepAnswerDraft('user-1', { street: 'Rua Augusta 1' }, 'PT')
+        forgetAnswerDraftOnResidenceChange('user-1', 'PT')
+        expect(readAnswerDraft('user-1', 'PT')).toEqual({ street: 'Rua Augusta 1' })
+        forgetAnswerDraftOnResidenceChange('user-1', 'ES')
+        expect(window.localStorage.length).toBe(0)
+    })
+
+    test('keeps the draft while the residence is unknown', () => {
+        keepAnswerDraft('user-1', { street: 'Rua Augusta 1' }, 'PT')
+        forgetAnswerDraftOnResidenceChange('user-1', undefined)
+        expect(readAnswerDraft('user-1')).toEqual({ street: 'Rua Augusta 1' })
+    })
+
+    test('is read as no draft, so the old address never fills the new country', () => {
+        keepAnswerDraft('user-1', { street: 'Rua Augusta 1' }, 'PT')
+        expect(readAnswerDraft('user-1', 'ES')).toEqual({})
+        expect(window.localStorage.length).toBe(0)
+    })
+
+    test("starts a new draft instead of mixing in the old country's answers", () => {
+        keepAnswerDraft('user-1', { street: 'Rua Augusta 1' }, 'PT')
+        keepAnswerDraft('user-1', { phone: '+34 600 000 000' }, 'ES')
+        expect(readAnswerDraft('user-1', 'ES')).toEqual({ phone: '+34 600 000 000' })
+    })
+
+    test("on a question screen follows the account's declared residence", () => {
+        signedIn('user-1', 'PT')
+        const before = renderHook(() => useAnswerForm([PHONE]))
+        act(() => before.result.current.change('phone', '+351 912 345 678'))
+        before.unmount()
+
+        signedIn('user-1', 'ES')
+        const after = renderHook(() => useAnswerForm([PHONE]))
+        expect(after.result.current.values).toEqual({ phone: '' })
+        expect(window.localStorage.length).toBe(0)
     })
 })
 

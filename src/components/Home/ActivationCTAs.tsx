@@ -31,6 +31,7 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdentityCheck'
 import { usePaperworkVerificationStart } from '@/features/paperwork-verification/usePaperworkVerificationStart'
+import { paperworkVerificationFeaturePath } from '@/features/paperwork-verification/paperworkVerificationEntry'
 
 interface ActivationCTAsProps {
     onboarding: OnboardingState
@@ -318,6 +319,13 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
                                     userId: user?.user?.userId,
                                 })
                             )
+                        } else if (
+                            hasProviderRejection &&
+                            hasFixableRejection &&
+                            fixableAction?.kind === 'questions' &&
+                            fixableAction.feature
+                        ) {
+                            router.push(paperworkVerificationFeaturePath(fixableAction.feature))
                         } else if (hasProviderRejection && hasFixableRejection && fixableProvider) {
                             void kycFlow.handleFixableRejection({
                                 provider: fixableProvider,

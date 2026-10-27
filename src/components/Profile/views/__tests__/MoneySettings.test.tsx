@@ -1152,7 +1152,7 @@ describe('MoneySettings', () => {
             ]
             render()
 
-            fireEvent.click(screen.getByText('ARS'))
+            fireEvent.click(screen.getByText('BRL'))
             expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
             fireEvent.click(screen.getByRole('button', { name: 'Verify identity' }))
             fireEvent.click(screen.getByText('EUR'))
@@ -1493,11 +1493,14 @@ describe("a row's modal reads the rails of its own country", () => {
         expect(screen.queryByText(/processing-modal-open/)).not.toBeInTheDocument()
     })
 
-    it('the Argentine row still owns its pending rail, and hands the drawer when it went pending', () => {
+    it('a second residence does not narrate a pending Argentine rail: the API opens Manteca by the one residence', () => {
         dualResident()
         render()
+        expect(
+            within(screen.getByText('ARS').closest('.border') as HTMLElement).getByText('Not available')
+        ).toBeInTheDocument()
         fireEvent.click(screen.getByText('ARS'))
-        expect(screen.getByText('processing-modal-open:2026-08-01T00:00:00.000Z')).toBeInTheDocument()
+        expect(screen.queryByText(/processing-modal-open/)).not.toBeInTheDocument()
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
     })
 
@@ -1505,14 +1508,26 @@ describe("a row's modal reads the rails of its own country", () => {
         dualResident()
         mockRails = []
         render()
-        fireEvent.click(screen.getByText('ARS'))
+        fireEvent.click(screen.getByText('BRL'))
         fireEvent.click(screen.getByText('unlock now'))
-        expect(mockInitiateKyc).toHaveBeenCalledWith('LATAM', undefined, true, 'AR')
+        expect(mockInitiateKyc).toHaveBeenCalledWith('LATAM', undefined, true, 'BR')
 
         fireEvent.click(screen.getByText('EUR'))
         fireEvent.click(screen.getByText('unlock now'))
         // the backend refuses any non-Manteca target country, so Bridge rows send none
         expect(mockInitiateKyc).toHaveBeenLastCalledWith('EU', undefined, true, undefined)
+    })
+
+    it('a second residence opens no new Argentine account', () => {
+        dualResident()
+        mockRails = []
+        render()
+        expect(
+            within(screen.getByText('ARS').closest('.border') as HTMLElement).getByText('Not available')
+        ).toBeInTheDocument()
+        fireEvent.click(screen.getByText('ARS'))
+        expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+        expect(mockInitiateKyc).not.toHaveBeenCalledWith('LATAM', undefined, true, 'AR')
     })
 })
 

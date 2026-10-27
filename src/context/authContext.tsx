@@ -40,7 +40,11 @@ import { captureException, setUser as setSentryUser } from '@/utils/sentry-lazy'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
 import { purgeCaches } from '@/utils/cache.utils'
 import { clearStepUpToken } from '@/services/step-up'
-import { forgetAnswerDraft } from '@/features/paperwork-verification/answerDraft'
+import {
+    draftResidenceOf,
+    forgetAnswerDraft,
+    forgetAnswerDraftOnResidenceChange,
+} from '@/features/paperwork-verification/answerDraft'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { clearInvite } from '@/utils/invite-stash'
@@ -117,6 +121,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!geoUserId || appLocked) return
         return resumeSignupGeo(geoUserId)
     }, [geoUserId, appLocked])
+
+    // Unsaved verification answers typed for one country must not outlive a move to another.
+    const declaredResidence = draftResidenceOf(user)
+    useEffect(() => {
+        forgetAnswerDraftOnResidenceChange(geoUserId, declaredResidence)
+    }, [geoUserId, declaredResidence])
 
     // Singleton auto-refresh poller — keeps the user query fresh while any
     // rail is provisioning OR a recent submission window is open. Mounted

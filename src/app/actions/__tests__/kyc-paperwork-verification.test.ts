@@ -65,6 +65,20 @@ describe('saveKycAnswers', () => {
         await expect(saveKycAnswers('purpose', {})).resolves.toEqual({ kind: 'conflict', code: 'feature_not_selected' })
     })
 
+    it("carries the server's user-facing line with any 409 code", async () => {
+        mockFetch.mockResolvedValue(reply(409, { code: 'some_new_code', userMessage: 'Your check already ended.' }))
+        await expect(saveKycAnswers('purpose', {})).resolves.toEqual({
+            kind: 'conflict',
+            code: 'some_new_code',
+            message: 'Your check already ended.',
+        })
+    })
+
+    it('reads an older body that names the code `error`', async () => {
+        mockFetch.mockResolvedValue(reply(409, { error: 'identity_submitted' }))
+        await expect(saveKycAnswers('purpose', {})).resolves.toEqual({ kind: 'conflict', code: 'identity_submitted' })
+    })
+
     it.each([503, 502, 500])('a %i is a retry, never a lost answer', async (status) => {
         mockFetch.mockResolvedValue(reply(status, { code: 'retry' }))
         await expect(saveKycAnswers('purpose', {})).resolves.toEqual({ kind: 'retry' })
@@ -112,6 +126,29 @@ describe('startPaperworkVerificationIdentity', () => {
         await expect(startPaperworkVerificationIdentity('attempt-1', document)).resolves.toEqual({
             kind: 'questions-missing',
             step: 'phone',
+        })
+    })
+
+    it.each([
+        ['document_required', { kind: 'document-required' }],
+        ['document_not_allowed', { kind: 'document-not-allowed' }],
+        ['verification_complete', { kind: 'complete' }],
+        ['identity_submitted', { kind: 'complete' }],
+        ['something_new', { kind: 'failed' }],
+    ])('maps a 409 %s, old body or new', async (code, outcome) => {
+        mockFetch.mockResolvedValue(reply(409, { error: code }))
+        await expect(startPaperworkVerificationIdentity('attempt-1', document)).resolves.toEqual(outcome)
+        mockFetch.mockResolvedValue(reply(409, { code, userMessage: 'Pick another document.' }))
+        await expect(startPaperworkVerificationIdentity('attempt-1', document)).resolves.toEqual({
+            ...outcome,
+            message: 'Pick another document.',
+        })
+    })
+
+    it('ignores an empty user-facing line', async () => {
+        mockFetch.mockResolvedValue(reply(409, { code: 'document_not_allowed', userMessage: '  ' }))
+        await expect(startPaperworkVerificationIdentity('attempt-1', document)).resolves.toEqual({
+            kind: 'document-not-allowed',
         })
     })
 

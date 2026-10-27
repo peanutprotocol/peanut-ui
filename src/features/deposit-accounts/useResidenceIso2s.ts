@@ -1,18 +1,17 @@
 'use client'
 
 import { useAuth } from '@/context/authContext'
-import { readDeclaredResidence, readSecondResidence } from '@/utils/declared-residence.storage'
+import { readDeclaredResidence } from '@/utils/declared-residence.storage'
 import { useMemo } from 'react'
 import { gatingResidenceIso2s } from './residenceGate'
 import { useHydrationSnapshot } from '@/utils/native-platform'
 
 /**
- * Every country this user counts as a resident of, upper-cased.
+ * The country a residence gate reads for this user, upper-cased.
  *
- * The verified residence (else the declared one) and a second declared
- * residence, through `gatingResidenceIso2s` — the derivation the Unlock
- * payments rows use too — with the device mirror for an API answer that
- * predates the fields. A user
+ * The verified residence, else the declared one, through
+ * `gatingResidenceIso2s` — the derivation the Unlock payments rows use too —
+ * with the device mirror for an API answer that predates the fields. A user
  * with no answer at all resides nowhere, which closes the residence-gated
  * corridors rather than opening them.
  */
@@ -24,22 +23,13 @@ export function useResidenceIso2s(): string[] {
         () => readDeclaredResidence(userId),
         () => null
     )
-    const localSecond = useHydrationSnapshot(
-        () => readSecondResidence(userId),
-        () => null
-    )
 
-    return useMemo(() => {
-        // the server's answer wins whenever it sends the field, `null` included
-        const second =
-            residence?.secondaryDeclaredCountry === undefined ? localSecond : residence.secondaryDeclaredCountry
-        const declared = residence?.declared?.country ?? localDeclared
-        return gatingResidenceIso2s({ verified: residence?.verified?.country, declared, second })
-    }, [
-        residence?.verified?.country,
-        residence?.declared?.country,
-        residence?.secondaryDeclaredCountry,
-        localDeclared,
-        localSecond,
-    ])
+    return useMemo(
+        () =>
+            gatingResidenceIso2s({
+                verified: residence?.verified?.country,
+                declared: residence?.declared?.country ?? localDeclared,
+            }),
+        [residence?.verified?.country, residence?.declared?.country, localDeclared]
+    )
 }
