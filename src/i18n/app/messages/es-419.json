@@ -3683,7 +3683,7 @@
                     "other": "¿Cuál es tu número fiscal?"
                 },
                 "description": {
-                    "ssn": "Las cuentas bancarias de EE. UU. lo necesitan.",
+                    "ssn": "Las cuentas y tarjetas de EE. UU. lo necesitan.",
                     "other": "El número fiscal de tu país de residencia."
                 },
                 "label": {

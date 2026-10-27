@@ -3683,7 +3683,7 @@
                     "other": "What’s your tax number?"
                 },
                 "description": {
-                    "ssn": "US bank accounts need it.",
+                    "ssn": "US accounts and cards need it.",
                     "other": "The tax number from your country of residence."
                 },
                 "label": {
