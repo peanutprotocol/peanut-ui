@@ -128,9 +128,10 @@ const getTitle = (
                     // Direction stays in words for every status (PR #2813
                     // review): a bare counterparty name can't tell inflow
                     // from outflow. Non-completed (pending / cancelled /
-                    // failed) reads "Sending to".
+                    // failed) reads "Sending to". A PIX-key send keeps the key
+                    // beside the owner's name.
                     titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
-                        name: sentenceName,
+                        name: nameDetail ? `${sentenceName} · ${nameDetail}` : sentenceName,
                     })
                 }
                 break
@@ -189,9 +190,7 @@ const getTitle = (
                     // the title keeps the type wording "Paid to {name}" in every
                     // non-failed state — the status badge, not the verb tense,
                     // carries pending/cancelled. ("Paying to" retired with it.)
-                    titleText = t('title.paidTo', {
-                        name: nameDetail ? `${sentenceName} · ${nameDetail}` : sentenceName,
-                    })
+                    titleText = t('title.paidTo', { name: sentenceName })
                 }
                 break
             case 'bank_request_fulfillment':

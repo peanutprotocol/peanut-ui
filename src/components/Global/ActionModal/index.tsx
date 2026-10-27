@@ -236,7 +236,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                 {(checkbox || (ctas && ctas.length > 0)) && (
                     <div className="space-y-4 mt-6 w-full">
                         {checkbox && (
-                            <div className={twMerge('flex justify-center', checkbox.className)}>
+                            <div className={twMerge('flex justify-center text-left', checkbox.className)}>
                                 <Checkbox
                                     label={checkbox.text}
                                     value={checkbox.checked}

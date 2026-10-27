@@ -1060,7 +1060,8 @@
             "scanWithBankApp": "Escaneá con la app de tu banco o copiá el código Pix."
         },
         "confirmationModal": {
-            "youMust": "Debés:"
+            "title": "Copiá la referencia tal cual",
+            "body": "La siguiente pantalla muestra los datos bancarios y una referencia de depósito. Pegala en el campo de referencia del banco."
         },
         "bankDetails": {
             "sendExactAmount": "¡Enviá exactamente este monto!",
@@ -1225,7 +1226,7 @@
         "noPendingRewards": "No tenés recompensas pendientes por ahora.",
         "lifetimeRewards": "Recompensas totales: {amount}. Para ganar más, invitá a tus amigos.",
         "earnWhenFriendsUse": "¡Ganás recompensas cada vez que tus amigos usan Peanut!",
-        "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más recompensas",
+        "shareInviteLinkPrompt": "Enviá tu enlace de invitación para empezar a ganar más recompensas",
         "contactSupport": "Por favor contactá a Soporte.",
         "howItWorks": {
             "step1": "Invitá a tus amigos a Peanut.",
@@ -1233,7 +1234,7 @@
         },
         "iosCopy": {
             "earnWhenFriendsUse": "¡Ganás puntos cada vez que tus amigos pagan con Peanut!",
-            "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más puntos",
+            "shareInviteLinkPrompt": "Enviá tu enlace de invitación para empezar a ganar más puntos",
             "howItWorks": {
                 "step4": "Hacé cualquier pago para reclamarlas."
             }
@@ -1746,7 +1747,6 @@
         "qrScannerOverlay": {
             "notSupportedGetNotified": "¡Enterate cuando esté disponible!",
             "getNotifiedCta": "¡Avisame!",
-            "directSendConfirm": "Confirmá los datos del pago antes de enviarlo",
             "externalUrlIntro": "Peanut no admite este QR, pero podés abrirlo con tu navegador.",
             "externalUrlTrust": "¡Asegurate de confiar en este sitio web!",
             "pixRecurringBody": "Peanut no admite pagos PIX recurrentes: pedí un código QR de PIX normal.",
@@ -1860,6 +1860,12 @@
         "feedbackBanner": "Ayudanos a mejorar Peanut. Compartí tus comentarios acá.",
         "reConsent": {
             "whatChanged": "Reescribimos los documentos de abajo en lenguaje sencillo para que reflejen lo que Peanut es hoy, incluidas la Peanut Card y las Recompensas. No hay apuro: leelos cuando quieras y seguí usando Peanut como siempre."
+        },
+        "savedAddresses": {
+            "nicknameRequired": "Agregá un nombre para guardar esta dirección."
+        },
+        "savedDestinations": {
+            "editFailed": "No pudimos guardar el nombre. Intentá de nuevo."
         }
     },
     "errors": {

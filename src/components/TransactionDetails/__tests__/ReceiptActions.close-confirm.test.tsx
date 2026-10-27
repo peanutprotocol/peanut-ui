@@ -136,3 +136,24 @@ test('a request that took nothing still cancels in one tap', async () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     await waitFor(() => expect(mockCloseRequest).toHaveBeenCalledTimes(1))
 })
+
+// TASK-24006: only the payer may cancel an addressed charge (the API answers
+// 403 to the requester), so the requester gets no cancel or close control.
+test('a pending addressed request shows the requester no cancel control', () => {
+    const addressed = {
+        id: 'charge-1',
+        status: 'pending',
+        amount: 10,
+        isRequestPotLink: false,
+        totalAmountCollected: 0,
+        extraDataForDrawer: {
+            originalType: 'TRANSACTION_INTENT',
+            originalUserRole: EHistoryUserRole.RECIPIENT,
+            kind: 'P2P_REQUEST_FULFILL',
+        },
+    } as unknown as TransactionDetails
+    renderActions(addressed)
+
+    expect(screen.queryByText('actions.cancelRequest')).toBeNull()
+    expect(screen.queryByText('actions.closeRequest')).toBeNull()
+})

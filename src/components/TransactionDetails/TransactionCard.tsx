@@ -24,7 +24,7 @@ import {
     PENDING_AMOUNT_STATUSES,
     STRUCK_AMOUNT_STATUSES,
 } from '@/utils/history.utils'
-import { formatBankAmount } from '@/utils/currency'
+import { formatAmountNumber, formatBankAmount } from '@/utils/currency'
 import React, { lazy, Suspense, useEffect, useRef } from 'react'
 import { twMerge } from '@/utils/tw'
 import Image from 'next/image'
@@ -215,8 +215,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         !isStableCoin(ccyCode) &&
         hasValidCurrencyAmount
     ) {
-        const formattedCurrencyAmount = formatNumberForDisplay(transaction.currency.amount, { maxDecimals: 2 })
-        currencyDisplayAmount = `≈ ${ccyCode} ${formattedCurrencyAmount}`
+        currencyDisplayAmount = `≈ ${ccyCode} ${formatAmountNumber(transaction.currency.amount)}`
     } else if (
         tokenSymbolUpper &&
         tokenSymbolUpper !== 'USD' &&

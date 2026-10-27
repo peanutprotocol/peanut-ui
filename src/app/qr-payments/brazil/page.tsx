@@ -17,7 +17,7 @@ export const metadata = starLpMetadata({
 
 export default function Page() {
     return (
-        <StarLpPage>
+        <StarLpPage marketingPage="qr-brazil">
             <QrBrazilLanding />
         </StarLpPage>
     )

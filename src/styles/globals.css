@@ -68,6 +68,9 @@
     /* The lavender marketing band ground — the sky fill under the no-fees,
        qr-pay, drop-link and exchange-widget bands. Marketing bands only. */
     --color-background-marketing-sky: var(--color-blue-300);
+    /* Google's Add to Google Wallet pill fill and outline. Vendor branding: GoogleWalletButton only. */
+    --color-background-google-wallet: #1f1f1f;
+    --color-border-google-wallet: #747775;
 
     --color-background-icon-bubble-green: #29cc6a;
     --color-background-icon-bubble-red: #ea8282;

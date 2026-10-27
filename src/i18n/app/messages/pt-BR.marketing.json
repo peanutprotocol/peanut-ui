@@ -87,7 +87,7 @@
         "prepareTransactionError": "Erro ao preparar a(s) transação(ões).",
         "switchNetworkError": "Erro ao trocar de rede.",
         "signDataError": "Erro ao assinar os dados na carteira.",
-        "gaslessDepositApiError": "Erro ao fazer o depósito sem gas pela API da Peanut.",
+        "gaslessDepositApiError": "Erro ao fazer o depósito sem gas pela API do Peanut.",
         "sendTransactionError": "Erro ao enviar a transação.",
         "transferAmountExceedsBalance": "Você não tem saldo suficiente para concluir a transação.",
         "chainMismatch": "Não foi possível trocar de rede. Tente mudar para a rede correta manualmente.",
@@ -135,7 +135,7 @@
         "downloadPeanut": "Baixar Peanut",
         "downloadPrompt": {
             "earlyTitle": "O app do Peanut chegou!",
-            "earlyDescription": "A Peanut agora é um app, na App Store e no Google Play. Mesma conta, experiência mais rápida e avisos na hora em que o dinheiro cai.",
+            "earlyDescription": "O Peanut agora é um app, na App Store e no Google Play. Mesma conta, experiência mais rápida e avisos na hora em que o dinheiro cai.",
             "maybeLater": "Baixo depois"
         },
         "sunset": {
@@ -171,7 +171,7 @@
         "pay": "Pagar",
         "cashout": "Saque",
         "claim": "Resgatar",
-        "peanutLogoAlt": "Logo da Peanut",
+        "peanutLogoAlt": "Logo do Peanut",
         "receipt": "Recibo",
         "supportUnread": "Nova resposta do suporte",
         "card": "Cartão",

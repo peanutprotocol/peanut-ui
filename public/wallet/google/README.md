@@ -1,10 +1,20 @@
-Google-supplied condensed Add to Google Wallet SVG artwork, copied without changes.
+Google-supplied Add to Google Wallet SVG artwork with only the pill removed. `GoogleWalletButton` draws the pill full width in CSS with Google's fill (`#1F1F1F`), 1px outline (`#747775`) and fully rounded ends, the way Google's Android codelab builds the button (a `match_parent` 48dp background shape with the artwork centered).
 
 - Issuer branding requirements: https://developers.google.com/pay/issuers/apis/push-provisioning/android/branding-guidelines
+- Wallet brand guidelines: https://developers.google.com/wallet/generic/resources/brand-guidelines
+- Codelab button layout: https://codelabs.developers.google.com/save-to-wallet-android
 - Source archive: https://developers.google.com/static/wallet/download-assets/add-to-wallet-svg.zip
-- Retrieved: 2026-10-09. The issuer documentation's current and deprecated archive links returned 404; Google's shared Wallet archive supplies these official assets.
-- `en.svg`: `enUS_add_to_google_wallet_add-wallet-badge.svg`
-- `es-419.svg`: `es419_add_to_google_wallet_add-wallet-badge.svg`; also used for es-AR.
-- `pt-BR.svg`: `br_add_to_google_wallet_add-wallet-badge.svg`
+- Retrieved: 2026-10-23 (two-line files first retrieved 2026-10-09). The issuer documentation's archive links returned 404; Google's shared Wallet archive supplies these official assets.
 
-Preserve proportions, artwork and internal spacing. Render at least 53dp high with at least 8dp clear space on all sides. Only show this button when it starts native card provisioning. Google UX/branding review and production launch approval remain required before rollout.
+| File | Source in the archive |
+| --- | --- |
+| `one-line/en.svg` | `enUS_add_to_google_wallet_wallet-button.svg` |
+| `one-line/es-419.svg` | `es419_add_to_google_wallet_wallet-button.svg` (also es-AR) |
+| `one-line/pt-BR.svg` | `br_add_to_google_wallet_wallet-button.svg` |
+| `two-line/en.svg` | `enUS_add_to_google_wallet_add-wallet-badge.svg` |
+| `two-line/es-419.svg` | `es419_add_to_google_wallet_add-wallet-badge.svg` (also es-AR) |
+| `two-line/pt-BR.svg` | `br_add_to_google_wallet_add-wallet-badge.svg` |
+
+Each file is the archive file minus its two `<rect>` elements (pill fill and outline). Icon and text paths, viewBox and internal spacing are unchanged.
+
+The one-line (primary) button is Google's choice for light backgrounds. It renders 48px high and needs its full drawn width at that height (Google's side padding included). Where the pill is narrower, the button falls back to the two-line (condensed) badge at 56px, as Google's guidelines direct. Keep at least 8dp clear space around the button. Only show it when it starts native card provisioning. Google UX/branding review and production launch approval remain required before rollout.

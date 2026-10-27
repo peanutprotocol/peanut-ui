@@ -31,7 +31,8 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { useAuth } from '@/context/authContext'
 import type { TRequestChargeResponse, PaymentCreationResponse } from '@/services/services.types'
-import { formatAmount, getInitialsFromName } from '@/utils/general.utils'
+import { getInitialsFromName } from '@/utils/general.utils'
+import { formatBankAmount } from '@/utils/currency'
 import { resolveRecipientDisplay } from '@/utils/recipient-display'
 import { isDemoMode } from '@/utils/demo'
 import { recordDemoTransaction } from '@/utils/demo-transactions'
@@ -180,10 +181,10 @@ const PaymentSuccessView = ({
         if (currencyAmount) return currencyAmount
 
         // 2. usdAmount - comes from charge response
-        if (usdAmount) return `$${formatAmount(Number(usdAmount))}`
+        if (usdAmount) return formatBankAmount(usdAmount, 'USD')
 
         // 3. fallback: we only know the raw amount which is USD
-        return `$${formatAmount(amountValue)}`
+        return formatBankAmount(amountValue, 'USD')
     }, [amountValue, currencyAmount, usdAmount])
 
     // construct transaction details for the drawer

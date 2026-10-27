@@ -19,7 +19,7 @@ const POST_LOGIN_USER_TIMEOUT_MS = 15_000
  * 2. Saved redirect URL from localStorage (if present and safe)
  * 3. '/home' as fallback
  *
- * Note: The mobile-ui layout handles redirecting users without PEANUT_WALLET accounts to /setup/finish
+ * Note: The mobile-ui layout sends users without PEANUT_WALLET accounts on to finish signup (see unfinishedSignupRoute)
  *
  * All redirects are sanitized to prevent external URL redirection attacks.
  *

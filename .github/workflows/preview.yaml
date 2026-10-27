@@ -34,12 +34,21 @@ jobs:
               run: pnpm add --global vercel@62.2.0
             - name: Link to Project
               run: vercel link --yes --project=peanut-wallet --scope=squirrellabs --token=${{ secrets.VERCEL_TOKEN }}
-            - name: Pull Vercel Environment Information
-              run: vercel pull --yes --environment=preview --scope=squirrellabs --token=${{ secrets.VERCEL_TOKEN }}
-            - name: Build Project Artifacts
-              env:
-                  # Use the same stored Google fonts as the other CI builds.
-                  NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
-              run: vercel build --target=preview --token=${{ secrets.VERCEL_TOKEN }}
-            - name: Deploy Project Artifacts to Vercel
-              run: vercel deploy --prebuilt --archive=tgz --target=preview --scope=squirrellabs --token=${{ secrets.VERCEL_TOKEN }}
+            # The project build command starts with `git submodule update`. A CLI
+            # upload has no .git, so that step fails. The checkout above already
+            # holds src/content, so this runner-only vercel.json override runs the
+            # rest of the project build command. Keep it in sync with the project
+            # setting.
+            - name: Skip the submodule fetch in the Vercel build
+              run: |
+                  node -e "
+                  const fs = require('fs');
+                  const config = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
+                  config.buildCommand = 'pnpm generate:signup-attribution-paths && pnpm exec next build --webpack';
+                  fs.writeFileSync('vercel.json', JSON.stringify(config, null, 4));
+                  "
+            # Build on Vercel, not on this runner. The project's env vars are
+            # "sensitive", so `vercel pull` only returns the literal [SENSITIVE];
+            # a remote build reads the real values.
+            - name: Deploy to Vercel
+              run: vercel deploy --archive=tgz --logs --build-env GIT_COMMIT_SHA=${{ github.event.pull_request.head.sha || github.sha }} --target=preview --scope=squirrellabs --token=${{ secrets.VERCEL_TOKEN }}
