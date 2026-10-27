@@ -1,8 +1,10 @@
 import detailsEur from '@/assets/star-lp/us-eu-details-eur.webp'
 import detailsUsd from '@/assets/star-lp/us-eu-details-usd.webp'
 import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
+import { twMerge } from '@/utils/tw'
 import { UsEuAccountCapture } from './UsEuAccountCapture'
 import { UsEuAppLink } from './UsEuAppLink'
+import type { UsEuAccountPairProps } from './usEuAccounts.types'
 
 /**
  * Hero art: the app's real USD and EUR bank-details screens (fixtures
@@ -13,15 +15,24 @@ import { UsEuAppLink } from './UsEuAppLink'
  * the column and reaches a little into the gutter. The pair leads where the
  * CTA leads: the accounts screen.
  */
-export function UsEuAccountPair() {
+export function UsEuAccountPair({
+    usdSrc = detailsUsd,
+    eurSrc = detailsEur,
+    className,
+    surface,
+}: UsEuAccountPairProps = {}) {
     return (
         <UsEuAppLink
             href={STAR_LP_HREF.accountsGuest}
             signedInHref={STAR_LP_HREF.accountsSignedIn}
-            className="mx-auto flex w-full max-w-sm flex-col md:max-w-104 md:pt-8 lg:max-w-224 lg:flex-row lg:items-start lg:pt-4"
+            surface={surface}
+            className={twMerge(
+                'mx-auto flex w-full max-w-sm flex-col md:max-w-104 md:pt-8 lg:max-w-224 lg:flex-row lg:items-start lg:pt-4',
+                className
+            )}
         >
             <UsEuAccountCapture
-                src={detailsUsd}
+                src={usdSrc}
                 tilt={-3}
                 delay={0.15}
                 badge="$"
@@ -29,7 +40,7 @@ export function UsEuAccountPair() {
                 className="relative -ml-2 w-[97%] md:ml-0 md:w-[84%] lg:w-[54%]"
             />
             <UsEuAccountCapture
-                src={detailsEur}
+                src={eurSrc}
                 tilt={2}
                 delay={0.45}
                 badge="€"

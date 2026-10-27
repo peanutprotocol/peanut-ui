@@ -14,7 +14,13 @@ import type { UsEuAppLinkProps } from './usEuAccounts.types'
  * sits inside art that duplicates a visible CTA, so it stays out of the tab
  * order. `group` lets the art take the DS press (`group-active:` drops its shadow).
  */
-export function UsEuAppLink({ href, signedInHref, children, className }: UsEuAppLinkProps) {
+export function UsEuAppLink({
+    href,
+    signedInHref,
+    children,
+    className,
+    surface = MIGRATION_SURFACES.STAR_LP,
+}: UsEuAppLinkProps) {
     const { user } = useAuth()
     const migrationOn = useMigrationFlag()
     const interceptAppCta = useAppModal()
@@ -26,7 +32,7 @@ export function UsEuAppLink({ href, signedInHref, children, className }: UsEuApp
             tabIndex={-1}
             className={twMerge('group', className)}
             onClick={(event) => {
-                if (interceptAppCta(MIGRATION_SURFACES.STAR_LP, 'artwork')) event.preventDefault()
+                if (interceptAppCta(surface, 'artwork')) event.preventDefault()
             }}
         >
             {children}

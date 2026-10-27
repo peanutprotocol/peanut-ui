@@ -2,6 +2,10 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { StarLpPage } from '../StarLpPage'
 import { StarLpCta } from '../StarLpCta'
 import { StarLpQrCode } from '../StarLpQrCode'
+import { TillSticker } from '../TillSticker'
+import { UsEuAppLink } from '../pages/UsEuAppLink'
+import { AppModalProvider } from '@/components/Migration/AppModalProvider'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import type { MarketingQrContext } from '@/features/marketing-qr/contract'
 import { starLpQrUrl } from '../starLpQr.utils'
 
@@ -79,6 +83,56 @@ it.each([
     expect(screen.getByTestId('qr')).toHaveAttribute(
         'data-value',
         starLpQrUrl({ origin: window.location.origin, campaign, slot, migrationOn: false })
+    )
+    expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'L')
+})
+
+it.each(['en', 'es-419', 'es-ar', 'pt-br'])(
+    'opens the home artwork QR in the page locale (%s) from a picture link on the home',
+    async (locale) => {
+        render(
+            <AppModalProvider marketingPage="home" marketingLocale={locale}>
+                <UsEuAppLink href="/setup" surface={MIGRATION_SURFACES.LANDING_APP_FOLD}>
+                    account pair
+                </UsEuAppLink>
+            </AppModalProvider>
+        )
+        fireEvent.click(screen.getByText('account pair'))
+        expect(await screen.findByRole('dialog')).toBeInTheDocument()
+        expect(await screen.findByTestId('qr')).toHaveAttribute(
+            'data-value',
+            `${window.location.origin}/q/home-artwork-${locale}`
+        )
+    }
+)
+
+it.each([
+    ['qr-argentina', 'pay-local-ar', 'es-ar'],
+    ['qr-brazil', 'pay-local-br', 'pt-br'],
+] as const)('registers the home %s sticker under the home page and locale', (campaign, placement, locale) => {
+    const sticker = () => (
+        <TillSticker
+            mark={{ src: '/mark.svg', width: 32, height: 32 }}
+            markAlt="mark"
+            label="label"
+            lang="es-AR"
+            campaign={campaign}
+            slot="home-sticker"
+            qrContext={{ page: 'home', placement, locale }}
+        />
+    )
+    const { rerender } = render(sticker())
+    expect(screen.getByTestId('qr')).toHaveAttribute(
+        'data-value',
+        `${window.location.origin}/q/home-${placement}-${locale}`
+    )
+    expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'M')
+    // sunset off: the legacy signup URL, tagged as the home sticker
+    mockMigrationOn = false
+    rerender(sticker())
+    expect(screen.getByTestId('qr')).toHaveAttribute(
+        'data-value',
+        starLpQrUrl({ origin: window.location.origin, campaign, slot: 'home-sticker', migrationOn: false })
     )
     expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'L')
 })

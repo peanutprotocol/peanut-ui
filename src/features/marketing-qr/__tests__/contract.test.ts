@@ -173,6 +173,29 @@ it('trims content first, then falls back to defaults when an inherited tuple can
     })
 })
 
+it('registers the homepage artwork and pay-like-a-local slots in all four home locales', () => {
+    for (const locale of ['en', 'es-419', 'es-ar', 'pt-br']) {
+        for (const placement of ['artwork', 'pay-local-ar', 'pay-local-br']) {
+            const qrId = `home-${placement}-${locale}`
+            expect(getMarketingQrRegistration(qrId)).toMatchObject({
+                page_id: '/',
+                placement,
+                locale,
+                defaults: { source: 'marketing-qr', medium: 'content', campaign: 'landing', content: qrId },
+            })
+        }
+    }
+    // the existing home slots keep their ids: printed and shown codes still resolve
+    for (const placement of ['hero', 'app-fold', 'rates', 'countries'])
+        expect(getMarketingQrRegistration(`home-${placement}-pt-br`)).not.toBeNull()
+    expect(
+        buildMarketingQrUrl({
+            origin: 'https://peanut.me',
+            context: { page: 'home', placement: 'artwork', locale: 'es-AR' },
+        })
+    ).toBe('https://peanut.me/q/home-artwork-es-ar')
+})
+
 it('preserves existing inline QR campaign defaults', () => {
     expect(getMarketingQrRegistration('qr-argentina-close-sticker-en')?.defaults).toEqual({
         source: 'star-lp',

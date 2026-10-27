@@ -14,13 +14,20 @@ import type { StarLpCtaProps } from './starLp.types'
  * PWA-sunset flag through LandingAppLink, so it needs StarLpPage's
  * AppModalProvider above it.
  */
-export function StarLpCta({ href, signedInHref, ground, children, qrPlacement }: StarLpCtaProps) {
+export function StarLpCta({
+    href,
+    signedInHref,
+    ground,
+    children,
+    qrPlacement,
+    surface = MIGRATION_SURFACES.STAR_LP,
+}: StarLpCtaProps) {
     const { user } = useAuth()
     const destination = user && signedInHref ? signedInHref : href
     return (
         <LandingAppLink
             href={destination}
-            surface={MIGRATION_SURFACES.STAR_LP}
+            surface={surface}
             qrPlacement={qrPlacement}
             variant={COLOURED_GROUNDS.includes(ground) ? 'secondary' : 'primary'}
             size="large"
