@@ -1,5 +1,6 @@
 import type { RecordSection, UserListItem } from '../userRecords.types'
 import {
+    databaseDescription,
     displayName,
     formatUtc,
     latestKycStatus,
@@ -77,5 +78,14 @@ describe('user records utils', () => {
         expect(latestKycStatus(sections)).toBe('APPROVED')
         expect(sumsubApplicantIds(sections)).toEqual(['a1', 'a2'])
         expect(latestKycStatus([])).toBeNull()
+    })
+})
+
+describe('databaseDescription', () => {
+    it('names the database the page reads in each environment', () => {
+        expect(databaseDescription('production')).toBe('the production database')
+        expect(databaseDescription('staging')).toBe('the staging database')
+        expect(databaseDescription('preview')).toBe("this environment's database")
+        expect(databaseDescription('native')).toBe("this environment's database")
     })
 })
