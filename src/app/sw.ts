@@ -1,8 +1,8 @@
 import { defaultCache } from '@serwist/next/worker'
 import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig } from 'serwist'
 import { NetworkOnly, Serwist, Strategy } from 'serwist'
-import { isSensitivePaymentNetworkUrl, purgeCacheEntriesMatching } from './payment-network-sw-privacy'
-import { isPeanutApiUrl } from './sw-api-privacy'
+import { isSensitivePaymentNetworkUrl, purgeSensitivePaymentNetworkCacheEntries } from './payment-network-sw-privacy'
+import { CROSS_ORIGIN_CACHE, isCrossOriginDataRequest } from './sw-api-privacy'
 import { navigationRedirectPlugin } from './sw-navigation-redirects'
 
 // This declares the value of `injectionPoint` to TypeScript.
@@ -34,7 +34,7 @@ const runtimeCaching: RuntimeCaching[] = [
         handler: new NetworkOnly(),
     },
     {
-        matcher: ({ url }) => isPeanutApiUrl(url),
+        matcher: isCrossOriginDataRequest,
         handler: new NetworkOnly(),
     },
     {
@@ -95,7 +95,7 @@ self.addEventListener('activate', (event) => {
     // legacy URLs and API responses. Purge matching entries individually
     // without touching any unrelated cache or logging request keys.
     event.waitUntil(
-        purgeCacheEntriesMatching(self.caches, (url) => isSensitivePaymentNetworkUrl(url) || isPeanutApiUrl(url))
+        Promise.all([purgeSensitivePaymentNetworkCacheEntries(self.caches), self.caches.delete(CROSS_ORIGIN_CACHE)])
     )
 })
 
