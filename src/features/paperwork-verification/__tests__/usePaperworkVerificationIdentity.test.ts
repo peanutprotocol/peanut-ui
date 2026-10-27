@@ -35,6 +35,23 @@ it('uses each replacement for the next refresh and omits preselection on base re
     expect(result.current.session?.attemptId).toBe('third')
 })
 
+it('a retry without a pick opens Sumsub on the document the server saved', async () => {
+    const sdkConfig = {
+        documentDefinitions: { IDENTITY: { country: 'PRT', idDocType: 'VISA' } },
+        autoSelectDocumentDefinitions: true,
+    }
+    start.mockResolvedValue({
+        kind: 'session',
+        session: { attemptId: 'first', token: 'token-first', applicantId: 'fixture-applicant', sdkConfig } as never,
+    })
+    const { result } = renderHook(() => usePaperworkVerificationIdentity())
+    await act(async () => {
+        await result.current.open('first')
+    })
+    expect(start).toHaveBeenLastCalledWith('first', undefined)
+    expect(result.current.session?.sdkConfig).toEqual(sdkConfig)
+})
+
 it('sends one token request for simultaneous opens', async () => {
     let resolve!: (value: ReturnType<typeof session>) => void
     start.mockReturnValue(

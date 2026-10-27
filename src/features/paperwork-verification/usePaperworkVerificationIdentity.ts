@@ -21,6 +21,10 @@ export type IdentityStartOutcome =
     | { kind: 'questions-missing'; step: PaperworkVerificationStepId | null }
     | { kind: 'failed' }
 
+/** The server's preselected ID, so Sumsub never shows its own document list; a reopen without a pick gets the saved one. */
+const preselected = (sdkConfig: KycAttemptSession['sdkConfig'] | undefined) =>
+    sdkConfig?.documentDefinitions?.IDENTITY ? sdkConfig : undefined
+
 /**
  * The ID + selfie session of the Smart Paperwork Verification attempt. The document picked at
  * the midpoint only preselects it in Sumsub; a token refresh mints again with
@@ -56,7 +60,7 @@ export function usePaperworkVerificationIdentity() {
                     attemptId: result.session.attemptId,
                     document,
                     token: result.session.token,
-                    sdkConfig: document ? result.session.sdkConfig : undefined,
+                    sdkConfig: preselected(result.session.sdkConfig),
                 }
                 sessionRef.current = next
                 attemptIdRef.current = next.attemptId
@@ -85,7 +89,7 @@ export function usePaperworkVerificationIdentity() {
             ...current,
             attemptId: result.session.attemptId,
             token: result.session.token,
-            sdkConfig: current.document ? result.session.sdkConfig : undefined,
+            sdkConfig: preselected(result.session.sdkConfig) ?? current.sdkConfig,
         }
         attemptIdRef.current = result.session.attemptId
         setSession(sessionRef.current)

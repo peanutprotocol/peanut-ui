@@ -25,7 +25,7 @@ import {
     type PaperworkVerificationTrackingContext,
 } from './analytics'
 import { QuestionStepScreen } from './components/QuestionStepScreen'
-import { RESIDENCE_CHANGE_HREF } from './paperworkVerification.utils'
+import { composeScreens, phoneJoinsAddress, RESIDENCE_CHANGE_HREF } from './paperworkVerification.utils'
 import { FeatureReadyScreen } from './components/StatusScreens'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
 
@@ -43,12 +43,20 @@ type State =
     | { kind: 'failed' }
     | { kind: 'refused'; copy: string; feature: string }
     | { kind: 'action-required'; action: string }
-    | { kind: 'asking'; steps: PaperworkVerificationStep[]; residence: string | null }
+    | { kind: 'asking'; screens: PaperworkVerificationStep[][]; at: number; residence: string | null }
+
+/** A saved screen keeps its answers, so Back shows them. */
+const withValues = (screen: PaperworkVerificationStep[], values: Record<string, string>) =>
+    screen.map((step) => ({
+        ...step,
+        fields: step.fields.map((f) => (f.key in values ? { ...f, value: values[f.key] } : f)),
+    }))
 
 /**
- * A feature added after the ID check: one screen with every answer that
- * feature still misses, then the feature joins the saved set and the
- * providers take it from there. Never a new ID check.
+ * A feature added after the ID check: the answers that feature still misses,
+ * on the main flow's screens (pickers never share a screen with typed fields),
+ * then the feature joins the saved set and the providers take it from there.
+ * Never a new ID check.
  */
 export function AddFeatureQuestions({
     feature,
@@ -124,7 +132,11 @@ export function AddFeatureQuestions({
                     asked_again: !!required,
                 })
                 if (!steps.length) return finish(required)
-                setState({ kind: 'asking', steps, residence: questions.residence })
+                const asked = { ...questions, steps }
+                const screens = composeScreens(asked, phoneJoinsAddress(asked)).map((ids) =>
+                    steps.filter((s) => ids.includes(s.id))
+                )
+                setState({ kind: 'asking', screens, at: 0, residence: questions.residence })
             } catch {
                 track(ANALYTICS_EVENTS.KYC_PV_LOAD_FAILED)
                 setState({ kind: 'failed' })
@@ -188,12 +200,20 @@ export function AddFeatureQuestions({
     return (
         <PaperworkVerificationTrackingProvider value={tracking}>
             <QuestionStepScreen
-                steps={state.steps}
+                key={state.at}
+                steps={state.screens[state.at]}
                 residence={state.residence}
                 feature={feature}
                 title={t(`addLater.title.${feature}`)}
-                onBack={onBack}
-                onSaved={() => {
+                onBack={() => (state.at ? setState({ ...state, at: state.at - 1 }) : onBack())}
+                onSaved={(_next, values) => {
+                    if (state.at < state.screens.length - 1) {
+                        const screens = state.screens.map((screen, i) =>
+                            i === state.at ? withValues(screen, values) : screen
+                        )
+                        setState({ ...state, screens, at: state.at + 1 })
+                        return
+                    }
                     setState({ kind: 'loading' })
                     void finish()
                 }}
