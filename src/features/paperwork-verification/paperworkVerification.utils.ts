@@ -232,8 +232,12 @@ export const looksLikeItin = (format: PaperworkVerificationTaxFormat | undefined
 export type VerifyPhase = 'saved' | 'id' | 'review' | 'verified' | 'address-proof'
 export type VerifyStep = PaperworkVerificationStepId | VerifyPhase
 
-export const IN_REVIEW_STATUSES = new Set<string>(['PENDING', 'IN_REVIEW', 'REVERIFYING'])
+// REVERIFYING is an approved user's selfie re-check; the API counts it as approved.
+export const APPROVED_STATUSES = new Set<string>(['APPROVED', 'REVERIFYING'])
+export const IN_REVIEW_STATUSES = new Set<string>(['PENDING', 'IN_REVIEW'])
 export const FAILED_STATUSES = new Set<string>(['ACTION_REQUIRED', 'REJECTED', 'FAILED'])
+// FAILED is our check erroring with nothing decided; only REJECTED is final.
+export const RETRYABLE_STATUSES = new Set<string>(['ACTION_REQUIRED', 'FAILED'])
 
 /** Where a visit starts: approval and review win over the questions, the first open question over the midpoint. */
 export function entryStep(
@@ -244,7 +248,8 @@ export function entryStep(
     }: { questions: PaperworkVerificationQuestions; plan: KycDocumentPlan | null; status: SumsubKycStatus | undefined },
     submitted = false
 ): VerifyStep {
-    if (status === 'APPROVED') return plan?.proofOfAddress === 'suggested' ? 'address-proof' : 'verified'
+    if (status && APPROVED_STATUSES.has(status))
+        return plan?.proofOfAddress === 'suggested' ? 'address-proof' : 'verified'
     if (submitted || (status && (IN_REVIEW_STATUSES.has(status) || FAILED_STATUSES.has(status)))) return 'review'
     return resumeStep(questions) ?? 'id'
 }

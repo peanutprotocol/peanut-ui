@@ -59,11 +59,13 @@ import {
 } from './usePaperworkVerificationStart'
 import { usePaperworkVerificationIdentity } from './usePaperworkVerificationIdentity'
 import {
+    APPROVED_STATUSES,
     citizenshipOf,
     DOCUMENT_KEYS,
     entryStep,
     FAILED_STATUSES,
     IN_REVIEW_STATUSES,
+    RETRYABLE_STATUSES,
     markSaved,
     composeScreens,
     openFeatures,
@@ -246,7 +248,7 @@ function PaperworkVerificationSteps({
         [questionIds]
     )
     const allAnswered = questions.steps.every((s) => s.answered)
-    const approved = status === 'APPROVED'
+    const approved = !!status && APPROVED_STATUSES.has(status)
     const failed = !!status && FAILED_STATUSES.has(status)
     const reviewing = submitted || (!!status && IN_REVIEW_STATUSES.has(status))
     const asking = !approved && !reviewing && !failed
@@ -603,7 +605,7 @@ function PaperworkVerificationSteps({
                 features={openFeatures(plan?.features, questions.closed)}
                 onHome={goHome}
                 onRetry={
-                    status === 'ACTION_REQUIRED'
+                    status && RETRYABLE_STATUSES.has(status)
                         ? () => {
                               track(ANALYTICS_EVENTS.KYC_PV_REVIEW_RETRY)
                               void startIdentity()

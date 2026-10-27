@@ -4,8 +4,10 @@ import type { PaperworkVerificationFeature } from '@/app/actions/types/kyc-paper
 import { PAPERWORK_VERIFICATION_FLOW, type KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
+import { APPROVED_STATUSES } from './paperworkVerification.utils'
 
-const NEEDS_TODAYS_FIX = new Set(['REJECTED', 'FAILED'])
+// A FAILED check decided nothing, so /verify offers the retry; a rejection is fixed in today's flow.
+const NEEDS_TODAYS_FIX = new Set(['REJECTED'])
 
 export const paperworkVerificationFeaturePath = (feature: PaperworkVerificationFeature) =>
     `/verify?${new URLSearchParams({ feature })}`
@@ -46,7 +48,7 @@ export async function paperworkVerificationRoute(
     if (plan?.flow !== PAPERWORK_VERIFICATION_FLOW) return null
     const status = await getKycDocumentStatus().catch(() => undefined)
     if (status && NEEDS_TODAYS_FIX.has(status)) return null
-    if (status !== 'APPROVED') return '/verify'
+    if (!status || !APPROVED_STATUSES.has(status)) return '/verify'
     return feature && !plan.features[feature] ? paperworkVerificationFeaturePath(feature) : null
 }
 

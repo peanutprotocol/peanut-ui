@@ -62,8 +62,17 @@ describe('paperworkVerificationRoute', () => {
     it('routes a retry to Smart Paperwork Verification and leaves final rejection to today’s fixes', async () => {
         mockStatus.mockResolvedValue('ACTION_REQUIRED')
         await expect(paperworkVerificationRoute(plan(), null)).resolves.toBe('/verify')
+        // a check that errored decided nothing: /verify offers the retry
+        mockStatus.mockResolvedValue('FAILED' as never)
+        await expect(paperworkVerificationRoute(plan(), null)).resolves.toBe('/verify')
         mockStatus.mockResolvedValue('REJECTED')
         await expect(paperworkVerificationRoute(plan(), 'bank')).resolves.toBeNull()
+    })
+
+    it('treats REVERIFYING as verified, as the API does', async () => {
+        mockStatus.mockResolvedValue('REVERIFYING')
+        await expect(paperworkVerificationRoute(plan(), 'bank')).resolves.toBe('/verify?feature=bank')
+        await expect(paperworkVerificationRoute(plan(), null)).resolves.toBeNull()
     })
 
     it('sends a verified user to add-later only for a feature not yet saved', async () => {

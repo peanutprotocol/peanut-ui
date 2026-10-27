@@ -3,8 +3,11 @@ import type {
     PaperworkVerificationQuestions,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import {
+    APPROVED_STATUSES,
     composeScreens,
+    IN_REVIEW_STATUSES,
     openFeatures,
+    RETRYABLE_STATUSES,
     entryStep,
     fieldErrorKey,
     formatTaxId,
@@ -76,6 +79,22 @@ describe('entryStep', () => {
         expect(entryStep({ questions: questions(), plan, status: 'IN_REVIEW' })).toBe('review')
         expect(entryStep({ questions: questions(), plan, status: 'ACTION_REQUIRED' })).toBe('review')
         expect(entryStep({ questions: questions(), plan, status: 'PENDING' }, true)).toBe('review')
+    })
+
+    it('shows a check that failed or was rejected as the review screen, where a retry is decided', () => {
+        expect(entryStep({ questions: questions(), plan, status: 'FAILED' as never })).toBe('review')
+        expect(entryStep({ questions: questions(), plan, status: 'REJECTED' })).toBe('review')
+    })
+
+    // The API counts REVERIFYING (an approved user's selfie re-check) as approved.
+    it('treats REVERIFYING as approved', () => {
+        expect(entryStep({ questions: questions(), plan, status: 'REVERIFYING' })).toBe('verified')
+        expect(IN_REVIEW_STATUSES.has('REVERIFYING')).toBe(false)
+        expect(APPROVED_STATUSES.has('REVERIFYING')).toBe(true)
+    })
+
+    it('offers a retry for ACTION_REQUIRED and FAILED only', () => {
+        expect([...RETRYABLE_STATUSES].sort()).toEqual(['ACTION_REQUIRED', 'FAILED'])
     })
 
     it('ends on verified, or on the proof-of-address suggestion (rule 1)', () => {

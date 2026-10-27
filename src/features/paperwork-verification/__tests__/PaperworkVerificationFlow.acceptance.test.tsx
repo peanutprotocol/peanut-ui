@@ -212,7 +212,26 @@ describe('canonical identity recovery acceptance', () => {
         expect(mockToken.mock.calls[0][1]).toBeUndefined()
     })
 
-    it.each(['FAILED', 'REJECTED'])('%s offers Home and cannot retry identity', async (status) => {
+    // FAILED is our check erroring with nothing decided, so it is retried like ACTION_REQUIRED.
+    it('FAILED offers retry and opens the canonical attempt without another document', async () => {
+        mockStatus.mockResolvedValue('FAILED' as never)
+        mockToken.mockResolvedValue(session())
+        renderFlow()
+        fireEvent.click(await screen.findByRole('button', { name: /try again/i }))
+        await screen.findByText('sumsub-submit')
+        expect(mockToken).toHaveBeenCalledTimes(1)
+        expect(mockToken.mock.calls[0][0]).toBe('attempt-1')
+        expect(mockToken.mock.calls[0][1]).toBeUndefined()
+    })
+
+    it('REVERIFYING shows the user as verified, not in review', async () => {
+        mockStatus.mockResolvedValue('REVERIFYING')
+        renderFlow()
+        expect(await screen.findByTestId('verify-verified-home')).toBeInTheDocument()
+        expect(screen.queryByText('Checking your ID')).not.toBeInTheDocument()
+    })
+
+    it.each(['REJECTED'])('%s offers Home and cannot retry identity', async (status) => {
         mockStatus.mockResolvedValue(status as never)
         renderFlow()
         const home = await screen.findByRole('button', { name: /home/i })
