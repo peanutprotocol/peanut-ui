@@ -31,6 +31,7 @@ jest.mock('@/app/actions/kyc-workflow', () => ({
     startKycDocumentReplacement: jest.fn(),
 }))
 jest.mock('@/context/authContext', () => ({
+    useOptionalAuth: () => null,
     useAuth: () => ({
         user: {
             user: { username: 'tester' },

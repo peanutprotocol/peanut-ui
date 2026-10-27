@@ -18,7 +18,10 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/app/actions/kyc-paperwork-verification', () => ({ getKycQuestions: jest.fn() }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null, fetchUser: jest.fn() }) }))
+jest.mock('@/context/authContext', () => ({
+    useOptionalAuth: () => null,
+    useAuth: () => ({ user: null, fetchUser: jest.fn() }),
+}))
 jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: jest.fn() }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 jest.mock('@/hooks/useSumsubKycFlow', () => ({ useSumsubKycFlow: jest.fn() }))
