@@ -3873,7 +3873,8 @@
             "clear": "Clear search",
             "removeCountry": "Remove {country}"
         },
-        "feedbackBanner": "Help us improve Peanut. Share your feedback here."
+        "feedbackBanner": "Help us improve Peanut. Share your feedback here.",
+        "testBuild": "Version for testing: branch {branch}"
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",
