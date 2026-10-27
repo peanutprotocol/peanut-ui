@@ -229,7 +229,7 @@
                 "description": "Receba dados de conta para receber transferências no seu saldo."
             },
             "nextPayment": {
-                "title": "Pague com a Peanut de novo",
+                "title": "Pague com o Peanut de novo",
                 "description": "Seu saldo está pronto. Escaneie um QR ou use seu cartão."
             },
             "shareBankDetails": {
