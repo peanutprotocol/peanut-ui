@@ -28,6 +28,8 @@ export const legalReconsent: AttentionAsk = {
         if (s.consent.status === 'unknown') return 'unknown'
         return s.consent.status === 'needed' ? 'show' : 'done'
     },
+    // the modal lists the documents from the app's own status check, so a failed check has nothing to accept
+    renderable: (s) => s.consent.documents.length > 0,
     version: (s) => (s.consent.versions.length ? s.consent.versions.join(',') : undefined),
     // ToS §17.3: a prompt, never a lock, so "Not now" exists; the modal
     // computes its own snooze date from the documents' effective dates

@@ -126,6 +126,22 @@ describe('applyServerRanking', () => {
         expect(byId(out, 'invite')?.eligible(state)).toBe('show')
     })
 
+    // the terms modal lists what the app's own status check returned; a failed check leaves nothing to accept
+    test('a server show waits as pending while the app cannot render the ask', () => {
+        const out = applyServerRanking(ASKS, serverOf({ verdicts: { 'legal-reconsent': 'show' } }))
+        const failedCheck = stateOf({ consent: { status: 'clear', versions: [], documents: [] } })
+        const loaded = stateOf({
+            consent: {
+                status: 'needed',
+                versions: ['2026-10-01'],
+                documents: [{ slug: 'terms', currentVersion: '2026-10-01' }],
+            },
+        })
+
+        expect(byId(out, 'legal-reconsent')?.eligible(failedCheck)).toBe('pending')
+        expect(byId(out, 'legal-reconsent')?.eligible(loaded)).toBe('show')
+    })
+
     // "otherwise the local eligible(state)"; failure #5 "local verdict used when the server has none"
     test('without a server verdict the local eligible decides', () => {
         const out = applyServerRanking(ASKS, serverOf({ verdicts: { checklist: 'done' } }))

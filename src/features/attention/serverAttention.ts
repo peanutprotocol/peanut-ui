@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/context/authContext'
 import { serverFetch } from '@/utils/api-fetch'
 import { useJourneyEpoch } from './journeyEpoch'
-import type { AttentionAsk, Tier, Verdict } from './types'
+import type { AttentionAsk, JourneyState, Tier, Verdict } from './types'
 
 /** `GET /users/me/attention`: the API's ranking is the authority; the registry's literals are the fallback. */
 export interface ServerAttention {
@@ -68,7 +68,12 @@ export function applyServerRanking(
         return {
             ...ask,
             ...(ranked ? { tier: ranked.tier, rank: ranked.rank } : {}),
-            ...(verdict ? { eligible: () => verdict } : {}),
+            ...(verdict
+                ? {
+                      eligible: (state: JourneyState) =>
+                          verdict === 'show' && ask.renderable?.(state) === false ? 'pending' : verdict,
+                  }
+                : {}),
         }
     })
 }
