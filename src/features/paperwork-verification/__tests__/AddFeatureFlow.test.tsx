@@ -434,3 +434,48 @@ describe('AddFeatureQuestions: the nationality asked after the ID check', () => 
         expect(mockSave).toHaveBeenCalledWith('nationality', { nationality: 'DE' }, 'bank')
     })
 })
+
+describe('AddFeatureQuestions: a saved tax number', () => {
+    const withTax = (): PaperworkVerificationQuestions => ({
+        available: true,
+        attemptId: null,
+        residence: 'AR',
+        steps: [
+            {
+                id: 'tax',
+                features: ['base'],
+                answered: true,
+                fields: [
+                    { key: 'taxId', kind: 'taxId', required: true, format: 'cuit', value: '•••• 1234', masked: true },
+                ],
+            },
+        ],
+        firstUnanswered: null,
+        progress: { done: 2, total: 2 },
+    })
+
+    it('shows as saved and is never sent back', async () => {
+        mockQuestions.mockResolvedValue(withTax())
+        const onDone = jest.fn()
+        renderWithIntl(<AddFeatureQuestions feature="local" requiredStep="tax" onBack={jest.fn()} onDone={onDone} />)
+        const input = await screen.findByTestId('verify-input-taxId')
+        expect(input).toHaveValue('•••• 1234')
+        expect(input).toHaveAttribute('readonly')
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        await waitFor(() => expect(onDone).toHaveBeenCalled())
+        expect(mockSave).not.toHaveBeenCalled()
+    })
+
+    it('can be replaced by typing a new number', async () => {
+        mockQuestions.mockResolvedValue(withTax())
+        mockSave.mockResolvedValue({ kind: 'saved', next: null })
+        renderWithIntl(<AddFeatureQuestions feature="local" requiredStep="tax" onBack={jest.fn()} onDone={jest.fn()} />)
+        fireEvent.click(await screen.findByTestId('verify-tax-replace'))
+        const input = screen.getByTestId('verify-input-taxId')
+        expect(input).toHaveValue('')
+        expect(input).not.toHaveAttribute('readonly')
+        fireEvent.change(input, { target: { value: '20123456786' } })
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        await waitFor(() => expect(mockSave).toHaveBeenCalledWith('tax', { taxId: '20-12345678-6' }, 'local'))
+    })
+})

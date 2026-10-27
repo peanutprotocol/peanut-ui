@@ -439,3 +439,33 @@ describe('the nationality step after approval', () => {
         expect(stepPayload(step.fields, { nationality: 'DE' })).toEqual({ nationality: 'DE' })
     })
 })
+
+// The saved tax number comes back masked; sending it back would overwrite the real one.
+describe('a masked tax number', () => {
+    const tax = (extra: Partial<PaperworkVerificationField> = {}) =>
+        field('taxId', { kind: 'taxId', format: 'cuit', value: '•••• 1234', masked: true, ...extra })
+    const taxStep = (answered = true) => ({
+        id: 'tax' as const,
+        features: ['base' as const],
+        answered,
+        fields: [tax()],
+    })
+
+    it('is left out of the payload while untouched', () => {
+        expect(stepPayload([tax()], { taxId: '•••• 1234' })).toEqual({})
+        expect(stepPayload([tax()], {})).toEqual({})
+    })
+
+    it('reads as unchanged, so the screen does not save it again', () => {
+        expect(stepUnchanged(taxStep(), { taxId: '•••• 1234' })).toBe(true)
+    })
+
+    it('a new number typed over it is sent', () => {
+        expect(stepPayload([tax()], { taxId: '20-12345678-6' })).toEqual({ taxId: '20-12345678-6' })
+        expect(stepUnchanged(taxStep(), { taxId: '20-12345678-6' })).toBe(false)
+    })
+
+    it('is never sent even when the API drops the masked flag', () => {
+        expect(stepPayload([tax({ masked: undefined })], { taxId: '•••• 1234' })).toEqual({})
+    })
+})

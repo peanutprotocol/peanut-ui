@@ -3743,7 +3743,8 @@
                     "curp": "18 caracteres.",
                     "cc": "Como aparece en tu documento.",
                     "other": "Como aparece en tus documentos fiscales."
-                }
+                },
+                "replace": "Cambiar el número"
             },
             "errors": {
                 "required": "Responde esto para continuar.",

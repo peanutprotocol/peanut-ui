@@ -3743,7 +3743,8 @@
                     "curp": "18 characters.",
                     "cc": "As it appears on your ID.",
                     "other": "As it appears on your tax documents."
-                }
+                },
+                "replace": "Change the number"
             },
             "errors": {
                 "required": "Answer this to continue.",

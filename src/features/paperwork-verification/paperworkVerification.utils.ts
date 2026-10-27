@@ -149,13 +149,23 @@ export const initialValues = (
     return job && !values.occupation ? { ...values, occupation: job } : values
 }
 
-/** What a step sends: trimmed, locked fields as the server gave them, empty optional fields left out. */
+/**
+ * A saved value the server shows masked (the tax number as `•••• 1234`), not typed over. The
+ * value check stands in for an API that drops the `masked` flag: a masked value must never be sent.
+ */
+export const maskedUntouched = (field: PaperworkVerificationField, values: PaperworkVerificationAnswers) =>
+    !!field.value &&
+    (field.masked === true || (field.kind === 'taxId' && field.value.startsWith('•'))) &&
+    (values[field.key] ?? field.value) === field.value
+
+/** What a step sends: trimmed, locked fields as given, empty optional and untouched masked fields left out. */
 export function stepPayload(
     fields: PaperworkVerificationField[],
     values: PaperworkVerificationAnswers
 ): PaperworkVerificationAnswers {
     const out: PaperworkVerificationAnswers = {}
     for (const field of fields) {
+        if (maskedUntouched(field, values)) continue
         const raw = field.locked ? (field.value ?? '') : (values[field.key] ?? '')
         const value = field.kind === 'phone' ? raw.replace(/[\s()-]/g, '') : raw.trim()
         if (value) out[field.key] = value

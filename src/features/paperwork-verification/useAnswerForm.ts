@@ -10,7 +10,7 @@ import type {
     PaperworkVerificationStepId,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { draftResidenceOf, forgetSavedAnswers, keepAnswerDraft, readAnswerDraft, withAnswerDraft } from './answerDraft'
-import { initialValues, stepPayload, withEmploymentStatus } from './paperworkVerification.utils'
+import { initialValues, maskedUntouched, stepPayload, withEmploymentStatus } from './paperworkVerification.utils'
 
 export type AnswerFormError =
     | 'retry'
@@ -57,7 +57,10 @@ export async function saveSteps(
 ): Promise<SaveOutcome> {
     let next: PaperworkVerificationStepId | null = null
     for (const step of steps) {
-        const result = await saveKycAnswers(step.id, stepPayload(step.fields, values), feature)
+        const payload = stepPayload(step.fields, values)
+        // A saved, masked number left as it is: there is nothing to send.
+        if (!Object.keys(payload).length && step.fields.some((f) => maskedUntouched(f, values))) continue
+        const result = await saveKycAnswers(step.id, payload, feature)
         if (result.kind === 'invalid')
             return { ok: false, step: step.id, rejected: { step: step.id, errors: result.errors } }
         if (result.kind === 'conflict') {

@@ -21,7 +21,13 @@ import type {
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { countryForPhone } from '../callingCodes'
-import { fieldErrorKey, formatTaxId, jobFromEmploymentStatus, looksLikeItin } from '../paperworkVerification.utils'
+import {
+    fieldErrorKey,
+    formatTaxId,
+    jobFromEmploymentStatus,
+    looksLikeItin,
+    maskedUntouched,
+} from '../paperworkVerification.utils'
 import { AnswerPicker } from './AnswerPicker'
 import { PlacePicker } from './PlaceField'
 
@@ -340,6 +346,16 @@ function TypedFields({
                 />
             )}
             {tax &&
+                maskedUntouched(tax, values) &&
+                fieldFor(
+                    tax,
+                    (f) => input(f, { readOnly: true, value: f.value ?? '' }),
+                    <LinkButton onClick={() => onChange(tax.key, '')} data-testid="verify-tax-replace">
+                        {t('tax.replace')}
+                    </LinkButton>
+                )}
+            {tax &&
+                !maskedUntouched(tax, values) &&
                 fieldFor(
                     tax,
                     (f) =>
