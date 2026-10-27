@@ -1,4 +1,4 @@
-import Exclamations from '@/assets/illustrations/exclamations.svg'
+import Sparkle from '@/assets/illustrations/sparkle.svg'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CTA_MOTION } from '@/components/Marketing/constants'
 import { Band } from '@/components/Marketing/StarLp/Band'
@@ -7,6 +7,7 @@ import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { PeanutCardHeroFace } from '@/components/Marketing/StarLp/pages/PeanutCardHeroFace'
 import { STAR_LP_ROUTES } from '@/components/Marketing/StarLp/starLp.consts'
 import { HomeCardReceipt } from './HomeCardReceipt'
+import { HOME_LOCKUP_LINE_CLASS } from './homeFolds.consts'
 import type { HomeCardFoldProps } from './homeCard.types'
 
 /**
@@ -18,19 +19,21 @@ import type { HomeCardFoldProps } from './homeCard.types'
 export function HomeCardFold({ strings, locale }: HomeCardFoldProps) {
     return (
         <Band ground="pink" id="peanut-card">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-                src={Exclamations.src}
-                width={Exclamations.width}
-                height={Exclamations.height}
-                alt=""
-                aria-hidden
-                className="pointer-events-none absolute -top-10 left-0 w-9 md:-top-16"
-            />
             <div className="grid items-center gap-12 md:grid-cols-2">
                 <div className="grid justify-items-start gap-6">
-                    <h2 className="grid gap-2">
-                        <DisplayLine>{strings.lockup}</DisplayLine>
+                    {/* in flow, so the sparkle stays over the title at every width and in every locale */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={Sparkle.src}
+                        width={Sparkle.width}
+                        height={Sparkle.height}
+                        alt=""
+                        aria-hidden
+                        className="pointer-events-none w-9"
+                    />
+                    {/* the gap clears the Knerd's ink, which rises above its line box */}
+                    <h2 className="grid gap-4 md:gap-6 lg:gap-8">
+                        <DisplayLine className={HOME_LOCKUP_LINE_CLASS}>{strings.lockup}</DisplayLine>
                         <KnerdTitle text={strings.knerd} size="compact" />
                     </h2>
                     <p className="text-body-l">{strings.line}</p>
@@ -48,7 +51,7 @@ export function HomeCardFold({ strings, locale }: HomeCardFoldProps) {
                     <div className="w-full max-w-sm -rotate-6 md:max-w-md">
                         <PeanutCardHeroFace />
                     </div>
-                    <div className="relative z-10 -mt-16 w-full max-w-60 -rotate-2 justify-self-start md:-mt-20">
+                    <div className="relative z-10 -mt-16 w-full max-w-64 -rotate-2 justify-self-start md:-mt-20">
                         <HomeCardReceipt strings={strings} locale={locale} />
                     </div>
                 </div>

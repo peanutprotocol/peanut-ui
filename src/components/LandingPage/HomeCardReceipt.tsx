@@ -1,13 +1,7 @@
 import { Icon } from '@/components/Global/Icons/Icon'
+import { HOME_CARD_CURRENCY, HOME_CARD_MERCHANT, HOME_CARD_NUMBER, HOME_CARD_PURCHASE_USD } from './homeCard.consts'
 import type { HomeCardReceiptProps } from './homeCard.types'
 import { formatUsd } from './homeHinge.utils'
-
-/** A dollar purchase, so the receipt shows no conversion. */
-const PURCHASE_USD = 24
-const MERCHANT = 'Corner Books'
-const CURRENCY = 'USD'
-/** design.md: "????" is the card face's canonical number; the receipt never invents digits. */
-const CARD_NUMBER = '•••• ????'
 
 /** The approved card purchase that sits on the card art, as the app's receipt shows it. */
 export function HomeCardReceipt({ strings, locale }: HomeCardReceiptProps) {
@@ -22,16 +16,18 @@ export function HomeCardReceipt({ strings, locale }: HomeCardReceiptProps) {
                     {strings.receiptApproved}
                 </span>
             </div>
-            <p className="font-roboto-flex-extrabold text-heading-m tabular-nums">{formatUsd(PURCHASE_USD, locale)}</p>
+            <p className="font-roboto-flex-extrabold text-heading-m tabular-nums">
+                {formatUsd(HOME_CARD_PURCHASE_USD, locale)}
+            </p>
             <hr className="border-t border-dashed border-border-default" />
             <div className="flex justify-between gap-3 text-body-xs whitespace-nowrap text-foreground-secondary">
-                <span>{MERCHANT}</span>
-                <span className="text-label-l text-foreground-primary">{CURRENCY}</span>
+                <span>{HOME_CARD_MERCHANT}</span>
+                <span className="text-label-l text-foreground-primary">{HOME_CARD_CURRENCY}</span>
             </div>
             <div className="flex justify-between gap-3 text-body-xs whitespace-nowrap text-foreground-secondary">
                 <span>{strings.lockup}</span>
                 <span data-testid="home-card-receipt-number" className="text-label-l text-foreground-primary">
-                    {CARD_NUMBER}
+                    {HOME_CARD_NUMBER}
                 </span>
             </div>
         </div>

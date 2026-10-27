@@ -20,12 +20,15 @@ export function HomeBalanceScreen({ strings, locale }: HomeBalanceScreenProps) {
     const usdIn = formatSignedUsd(HOME_SEPA_IN_USD, 'in', locale)
     const ars = formatArs(QR_AR_PRICE_ARS, locale)
     const usdOut = formatSignedUsd(HOME_QR_OUT_USD, 'out', locale)
+    // "US$ 1.670,19" leaves no room beside a title even at lg, so the localized screens stack every amount
+    const stacked = locale !== 'en'
 
     return (
-        // lg zooms the whole phone (as QrArgentinaReview does) so it balances the title; md columns are too narrow
+        // lg zooms the whole phone (as QrArgentinaReview does) so it balances the title; md columns are too narrow.
+        // min-w-0: as a grid item the phone never grows past its column for a long localized amount.
         <PhoneFrame
             label={t(strings.screenLabel, { balance, eur, usdIn, merchant: QR_AR_MERCHANT, ars, usdOut })}
-            className="lg:[zoom:1.3]"
+            className="min-w-0 lg:[zoom:1.3]"
         >
             <p className="mt-2 text-center text-body-xs text-foreground-secondary">{strings.balance}</p>
             <p className="font-roboto-flex-extrabold text-center text-heading-l tabular-nums">{balance}</p>
@@ -36,6 +39,7 @@ export function HomeBalanceScreen({ strings, locale }: HomeBalanceScreenProps) {
                 detail={`${HOME_SEPA_RAIL} · ${eur}`}
                 amount={usdIn}
                 tone="in"
+                stacked={stacked}
             />
             <HomeBalanceActivityRow
                 icon={<Image src={MercadoPagoIcon} alt="" width={24} height={24} className="size-6" />}
@@ -43,6 +47,7 @@ export function HomeBalanceScreen({ strings, locale }: HomeBalanceScreenProps) {
                 detail={`${HOME_QR_RAIL} · ${ars}`}
                 amount={usdOut}
                 tone="out"
+                stacked={stacked}
             />
         </PhoneFrame>
     )

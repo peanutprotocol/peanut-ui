@@ -87,6 +87,13 @@ describe('HomeFolds', () => {
         expect(close).toHaveAttribute('href', '/setup')
     })
 
+    it('keeps every art link (out of the tab order) hidden from assistive tech', () => {
+        const { container } = renderHome()
+        const artLinks = Array.from(container.querySelectorAll('a[tabindex="-1"]'))
+        expect(artLinks.length).toBeGreaterThan(0)
+        for (const a of artLinks) expect(a.closest('[aria-hidden="true"], [role="img"]')).not.toBeNull()
+    })
+
     it.each(SUPPORTED_LOCALES)('%s renders with every string filled', (locale) => {
         const { container } = renderHome(locale)
         const text = container.textContent ?? ''

@@ -35,4 +35,6 @@ export interface HomeBalanceActivityRowProps {
     /** The signed dollar amount, already formatted. */
     amount: string
     tone: HomeBalanceTone
+    /** Put the amount on its own line under the title and detail. */
+    stacked?: boolean
 }
