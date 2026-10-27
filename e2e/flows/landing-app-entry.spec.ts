@@ -63,7 +63,7 @@ for (const device of ['desktop', 'iphone', 'android'] as const) {
                         ),
                         animations: 'disabled',
                     })
-                    await page.locator('#send-in-seconds').scrollIntoViewIfNeeded()
+                    await page.locator('#home-close').scrollIntoViewIfNeeded()
                     await page.mouse.wheel(0, 500)
                     expect(await page.evaluate(() => document.body.style.overflow)).not.toBe('hidden')
                     expect(errors.filter((error) => /hydration|#418|#423|#425/i.test(error))).toEqual([])
@@ -81,13 +81,12 @@ test.describe('desktop entry points', () => {
         deviceScaleFactor: 1,
         viewport: { width: 1440, height: 900 },
     })
-    test('hero, countries, rates and lower send reuse a dismissible modal', async ({ page }) => {
+    test('hero, account pair and close CTA reuse a dismissible modal', async ({ page }) => {
         await landing(page, '/', true)
         const entries = [
             page.getByTestId('landing-download-cta').getByRole('link'),
-            page.locator('#global-cash a[href="/app"]'),
-            page.locator('#no-fees').getByRole('button', { name: /send money/i }),
-            page.locator('#send-in-seconds a[href="/app"]'),
+            page.locator('#home-get-paid a[href="/app"]'),
+            page.locator('#home-close a[href="/app"]'),
         ]
         for (const [index, entry] of entries.entries()) {
             await entry.click()

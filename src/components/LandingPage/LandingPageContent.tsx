@@ -1,18 +1,7 @@
 import { Suspense } from 'react'
 import { LandingPageClient } from './LandingPageClient'
-import { FAQs } from './faq'
-import { SupportedRailsFaqAnswer } from './SupportedRailsFaqAnswer'
-import { SUPPORTED_RAILS_FAQ_ID, supportedFiatRails } from '@/constants/faq.consts'
-import Manteca from './Manteca'
-import { RegulatedRails } from './RegulatedRails'
-import { YourMoney } from './yourMoney'
-import { SecurityBuiltIn } from './securityBuiltIn'
-import { SendInSeconds } from './sendInSeconds'
-import { ProblemFold } from './ProblemFold'
+import { HomeFolds } from './HomeFolds'
 import Footer from './Footer'
-import { faqSchema } from '@/lib/seo/schemas'
-import { singletonLocaleFor } from '@/lib/content'
-import { JsonLd } from '@/components/Marketing/JsonLd'
 import { getLandingContent } from '@/lib/landingContent'
 import { getTranslations } from '@/i18n'
 import { landingStrings } from './landingStrings'
@@ -29,68 +18,46 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
     const contentHrefs = contentHrefsFor(locale)
 
     /*
-     * The FAQ is static copy, so it is assembled here and passed in as a slot
-     * rather than built inside the client component.
-     *
-     * Only some answers have a single article worth linking: the first has no
-     * one article behind it, and the second already links the help centre in its
-     * own answer.
+     * Only some answers have a single article worth linking. The named ids are
+     * the new four-question FAQ; the numbered ones keep the current content
+     * file's FAQ linked until it is replaced, then they go.
      */
     const learnMoreHrefs: Record<string, string> = {
+        'who-can-pay': contentHrefs.depositBank,
+        cost: contentHrefs.feesPricing,
+        'local-bank': contentHrefs.supportedGeographies,
+        freeze: contentHrefs.securityCustody,
         '1': contentHrefs.whatAreDigitalDollars,
         '2': contentHrefs.verification,
         '3': contentHrefs.passkeys,
         '4': contentHrefs.securityCustody,
         '5': contentHrefs.feesPricing,
-        [SUPPORTED_RAILS_FAQ_ID]: contentHrefs.supportedGeographies,
     }
-    const faqQuestions = faqData.questions.map((question) => ({
+    const faqItems = faqData.questions.map((question) => ({
         ...question,
-        ...(question.id === SUPPORTED_RAILS_FAQ_ID
-            ? {
-                  answerContent: (
-                      <SupportedRailsFaqAnswer strings={strings.supportedRails} rails={supportedFiatRails(locale)} />
-                  ),
-              }
-            : {}),
         ...(learnMoreHrefs[question.id] ? { learnMoreHref: learnMoreHrefs[question.id] } : {}),
     }))
-    // inLanguage reflects the language the FAQ prose actually resolved to —
-    // until mono ships landing translations, that's English on every locale.
-    const faqJsonLd = faqSchema(
-        faqData.questions.map((q) => ({ question: q.question, answer: q.answer })),
-        singletonLocaleFor('landing', locale)
-    )
 
     // The root layout is above the locale segment and can't read route params,
     // so it ships <html lang="en">. Scope the real language here instead — same
     // approach the marketing layout takes on its <main>.
     return (
         <div lang={locale}>
-            {faqJsonLd && <JsonLd data={faqJsonLd} />}
             <Suspense>
                 <LandingPageClient
                     heroConfig={heroConfig}
                     marqueeMessages={marqueeMessages}
                     strings={strings}
                     contentHrefs={contentHrefs}
-                    problemSlot={<ProblemFold strings={strings} />}
-                    // The lavender band, not Manteca's default cream: on the homepage it
-                    // follows RegulatedRails, which is cream already.
-                    mantecaSlot={<Manteca locale={locale} backgroundClassName="bg-background-marketing-sky" />}
-                    regulatedRailsSlot={<RegulatedRails locale={locale} />}
-                    yourMoneySlot={<YourMoney locale={locale} />}
-                    securitySlot={<SecurityBuiltIn locale={locale} />}
-                    sendInSecondsSlot={<SendInSeconds locale={locale} />}
-                    footerSlot={<Footer locale={locale} padForStickyCta />}
-                    faqSlot={
-                        <FAQs
-                            heading={faqData.heading}
-                            questions={faqQuestions}
-                            learnMoreLabel={strings.learnMore}
-                            marquee={faqData.marquee}
+                    foldsSlot={
+                        <HomeFolds
+                            locale={locale}
+                            strings={strings}
+                            faqItems={faqItems}
+                            closeCta={{ label: heroConfig.primaryCta.label, href: heroConfig.primaryCta.href }}
                         />
                     }
+                    footerSlot={<Footer locale={locale} padForStickyCta />}
                 />
             </Suspense>
         </div>

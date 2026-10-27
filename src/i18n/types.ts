@@ -95,40 +95,41 @@ export interface Translations {
     landingLogIn: string
     landingLearnMore: string
 
-    // Landing page — "global cash, local feel" section
-    landingGlobalCashLine1: string
-    landingGlobalCashLine2: string
-    landingGlobalCashStats: string
-    landingGlobalCashBody: string
-
-    // Landing page — regulated rails section
-    landingRailsHeading: string
-    landingRailsBody: string
-    landingWorksWith: string
-
-    // Landing page — pay-like-a-local (QR/PIX) section
+    // Landing page — pay-like-a-local (QR/PIX) heading, reused by the home fold
     landingPayLocalHeading: string
-    landingPayLocalSubheading: string
-    landingPayLocalBody: string
-    landingMercadoPagoAria: string
-    landingPixAria: string
-    landingPayLocalPhoneAlt: string
 
-    // Landing page — security section
-    landingSecurityHeading: string
-    landingSecurityTotalTitle: string
-    landingSecurityTotalDesc: string
-    landingSecurityControlTitle: string
-    landingSecurityControlDesc: string
-    landingSecurityHelpTitle: string
-    landingSecurityHelpDesc: string
-    landingTalkToSupport: string
-
-    // Landing page — send-in-seconds section (closing CTA)
-    landingClosingHeadline: string
-    /** The opening 1-3 headline words, set as the Knerd lockup. Must open the headline exactly. */
-    landingClosingAccent: string
-    landingClosingSubline: string
+    // Landing page — home folds (c1-v3 "Balance hinge")
+    landingGetPaidLead: string
+    landingGetPaidKnerd: string // "\n" between the Knerd lines
+    landingPersonasHeading: string
+    landingPersonaDesignerWho: string
+    landingPersonaDesignerLine: string
+    landingPersonaDeveloperWho: string
+    landingPersonaDeveloperLine: string
+    landingRequestQuestion: string
+    landingRequestAction: string
+    landingRequestRequesting: string // "{username} …"
+    landingRequestPaid: string
+    landingRequestChatLabel: string // "… {main} … {amount}; {payer} …"
+    landingHingeHeading: string
+    landingHingeBalance: string
+    landingHingeActivity: string
+    landingHingeMoneyIn: string
+    landingHingeScreenLabel: string // "… {balance} … {eur}, {usdIn} … {merchant}: {ars}, {usdOut}."
+    landingCardLockup: string // brand name, the same in every locale
+    landingCardKnerd: string
+    landingCardLine: string
+    landingCardGetYourCard: string
+    landingCardReceiptTitle: string
+    landingCardReceiptApproved: string
+    landingSeamCard: string
+    landingPayLocalLead: string // "… {argentina} … {brazil} …", each slot becomes a link
+    landingPayLocalArgentina: string
+    landingPayLocalBrazil: string
+    landingSeamPasskey: string
+    landingTrustLine: string // "\n" marks the line break from xs
+    landingFaqFootnote: string
+    landingCloseTitle: string // "\n" between the Knerd lines
 
     // Landing page — hero
     landingHeroHeadline: string
@@ -138,54 +139,12 @@ export interface Translations {
     landingHeroSpend: string
     landingHeroLocally: string
 
-    // Landing page — zero-fees section
-    landingZeroFees: string
-    landingReallyZero: string
-    landingNoHiddenFees: string
-    landingSeeMarkupOn: string
-
     // Landing page — drop-a-link section
     landingDropLinkHeading: string
     landingDropLinkBody: string
 
-    // Landing page — CTAs and inputs
-    landingSendNow: string
+    // Landing page — CTAs
     landingSignUpNow: string
-    landingCurrencyPlaceholder: string
-
-    // Landing page — Peanut Card section
-    landingCardHeading: string
-    landingCardBody: string
-    landingCardBullet1: string
-    landingCardBullet2: string
-    landingCardBullet3: string
-    landingCardDisclaimer: string
-    landingCardCta: string
-
-    // Landing page — testimonials
-    landingWallOfLove: string
-    landingWallOfLoveBody: string
-
-    // Landing page — code-injected supported-rails FAQ (fact lists interpolated from rhino.consts)
-    landingSupportedRailsFaqQuestion: string
-    landingSupportedRailsFaqAnswer: string // "… {evmCount} … ({evmList}), plus {otherList} … {railList} …"
-    listJoinAnd: string // conjunction used when joining name lists ("Solana and Tron")
-    // …and the rich chip body of the same FAQ item (SupportedRailsFaqAnswer).
-    // The plain-text answer above is one sentence; this is its headings.
-    landingSupportedRailsCrypto: string // "… {evmCount} … {otherList}:"
-    landingSupportedRailsTokens: string
-    landingSupportedRailsTokenNote: string
-    landingSupportedRailsBanks: string
-    landingSupportedRailsFree: string
-
-    // Landing page — problem fold (three named cards, icons drawn by the component)
-    landingProblemHeading: string
-    landingProblemCrossBorderTitle: string
-    landingProblemCrossBorderBody: string
-    landingProblemSendHomeTitle: string
-    landingProblemSendHomeBody: string
-    landingProblemPaidAbroadTitle: string
-    landingProblemPaidAbroadBody: string
 
     // Legal page headers (privacy/terms carry no <Hero> in their verbatim markdown)
     legalHeroSubtitlePrivacy: string

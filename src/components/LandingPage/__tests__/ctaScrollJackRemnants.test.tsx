@@ -9,7 +9,6 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { render, screen } from '@testing-library/react'
 import { Hero } from '../hero'
-import { SendInSeconds } from '../sendInSeconds'
 import { landingStrings } from '../landingStrings'
 import { getTranslations } from '@/i18n'
 
@@ -58,25 +57,6 @@ describe('Hero CTA', () => {
         render(<Hero strings={strings} buttonVisible customCta={<span>store pair</span>} />)
 
         expect(screen.getByText('store pair')).toBeInTheDocument()
-    })
-})
-
-describe('SendInSeconds fold', () => {
-    // The scroll-jack regression guard. Keep it free of fold-10 content assertions.
-    it('drops the scroll-jack target but keeps the section anchor', () => {
-        const { container } = render(<SendInSeconds locale="en" />)
-
-        expect(container.querySelector('#send-in-seconds')).toBeInTheDocument()
-        expect(container.querySelector('#sticky-button-target')).toBeNull()
-    })
-
-    it('links the CTA to /send as a single hugging DS button with the motion layer', () => {
-        const { container } = render(<SendInSeconds locale="en" />)
-
-        const cta = container.querySelector('a[href="/send"]')
-        expect(cta).toBeInTheDocument()
-        expect(cta).toHaveClass('btn', 'btn-secondary', 'w-fit', 'cta-motion')
-        expect(container.querySelectorAll('.cta-motion')).toHaveLength(1)
     })
 })
 
