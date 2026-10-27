@@ -105,6 +105,8 @@ export interface AttentionAsk {
     presentation?: InterruptPresentation
     slots?: SlotId[]
     eligible: (state: JourneyState) => Verdict
+    /** whether the app holds what its surface shows; a server `show` waits as `pending` until it does */
+    renderable?: (state: JourneyState) => boolean
     /** a changed version re-arms a dismissed or snoozed ask (a new legal document, a new reason code) */
     version?: (state: JourneyState) => string | undefined
     policy: AskPolicy
