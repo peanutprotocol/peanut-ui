@@ -291,6 +291,17 @@
         "attention": {
             "label": "Next steps"
         },
+        "postVerification": {
+            "title": "Verification complete!",
+            "claim": {
+                "description": "Your identity has been successfully verified. You can now claim money directly to your bank account.",
+                "cta": "Claim to bank"
+            },
+            "request": {
+                "description": "Your identity has been successfully verified. You can now send the money your friend requested!",
+                "cta": "Send it!"
+            }
+        },
         "arrival": {
             "qr_ar": {
                 "title": "Just landed in Argentina",

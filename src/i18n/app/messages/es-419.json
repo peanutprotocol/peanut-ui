@@ -291,6 +291,17 @@
         "attention": {
             "label": "Próximos pasos"
         },
+        "postVerification": {
+            "title": "¡Verificación completa!",
+            "claim": {
+                "description": "Verificamos tu identidad. Ya puedes reclamar el dinero directamente en tu cuenta bancaria.",
+                "cta": "Reclamar a mi banco"
+            },
+            "request": {
+                "description": "Verificamos tu identidad. Ya puedes enviar el dinero que te pidió tu amigo.",
+                "cta": "¡Enviar!"
+            }
+        },
         "arrival": {
             "qr_ar": {
                 "title": "Aterrizaste en Argentina",

@@ -291,6 +291,17 @@
         "attention": {
             "label": "Próximos passos"
         },
+        "postVerification": {
+            "title": "Verificação concluída!",
+            "claim": {
+                "description": "Verificamos sua identidade. Agora você pode resgatar o dinheiro direto na sua conta bancária.",
+                "cta": "Resgatar no banco"
+            },
+            "request": {
+                "description": "Verificamos sua identidade. Agora você pode enviar o dinheiro que seu amigo pediu!",
+                "cta": "Enviar!"
+            }
+        },
         "arrival": {
             "qr_ar": {
                 "title": "Desembarcou na Argentina",
