@@ -84,7 +84,8 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                     />
                                 </div>
                             </div>
-                            <div>
+                            {/* a column that fills the row, so each Learn more sits on the same baseline */}
+                            <div className="flex w-full flex-1 flex-col">
                                 <div className="mb-4 w-full text-left md:text-left">
                                     <h3 className="font-roboto-flex-extrabold text-heading-s lg:text-heading-m">
                                         {feature.title}
@@ -96,8 +97,8 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                 </p>
                                 {feature.learnMoreHref && (
                                     // max-w matches the paragraph above, so the link
-                                    // lands on that right edge instead of the wider cell
-                                    <p className="mt-4 w-full max-w-[360px] text-right">
+                                    // lands on that right edge instead of the wider cell; mt-auto pins it to the column foot
+                                    <p className="mt-auto w-full max-w-[360px] pt-4 text-right">
                                         <a
                                             href={feature.learnMoreHref}
                                             className="font-roboto-flex text-body-m text-foreground-primary underline hover:no-underline active:no-underline md:text-body-l"

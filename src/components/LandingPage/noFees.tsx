@@ -105,9 +105,11 @@ export function NoFees({
                     <Image src={Star} alt="Floating Star" width={50} height={50} />
                 </AnimateOnView>
 
-                {/* h2: the home hero owns the page's one h1 */}
+                {/* h2: the home hero owns the page's one h1. Set solid like the star-LP fold
+                    titles: the base size's ramp leading (36px for headingSmall) otherwise
+                    survives the xs/md size steps and the stacked words overlap on phones. */}
                 <h2
-                    className={`font-roboto-flex-extrabold ${headlineSize} text-foreground-primary md:text-headingMedium`}
+                    className={`font-roboto-flex-extrabold star-lp-section-title ${headlineSize} text-foreground-primary md:text-headingMedium`}
                 >
                     {strings.zeroFees}
                 </h2>
@@ -119,10 +121,12 @@ export function NoFees({
                 {/* below xs the line takes the long-word headline step, so
                     es/pt keep the 390 proportion (headline = this line) */}
                 <div className="mx-auto mb-1 w-full max-w-xs md:max-w-md">
-                    <div className="font-roboto-flex-extrabold pt-[0.23em] text-heading-m text-foreground-primary xs:text-headingSmall">
+                    <div className="font-roboto-flex-extrabold text-heading-m text-balance text-foreground-primary xs:text-headingSmall">
                         <p>
                             {reallyZeroLead}
-                            <span className="relative inline-block">
+                            {/* inline-block margins open the line box to the scribble's reach,
+                                so the circle clears the words above and below when the line wraps */}
+                            <span className="relative my-[0.27em] inline-block">
                                 {reallyZeroCircled}
                                 <Image
                                     src={scribbleCircle}

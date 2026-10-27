@@ -11,10 +11,11 @@ import testimonials from '@/content/generated/testimonials.json'
 const WALL_OF_LOVE_URLS = [
     'https://x.com/Emmy_Wilz_01/status/1993198570225238514',
     'https://x.com/theZeugh/status/1993446136867393834',
-    'https://x.com/candicekteo/status/1993420115509956930',
+    'https://x.com/cxqmaggie/status/1993393875059441999',
     'https://x.com/DAppaDanDev/status/1992935274523840902',
     'https://x.com/yssf_io/status/1993363153611374973',
-    'https://x.com/cxqmaggie/status/1993393875059441999',
+    // thanks another account (@uwwgo), so it sits past the three phones show
+    'https://x.com/candicekteo/status/1993420115509956930',
 ] as const
 
 const posts = (testimonials as { tweets: (WallOfLovePost & { visible?: boolean })[] }).tweets
