@@ -164,6 +164,7 @@ describe('IdentityDocumentScreen: temporary protection', () => {
             ukraineLinked: true,
         })
         const row = screen.getByTestId('verify-id-option-TEMPORARY_PROTECTION-PL')
+        expect(screen.getAllByTestId(/^verify-id-option-/)[0]).toBe(row)
         expect(row).toHaveTextContent('Temporary protection for Ukrainians')
         expect(row).toHaveTextContent('Issued by Poland')
         expect(row).not.toHaveTextContent('paper')

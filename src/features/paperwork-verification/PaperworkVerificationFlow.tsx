@@ -618,6 +618,7 @@ function PaperworkVerificationSteps({
         screen = (
             <ProofOfAddressStep
                 residenceName={residenceName}
+                temporaryProtection={plan?.proofOfAddressReason === 'temporary_protection'}
                 onDone={(outcome) => {
                     track(
                         outcome === 'skipped'
@@ -678,10 +679,12 @@ function PaperworkVerificationSteps({
 /** Rule 1's upload goes through the existing supplement action (`supplement:bridge`). */
 function ProofOfAddressStep({
     residenceName,
+    temporaryProtection,
     onDone,
     onUploadStarted,
 }: {
     residenceName: string
+    temporaryProtection: boolean
     onDone: (outcome: 'uploaded' | 'skipped') => void
     onUploadStarted: () => void
 }) {
@@ -690,6 +693,7 @@ function ProofOfAddressStep({
         <>
             <ProofOfAddressScreen
                 residenceName={residenceName}
+                temporaryProtection={temporaryProtection}
                 uploading={flow.isLoading}
                 error={flow.error}
                 onUpload={() => {

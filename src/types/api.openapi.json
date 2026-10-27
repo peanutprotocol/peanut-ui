@@ -25946,6 +25946,25 @@
                                                 }
                                             ]
                                         },
+                                        "proofOfAddressReason": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "id_abroad"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "temporary_protection"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
                                         "proofOfAddressIdCountries": {
                                             "items": {
                                                 "type": "string"
@@ -26106,6 +26125,7 @@
                                         "flow",
                                         "needs",
                                         "proofOfAddress",
+                                        "proofOfAddressReason",
                                         "proofOfAddressIdCountries",
                                         "temporaryProtection"
                                     ],

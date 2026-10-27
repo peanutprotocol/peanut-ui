@@ -13765,6 +13765,7 @@ export interface paths {
                             needs: ("residence" | "features")[];
                             policyVersion: string | null;
                             proofOfAddress: "suggested" | null;
+                            proofOfAddressReason: "id_abroad" | "temporary_protection" | null;
                             proofOfAddressIdCountries: string[];
                             routes: {
                                 documents: {

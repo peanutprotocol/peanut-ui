@@ -6,12 +6,17 @@ export type KycPlanNeed = DocumentPlanResponse['needs'][number]
 // `needs` is optional for a response from an API before the field
 export type KycDocumentPlan = Omit<
     DocumentPlanResponse,
-    'flow' | 'proofOfAddress' | 'proofOfAddressIdCountries' | 'temporaryProtection' | 'needs'
+    'flow' | 'proofOfAddress' | 'proofOfAddressReason' | 'proofOfAddressIdCountries' | 'temporaryProtection' | 'needs'
 > &
     Partial<
         Pick<
             DocumentPlanResponse,
-            'flow' | 'proofOfAddress' | 'proofOfAddressIdCountries' | 'temporaryProtection' | 'needs'
+            | 'flow'
+            | 'proofOfAddress'
+            | 'proofOfAddressReason'
+            | 'proofOfAddressIdCountries'
+            | 'temporaryProtection'
+            | 'needs'
         >
     >
 export type KycFeatures = KycDocumentPlan['features']

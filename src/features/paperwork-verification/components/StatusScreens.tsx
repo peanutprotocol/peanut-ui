@@ -341,12 +341,15 @@ const PROOF_KINDS = [
  */
 export function ProofOfAddressScreen({
     residenceName,
+    temporaryProtection = false,
     uploading,
     error,
     onUpload,
     onSkip,
 }: {
     residenceName: string
+    /** The approved ID was a temporary protection sheet: the residence's own, so not an ID from abroad. */
+    temporaryProtection?: boolean
     uploading: boolean
     error: string | null
     onUpload: () => void
@@ -374,7 +377,9 @@ export function ProofOfAddressScreen({
         >
             <SetupTitleBlock
                 title={t('poa.title')}
-                description={t('poa.description', { country: residenceName })}
+                description={t(temporaryProtection ? 'poa.descriptionTemporaryProtection' : 'poa.description', {
+                    country: residenceName,
+                })}
                 size="m"
             />
             <ListGroup>

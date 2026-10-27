@@ -243,8 +243,8 @@ export function IdentityDocumentScreen({
                 )}
                 {document && pickable && (
                     <ListGroup>
-                        {main.map((c) => row(c, 'list'))}
                         {protectionInMain && protectionChoices.map((c) => row(c, 'list'))}
+                        {main.map((c) => row(c, 'list'))}
                         {refused.map(refusedRow)}
                         {otherChoices.length > 0 && (
                             <ListItem

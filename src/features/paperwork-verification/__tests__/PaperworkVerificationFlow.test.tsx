@@ -542,9 +542,23 @@ describe('PaperworkVerificationFlow', () => {
         expect(mockPush).toHaveBeenCalledWith('/home')
         unmount()
 
-        mockPlan.mockResolvedValue({ ...plan, proofOfAddress: 'suggested' })
+        mockPlan.mockResolvedValue({ ...plan, proofOfAddress: 'suggested', proofOfAddressReason: 'id_abroad' })
         renderFlow()
         expect(await screen.findByText('Add a proof of address')).toBeInTheDocument()
+        expect(screen.getByText(/^Your ID isn’t from/)).toBeInTheDocument()
+    })
+
+    // A temporary protection sheet is the residence's own, so "your ID isn't from here" would be wrong.
+    it('gives temporary protection as the reason when the approved ID was the sheet', async () => {
+        mockStatus.mockResolvedValue('APPROVED')
+        mockPlan.mockResolvedValue({
+            ...plan,
+            proofOfAddress: 'suggested',
+            proofOfAddressReason: 'temporary_protection',
+        })
+        renderFlow()
+        expect(await screen.findByText(/^With temporary protection, your bank account also needs/)).toBeInTheDocument()
+        expect(screen.queryByText(/^Your ID isn’t from/)).toBeNull()
     })
 
     it('rule 1: Upload starts the existing supplement action, Skip goes on with no task left behind', async () => {

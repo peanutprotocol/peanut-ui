@@ -3767,6 +3767,7 @@
             "poa": {
                 "title": "Add a proof of address",
                 "description": "Your ID isn’t from {country}, so our banking partner asks for a recent document with your name and your address there.",
+                "descriptionTemporaryProtection": "With temporary protection, your bank account also needs a recent document with your name and your address in {country}.",
                 "kinds": {
                     "bankStatement": "Bank statement",
                     "utilityBill": "Utility bill",

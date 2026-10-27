@@ -3767,6 +3767,7 @@
             "poa": {
                 "title": "Adicione um comprovante de endereço",
                 "description": "Seu documento não é de {country}, então nosso parceiro bancário pede um documento recente com seu nome e seu endereço lá.",
+                "descriptionTemporaryProtection": "Com proteção temporária, sua conta bancária também precisa de um documento recente com seu nome e seu endereço em {country}.",
                 "kinds": {
                     "bankStatement": "Extrato bancário",
                     "utilityBill": "Conta de consumo",

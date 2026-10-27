@@ -3767,6 +3767,7 @@
             "poa": {
                 "title": "Agrega un comprobante de domicilio",
                 "description": "Tu documento no es de {country}, así que nuestro socio bancario pide un documento reciente con tu nombre y tu domicilio allí.",
+                "descriptionTemporaryProtection": "Con protección temporal, tu cuenta bancaria también necesita un documento reciente con tu nombre y tu domicilio en {country}.",
                 "kinds": {
                     "bankStatement": "Estado de cuenta bancario",
                     "utilityBill": "Factura de un servicio",
