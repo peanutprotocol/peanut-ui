@@ -642,7 +642,8 @@
                 "maritalStatus": "Marital status",
                 "isPep": "Public office",
                 "isFatca": "US citizen or tax resident",
-                "isFep": "UIF reporting duty"
+                "isFep": "UIF reporting duty",
+                "idNationality": "Nationality on your ID"
             }
         }
     },

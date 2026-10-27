@@ -24,8 +24,8 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) 
 const details = (overrides: Partial<KycCollectedDetails> = {}): KycCollectedDetails => ({
     name: { first: null, last: null },
     citizenship: 'UA',
+    idNationality: null,
     document: { type: 'RESIDENCE_PERMIT', country: 'PT' },
-    address: null,
     stored: {
         dateOfBirth: '1990-04-02',
         cityOfBirth: 'Odesa',
@@ -114,26 +114,34 @@ describe('ProfileDetailsView', () => {
         expect(screen.queryByText(/funding|spending method/i)).toBeNull()
     })
 
-    it('names an unverified residence as declared, and shows a stored address as written', async () => {
+    it('names an unverified residence as declared', async () => {
         mockUser.residence = normalizeResidence({ declared: 'ES', declaredSecond: 'PT', verified: null })
-        jest.mocked(getKycDetails).mockResolvedValue(
-            details({
-                heldBySumsub: [],
-                address: {
-                    line1: 'Calle Mayor 1',
-                    line2: null,
-                    city: 'Madrid',
-                    state: null,
-                    postCode: '28013',
-                    country: 'ES',
-                },
-            })
-        )
         render()
-        expect(await screen.findByText('Address')).toBeInTheDocument()
+        expect(await screen.findByText('Declared residence')).toBeInTheDocument()
         expect(rowValue('Declared residence')).toBe('Spain')
         expect(rowValue('Second residence')).toBe('Portugal')
-        expect(rowValue('Address')).toBe('Calle Mayor 1, 28013 Madrid, Spain')
         expect(screen.queryByText('Verified residence')).toBeNull()
+    })
+
+    // Slava, 2026-10-27: the citizenship given and the nationality the ID shows are two facts.
+    it('shows the citizenship given and the nationality on the ID as separate rows', async () => {
+        jest.mocked(getKycDetails).mockResolvedValue(details({ citizenship: 'UA', idNationality: 'PL' }))
+        render()
+        expect(await screen.findByText('Nationality on your ID')).toBeInTheDocument()
+        expect(rowValue('Citizenship')).toBe('Ukraine')
+        expect(rowValue('Nationality on your ID')).toBe('Poland')
+    })
+
+    it('leaves out the ID nationality row when the ID names none', async () => {
+        render()
+        await screen.findByText('Citizenship')
+        expect(screen.queryByText('Nationality on your ID')).toBeNull()
+    })
+
+    it('shows the address only as held by Sumsub, never a value', async () => {
+        jest.mocked(getKycDetails).mockResolvedValue(details({ heldBySumsub: ['address'] }))
+        render()
+        expect(await screen.findByText('Address')).toBeInTheDocument()
+        expect(rowValue('Address')).toBe('Not stored at Peanut')
     })
 })

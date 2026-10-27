@@ -642,7 +642,8 @@
                 "maritalStatus": "Estado civil",
                 "isPep": "Cargo público",
                 "isFatca": "Ciudadano o residente fiscal de EE. UU.",
-                "isFep": "Sujeto obligado ante la UIF"
+                "isFep": "Sujeto obligado ante la UIF",
+                "idNationality": "Nacionalidad en tu documento"
             }
         }
     },

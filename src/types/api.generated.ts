@@ -6875,61 +6875,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/manteca/withdraw": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create withdraw order (offramp)
-         * @description Create a withdraw order to convert crypto to fiat via Manteca. Optionally use a pre-locked price from /withdraw/init.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        accountType?: "SAVINGS" | "CHECKING" | "DEBIT" | "PHONE" | "VISTA" | "RUT";
-                        /** @description Amount to withdraw in crypto asset */
-                        amount: string;
-                        bankCode?: string;
-                        currency?: "ARS" | "BRL" | "CLP" | "COP" | "PUSD" | "CRC" | "GTQ" | "MXN" | "PHP" | "BOB";
-                        /** @description Destination address to withdraw to */
-                        destinationAddress: string;
-                        /** @description Price lock code from /withdraw/init. If not provided, a new price lock is created. */
-                        priceLockCode?: string;
-                        /** @description Transaction hash of the withdrawal */
-                        txHash: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/manteca/withdraw/complete-with-signed-tx": {
         parameters: {
             query?: never;
@@ -11580,6 +11525,7 @@ export interface paths {
                         fullName?: string;
                         hasSeenEarlyUserModal?: boolean;
                         locale?: string;
+                        localeSource?: "device" | "pick" | "browser";
                         pushSubscriptionId?: string;
                         residenceCountry?: string;
                         secondResidenceCountry?: string;
@@ -11985,8 +11931,9 @@ export interface paths {
                                 nextActions: {
                                     currency?: string;
                                     effectiveDate?: string;
+                                    feature?: "bank" | "card" | "local";
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                     levelKey?: string;
                                     purpose: string;
                                     refused?: {
@@ -12029,8 +11976,9 @@ export interface paths {
                                         nextAction?: {
                                             currency?: string;
                                             effectiveDate?: string;
+                                            feature?: "bank" | "card" | "local";
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                             levelKey?: string;
                                             purpose: string;
                                             refused?: {
@@ -12571,8 +12519,9 @@ export interface paths {
                             nextAction?: {
                                 currency?: string;
                                 effectiveDate?: string;
+                                feature?: "bank" | "card" | "local";
                                 key: string;
-                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
+                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                 levelKey?: string;
                                 purpose: string;
                                 refused?: {
@@ -13356,7 +13305,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            next: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax") | null;
+                            next: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax" | "nationality") | null;
                         };
                     };
                 };
@@ -13372,6 +13321,7 @@ export interface paths {
                                 [key: string]: string;
                             };
                             step?: string | null;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -13387,6 +13337,7 @@ export interface paths {
                                 [key: string]: string;
                             };
                             step?: string | null;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -13402,6 +13353,7 @@ export interface paths {
                                 [key: string]: string;
                             };
                             step?: string | null;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -13417,6 +13369,7 @@ export interface paths {
                                 [key: string]: string;
                             };
                             step?: string | null;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -13432,6 +13385,7 @@ export interface paths {
                                 [key: string]: string;
                             };
                             step?: string | null;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -13447,6 +13401,7 @@ export interface paths {
                                 [key: string]: string;
                             };
                             step?: string | null;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -13517,13 +13472,26 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
-                409: {
+                400: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
                             error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: string;
+                            error: string;
+                            userMessage: string;
                         };
                     };
                 };
@@ -13620,11 +13588,95 @@ export interface paths {
                             code?: string;
                             error?: string;
                             step?: string | null;
+                            userMessage?: string;
                         };
                     };
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            citizenship: string | null;
+                            document: {
+                                country: string;
+                                type: string;
+                            } | null;
+                            heldBySumsub: string[];
+                            idNationality: string | null;
+                            name: {
+                                first: string | null;
+                                last: string | null;
+                            };
+                            stored: {
+                                actingAsIntermediary?: string;
+                                annualSalary?: string;
+                                bankMonthlyPayments?: string;
+                                bankPurpose?: string;
+                                cardPurpose?: string;
+                                cityOfBirth?: string;
+                                countryOfBirth?: string;
+                                dateOfBirth?: string;
+                                employmentStatus?: string;
+                                expectedMonthlyVolume?: string;
+                                isFatca?: string;
+                                isFep?: string;
+                                isPep?: string;
+                                maritalStatus?: string;
+                                occupation?: string;
+                                phone?: string;
+                                sex?: string;
+                                sourceOfFunds?: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                            userMessage?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -13663,7 +13715,7 @@ export interface paths {
                             }[];
                             requirements: {
                                 collect: "before_identity" | "after_identity" | "when_asked";
-                                item: "residential_address" | "phone" | "tax_id" | "country_of_birth" | "city_of_birth" | "nationality" | "account_purpose" | "employment_status" | "occupation" | "source_of_funds" | "expected_monthly_payments" | "acting_as_intermediary" | "card_purpose" | "annual_salary" | "expected_monthly_spend" | "sex" | "marital_status" | "pep" | "fatca" | "fep" | "proof_of_address" | "source_of_funds_document";
+                                item: "residential_address" | "phone" | "tax_id" | "country_of_birth" | "city_of_birth" | "citizenship" | "nationality" | "account_purpose" | "employment_status" | "occupation" | "source_of_funds" | "expected_monthly_payments" | "acting_as_intermediary" | "card_purpose" | "annual_salary" | "expected_monthly_spend" | "sex" | "marital_status" | "pep" | "fatca" | "fep" | "proof_of_address" | "source_of_funds_document";
                                 kind: "question" | "document";
                                 products: ("bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "bridge.brl" | "rain.card" | "manteca.local" | "manteca.qr")[];
                                 requiredBy: ("BRIDGE" | "RAIN" | "MANTECA")[];
@@ -13766,8 +13818,8 @@ export interface paths {
                             needs: ("residence" | "features")[];
                             policyVersion: string | null;
                             proofOfAddress: "suggested" | null;
-                            proofOfAddressReason: "id_abroad" | "temporary_protection" | null;
                             proofOfAddressIdCountries: string[];
+                            proofOfAddressReason: "id_abroad" | "temporary_protection" | null;
                             routes: {
                                 documents: {
                                     /** @enum {string} */
@@ -13781,8 +13833,8 @@ export interface paths {
                             }[];
                             temporaryProtection: {
                                 countries: string[];
-                                until: string;
                                 proofOfAddress: boolean;
+                                until: string;
                             } | null;
                         };
                     };
@@ -14049,7 +14101,11 @@ export interface paths {
                         "application/json": {
                             attemptId: string | null;
                             available: boolean;
-                            firstUnanswered: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax") | null;
+                            closed: {
+                                feature: "qr" | "local" | "card" | "bank";
+                                reason: string;
+                            }[];
+                            firstUnanswered: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax" | "nationality") | null;
                             needs: ("residence" | "features")[];
                             progress: {
                                 done: number;
@@ -14069,11 +14125,7 @@ export interface paths {
                                     required: boolean;
                                     value: string | null;
                                 }[];
-                                id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax";
-                            }[];
-                            closed: {
-                                feature: "qr" | "local" | "card" | "bank";
-                                reason: string;
+                                id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax" | "nationality";
                             }[];
                         };
                     };
@@ -14290,8 +14342,9 @@ export interface paths {
                                 nextActions: {
                                     currency?: string;
                                     effectiveDate?: string;
+                                    feature?: "bank" | "card" | "local";
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                     levelKey?: string;
                                     purpose: string;
                                     refused?: {
@@ -14334,8 +14387,9 @@ export interface paths {
                                         nextAction?: {
                                             currency?: string;
                                             effectiveDate?: string;
+                                            feature?: "bank" | "card" | "local";
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                             levelKey?: string;
                                             purpose: string;
                                             refused?: {
@@ -15685,95 +15739,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/users/kyc/details": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            address: {
-                                city: string;
-                                country: string;
-                                line1: string;
-                                line2: string | null;
-                                postCode: string | null;
-                                state: string | null;
-                            } | null;
-                            citizenship: string | null;
-                            document: {
-                                country: string;
-                                type: string;
-                            } | null;
-                            heldBySumsub: string[];
-                            name: {
-                                first: string | null;
-                                last: string | null;
-                            };
-                            stored: {
-                                actingAsIntermediary?: string;
-                                annualSalary?: string;
-                                bankMonthlyPayments?: string;
-                                bankPurpose?: string;
-                                cardPurpose?: string;
-                                cityOfBirth?: string;
-                                countryOfBirth?: string;
-                                dateOfBirth?: string;
-                                employmentStatus?: string;
-                                expectedMonthlyVolume?: string;
-                                isFatca?: string;
-                                isFep?: string;
-                                isPep?: string;
-                                maritalStatus?: string;
-                                occupation?: string;
-                                phone?: string;
-                                sex?: string;
-                                sourceOfFunds?: string;
-                            };
-                        };
-                    };
-                };
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            errors?: {
-                                [key: string]: string;
-                            };
-                            step?: string | null;
-                        };
-                    };
                 };
             };
         };
