@@ -6,7 +6,8 @@ import testimonials from '@/content/generated/testimonials.json'
  * The home's wall of love, in order: six real posts a stranger reads without
  * context (product feel first). Picked by hand, not by impact_score; a post
  * hidden in the manifest (`visible: false`) drops out rather than showing.
- * Phones show the first three.
+ * The wall shows three at a time and cycles through all of them; the first
+ * three are the first screen.
  */
 const WALL_OF_LOVE_URLS = [
     'https://x.com/Emmy_Wilz_01/status/1993198570225238514',
@@ -14,7 +15,7 @@ const WALL_OF_LOVE_URLS = [
     'https://x.com/cxqmaggie/status/1993393875059441999',
     'https://x.com/DAppaDanDev/status/1992935274523840902',
     'https://x.com/yssf_io/status/1993363153611374973',
-    // thanks another account (@uwwgo), so it sits past the three phones show
+    // thanks another account (@uwwgo), so it waits past the first screen
     'https://x.com/candicekteo/status/1993420115509956930',
 ] as const
 

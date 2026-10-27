@@ -16,3 +16,14 @@ export interface HomeWallOfLoveProps {
 export interface WallOfLoveAvatarProps {
     post: WallOfLovePost
 }
+
+export interface WallOfLoveCardProps {
+    post: WallOfLovePost
+}
+
+export interface WallOfLoveCycleState {
+    /** Callback ref for the wall: the cycle runs only while it is on screen. */
+    ref: (node: HTMLElement | null) => void
+    /** The shown post's index within each slot. */
+    active: number[]
+}

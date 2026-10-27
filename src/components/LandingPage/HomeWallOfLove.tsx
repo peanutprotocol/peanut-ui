@@ -1,49 +1,52 @@
+'use client'
+
+import { useMemo } from 'react'
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { PopIn } from '@/components/Marketing/StarLp/PopIn'
 import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
+import { WALL_OF_LOVE_SLOTS, WALL_OF_LOVE_STEP_MS, WALL_OF_LOVE_TILTS } from './homeWallOfLove.consts'
 import type { HomeWallOfLoveProps } from './homeWallOfLove.types'
-import { WallOfLoveAvatar } from './WallOfLoveAvatar'
-
-/** Resting tilts, repeating per row, so the wall reads as stickers and not a table. */
-const TILTS = [-1.5, 1, -0.5] as const
+import { dealIntoSlots } from './homeWallOfLove.utils'
+import { useWallOfLoveCycle } from './useWallOfLoveCycle'
+import { WallOfLoveCard } from './WallOfLoveCard'
 
 /**
- * Real posts about Peanut as white sticker cards on pink, the PersonaFold card
- * on a 3x2 wall from md. Phones get the first three as a stack: nothing hides
- * off-screen and nothing scrolls by itself. Each card opens its post on X.
+ * Each post sits in its slot's one grid cell. A post waiting its turn is clear,
+ * 8px low and hidden (so out of the tab order and the accessibility tree).
+ * Under reduced motion the stack unfolds and every post shows, still.
+ */
+const POST =
+    'flex [grid-area:1/1] motion-safe:transition-[opacity,translate,visibility] motion-safe:duration-slow motion-safe:ease-out data-[shown=false]:invisible data-[shown=false]:translate-y-2 data-[shown=false]:opacity-0 motion-reduce:[grid-area:auto]! motion-reduce:visible! motion-reduce:translate-y-0! motion-reduce:opacity-100!'
+
+/**
+ * Real posts about Peanut as white sticker cards on pink, three at a time (a
+ * row from md, a stack on phones). Each slot holds every third post of the
+ * curated list stacked in one grid cell, so a slot is as tall as its longest
+ * post and swapping posts never moves the page. One slot swaps every few
+ * seconds, in turn; see useWallOfLoveCycle for when it holds. Under reduced
+ * motion the stacks unfold and the wall shows every post, still.
  */
 export function HomeWallOfLove({ heading, posts }: HomeWallOfLoveProps) {
+    const slots = useMemo(() => dealIntoSlots(posts, WALL_OF_LOVE_SLOTS), [posts])
+    const sizes = useMemo(() => slots.map((slot) => slot.length), [slots])
+    const { ref, active } = useWallOfLoveCycle(sizes, WALL_OF_LOVE_STEP_MS)
+
     return (
         <Band ground="pink" id="wall-of-love">
             <SectionTitle className="text-center">{heading}</SectionTitle>
-            <ul className="mt-10 grid gap-6 md:mt-14 md:grid-cols-3 md:gap-x-8 md:gap-y-10">
-                {posts.map((post, i) => (
-                    <li key={post.url} className={i > 2 ? 'hidden md:flex' : 'flex'}>
-                        <PopIn delay={(i % 3) * 0.1} tilt={TILTS[i % TILTS.length]} className="flex w-full">
-                            <a
-                                href={post.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex w-full flex-col gap-4 rounded-card border-2 border-border-default bg-background-default p-6 text-foreground-primary shadow-4 transition-transform duration-instant active:translate-x-1 active:translate-y-1 active:shadow-none"
-                            >
-                                <span className="flex items-center gap-3">
-                                    <WallOfLoveAvatar post={post} />
-                                    <span className="grid min-w-0">
-                                        <span className="truncate text-label-l">{post.author}</span>
-                                        <span className="text-body-xs text-foreground-secondary">{post.handle}</span>
-                                    </span>
-                                    {/* the X mark says where the post lives */}
-                                    <svg
-                                        aria-hidden
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
-                                        className="ml-auto size-4 shrink-0 opacity-40"
-                                    >
-                                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                                    </svg>
-                                </span>
-                                <span className="text-body-m lg:text-body-l">{post.content}</span>
-                            </a>
+            <ul ref={ref} className="mt-10 grid gap-6 md:mt-14 md:grid-cols-3 md:gap-x-8">
+                {slots.map((slot, s) => (
+                    <li key={slot[0].url} className="flex">
+                        <PopIn
+                            delay={s * 0.1}
+                            tilt={WALL_OF_LOVE_TILTS[s % WALL_OF_LOVE_TILTS.length]}
+                            className="grid w-full gap-6 md:gap-y-10"
+                        >
+                            {slot.map((post, i) => (
+                                <div key={post.url} data-shown={i === active[s]} className={POST}>
+                                    <WallOfLoveCard post={post} />
+                                </div>
+                            ))}
                         </PopIn>
                     </li>
                 ))}
