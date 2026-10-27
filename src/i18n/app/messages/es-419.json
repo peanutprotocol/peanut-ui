@@ -909,7 +909,6 @@
             },
             "compare": {
                 "selectCountry": "Elegir {country}",
-                "cardTitle": "Disponible con {country}",
                 "items": {
                     "p2p": "Peanut a Peanut",
                     "pix": "Pagos y transferencias PIX",

@@ -158,8 +158,8 @@ describe('ResidenceStep', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockHandleNext).not.toHaveBeenCalled()
         expect(screen.getByRole('heading', { name: en.setup.residenceStep.compare.title })).toBeInTheDocument()
-        expect(screen.getByText('Available with Portugal')).toBeInTheDocument()
-        expect(screen.getByText('Available with Brazil')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 2, name: 'Portugal' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 2, name: 'Brazil' })).toBeInTheDocument()
         expect(screen.getByText(en.setup.residenceStep.compare.guideTitle)).toBeInTheDocument()
         // Back returns to the sentence instead of leaving the step.
         act(() => expect(dispatchBackPress()).toBe(true))
