@@ -38,7 +38,12 @@ export function HomePersonaFold({ strings }: HomePersonaFoldProps) {
                 ))}
             </ul>
 
-            <div ref={ref} {...pauseHandlers} className="mt-10 max-w-2xl motion-reduce:hidden md:mt-14">
+            {/* from lg the avatars sit beside the card, so the stage spans the band, not its left half */}
+            <div
+                ref={ref}
+                {...pauseHandlers}
+                className="mt-10 max-w-2xl motion-reduce:hidden md:mt-14 lg:grid lg:max-w-none lg:grid-cols-[auto_minmax(0,42rem)] lg:items-center lg:justify-start lg:gap-14"
+            >
                 <ul className="flex flex-wrap items-center gap-4">
                     {personas.map((persona, i) => (
                         <li key={persona.key}>
@@ -67,7 +72,7 @@ export function HomePersonaFold({ strings }: HomePersonaFoldProps) {
                         </li>
                     ))}
                 </ul>
-                <div className="mt-6 grid" aria-hidden>
+                <div className="mt-6 grid lg:mt-0" aria-hidden>
                     {personas.map((persona, i) => (
                         <HomePersonaCard
                             key={persona.key}
