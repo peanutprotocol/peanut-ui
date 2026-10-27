@@ -36,10 +36,6 @@ export interface UsEuAppLinkProps {
 
 /** The hero pair of bank-details captures, as art that links to the accounts screen. */
 export interface UsEuAccountPairProps {
-    /** The USD capture; the English fixture by default. */
-    usdSrc?: StaticImageData
-    /** The EUR capture; the English fixture by default. */
-    eurSrc?: StaticImageData
     /** Merged onto the link wrapper, e.g. to cap the pair to a half column. */
     className?: string
     /** Analytics surface of the click; STAR_LP by default. */
@@ -65,6 +61,8 @@ export interface UsEuRequestStripsProps {
     /** false renders the request strip without its link, for a fold with no CTA
         (the strips are aria-hidden, so a link there would be unreachable). Default true. */
     linked?: boolean
+    /** The requested amount as the page writes it; "$250" by default. */
+    amount?: string
 }
 
 /** A strip's ground: white for the payer's ask, pink for the request, green once paid. */

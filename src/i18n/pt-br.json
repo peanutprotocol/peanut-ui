@@ -166,7 +166,7 @@
     "landingCardReceiptTitle": "Compra no cartão",
     "landingCardReceiptApproved": "Aprovada",
     "landingSeamCard": "Cartão",
-    "landingPayLocalLead": "Mercado Pago na {argentina}. Pix no {brazil}. Com seu passaporte.",
+    "landingPayLocalLead": "Mercado Pago na {argentina}. Pix no {brazil}.",
     "landingPayLocalArgentina": "Argentina",
     "landingPayLocalBrazil": "Brasil",
     "landingSeamPasskey": "Login com passkey",

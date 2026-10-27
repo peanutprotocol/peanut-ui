@@ -6,12 +6,19 @@ const plain = (s: string) => s.replace(/ /g, ' ')
 describe('home hinge amounts, in the reader’s own format', () => {
     it.each([
         ['en', '$3,247.31', '€1,500.00', 'ARS 120,000'],
+        ['es-419', 'US$ 3.247,31', 'EUR 1.500,00', 'ARS 120.000'],
         ['es-ar', 'US$ 3.247,31', 'EUR 1.500,00', 'ARS 120.000'],
         ['pt-br', 'US$ 3.247,31', '€ 1.500,00', 'ARS 120.000'],
     ] as const)('%s', (locale, usd, eur, ars) => {
         expect(plain(formatUsd(3247.31, locale))).toBe(usd)
         expect(plain(formatEur(1500, locale))).toBe(eur)
         expect(plain(formatArs(120_000, locale))).toBe(ars)
+    })
+
+    it('drops the cents for a whole amount', () => {
+        expect(formatUsd(250, 'en', { whole: true })).toBe('$250')
+        expect(plain(formatUsd(250, 'es-ar', { whole: true }))).toBe('US$ 250')
+        expect(plain(formatUsd(250, 'pt-br', { whole: true }))).toBe('US$ 250')
     })
 
     it('never prints a bare "$" for pesos', () => {

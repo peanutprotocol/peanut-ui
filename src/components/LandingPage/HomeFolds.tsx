@@ -44,7 +44,7 @@ export function HomeFolds({ locale, strings, faqItems, closeCta }: HomeFoldsProp
                     },
                 ]}
             />
-            <HomeRequestFold strings={strings.request} />
+            <HomeRequestFold strings={strings.request} locale={locale} />
             <HomeHingeFold strings={strings.hinge} locale={locale} />
             {/* With the card off, its ticker goes too: the ticker names the card. */}
             <HomeCardGate>

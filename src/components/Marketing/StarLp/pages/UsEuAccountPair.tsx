@@ -15,12 +15,7 @@ import type { UsEuAccountPairProps } from './usEuAccounts.types'
  * the column and reaches a little into the gutter. The pair leads where the
  * CTA leads: the accounts screen.
  */
-export function UsEuAccountPair({
-    usdSrc = detailsUsd,
-    eurSrc = detailsEur,
-    className,
-    surface,
-}: UsEuAccountPairProps = {}) {
+export function UsEuAccountPair({ className, surface }: UsEuAccountPairProps = {}) {
     return (
         <UsEuAppLink
             href={STAR_LP_HREF.accountsGuest}
@@ -32,7 +27,7 @@ export function UsEuAccountPair({
             )}
         >
             <UsEuAccountCapture
-                src={usdSrc}
+                src={detailsUsd}
                 tilt={-3}
                 delay={0.15}
                 badge="$"
@@ -40,7 +35,7 @@ export function UsEuAccountPair({
                 className="relative -ml-2 w-[97%] md:ml-0 md:w-[84%] lg:w-[54%]"
             />
             <UsEuAccountCapture
-                src={eurSrc}
+                src={detailsEur}
                 tilt={2}
                 delay={0.45}
                 badge="€"

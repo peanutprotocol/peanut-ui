@@ -28,6 +28,8 @@ export interface HomeRequestStrings {
 
 export interface HomeRequestFoldProps {
     strings: HomeRequestStrings
+    /** Page locale: writes the requested amount in the reader's dollar format. */
+    locale: Locale
 }
 
 /** f7: two till stickers beside "Pay like a local." */
@@ -44,6 +46,6 @@ export interface HomePayLocalStrings {
 
 export interface HomePayLocalFoldProps {
     strings: HomePayLocalStrings
-    /** Page locale: tags the stickers' marketing QR codes. */
+    /** Page locale: tags the stickers' marketing QR codes and picks the country pages they link to. */
     locale: Locale
 }

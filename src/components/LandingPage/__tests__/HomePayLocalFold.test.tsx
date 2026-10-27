@@ -12,33 +12,37 @@ jest.mock('react-qr-code', () => ({
 
 const PT_BR: HomePayLocalStrings = {
     heading: 'Pague como um local.',
-    lead: 'Mercado Pago na {argentina}. Pix no {brazil}. Com seu passaporte.',
+    lead: 'Mercado Pago na {argentina}. Pix no {brazil}.',
     argentina: 'Argentina',
     brazil: 'Brasil',
 }
 
 describe('HomePayLocalFold', () => {
-    it('links each country in the lead to its QR page, keeping the words around them', () => {
-        const { container } = render(<HomePayLocalFold strings={PT_BR} locale="pt-br" />)
-        const lead = container.querySelector('p:not([lang])')!
-        expect(lead).toHaveTextContent('Mercado Pago na Argentina. Pix no Brasil. Com seu passaporte.')
-        expect(within(lead as HTMLElement).getByRole('link', { name: 'Argentina' })).toHaveAttribute(
-            'href',
-            '/qr-payments/argentina'
-        )
-        expect(within(lead as HTMLElement).getByRole('link', { name: 'Brasil' })).toHaveAttribute(
-            'href',
-            '/qr-payments/brazil'
-        )
-    })
+    it.each([
+        ['en', '/qr-payments/argentina', '/qr-payments/brazil'],
+        ['pt-br', '/pt-br/pay-with/mercadopago', '/pt-br/pay-with/pix'],
+        ['es-ar', '/es-ar/pay-with/mercadopago', '/es-ar/pay-with/pix'],
+    ] as const)(
+        'links each country in the lead to its QR page in the page language (%s), keeping the words around them',
+        (locale, argentina, brazil) => {
+            const { container } = render(<HomePayLocalFold strings={PT_BR} locale={locale} />)
+            const lead = container.querySelector('p:not([lang])')!
+            expect(lead).toHaveTextContent('Mercado Pago na Argentina. Pix no Brasil.')
+            expect(within(lead as HTMLElement).getByRole('link', { name: 'Argentina' })).toHaveAttribute(
+                'href',
+                argentina
+            )
+            expect(within(lead as HTMLElement).getByRole('link', { name: 'Brasil' })).toHaveAttribute('href', brazil)
+        }
+    )
 
     it('keeps the lead links as the only keyboard path; the stickers repeat them out of the tab order', () => {
         render(<HomePayLocalFold strings={PT_BR} locale="pt-br" />)
         expect(screen.getAllByRole('link')).toHaveLength(2)
         const stickerLinks = document.querySelectorAll('a[aria-hidden="true"]')
         expect(Array.from(stickerLinks, (a) => [a.getAttribute('href'), a.getAttribute('tabindex')])).toEqual([
-            ['/qr-payments/argentina', '-1'],
-            ['/qr-payments/brazil', '-1'],
+            ['/pt-br/pay-with/mercadopago', '-1'],
+            ['/pt-br/pay-with/pix', '-1'],
         ])
     })
 

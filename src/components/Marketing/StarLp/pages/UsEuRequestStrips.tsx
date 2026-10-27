@@ -11,7 +11,7 @@ import type { UsEuRequestStripsLabels, UsEuRequestStripsProps } from './usEuAcco
 const { main, payer } = STAR_LP_PERSONA
 
 /** A second, smaller job paid by someone already on Peanut, so it is not the €1,500 SEPA transfer from How it works. */
-const AMOUNT = '$250'
+const DEFAULT_AMOUNT = '$250'
 
 /** /us-europe-accounts' own words. */
 const DEFAULT_LABELS: UsEuRequestStripsLabels = {
@@ -31,14 +31,18 @@ const REQUEST_STRIP_CLASS =
  * CTA is the keyboard path. Without an `ask` label the story starts at the
  * link (two beats); `linked={false}` drops the link, for a fold with no CTA.
  */
-export function UsEuRequestStrips({ labels = DEFAULT_LABELS, linked = true }: UsEuRequestStripsProps = {}) {
-    const slots = { main: main.short, payer: payer.short, amount: AMOUNT, username: main.username }
+export function UsEuRequestStrips({
+    labels = DEFAULT_LABELS,
+    linked = true,
+    amount = DEFAULT_AMOUNT,
+}: UsEuRequestStripsProps = {}) {
+    const slots = { main: main.short, payer: payer.short, amount, username: main.username }
     const requestStrip = (
         <UsEuStrip
             tone="pink"
             initial={main.short[0]}
             who={fillUsEuLabel(labels.requesting, slots)}
-            aside={<KnerdTitle text={AMOUNT} size="amount" />}
+            aside={<KnerdTitle text={amount} size="amount" />}
             className={REQUEST_STRIP_CLASS}
         >
             <span className="block truncate underline decoration-2 underline-offset-4">
