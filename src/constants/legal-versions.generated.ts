@@ -29,8 +29,8 @@ export const LEGAL_DOCUMENT_VERSIONS = {
         hash: '64ac0c8c4be3b19eb3a2b72c42fa4fb903ba3fab7bad3682683eea48b58dd24d',
     },
     privacy: {
-        version: '2026-10-14',
-        hash: '57ba41eb58acc48927ba40d2e5500f9e45a3b9b390b908d35a355108b31bc933',
+        version: '2026-10-26',
+        hash: 'ee9bc31901422b0546e6f425751ddec349653df9164f48d65361f85eed357bd7',
     },
     'real-time-funding-terms': {
         version: '2026-09-29',
