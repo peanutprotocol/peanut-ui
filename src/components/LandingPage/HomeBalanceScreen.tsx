@@ -20,7 +20,7 @@ export function HomeBalanceScreen({ strings, locale }: HomeBalanceScreenProps) {
     const usdIn = formatSignedUsd(HOME_SEPA_IN_USD, 'in', locale)
     const ars = formatArs(QR_AR_PRICE_ARS, locale)
     const usdOut = formatSignedUsd(HOME_QR_OUT_USD, 'out', locale)
-    // "US$ 1.670,19" leaves no room beside a title even at lg, so the localized screens stack every amount
+    // "USD 1.670,19" leaves no room beside a title even at lg, so the localized screens stack every amount
     const stacked = locale !== 'en'
 
     return (

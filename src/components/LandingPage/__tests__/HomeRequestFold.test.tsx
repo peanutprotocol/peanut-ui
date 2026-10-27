@@ -24,10 +24,10 @@ describe('HomeRequestFold', () => {
 
     it('names the strips in the page language, with the persona and amount filled in', () => {
         render(<HomeRequestFold strings={ES_AR} locale="es-ar" />)
-        // in Argentina a bare "$" is pesos, so the dollar amount carries "US$" (Intl joins it with a no-break space)
+        // in Argentina a bare "$" is pesos, so the dollar amount carries "USD" (Intl joins it with a no-break space)
         expect(
             screen.getByRole('img', {
-                name: 'Chat: Fulano manda un link de cobro de Peanut por US$\u00a0250; Mengano pagó',
+                name: 'Chat: Fulano manda un link de cobro de Peanut por USD\u00a0250; Mengano pagó',
             })
         ).toBeInTheDocument()
         expect(screen.getByText('fulano te está pidiendo')).toBeInTheDocument()

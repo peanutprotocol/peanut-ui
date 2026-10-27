@@ -7,10 +7,6 @@
         "landingCardLockup": {
             "locales": ["es-419", "es-ar", "pt-br"],
             "reason": "brand name (Peanut Card), the same in every language"
-        },
-        "landingPersonaDesignerWho": {
-            "locales": ["pt-br"],
-            "reason": "\"Designer\" is the Brazilian Portuguese word for the trade; Buenos Aires is a city name"
         }
     },
     "app": {

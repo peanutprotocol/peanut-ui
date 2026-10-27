@@ -21,7 +21,7 @@ describe('HomeCardReceipt', () => {
 
     it('prints the purchase in the reader’s dollar format', () => {
         render(<HomeCardReceipt strings={STRINGS} locale="pt-br" />)
-        expect(screen.getByText((text) => text.replace(/ /g, ' ') === 'US$ 24,00')).toBeInTheDocument()
+        expect(screen.getByText((text) => text.replace(/ /g, ' ') === 'USD 24,00')).toBeInTheDocument()
         expect(screen.getByText('Approved')).toBeInTheDocument()
     })
 })

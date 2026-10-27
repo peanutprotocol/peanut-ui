@@ -5,7 +5,7 @@ import type { HomeBalanceActivityRowProps } from './homeHinge.types'
  * One activity entry on the drawn balance screen: badge, title over detail, signed amount.
  * The row wraps rather than squeezing the title: when the text column would drop under
  * 7rem (at 320px), the amount moves to its own line, right-aligned. `stacked` always puts
- * it there, so both rows of a screen with long amounts ("+US$ 1.670,19") match.
+ * it there, so both rows of a screen with long amounts ("+USD 1.670,19") match.
  */
 export function HomeBalanceActivityRow({ icon, title, detail, amount, tone, stacked }: HomeBalanceActivityRowProps) {
     return (
