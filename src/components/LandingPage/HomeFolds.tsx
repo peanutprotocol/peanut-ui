@@ -1,13 +1,11 @@
-import HandPeace from '@/assets/illustrations/hand-peace.svg'
 import { CloseFold } from '@/components/Marketing/StarLp/CloseFold'
+import { CloseGloveCta } from '@/components/Marketing/StarLp/CloseGloveCta'
 import { PersonaFold } from '@/components/Marketing/StarLp/PersonaFold'
-import { PopIn } from '@/components/Marketing/StarLp/PopIn'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
 import { StarLpFaq } from '@/components/Marketing/StarLp/StarLpFaq'
 import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
 import { STAR_LP_EARNERS } from '@/components/Marketing/StarLp/starLpPersonas.consts'
 import { TrustBand } from '@/components/Marketing/StarLp/TrustBand'
-import { Wiggle } from '@/components/Marketing/StarLp/Wiggle'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { singletonLocaleFor } from '@/lib/content'
 import { HomeCardFold } from './HomeCardFold'
@@ -68,24 +66,10 @@ export function HomeFolds({ locale, strings, faqItems, closeCta }: HomeFoldsProp
             <CloseFold
                 id="home-close"
                 title={strings.closeTitle}
-                // The glove sits beside the CTA, as on /us-europe-accounts. Below xs it
-                // stacks above the CTA so the large button keeps a one-line label at 320.
+                // The glove sits beside the CTA, as on /us-europe-accounts.
                 decoration={<></>}
                 cta={
-                    <div className="flex flex-col items-center gap-3 xs:flex-row md:gap-4">
-                        <PopIn tilt={-10} className="pointer-events-none w-12 shrink-0 md:w-16">
-                            <Wiggle kind="wobble">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                    src={HandPeace.src}
-                                    width={HandPeace.width}
-                                    height={HandPeace.height}
-                                    alt=""
-                                    aria-hidden
-                                    loading="lazy"
-                                />
-                            </Wiggle>
-                        </PopIn>
+                    <CloseGloveCta>
                         <StarLpCta
                             href={closeCta.href}
                             ground="pink"
@@ -94,7 +78,7 @@ export function HomeFolds({ locale, strings, faqItems, closeCta }: HomeFoldsProp
                         >
                             {closeCta.label}
                         </StarLpCta>
-                    </div>
+                    </CloseGloveCta>
                 }
             />
         </>

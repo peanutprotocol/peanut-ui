@@ -176,6 +176,11 @@ export interface TrustBandProps {
     text: string
 }
 
+/** The close fold's CTA (a StarLpCta) that the peace glove sits beside. */
+export interface CloseGloveCtaProps {
+    children: ReactNode
+}
+
 export interface CloseFoldProps {
     /** Knerd lockup, 1–3 words, "\n" between lines. */
     title: string

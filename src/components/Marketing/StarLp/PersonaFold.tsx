@@ -22,7 +22,7 @@ export function PersonaFold({ cards, title = 'Sound like you?' }: PersonaFoldPro
     return (
         <Band ground="yellow">
             <SectionTitle>{title}</SectionTitle>
-            <ul className={`mt-10 grid gap-6 md:mt-14 md:grid-cols-2 ${pair ? 'max-w-[860px]' : 'xl:grid-cols-4'}`}>
+            <ul className={`mt-10 grid gap-6 md:mt-14 md:grid-cols-2 ${pair ? 'max-w-216' : 'xl:grid-cols-4'}`}>
                 {cards.map((card, i) => (
                     <li key={card.who} className="flex">
                         <PopIn delay={i * 0.1} tilt={TILTS[i % TILTS.length]} className="flex w-full">
