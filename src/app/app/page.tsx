@@ -16,12 +16,17 @@ import { isNativeBridge } from '@/utils/capacitor'
 import { twMerge } from '@/utils/tw'
 import {
     applyDeferredPayload,
+    buildDeferredPayload,
+    MAX_PLAY_REFERRER_LENGTH,
     copyIOSHandoff,
     parseDeferredPayload,
     playStoreUrlWithReferrer,
     trackDeferredHandoffCreated,
 } from '@/utils/deferred-link'
 import { isPwaSunsetOn, storeForDevice, storeIcon, trackStoreClick } from '@/utils/migration.utils'
+import { captureSignupAttribution } from '@/utils/signup-attribution'
+import { parseMarketingQrHandoff } from '@/features/marketing-qr/contract'
+import { marketingQrAnalyticsAllowed } from '@/features/marketing-qr/consent'
 
 const FLAG_WAIT_MS = 4000
 
@@ -35,11 +40,40 @@ export default function SmartStoreRedirect() {
     // Keep SSR and the first client render identical; device and URL context are browser-only.
     const [mounted, setMounted] = useState(false)
     const [payload, setPayload] = useState<string | null>(null)
+    const [iosPayload, setIosPayload] = useState<string | null>(null)
+    const [marketingEntry, setMarketingEntry] = useState(false)
     useEffect(() => {
         setMounted(true)
         const search = window.location.search
         const parsed = parseDeferredPayload(search)
-        if (parsed) setPayload(new URLSearchParams(search).toString())
+        const marketing = parseMarketingQrHandoff(new URLSearchParams(search))
+        if (marketing && !isNativeBridge()) {
+            setMarketingEntry(true)
+            if (marketing.analyticsAllowed && marketingQrAnalyticsAllowed()) {
+                try {
+                    captureSignupAttribution()
+                    const makePayload = (store: 'android' | 'ios') => {
+                        const params = new URLSearchParams(
+                            buildDeferredPayload(marketing.registration.continuation, undefined, store, {
+                                includeInviteAndBadgeContext: false,
+                            })
+                        )
+                        params.set('lang', marketing.registration.locale)
+                        if (
+                            store === 'android' &&
+                            encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH
+                        ) {
+                            params.delete('lang')
+                        }
+                        return params.toString()
+                    }
+                    setPayload(makePayload('android'))
+                    setIosPayload(makePayload('ios'))
+                } catch {
+                    // Registered QR links still offer the stores when a handoff cannot be built.
+                }
+            }
+        } else if (parsed) setPayload(new URLSearchParams(search).toString())
         // A native-flavored web build can lack the bridge and still need the store page.
         if (!isNativeBridge()) return
         // Installed apps apply the QR's context immediately, then open its destination.
@@ -66,6 +100,7 @@ export default function SmartStoreRedirect() {
 
     const migrationOn = mounted && isPwaSunsetOn()
     const settled = mounted && flagsSettled
+    const storeReady = (settled && migrationOn) || (mounted && marketingEntry)
 
     const targetStore: StoreKind | null = mounted ? storeForDevice(deviceType) : null
 
@@ -85,12 +120,13 @@ export default function SmartStoreRedirect() {
     // Start the clipboard write inside the tap handler to preserve the browser's user gesture.
     const onStoreTap = (store: StoreKind) => {
         trackStoreClick(store, MIGRATION_SURFACES.SMART_LINK, !!payload)
-        if (!payload) return
+        const handoff = store === 'ios' ? (iosPayload ?? payload) : payload
+        if (!handoff) return
         if (store === 'android') {
             countHandoff('android')
             return
         }
-        void copyIOSHandoff(payload)
+        void copyIOSHandoff(handoff)
             .then(() => countHandoff('ios'))
             .catch(() => {})
     }
@@ -110,7 +146,7 @@ export default function SmartStoreRedirect() {
 
     if (inNativeApp) return <Loading variant="mascot" coverFullScreen />
 
-    if (settled && !migrationOn) notFound()
+    if (settled && !migrationOn && !marketingEntry) notFound()
 
     const stores: StoreKind[] = targetStore
         ? [targetStore, targetStore === 'ios' ? 'android' : 'ios']
@@ -122,14 +158,14 @@ export default function SmartStoreRedirect() {
             <section className="flex flex-1 flex-col justify-between p-6 pb-[calc(1.5rem_+_var(--safe-bottom))] md:w-1/2 md:justify-center md:gap-10">
                 <div className="mx-auto flex w-full max-w-md flex-col gap-3 md:text-center">
                     <h1 className="text-heading-m text-foreground-primary">{t('qr.title')}</h1>
-                    {settled && migrationOn && (
+                    {storeReady && (
                         <p className="text-body-m text-foreground-secondary">
                             {redirecting ? t('smartLink.redirecting') : t('smartLink.pickStore')}
                         </p>
                     )}
                 </div>
                 <div className="mx-auto flex w-full max-w-md flex-col gap-4 md:max-w-xs">
-                    {settled && migrationOn ? (
+                    {storeReady ? (
                         stores.map((s, i) => (
                             <Button
                                 key={s}

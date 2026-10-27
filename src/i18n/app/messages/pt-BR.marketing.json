@@ -112,6 +112,7 @@
         "xchainPaymentDisabled": "Transferências para outras redes estão limitadas na sua conta. Fale com o suporte para receber ajuda.",
         "rainInsufficientCollateral": "Seu cartão não tem colateral suficiente para este saque.",
         "staleCardApproval": "Seu cartão precisa ser reativado antes de você sacar. Leva só um toque com a passkey.",
+        "providerRejected": "Nosso parceiro de pagamentos não pôde aceitar esta operação na sua conta. Nenhum dinheiro foi movimentado. Fale com o suporte.",
         "bankAccountNotUsable": "Esta conta bancária não pode mais ser usada. Adicione-a novamente.",
         "cardRateLimited": "Muitas solicitações com o cartão. Aguarde um momento e tente novamente.",
         "linkTransactionHashFetch": "Não conseguimos carregar a transação deste link. Atualize a página e tente novamente.",
@@ -126,7 +127,8 @@
         "passkeyAssociationMismatch": "As passkeys estão indisponíveis neste app no momento. Atualize o Peanut ou fale com o suporte se o problema continuar.",
         "passkeyDeviceLocked": "Desbloqueie o dispositivo e tente de novo.",
         "passkeyBiometryRequired": "Use o Face ID ou Touch ID para verificar a passkey e tente de novo.",
-        "passkeyVerificationIncomplete": "A verificação com passkey não foi concluída. Tente de novo quando quiser."
+        "passkeyVerificationIncomplete": "A verificação com passkey não foi concluída. Tente de novo quando quiser.",
+        "passkeyRestartRequired": "A última solicitação de passkey não terminou de fechar. Reinicie o app e tente de novo."
     },
     "migration": {
         "downloadPeanut": "Baixar Peanut",

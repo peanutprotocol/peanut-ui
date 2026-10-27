@@ -13,6 +13,7 @@ import type { MigrationSurface } from '@/constants/migration.consts'
 export function LandingAppLink({
     href,
     surface,
+    qrPlacement,
     variant = 'secondary',
     size,
     className,
@@ -20,6 +21,7 @@ export function LandingAppLink({
 }: {
     href: string
     surface: MigrationSurface
+    qrPlacement?: string
     variant?: ButtonVariant
     size?: ButtonSize
     className?: string
@@ -35,7 +37,8 @@ export function LandingAppLink({
             size={size}
             className={className}
             onClick={(event) => {
-                if (interceptAppCta(surface)) event.preventDefault()
+                if (qrPlacement ? interceptAppCta(surface, qrPlacement) : interceptAppCta(surface))
+                    event.preventDefault()
             }}
         >
             {children}

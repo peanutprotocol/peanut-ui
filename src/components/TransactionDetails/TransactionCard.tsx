@@ -8,6 +8,7 @@ import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { translateTransactionName } from '@/components/TransactionDetails/transaction-name-keys'
+import { requestedInCurrency } from '@/components/TransactionDetails/transaction-details.utils'
 import {
     hasUserProfile,
     isCardPaymentEntry,
@@ -23,7 +24,7 @@ import {
     PENDING_AMOUNT_STATUSES,
     STRUCK_AMOUNT_STATUSES,
 } from '@/utils/history.utils'
-import { formatBankAmount } from '@/utils/currency'
+import { formatAmountNumber, formatBankAmount } from '@/utils/currency'
 import React, { lazy, Suspense, useEffect, useRef } from 'react'
 import { twMerge } from '@/utils/tw'
 import Image from 'next/image'
@@ -35,7 +36,7 @@ import { VerifiedUserLabel } from '../UserHeader'
 import { MerchantLogoIcon } from './MerchantLogoIcon'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO } from '@/assets/brand'
 import InvitesIcon from '../Home/InvitesIcon'
 import { useRouter } from 'next/navigation'
 import { profileUrl } from '@/utils/native-routes'
@@ -200,9 +201,13 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // that reads as converted but isn't.
     const hasValidCurrencyAmount =
         !!transaction.currency?.amount && Number.isFinite(Number(transaction.currency.amount))
+    // a request asked in euros says so under its dollar figures
+    const requestedAmountDisplay = requestedInCurrency(transaction)
     if (depositKind) {
         // the bank's own amount is already the headline, so no second line
         currencyDisplayAmount = undefined
+    } else if (requestedAmountDisplay) {
+        currencyDisplayAmount = t('requestedInCurrency', { amount: requestedAmountDisplay })
     } else if (
         transaction.currency &&
         ccyCode &&
@@ -210,8 +215,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         !isStableCoin(ccyCode) &&
         hasValidCurrencyAmount
     ) {
-        const formattedCurrencyAmount = formatNumberForDisplay(transaction.currency.amount, { maxDecimals: 2 })
-        currencyDisplayAmount = `≈ ${ccyCode} ${formattedCurrencyAmount}`
+        currencyDisplayAmount = `≈ ${ccyCode} ${formatAmountNumber(transaction.currency.amount)}`
     } else if (
         tokenSymbolUpper &&
         tokenSymbolUpper !== 'USD' &&
@@ -298,7 +302,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // txn avatar handles icon/initials/colors — the row's leading slot
     const leading = isTest ? (
         <div className={'relative flex size-7 items-center justify-center rounded-full p-0.5'}>
-            <Image src={PEANUTMAN} alt="Peanut Logo" className="size-8 object-contain" width={30} height={30} />
+            <Image src={LOGO} alt="Peanut Logo" className="size-8 object-contain" width={30} height={30} />
         </div>
     ) : isPerkRewardEntry ? (
         <IconBubble {...CONCEPT_ICONS.rewards} size="s" />
@@ -315,7 +319,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     return (
         <>
             {/* the clickable row — figma list-item board anatomy */}
+            {/* ph-sensitive: the row can show a counterparty's real name; autocapture keeps the click, not the text */}
             <ListItem
+                className="ph-sensitive"
                 position={position}
                 onClick={handleClick}
                 data-testid="transaction-card"

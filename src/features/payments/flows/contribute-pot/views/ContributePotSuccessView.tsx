@@ -7,6 +7,10 @@
  * - pulls data from contribute pot flow context
  * - calculates points earned for the contribution
  * - provides reset callback on completion
+ *
+ * The amount is what the charge booked, not what the payer typed (TASK-23856).
+ * A short external-wallet deposit never reaches this screen: the flow keeps
+ * the payer on the deposit card, which states what arrived and what is left.
  */
 
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
@@ -14,20 +18,39 @@ import { useContributePotFlow } from '../useContributePotFlow'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { PointsAction } from '@/services/services.types'
 import { useTranslations } from 'next-intl'
+import { contributedAmount } from '@/utils/request-pot.utils'
+import { isChargeAwaitingBooking, receiptStatusForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
+import { PaymentConfirmingView } from '@/features/payments/shared/components/PaymentConfirmingView'
 
 export function ContributePotSuccessView() {
     const t = useTranslations('payment')
     const { usdAmount, recipient, attachment, charge, payment, resetContributePotFlow, isExternalWalletPayment } =
         useContributePotFlow()
 
+    const paidAmount = charge ? contributedAmount(charge) : usdAmount
+    // An external-wallet charge the API had not booked when the read-back gave
+    // up: nothing is sent yet, so nothing is claimed and no points are estimated.
+    const isAwaitingBooking = isExternalWalletPayment && isChargeAwaitingBooking(charge)
+
     // calculate points for the contribution
     const { pointsData } = usePointsCalculation(
         PointsAction.P2P_REQUEST_PAYMENT,
-        usdAmount,
-        !!payment || isExternalWalletPayment, // For external wallet payments, we dont't have payment info on the FE, its handled by webooks on BE
+        paidAmount,
+        // For external wallet payments, we dont't have payment info on the FE, its handled by webooks on BE
+        (!!payment || isExternalWalletPayment) && !isAwaitingBooking,
         payment?.uuid,
         recipient?.userId
     )
+
+    if (isAwaitingBooking) {
+        return (
+            <PaymentConfirmingView
+                headerTitle={t('headers.contribute')}
+                onComplete={resetContributePotFlow}
+                redirectTo="/home"
+            />
+        )
+    }
 
     return (
         <PaymentSuccessView
@@ -39,13 +62,17 @@ export function ContributePotSuccessView() {
                     ? { username: recipient.username, fullName: recipient.fullName, avatarKey: recipient.avatarKey }
                     : undefined
             }
-            usdAmount={usdAmount}
+            amount={paidAmount}
+            usdAmount={paidAmount}
             message={attachment.message}
             chargeDetails={charge}
             paymentDetails={payment}
+            isExternalWalletPayment={isExternalWalletPayment}
             onComplete={resetContributePotFlow}
             redirectTo="/home"
             points={pointsData?.estimatedPoints}
+            // only an external-wallet charge was read back after its payment
+            receiptStatus={isExternalWalletPayment ? receiptStatusForCharge(charge) : undefined}
         />
     )
 }

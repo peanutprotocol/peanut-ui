@@ -14,6 +14,15 @@ import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { STORE_URL } from '@/constants/migration.consts'
+import posthog from 'posthog-js'
+import { parseDeferredPayload } from '@/utils/deferred-link'
+import { readSignupAttribution } from '@/utils/signup-attribution'
+import { saveToCookie } from '@/utils/cookie-url.utils'
+import { stashInvite } from '@/utils/invite-stash'
+import { EInviteType } from '@/services/services.types'
+
+let mockAnalyticsAllowed = true
+jest.mock('@/features/marketing-qr/consent', () => ({ marketingQrAnalyticsAllowed: () => mockAnalyticsAllowed }))
 
 let mockDeviceType = 'web'
 jest.mock('@/hooks/useGetDeviceType', () => ({
@@ -23,8 +32,9 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
 
 const mockReplace = jest.fn()
 const mockNotFound = jest.fn()
+const mockRouter = { replace: mockReplace }
 jest.mock('next/navigation', () => ({
-    useRouter: () => ({ replace: mockReplace }),
+    useRouter: () => mockRouter,
     notFound: () => mockNotFound(),
 }))
 
@@ -41,7 +51,7 @@ jest.mock('posthog-js', () => ({
 let mockNative = false
 jest.mock('@/utils/capacitor', () => ({
     isNativeBridge: () => mockNative,
-    isCapacitor: () => mockNative,
+    isCapacitor: () => false,
     isAndroidNative: () => false,
     isIOSNative: () => false,
     openExternalUrl: jest.fn(),
@@ -101,6 +111,15 @@ const storeButton = (name: RegExp) => screen.getByRole('button', { name })
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockAnalyticsAllowed = true
+    localStorage.clear()
+    for (const cookie of document.cookie.split(';')) {
+        document.cookie = `${cookie.split('=')[0].trim()}=; Max-Age=0; path=/`
+    }
+    jest.mocked(posthog.onFeatureFlags).mockImplementation((callback) => {
+        callback([], {})
+        return jest.fn()
+    })
     mockDeviceType = 'web'
     mockNative = false
     mockFlagOn = true
@@ -186,5 +205,106 @@ describe('/app smart store link', () => {
         mockFlagOn = false
         renderPage()
         expect(mockNotFound).toHaveBeenCalled()
+    })
+})
+
+const MARKETING_QUERY =
+    '?marketing_qr=home-hero-en&qr_analytics=allow&utm_source=google&utm_medium=cpc&utm_campaign=accounts-launch'
+
+describe('registered marketing QR handoff', () => {
+    it('builds an Android campaign payload before redirect and excludes ambient functional campaigns', () => {
+        mockDeviceType = 'android'
+        stashInvite('alice', EInviteType.DIRECT)
+        saveToCookie('campaignTag', 'unrelated-badge')
+        visit(MARKETING_QUERY)
+        renderPage()
+        expect(locationReplace).toHaveBeenCalledTimes(1)
+        const storeUrl = new URL(locationReplace.mock.calls[0][0])
+        const referrer = storeUrl.searchParams.get('referrer')!
+        const payload = parseDeferredPayload(referrer)!
+        expect(payload).toMatchObject({ dest: '/home', lang: 'en' })
+        expect(payload.attribution?.firstTouch).toMatchObject({ utmSource: 'google', utmCampaign: 'accounts-launch' })
+        expect(new URLSearchParams(referrer).get('utm_campaign')).toBe('accounts-launch')
+        expect(payload.invite).toBeUndefined()
+        expect(payload.badgeCampaigns).toBeUndefined()
+        expect(referrer).not.toContain('marketing_qr')
+    })
+
+    it('keeps iOS on the user-tap path and writes only the scanner handoff', () => {
+        mockDeviceType = 'ios'
+        visit(MARKETING_QUERY)
+        renderPage()
+        expect(locationReplace).not.toHaveBeenCalled()
+        fireEvent.click(storeButton(/app store/i))
+        const payload = parseDeferredPayload(mockCopyIOSHandoff.mock.calls[0][0])!
+        expect(payload.dest).toBe('/home')
+        expect(payload.attribution?.firstTouch.utmCampaign).toBe('accounts-launch')
+        expect(locationAssign).toHaveBeenCalledWith(STORE_URL.ios)
+    })
+
+    it.each(['off', 'unknown'] as const)('keeps old marketing QR URLs usable when migration is %s', (flag) => {
+        mockFlagOn = false
+        if (flag === 'unknown') jest.mocked(posthog.onFeatureFlags).mockImplementation(() => jest.fn())
+        visit(MARKETING_QUERY)
+        renderPage()
+        expect(mockNotFound).not.toHaveBeenCalled()
+        expect(storeButton(/app store/i)).toBeInTheDocument()
+        expect(storeButton(/google play/i)).toBeInTheDocument()
+        expect(locationReplace).not.toHaveBeenCalled()
+    })
+
+    it.each(['deny-marker', 'current-opt-out'] as const)(
+        'does not create marketing attribution when denied by %s',
+        (reason) => {
+            mockDeviceType = 'android'
+            mockAnalyticsAllowed = reason !== 'current-opt-out'
+            visit(reason === 'deny-marker' ? MARKETING_QUERY.replace('allow', 'deny') : MARKETING_QUERY)
+            renderPage()
+            expect(locationReplace).toHaveBeenCalledWith(STORE_URL.android)
+            expect(readSignupAttribution()).toBeNull()
+            expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
+        }
+    )
+
+    it('does not make an unknown registration bypass generic app behavior', () => {
+        mockFlagOn = false
+        visit(MARKETING_QUERY.replace('home-hero-en', 'payment-link'))
+        renderPage()
+        expect(mockNotFound).toHaveBeenCalled()
+        expect(locationReplace).not.toHaveBeenCalled()
+    })
+
+    it.each(['user@example.com', 'a'.repeat(65)])(
+        'does not capture malformed content on a direct app marker: %s',
+        (content) => {
+            mockDeviceType = 'android'
+            visit(`${MARKETING_QUERY}&utm_content=${encodeURIComponent(content)}`)
+            renderPage()
+            expect(locationReplace).toHaveBeenCalledWith(STORE_URL.android)
+            expect(readSignupAttribution()).toBeNull()
+            expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
+        }
+    )
+
+    it('keeps a scanner’s earlier first touch while recording the marketing campaign as the last touch', () => {
+        const firstTouch = {
+            occurredAt: new Date().toISOString(),
+            utmSource: 'twitter',
+            utmMedium: 'social',
+            utmCampaign: 'first-visit',
+            path: '/',
+        }
+        saveToCookie('signupAttribution', {
+            schemaVersion: '1',
+            journeyId: '8c7ea260-78f2-4e88-b83a-b423c5779854',
+            platform: 'web',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch,
+        })
+        visit(MARKETING_QUERY)
+        renderPage()
+        expect(readSignupAttribution()?.firstTouch).toEqual(firstTouch)
+        expect(readSignupAttribution()?.lastTouch?.utmCampaign).toBe('accounts-launch')
     })
 })

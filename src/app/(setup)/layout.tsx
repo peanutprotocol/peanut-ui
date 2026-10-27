@@ -12,11 +12,21 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
 import { isCapacitor } from '@/utils/capacitor'
 import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
-import { filterSetupStepsForResidence } from '@/features/setup/filterSetupSteps'
+import { filterSetupStepsForCountry, filterSetupStepsForInvite } from '@/features/setup/filterSetupSteps'
+import { setupCountrySuggestion } from '@/features/setup/country-signals'
+import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
+import { useAuth } from '@/context/authContext'
+import { readInviteCode } from '@/utils/invite-stash'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
-    const { setSteps, residenceCountry } = useSetupFlowContext()
+    const { setSteps, sellScreensCountry, inviterAccepted } = useSetupFlowContext()
     const residenceRestrictions = useResidenceRestrictionSets()
+    const { user } = useAuth()
+    const invitedBy = user?.invitedBy
+    // The sell screens come before residence: they follow the signals' suggestion until
+    // the account exists, then the country the page fixed at that point.
+    const suggestedCountry = setupCountrySuggestion(useSetupCountrySignals())?.country ?? null
+    const sellCountry = sellScreensCountry === undefined ? suggestedCountry : sellScreensCountry
     const { deviceType } = useDeviceType()
 
     /*
@@ -50,9 +60,13 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
             .catch(() => {})
     }, [])
 
+    // The invite stash is read when the list is rebuilt, not watched. Registration
+    // settles it, and fixing the sell-screen country on the first step after
+    // registration rebuilds the list before the person can leave that step.
     useEffect(() => {
-        setSteps(filterSetupStepsForResidence(setupSteps, residenceRestrictions, residenceCountry))
-    }, [setSteps, residenceRestrictions, residenceCountry])
+        const steps = filterSetupStepsForCountry(setupSteps, residenceRestrictions, sellCountry)
+        setSteps(filterSetupStepsForInvite(steps, inviterAccepted || !!invitedBy || !!readInviteCode()))
+    }, [setSteps, residenceRestrictions, sellCountry, invitedBy, inviterAccepted])
 
     usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
 

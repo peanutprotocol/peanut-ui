@@ -100,6 +100,18 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "previewClass": "bg-background-marketing-sky"
     },
     {
+        "name": "background-google-wallet",
+        "value": "#1f1f1f",
+        "section": "semantic",
+        "previewClass": "bg-background-google-wallet"
+    },
+    {
+        "name": "border-google-wallet",
+        "value": "#747775",
+        "section": "semantic",
+        "previewClass": "bg-border-google-wallet"
+    },
+    {
         "name": "background-icon-bubble-green",
         "value": "#29cc6a",
         "section": "semantic",
@@ -906,13 +918,6 @@ export const FONT_TOKENS: FontToken[] = [
         "section": "parity",
         "previewClass": "font-sans",
         "stack": "var(--font-roboto), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'"
-    },
-    {
-        "name": "condensed",
-        "section": "parity",
-        "previewClass": "font-condensed",
-        "stack": "var(--font-roboto)",
-        "fontVariationSettings": "'wdth' 50"
     }
 ]
 

@@ -1,5 +1,5 @@
 import { type PaymentLink } from '@/interfaces/interfaces'
-import { knerdTitle } from '@/components/0_Bruddle/Title'
+import { knerdTitle } from '@/components/0_Bruddle/Title.consts'
 
 function usernamePxWidth(name: string) {
     const charPx = 0.6 * 80 // ≈48 px per glyph

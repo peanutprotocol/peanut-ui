@@ -36,7 +36,7 @@ import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstruct
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getTransactionSign } from '@/utils/history.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
-import { formatAmount } from '@/utils/general.utils'
+import { formatBankAmount } from '@/utils/currency'
 import { formatPoints } from '@/utils/format.utils'
 import { printableAddress, shortenAddress, shortenStringLong } from '@/utils/general.utils'
 import { RequestPotProgressRow } from './provider-rows/RequestPotProgressRow'
@@ -112,7 +112,7 @@ export function ReceiptDetailsCard({
     const convertedAmount = receiptConvertedAmount(transaction)
     const exchangeRate = receiptExchangeRate(transaction)
 
-    const feeDisplay = transaction.fee !== undefined ? `$${formatAmount(transaction.fee as number)}` : 'N/A'
+    const feeDisplay = transaction.fee !== undefined ? formatBankAmount(transaction.fee, 'USD') : 'N/A'
 
     return (
         <Card position={shouldShowQrShare ? 'top' : 'solo'} className={receiptDataRowCardClassName}>
@@ -205,11 +205,26 @@ export function ReceiptDetailsCard({
                     <DataRow label={tCommon('exchangeRate')} value={exchangeRate} />
                 )}
 
-                {rowVisibilityConfig.networkFee && (
+                {rowVisibilityConfig.networkFee && transaction.networkFeeDetails && (
                     <DataRow
                         label={t('rows.networkFee')}
-                        value={transaction.networkFeeDetails!.amountDisplay}
-                        moreInfoText={transaction.networkFeeDetails!.moreInfoText}
+                        value={
+                            transaction.networkFeeDetails.state === 'charged'
+                                ? transaction.networkFeeDetails.amountDisplay
+                                : transaction.networkFeeDetails.state === 'pending'
+                                  ? // the quote, as an estimate, until the fee settles
+                                    transaction.networkFeeDetails.amountDisplay
+                                      ? `≈ ${transaction.networkFeeDetails.amountDisplay}`
+                                      : tCommon('pending')
+                                  : tCommon('sponsoredByPeanut')
+                        }
+                    />
+                )}
+
+                {rowVisibilityConfig.recipientReceives && (
+                    <DataRow
+                        label={t('rows.recipientReceives')}
+                        value={formatBankAmount(transaction.recipientReceivesUsd as number, 'USD')}
                     />
                 )}
 
@@ -222,7 +237,7 @@ export function ReceiptDetailsCard({
                 {rowVisibilityConfig.bankReceives && (
                     <DataRow
                         label={t('rows.bankReceives')}
-                        value={`$${formatAmount(transaction.payoutReceivedUsd as number)}`}
+                        value={formatBankAmount(transaction.payoutReceivedUsd as number, 'USD')}
                     />
                 )}
 

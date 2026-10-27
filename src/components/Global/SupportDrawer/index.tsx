@@ -24,11 +24,24 @@ import { notificationsApi } from '@/services/notifications'
 import { notifyNotificationsUpdated } from '@/utils/notifications-events'
 import { isCapacitor } from '@/utils/capacitor'
 import { ensureNativeCrispConfigured, nativeCrispFields } from '@/utils/crisp'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const DISMISS_THRESHOLD = 100
 
 /** Backdrop left showing above the panel when the keyboard squeezes it. */
 const TOP_RESERVE = 24
+
+/** The native messenger is invisible to session replay, so a failed open must leave an event. */
+function captureNativeOpenFailed(err: unknown) {
+    const code = (err as { code?: unknown } | null)?.code
+    posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_OPEN_FAILED, {
+        messenger: 'native',
+        error_name: err instanceof Error ? err.name : 'unknown',
+        // Capacitor plugin rejections carry a code such as UNIMPLEMENTED
+        error_code: typeof code === 'string' && code.length <= 64 ? code : null,
+    })
+}
 
 const SupportDrawer = () => {
     const nativePlatform = useNativePlatform()
@@ -189,6 +202,12 @@ const SupportDrawer = () => {
     useEffect(() => {
         const isShowingChat = isSupportModalOpen && isCrispReady && !isCrispFailed
         if (isShowingChat) {
+            if (!wasShowingChat.current) {
+                posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_OPENED, {
+                    messenger: 'web',
+                    has_topic: Boolean(latestPayloadRef.current.prefilledMessage),
+                })
+            }
             wasShowingChat.current = true
             clearSupportBadge()
         } else if (wasShowingChat.current && !isSupportModalOpen) {
@@ -323,7 +342,16 @@ const SupportDrawer = () => {
                  * their own opening message — but the agent is no longer blind to
                  * what brought them there.
                  */
-                CapacitorCrisp.openMessenger()
+                // Recorded on the plugin's answer. The flow does not wait for
+                // it: both platforms resolve as soon as the messenger is presented.
+                Promise.resolve(CapacitorCrisp.openMessenger()).then(
+                    () =>
+                        posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_OPENED, {
+                            messenger: 'native',
+                            has_topic: Boolean(prefill),
+                        }),
+                    captureNativeOpenFailed
+                )
                 // The chat is now in front of the user, so the badge has done its
                 // job. There is no isCrispReady on this path — the native messenger
                 // reports nothing back — so clear it here rather than in the web
@@ -337,6 +365,7 @@ const SupportDrawer = () => {
                 // reopening support genuinely re-configures rather than replaying
                 // a rejected promise.
                 console.warn('[SupportDrawer] native crisp open failed:', err)
+                captureNativeOpenFailed(err)
             })
 
         return () => {
@@ -421,6 +450,14 @@ const SupportDrawer = () => {
                 setIsCrispFailed(false)
             } else if (event.data?.type === 'CRISP_FAILED') {
                 setIsCrispFailed(true)
+                // A proxy remounted while support is closed reports this too; that
+                // is not a failed open.
+                if (isSupportOpenRef.current) {
+                    posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_OPEN_FAILED, {
+                        messenger: 'web',
+                        error_name: 'crisp_load_failed',
+                    })
+                }
             }
         }
 
@@ -472,6 +509,9 @@ const SupportDrawer = () => {
                 role="dialog"
                 aria-label={t('supportDrawer.label')}
                 aria-modal={isSupportModalOpen}
+                // closed, the panel only slides off-screen: keep it out of the accessibility tree and the tab order
+                aria-hidden={!isSupportModalOpen || undefined}
+                inert={!isSupportModalOpen}
                 className={`fixed inset-x-0 z-[999999] flex flex-col rounded-t-2xl bg-background-page pt-2 ${
                     isSupportModalOpen ? 'pointer-events-auto translate-y-0' : 'pointer-events-none translate-y-full'
                 }`}

@@ -26,7 +26,8 @@ import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import underMaintenanceConfig, { CROSS_CHAIN_DISABLED_MESSAGE } from '@/config/underMaintenance.config'
+import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
+import { CROSS_CHAIN_DISABLED_MESSAGE } from '@/features/kill-switches/kill-switches.consts'
 import { useTranslations, useFormatter } from 'next-intl'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 import { isQuoteNearExpiry } from '@/services/rhino-bridge'
@@ -120,7 +121,7 @@ export const ConfirmClaimLinkView = ({
         try {
             let claimTxHash: string | undefined = ''
             if (selectedRoute) {
-                if (underMaintenanceConfig.disableXchainSend) {
+                if (getKillSwitches().disableXchainSend) {
                     // safety net for stale routes — picker normally prevents reaching this view with a route
                     setErrorState({ showError: true, errorMessage: CROSS_CHAIN_DISABLED_MESSAGE })
                     setLoadingState('Idle')

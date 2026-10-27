@@ -9,7 +9,6 @@ import { setupCountrySignalProperties, setupCountrySuggestion } from '@/features
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
-import { SETUP_FEATURE_SCREENS, setupFeatureScreensForResidence } from '@/features/setup/filterSetupSteps'
 import posthog from 'posthog-js'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
@@ -19,7 +18,7 @@ type PartialRestriction = 'card' | 'banking'
 const ResidenceStep = () => {
     const t = useTranslations('setup')
     const locale = useLocale()
-    const { residenceCountry, setResidenceCountry, secondResidenceCountry, setSecondResidenceCountry, steps } =
+    const { residenceCountry, setResidenceCountry, secondResidenceCountry, setSecondResidenceCountry } =
         useSetupFlowContext()
     const { handleNext, isLoading } = useSetupFlow()
     const countrySignals = useSetupCountrySignals()
@@ -28,13 +27,11 @@ const ResidenceStep = () => {
 
     const [showSecondCountry, setShowSecondCountry] = useState(!!secondResidenceCountry)
     /*
-     * The confirmed primary residence. The sell screens right after this step
-     * depend on it, and the step list is re-filtered by the layout only after
-     * the residence lands in the flow context. Advancing in the same click (the
+     * The confirmed primary residence. The payment plan right after this step
+     * reads it from the flow context. Advancing in the same click (the
      * dual-residence "Select <country>" buttons promote and continue at once)
-     * would follow the previous residence's order, onto a screen the new one
-     * may not offer. So Confirm records the choice and the effect below
-     * advances once the list matches it.
+     * would reach the plan before the new residence lands. So Confirm records
+     * the choice and the effect below advances once the context holds it.
      */
     const [confirmedPrimary, setConfirmedPrimary] = useState<string | null>(null)
     const advancing = isLoading || !!confirmedPrimary
@@ -108,12 +105,9 @@ const ResidenceStep = () => {
 
     useEffect(() => {
         if (!confirmedPrimary || residenceCountry !== confirmedPrimary) return
-        const ids = steps.map((step) => step.screenId)
-        const offered = setupFeatureScreensForResidence(restrictionSets, confirmedPrimary)
-        if (SETUP_FEATURE_SCREENS.some((id) => ids.includes(id) !== offered.includes(id))) return
         setConfirmedPrimary(null)
         void handleNext()
-    }, [confirmedPrimary, residenceCountry, steps, restrictionSets, handleNext])
+    }, [confirmedPrimary, residenceCountry, handleNext])
 
     const onContinue = () => continueWith(residenceCountry, secondResidenceCountry)
 

@@ -173,6 +173,10 @@ jest.mock('../views/Contacts.view', () => ({
     ),
 }))
 
+jest.mock('@/features/payments/flows/semantic-request/SemanticRequestPageWrapper', () => ({
+    SemanticRequestPageWrapper: () => <div data-testid="semantic-request" />,
+}))
+
 // withdraw-flow context — SendRouterView resets it when a click enters the withdraw flow
 
 // ---------- import component under test AFTER all mocks ----------
@@ -447,5 +451,16 @@ describe('GROUP 4: Method Selection', () => {
         fireEvent.click(screen.getByTestId('nav-back'))
         expect(mockRouterBack).toHaveBeenCalledTimes(1)
         expect(mockRouterPush).not.toHaveBeenCalledWith('/home')
+    })
+})
+
+// A scanned EVM address now goes into the crypto withdrawal (TASK-23974), but a
+// shared payment link to one (the native form of /<address>) still opens the
+// payment page.
+describe('GROUP 5: Address recipient link', () => {
+    test('/send?recipient=<address> opens the payment page', async () => {
+        renderSend({ recipient: '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed' })
+
+        expect(await screen.findByTestId('semantic-request')).toBeInTheDocument()
     })
 })

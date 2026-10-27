@@ -75,8 +75,9 @@ import ConfirmWithdrawView from '@/features/withdraw/views/ConfirmWithdrawView'
 import { WithdrawAmountView } from '@/features/withdraw/views/WithdrawAmountView'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import NotFoundScreen from '@/components/Global/NotFoundScreen'
-import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
+import { GuestPaymentMethodActionList } from './GuestPaymentMethodActionList'
 import { RequestPotActionList } from '@/features/payments/flows/contribute-pot/components/RequestPotActionList'
+import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
 import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-pot/components/BankTransferChooserDrawer'
 
@@ -180,6 +181,32 @@ function AppPageSurface({ children }: { children: React.ReactNode }) {
     )
 }
 
+// the deposit card after the pay-request-pot-partial-success fixture's short
+// deposit, without its tap and 15 s deposit poll
+function RequestPotPartialSurface() {
+    const t = useTranslations('payment')
+    return (
+        <AppPageSurface>
+            <RhinoDepositView
+                headerTitle={t('headers.pay')}
+                chainType="EVM"
+                setChainType={noop}
+                depositAddressData={{
+                    depositAddress: '0xdec0debad1dec0debad1dec0debad1dec0debad1',
+                    minDepositLimitUsd: 1,
+                    maxDepositLimitUsd: 10000,
+                    supportedChains: [],
+                }}
+                isDepositAddressDataLoading={false}
+                onSuccess={noop}
+                amount={58.51}
+                shortDeposit={{ received: '33', asked: '58.51' }}
+                onDone={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
 function WithdrawReviewSurface({
     isProcessing = false,
     alreadySpent = false,
@@ -275,7 +302,6 @@ import RateUnavailable from '@/components/Global/RateUnavailable'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { SURFACE_META, type SurfaceMeta } from './list'
 import { PasskeyHelpA, PasskeyHelpB, PasskeyHelpC, PasskeyHelpD } from './options/PasskeyHelpOptions'
-import { OnrampA, OnrampB, OnrampC, OnrampD } from './options/OnrampOptions'
 import { KycChecklistA, KycChecklistB } from './options/KycChecklistOptions'
 
 export type Surface = SurfaceMeta & {
@@ -836,7 +862,7 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['79-f-choice-direct-send'],
         render: () => (
             <div className="flex min-h-dvh w-full flex-col justify-center p-4">
-                <PaymentMethodActionList isAmountEntered />
+                <GuestPaymentMethodActionList isAmountEntered />
             </div>
         ),
     },
@@ -844,7 +870,7 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['80-f-choice-semantic-request'],
         render: () => (
             <div className="flex min-h-dvh w-full flex-col justify-center p-4">
-                <PaymentMethodActionList isAmountEntered onPayWithExternalWallet={noop} />
+                <GuestPaymentMethodActionList isAmountEntered onPayWithExternalWallet={noop} />
             </div>
         ),
     },
@@ -862,6 +888,10 @@ export const SURFACES: Record<string, Surface> = {
                 />
             </div>
         ),
+    },
+    '81-g-request-pot-partial': {
+        ...SURFACE_META['81-g-request-pot-partial'],
+        render: () => <RequestPotPartialSurface />,
     },
     '82-f-choice-card-requires-info': {
         ...SURFACE_META['82-f-choice-card-requires-info'],
@@ -1026,10 +1056,6 @@ export const OPTION_SURFACES: Record<string, { name: string; render: () => React
     'opt-passkey-b': { name: 'PasskeySetupHelpDrawer — B', render: () => <PasskeyHelpB /> },
     'opt-passkey-c': { name: 'PasskeySetupHelpDrawer — C', render: () => <PasskeyHelpC /> },
     'opt-passkey-d': { name: 'PasskeySetupHelpDrawer — D', render: () => <PasskeyHelpD /> },
-    'opt-onramp-a': { name: 'OnrampConfirmationModal — A', render: () => <OnrampA /> },
-    'opt-onramp-b': { name: 'OnrampConfirmationModal — B', render: () => <OnrampB /> },
-    'opt-onramp-c': { name: 'OnrampConfirmationModal — C', render: () => <OnrampC /> },
-    'opt-onramp-d': { name: 'OnrampConfirmationModal — D', render: () => <OnrampD /> },
     'opt-kyc-a': { name: 'KycPrepChecklist — A (bullets)', render: () => <KycChecklistA /> },
     'opt-kyc-b': { name: 'KycPrepChecklist — B (DataRow)', render: () => <KycChecklistB /> },
 }

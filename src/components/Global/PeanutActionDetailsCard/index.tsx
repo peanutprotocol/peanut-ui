@@ -1,6 +1,7 @@
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { avatarSrc, letterAvatarSrc } from '@/components/Avatar/avatar.utils'
+import { useAvatarArt } from '@/components/Avatar/useAvatarArt'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { printableAddress } from '@/utils/general.utils'
 import { AVATAR_TEXT_DARK, getColorForUsername } from '@/utils/color.utils'
@@ -86,6 +87,7 @@ export default function PeanutActionDetailsCard({
     isFromSendFlow = false,
 }: PeanutActionDetailsCardProps) {
     const t = useTranslations('global')
+    const avatarArt = useAvatarArt()
     const renderRecipient = () => {
         if (recipientType === 'ADDRESS') return printableAddress(recipientName)
 
@@ -192,7 +194,8 @@ export default function PeanutActionDetailsCard({
     // account. Those draw neither a pick nor a letter, so they keep the
     // initials bubble they had.
     const avatarIcon = getAvatarIcon()
-    const showsPersonAvatar = !avatarIcon && !logo && !!(avatarSrc(avatarKey) ?? letterAvatarSrc(recipientName))
+    const showsPersonAvatar =
+        !avatarIcon && !logo && !!(avatarSrc(avatarKey, avatarArt) ?? letterAvatarSrc(recipientName, avatarArt))
 
     const isWithdrawBankAccount = transactionType === 'WITHDRAW_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
     const isAddBankAccount = transactionType === 'ADD_MONEY_BANK_ACCOUNT'

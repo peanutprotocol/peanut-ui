@@ -185,6 +185,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-full-maintenance",
+        "flow": "Home and shared states",
+        "route": "/maintenance"
+    },
+    {
         "id": "fixture-home-verification-needed",
         "flow": "Home and shared states",
         "route": "/home"
@@ -479,6 +484,16 @@
         "route": "/profile/accounts"
     },
     {
+        "id": "fixture-qr-pay-kyc-required",
+        "flow": "Verification",
+        "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-identity-missing",
+        "flow": "Verification",
+        "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
+    },
+    {
         "id": "fixture-identity-awaiting-upload",
         "flow": "Verification",
         "route": "/profile/accounts"
@@ -492,6 +507,11 @@
         "id": "fixture-identity-document-missing",
         "flow": "Verification",
         "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-add-money-provider-rejected",
+        "flow": "Verification",
+        "route": "/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS"
     },
     {
         "id": "fixture-kyc-action-required",
@@ -645,6 +665,21 @@
         "id": "fixture-add-money-crypto",
         "flow": "Add money",
         "route": "/add-money/crypto"
+    },
+    {
+        "id": "fixture-add-money-argentina",
+        "flow": "Add money",
+        "route": "/add-money/argentina"
+    },
+    {
+        "id": "fixture-add-money-bank-liechtenstein",
+        "flow": "Add money",
+        "route": "/add-money/liechtenstein/bank?step=inputAmount&amount=100"
+    },
+    {
+        "id": "fixture-add-money-bank-uk",
+        "flow": "Add money",
+        "route": "/add-money/united-kingdom/bank?step=inputAmount&amount=7"
     },
     {
         "id": "fixture-add-money-country-provider-wait",
@@ -804,6 +839,11 @@
         "source": "AddMoney/components/OnrampConfirmationModal.tsx"
     },
     {
+        "id": "fixture-history-card-spend",
+        "flow": "Card",
+        "route": "/history"
+    },
+    {
         "id": "fixture-card-application",
         "flow": "Card",
         "route": "/card"
@@ -957,6 +997,12 @@
         "source": "features/limits/components/LimitsWarningCard.tsx"
     },
     {
+        "id": "81-g-request-pot-partial",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=81-g-request-pot-partial",
+        "source": "components/AddMoney/views/RhinoDeposit.view.tsx"
+    },
+    {
         "id": "82-f-choice-card-requires-info",
         "flow": "Card",
         "route": "/dev/surfaces?s=82-f-choice-card-requires-info",
@@ -1013,6 +1059,11 @@
         "route": "/qr-pay?qrCode=00020126330014br.gov.bcb.pix0111123456789095204000053039865802BR5911123456789096009SAO%20PAULO62070503***63047AC2&type=PIX&pixKey=12345678909&t=1"
     },
     {
+        "id": "fixture-history-request-paid-external",
+        "flow": "Payments",
+        "route": "/history"
+    },
+    {
         "id": "fixture-send",
         "flow": "Payments",
         "route": "/send"
@@ -1041,6 +1092,16 @@
         "id": "fixture-history-bank-paid-request",
         "flow": "Payments",
         "route": "/history"
+    },
+    {
+        "id": "fixture-history-request-pot-partial",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-request-pot-partial"
+    },
+    {
+        "id": "fixture-history-request-pot-closed-short",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-request-pot-closed-short"
     },
     {
         "id": "fixture-history-request-bank-details",
@@ -1091,6 +1152,11 @@
         "id": "fixture-request-pay-open-amount",
         "flow": "Payments",
         "route": "/pay-request?chargeId=demo-open-charge"
+    },
+    {
+        "id": "fixture-pay-request-pot-partial-success",
+        "flow": "Payments",
+        "route": "/pay-request?id=demo-request"
     },
     {
         "id": "fixture-request-pay-by-bank",
@@ -1266,6 +1332,11 @@
         "id": "fixture-withdraw-amount-error",
         "flow": "Withdraw",
         "route": "/withdraw/manteca?method=bank-transfer&country=argentina&destination=fixture.account&isSavedAccount=true&amount=0.01"
+    },
+    {
+        "id": "fixture-send-bank-pix-favorite",
+        "flow": "Withdraw",
+        "route": "/withdraw?method=bank"
     },
     {
         "id": "fixture-withdraw-destination-names",

@@ -26,7 +26,7 @@ import { loadingStateKey } from '@/i18n/app/loading-states'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useRequestContact } from '@/hooks/useRequestContact'
 import { useRouter } from 'next/navigation'
-import { AccountType } from '@/interfaces/interfaces'
+import { unfinishedSignupRoute } from '@/features/setup/unfinished-signup'
 import { apiErrorStatus } from '@/services/api-error'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
 import { useRequestBack } from '@/components/Request/useRequestBack'
@@ -53,15 +53,16 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const authUnavailable = !authUser && !!userFetchError
     const router = useRouter()
     const contact = useRequestContact(username)
-    const needsSetup = !!authUser && !authUser.accounts.some((account) => account.type === AccountType.PEANUT_WALLET)
+    const setupRoute = authUser ? unfinishedSignupRoute(authUser) : null
+    const needsSetup = setupRoute !== null
     // a settled signed-out visitor gets a card, not a redirect; undefined means auth is still loading
     const isGuest = authUser === null && !userFetchError
 
     useEffect(() => {
-        if (isFetchingUser || userFetchError || !needsSetup) return
+        if (isFetchingUser || userFetchError || !setupRoute) return
         saveRedirectUrl()
-        router.replace('/setup/finish')
-    }, [isFetchingUser, userFetchError, needsSetup, router])
+        router.replace(setupRoute)
+    }, [isFetchingUser, userFetchError, setupRoute, router])
     const { address } = useWallet()
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,

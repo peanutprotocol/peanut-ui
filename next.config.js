@@ -318,6 +318,8 @@ let nextConfig = {
     // file tracer — include them for the deployed serverless function.
     outputFileTracingIncludes: {
         '/receipt/[entryId]/pdf': ['./src/assets/fonts/*.ttf'],
+        '/api/og': ['./src/assets/brand/*.svg'],
+        '/api/og/marketing': ['./src/assets/brand/*.svg'],
     },
 
     // Dynamic content reads can trace the submodule's .git metadata. Vercel
@@ -471,6 +473,14 @@ let nextConfig = {
                         key: 'Permissions-Policy',
                         value: 'camera=*, microphone=*, clipboard-read=(self), clipboard-write=(self)',
                     },
+                    { key: 'X-Content-Type-Options', value: 'nosniff' },
+                ],
+            },
+            {
+                // Standalone QR routes supply their own nonce CSP and no-referrer
+                // policy. Global headers would replace those response headers.
+                source: '/:path((?!q(?:/|$)|api/marketing-qr/open(?:/|$)).*)',
+                headers: [
                     // Security headers - prevents clickjacking and other attacks
                     // Using frame-ancestors instead of X-Frame-Options to allow specific domains
                     // object-src/base-uri are safe to enforce today: the app embeds no
@@ -481,7 +491,6 @@ let nextConfig = {
                     },
                     { key: 'Content-Security-Policy-Report-Only', value: contentSecurityPolicyReportOnly() },
                     ...reportingEndpointsHeader(),
-                    { key: 'X-Content-Type-Options', value: 'nosniff' },
                     { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
                 ],
             },

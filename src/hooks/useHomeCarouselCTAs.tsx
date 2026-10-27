@@ -16,6 +16,7 @@ import { useDeviceType } from './useGetDeviceType'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { useGeoLocation } from './useGeoLocation'
 import { useCardInfo } from './useCardInfo'
+import { useCardSurfaceAccess } from './useCardSurfaceAccess'
 import { useActivationStatus } from './useActivationStatus'
 import { useTransactionHistory } from './useTransactionHistory'
 import { useToast } from '@/components/0_Bruddle/Toast'
@@ -27,7 +28,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { USER_INTERVIEW_CAL_URL } from '@/constants/general.consts'
 import { useFeatureFlags } from './useFeatureFlag'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { CARD_PROMOTION_DISABLED_FLAG } from '@/constants/card-flags.consts'
 import { QrKycState } from '@/constants/kyc.consts'
 import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
 import { useIdentityVerification } from './useIdentityVerification'
@@ -71,6 +72,7 @@ export const useHomeCarouselCTAs = ({
     // No mounted guard needed (cf. useMigrationFlag): the value is only read in
     // generateCarouselCTAs, which runs after mount in an effect.
     const interviewInviteOn = flagEnabled('user-interviews-invite', { nonProdBypass: true })
+    const cardPromotionDisabled = flagEnabled(CARD_PROMOTION_DISABLED_FLAG)
     const [carouselCTAs, setCarouselCTAs] = useState<CarouselCTA[]>([])
     const { user } = useAuth()
     const dismissedRef = useRef<Map<string, Date>>(new Map())
@@ -78,7 +80,7 @@ export const useHomeCarouselCTAs = ({
         useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { canDo, rails, channelOf, nextActions } = useCapabilities()
+    const { canDo, rails, nextActions } = useCapabilities()
     const { isRegionRestricted, isTerminalFailure, status: identityStatus } = useIdentityVerification()
     // Suppress the "verify your account" CTA when the user is already mid-flow
     // on ANY rail (`pending` = submitted/provisioning, `requires-info` = finish
@@ -89,6 +91,7 @@ export const useHomeCarouselCTAs = ({
     const { openSupportWithMessage, setIsGetAppModalOpen, setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
     const { isEligible: isCardEligible, cardInfo } = useCardInfo()
+    const { showCardSurface, hasCardRelationship } = useCardSurfaceAccess()
     const { isActivated } = useActivationStatus()
 
     // Completion signals — used to hide educational CTAs from users who've already
@@ -259,17 +262,11 @@ export const useHomeCarouselCTAs = ({
 
         // Public card offer for ACTIVATED users — pre-activation Home is owned
         // by ActivationCTAs (checklist / spend step), which carries its own
-        // card arm. Excluded: known prohibited residences, anyone with a card
-        // relationship (any card-channel rail: active card or in-flight
-        // application), and the same kill switch as every other card prompt.
-        const hasCardRelationship = rails.some((rail) => channelOf(rail) === 'card')
-        if (
-            !underMaintenanceConfig.disableCardPromotion &&
-            isActivated === true &&
-            cardInfo &&
-            !cardInfo.geoProhibited &&
-            !hasCardRelationship
-        ) {
+        // card arm. Excluded: residences the nav hides the card from (the
+        // shared useCardSurfaceAccess gate), anyone with a card relationship
+        // (any card-channel rail: active card or in-flight application), and
+        // the same flag as every other card prompt.
+        if (!cardPromotionDisabled && isActivated === true && cardInfo && showCardSurface && !hasCardRelationship) {
             _carouselCTAs.push({
                 id: 'card-offer',
                 title: <span>{t.rich('card.title', { b })}</span>,
@@ -323,13 +320,15 @@ export const useHomeCarouselCTAs = ({
         userCountryCode,
         isCardEligible,
         cardInfo,
+        showCardSurface,
+        hasCardRelationship,
         rails,
-        channelOf,
         nextActions,
         isRegionRestricted,
         isTerminalFailure,
         identityStatus,
         isActivated,
+        cardPromotionDisabled,
         hasMadeQrPayment,
         hasSentInvites,
         hasSupportSurvivorBadge,

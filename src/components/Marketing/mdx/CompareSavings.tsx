@@ -132,7 +132,7 @@ export function CompareSavings(props: CompareSavingsProps) {
     const source = sourceUrl ? (
         <>
             {' '}
-            <a href={sourceUrl} rel="nofollow noopener" className={PROSE_LINK}>
+            <a href={sourceUrl} rel="noopener" className={PROSE_LINK}>
                 {strings.compareSavingsSource}
             </a>
             .

@@ -561,11 +561,18 @@ jobs:
             # sibling runs minutes apart cleared the same step in seconds. The
             # stall is transient, so retry with a per-attempt cap — one bad
             # mirror then costs an attempt instead of the whole job — and drop
-            # to the canonical archive after the first failure. `timeout` owns
-            # the attempt's process group, so --kill-after reaps an apt child
-            # that ignores the SIGTERM it sends first. Still exits
-            # non-zero once the attempts are spent: a genuinely missing system
-            # library must stay a red job, not a silent one.
+            # to the canonical archive after the first failure. The runner's
+            # sources point at mirror+file:/etc/apt/apt-mirrors.txt, so the Azure
+            # host is swapped there too; editing only *.sources left every retry
+            # on the stalled mirror (2026-10-26, PR #3836). install-deps
+            # runs apt through sudo, so `timeout` (an unprivileged process)
+            # cannot signal the root apt-get it started: a stalled attempt left
+            # it holding the dpkg lock and both retries failed on that lock in
+            # seconds (2026-10-26, press-contract on PR #3836 and others). The
+            # loop kills leftover apt-get/dpkg as root and waits for the locks
+            # before retrying. Still exits non-zero once the attempts are spent:
+            # a genuinely missing system library must stay a red job, not a
+            # silent one.
             - name: Install Playwright system deps
               if: steps.pw-cache.outputs.cache-hit == 'true'
               timeout-minutes: 9
@@ -575,10 +582,19 @@ jobs:
                           exit 0
                       fi
                       echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
+                      # The stalled apt-get runs as root, so it outlives timeout's signals and keeps
+                      # the dpkg lock; end it and wait for the locks, or every retry fails on them.
+                      sudo pkill -KILL -x apt-get || true
+                      sudo pkill -KILL -x dpkg || true
+                      for _ in $(seq 1 10); do
+                          sudo fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock >/dev/null 2>&1 || break
+                          sleep 1
+                      done
+                      sudo dpkg --configure -a || true
                       sudo rm -rf /var/lib/apt/lists/partial/* || true
                       if [ "${attempt}" = 1 ]; then
                           sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' \
-                              /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
+                              /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
                       fi
                       sleep 5
                   done
@@ -856,10 +872,19 @@ jobs:
                           exit 0
                       fi
                       echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
+                      # The stalled apt-get runs as root, so it outlives timeout's signals and keeps
+                      # the dpkg lock; end it and wait for the locks, or every retry fails on them.
+                      sudo pkill -KILL -x apt-get || true
+                      sudo pkill -KILL -x dpkg || true
+                      for _ in $(seq 1 10); do
+                          sudo fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock >/dev/null 2>&1 || break
+                          sleep 1
+                      done
+                      sudo dpkg --configure -a || true
                       sudo rm -rf /var/lib/apt/lists/partial/* || true
                       if [ "${attempt}" = 1 ]; then
                           sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' \
-                              /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
+                              /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
                       fi
                       sleep 5
                   done
@@ -970,10 +995,19 @@ jobs:
                           exit 0
                       fi
                       echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
+                      # The stalled apt-get runs as root, so it outlives timeout's signals and keeps
+                      # the dpkg lock; end it and wait for the locks, or every retry fails on them.
+                      sudo pkill -KILL -x apt-get || true
+                      sudo pkill -KILL -x dpkg || true
+                      for _ in $(seq 1 10); do
+                          sudo fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock >/dev/null 2>&1 || break
+                          sleep 1
+                      done
+                      sudo dpkg --configure -a || true
                       sudo rm -rf /var/lib/apt/lists/partial/* || true
                       if [ "${attempt}" = 1 ]; then
                           sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' \
-                              /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
+                              /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
                       fi
                       sleep 5
                   done
@@ -1004,6 +1038,83 @@ jobs:
               with:
                   name: press-contract-results-${{ github.run_number }}
                   path: e2e/__results__/
+                  retention-days: 7
+
+    # A production-domain build catches inherited noindex and canonical drift.
+    # Preview builds intentionally block crawlers, so they cannot test this.
+    seo-contract:
+        needs: backdoor-scan
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        permissions:
+            contents: read
+        env:
+            NEXT_PUBLIC_BASE_URL: https://peanut.me
+            NEXT_PUBLIC_VERCEL_ENV: production
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+            - uses: pnpm/action-setup@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+            - run: pnpm install --frozen-lockfile
+            - name: Get Playwright version
+              id: pw
+              run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+            - name: Cache Playwright browsers
+              id: pw-cache
+              uses: actions/cache@v4
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+            - name: Install Chromium
+              if: steps.pw-cache.outputs.cache-hit != 'true'
+              timeout-minutes: 6
+              run: pnpm exec playwright install chromium
+            # Use the same bounded apt retry as the other browser contracts.
+            - name: Install Playwright system deps
+              timeout-minutes: 9
+              run: |
+                  for attempt in 1 2 3; do
+                      if timeout --kill-after=15s 150 pnpm exec playwright install-deps chromium; then
+                          exit 0
+                      fi
+                      echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
+                      # The stalled apt-get runs as root, so it outlives timeout's signals and keeps
+                      # the dpkg lock; end it and wait for the locks, or every retry fails on them.
+                      sudo pkill -KILL -x apt-get || true
+                      sudo pkill -KILL -x dpkg || true
+                      for _ in $(seq 1 10); do
+                          sudo fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock >/dev/null 2>&1 || break
+                          sleep 1
+                      done
+                      sudo dpkg --configure -a || true
+                      sudo rm -rf /var/lib/apt/lists/partial/* || true
+                      if [ "${attempt}" = 1 ]; then
+                          sudo sed -i 's|azure.archive.ubuntu.com|archive.ubuntu.com|g' \
+                              /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/*.sources /etc/apt/sources.list || true
+                      fi
+                      sleep 5
+                  done
+                  echo "::error::playwright install-deps failed after 3 attempts"
+                  exit 1
+            - name: Build with production indexing policy
+              env:
+                  NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+              run: pnpm build
+            - name: Check every rendered sitemap URL
+              run: pnpm test:seo:rendered
+            - name: Upload failures
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: seo-contract-results-${{ github.run_number }}
+                  path: e2e/__seo_results__/
                   retention-days: 7
 
     # Coverage + test-summary aggregator. Mirrors the pattern from
@@ -1333,6 +1444,7 @@ jobs:
                 native-export,
                 unit,
                 press-contract,
+                seo-contract,
                 report,
                 human-authors,
             ]
@@ -1351,6 +1463,7 @@ jobs:
                       echo "  native-export: ${{ needs['native-export'].result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
                       echo "  press-contract: ${{ needs['press-contract'].result }}"
+                      echo "  seo-contract: ${{ needs['seo-contract'].result }}"
                       echo "  report:    ${{ needs.report.result }}"
                       echo "  human-authors: ${{ needs['human-authors'].result }}"
                       exit 1

@@ -1,73 +1,166 @@
 import type { CSSProperties } from 'react'
 import { twMerge } from '@/utils/tw'
-
-/**
- * The one Knerd treatment (Konrad, 24 Sep 2026): Knerd Filled in white under
- * a Knerd Outline copy that sits 3px left and 2px up of it, letters and lines
- * packed tight enough to overlap, centred, caps, with the slight per-line tilt
- * of the landing hero artwork. The OG cards read the same values, so a change
- * here is the change everywhere. Tune in the Knerd Tuner first.
- */
-export const knerdTitle = {
-    letterSpacing: '-0.065em',
-    lineHeight: 0.68,
-    /** outline position relative to the fill, px */
-    outlineOffset: { x: -3, y: -2 },
-    outlineScale: 1,
-    /** tilt per line, degrees; lines beyond the second are not tilted */
-    lineTilt: [-2, 0.5],
-    secondLineShift: '0.02em',
-} as const
-
-const knerdOutlineTransform = `translate(${knerdTitle.outlineOffset.x}px, ${knerdTitle.outlineOffset.y}px) scale(${knerdTitle.outlineScale})`
-
-const wrapperStyle: CSSProperties = {
-    letterSpacing: knerdTitle.letterSpacing,
-    lineHeight: knerdTitle.lineHeight,
-}
-
-function lineStyle(index: number): CSSProperties | undefined {
-    const tilt = knerdTitle.lineTilt[index] ?? 0
-    const shift = index === 1 ? knerdTitle.secondLineShift : '0'
-    if (!tilt && shift === '0') return undefined
-    return { transform: `rotate(${tilt}deg) translateX(${shift})` }
-}
+import { knerdLetters, knerdOutlineTransform, knerdTitle, knerdWrapperStyle } from './Title.consts'
+import { knerdLineStyle } from './Title.utils'
+import type { TitleMark, TitleProps } from './Title.types'
 
 /**
  * Break on "\n" to place lines by hand; a plain string wraps as one line.
  * The space after each placed line collapses on screen but keeps the words
  * apart for a screen reader ("SEND IN SECONDS.", not "SEND INSECONDS.").
+ * A mark wraps its word in a box on every layer, so they lay out alike;
+ * only the layer passed `paintMark` paints the mark.
  */
-function Lines({ text }: { text: string }) {
+function Lines({ text, mark, paintMark }: { text: string; mark?: TitleMark; paintMark?: boolean }) {
     const lines = text.split('\n')
-    return lines.map((line, i) => (
-        <span key={i} className="block" style={lineStyle(i)}>
-            {i < lines.length - 1 ? `${line} ` : line}
-        </span>
-    ))
+    const markLine = mark ? lines.findIndex((line) => line.toLowerCase().includes(mark.word.toLowerCase())) : -1
+    return lines.map((line, i) => {
+        const tail = i < lines.length - 1 ? ' ' : ''
+        if (!mark || i !== markLine) {
+            return (
+                <span key={i} className="block" style={knerdLineStyle(i)}>
+                    {line + tail}
+                </span>
+            )
+        }
+        const at = line.toLowerCase().indexOf(mark.word.toLowerCase())
+        const end = at + mark.word.length
+        return (
+            <span key={i} className="block" style={knerdLineStyle(i)}>
+                {line.slice(0, at)}
+                <span className="relative inline-block">
+                    {line.slice(at, end)}
+                    {paintMark && mark.node}
+                </span>
+                {line.slice(end) + tail}
+            </span>
+        )
+    })
 }
 
-const Title = ({
-    text,
-    className,
-    offset = true,
-}: {
-    text: string
-    className?: string
-    /** false paints the outline exactly on the fill (no up-left misregistration) */
-    offset?: boolean
-}) => {
+// Letter and LetterLine stay in this file: design.md routes every Knerd glyph through Title.tsx, and
+// ds-lint (knerdOutsideTitle) counts a font-knerd-* class in any other file as drift.
+
+const letterBox: CSSProperties = { lineHeight: knerdTitle.lineHeight, transformOrigin: knerdLetters.origin }
+
+/**
+ * One Knerd letter for the Follow the pull hero: a stable anchor (pointer
+ * distance is measured on it), a magnet (the pull moves it) and the glyph
+ * (the entrance moves it). The outline sits inside the glyph, so every
+ * transform moves fill and outline as one. Both layers paint the character
+ * from `data-knerd-char` (globals.css), so the h1's text is the sr-only
+ * phrase alone, not a letter-by-letter copy of it twice over.
+ */
+function Letter({ char, offset }: { char: string; offset: boolean }) {
     return (
-        <span className={twMerge('relative inline-block text-center uppercase', className)} style={wrapperStyle}>
-            <span className="block font-knerd-filled text-white">
-                <Lines text={text} />
+        <span data-knerd-letter="" className="relative inline-block" style={knerdWrapperStyle}>
+            <span data-knerd-magnet="" className="inline-block" style={letterBox}>
+                <span data-knerd-glyph="" className="relative inline-block font-knerd-filled" style={letterBox}>
+                    <span data-knerd-char={char} className="text-white" />
+                    <span
+                        data-knerd-char={char}
+                        className="pointer-events-none absolute inset-0 origin-top-left font-knerd-outline"
+                        style={offset ? { transform: knerdOutlineTransform } : undefined}
+                    />
+                </span>
+            </span>
+        </span>
+    )
+}
+
+const spaceStyle: CSSProperties = { width: `${knerdLetters.space}em` }
+const letterLineStyle = (index: number): CSSProperties => ({
+    lineHeight: knerdTitle.lineHeight,
+    ...knerdLineStyle(index),
+})
+
+const joinStyle: CSSProperties = {
+    fontSize: `${knerdLetters.join.size}em`,
+    fontWeight: knerdLetters.join.weight,
+    letterSpacing: knerdLetters.join.letterSpacing,
+    marginInline: knerdLetters.join.marginInline,
+    lineHeight: 1,
+}
+
+/** One letter-split line: words of letters, a fixed spacer between two Knerd words, the join word as itself. */
+function LetterLine({ line, index, join, offset }: { line: string; index: number; join?: string; offset: boolean }) {
+    const words = line.split(' ').filter(Boolean)
+    const isJoin = (word: string) => !!join && word.toLowerCase() === join.toLowerCase()
+    return (
+        <span
+            aria-hidden
+            className="flex items-baseline justify-center whitespace-nowrap"
+            style={letterLineStyle(index)}
+        >
+            {words.map((word, w) => {
+                if (isJoin(word)) {
+                    return (
+                        <span
+                            key={w}
+                            data-knerd-join=""
+                            data-knerd-char={word}
+                            className="font-roboto-flex-extrabold self-center normal-case"
+                            style={joinStyle}
+                        />
+                    )
+                }
+                const spacer = w > 0 && !isJoin(words[w - 1])
+                return [
+                    spacer && <span key={`${w}-space`} className="inline-block" style={spaceStyle} />,
+                    [...word].map((char, c) => <Letter key={`${w}-${c}`} char={char} offset={offset} />),
+                ]
+            })}
+        </span>
+    )
+}
+
+const lettersStyle: CSSProperties = { lineHeight: knerdTitle.lineHeight, gap: knerdLetters.lineGap }
+
+const Title = ({ text, className, offset = true, letters = false, join, mark }: TitleProps) => {
+    if (letters) {
+        return (
+            <span
+                data-knerd-letters=""
+                className={twMerge('relative flex flex-col items-center text-center uppercase', className)}
+                style={lettersStyle}
+            >
+                <span className="sr-only">{text.replace(/\n/g, ' ')}</span>
+                {text.split('\n').map((line, i) => (
+                    <LetterLine key={i} line={line} index={i} join={join} offset={offset} />
+                ))}
+            </span>
+        )
+    }
+    const outlineStyle: CSSProperties | undefined = offset ? { transform: knerdOutlineTransform } : undefined
+    return (
+        <span
+            className={twMerge('relative inline-block text-center uppercase', mark && 'isolate', className)}
+            style={knerdWrapperStyle}
+        >
+            {/* With a mark, a solid copy of the letters in the ground's colour sits under the
+                white fill, where the outline is. The mark paints beneath it, so it passes behind
+                every letter whole, including the sliver between the fill and its offset outline. */}
+            {mark && (
+                <span
+                    aria-hidden
+                    className={twMerge(
+                        'pointer-events-none absolute inset-x-0 top-0 block origin-top-left font-knerd-filled',
+                        mark.knockoutClassName
+                    )}
+                    style={outlineStyle}
+                >
+                    <Lines text={text} mark={mark} paintMark />
+                </span>
+            )}
+            <span className={twMerge('block font-knerd-filled text-white', mark && 'relative')}>
+                <Lines text={text} mark={mark} />
             </span>
             <span
                 aria-hidden
                 className="absolute inset-x-0 top-0 block origin-top-left font-knerd-outline"
-                style={offset ? { transform: knerdOutlineTransform } : undefined}
+                style={outlineStyle}
             >
-                <Lines text={text} />
+                <Lines text={text} mark={mark} />
             </span>
         </span>
     )

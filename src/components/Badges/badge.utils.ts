@@ -1,4 +1,4 @@
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO } from '@/assets/brand'
 import { ANALYTICS_EVENTS, type ReferralSource } from '@/constants/analytics.consts'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { generateInviteCodeLink } from '@/utils/general.utils'
@@ -26,7 +26,7 @@ export const BADGE_CODES: readonly string[] = Object.keys(BADGE_ASSET_FALLBACKS)
 // badge art route; arbitrary remote, data, traversal, query, and fragment URLs
 // never reach an image renderer. The API form is accepted ahead of the backend
 // route so installed apps need no OTA when it ships.
-const ESCAPED_API_URL = PEANUT_API_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+export const ESCAPED_API_URL = PEANUT_API_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const SAFE_BADGE_ICON_PATH = new RegExp(
     `^(?:${ESCAPED_API_URL}/badges/art|/badges)/[A-Za-z0-9][A-Za-z0-9._-]*\\.(?:svg|png|webp|avif)$`
 )
@@ -34,7 +34,7 @@ const SAFE_BADGE_ICON_PATH = new RegExp(
 /** Prefer safe backend presentation; fall back to legacy art, then generic art. */
 export function getBadgeIcon(code?: string, iconUrl?: string | null): string {
     const catalogIcon = iconUrl && SAFE_BADGE_ICON_PATH.test(iconUrl) ? iconUrl : null
-    return catalogIcon || (code && BADGE_ASSET_FALLBACKS[code]) || PEANUTMAN.src
+    return catalogIcon || (code && BADGE_ASSET_FALLBACKS[code]) || LOGO.src
 }
 
 /** Backend names are authoritative; unknown/legacy responses remain readable. */
@@ -43,11 +43,8 @@ export function getBadgeDisplayName(code?: string, name?: string | null): string
 }
 
 /**
- * Bespoke first-person share copy, English only. This is frontend presentation
- * for the share card — deliberately NOT in the backend badge catalog, which
- * owns identity and third-person descriptions. Badges without an entry use the
- * generic line; other locales keep their translated generic copy until bespoke
- * translations ship as a content change.
+ * English share lines, kept only as a fallback for an API that does not send
+ * `shareLine` yet (rolling deploy). The API's line is localized and wins.
  */
 const BADGE_SHARE_LINES: Readonly<Record<string, string>> = {
     BETA_TESTER: "I've been in the Peanut lab since the early experiments. Officially a beta tester 🧪",
@@ -102,19 +99,21 @@ const BADGE_SHARE_LINES: Readonly<Record<string, string>> = {
 }
 
 // Share text is:
-//   <funny first-person brag>\n\nJoin me on Peanut 👉 <profileUrl>
+//   <funny first-person brag>\n\nJoin me on Peanut: <profileUrl>
 // profileUrl is the sharer's own public profile — it showcases their badges and
 // carries the join CTA.
 export function getBadgeShareText(
     code: string | undefined,
     displayName: string,
     profileUrl: string,
-    localized?: { locale: string; localizedFallback: string }
+    localized?: { locale: string; localizedFallback: string; shareLine?: string | null; joinLine?: string }
 ): string {
+    const shareLine = localized?.shareLine?.trim()
+    if (shareLine && localized?.joinLine) return `${shareLine}\n\n${localized.joinLine}`
     if (localized && localized.locale !== 'en') return localized.localizedFallback
 
     const brag = (code && BADGE_SHARE_LINES[code]) || `I just unlocked the "${displayName}" badge on Peanut 🥜`
-    return `${brag}\n\nJoin me on Peanut 👉 ${profileUrl}`
+    return `${brag}\n\nJoin me on Peanut: ${profileUrl}`
 }
 
 /** No local copy fallback: descriptions are owned by the backend catalog. */

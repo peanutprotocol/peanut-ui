@@ -22,5 +22,5 @@ export function useRequestPayAmounts(uuid: string | undefined) {
         retry: false,
     })
 
-    return { payAmounts: query.data ?? undefined, isLoading: query.isLoading }
+    return { payAmounts: query.data ?? undefined, isLoading: query.isLoading, refetch: query.refetch }
 }

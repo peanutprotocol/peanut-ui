@@ -4,6 +4,14 @@ import { buildDeferredPayload } from '@/utils/deferred-link'
 
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
+jest.mock('react-qr-code', () => ({
+    __esModule: true,
+    default: ({ value, level }: { value: string; level: string }) => (
+        <a data-testid="qr" href={value} data-level={level}>
+            QR
+        </a>
+    ),
+}))
 jest.mock('@/utils/deferred-link', () => ({
     buildDeferredPayload: jest.fn(() => 'pnutdl=1&badgeCampaign=door&dest=%2Fcard'),
 }))
@@ -57,4 +65,29 @@ it('keeps the bare QR and store links when an explicit handoff cannot be built',
 
     expect(screen.getByTestId('qr')).toHaveAttribute('href', `${window.location.origin}/home?app_entry=1`)
     expect(screen.getByTestId('stores')).toHaveAttribute('data-payload', '')
+})
+
+it('uses a registered marketing URL only with explicit context', () => {
+    const { rerender } = render(
+        <DownloadQR surface="landing_hero" marketingQr={{ page: 'home', placement: 'hero', locale: 'en' }} />
+    )
+    expect(screen.getByTestId('qr')).toHaveAttribute('href', `${window.location.origin}/q/home-hero-en`)
+    expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'M')
+    rerender(<DownloadQR surface="home_banner" />)
+    expect(screen.getByTestId('qr')).toHaveAttribute('href', `${window.location.origin}/home?app_entry=1`)
+})
+
+it('keeps explicit campaign handoffs on the old path even if marketing context is supplied', () => {
+    jest.mocked(buildDeferredPayload).mockReturnValue('pnutdl=1&badgeCampaign=door&dest=%2Fcard')
+    render(
+        <DownloadQR
+            surface="landing_door"
+            handoff={{ dest: '/card' }}
+            marketingQr={{ page: 'home', placement: 'hero', locale: 'en' }}
+        />
+    )
+    expect(screen.getByTestId('qr')).toHaveAttribute(
+        'href',
+        `${window.location.origin}/home?app_entry=1&pnutdl=1&badgeCampaign=door&dest=%2Fcard`
+    )
 })

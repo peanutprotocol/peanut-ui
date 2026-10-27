@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { PROSE_WIDTH } from '@/constants/layout.consts'
+import { MARKETING_BAND_PADDING, PROSE_WIDTH } from '@/constants/layout.consts'
 
 export type FAQsProps = {
     heading: string
@@ -62,7 +62,7 @@ export function FAQsPanel({ heading, questions, learnMoreLabel, inline = false }
                 // (its own bottom margin: 16 under an h2, 24 under a paragraph)
                 inline
                     ? 'relative overflow-hidden pb-12 text-foreground-primary'
-                    : 'relative overflow-hidden bg-background-page px-6 py-16 text-foreground-primary md:px-4 md:py-24'
+                    : `relative overflow-hidden bg-background-page text-foreground-primary ${MARKETING_BAND_PADDING}`
             }
         >
             <div className={`mx-auto ${PROSE_WIDTH}`}>
@@ -75,15 +75,14 @@ export function FAQsPanel({ heading, questions, learnMoreLabel, inline = false }
                 </h2>
                 <div className="mt-10 border-y-2 border-border-default">
                     {questions.map((faq, idx) => (
-                        <details
-                            key={faq.id}
-                            className={`group py-4 ${idx > 0 ? 'border-t-2 border-border-default' : ''}`}
-                        >
+                        <details key={faq.id} className={`group ${idx > 0 ? 'border-t-2 border-border-default' : ''}`}>
                             {/* native details/summary, deliberately not the DS
                                 Accordion: radix unmounts closed content, and
                                 these answers must stay in the server HTML for
-                                search on ~700 pages. */}
-                            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-sm text-heading-card uppercase focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid md:text-heading-xs [&::-webkit-details-marker]:hidden">
+                                search on ~700 pages. The row's vertical padding
+                                sits on the summary so the whole row is the tap
+                                target. */}
+                            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-sm py-4 text-heading-card uppercase focus-visible:outline-[3px] focus-visible:outline-offset-[-3px] focus-visible:outline-action-focus focus-visible:outline-solid md:text-heading-xs [&::-webkit-details-marker]:hidden">
                                 <span>{faq.question}</span>
                                 <Icon
                                     name="plus"
@@ -91,7 +90,7 @@ export function FAQsPanel({ heading, questions, learnMoreLabel, inline = false }
                                     className="shrink-0 transition-transform duration-fast group-open:rotate-45"
                                 />
                             </summary>
-                            <div className="mt-4 text-body-l text-foreground-primary">
+                            <div className="pb-4 text-body-l text-foreground-primary">
                                 {faq.answerContent ?? <p className="whitespace-pre-line">{linkifyText(faq.answer)}</p>}
                                 {/* english-only label, and latent: nothing sets calModal
                                     today. cal.com binds [data-cal-link] on any element,

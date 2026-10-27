@@ -89,6 +89,10 @@ const GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS = Object.freeze([
     '/invite?code=',
 ])
 
+// Public pages and images that share prefixes with app routes or private APIs.
+// The longer allow wins over the app/API disallow for every crawler group.
+const MARKETING_CRAWL_ALLOW_PATHS = Object.freeze(['/request-links', '/qr-payments/', '/api/og/marketing'])
+
 const NOINDEX_HEADER = Object.freeze({ key: 'X-Robots-Tag', value: 'noindex, nofollow' })
 
 /**
@@ -116,6 +120,7 @@ function buildNoindexHeaderRules() {
 
 module.exports = {
     GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS,
+    MARKETING_CRAWL_ALLOW_PATHS,
     NOINDEX_HEADER,
     NOINDEX_EXACT_ROUTES,
     NOINDEX_ROUTE_PREFIXES,

@@ -203,6 +203,7 @@ const HomeHistory = ({
                             code: b.code,
                             name: b.name,
                             description: b.description ?? undefined,
+                            shareLine: b.shareLine,
                             iconUrl: b.iconUrl ?? undefined,
                         })
                     })

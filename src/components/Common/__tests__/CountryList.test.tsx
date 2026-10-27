@@ -44,6 +44,9 @@ jest.mock('@/context/authContext', () => ({
 jest.mock('@/components/Global/EasterEggDrawer', () => ({
     __esModule: true,
     default: () => null,
+}))
+
+jest.mock('@/components/Global/EasterEggDrawer/easter-egg-countries.consts', () => ({
     EASTER_EGG_COUNTRIES: {},
 }))
 

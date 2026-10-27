@@ -1,8 +1,14 @@
-import { redactQrTelemetry, redactQrTelemetryString, maskQrReplayRequest } from '@/utils/qr-telemetry-privacy'
-import { APP_RELEASE } from '@/constants/app-release'
+import { redactQrTelemetry } from '@/utils/qr-telemetry-privacy'
+import { redactLinkSecrets } from '@/utils/link-secret-privacy'
+import { SESSION_RECORDING_PRIVACY } from '@/utils/replay-privacy'
 import { suppressDuplicateLogin } from '@/utils/login-once-per-session'
 import posthog from 'posthog-js'
-import { beforeSendHandler, crossOriginScriptErrorContext, isBrowserHostScriptError } from './sentry.utils'
+import {
+    beforeSendHandler,
+    crossOriginScriptErrorContext,
+    isBrowserHostScriptError,
+    redactSentryTelemetry,
+} from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { withoutBrowserTracing } from '@/utils/sentry-integrations'
 import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
@@ -12,8 +18,15 @@ import { startWebVitalsShim } from '@/utils/web-vitals-shim'
 import { noteAppReviewFriction } from '@/utils/app-review-friction'
 import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejection'
 import { isExpectedExceptionChain } from '@/utils/expected-exception'
-import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
+import { installPaymentNetworkGoogleAnalyticsGuard, isPrivateDataPath } from '@/utils/private-routes'
 import { captureSignupAttribution, signupAttributionPosthogProperties } from '@/utils/signup-attribution'
+import { initialSuperProperties, isAnalyticsCaptureBuild, posthogProjectKey } from '@/utils/posthog-setup'
+import {
+    AUTOCAPTURE_SETTINGS,
+    redactAutocapture,
+    sampleAutocapture,
+    trackAutocaptureSampleRate,
+} from '@/utils/posthog-autocapture'
 
 // Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
 // there is nothing to guard, and PERF_BARE builds exist to carry no instrumentation.
@@ -28,12 +41,14 @@ if (
 
 // NEXT_PUBLIC_PERF_BARE builds strip all instrumentation to A/B jank against production.
 const PERF_BARE = process.env.NEXT_PUBLIC_PERF_BARE === 'true'
+const POSTHOG_KEY = posthogProjectKey()
+const ANALYTICS_CAPTURE = isAnalyticsCaptureBuild()
 
 if (
     typeof window !== 'undefined' &&
     process.env.NODE_ENV !== 'development' &&
     !PERF_BARE &&
-    !isPaymentNetworkExplorerPath(window.location.pathname)
+    !isPrivateDataPath(window.location.pathname)
 ) {
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com'
     const isNativeBuild = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true'
@@ -42,96 +57,106 @@ if (
     // first; the native app cannot observe the pre-install browser page.
     const signupAttribution = isNativeBuild ? null : captureSignupAttribution({ includeDocumentReferrer: true })
 
-    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-        // Web posts through the `/relay` Next.js rewrite — the path is intentionally
-        // innocuous (`/ingest/` was on uBlock Origin's blocklist as a known PostHog
-        // signature, and blocked-client retries flooded the console). The Capacitor
-        // static export has no rewrite layer, so it posts to the absolute host.
-        api_host: isNativeBuild ? posthogHost : '/relay',
-        ui_host: posthogHost,
-        person_profiles: 'identified_only',
-        // Capture the initial document here. PathnamePageviewTracker adds one
-        // event per later Next.js pathname transition and ignores query-only
-        // UI state, avoiding history-autocapture's extra event volume.
-        capture_pageview: true,
-        // Registered here, not from the async device-context effect: PostHog
-        // captures the initial $pageview during init, and super properties are
-        // persisted — so a late register left the first open after an OTA
-        // carrying the PREVIOUS bundle's release. `loaded` runs before that
-        // first capture, which is the whole point of the denominator.
-        loaded: (ph) =>
-            ph.register({ app_release: APP_RELEASE, ...signupAttributionPosthogProperties(signupAttribution) }),
-        capture_pageleave: true,
-        // The payment explorer contains team-only identity and relationship data.
-        // Drop every event on client navigation; direct loads skip init above.
-        // Doubles as the review nudge's friction tap: every money-flow failure
-        // already funnels through here, so the suppressor needs no call sites.
-        before_send: (event) => {
-            if (isPaymentNetworkExplorerPath(window.location.pathname)) return null
-            // Handled WebKit/Chromium connectivity blips: Sentry already filters
-            // this class server-side; exception autocapture must not double-report
-            // it here (TASK-22408).
-            if (isNativeFetchRejectionExceptionEvent(event)) return null
-            if (event?.event === '$exception' && Array.isArray(event.properties?.$exception_list)) {
-                const exceptions = event.properties.$exception_list
-                if (isExpectedExceptionChain(exceptions)) return null
-                if (isBrowserHostScriptError(exceptions)) return null
-                const scriptErrorContext = crossOriginScriptErrorContext(
-                    exceptions,
-                    Array.from(document.scripts),
-                    window.location.origin,
-                    navigator.userAgent
-                )
-                if (scriptErrorContext) Object.assign(event.properties, scriptErrorContext)
-            }
-            if (event?.event) noteAppReviewFriction(event.event)
-            // Once-per-session login: runs here, after capture assigned/rotated
-            // $session_id — a pre-capture get_session_id() guard misses idle-
-            // resumed sessions and double-counts reloads (TASK-22516).
-            if (suppressDuplicateLogin(event) === null) return null
-            return redactQrTelemetry(event)
-        },
-        // Off everywhere since 2026-09-10 (server-side toggle, mirrored here):
-        // $autocapture was 35% of billed event volume with zero saved insights
-        // reading it, and the DOM ancestor walk on every tap costs frames. The
-        // 220+ explicit posthog.capture calls are the taxonomy (TASK-22516).
-        autocapture: false,
-        /*
-         * Session recording is ON everywhere, native included, as a deliberate
-         * trial from 1.0.48.
-         *
-         * It starts at `whenIdle` rather than at init: rrweb's recorder is a
-         * separate ~183 KB script whose load and first full-DOM snapshot landed
-         * in the middle of page load, and on the landing page that is the single
-         * largest blocking cost after the framework itself. Recording still
-         * covers every session — it begins a beat later, so the opening moment
-         * of a replay is not captured.
-         *
-         * It was disabled on native in 1.0.45 on the theory that rrweb's
-         * per-mutation DOM serialization was the jank users reported. That was
-         * never isolated: 1.0.45 also made pull-to-refresh listeners passive
-         * (the whole app's touch handling), dropped Sentry BrowserTracing and
-         * the data-sentry-* DOM annotations, and moved confetti off the main
-         * thread — so the improvement has at least four candidate causes and
-         * replay may not be the main one.
-         *
-         * Since then the amplifier that made rrweb worst on native is gone:
-         * useStaleDeploymentReload now bounds the document to 12h, so the node
-         * mirror and event buffers no longer grow across a document that lived
-         * for days. If this build does regress, full_snapshot_interval_millis
-         * (default 5 minutes of full-DOM re-serialization) is the first knob to
-         * reach for, before switching recording off again.
-         */
-        disable_session_recording: true,
-        session_recording: {
-            recordBody: false,
-            recordHeaders: false,
-            maskCapturedNetworkRequestFn: maskQrReplayRequest,
-            maskAttributeFn: (_name, value) => redactQrTelemetryString(value),
-        },
-    })
+    // An empty key means this build sends nothing (see posthogProjectKey).
+    if (POSTHOG_KEY) {
+        posthog.init(POSTHOG_KEY, {
+            // Non-production builds keep the production key for feature flags
+            // (posthog-js still requests /flags when capture is opted out) and
+            // send nothing else: no event, pageview, identify or $set.
+            opt_out_capturing_by_default: !ANALYTICS_CAPTURE,
+            // Web posts through the `/relay` Next.js rewrite — the path is intentionally
+            // innocuous (`/ingest/` was on uBlock Origin's blocklist as a known PostHog
+            // signature, and blocked-client retries flooded the console). The Capacitor
+            // static export has no rewrite layer, so it posts to the absolute host.
+            api_host: isNativeBuild ? posthogHost : '/relay',
+            ui_host: posthogHost,
+            person_profiles: 'identified_only',
+            // Capture the initial document here. PathnamePageviewTracker adds one
+            // event per later Next.js pathname transition and ignores query-only
+            // UI state, avoiding history-autocapture's extra event volume.
+            capture_pageview: true,
+            // Registered here, not from the async device-context effect: PostHog
+            // captures the initial $pageview during init, and super properties are
+            // persisted — so a late register left the first open after an OTA
+            // carrying the PREVIOUS bundle's release, and a first visit with no
+            // `platform`. `loaded` runs before that first capture.
+            loaded: (ph) => {
+                ph.register({ ...initialSuperProperties(), ...signupAttributionPosthogProperties(signupAttribution) })
+                trackAutocaptureSampleRate(ph)
+            },
+            capture_pageleave: true,
+            // Send links carry their secret in `#p=`. The SDK drops the fragment
+            // from $current_url, initial and session-entry URLs, web vitals and the
+            // replay page URL; before_send below also catches it when encoded.
+            disable_capture_url_hashes: true,
+            // The payment explorer contains team-only identity and relationship data.
+            // Drop every event on client navigation; direct loads skip init above.
+            // Doubles as the review nudge's friction tap: every money-flow failure
+            // already funnels through here, so the suppressor needs no call sites.
+            before_send: (event) => {
+                if (isPrivateDataPath(window.location.pathname)) return null
+                // Handled WebKit/Chromium connectivity blips: Sentry already filters
+                // this class server-side; exception autocapture must not double-report
+                // it here (TASK-22408).
+                if (isNativeFetchRejectionExceptionEvent(event)) return null
+                if (event?.event === '$exception' && Array.isArray(event.properties?.$exception_list)) {
+                    const exceptions = event.properties.$exception_list
+                    if (isExpectedExceptionChain(exceptions)) return null
+                    if (isBrowserHostScriptError(exceptions)) return null
+                    const scriptErrorContext = crossOriginScriptErrorContext(
+                        exceptions,
+                        Array.from(document.scripts),
+                        window.location.origin,
+                        navigator.userAgent
+                    )
+                    if (scriptErrorContext) Object.assign(event.properties, scriptErrorContext)
+                }
+                if (event?.event) noteAppReviewFriction(event.event)
+                // Once-per-session login: runs here, after capture assigned/rotated
+                // $session_id — a pre-capture get_session_id() guard misses idle-
+                // resumed sessions and double-counts reloads (TASK-22516).
+                if (suppressDuplicateLogin(event) === null) return null
+                // Sampling runs last, so every kept event is already redacted.
+                const redacted = redactLinkSecrets(redactQrTelemetry(event))
+                return sampleAutocapture(redactAutocapture(redacted, window.location.href))
+            },
+            // Button and link clicks; before_send scrubs their text and attributes.
+            // The `autocapture-sample-rate` flag cuts volume without a release.
+            ...AUTOCAPTURE_SETTINGS,
+            /*
+             * Session recording is ON everywhere, native included, as a deliberate
+             * trial from 1.0.48.
+             *
+             * It starts at `whenIdle` rather than at init: rrweb's recorder is a
+             * separate ~183 KB script whose load and first full-DOM snapshot landed
+             * in the middle of page load, and on the landing page that is the single
+             * largest blocking cost after the framework itself. Recording still
+             * covers every session — it begins a beat later, so the opening moment
+             * of a replay is not captured.
+             *
+             * It was disabled on native in 1.0.45 on the theory that rrweb's
+             * per-mutation DOM serialization was the jank users reported. That was
+             * never isolated: 1.0.45 also made pull-to-refresh listeners passive
+             * (the whole app's touch handling), dropped Sentry BrowserTracing and
+             * the data-sentry-* DOM annotations, and moved confetti off the main
+             * thread — so the improvement has at least four candidate causes and
+             * replay may not be the main one.
+             *
+             * Since then the amplifier that made rrweb worst on native is gone:
+             * useStaleDeploymentReload now bounds the document to 12h, so the node
+             * mirror and event buffers no longer grow across a document that lived
+             * for days. If this build does regress, full_snapshot_interval_millis
+             * (default 5 minutes of full-DOM re-serialization) is the first knob to
+             * reach for, before switching recording off again.
+             */
+            disable_session_recording: true,
+            // Masks amounts, ids, addresses, names in sensitive areas, picked images,
+            // QR payloads and claim-link secrets; drops network bodies and headers.
+            session_recording: SESSION_RECORDING_PRIVACY,
+        })
 
-    whenIdle(() => posthog.startSessionRecording())
+        if (ANALYTICS_CAPTURE) whenIdle(() => posthog.startSessionRecording())
+    }
 
     // No-ops unless the document is one PostHog refuses to measure (iOS native,
     // served from capacitor://). Not deferred to idle like the recorder above:
@@ -173,10 +198,9 @@ if (
                 // non-Error, the explicit captureMessage calls) so they attribute
                 // to a call site — see the web init in sentry-init.ts.
                 attachStacktrace: true,
-                beforeSend: (event) =>
-                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
+                beforeSend: (event) => (isPrivateDataPath(window.location.pathname) ? null : beforeSendHandler(event)),
                 beforeSendTransaction: (event) =>
-                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactQrTelemetry(event),
+                    isPrivateDataPath(window.location.pathname) ? null : redactSentryTelemetry(event),
                 // A WebView that can't reach the bundler can't reach ingest either,
                 // so the report of the failure died with the session. The offline
                 // transport parks undeliverable envelopes in IndexedDB and flushes

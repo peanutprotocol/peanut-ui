@@ -9,12 +9,12 @@ import { useRouter, useParams } from 'next/navigation'
 import { useReturnTo } from '@/hooks/useSafeBack'
 import { useCallback, useEffect, useMemo } from 'react'
 import { countryData } from '@/components/AddMoney/consts'
-import { formatBankAmount } from '@/utils/currency'
-import { formatBankAccountDisplay, shortDepositReference } from '@/utils/format.utils'
-import { applyBridgeCrossCurrencyFee, getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
+import { formatAmountNumber, formatBankAmount } from '@/utils/currency'
+import { shortDepositReference } from '@/utils/format.utils'
+import { applyBridgeCrossCurrencyFee, getCurrencySymbol } from '@/utils/bridge.utils'
+import { bankDepositAccountRows, bankDepositCurrency, bankDepositRail } from '@/utils/bank-deposit.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
-import { formatAmount } from '@/utils/general.utils'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
@@ -100,8 +100,15 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
         return countryData.find((c) => c.id === 'US')
     }, [isAddMoneyFlow, requestFulfilmentSelectedCountry, currentCountryName])
 
-    // derive onramp currency once and reuse consistently
-    const onrampCurrency = getCurrencyConfig(currentCountryDetails?.id || 'US', 'onramp').currency
+    const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
+    // The API's answer names the currency and carries the bank details, so it
+    // decides which rows show; the country only stands in for an answer
+    // without a currency (see bankDepositCurrency).
+    const onrampCurrency = bankDepositCurrency(onrampData?.depositInstructions, currentCountryDetails?.id)
+    const rail = bankDepositRail(onrampCurrency)
+    const accountRows = bankDepositAccountRows(onrampData?.depositInstructions, rail)
+    const isUk = rail === 'faster_payments'
+    const isMexico = rail === 'spei'
 
     // Onramp quote returns the net deposit-side rate (Peanut's developer fee
     // is currently 0, so net === gross), so `sourceAmount * exchangeRate`
@@ -115,7 +122,6 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     // data from URL state (add-money flow) or context (request-fulfillment flow)
     // For add-money flow, amount is now in URL state via nuqs
     const amount = isAddMoneyFlow ? (amountFromUrl ?? '') : requestFulfilmentOnrampData?.depositInstructions?.amount
-    const onrampData = isAddMoneyFlow ? onrampContext.onrampData : requestFulfilmentOnrampData
     // the backend decides the matching mode; only a flexible transfer may tell
     // the user that any amount works
     const isFlexibleAmount = onrampData?.flexibleAmount === true
@@ -159,9 +165,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                 // fiat rail (fee-free USD↔USDC) and 'usdc' as the stablecoin. The "$" shown
                 // to the user is just display; the on-chain transfer is EUR/GBP/MXN → USDC.
                 const netUsd = applyBridgeCrossCurrencyFee(grossUsd, onrampCurrency, 'USDC')
-                return '≈ ' + usdCurrencySymbol + ' ' + formatAmount(netUsd)
+                return '≈ ' + usdCurrencySymbol + ' ' + formatAmountNumber(netUsd)
             }
-            return '≈ ' + currencySymbolBasedOnCountry + ' ' + formatAmount(baseAmount * exchangeRate)
+            return '≈ ' + currencySymbolBasedOnCountry + ' ' + formatAmountNumber(baseAmount * exchangeRate)
         },
         [
             exchangeRate,
@@ -189,12 +195,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
         return formatBankAmount(amount, onrampCurrency)
     }, [amount, onrampCurrency, flow])
 
-    const isUk = currentCountryDetails?.id === 'GB' || currentCountryDetails?.iso3 === 'GBR'
-
     const generateBankDetails = async () => {
         const formattedAmount = formattedCurrencyAmount
-        const isMexico = currentCountryDetails?.id === 'MX'
-        const isUs = currentCountryDetails?.id === 'US'
+        const isUs = rail === 'ach'
         const loading = tCommon('loading')
         const line = (label: string, value: string) => t('bankDetails.shareLine', { label, value })
 
@@ -220,43 +223,18 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
             )
         }
 
-        // for mexico, include clabe
         if (isMexico) {
             lines.push(
-                line(t('bankDetails.accountHolderName'), onrampData?.depositInstructions?.accountHolderName || loading),
-                line(t('bankDetails.clabe'), onrampData?.depositInstructions?.clabe || loading)
+                line(t('bankDetails.accountHolderName'), onrampData?.depositInstructions?.accountHolderName || loading)
             )
         }
 
-        // uk faster payments
-        if (isUk) {
-            lines.push(
-                line(t('bankDetails.sortCode'), onrampData?.depositInstructions?.sortCode || loading),
-                line(t('bankDetails.accountNumber'), onrampData?.depositInstructions?.accountNumber || loading)
-            )
-        }
-
-        // us and sepa countries
+        // us and sepa
         if (!isMexico && !isUk) {
             lines.push(line(t('bankDetails.bankAddress'), onrampData?.depositInstructions?.bankAddress || loading))
-
-            const accountLabel = onrampData?.depositInstructions?.bankAccountNumber
-                ? t('bankDetails.accountNumber')
-                : t('bankDetails.iban')
-            const routingLabel = onrampData?.depositInstructions?.bankRoutingNumber
-                ? t('bankDetails.routingNumber')
-                : t('bankDetails.bic')
-            const accountValue =
-                onrampData?.depositInstructions?.bankAccountNumber ||
-                (onrampData?.depositInstructions?.iban
-                    ? formatBankAccountDisplay(onrampData.depositInstructions.iban, 'iban')
-                    : null) ||
-                loading
-            const routingValue =
-                onrampData?.depositInstructions?.bankRoutingNumber || onrampData?.depositInstructions?.bic || loading
-
-            lines.push(line(accountLabel, accountValue), line(routingLabel, routingValue))
         }
+
+        lines.push(...accountRows.map((row) => line(t(`bankDetails.${row.label}`), row.value || loading)))
 
         lines.push(
             line(
@@ -341,7 +319,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                         allowCopy={!!onrampData?.depositInstructions?.bankName}
                         hideBottomBorder
                     />
-                    {currentCountryDetails?.id !== 'MX' && (
+                    {!isMexico && (
                         <PaymentInfoRow
                             label={t('bankDetails.bankAddress')}
                             value={onrampData?.depositInstructions?.bankAddress || tCommon('loading')}
@@ -368,76 +346,16 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                         />
                     )}
 
-                    {currentCountryDetails?.id === 'MX' ? (
+                    {accountRows.map((row) => (
                         <PaymentInfoRow
-                            label={t('bankDetails.clabe')}
-                            value={onrampData?.depositInstructions?.clabe || 'N/A'}
-                            allowCopy={!!onrampData?.depositInstructions?.clabe}
+                            key={row.label}
+                            label={t(`bankDetails.${row.label}`)}
+                            value={row.value || 'N/A'}
+                            allowCopy={!!row.value}
+                            copyValue={row.copyValue}
                             hideBottomBorder
                         />
-                    ) : isUk ? (
-                        <>
-                            <PaymentInfoRow
-                                label={t('bankDetails.sortCode')}
-                                value={onrampData?.depositInstructions?.sortCode || 'N/A'}
-                                allowCopy={!!onrampData?.depositInstructions?.sortCode}
-                                hideBottomBorder
-                            />
-                            <PaymentInfoRow
-                                label={t('bankDetails.accountNumber')}
-                                value={onrampData?.depositInstructions?.accountNumber || 'N/A'}
-                                allowCopy={!!onrampData?.depositInstructions?.accountNumber}
-                                hideBottomBorder
-                            />
-                        </>
-                    ) : (
-                        <>
-                            <PaymentInfoRow
-                                label={
-                                    onrampData?.depositInstructions?.bankAccountNumber
-                                        ? t('bankDetails.accountNumber')
-                                        : t('bankDetails.iban')
-                                }
-                                value={
-                                    onrampData?.depositInstructions?.bankAccountNumber ||
-                                    (onrampData?.depositInstructions?.iban
-                                        ? formatBankAccountDisplay(onrampData.depositInstructions.iban, 'iban')
-                                        : null) ||
-                                    'N/A'
-                                }
-                                allowCopy={
-                                    !!(
-                                        onrampData?.depositInstructions?.bankAccountNumber ||
-                                        onrampData?.depositInstructions?.iban
-                                    )
-                                }
-                                copyValue={
-                                    onrampData?.depositInstructions?.bankAccountNumber ||
-                                    onrampData?.depositInstructions?.iban
-                                }
-                                hideBottomBorder
-                            />
-                            <PaymentInfoRow
-                                label={
-                                    onrampData?.depositInstructions?.bankRoutingNumber
-                                        ? t('bankDetails.routingNumber')
-                                        : t('bankDetails.bic')
-                                }
-                                value={
-                                    onrampData?.depositInstructions?.bankRoutingNumber ||
-                                    onrampData?.depositInstructions?.bic ||
-                                    'N/A'
-                                }
-                                allowCopy={
-                                    !!(
-                                        onrampData?.depositInstructions?.bankRoutingNumber ||
-                                        onrampData?.depositInstructions?.bic
-                                    )
-                                }
-                                hideBottomBorder
-                            />
-                        </>
-                    )}
+                    ))}
                     {isNonUsdCurrency && (
                         <PaymentInfoRow
                             loading={isLoadingExchangeRate}
@@ -463,7 +381,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                             // name mismatch is the top cause of returned deposits (Bridge BE01). the
                             // own-name rule holds for ACH/SEPA/wire; MX SPEI supports paying from a
                             // third-party/client account, so this item is omitted there.
-                            ...(currentCountryDetails?.id !== 'MX'
+                            ...(!isMexico
                                 ? [t('bankDetails.doubleCheckSenderName'), t('bankDetails.doubleCheckRecipientName')]
                                 : []),
                         ]}

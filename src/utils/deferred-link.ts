@@ -23,10 +23,13 @@ import {
     queuePendingBadgeCampaigns,
 } from '@/components/Invites/badge-campaign-context'
 import {
+    isContentAttributionPath,
+    isLegacyAttributionPath,
     parseSignupAttribution,
     persistSignupAttribution,
     readSignupAttribution,
     restoreSignupAttribution,
+    signupAnalyticsState,
     signupAttributionPosthogProperties,
     type SignupAttributionContext,
 } from './signup-attribution'
@@ -35,6 +38,12 @@ import {
 // (utm_source=google-play&utm_medium=organic)
 const MARKER = 'pnutdl'
 const ATTRIBUTION_PARAM = 'at'
+// the web visitor's anonymous PostHog distinct id, so analysis can join the
+// app's events to the browser journey that led to the install
+const WEB_ANALYTICS_ID_PARAM = 'wid'
+// posthog-js generates anonymous distinct ids as UUIDs; anything else (a user
+// id, cookieless mode, a tampered payload) never crosses
+const ANALYTICS_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 export const MAX_PLAY_REFERRER_LENGTH = 512
 export const CONSUMED_KEY = 'deferredLinkConsumed'
 
@@ -63,6 +72,8 @@ export interface DeferredPayload {
     campaign?: string
     /** Durable marketing-attribution context from the web journey. */
     attribution?: SignupAttributionContext
+    /** The web visitor's anonymous PostHog distinct id — a random UUID, never a user id. */
+    webDistinctId?: string
     dest?: string
 }
 
@@ -74,6 +85,7 @@ type CompactTouch = {
     n?: string
     r?: string
     p?: string
+    u?: string
 }
 
 type CompactAttribution = {
@@ -81,7 +93,7 @@ type CompactAttribution = {
     j: string
     p: SignupAttributionContext['platform']
     f: CompactTouch
-    c?: CompactTouch
+    c?: CompactTouch | 1
     l?: CompactTouch
 }
 
@@ -93,12 +105,15 @@ function compactTouch(touch: SignupAttributionContext['firstTouch']): CompactTou
         ...(touch.utmCampaign ? { c: touch.utmCampaign } : {}),
         ...(touch.utmContent ? { n: touch.utmContent } : {}),
         ...(touch.referrerHost ? { r: touch.referrerHost } : {}),
-        ...(touch.path ? { p: touch.path } : {}),
+        // Old installed apps ignore u and keep the campaign instead of
+        // rejecting a whole journey containing a newly supported public path.
+        ...(touch.path ? (isLegacyAttributionPath(touch.path) ? { p: touch.path } : { u: touch.path }) : {}),
     }
 }
 
 function expandTouch(touch: CompactTouch): SignupAttributionContext['firstTouch'] | null {
     if (!Number.isFinite(touch.t)) return null
+    const path = touch.u ?? touch.p
     return {
         occurredAt: new Date(touch.t).toISOString(),
         ...(touch.s ? { utmSource: touch.s } : {}),
@@ -106,7 +121,7 @@ function expandTouch(touch: CompactTouch): SignupAttributionContext['firstTouch'
         ...(touch.c ? { utmCampaign: touch.c } : {}),
         ...(touch.n ? { utmContent: touch.n } : {}),
         ...(touch.r ? { referrerHost: touch.r } : {}),
-        ...(touch.p ? { path: touch.p } : {}),
+        ...(path ? { path } : {}),
     }
 }
 
@@ -127,9 +142,13 @@ function serializeAttributionHandoff(context: SignupAttributionContext): string 
         j: context.journeyId,
         p: context.platform,
         f: first,
-        ...(context.firstContentTouch &&
-        JSON.stringify(context.firstContentTouch) !== JSON.stringify(context.firstTouch)
-            ? { c: compactTouch(context.firstContentTouch) }
+        ...(context.firstContentTouch
+            ? {
+                  c:
+                      JSON.stringify(context.firstContentTouch) === JSON.stringify(context.firstTouch)
+                          ? (1 as const)
+                          : compactTouch(context.firstContentTouch),
+              }
             : {}),
         ...(context.lastTouch && JSON.stringify(context.lastTouch) !== JSON.stringify(context.firstTouch)
             ? { l: compactTouch(context.lastTouch) }
@@ -145,7 +164,16 @@ function parseAttributionHandoff(value: string | null): SignupAttributionContext
         if (compact.v !== 1 || typeof compact.j !== 'string' || !compact.f) return null
         const firstTouch = expandTouch(compact.f)
         if (!firstTouch) return null
-        const firstContentTouch = compact.c ? expandTouch(compact.c) : null
+        // Older encoders omitted c when it matched f. A validated content
+        // landing can recover that touch without mistaking legal/home visits.
+        const firstContentTouch =
+            compact.c === 1
+                ? firstTouch
+                : compact.c
+                  ? expandTouch(compact.c)
+                  : firstTouch.path && isContentAttributionPath(firstTouch.path)
+                    ? firstTouch
+                    : null
         const lastTouch = compact.l ? expandTouch(compact.l) : null
         const context: SignupAttributionContext = {
             schemaVersion: '1',
@@ -180,6 +208,22 @@ export async function readInstallReferrer(): Promise<string | null> {
 // ---------------------------------------------------------------------------
 // web side — building the hand-off
 // ---------------------------------------------------------------------------
+
+/**
+ * the browser's anonymous PostHog distinct id, or null. a signed-in visitor's
+ * distinct id is their user id: that never rides (the app links them on login),
+ * so the clipboard and the Play referrer only ever carry a random UUID.
+ */
+function webAnalyticsId(): string | null {
+    try {
+        if (posthog._isIdentified()) return null
+        const id = posthog.get_distinct_id()
+        return typeof id === 'string' && ANALYTICS_ID_PATTERN.test(id) ? id : null
+    } catch {
+        // PostHog not initialised (no key, payment explorer, tests)
+        return null
+    }
+}
 
 /**
  * strips a leading marketing locale segment (/es-419/claim/X → /claim/X).
@@ -254,21 +298,31 @@ function latestCampaignTouch(
  * `invite` overrides the stash for surfaces that know the code before anything
  * is stashed (the claim page's invite-link CTA).
  */
-export function buildDeferredPayload(dest?: string, invite?: string, store: 'android' | 'ios' = 'android'): string {
+export function buildDeferredPayload(
+    dest?: string,
+    invite?: string,
+    store: 'android' | 'ios' = 'android',
+    options: { includeInviteAndBadgeContext?: boolean } = {}
+): string {
     const params = new URLSearchParams({ [MARKER]: '1' })
 
     const firstSegment = window.location.pathname.split('/').filter(Boolean)[0]
     if (firstSegment && isValidLocale(firstSegment)) params.set('lang', firstSegment)
 
-    const inviteCode = invite || readInviteCode()
-    if (inviteCode) params.set('invite', inviteCode)
+    if (options.includeInviteAndBadgeContext !== false) {
+        const inviteCode = invite || readInviteCode()
+        if (inviteCode) params.set('invite', inviteCode)
 
-    for (const badgeCampaign of getPendingBadgeCampaigns()) {
-        params.append(BADGE_CAMPAIGN_QUERY_PARAM, badgeCampaign)
+        for (const badgeCampaign of getPendingBadgeCampaigns()) {
+            params.append(BADGE_CAMPAIGN_QUERY_PARAM, badgeCampaign)
+        }
     }
 
     const attribution = readSignupAttribution()
     if (attribution) params.set(ATTRIBUTION_PARAM, serializeAttributionHandoff(attribution))
+
+    const webDistinctId = webAnalyticsId()
+    if (webDistinctId) params.set(WEB_ANALYTICS_ID_PARAM, webDistinctId)
 
     // a page whose url carries the claim secret in the fragment (#p=) must not
     // ride as a default dest: the fragment never rides (by design), so the
@@ -297,6 +351,11 @@ export function buildDeferredPayload(dest?: string, invite?: string, store: 'and
         // A destination can be reopened from the original link. Preserve
         // referral and badge identities before optional marketing evidence.
         params.delete('dest')
+    }
+
+    if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
+        // Analytics-only: the install still works and keeps its campaign.
+        params.delete(WEB_ANALYTICS_ID_PARAM)
     }
 
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
@@ -372,11 +431,13 @@ export function parseDeferredPayload(raw: string): DeferredPayload | null {
     const badgeCampaigns = badgeCampaignIdentitiesFromDeferredSearchParams(params)
     const attribution =
         parseAttributionHandoff(params.get(ATTRIBUTION_PARAM)) ?? parseSignupAttribution(params.get('attribution'))
+    const webDistinctId = pick(WEB_ANALYTICS_ID_PARAM)
     return {
         lang: pick('lang'),
         invite: pick('invite'),
         badgeCampaigns: badgeCampaigns.length > 0 ? badgeCampaigns : undefined,
         attribution: attribution ?? undefined,
+        webDistinctId: webDistinctId && ANALYTICS_ID_PATTERN.test(webDistinctId) ? webDistinctId : undefined,
         dest: pick('dest'),
     }
 }
@@ -395,9 +456,10 @@ export interface RestoredContext {
 let restoreInFlight: Promise<RestoredContext | null> | null = null
 
 /**
- * Records the outcome of the one-shot restore. Only booleans and the channel
- * leave the device — never the invite code, campaign tag or destination, which
- * would put a user's inviter and intended screen into analytics.
+ * Records the outcome of the one-shot restore. Only booleans, the channel and
+ * the web visitor's random analytics id leave the device — never the invite
+ * code, campaign tag or destination, which would put a user's inviter and
+ * intended screen into analytics.
  *
  * Swallows everything: this runs on the first-launch path, where a telemetry
  * failure must not cost the user their restored context.
@@ -405,7 +467,7 @@ let restoreInFlight: Promise<RestoredContext | null> | null = null
 function captureRestore(
     channel: 'referrer' | 'clipboard' | 'none',
     outcome: DeferredLinkOutcome,
-    fields?: Record<string, boolean>
+    fields?: Record<string, boolean | string>
 ): void {
     try {
         posthog.capture(ANALYTICS_EVENTS.DEFERRED_LINK_RESTORED, { channel, outcome, ...fields })
@@ -421,9 +483,11 @@ function captureRestore(
  * Consumers: the store-bounce handlers in migration.utils (openStore /
  * onStoreAnchorClick); the download modal (TASK-20769) joins them when built.
  */
-export function trackDeferredHandoffCreated(platform: 'ios' | 'android'): void {
+export function trackDeferredHandoffCreated(store: 'ios' | 'android'): void {
     try {
-        posthog.capture(ANALYTICS_EVENTS.DEFERRED_LINK_HANDOFF_CREATED, { platform })
+        // `store`, not `platform`: the `platform` super property is the device
+        // the event came from, and an event must not overwrite it.
+        posthog.capture(ANALYTICS_EVENTS.DEFERRED_LINK_HANDOFF_CREATED, { store })
     } catch {}
 }
 
@@ -522,11 +586,13 @@ async function doRestore(): Promise<RestoredContext | null> {
     }
 
     const restored = applyDeferredPayload(payload)
-    if (payload.attribution) {
-        const persisted = readSignupAttribution()
-        if (persisted) await persistSignupAttribution(persisted)
+    if (payload.attribution && signupAnalyticsState() === 'enabled') {
+        // WKWebView can discard the cookie immediately. Await the native
+        // write using the decoded evidence before registration or a restart.
+        const persisted = readSignupAttribution() ?? { ...payload.attribution, captureMethod: 'deferred_link' as const }
+        await persistSignupAttribution(persisted)
     }
-    const restoreFields: Record<string, boolean> = {
+    const restoreFields: Record<string, boolean | string> = {
         has_dest: !!restored.dest,
         has_locale: !!restored.locale,
         has_invite: !!payload.invite,
@@ -535,6 +601,11 @@ async function doRestore(): Promise<RestoredContext | null> {
     // Keep the legacy event shape for old payloads, while making attribution
     // presence observable for the new hand-off contract.
     if (payload.attribution) restoreFields.has_attribution = true
+    // The web visitor's id rides as a property, never as an alias: the
+    // referrer and the clipboard can carry an id somebody else chose, and an
+    // alias would merge that person into this one. A property only lets
+    // analysis join this install to the web journey.
+    if (payload.webDistinctId) restoreFields.web_distinct_id = payload.webDistinctId
     captureRestore(channel, DEFERRED_LINK_OUTCOMES.RESTORED, restoreFields)
 
     // Register only after the privacy-preserving restore event above. The
@@ -543,6 +614,16 @@ async function doRestore(): Promise<RestoredContext | null> {
     if (payload.attribution && typeof posthog.register === 'function') {
         try {
             posthog.register(signupAttributionPosthogProperties(readSignupAttribution()))
+        } catch {}
+    }
+
+    // Every later event of this install carries the web id too, including the
+    // $identify at signup or login, so the join holds after the app person is
+    // created. A $set_once now would be dropped: an anonymous app user has no
+    // person yet (person_profiles: identified_only).
+    if (payload.webDistinctId && typeof posthog.register_once === 'function') {
+        try {
+            posthog.register_once({ web_distinct_id: payload.webDistinctId })
         } catch {}
     }
 

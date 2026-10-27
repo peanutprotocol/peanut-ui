@@ -22,7 +22,7 @@ import React from 'react'
 import { VerifiedUserLabel } from '../UserHeader'
 import { useRouter } from 'next/navigation'
 import { twMerge } from '@/utils/tw'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO } from '@/assets/brand'
 import { profileUrl } from '@/utils/native-routes'
 
 import type { TransactionDetails } from './transactionTransformer'
@@ -128,9 +128,10 @@ const getTitle = (
                     // Direction stays in words for every status (PR #2813
                     // review): a bare counterparty name can't tell inflow
                     // from outflow. Non-completed (pending / cancelled /
-                    // failed) reads "Sending to".
+                    // failed) reads "Sending to". A PIX-key send keeps the key
+                    // beside the owner's name.
                     titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
-                        name: sentenceName,
+                        name: nameDetail ? `${sentenceName} · ${nameDetail}` : sentenceName,
                     })
                 }
                 break
@@ -189,9 +190,7 @@ const getTitle = (
                     // the title keeps the type wording "Paid to {name}" in every
                     // non-failed state — the status badge, not the verb tense,
                     // carries pending/cancelled. ("Paying to" retired with it.)
-                    titleText = t('title.paidTo', {
-                        name: nameDetail ? `${sentenceName} · ${nameDetail}` : sentenceName,
-                    })
+                    titleText = t('title.paidTo', { name: sentenceName })
                 }
                 break
             case 'bank_request_fulfillment':
@@ -313,12 +312,16 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     return (
         <div className="flex flex-col items-center gap-3 text-center">
             {isTest ? (
-                <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-12" />
+                <Image src={LOGO} alt="Peanut Logo" width={64} height={64} className="size-12" />
             ) : (
                 <div
+                    // ph-sensitive: its aria-label can be the counterparty's real name
                     className={twMerge(
+                        'ph-sensitive',
                         isAvatarClickable &&
-                            'cursor-pointer rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus'
+                            'cursor-pointer rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                        // a full name in the accessible name is a legal name; a username is not
+                        nameForAvatar !== userName && 'ph-mask'
                     )}
                     onClick={isAvatarClickable ? handleUserProfileClick : undefined}
                     role={isAvatarClickable ? 'button' : undefined}

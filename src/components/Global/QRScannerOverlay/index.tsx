@@ -23,7 +23,9 @@ import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
 import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
 import { recipientPayUrl, qrClaimUrl, deepLinkToNativePath } from '@/utils/native-routes'
 import { qrTelemetry, reportQrScanError } from '@/components/Global/QRScanner/utils'
-import { stashScannedDestination, withdrawScanEntryUrl } from '@/features/withdraw/destination'
+import { stashScannedDestination, withdrawScanEntryUrl, withdrawTokenForRequest } from '@/features/withdraw/destination'
+import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
+import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
@@ -134,12 +136,7 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
         [EModalType.DIRECT_SEND]: {
             tone: 'info',
             title: t('qrScannerOverlay.titleDirectSend'),
-            description: (
-                <>
-                    <p>{t('qrScannerOverlay.directSendCrossChain')}</p>
-                    <p>{t('qrScannerOverlay.directSendConfirm')}</p>
-                </>
-            ),
+            description: t('qrScannerOverlay.directSendCrossChain'),
             checkbox: {
                 text: t('qrScannerOverlay.directSendAcknowledge'),
                 checked: acknowledged,
@@ -228,6 +225,9 @@ export default function QRScannerOverlay() {
     const searchParams = useSearchParams()
     const toast = useToast()
     const { user } = useAuth()
+    // A signed-in scan of an EVM destination is the user's own payout, so it
+    // goes into the crypto withdrawal. A guest keeps the payment page.
+    const isLoggedIn = !!user?.user?.userId
     const payUserUrl = user?.user.username ? `${BASE_URL}/pay/${user.user.username}` : ''
     const { triggerHaptic } = useAppHaptic()
     const { isQRScannerOpen, setIsQRScannerOpen } = useModalsContext()
@@ -333,16 +333,61 @@ export default function QRScannerOverlay() {
                     }
                 }
                 break
-            case EQrType.EVM_ADDRESS:
-                {
+            case EQrType.EVM_ADDRESS: {
+                if (!isLoggedIn) {
                     // recipientPayUrl → web: /<addr> ([...recipient]); native: /send?recipient=<addr>
                     toConfirmUrl = recipientPayUrl(normalized)
+                    break
                 }
+                // Verbatim, not `normalized`: lowercasing drops an EIP-55
+                // checksum. The address names no network, so the user picks
+                // one in the flow.
+                const scanId = stashScannedDestination(scanned)
+                if (!scanId) {
+                    showModal(EModalType.QR_NOT_SUPPORTED)
+                    return { success: true }
+                }
+                toConfirmUrl = withdrawScanEntryUrl(scanId)
                 break
+            }
             case EQrType.EIP_681:
                 {
                     try {
-                        const { address, chainId, amount, tokenSymbol } = parseEip681(normalized)
+                        const { address, chainId, amount, tokenSymbol, tokenAddress } = parseEip681(normalized)
+                        if (isLoggedIn) {
+                            // A request asks for an asset through an ERC-20 transfer or
+                            // a native value; a plain `ethereum:` address asks for none.
+                            // It is paid in that asset or refused, never in another one:
+                            // the token has to be one the chain pays out, and an ERC-20
+                            // request has to name the contract the withdrawal selects
+                            // for that symbol. An unsupported chain, and any chain while
+                            // the ops kill-switch is on, are refused the same way.
+                            const asksForAsset = !!tokenAddress || amount !== undefined
+                            const chainTokens =
+                                asksForAsset && chainId
+                                    ? (await getSupportedChainsAndTokens())[chainId]?.tokens
+                                    : undefined
+                            const requested = asksForAsset
+                                ? withdrawTokenForRequest(chainTokens, { tokenSymbol, tokenAddress })
+                                : undefined
+                            const scanId =
+                                asksForAsset && !requested
+                                    ? null
+                                    : stashScannedDestination(
+                                          address,
+                                          chainId,
+                                          requested && {
+                                              tokenSymbol: requested.symbol,
+                                              tokenAddress: requested.address,
+                                          }
+                                      )
+                            if (!scanId) {
+                                showModal(EModalType.QR_NOT_SUPPORTED)
+                                return { success: true }
+                            }
+                            toConfirmUrl = withdrawScanEntryUrl(scanId, { tokenSymbol: requested?.symbol, amount })
+                            break
+                        }
                         // build the recipient PATH (no leading slash), then route it
                         // through recipientPayUrl for native query-param compatibility.
                         let path = address
@@ -371,13 +416,26 @@ export default function QRScannerOverlay() {
                 return { success: true }
             }
             case EQrType.ENS_NAME: {
-                const resolvedAddress = await resolveEns(normalized)
-                if (resolvedAddress) {
+                if (!isLoggedIn) {
+                    if (!(await resolveEns(normalized))) {
+                        showModal(EModalType.UNRECOGNIZED)
+                        return { success: true }
+                    }
                     toConfirmUrl = recipientPayUrl(normalized)
-                } else {
+                    break
+                }
+                // The withdrawal starts on the wallet chain, and a name can hold
+                // a different address per chain (ENSIP-11). The recipient step
+                // resolves it again for every network the user picks.
+                const resolvedAddress = await resolveEns(normalized, PEANUT_WALLET_CHAIN.id.toString())
+                const scanId = resolvedAddress
+                    ? stashScannedDestination(resolvedAddress, undefined, { name: normalized })
+                    : null
+                if (!scanId) {
                     showModal(EModalType.UNRECOGNIZED)
                     return { success: true }
                 }
+                toConfirmUrl = withdrawScanEntryUrl(scanId)
                 break
             }
             case EQrType.MERCADO_PAGO:

@@ -4,64 +4,41 @@
  * Usage:
  *   INDEXNOW_KEY=your-key-here tsx scripts/ping-indexnow.ts
  *
+ * Preview without submitting: tsx scripts/ping-indexnow.ts --dry-run
+ *
  * Or pass specific paths:
  *   INDEXNOW_KEY=xxx tsx scripts/ping-indexnow.ts /en/argentina /en/brazil
  */
 
+import { getIndexablePages } from '../src/lib/seo/url-inventory'
+
 const BASE_URL = 'https://peanut.me'
 const INDEXNOW_ENDPOINT = 'https://api.indexnow.org/IndexNow'
 const KEY = process.env.INDEXNOW_KEY
+const dryRun = process.argv.includes('--dry-run')
 
-if (!KEY) {
+if (!KEY && !dryRun) {
     console.error('INDEXNOW_KEY environment variable is required')
     process.exit(1)
 }
 
 // If CLI args provided, use those. Otherwise build full URL list.
-const cliPaths = process.argv.slice(2)
-
-async function getAllPaths(): Promise<string[]> {
-    // Dynamic import to reuse the same data sources as sitemap.ts
-    const { COUNTRIES_SEO, CORRIDORS, COMPETITORS, EXCHANGES, PAYMENT_METHOD_SLUGS } =
-        await import('../src/data/seo/index')
-    const { SUPPORTED_LOCALES } = await import('../src/i18n/types')
-    const { listContentSlugs } = await import('../src/lib/content')
-
-    const paths: string[] = ['/', '/shhhhh', '/careers', '/privacy', '/terms']
-
-    for (const locale of SUPPORTED_LOCALES) {
-        for (const country of Object.keys(COUNTRIES_SEO)) {
-            paths.push(`/${locale}/${country}`)
-            paths.push(`/${locale}/send-money-to/${country}`)
-        }
-        for (const corridor of CORRIDORS) {
-            paths.push(`/${locale}/send-money-from/${corridor.from}/to/${corridor.to}`)
-        }
-        const receiveSources = [...new Set(CORRIDORS.map((c: { from: string }) => c.from))]
-        for (const source of receiveSources) {
-            paths.push(`/${locale}/receive-money-from/${source}`)
-        }
-        for (const slug of Object.keys(COMPETITORS)) {
-            paths.push(`/${locale}/compare/peanut-vs-${slug}`)
-        }
-        for (const slug of Object.keys(EXCHANGES)) {
-            paths.push(`/${locale}/deposit/from-${slug}`)
-        }
-        for (const method of PAYMENT_METHOD_SLUGS) {
-            paths.push(`/${locale}/pay-with/${method}`)
-        }
-        paths.push(`/${locale}/help`)
-        for (const slug of listContentSlugs('help')) {
-            paths.push(`/${locale}/help/${slug}`)
-        }
-    }
-
-    return paths
-}
+const cliPaths = process.argv.slice(2).filter((arg) => arg !== '--dry-run')
 
 async function main() {
-    const paths = cliPaths.length > 0 ? cliPaths : await getAllPaths()
+    const indexablePaths = getIndexablePages().map(({ path }) => path)
+    const allowedPaths = new Set(indexablePaths)
+    const paths = [...new Set(cliPaths.length > 0 ? cliPaths : indexablePaths)]
+    const invalidPaths = paths.filter((path) => !allowedPaths.has(path))
+    if (invalidPaths.length > 0) {
+        throw new Error(`Paths are not in the indexable URL inventory: ${invalidPaths.join(', ')}`)
+    }
     const urlList = paths.map((p) => `${BASE_URL}${p}`)
+
+    if (dryRun) {
+        console.log(urlList.join('\n'))
+        return
+    }
 
     console.log(`Submitting ${urlList.length} URLs to IndexNow...`)
 

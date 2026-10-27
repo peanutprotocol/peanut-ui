@@ -91,7 +91,7 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
         expect(row(model, 'transaction.officialReceipt.pdf.type')).toBe('transaction.type.bank_withdraw')
         expect(row(model, 'transaction.officialReceipt.pdf.status')).toBe('common.status.completed')
         expect(row(model, 'transaction.rows.to')).toBe('kkonrad')
-        expect(row(model, 'transaction.rows.fee')).toBe('0.5')
+        expect(row(model, 'transaction.rows.fee')).toBe('$0.50')
         expect(row(model, 'transaction.rows.txId')).toBe(baseTx.txHash)
         expect(row(model, 'transaction.rows.transferId')).toBe(baseTx.id)
         expect(labels(model).slice(-2)).toEqual(['transaction.rows.txId', 'transaction.rows.transferId'])
@@ -139,7 +139,7 @@ describe('buildReceiptPdfModel — variants', () => {
             'en'
         )
         expect(model.convertedAmountDisplay).toBe('ARS 113,250.75')
-        expect(row(model, 'common.exchangeRate')).toBe('1 USD = ARS 902.4')
+        expect(row(model, 'common.exchangeRate')).toBe('1 USD = ARS 902.40')
     })
 
     test('bank account identifiers are always masked — the PDF is shareable', () => {
@@ -330,6 +330,45 @@ describe('buildReceiptPdfModel — variants', () => {
         )
 
         expect(model.amountDisplay).toBe('$40')
+    })
+})
+
+describe('buildReceiptPdfModel — crypto withdrawal network fee (TASK-23487)', () => {
+    const withdraw = (status: string, networkFeeDetails: Record<string, unknown>, recipientReceivesUsd?: number) =>
+        withOverrides(
+            { status, direction: 'withdraw', amount: 64.5, fee: undefined, networkFeeDetails, recipientReceivesUsd },
+            { kind: 'CRYPTO_WITHDRAW', transactionCardType: 'withdraw' }
+        )
+
+    test('a charged fee prints the fee and what the recipient received, after the money rows', () => {
+        const model = buildReceiptPdfModel(
+            withdraw('completed', { state: 'charged', amountDisplay: '$1.43' }, 63.067329),
+            t,
+            'en'
+        )
+        expect(row(model, 'transaction.rows.networkFee')).toBe('$1.43')
+        expect(row(model, 'transaction.rows.recipientReceives')).toBe('$63.07')
+        const order = labels(model)
+        expect(order.indexOf('transaction.rows.recipientReceives')).toBe(
+            order.indexOf('transaction.rows.networkFee') + 1
+        )
+        expect(model.amountDisplay).toBe('-$64.50')
+    })
+
+    test.each([{ state: 'pending' }, { state: 'sponsored' }])('a %o fee prints no fee rows', (details) => {
+        const model = buildReceiptPdfModel(withdraw('completed', details, 63.07), t, 'en')
+        expect(labels(model)).not.toContain('transaction.rows.networkFee')
+        expect(labels(model)).not.toContain('transaction.rows.recipientReceives')
+    })
+
+    test.each(['failed', 'cancelled', 'refunded'])('a %s withdrawal prints no fee rows', (status) => {
+        const model = buildReceiptPdfModel(
+            withdraw(status, { state: 'charged', amountDisplay: '$1.43' }, 63.07),
+            t,
+            'en'
+        )
+        expect(labels(model)).not.toContain('transaction.rows.networkFee')
+        expect(labels(model)).not.toContain('transaction.rows.recipientReceives')
     })
 })
 

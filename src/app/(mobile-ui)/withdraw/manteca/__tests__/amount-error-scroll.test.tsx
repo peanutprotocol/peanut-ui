@@ -14,7 +14,10 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, replace: mockPush, back: jest.fn() }),
     usePathname: () => '/withdraw/manteca',
 }))
-jest.mock('@/config/underMaintenance.config', () => ({ __esModule: true, default: { disabledMantecaCurrencies: [] } }))
+jest.mock('@/features/kill-switches/kill-switches-store', () => {
+    const killSwitches = { disabledMantecaCurrencies: [] }
+    return { getKillSwitches: () => killSwitches, subscribeKillSwitches: () => () => {} }
+})
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({ spendableBalance: mockBalance, formattedSpendableBalance: '10.00' }),
 }))

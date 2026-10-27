@@ -388,7 +388,12 @@ describe('TransactionCard — secondary currency line requires a valid amount', 
 
     it('renders the "≈ CODE x" line for a real converted amount', () => {
         renderCard(currencyTx({ amount: '105.9', code: 'EUR' }))
-        expect(screen.getByText('≈ EUR 105.9')).toBeInTheDocument()
+        expect(screen.getByText('≈ EUR 105.90')).toBeInTheDocument()
+    })
+
+    it('shows no ".00" on a round converted amount', () => {
+        renderCard(currencyTx({ amount: '20.00', code: 'EUR' }))
+        expect(screen.getByText('≈ EUR 20')).toBeInTheDocument()
     })
 
     it('hides the line for a blanked (pending, unconverted) amount', () => {
@@ -399,6 +404,31 @@ describe('TransactionCard — secondary currency line requires a valid amount', 
     it('hides the line when currency.amount is missing entirely', () => {
         renderCard(currencyTx({ code: 'ARS' } as any)) // deliberately missing `amount`
         expect(screen.queryByText(/≈ ARS/)).toBeNull()
+    })
+})
+
+// TASK-23856: a request asked in euros showed only its dollar figures, so the
+// requester never saw the currency they asked in.
+describe('TransactionCard — a request asked in another currency', () => {
+    function potTx(extra: Record<string, string>): TransactionDetails {
+        const base = eligibleTx()
+        return {
+            ...base,
+            amount: 99.16,
+            totalAmountCollected: 73.65,
+            isRequestPotLink: true,
+            extraDataForDrawer: { ...base.extraDataForDrawer, ...extra },
+        } as TransactionDetails
+    }
+
+    it('adds the asked amount under the dollar figures', () => {
+        renderCard(potTx({ requestedAmount: '88', requestCurrency: 'EUR' }))
+        expect(screen.getByText('€88 requested')).toBeInTheDocument()
+    })
+
+    it('adds nothing for a dollar request, or an API that sends no currency', () => {
+        renderCard(potTx({ requestedAmount: '99.16', requestCurrency: 'USD' }))
+        expect(screen.queryByText(/requested/)).toBeNull()
     })
 })
 

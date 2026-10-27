@@ -25,7 +25,7 @@ export function CountriesSignUpCta({ label }: { label: string }) {
                 variant="secondary"
                 className={`pointer-events-auto w-fit ${CTA_MOTION}`}
                 onClick={(event) => {
-                    if (interceptAppCta(MIGRATION_SURFACES.LANDING_COUNTRIES)) event.preventDefault()
+                    if (interceptAppCta(MIGRATION_SURFACES.LANDING_COUNTRIES, 'countries')) event.preventDefault()
                 }}
             >
                 {label}
