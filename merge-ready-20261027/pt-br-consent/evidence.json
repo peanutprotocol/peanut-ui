@@ -1,0 +1,22 @@
+[
+  {
+    "mode": "before",
+    "uiSha": "10ba4fe1321cb94fdffa33cf1df60b840f8a87d6",
+    "width": 375,
+    "height": 667,
+    "sha256": "84267ee09f1719e5c55976eb2c05201cf51644eb56c69ddf31176e3dc65e3e92",
+    "sourceFilesCompared": 3855,
+    "sourceUnchanged": true,
+    "status": "passed"
+  },
+  {
+    "mode": "after",
+    "uiSha": "0bf32a30f3d848c96018027811a0b41f514c854b",
+    "width": 375,
+    "height": 667,
+    "sha256": "b5f5bd6f35c4291939ac9a3feea6ac13007bfd00c684a50026ee66b149b773b1",
+    "sourceFilesCompared": 3899,
+    "sourceUnchanged": true,
+    "status": "passed"
+  }
+]
