@@ -269,7 +269,7 @@ export function RequestPotActionList({
     // settles, in success or in failure.
     const requesterBankRows = !requestId ? null : bankPayable && isPayAmountsLoading ? (
         <div
-            className="h-16 w-full animate-pulse rounded-sm bg-foreground-primary/10"
+            className="h-16 w-full animate-pulse rounded-sm bg-background-skeleton"
             data-testid="bank-rows-loading"
             aria-hidden
         />
