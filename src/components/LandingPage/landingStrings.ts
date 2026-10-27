@@ -28,6 +28,8 @@ export interface LandingStrings {
     payLocal: HomePayLocalStrings
     /** The restored zero-transfer-fees fold (noFees). */
     zeroFees: string
+    /** Screen-reader-only rest of the fees h2 ("transfer fees"). */
+    zeroFeesSr: string
     reallyZero: string
     noHiddenFees: string
     seeMarkupOn: string
@@ -110,6 +112,7 @@ export function landingStrings(i18n: Translations): LandingStrings {
             brazil: i18n.landingPayLocalBrazil,
         },
         zeroFees: i18n.landingZeroFees,
+        zeroFeesSr: i18n.landingZeroFeesSr,
         reallyZero: i18n.landingReallyZero,
         noHiddenFees: i18n.landingNoHiddenFees,
         seeMarkupOn: i18n.landingSeeMarkupOn,

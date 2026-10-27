@@ -92,9 +92,11 @@ export function NoFees({
                 </AnimateOnView>
 
                 {/* h2: the home hero owns the page's one h1. One word in Knerd (Konrad, round 2:
-                    "ZERO" instead of "Zero transfer fees"); the lines below say what is zero. */}
+                    "ZERO" instead of "Zero transfer fees"); screen readers and heading lists
+                    still hear what is zero. */}
                 <h2 className="mb-4 md:mb-6">
-                    <KnerdTitle text={strings.zeroFees} size="hero" />
+                    <KnerdTitle text={strings.zeroFees} size="display" />
+                    <span className="sr-only"> {strings.zeroFeesSr}</span>
                 </h2>
 
                 {/* Was a single SVG with the copy baked into vector paths — the

@@ -139,6 +139,7 @@ export interface Translations {
     landingSecurityHelpDesc: string
     landingTalkToSupport: string
     landingZeroFees: string // one word, set in Knerd ("ZERO")
+    landingZeroFeesSr: string // read after it by screen readers only ("transfer fees"), so the h2 says what is zero
     landingReallyZero: string // uppercase; the last word gets the scribble circle
     landingNoHiddenFees: string // uppercase
     landingSeeMarkupOn: string

@@ -35,7 +35,7 @@ export interface SectionTitleProps {
 
 /** Knerd `Title` size presets for static Knerd. Call sites never pass their own
     size. The hero's oversized words are KnerdPullHeadline, not a preset. */
-export type KnerdSize = 'hero' | 'compact' | 'inline' | 'amount'
+export type KnerdSize = 'hero' | 'compact' | 'inline' | 'amount' | 'display'
 
 export interface KnerdTitleProps {
     /** Caps are applied for you. Break lines with "\n". 1–3 words. */

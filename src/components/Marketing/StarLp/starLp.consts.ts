@@ -41,6 +41,9 @@ export const KNERD_SIZE_CLASS: Record<KnerdSize, string> = {
     inline: 'text-heading-l',
     /** an amount beside UI in a strip: inline at 320, one step up from xs */
     amount: 'text-heading-l xs:text-headingSmall',
+    /** a one-word headline (the home's "ZERO"): with no second word to fit, it starts two
+        steps up so its thin outline still outranks the heavy Roboto lines under it on phones */
+    display: 'text-heading xs:text-headingMedium lg:text-headingLarge',
 }
 
 export const DISPLAY_LINE_CLASS: Record<DisplayLineSize, string> = {
