@@ -514,7 +514,7 @@
                 "selectCountry": "Elegir {country}",
                 "guideTitle": "¿Qué país debés seleccionar?",
                 "guideDeclaration": "Si tenés un permiso de residencia de alguno de los dos países, elegí ese país. Si no, elegí el país que emitió tu documento de identidad, como un pasaporte o una licencia de conducir.",
-                "description": "Elegí uno. Esto es lo que habilita cada uno."
+                "title": "Vinculá tu perfil a un solo país"
             },
             "residenceTitle": "¿Dónde tenés residencia?",
             "citizenshipTitle": "¿De qué país tenés ciudadanía?",
