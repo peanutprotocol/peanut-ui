@@ -133,7 +133,7 @@ export interface Translations {
     landingSecurityHelpTitle: string
     landingSecurityHelpDesc: string
     landingTalkToSupport: string
-    landingZeroFees: string
+    landingZeroFees: string // one word, set in Knerd ("ZERO")
     landingReallyZero: string // uppercase; the last word gets the scribble circle
     landingNoHiddenFees: string // uppercase
     landingSeeMarkupOn: string

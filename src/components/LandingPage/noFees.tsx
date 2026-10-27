@@ -8,6 +8,7 @@ import Image from 'next/image'
 import ExchangeRateWidget from '../Global/ExchangeRateWidget'
 import { useRouter } from 'next/navigation'
 import { Band } from '@/components/Marketing/StarLp/Band'
+import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { PROSE_WIDTH } from '@/components/Marketing/constants'
 import { ContextualLinks } from './ContextualLinks'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
@@ -28,21 +29,6 @@ export function NoFees({
 }) {
     const router = useRouter()
     const interceptAppCta = useAppModal()
-
-    // Ruled ramp only (design.md §3.2): heading 60 mobile, stepping down to
-    // headingSmall 42 for catalogs whose longest word would clip at 60px
-    // ("TRANSFERENCIA"/"TRANSFERÊNCIA" measure 491px at 60px). <html lang> is
-    // SSR'd as "en" and only corrected after hydration, so a :lang() step would
-    // first paint at the EN size and jump on the es/pt pages. The 8-character
-    // threshold is what messages.test.ts holds the catalogs to.
-    // Below xs (390) every catalog steps down once more so the longest word
-    // fits the 272px column at 320: heading → headingSmall, and the long-word
-    // catalogs from headingSmall to the DS heading-m, the largest step that
-    // fits "TRANSFERENCIA" (342px at 42px).
-    const headlineSize =
-        Math.max(...strings.zeroFees.split(' ').map((word) => word.length)) > 8
-            ? 'text-heading-m xs:text-headingSmall'
-            : 'text-headingSmall xs:text-heading'
 
     // The scribble circles the closing word of the line, so each catalog picks
     // what gets circled just by putting that word last.
@@ -105,13 +91,10 @@ export function NoFees({
                     <Image src={Star} alt="Floating Star" width={50} height={50} />
                 </AnimateOnView>
 
-                {/* h2: the home hero owns the page's one h1. Set solid like the star-LP fold
-                    titles: the base size's ramp leading (36px for headingSmall) otherwise
-                    survives the xs/md size steps and the stacked words overlap on phones. */}
-                <h2
-                    className={`font-roboto-flex-extrabold star-lp-section-title ${headlineSize} text-foreground-primary md:text-headingMedium`}
-                >
-                    {strings.zeroFees}
+                {/* h2: the home hero owns the page's one h1. One word in Knerd (Konrad, round 2:
+                    "ZERO" instead of "Zero transfer fees"); the lines below say what is zero. */}
+                <h2 className="mb-4 md:mb-6">
+                    <KnerdTitle text={strings.zeroFees} size="hero" />
                 </h2>
 
                 {/* Was a single SVG with the copy baked into vector paths — the
