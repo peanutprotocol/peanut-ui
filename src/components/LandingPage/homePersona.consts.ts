@@ -16,4 +16,4 @@ export const HOME_PERSONA_AVATARS: ReadonlyArray<{ key: HomePersonaKey; avatar: 
 ]
 
 /** How long each earner stays on show, ms: long enough to read one line twice. */
-export const HOME_PERSONA_CYCLE_MS = 3200
+export const HOME_PERSONA_CYCLE_MS = 3600

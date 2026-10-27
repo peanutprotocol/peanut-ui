@@ -7,15 +7,22 @@ import { landingStrings } from '../landingStrings'
 
 let reducedMotion = false
 let observerCallback: IntersectionObserverCallback | null = null
+let motionChange: (() => void) | null = null
 
 beforeEach(() => {
     jest.useFakeTimers()
     reducedMotion = false
     observerCallback = null
+    motionChange = null
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
     window.matchMedia = jest.fn().mockImplementation((query: string) => ({
-        matches: reducedMotion && query.includes('reduce'),
+        get matches() {
+            return reducedMotion && query.includes('reduce')
+        },
         media: query,
-        addEventListener: jest.fn(),
+        addEventListener: jest.fn((_event: string, callback: () => void) => {
+            motionChange = callback
+        }),
         removeEventListener: jest.fn(),
     }))
     window.IntersectionObserver = jest.fn().mockImplementation((callback: IntersectionObserverCallback) => {
@@ -103,21 +110,54 @@ describe('HomePersonaFold', () => {
         expect(pressed()).toBe(3)
     })
 
-    it('never cycles under reduced motion, and keeps the cycling cards in one cell so the height holds', () => {
+    it('pauses while the document is hidden and gives the next earner a full reading interval on return', () => {
+        render(<HomePersonaFold strings={strings} />)
+        setOnScreen(true)
+        act(() => jest.advanceTimersByTime(HOME_PERSONA_CYCLE_MS / 2))
+        Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+        fireEvent(document, new Event('visibilitychange'))
+        act(() => jest.advanceTimersByTime(HOME_PERSONA_CYCLE_MS * 3))
+        expect(pressed()).toBe(0)
+
+        Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+        fireEvent(document, new Event('visibilitychange'))
+        act(() => jest.advanceTimersByTime(HOME_PERSONA_CYCLE_MS - 1))
+        expect(pressed()).toBe(0)
+        act(() => jest.advanceTimersByTime(1))
+        expect(pressed()).toBe(1)
+    })
+
+    it('returns to the first earner when reduced motion is enabled while cycling', () => {
+        render(<HomePersonaFold strings={strings} />)
+        setOnScreen(true)
+        act(() => jest.advanceTimersByTime(HOME_PERSONA_CYCLE_MS))
+        expect(pressed()).toBe(1)
+        act(() => {
+            reducedMotion = true
+            motionChange?.()
+        })
+        expect(pressed()).toBe(0)
+        act(() => jest.advanceTimersByTime(HOME_PERSONA_CYCLE_MS * 3))
+        expect(pressed()).toBe(0)
+    })
+
+    it('keeps the first earner and still avatars under reduced motion, reserving the tallest card height', () => {
         reducedMotion = true
         const { container } = render(<HomePersonaFold strings={strings} />)
         setOnScreen(true)
         act(() => jest.advanceTimersByTime(HOME_PERSONA_CYCLE_MS * 3))
         expect(pressed()).toBe(0)
 
-        // the static list (shown by motion-reduce) holds every earner
-        const staticList = container.querySelector('ul.motion-reduce\\:grid')!
-        expect(staticList.querySelectorAll('article')).toHaveLength(HOME_PERSONA_AVATARS.length)
+        const buttons = screen.getAllByRole('button')
+        buttons.forEach((button) => expect(button).toBeDisabled())
+        fireEvent.click(buttons[3])
+        expect(pressed()).toBe(0)
 
         // the cycling cards are art: hidden from screen readers, stacked in one grid cell
         const stack = container.querySelector('[aria-hidden="true"].grid')!
         const cards = stack.querySelectorAll('article')
         expect(cards).toHaveLength(HOME_PERSONA_AVATARS.length)
         cards.forEach((card) => expect(card.className).toContain('row-start-1'))
+        expect(Array.from(cards).filter((card) => !card.classList.contains('invisible'))).toHaveLength(1)
     })
 })

@@ -39,6 +39,8 @@ export interface HomePersonaCycleState {
     select: (index: number) => void
     /** True once the reader picked an earner, so the card announces changes. */
     picked: boolean
+    /** Reduced motion keeps the first earner and disables avatar changes. */
+    reducedMotion: boolean
     /** Attach to the cycling stage: it cycles only while on screen. */
     ref: (node: HTMLElement | null) => void
     /** Spread on the stage: hover or keyboard focus inside pauses the cycle. */
