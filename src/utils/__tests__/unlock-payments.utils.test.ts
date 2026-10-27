@@ -151,8 +151,7 @@ describe('buildBankRows', () => {
     it('South America is one row per currency, each with its own allowance', () => {
         const rows = bank({
             bankChips: { ...UNLOCK_ALL, brl: 'active' },
-            residenceIso2: 'BR',
-            secondResidenceIso2: 'AR',
+            residenceIso2: 'AR',
         })
         expect(rowsOf(rows, 'brl', 'ars').map((r) => [r.id, r.chip, r.limitRefs])).toEqual([
             ['brl-bank', 'active', ['BRL']],
@@ -169,8 +168,9 @@ describe('buildBankRows', () => {
     })
 
     it('sibling rows share the one unlock intent behind their two currencies', () => {
-        const rows = bank({ residenceIso2: 'BR', secondResidenceIso2: 'AR' })
-        expect(rowsOf(rows, 'brl', 'ars').map((r) => r.regionPath)).toEqual(['latam', 'latam'])
+        expect(rowsOf(bank({ residenceIso2: 'BR' }), 'brl')[0].regionPath).toBe('latam')
+        expect(rowsOf(bank({ residenceIso2: 'AR' }), 'ars')[0].regionPath).toBe('latam')
+        const rows = bank({ residenceIso2: 'BR' })
         expect(rowsOf(rows, 'usd', 'mxn').map((r) => r.regionPath)).toEqual(['north-america', 'north-america'])
     })
 
@@ -242,18 +242,26 @@ describe('buildBankRows — residence decides the Manteca rows', () => {
         expect(rowsOf(bank({ residenceIso2: 'PT' }), 'brl')[0].unavailableBecause).toBe('residence')
     })
 
-    it('each country opens its own row, and a dual resident gets both', () => {
+    // The API opens a Manteca local account by the one residence (peanut.manteca-local-residence).
+    it('each country opens its own row; a second residence opens none', () => {
         expect(latamRows({ residenceIso2: 'BR' })).toEqual([
             ['brl-bank', 'unlock', 'latam'],
             ['ars-bank', 'notAvailable', undefined],
         ])
         expect(latamRows({ residenceIso2: 'PT', secondResidenceIso2: 'AR' })).toEqual([
             ['brl-bank', 'notAvailable', undefined],
-            ['ars-bank', 'unlock', 'latam'],
+            ['ars-bank', 'notAvailable', undefined],
         ])
         expect(latamRows({ residenceIso2: 'BR', secondResidenceIso2: 'AR' })).toEqual([
             ['brl-bank', 'unlock', 'latam'],
-            ['ars-bank', 'unlock', 'latam'],
+            ['ars-bank', 'notAvailable', undefined],
+        ])
+    })
+
+    it('a working rail stays available whatever the residence says', () => {
+        expect(latamRows({ residenceIso2: 'PT', bankChips: { ...UNLOCK_ALL, ars: 'active' } })).toEqual([
+            ['brl-bank', 'notAvailable', undefined],
+            ['ars-bank', 'active', undefined],
         ])
     })
 
@@ -337,8 +345,8 @@ describe('gatingResidenceIso2s', () => {
         expect(gatingResidenceIso2s({ verified: 'PT', declared: 'BR' })).toEqual(['PT'])
     })
 
-    it('a declared residence counts while nothing is verified, and a second one beside it', () => {
-        expect(gatingResidenceIso2s({ verified: null, declared: 'br', second: 'AR' })).toEqual(['BR', 'AR'])
+    it('a declared residence counts while nothing is verified', () => {
+        expect(gatingResidenceIso2s({ verified: null, declared: 'br' })).toEqual(['BR'])
         expect(gatingResidenceIso2s({})).toEqual([])
     })
 

@@ -1,10 +1,10 @@
 import { useAuth } from '@/context/authContext'
 import {
     LOCAL_RESIDENCE_RESTRICTION_SETS,
-    useResidenceRestrictionSets,
+    useResidenceRestrictionSetsWithStatus,
     type ResidenceRestrictionSets,
 } from '@/hooks/useResidenceRestrictionSets'
-import { readDeclaredResidence, readSecondResidence } from '@/utils/declared-residence.storage'
+import { readDeclaredResidence } from '@/utils/declared-residence.storage'
 import { useHydrationSnapshot } from '@/utils/native-platform'
 import { useMemo } from 'react'
 import { useOptionalSetupFlow } from '@/features/setup/SetupFlowContext'
@@ -17,6 +17,8 @@ export interface ResidenceRestrictions {
 }
 
 const NONE: ResidenceRestrictions = { banking: false, card: false }
+/** A residence whose tiers are not known yet: nothing is offered until they are. */
+const UNKNOWN: ResidenceRestrictions = { banking: true, card: true }
 
 /** Derivation over an explicit tier set (server-fetched or the local mirror). */
 export const deriveResidenceRestrictionsFrom = (
@@ -39,65 +41,44 @@ export const deriveResidenceRestrictions = (iso2: string | null | undefined): Re
 /**
  * Residence-based availability for the current user.
  *
- * The server value on /get-user (`residenceRestrictions`, derived from the
- * residence declared at signup) is authoritative; the redux setup value fills
- * the pre-account window, and the localStorage mirror of the signup answer
- * covers reloads before the server copy is readable (or on an API that
- * predates the residence fields) — all derived over the server-fetched tier
- * lists (bundled mirror until they load).
- * Advisory offer-shaping, not a compliance gate: it hides bank/card surfaces
- * the user could never use, and can only ever remove offers.
- *
- * Dual residents: when the device knows a second declared residence (the
- * signup mirror — the API stores it but does not return it yet), hiding
- * softens to the INTERSECTION: an offer disappears only when BOTH residences
- * rule it out. Safe by construction — restrictions never grant anything, so
- * softening them can only stop hiding offers whose verification the second
- * residence's documents can legitimately pass.
+ * The server value on /users/me (`residenceRestrictions`) is the answer, used
+ * as is: it follows the one residence the API's route guards read (a second
+ * declared residence never changes it) and knows exceptions no list here can,
+ * like an existing Bridge customer keeping bank transfers in South Korea.
+ * Only without it (pre-account, or an API that predates the field) is the
+ * answer derived here, from the residence in the setup flow or the device
+ * mirror, over the server-fetched tier lists. Before those lists load the
+ * restrictions are unknown, and an unknown answer withholds every offer: the
+ * bundled mirror is not complete enough to open one.
+ * Advisory offer-shaping, not a compliance gate.
  */
 export const useResidenceRestrictions = (): ResidenceRestrictions => {
     const { user } = useAuth()
     // during signup the answer lives in the setup provider; outside /setup no provider is mounted
     const residenceCountry = useOptionalSetupFlow()?.residenceCountry ?? ''
-    const sets = useResidenceRestrictionSets()
+    const { sets, settled } = useResidenceRestrictionSetsWithStatus()
 
     const userId = user?.user?.userId
     const localDeclared = useHydrationSnapshot(
         () => readDeclaredResidence(userId),
         () => null
     )
-    const localSecond = useHydrationSnapshot(
-        () => readSecondResidence(userId),
-        () => null
-    )
     return useMemo(() => {
-        const primary =
-            user?.residenceRestrictions ??
-            deriveResidenceRestrictionsFrom(
-                sets,
-                user?.residence?.verified?.country ||
-                    user?.residence?.declared?.country ||
-                    residenceCountry ||
-                    localDeclared
-            )
-        // Same rule as the change modal: the server's answer wins whenever it
-        // sends the field, `null` included. The device mirror is only for an
-        // API that predates `declaredSecond`, and on a fresh device it is
-        // absent — which silently skipped the intersection and kept offers
-        // hidden from a dual-resident whose second country is unrestricted.
-        const serverSecond = user?.residence?.secondaryDeclaredCountry
-        const second = serverSecond === undefined ? localSecond : serverSecond
-        if (!second) return primary
-        const secondary = deriveResidenceRestrictionsFrom(sets, second)
-        return { banking: primary.banking && secondary.banking, card: primary.card && secondary.card }
+        if (user?.residenceRestrictions) return user.residenceRestrictions
+        const country =
+            user?.residence?.verified?.country ||
+            user?.residence?.declared?.country ||
+            residenceCountry ||
+            localDeclared
+        if (!country?.trim()) return NONE
+        return settled ? deriveResidenceRestrictionsFrom(sets, country) : UNKNOWN
     }, [
         user?.residenceRestrictions,
         user?.residence?.verified?.country,
         user?.residence?.declared?.country,
-        user?.residence?.secondaryDeclaredCountry,
         residenceCountry,
         sets,
+        settled,
         localDeclared,
-        localSecond,
     ])
 }

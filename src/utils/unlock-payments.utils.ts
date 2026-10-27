@@ -216,7 +216,7 @@ export function buildBankRows(input: BankRowsInput): UnlockRow[] {
     // `residenceIso2` is already verified-else-declared; the same derivation
     // the top-up gates read (`useResidenceIso2s`), so the row and the flow
     // behind it can never disagree about who lives where.
-    const gatingResidences = gatingResidenceIso2s({ verified: residenceIso2, second: secondResidenceIso2 })
+    const gatingResidences = gatingResidenceIso2s({ verified: residenceIso2 })
     const isOwnRegion: Record<(typeof BANK_ROWS)[number]['group'], boolean> = {
         southAmerica: residences.has('BR') || residences.has('AR'),
         northAmerica: residences.has('US') || residences.has('MX'),
