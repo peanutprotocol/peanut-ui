@@ -3,10 +3,6 @@
     --home-motion-play: paused;
 }
 
-.folds [data-home-running='true'] {
-    --home-motion-play: running;
-}
-
 .folds :global(.cloud-ltr),
 .folds :global(.cloud-rtl),
 .folds :global(.star-lp-wobble),
@@ -18,6 +14,7 @@
 
 /* One farewell is enough beside the signup action. */
 .folds :global(#home-close .star-lp-wobble) {
+    --home-motion-play: paused;
     animation-name: farewell;
     animation-duration: var(--transition-duration-slow);
     animation-timing-function: var(--ease-spring);
