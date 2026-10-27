@@ -186,11 +186,11 @@
                 "qrPay": "Pagos QR"
             },
             "chips": {
-                "active": "Disponible",
-                "alwaysOn": "Siempre activo",
-                "unlock": "Desbloquear",
-                "processing": "Procesando",
-                "attention": "Atención",
+                "active": "Activo",
+                "alwaysOn": "Activo",
+                "unlock": "Configurar",
+                "processing": "Pendiente",
+                "attention": "Acción requerida",
                 "notAvailable": "No disponible"
             },
             "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",

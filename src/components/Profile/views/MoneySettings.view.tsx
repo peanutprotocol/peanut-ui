@@ -1,9 +1,7 @@
 'use client'
 
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
-import { pendingResidenceCountry } from '@/utils/residence-profile'
 
-import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import VirtualAccountsHub from './VirtualAccountsHub'
@@ -12,7 +10,6 @@ import { ClosedRowDrawer } from '@/features/deposit-accounts/components/ClosedRo
 import type { ClosedRow } from '@/features/deposit-accounts/hubRows'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useBankRows } from '@/hooks/useBankRows'
-import Badge from '@/components/Global/Badges/Badge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import IconStack from '@/components/Global/IconStack'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -25,7 +22,6 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
-import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
 import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
@@ -38,8 +34,6 @@ import { getRegionIntent, providerForRegionIntent, type Region } from '@/utils/r
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
 import { IDENTITY_DOCUMENT_MISSING_CODE, QrKycState } from '@/constants/kyc.consts'
-import { useQueryClient } from '@tanstack/react-query'
-import { LIMITS } from '@/constants/query.consts'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useLimits } from '@/hooks/useLimits'
@@ -55,22 +49,21 @@ import { isTerminalRailRejection } from '@/utils/capability-gate'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type RailCapability } from '@/types/capabilities'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { useAuth } from '@/context/authContext'
+import { RESIDENCE_CHANGE_HREF } from '@/features/paperwork-verification/paperworkVerification.utils'
 import {
     BANK_ROW_COUNTRIES,
+    bankAccountRow,
     buildUnlockGroups,
+    paymentMethodSections,
     PIX_SEND_HREF,
     withPixSend,
     type BankRowKey,
-    type UnlockGroup,
     type UnlockRow,
     type UnlockRowLabelKey,
 } from '@/utils/unlock-payments.utils'
-import { localizedCountryTitle } from '@/utils/country-name.utils'
-import { countryData } from '@/components/AddMoney/consts'
 import { useTranslations, useLocale } from 'next-intl'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryState } from 'nuqs'
@@ -94,28 +87,26 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
 }
 
 /**
- * The two profile pages behind the money settings, split 2026-09-25 (hugo):
- * Accounts lists the accounts and the other ways money moves in and out of
- * Peanut; Payments lists the ways to spend and the always-on Peanut rows.
- * Pix and ARS are both, so they show on both: the BRL and ARS bank rows on
- * Accounts (BRL also sends to any Pix key), QR payments on Payments.
+ * Payment methods: one list (Slava, 2026-10-27), active methods first, then
+ * what the user can still set up or waits on, then what their residence
+ * closes. Every bank currency is one "Bank account" row; its screen (`bank`)
+ * is where the currency is picked, and it keeps the accounts list and the
+ * other bank rows. The residence lives in Profile now.
  *
- * One screen with two lists, not two screens: the residence row at the top,
- * the verification notices and every modal and drawer a row opens are the
- * same on both pages.
+ * One component for both screens: the verification notices and every modal
+ * and drawer a row opens are the same on both.
  */
-const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
+const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const t = useTranslations('profile.unlockPayments')
     const tRegions = useTranslations('profile.regions')
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
     const tKyc = useTranslations('kyc')
     const locale = useLocale()
-    const onBack = useSafeBack('/profile', { replace: true })
+    const onBack = useSafeBack(view === 'bank' ? '/profile/payments' : '/profile', { replace: true })
     const router = useRouter()
-    const [openView, setOpenView] = useQueryState('open', parseAsString)
+    const [openView] = useQueryState('open', parseAsString)
     const [detailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
-    const { user, fetchUser } = useAuth()
     const {
         rails,
         isKycApproved,
@@ -133,7 +124,6 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
     const { cardInfo } = useCardInfo()
-    const queryClient = useQueryClient()
     const { overview } = useRainCardOverview()
     const { mantecaLimits, bridgeLimits } = useLimits()
     const { openSupportWithMessage, setIsSupportModalOpen } = useModalsContext()
@@ -146,9 +136,6 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const {
         rows: bankRows,
         input: { bankChips, restrictions },
-        residence,
-        residenceIso2,
-        secondResidenceIso2,
     } = useBankRows()
     const hasActiveCard = !!findActiveCard(overview)
     // Would a QR payment go through today? The gate /qr-pay itself enforces
@@ -189,6 +176,15 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
         () => withPixSend(bankRows, { qrPay, brlChip: bankChips.brl }),
         [bankRows, qrPay, bankChips.brl]
     )
+    const methodSections = useMemo(
+        () =>
+            paymentMethodSections([
+                bankAccountRow(bankRows),
+                ...(spendGroup?.rows ?? []),
+                ...(peanutGroup?.rows ?? []),
+            ]),
+        [bankRows, spendGroup, peanutGroup]
+    )
     // A Spend row the user cannot use explains why on tap, like the bank rows
     // (hugo, 2026-09-24: "always show the rails, tell the user why").
     const [closedSpendRow, setClosedSpendRow] = useState<ClosedRow | null>(null)
@@ -209,19 +205,12 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     // the abandoned awaiting-action ghost, "setting up your account" forever
     // on a Pix row it had nothing to do with (189 users in prod, 2026-09-22).
     const [selectedRowKey, setSelectedRowKey] = useState<UnlockRowLabelKey | null>(null)
-    // Card recovery deep-links here when only a pending residence change is
-    // blocking issuance. Keep the deep link live rather than snapshotting it,
-    // and clear it when the drawer closes so refresh/native restore cannot
-    // reopen a completed recovery flow.
-    const [isChangeModalOpen, setIsChangeModalOpen] = useState(false)
-    const isResidenceChangeVisible = isChangeModalOpen || openView === 'residence'
-    const closeResidenceChange = useCallback(() => {
-        setIsChangeModalOpen(false)
-        void setOpenView(null, { history: 'replace' })
-    }, [setOpenView])
+    // The residence moved to Profile; links from older builds and emails still open it here.
+    useEffect(() => {
+        if (openView === 'residence') router.replace(RESIDENCE_CHANGE_HREF)
+    }, [openView, router])
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
     const [errorAcknowledged, setErrorAcknowledged] = useState(false)
-    const [reverifyTarget, setReverifyTarget] = useState<string | null>(null)
 
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
     const clickedRegionProvider = providerForRegionIntent(clickedRegionIntent)
@@ -321,7 +310,6 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const handleStartKyc = useCallback(async () => {
         const intent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
         if (intent) setActiveRegionIntent(intent)
-        setReverifyTarget(null)
         setErrorAcknowledged(false)
         setSelectedRegion(null)
         setSelectedRowKey(null)
@@ -363,24 +351,11 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const hubProps = {
         bankRows: accountBankRows,
         onBankRowClick: handleRowClick,
-        onChangeResidence: () => setIsChangeModalOpen(true),
+        onChangeResidence: () => router.push(RESIDENCE_CHANGE_HREF),
         isKycDegraded,
     }
 
-    // A residence re-verification never sets a region intent, so without the
-    // flag its failure would read as "Not available yet" instead of retriable.
-    const failedRegionRetriable = reverifyTarget !== null || providerForRegionIntent(activeRegionIntent) !== null
-
-    const countryDisplayName = (iso2: string | null): string | null =>
-        iso2
-            ? localizedCountryTitle(locale, {
-                  iso2,
-                  title: countryData.find((c) => c.iso2?.toUpperCase() === iso2)?.title ?? iso2,
-              })
-            : null
-    const residenceCountryName = countryDisplayName(residenceIso2)
-    const pendingCountry = pendingResidenceCountry(residence)
-    const pendingCountryName = countryDisplayName(pendingCountry)
+    const failedRegionRetriable = providerForRegionIntent(activeRegionIntent) !== null
 
     // In-review line: submittedAt drives both the date and the 7-day
     // escalation. reviewedAt/updatedAt deliberately not used — the user cares
@@ -403,12 +378,6 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     // the list's drawer.
     const showBankRestrictionNote = restrictions.banking
 
-    const residenceTrailing = !residenceIso2 ? undefined : residence?.verified?.country ? (
-        <Badge status="completed" customText={t('residence.verified')} />
-    ) : (
-        <Badge status="neutral" customText={t('residence.unverified')} />
-    )
-
     // Detail-drawer facts. Limits live HERE and nowhere else on this screen
     // (2026-09-21, hugo): three standing cards — the Bridge per-transfer caps,
     // the BRL/ARS monthly bars and the P2P no-limit line — sat above the fold
@@ -426,28 +395,11 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
 
     return (
         <PageStack gap="6" className="pb-10">
-            <NavHeader title={t(`titles.${page}`)} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
-
-            {/* Residence anchor: explains WHY the list looks the way it does. */}
-            <div className="flex flex-col gap-1">
-                <ListItem
-                    leading={<IconBubble {...CONCEPT_ICONS.otherCountries} size="s" />}
-                    // two-line row: the country sits on its own body line and wraps rather than
-                    // truncating beside the status pill (TASK-22994, hugo)
-                    title={residenceCountryName ? t('residence.label') : t('residence.unknown')}
-                    body={residenceCountryName ?? undefined}
-                    bodyWrap
-                    trailing={residenceTrailing}
-                    chevron
-                    onClick={() => setIsChangeModalOpen(true)}
-                    aria-label={residenceIso2 ? t('residence.change') : t('residence.set')}
-                />
-                {residence?.verified?.country && pendingCountry && (
-                    <p className="text-center text-body-xs text-foreground-secondary">
-                        {t('residence.pendingReverify', { country: pendingCountryName ?? pendingCountry })}
-                    </p>
-                )}
-            </div>
+            <NavHeader
+                title={t(view === 'bank' ? 'titles.bank' : 'titles.methods')}
+                onPrev={onBack}
+                titleClassName="text-heading-xs md:text-heading-s"
+            />
 
             {isKycDegraded && (
                 <Callout
@@ -493,44 +445,36 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
             {/* The list Add money shows too: accounts held and to open, then
                 the other ways in. The accounts are read only while their
                 rollout flag is on (`VirtualAccountsHub` owns that fetch). */}
-            {page === 'accounts' &&
-                (depositAccountsEnabled ? (
-                    <VirtualAccountsHub {...hubProps} />
-                ) : (
-                    <AccountsHubList claimsEnabled={false} {...hubProps} />
-                ))}
-
-            {page === 'payments' && (
+            {view === 'bank' && (
                 <>
-                    {groups.length === 0 && (
-                        <EmptyState
-                            title={tRegions('empty.title')}
-                            description={tRegions('empty.description')}
-                            icon="globe-lock"
-                        />
-                    )}
-
-                    {/* Spending methods, apart from the ways money moves between
-                        a bank and Peanut. */}
-                    {spendGroup && (
-                        <RowSection
-                            group={spendGroup}
-                            onRowClick={handleRowClick}
-                            onClosedRowClick={closeSpendRow}
-                            isKycDegraded={isKycDegraded}
-                        />
-                    )}
-                    <ClosedRowDrawer
-                        closed={closedSpendRow}
-                        onClose={() => setClosedSpendRow(null)}
-                        onChangeResidence={() => setIsChangeModalOpen(true)}
-                    />
-
-                    {peanutGroup && (
-                        <RowSection group={peanutGroup} onRowClick={handleRowClick} isKycDegraded={isKycDegraded} />
+                    <p className="text-body-s text-foreground-secondary">{t('bankPick')}</p>
+                    {depositAccountsEnabled ? (
+                        <VirtualAccountsHub {...hubProps} />
+                    ) : (
+                        <AccountsHubList claimsEnabled={false} {...hubProps} />
                     )}
                 </>
             )}
+
+            {view === 'methods' &&
+                (['active', 'notActive', 'unavailable'] as const).map(
+                    (section) =>
+                        methodSections[section].length > 0 && (
+                            <MethodSection
+                                key={section}
+                                title={t(`sections.${section}`)}
+                                rows={methodSections[section]}
+                                onRowClick={handleRowClick}
+                                onClosedRowClick={closeSpendRow}
+                                isKycDegraded={isKycDegraded}
+                            />
+                        )
+                )}
+            <ClosedRowDrawer
+                closed={closedSpendRow}
+                onClose={() => setClosedSpendRow(null)}
+                onChangeResidence={() => router.push(RESIDENCE_CHANGE_HREF)}
+            />
 
             {showBankRestrictionNote && (
                 <p className="text-body-xs text-foreground-secondary">
@@ -556,31 +500,6 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                     country={clickedRowCountry}
                 />
             )}
-
-            <ResidenceChangeDrawer
-                visible={isResidenceChangeVisible}
-                onClose={closeResidenceChange}
-                userId={user?.user?.userId}
-                declared={residence?.declared?.country ?? null}
-                declaredSecond={secondResidenceIso2}
-                verified={residence?.verified?.country ?? null}
-                pending={pendingCountry}
-                onSaved={async () => {
-                    // A residence change shifts everything derived from it:
-                    // card eligibility (server recomputes from the declared
-                    // country) and limits, alongside the user record itself.
-                    await Promise.all([
-                        fetchUser(),
-                        queryClient.invalidateQueries({ queryKey: ['card-info'] }),
-                        queryClient.invalidateQueries({ queryKey: [LIMITS] }),
-                    ])
-                }}
-                onReverify={(targetCountry) => {
-                    setReverifyTarget(targetCountry)
-                    setErrorAcknowledged(false)
-                    void flow.handleResidenceChange(targetCountry)
-                }}
-            />
 
             <KycProcessingModal
                 visible={modalVariant === 'processing'}
@@ -692,8 +611,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                                   shadowSize: '4',
                                   disabled: flow.isLoading,
                                   onClick: () => {
-                                      if (reverifyTarget) void flow.handleResidenceChange(reverifyTarget)
-                                      else void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
+                                      void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
                                   },
                               },
                           ]
@@ -833,43 +751,44 @@ const FLAG_STACK_SIZES = {
     m: 'size-8 min-h-8 max-h-8 min-w-8 max-w-8',
 } as const
 
-const RowSection = ({
-    group,
+const MethodSection = ({
+    title,
+    rows,
     onRowClick,
     onClosedRowClick,
     isKycDegraded,
 }: {
-    group: UnlockGroup
+    title: string
+    rows: readonly UnlockRow[]
     onRowClick: (row: UnlockRow) => void
     /** a Not available row: the tap explains why instead of doing nothing */
-    onClosedRowClick?: (row: UnlockRow) => void
+    onClosedRowClick: (row: UnlockRow) => void
     isKycDegraded: boolean
 }) => {
     const t = useTranslations('profile.unlockPayments')
 
     return (
-        <Section title={t(`groups.${group.labelKey}`)}>
+        <Section title={title}>
             <ListGroup>
-                {group.rows.map((row) => {
-                    const closed = row.chip === 'notAvailable' && onClosedRowClick
+                {rows.map((row) => {
+                    const closed = row.chip === 'notAvailable'
                     const tappable = isRowTappable(row, isKycDegraded)
                     return (
                         <ListItem
                             key={row.id}
                             className="min-h-18"
-                            // a closed row that explains itself is still a tap target,
-                            // as the bank rows are (AccountsHubList)
-                            disabled={row.chip === 'notAvailable' && !closed}
                             leading={rowLeading(row)}
                             title={t(`rows.${row.labelKey}`)}
                             // QR payments is the row people do not recognise
                             // by name, so it carries its explainer under the
                             // title — where it pays, in one line at 375px
-                            // (Slava, 2026-09-25).
-                            body={row.note && t(row.note)}
+                            // (Slava, 2026-09-25). The bank row names its currencies.
+                            body={
+                                row.note ? t(row.note) : row.currencies?.length ? row.currencies.join(', ') : undefined
+                            }
                             bodyWrap
                             trailing={rowStatusBadge(row, t)}
-                            chevron={tappable || !!closed}
+                            chevron={tappable || closed}
                             onClick={
                                 closed ? () => onClosedRowClick(row) : tappable ? () => onRowClick(row) : undefined
                             }

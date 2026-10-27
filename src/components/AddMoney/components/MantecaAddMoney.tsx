@@ -361,7 +361,7 @@ const MantecaAddMoney: FC = () => {
             <ResidenceRequiredScreen
                 residenceIso2={residenceGatedCountry}
                 qrPayHref="/qr-pay"
-                residenceChangeHref={withReturnTo('/profile/accounts?open=residence', '/add-money?method=bank')}
+                residenceChangeHref={withReturnTo('/profile?open=residence', '/add-money?method=bank')}
                 onBack={onBack}
             />
         )

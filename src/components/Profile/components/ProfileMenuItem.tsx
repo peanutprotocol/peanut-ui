@@ -82,7 +82,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
         </div>
     )
 
-    if (comingSoon || !href) {
+    if (comingSoon || (!href && !onClick)) {
         return (
             <Card position={position} className="bg-background-disabled p-4">
                 {content}
@@ -90,7 +90,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
         )
     }
 
-    if (isDocsLink) {
+    if (isDocsLink && href) {
         return (
             <Link href={localizeDocsHref(href, locale)} className="block">
                 <Card position={position} className="p-4 active:bg-background-disabled">
@@ -110,7 +110,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
 
     return (
         <Link
-            href={href}
+            href={href!}
             className="block"
             target={isExternalLink ? '_blank' : undefined}
             rel={isExternalLink ? 'noopener noreferrer' : undefined}

@@ -14,6 +14,8 @@ import {
     type BankRowKey,
     type BankRowsInput,
 } from '@/utils/unlock-payments.utils'
+import { useRequestedKycFeatures } from '@/features/paperwork-verification/useRequestedKycFeatures'
+import { bankRailsFor, type AvailabilityItemKey } from '@/utils/residence-availability'
 import { useCallback, useEffect, useMemo } from 'react'
 
 /** Gate states that mean "a rail is here, it just cannot move money yet". */
@@ -69,6 +71,35 @@ export function useBankChipFor(): (key: BankRowKey) => BankRegionChip {
     return bankChipFor
 }
 
+/** The rail each bank row is, as the residence availability names them. */
+const ROW_RAIL: Readonly<Record<BankRowKey, AvailabilityItemKey>> = {
+    brl: 'pix',
+    ars: 'arQr',
+    usd: 'usdAch',
+    mxn: 'spei',
+    sepa: 'eurSepa',
+}
+
+/**
+ * A verified user who asked for a currency's feature, in a residence that gets
+ * that rail, is waiting on the provider: Pending, not an offer to set it up
+ * again (Slava, 2026-10-27). Pix and Argentine transfers are the local feature;
+ * the rest are the bank one.
+ */
+export function requestedChip(
+    chip: BankRegionChip,
+    key: BankRowKey,
+    {
+        approved,
+        requested,
+        residenceIso2,
+    }: { approved: boolean; requested: { bank: boolean; local: boolean } | null; residenceIso2: string | null }
+): BankRegionChip {
+    if (chip !== 'unlock' || !approved || !requested || !residenceIso2) return chip
+    const asked = key === 'brl' || key === 'ars' ? requested.local : requested.bank
+    return asked && bankRailsFor(residenceIso2).includes(ROW_RAIL[key]) ? 'processing' : chip
+}
+
 /**
  * The bank rows both money screens list — Add money and Accounts and payments
  * — with the residence they were read against.
@@ -78,6 +109,8 @@ export function useBankChipFor(): (key: BankRowKey) => BankRegionChip {
 export function useBankRows() {
     const { user } = useAuth()
     const bankChipFor = useBankChipFor()
+    const { isKycApproved } = useCapabilities()
+    const requested = useRequestedKycFeatures()
     const restrictions = useResidenceRestrictions()
     const { closed: paperworkClosed } = usePaperworkClosures()
 
@@ -108,23 +141,24 @@ export function useBankRows() {
 
     const residenceIso2 = residence?.verified?.country ?? residence?.declared?.country ?? localDeclared ?? null
 
-    const input: BankRowsInput = useMemo(
-        () => ({
+    const input: BankRowsInput = useMemo(() => {
+        const asked = { approved: isKycApproved, requested, residenceIso2 }
+        const chip = (key: BankRowKey) => requestedChip(bankChipFor(key), key, asked)
+        return {
             bankChips: {
-                brl: bankChipFor('brl'),
-                ars: bankChipFor('ars'),
-                usd: bankChipFor('usd'),
-                mxn: bankChipFor('mxn'),
-                sepa: bankChipFor('sepa'),
+                brl: chip('brl'),
+                ars: chip('ars'),
+                usd: chip('usd'),
+                mxn: chip('mxn'),
+                sepa: chip('sepa'),
             },
             restrictions,
             residenceIso2,
             secondResidenceIso2,
             isEuropeResidence: isEuropeIso2(residenceIso2) || isEuropeIso2(secondResidenceIso2),
             paperworkClosed,
-        }),
-        [bankChipFor, restrictions, residenceIso2, secondResidenceIso2, paperworkClosed]
-    )
+        }
+    }, [bankChipFor, isKycApproved, requested, restrictions, residenceIso2, secondResidenceIso2, paperworkClosed])
     const rows = useMemo(() => buildBankRows(input), [input])
 
     return { rows, input, residence, residenceIso2, secondResidenceIso2 }

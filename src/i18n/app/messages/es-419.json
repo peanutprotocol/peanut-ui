@@ -301,7 +301,8 @@
             "help": "Centro de Ayuda",
             "about": "Acerca de Peanut",
             "updateAvailable": "Actualización disponible",
-            "profile": "Perfil"
+            "profile": "Perfil",
+            "paymentMethods": "Métodos de pago"
         },
         "logOut": "Cerrar sesión",
         "edit": {
@@ -354,7 +355,9 @@
         "unlockPayments": {
             "titles": {
                 "accounts": "Cuentas",
-                "payments": "Pagos"
+                "payments": "Pagos",
+                "methods": "Métodos de pago",
+                "bank": "Cuenta bancaria"
             },
             "residence": {
                 "label": "Residencia",
@@ -382,14 +385,15 @@
                 "usd": "USD · Transferencia bancaria",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Transferencia bancaria",
-                "qrPay": "Pagos QR"
+                "qrPay": "Pagos QR",
+                "bankAccount": "Cuenta bancaria"
             },
             "chips": {
-                "active": "Disponible",
-                "alwaysOn": "Siempre activo",
-                "unlock": "Desbloquear",
-                "processing": "Procesando",
-                "attention": "Atención",
+                "active": "Activo",
+                "alwaysOn": "Activo",
+                "unlock": "Configurar",
+                "processing": "Pendiente",
+                "attention": "Acción requerida",
                 "notAvailable": "No disponible"
             },
             "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",
@@ -444,7 +448,8 @@
                 "usd": "Agrega o retira dólares mediante transferencias bancarias de Estados Unidos.",
                 "mxn": "Agrega o retira pesos mexicanos por la red SPEI.",
                 "sepa": "Agrega o retira euros mediante transferencias SEPA.",
-                "qrPay": "Paga en comercios de Brasil y Argentina escaneando un código QR."
+                "qrPay": "Paga en comercios de Brasil y Argentina escaneando un código QR.",
+                "bankAccount": "Agrega y retira dinero por transferencia bancaria"
             },
             "valueProp": {
                 "p2p": "Divide cuentas y paga a tus amigos en un toque.",
@@ -456,14 +461,21 @@
                 "mxn": "Mueve pesos mexicanos entre tu banco y Peanut.",
                 "sepa": "Guarda y mueve euros sin un banco local.",
                 "qrPay": "Escanea y paga donde vives.",
-                "pixSend": "Envía reales a cualquier clave Pix de Brasil."
+                "pixSend": "Envía reales a cualquier clave Pix de Brasil.",
+                "bankAccount": "Agrega, guarda y retira dinero en otras monedas."
             },
             "detailsDrawer": {
                 "aboutTitle": "Qué desbloquea",
                 "limitsTitle": "Límites"
             },
             "qrPayNote": "Brasil y Argentina",
-            "pixSendNote": "Envía a cualquier clave Pix"
+            "pixSendNote": "Envía a cualquier clave Pix",
+            "bankPick": "Elige una moneda para ver su cuenta o configurarla.",
+            "sections": {
+                "active": "Listos para usar",
+                "notActive": "Aún no activos",
+                "unavailable": "No disponibles"
+            }
         },
         "backup": {
             "title": "Respaldo",

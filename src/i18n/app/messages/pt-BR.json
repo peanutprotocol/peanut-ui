@@ -301,7 +301,8 @@
             "help": "Central de Ajuda",
             "about": "Sobre o Peanut",
             "updateAvailable": "Atualização disponível",
-            "profile": "Perfil"
+            "profile": "Perfil",
+            "paymentMethods": "Formas de pagamento"
         },
         "logOut": "Sair",
         "edit": {
@@ -354,7 +355,9 @@
         "unlockPayments": {
             "titles": {
                 "accounts": "Contas",
-                "payments": "Pagamentos"
+                "payments": "Pagamentos",
+                "methods": "Formas de pagamento",
+                "bank": "Conta bancária"
             },
             "residence": {
                 "label": "Residência",
@@ -382,14 +385,15 @@
                 "usd": "USD · Transferência bancária",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Transferência bancária",
-                "qrPay": "Pagamentos QR"
+                "qrPay": "Pagamentos QR",
+                "bankAccount": "Conta bancária"
             },
             "chips": {
-                "active": "Disponível",
-                "alwaysOn": "Sempre ativo",
-                "unlock": "Desbloquear",
-                "processing": "Processando",
-                "attention": "Atenção",
+                "active": "Ativo",
+                "alwaysOn": "Ativo",
+                "unlock": "Configurar",
+                "processing": "Pendente",
+                "attention": "Ação necessária",
                 "notAvailable": "Não disponível"
             },
             "bankNotAvailableNote": "Transferências bancárias e emissão de cartão não estão disponíveis para residentes do seu país.",
@@ -444,7 +448,8 @@
                 "usd": "Adicione ou saque dólares por transferências bancárias dos Estados Unidos.",
                 "mxn": "Adicione ou saque pesos mexicanos pela rede SPEI.",
                 "sepa": "Adicione ou saque euros por transferências SEPA.",
-                "qrPay": "Pague em lojas no Brasil e na Argentina escaneando um código QR."
+                "qrPay": "Pague em lojas no Brasil e na Argentina escaneando um código QR.",
+                "bankAccount": "Adicione e saque dinheiro por transferência bancária"
             },
             "valueProp": {
                 "p2p": "Divida contas e pague amigos com um toque.",
@@ -456,14 +461,21 @@
                 "mxn": "Movimente pesos mexicanos entre seu banco e o Peanut.",
                 "sepa": "Guarde e movimente euros sem um banco local.",
                 "qrPay": "Escaneie e pague onde você mora.",
-                "pixSend": "Envie reais para qualquer chave Pix no Brasil."
+                "pixSend": "Envie reais para qualquer chave Pix no Brasil.",
+                "bankAccount": "Adicione, guarde e saque dinheiro em outras moedas."
             },
             "detailsDrawer": {
                 "aboutTitle": "O que desbloqueia",
                 "limitsTitle": "Limites"
             },
             "qrPayNote": "Brasil e Argentina",
-            "pixSendNote": "Envie para qualquer chave Pix"
+            "pixSendNote": "Envie para qualquer chave Pix",
+            "bankPick": "Escolha uma moeda para ver a conta ou configurá-la.",
+            "sections": {
+                "active": "Prontos para usar",
+                "notActive": "Ainda não ativos",
+                "unavailable": "Indisponíveis"
+            }
         },
         "backup": {
             "title": "Backup",
