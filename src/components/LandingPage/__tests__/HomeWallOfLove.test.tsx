@@ -51,7 +51,10 @@ const scrollIntoView = () => act(() => ioCallbacks.forEach((cb) => cb([{ isInter
 const step = () => act(() => jest.advanceTimersByTime(WALL_OF_LOVE_STEP_MS))
 
 describe('HomeWallOfLove', () => {
-    const renderWall = () => render(<HomeWallOfLove heading="Wall of love." posts={WALL_OF_LOVE_POSTS} />)
+    const renderWall = () =>
+        render(
+            <HomeWallOfLove heading="Wall of love." pauseLabel="Pause" playLabel="Play" posts={WALL_OF_LOVE_POSTS} />
+        )
     const first = WALL_OF_LOVE_POSTS.slice(0, 3).map((p) => p.handle)
 
     it('keeps every curated post in the page, three shown at first in curated order', () => {
@@ -84,6 +87,20 @@ describe('HomeWallOfLove', () => {
         step()
         expect(shownHandles(container)).toEqual(first)
         fireEvent.focusOut(wall.querySelector('a')!)
+        step()
+        expect(shownHandles(container)).not.toEqual(first)
+    })
+
+    it('stops for good on Pause, so posts never change under a screen-reader cursor, and resumes on Play', () => {
+        const { container, getByRole } = renderWall()
+        scrollIntoView()
+        fireEvent.click(getByRole('button', { name: 'Pause' }))
+        step()
+        step()
+        step()
+        expect(shownHandles(container)).toEqual(first)
+        fireEvent.click(getByRole('button', { name: 'Play' }))
+        scrollIntoView()
         step()
         expect(shownHandles(container)).not.toEqual(first)
     })

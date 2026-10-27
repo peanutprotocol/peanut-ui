@@ -144,6 +144,8 @@ export interface Translations {
     landingNoHiddenFees: string // uppercase
     landingSeeMarkupOn: string
     landingWallOfLove: string
+    landingWallOfLovePause: string // the wall's rotation control while it cycles
+    landingWallOfLovePlay: string // the same control once paused
     // Marquee words for the home's seams, "\n" between the words
     landingSeamPasskey: string
     landingSeamAccounts: string

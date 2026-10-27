@@ -36,6 +36,9 @@ export interface LandingStrings {
     sendMoney: string
     /** The wall of love's h2. */
     wallOfLove: string
+    /** The wall's pause/play control, which stops the rotation (WCAG 2.2.2). */
+    wallOfLovePause: string
+    wallOfLovePlay: string
     /** Marquee words for each seam a pink, sky or yellow fold touches. */
     seams: HomeSeamStrings
     faqFootnote: string
@@ -118,6 +121,8 @@ export function landingStrings(i18n: Translations): LandingStrings {
         seeMarkupOn: i18n.landingSeeMarkupOn,
         sendMoney: i18n.sendMoney,
         wallOfLove: i18n.landingWallOfLove,
+        wallOfLovePause: i18n.landingWallOfLovePause,
+        wallOfLovePlay: i18n.landingWallOfLovePlay,
         seams: {
             accounts: seamWords(i18n.landingSeamAccounts),
             personas: seamWords(i18n.landingSeamPersonas),

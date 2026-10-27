@@ -53,7 +53,12 @@ export function HomeFolds({ locale, strings, contentHrefs, faqItems, closeCta }:
                 <NoFees strings={strings} contentHrefs={contentHrefs} />
             </Suspense>
             <StarLpMarquee between={['sky', 'pink']} words={seams.wallOfLove} />
-            <HomeWallOfLove heading={strings.wallOfLove} posts={WALL_OF_LOVE_POSTS} />
+            <HomeWallOfLove
+                heading={strings.wallOfLove}
+                pauseLabel={strings.wallOfLovePause}
+                playLabel={strings.wallOfLovePlay}
+                posts={WALL_OF_LOVE_POSTS}
+            />
             <StarLpMarquee between={['pink', 'cream']} words={seams.faq} />
             <StarLpFaq
                 id="faq"

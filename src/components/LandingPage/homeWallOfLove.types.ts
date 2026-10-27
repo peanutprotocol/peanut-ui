@@ -10,6 +10,9 @@ export interface WallOfLovePost {
 export interface HomeWallOfLoveProps {
     /** The h2, e.g. "Wall of love.". The posts stay in their own language. */
     heading: string
+    /** The rotation control's label while the wall cycles, and once it is paused. */
+    pauseLabel: string
+    playLabel: string
     posts: readonly WallOfLovePost[]
 }
 

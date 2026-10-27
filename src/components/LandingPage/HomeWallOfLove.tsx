@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { PopIn } from '@/components/Marketing/StarLp/PopIn'
 import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
@@ -23,13 +24,16 @@ const POST =
  * row from md, a stack on phones). Each slot holds every third post of the
  * curated list stacked in one grid cell, so a slot is as tall as its longest
  * post and swapping posts never moves the page. One slot swaps every few
- * seconds, in turn; see useWallOfLoveCycle for when it holds. Under reduced
- * motion the stacks unfold and the wall shows every post, still.
+ * seconds, in turn; see useWallOfLoveCycle for when it holds. A small
+ * pause control stops it for good (WCAG 2.2.2: a screen-reader cursor fires no
+ * hover or focus, so the hold alone is not enough). Under reduced motion the
+ * stacks unfold, the wall shows every post, still, and the control goes.
  */
-export function HomeWallOfLove({ heading, posts }: HomeWallOfLoveProps) {
+export function HomeWallOfLove({ heading, pauseLabel, playLabel, posts }: HomeWallOfLoveProps) {
     const slots = useMemo(() => dealIntoSlots(posts, WALL_OF_LOVE_SLOTS), [posts])
     const sizes = useMemo(() => slots.map((slot) => slot.length), [slots])
-    const { ref, active } = useWallOfLoveCycle(sizes, WALL_OF_LOVE_STEP_MS)
+    const [stopped, setStopped] = useState(false)
+    const { ref, active } = useWallOfLoveCycle(sizes, WALL_OF_LOVE_STEP_MS, stopped)
 
     return (
         <Band ground="pink" id="wall-of-love">
@@ -51,6 +55,11 @@ export function HomeWallOfLove({ heading, posts }: HomeWallOfLoveProps) {
                     </li>
                 ))}
             </ul>
+            <div className="mt-6 flex justify-center motion-reduce:hidden">
+                <Button variant="ghost" size="compact" className="w-auto" onClick={() => setStopped((value) => !value)}>
+                    {stopped ? playLabel : pauseLabel}
+                </Button>
+            </div>
         </Band>
     )
 }

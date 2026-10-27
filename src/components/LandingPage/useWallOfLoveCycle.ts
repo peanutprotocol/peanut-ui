@@ -11,14 +11,15 @@ const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
  * first render show each slot's first post. It runs only while the wall is on
  * screen, the tab is visible and motion is allowed, and it holds while a
  * pointer is over the wall or focus is inside it, so a card never changes
- * under the reader. `sizes` is the post count per slot; keep it stable.
+ * under the reader. `stopped` (the wall's pause control) halts it until it is
+ * cleared. `sizes` is the post count per slot; keep it stable.
  */
-export function useWallOfLoveCycle(sizes: readonly number[], stepMs: number): WallOfLoveCycleState {
+export function useWallOfLoveCycle(sizes: readonly number[], stepMs: number, stopped = false): WallOfLoveCycleState {
     const [active, setActive] = useState<number[]>(() => sizes.map(() => 0))
     const [node, setNode] = useState<HTMLElement | null>(null)
 
     useEffect(() => {
-        if (!node || !sizes.some((size) => size > 1)) return
+        if (!node || stopped || !sizes.some((size) => size > 1)) return
         const media = window.matchMedia(REDUCED_MOTION)
         let inView = false
         let hovered = false
@@ -78,7 +79,7 @@ export function useWallOfLoveCycle(sizes: readonly number[], stepMs: number): Wa
             document.removeEventListener('visibilitychange', sync)
             media.removeEventListener?.('change', sync)
         }
-    }, [node, sizes, stepMs])
+    }, [node, sizes, stepMs, stopped])
 
     return { ref: setNode, active }
 }
