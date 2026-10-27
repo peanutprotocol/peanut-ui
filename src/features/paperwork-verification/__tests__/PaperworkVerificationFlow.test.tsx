@@ -601,6 +601,40 @@ describe('PaperworkVerificationFlow', () => {
         expect(screen.getAllByTestId('verify-pick-occupation')).toHaveLength(1)
     })
 
+    it('a retiree Bridge asks a job of is asked their last one, with "none" in place of Retired', async () => {
+        const questions = build({ money: true, tax: true }, 'purpose')
+        questions.steps.splice(1, 0, {
+            id: 'work',
+            features: ['bank'],
+            answered: false,
+            fields: [
+                {
+                    key: 'employmentStatus',
+                    kind: 'choice',
+                    required: true,
+                    options: ['employed', 'retired'],
+                    value: 'retired',
+                },
+                {
+                    key: 'occupation',
+                    kind: 'occupation',
+                    required: true,
+                    options: ['lawyer', 'retired', 'student', 'unemployed'],
+                    value: null,
+                    everyStatus: true,
+                },
+            ],
+        })
+        questions.firstUnanswered = 'work'
+        mockQuestions.mockResolvedValue(questions)
+        await startFlow()
+        await waitFor(() => expect(document.body).toHaveTextContent('I’m RetiredMy last job was closest to'))
+        fireEvent.click(screen.getAllByTestId('verify-pick-occupation')[0])
+        expect(await screen.findByText('None in the last 5 years')).toBeInTheDocument()
+        expect(screen.getByText('Lawyer')).toBeInTheDocument()
+        expect(screen.queryByText('Student')).toBeNull()
+    })
+
     it('an answer refused because the user already has today’s verification sends them Home', async () => {
         mockSave.mockResolvedValue({ kind: 'conflict', code: 'existing_verification' })
         await startFlow()

@@ -21,13 +21,7 @@ import type {
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { countryForPhone } from '../callingCodes'
-import {
-    fieldErrorKey,
-    formatTaxId,
-    jobFromEmploymentStatus,
-    looksLikeItin,
-    maskedUntouched,
-} from '../paperworkVerification.utils'
+import { fieldErrorKey, formatTaxId, jobModeOf, looksLikeItin, maskedUntouched } from '../paperworkVerification.utils'
 import { AnswerPicker } from './AnswerPicker'
 import { PlacePicker } from './PlaceField'
 
@@ -93,9 +87,14 @@ export function QuestionFields({
     const locale = useLocale()
     const Sentences = sentencesAsHeading ? 'h1' : 'p'
     const id = useId()
-    // A status that names the job (retired, student, unemployed) answers it, so the job question hides.
-    const jobAnswered = !!jobFromEmploymentStatus(fields, values.employmentStatus)
-    const sentences = fields.filter((f) => isSentenceField(f) && !(jobAnswered && f.key === 'occupation'))
+    // The work status words the job question, or answers it when Bridge does not need a job of that status.
+    const asksStatus = fields.some((f) => f.key === 'employmentStatus')
+    const jobMode = jobModeOf(fields, values.employmentStatus)
+    const sentences = fields.filter((f) => isSentenceField(f) && !(jobMode === 'none' && f.key === 'occupation'))
+    const sentenceKey = (key: string) =>
+        key === 'occupation' && (jobMode === 'last' || jobMode === 'future')
+            ? `sentence.occupation_${jobMode}`
+            : `sentence.${key}`
     const sentenceSections = (sections ?? [])
         .map((section) => ({ id: section.id, fields: sentences.filter((f) => section.keys.includes(f.key)) }))
         .filter((section) => section.fields.length > 0)
@@ -118,6 +117,7 @@ export function QuestionFields({
                 value={values[field.key] ?? ''}
                 invalid={!!errors[field.key]}
                 onChange={(value) => onChange(field.key, value)}
+                jobMode={field.key === 'occupation' && asksStatus ? jobMode : undefined}
             />
         )
 
@@ -159,8 +159,8 @@ export function QuestionFields({
                                                 }
                                             />
                                         )}
-                                        {t.has(`sentence.${field.key}` as never)
-                                            ? t.rich(`sentence.${field.key}` as 'sentence.cardPurpose', {
+                                        {t.has(sentenceKey(field.key) as never)
+                                            ? t.rich(sentenceKey(field.key) as 'sentence.cardPurpose', {
                                                   nw: nowrap,
                                                   pill: () => pill(field),
                                               })

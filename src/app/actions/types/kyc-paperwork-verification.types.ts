@@ -31,6 +31,8 @@ export interface PaperworkVerificationField {
     masked?: boolean
     /** A `place` field suggests places of the country this field of the step holds. */
     countryField?: string
+    /** The job, when Bridge asks one of every work status: a last job or the one studied for. */
+    everyStatus?: boolean
     /** A toggle's value is 'yes' or 'no'. */
     value: string | null
 }

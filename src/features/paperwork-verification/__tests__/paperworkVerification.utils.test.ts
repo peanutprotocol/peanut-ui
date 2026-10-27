@@ -25,6 +25,7 @@ import {
     stepUnchanged,
     whyKeyOf,
     withEmploymentStatus,
+    jobModeOf,
 } from '../paperworkVerification.utils'
 
 const field = (key: string, extra: Partial<PaperworkVerificationField> = {}): PaperworkVerificationField => ({
@@ -467,5 +468,77 @@ describe('a masked tax number', () => {
 
     it('is never sent even when the API drops the masked flag', () => {
         expect(stepPayload([tax({ masked: undefined })], { taxId: '•••• 1234' })).toEqual({})
+    })
+})
+
+// Slava, 2026-10-27: Bridge asks a job of every work status; the status words the question.
+describe('the job question when Bridge asks a job of every status', () => {
+    const statuses = ['employed', 'self_employed', 'homemaker', 'retired', 'student', 'unemployed']
+    const work = [
+        field('employmentStatus', { kind: 'choice', options: statuses }),
+        field('occupation', { kind: 'occupation', everyStatus: true }),
+    ]
+    const cardOnly = [work[0], field('occupation', { kind: 'occupation' })]
+
+    it('asks the current job of someone working, the last one of someone not, and the future one of a student', () => {
+        expect(statuses.map((status) => jobModeOf(work, status))).toEqual([
+            'current',
+            'current',
+            'last',
+            'last',
+            'future',
+            'last',
+        ])
+        expect(jobModeOf(work, undefined)).toBe('current')
+    })
+
+    it('lets the status answer the job, a homemaker too, when only the card asks it', () => {
+        expect(jobModeOf(cardOnly, 'homemaker')).toBe('none')
+        expect(withEmploymentStatus(cardOnly, {}, 'homemaker')).toEqual({
+            employmentStatus: 'homemaker',
+            occupation: 'unemployed',
+        })
+    })
+
+    it('keeps a named job across statuses and reads "no job" the way the new status asks', () => {
+        const retired = withEmploymentStatus(work, { employmentStatus: 'employed', occupation: 'lawyer' }, 'retired')
+        expect(retired).toEqual({ employmentStatus: 'retired', occupation: 'lawyer' })
+        expect(withEmploymentStatus(work, { employmentStatus: '', occupation: '' }, 'retired')).toEqual({
+            employmentStatus: 'retired',
+            occupation: '',
+        })
+        const none = { employmentStatus: 'retired', occupation: 'unemployed' }
+        expect(withEmploymentStatus(work, none, 'student')).toEqual({
+            employmentStatus: 'student',
+            occupation: 'student',
+        })
+        expect(withEmploymentStatus(work, none, 'employed')).toEqual({ employmentStatus: 'employed', occupation: '' })
+    })
+
+    it('shows a stored "no job" as this status\'s own answer', () => {
+        expect(
+            initialValues([
+                { ...work[0], value: 'homemaker' },
+                { ...work[1], value: 'retired' },
+            ])
+        ).toMatchObject({
+            occupation: 'unemployed',
+        })
+        expect(
+            initialValues([
+                { ...work[0], value: 'student' },
+                { ...work[1], value: 'unemployed' },
+            ])
+        ).toMatchObject({
+            occupation: 'student',
+        })
+        expect(
+            initialValues([
+                { ...work[0], value: 'retired' },
+                { ...work[1], value: 'lawyer' },
+            ])
+        ).toMatchObject({
+            occupation: 'lawyer',
+        })
     })
 })

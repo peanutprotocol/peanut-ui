@@ -131,7 +131,7 @@
             "firstPaymentHeldCardQrNote": "Pay with the card or a QR",
             "hide": "Hide",
             "welcomeTitle": "Welcome to Peanut!",
-            "welcomeBody": "{count} quick steps to pay, send and receive",
+            "welcomeBody": "{count, plural, one {# step} other {# steps}} left to pay, send and receive",
             "progress": "{done} of {total} done",
             "welcomeTitleSpoken": "Welcome to Peanut!"
         },
@@ -3539,6 +3539,8 @@
                 "cardPurpose": "I’ll use my card <nw>for <pill></pill></nw>",
                 "bankPurpose": "I’ll use my account <nw>for <pill></pill></nw>",
                 "occupation": "My job is closest <nw>to <pill></pill></nw>",
+                "occupation_last": "My last job was closest <nw>to <pill></pill></nw>",
+                "occupation_future": "My future job is closest <nw>to <pill></pill></nw>",
                 "employmentStatus": "<nw>I’m <pill></pill></nw>",
                 "annualSalary": "<nw>I earn <pill></pill></nw> <nw>a year</nw>",
                 "expectedMonthlyVolume": "<nw>I’ll spend <pill></pill></nw> <nw>a month</nw>",
@@ -3556,6 +3558,8 @@
                 "cardPurpose": "What you’ll use the card for",
                 "bankPurpose": "What you’ll use the account for",
                 "occupation": "Your job",
+                "occupation_last": "Your last job",
+                "occupation_future": "Your future job",
                 "employmentStatus": "Your work",
                 "annualSalary": "Your yearly income",
                 "expectedMonthlyVolume": "What you’ll spend each month",
@@ -3568,6 +3572,10 @@
                 "maritalStatus": "Marital status",
                 "sex": "Sex",
                 "citizenship": "Your citizenship"
+            },
+            "jobNone": {
+                "last": "None in the last 5 years",
+                "future": "Not decided yet"
             },
             "search": {
                 "occupation": "Search jobs",

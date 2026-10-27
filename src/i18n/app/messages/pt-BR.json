@@ -131,7 +131,7 @@
             "firstPaymentHeldCardQrNote": "Pague com cartão ou QR",
             "hide": "Ocultar",
             "welcomeTitle": "Boas-vindas ao Peanut!",
-            "welcomeBody": "{count} passos rápidos para pagar, enviar e receber",
+            "welcomeBody": "{count, plural, one {Falta # passo} other {Faltam # passos}} para pagar, enviar e receber",
             "progress": "{done} de {total} concluídos",
             "welcomeTitleSpoken": "Boas-vindas ao Peanut!"
         },
@@ -3539,6 +3539,8 @@
                 "cardPurpose": "Vou usar meu cartão <nw>para <pill></pill></nw>",
                 "bankPurpose": "Vou usar minha conta <nw>para <pill></pill></nw>",
                 "occupation": "Meu trabalho é mais parecido <nw>com <pill></pill></nw>",
+                "occupation_last": "Meu último trabalho foi mais parecido <nw>com <pill></pill></nw>",
+                "occupation_future": "Meu futuro trabalho é mais parecido <nw>com <pill></pill></nw>",
                 "employmentStatus": "Minha situação profissional <nw>é <pill></pill></nw>",
                 "annualSalary": "<nw>Ganho <pill></pill></nw> <nw>por ano</nw>",
                 "expectedMonthlyVolume": "<nw>Vou gastar <pill></pill></nw> <nw>por mês</nw>",
@@ -3556,6 +3558,8 @@
                 "cardPurpose": "Para que você vai usar o cartão",
                 "bankPurpose": "Para que você vai usar a conta",
                 "occupation": "Seu trabalho",
+                "occupation_last": "Seu último trabalho",
+                "occupation_future": "Seu futuro trabalho",
                 "employmentStatus": "Sua situação profissional",
                 "annualSalary": "Sua renda anual",
                 "expectedMonthlyVolume": "Quanto você vai gastar por mês",
@@ -3568,6 +3572,10 @@
                 "maritalStatus": "Estado civil",
                 "sex": "Sexo",
                 "citizenship": "Sua cidadania"
+            },
+            "jobNone": {
+                "last": "Nenhum nos últimos 5 anos",
+                "future": "Ainda não decidi"
             },
             "search": {
                 "occupation": "Buscar profissões",
