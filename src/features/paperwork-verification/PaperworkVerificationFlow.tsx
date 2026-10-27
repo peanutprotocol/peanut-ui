@@ -63,6 +63,7 @@ import {
     citizenshipOf,
     DOCUMENT_KEYS,
     entryStep,
+    featureOpenAfterApproval,
     FAILED_STATUSES,
     IN_REVIEW_STATUSES,
     RETRYABLE_STATUSES,
@@ -78,6 +79,7 @@ import {
     type VerifyStep,
 } from './paperworkVerification.utils'
 import { saveSteps, type AnswerFormError, type SaveOutcome } from './useAnswerForm'
+import { paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
 
 const STATUS_POLL_MS = 15_000
 const SAVE_RETRY_DELAYS_MS = [1_000, 3_000]
@@ -167,6 +169,11 @@ export function PaperworkVerificationFlow() {
             // A stale link or a user the server keeps on today's flow: that flow starts from Home.
             if (!questions.available || plan?.flow !== PAPERWORK_VERIFICATION_FLOW) {
                 routerRef.current.replace('/home')
+                return
+            }
+            const addLater = featureOpenAfterApproval(questions, status)
+            if (addLater) {
+                routerRef.current.replace(paperworkVerificationFeaturePath(addLater))
                 return
             }
             const loaded = { questions, plan, status }
@@ -533,18 +540,25 @@ function PaperworkVerificationSteps({
         }, STATUS_POLL_MS)
         return () => clearInterval(timer)
     }, [step, failed])
+    // An approval that arrives during the visit, whether the review was opened here or on an earlier visit.
+    const approvedAtOpen = useRef(approved)
     const approvalHandled = useRef(false)
     useEffect(() => {
-        if (!approved || step !== 'review' || approvalHandled.current) return
+        if (!approved || approvedAtOpen.current || approvalHandled.current) return
         approvalHandled.current = true
         void fetchUser()
-        void findKycDocumentPlan()
-            .catch(() => null)
-            .then((fresh) => {
+        void Promise.all([findKycDocumentPlan().catch(() => null), getKycQuestions().catch(() => null)]).then(
+            ([fresh, freshQuestions]) => {
+                const addLater = freshQuestions && featureOpenAfterApproval(freshQuestions, status)
+                if (addLater) {
+                    router.replace(paperworkVerificationFeaturePath(addLater))
+                    return
+                }
                 if (fresh) setPlan(fresh)
                 void stepper.goTo(fresh?.proofOfAddress === 'suggested' ? 'address-proof' : 'verified')
-            })
-    }, [approved, step, fetchUser, stepper])
+            }
+        )
+    }, [approved, fetchUser, stepper, status, router])
 
     const tracking = useMemo<PaperworkVerificationTrackingContext>(
         () => ({ flow: 'paperwork_verification', residence: questions.residence, features: plan?.features }),

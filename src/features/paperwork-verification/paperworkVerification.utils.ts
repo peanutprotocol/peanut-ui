@@ -3,6 +3,7 @@ import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import type {
     PaperworkVerificationAnswers,
     PaperworkVerificationClosedFeature,
+    PaperworkVerificationFeature,
     PaperworkVerificationField,
     PaperworkVerificationFieldKind,
     PaperworkVerificationQuestions,
@@ -44,7 +45,7 @@ export const whyKeyOf = (step: { id: PaperworkVerificationStepId; features: stri
 
 /** The citizenship the questions asked, saved or not; null when they did not ask. */
 export const citizenshipOf = (questions: PaperworkVerificationQuestions): string | null =>
-    questions.steps.flatMap((s) => s.fields).find((f) => f.key === 'nationality')?.value ?? null
+    questions.steps.flatMap((s) => s.fields).find((f) => f.key === 'citizenship')?.value ?? null
 
 // Fields answered from a picker. They read as one sentence, so several steps of them share a screen.
 const PICKER_KINDS = new Set<PaperworkVerificationFieldKind>(['choice', 'occupation', 'country', 'place'])
@@ -238,6 +239,22 @@ export const IN_REVIEW_STATUSES = new Set<string>(['PENDING', 'IN_REVIEW'])
 export const FAILED_STATUSES = new Set<string>(['ACTION_REQUIRED', 'REJECTED', 'FAILED'])
 // FAILED is our check erroring with nothing decided; only REJECTED is final.
 export const RETRYABLE_STATUSES = new Set<string>(['ACTION_REQUIRED', 'FAILED'])
+
+/**
+ * A question still open after approval (the nationality an EEA bank account needs when the ID
+ * names none) is that feature's add-later question: the feature to ask it for, if any.
+ */
+export function featureOpenAfterApproval(
+    questions: PaperworkVerificationQuestions,
+    status: SumsubKycStatus | undefined
+): PaperworkVerificationFeature | null {
+    if (!status || !APPROVED_STATUSES.has(status)) return null
+    for (const step of questions.steps) {
+        const feature = step.answered ? undefined : step.features.find((f) => f !== 'base')
+        if (feature) return feature
+    }
+    return null
+}
 
 /** Where a visit starts: approval and review win over the questions, the first open question over the midpoint. */
 export function entryStep(

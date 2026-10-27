@@ -3530,7 +3530,7 @@
                 "phone": "Our partners keep your phone number on file to protect your account.",
                 "tax": "Accounts in your country must be linked to your tax number.",
                 "declarations": "Financial rules in your country ask everyone these questions. If one applies, we may ask for a document later.",
-                "nationality": "Banks in the EU must know every country you’re a citizen of.",
+                "nationality": "Banks in the EU must know your nationality, and your ID doesn’t show it.",
                 "citizenship": "We use your citizenship to show the passport and national ID card you can verify with."
             },
             "sentence": {
@@ -3545,9 +3545,10 @@
                 "cityOfBirth": "in the city <nw>of <pill></pill></nw>",
                 "bankMonthlyPayments": "Each month, my account <nw>moves <pill></pill></nw>",
                 "actingAsIntermediary": "I’ll send money <nw><pill></pill></nw>",
-                "nationality": "I’m a citizen <nw>of <pill></pill></nw>",
+                "nationality": "My nationality <nw>is <pill></pill></nw>",
                 "maritalStatus": "My marital status <nw>is <pill></pill></nw>",
-                "sex": "My sex on my ID <nw>is <pill></pill></nw>"
+                "sex": "My sex on my ID <nw>is <pill></pill></nw>",
+                "citizenship": "I’m a citizen <nw>of <pill></pill></nw>"
             },
             "pickerTitle": {
                 "cardPurpose": "What you’ll use the card for",
@@ -3561,9 +3562,10 @@
                 "cityOfBirth": "City of birth",
                 "bankMonthlyPayments": "What your account moves each month",
                 "actingAsIntermediary": "Who you send money for",
-                "nationality": "Your citizenship",
+                "nationality": "Your nationality",
                 "maritalStatus": "Marital status",
-                "sex": "Sex"
+                "sex": "Sex",
+                "citizenship": "Your citizenship"
             },
             "search": {
                 "occupation": "Search jobs",
@@ -3655,13 +3657,15 @@
             "titles": {
                 "address": "Where do you live?",
                 "phone": "What’s your phone number?",
-                "declarations": "Do any of these apply to you?"
+                "declarations": "Do any of these apply to you?",
+                "nationality": "Confirm your nationality"
             },
             "sections": {
                 "purpose": "Purpose",
                 "work": "Work",
                 "money": "Money",
-                "birth": "About you"
+                "birth": "About you",
+                "nationality": "Nationality"
             },
             "closed": {
                 "bank": {
@@ -3686,7 +3690,8 @@
                     "card": "Your card partner uses it to keep your card secure.",
                     "local": "Our local transfer partner keeps it on file with your account."
                 },
-                "declarations": "Most people leave these off. If one applies, we may ask for a document later."
+                "declarations": "Most people leave these off. If one applies, we may ask for a document later.",
+                "nationality": "We filled in your citizenship. Change it if your nationality is different."
             },
             "labels": {
                 "street": "Street",

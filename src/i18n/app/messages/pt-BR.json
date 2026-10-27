@@ -3530,7 +3530,7 @@
                 "phone": "Nossos parceiros guardam seu número de telefone para proteger sua conta.",
                 "tax": "As contas no seu país precisam estar vinculadas ao seu número fiscal.",
                 "declarations": "As regras financeiras do seu país fazem estas perguntas a todos. Se alguma se aplicar, podemos pedir um documento depois.",
-                "nationality": "Bancos na UE precisam saber de todos os países onde você tem cidadania.",
+                "nationality": "Bancos na UE precisam saber sua nacionalidade, e seu documento não a mostra.",
                 "citizenship": "Usamos sua cidadania para mostrar o passaporte e o documento nacional de identidade com os quais você pode se verificar."
             },
             "sentence": {
@@ -3545,9 +3545,10 @@
                 "cityOfBirth": "na cidade <nw>de <pill></pill></nw>",
                 "bankMonthlyPayments": "Por mês, minha conta <nw>movimenta <pill></pill></nw>",
                 "actingAsIntermediary": "Vou enviar dinheiro <nw><pill></pill></nw>",
-                "nationality": "Tenho cidadania <nw>de <pill></pill></nw>",
+                "nationality": "Minha nacionalidade <nw>é <pill></pill></nw>",
                 "maritalStatus": "Meu estado civil <nw>é <pill></pill></nw>",
-                "sex": "Meu sexo no documento <nw>é <pill></pill></nw>"
+                "sex": "Meu sexo no documento <nw>é <pill></pill></nw>",
+                "citizenship": "Tenho cidadania <nw>de <pill></pill></nw>"
             },
             "pickerTitle": {
                 "cardPurpose": "Para que você vai usar o cartão",
@@ -3561,9 +3562,10 @@
                 "cityOfBirth": "Cidade de nascimento",
                 "bankMonthlyPayments": "Quanto sua conta vai movimentar por mês",
                 "actingAsIntermediary": "Em nome de quem você envia dinheiro",
-                "nationality": "Sua cidadania",
+                "nationality": "Sua nacionalidade",
                 "maritalStatus": "Estado civil",
-                "sex": "Sexo"
+                "sex": "Sexo",
+                "citizenship": "Sua cidadania"
             },
             "search": {
                 "occupation": "Buscar profissões",
@@ -3655,13 +3657,15 @@
             "titles": {
                 "address": "Onde você mora?",
                 "phone": "Qual é o seu número de telefone?",
-                "declarations": "Alguma destas opções se aplica a você?"
+                "declarations": "Alguma destas opções se aplica a você?",
+                "nationality": "Confirme sua nacionalidade"
             },
             "sections": {
                 "purpose": "Finalidade",
                 "work": "Trabalho",
                 "money": "Dinheiro",
-                "birth": "Sobre você"
+                "birth": "Sobre você",
+                "nationality": "Nacionalidade"
             },
             "closed": {
                 "bank": {
@@ -3686,7 +3690,8 @@
                     "card": "O parceiro do seu cartão usa esse número para manter seu cartão seguro.",
                     "local": "Nosso parceiro de transferências locais guarda esse número na sua conta."
                 },
-                "declarations": "A maioria das pessoas deixa todas desligadas. Se alguma se aplicar, podemos pedir um documento depois."
+                "declarations": "A maioria das pessoas deixa todas desligadas. Se alguma se aplicar, podemos pedir um documento depois.",
+                "nationality": "Preenchemos sua cidadania. Mude se sua nacionalidade for outra."
             },
             "labels": {
                 "street": "Rua",

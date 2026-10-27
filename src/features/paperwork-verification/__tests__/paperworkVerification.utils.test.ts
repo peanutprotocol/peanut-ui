@@ -4,7 +4,9 @@ import type {
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import {
     APPROVED_STATUSES,
+    citizenshipOf,
     composeScreens,
+    featureOpenAfterApproval,
     IN_REVIEW_STATUSES,
     openFeatures,
     RETRYABLE_STATUSES,
@@ -20,6 +22,7 @@ import {
     stepComplete,
     stepPayload,
     stepProgress,
+    stepUnchanged,
     whyKeyOf,
     withEmploymentStatus,
 } from '../paperworkVerification.utils'
@@ -358,5 +361,81 @@ describe('a work status that names the job', () => {
     it('fills the job from a stored status, and leaves the job alone when the form does not ask it', () => {
         expect(initialValues([{ ...work[0], value: 'student' }, work[1]])).toMatchObject({ occupation: 'student' })
         expect(withEmploymentStatus([work[0]], {}, 'retired')).toEqual({ employmentStatus: 'retired' })
+    })
+})
+
+// Slava, 2026-10-27: the citizenship the ID picker reads and the nationality Bridge needs are two fields.
+describe('citizenshipOf', () => {
+    it('reads the citizenship field, saved or not', () => {
+        const q = questions({
+            steps: [
+                {
+                    id: 'birth',
+                    features: ['base'],
+                    answered: false,
+                    fields: [field('citizenship', { kind: 'country', value: 'UA' })],
+                },
+            ],
+        })
+        expect(citizenshipOf(q)).toBe('UA')
+    })
+
+    it('never takes the nationality asked after the ID check for it', () => {
+        const q = questions({
+            steps: [
+                {
+                    id: 'nationality',
+                    features: ['bank'],
+                    answered: false,
+                    fields: [field('nationality', { kind: 'country', value: 'PL' })],
+                },
+            ],
+        })
+        expect(citizenshipOf(q)).toBeNull()
+    })
+})
+
+describe('the nationality step after approval', () => {
+    const nationality = (answered = false) => ({
+        id: 'nationality' as const,
+        features: ['bank' as const],
+        answered,
+        fields: [field('nationality', { kind: 'country', value: 'DE' })],
+    })
+    const afterApproval = (answered = false) =>
+        questions({
+            steps: [
+                {
+                    id: 'purpose',
+                    features: ['card'],
+                    answered: true,
+                    fields: [field('cardPurpose', { kind: 'choice' })],
+                },
+                nationality(answered),
+            ],
+            firstUnanswered: answered ? null : 'nationality',
+        })
+
+    it("is its feature's add-later question once the ID is approved", () => {
+        expect(featureOpenAfterApproval(afterApproval(), 'APPROVED')).toBe('bank')
+        expect(featureOpenAfterApproval(afterApproval(), 'REVERIFYING')).toBe('bank')
+    })
+
+    it('asks nothing when it is answered or the ID is not approved yet', () => {
+        expect(featureOpenAfterApproval(afterApproval(true), 'APPROVED')).toBeNull()
+        expect(featureOpenAfterApproval(afterApproval(), 'IN_REVIEW')).toBeNull()
+        expect(featureOpenAfterApproval(afterApproval(), undefined)).toBeNull()
+    })
+
+    it('is where the questions resume, on a picker screen of its own', () => {
+        expect(resumeStep(afterApproval())).toBe('nationality')
+        expect(composeScreens(afterApproval(), false)).toEqual([['purpose', 'nationality']])
+        expect(composeScreens(questions({ steps: [nationality()] }), false)).toEqual([['nationality']])
+    })
+
+    it('arrives filled with the citizenship and is still saved: it is unanswered', () => {
+        const step = nationality()
+        expect(stepUnchanged(step, { nationality: 'DE' })).toBe(false)
+        expect(stepPayload(step.fields, { nationality: 'DE' })).toEqual({ nationality: 'DE' })
     })
 })

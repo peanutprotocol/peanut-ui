@@ -396,3 +396,41 @@ describe('AddFeatureFlow', () => {
         expect(onExit).toHaveBeenCalled()
     })
 })
+
+// Slava, 2026-10-27: after approval, an EEA bank user whose ID names no nationality confirms it.
+describe('AddFeatureQuestions: the nationality asked after the ID check', () => {
+    const afterApproval = (): PaperworkVerificationQuestions => ({
+        available: true,
+        attemptId: null,
+        residence: 'DE',
+        steps: [
+            {
+                id: 'birth',
+                features: ['base'],
+                answered: true,
+                fields: [{ key: 'citizenship', kind: 'country', required: true, value: 'DE' }],
+            },
+            {
+                id: 'nationality',
+                features: ['bank'],
+                answered: false,
+                fields: [{ key: 'nationality', kind: 'country', required: true, value: 'DE' }],
+            },
+        ],
+        firstUnanswered: 'nationality',
+        progress: { done: 2, total: 3 },
+    })
+
+    it('arrives filled with the citizenship under its own heading, and Continue saves it', async () => {
+        mockQuestions.mockResolvedValue(afterApproval())
+        mockSave.mockResolvedValue({ kind: 'saved', next: null })
+        const onDone = jest.fn()
+        renderWithIntl(<AddFeatureQuestions feature="bank" onBack={jest.fn()} onDone={onDone} />)
+        expect(await screen.findByText('Confirm your nationality')).toBeInTheDocument()
+        expect(screen.queryByText('For your bank account')).not.toBeInTheDocument()
+        expect(screen.getByTestId('verify-pick-nationality')).toHaveTextContent('Germany')
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        await waitFor(() => expect(onDone).toHaveBeenCalled())
+        expect(mockSave).toHaveBeenCalledWith('nationality', { nationality: 'DE' }, 'bank')
+    })
+})

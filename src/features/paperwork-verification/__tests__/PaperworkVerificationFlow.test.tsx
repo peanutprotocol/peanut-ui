@@ -609,6 +609,41 @@ describe('PaperworkVerificationFlow', () => {
         await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
     })
 
+    // An EEA bank user whose approved ID names no nationality is asked it on the add-later screen.
+    it('an approved user with a question still open goes to its feature’s add-later screen', async () => {
+        mockStatus.mockResolvedValue('APPROVED')
+        const questions = build({ money: true, tax: true }, 'nationality')
+        questions.steps.push({
+            id: 'nationality',
+            features: ['bank'],
+            answered: false,
+            fields: [{ key: 'nationality', kind: 'country', required: true, value: 'DE' }],
+        })
+        mockQuestions.mockResolvedValue(questions)
+        renderFlow()
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/verify?feature=bank'))
+        expect(screen.queryByText('Your ID is confirmed!')).not.toBeInTheDocument()
+    })
+
+    it('a review that turns approved with a question open goes to the add-later screen', async () => {
+        mockStatus.mockResolvedValue('IN_REVIEW')
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        renderFlow()
+        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+        const opened = build({ money: true, tax: true }, 'nationality')
+        opened.steps.push({
+            id: 'nationality',
+            features: ['bank'],
+            answered: false,
+            fields: [{ key: 'nationality', kind: 'country', required: true, value: 'DE' }],
+        })
+        mockQuestions.mockResolvedValue(opened)
+        const { useWebSocket } = jest.requireMock('@/hooks/useWebSocket') as { useWebSocket: jest.Mock }
+        const { onSumsubKycStatusUpdate } = useWebSocket.mock.calls.at(-1)[0]
+        act(() => onSumsubKycStatusUpdate('APPROVED'))
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/verify?feature=bank'))
+    })
+
     it('sends a user the server keeps on today’s flow back to Home', async () => {
         mockPlan.mockResolvedValue({ ...plan, flow: 'document-first' })
         renderFlow()
@@ -617,6 +652,8 @@ describe('PaperworkVerificationFlow', () => {
 
     it('an approved user lands on "Your ID is confirmed!", or on the proof-of-address suggestion', async () => {
         mockStatus.mockResolvedValue('APPROVED')
+        // approved, so every question was answered before the ID check
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         const { unmount } = renderFlow()
         expect(await screen.findByText('Your ID is confirmed!')).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-verified-home'))
@@ -632,6 +669,8 @@ describe('PaperworkVerificationFlow', () => {
     // A temporary protection sheet is the residence's own, so "your ID isn't from here" would be wrong.
     it('gives temporary protection as the reason when the approved ID was the sheet', async () => {
         mockStatus.mockResolvedValue('APPROVED')
+        // approved, so every question was answered before the ID check
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         mockPlan.mockResolvedValue({
             ...plan,
             proofOfAddress: 'suggested',
@@ -644,6 +683,8 @@ describe('PaperworkVerificationFlow', () => {
 
     it('rule 1: Upload starts the existing supplement action, Skip goes on with no task left behind', async () => {
         mockStatus.mockResolvedValue('APPROVED')
+        // approved, so every question was answered before the ID check
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         mockPlan.mockResolvedValue({ ...plan, proofOfAddress: 'suggested' })
         renderFlow()
         fireEvent.click(await screen.findByTestId('verify-poa-upload'))

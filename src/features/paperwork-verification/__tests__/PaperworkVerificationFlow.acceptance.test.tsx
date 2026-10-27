@@ -226,6 +226,7 @@ describe('canonical identity recovery acceptance', () => {
 
     it('REVERIFYING shows the user as verified, not in review', async () => {
         mockStatus.mockResolvedValue('REVERIFYING')
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         renderFlow()
         expect(await screen.findByTestId('verify-verified-home')).toBeInTheDocument()
         expect(screen.queryByText('Checking your ID')).not.toBeInTheDocument()

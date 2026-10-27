@@ -48,6 +48,8 @@ export const phonePartner = (steps: PaperworkVerificationStep[]): 'card' | 'loca
 
 function useStepHeading(step: PaperworkVerificationStep) {
     const t = useTranslations('kyc.paperworkVerification')
+    // Asked on its own after the ID check, it says why the answer came filled in.
+    if (step.id === 'nationality') return { title: t('titles.nationality'), description: t('descriptions.nationality') }
     if (step.fields.some(isSentenceField)) return null
     if (step.id === 'phone')
         return { title: t('titles.phone'), description: t(`descriptions.phone.${phonePartner([step])}`) }
@@ -215,7 +217,8 @@ export function QuestionStepScreen({
     const hintKey = single && !heading ? `hints.${single.id}` : null
     const hint = hintKey && t.has(hintKey as never) ? t(hintKey as never) : null
     // Past three sentences the step uses the smaller heading, so its CTA stays on screen.
-    const compact = !!title || fields.filter(isSentenceField).length > 3
+    const titled = !!title || !!heading
+    const compact = titled || fields.filter(isSentenceField).length > 3
     const complete = stepComplete(fields, form.values)
 
     useEffect(() => {
@@ -348,7 +351,7 @@ export function QuestionStepScreen({
                         onFieldBlur={onFieldBlur}
                         onChangeResidence={changeResidence}
                         sentenceSize={compact ? 's' : 'm'}
-                        sentencesAsHeading={!title}
+                        sentencesAsHeading={!titled}
                         phonePartner={phonePartner(steps)}
                         sections={steps.map((s) => ({ id: s.id, keys: s.fields.map((f) => f.key) }))}
                     />
