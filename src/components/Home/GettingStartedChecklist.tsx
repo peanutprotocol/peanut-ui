@@ -81,8 +81,9 @@ const SubtitleSkeleton = () => (
 )
 
 /**
- * The Home onboarding checklist (TASK-23054), under a small "Welcome to
- * Peanut" card with the progress bar. It shows every open row and only the
+ * The Home onboarding checklist (TASK-23054). Its top card holds the
+ * progress bar, under the "Welcome to Peanut" greeting while that lasts
+ * (useHomeWelcome). It shows every open row and only the
  * latest done one. Rows: Create account ✓ · Verify
  * identity · Add money · First payment. Home shows it until every row
  * is done; the rules for each row live in resolveOnboarding. The payment row
@@ -247,42 +248,40 @@ const GettingStartedChecklist = ({
 
     return (
         <Section>
-            {/* one height at every width: a one-line subtitle (wide screens) gets the
-                same card as a two-line one; 320 may grow when the title wraps */}
-            {showWelcome && (
-                <Card
-                    position="solo"
-                    className="flex min-h-[90px] flex-col justify-center px-4 py-2"
-                    data-testid="onboarding-welcome"
-                >
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="flex min-w-0 flex-col gap-0.5">
-                            {/* es writes "Bienvenid@", which screen readers read as "arroba":
-                            the visible title is hidden from them and a spoken form is read instead */}
-                            <span className="text-heading-card text-foreground-primary">
-                                <span aria-hidden>{t('welcomeTitle')}</span>
-                                <span className="sr-only">{t('welcomeTitleSpoken')}</span>
-                            </span>
-                            <span className="text-body-s text-foreground-secondary">
-                                {t('welcomeBody', { count: items.length })}
-                            </span>
+            {/* the welcome and the progress head the list, so the block reads as one group */}
+            <ListGroup className="bg-background-default">
+                <Card className="flex flex-col gap-3 p-4" data-testid="onboarding-progress">
+                    {showWelcome && (
+                        <div className="flex items-center justify-between gap-3" data-testid="onboarding-welcome">
+                            <div className="flex min-w-0 flex-col gap-0.5">
+                                {/* es writes "Bienvenid@", which screen readers read as "arroba":
+                                the visible title is hidden from them and a spoken form is read instead */}
+                                <span className="text-heading-card text-foreground-primary">
+                                    <span aria-hidden>{t('welcomeTitle')}</span>
+                                    <span className="sr-only">{t('welcomeTitleSpoken')}</span>
+                                </span>
+                                <span className="text-body-s text-foreground-secondary">
+                                    {t('welcomeBody', { count: items.length - doneCount })}
+                                </span>
+                            </div>
+                            {/* the waving mascot on a soft badge-accent circle (Hugo's pick, 2026-09-25);
+                            PeanutMascot shows a still frame under reduced motion */}
+                            <div className="relative size-16 shrink-0">
+                                <span
+                                    aria-hidden
+                                    className="absolute inset-1 rounded-full bg-background-badge-accent"
+                                />
+                                <PeanutMascot pose="waving-hello" alt="" className="relative size-full" />
+                            </div>
                         </div>
-                        {/* the waving mascot on a soft badge-accent circle (Hugo's pick, 2026-09-25);
-                        PeanutMascot shows a still frame under reduced motion */}
-                        <div className="relative size-[72px] shrink-0">
-                            <span aria-hidden className="absolute inset-1 rounded-full bg-background-badge-accent" />
-                            <PeanutMascot pose="waving-hello" alt="" className="relative size-full" />
-                        </div>
+                    )}
+                    <div className="flex flex-col gap-2">
+                        <span className="text-body-s text-foreground-secondary">
+                            {t('progress', { done: doneCount, total: items.length })}
+                        </span>
+                        <ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />
                     </div>
                 </Card>
-            )}
-            <div className="flex flex-col gap-1">
-                <span className="text-body-s text-foreground-secondary">
-                    {t('progress', { done: doneCount, total: items.length })}
-                </span>
-                <ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />
-            </div>
-            <ListGroup className="bg-background-default">
                 {visibleItems.map((item) => {
                     const tappable = !item.done && !!item.onTap
                     return (

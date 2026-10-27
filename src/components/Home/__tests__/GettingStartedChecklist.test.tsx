@@ -322,10 +322,17 @@ describe('GettingStartedChecklist — no Hide (TASK-23340)', () => {
 })
 
 describe('GettingStartedChecklist — welcome card and one done row', () => {
+    it('heads the list with the progress: the top card, the first row joined under it', () => {
+        render()
+        expect(screen.getByTestId('onboarding-progress')).toHaveClass('rounded-t-sm')
+        expect(screen.getByTestId('onboarding-progress')).toContainElement(screen.getByTestId('onboarding-welcome'))
+        expect(screen.getAllByTestId(/^checklist-/)[0]).toHaveClass('border-t-0')
+    })
+
     it('keeps the progress and every checklist step after the welcome expires', () => {
         render({}, false)
         expect(screen.queryByTestId('onboarding-welcome')).not.toBeInTheDocument()
-        expect(screen.getByText('1 of 4 done')).toBeInTheDocument()
+        expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('1 of 4 done')
         expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(4)
         fireEvent.click(screen.getByText('Add money'))
         expect(mockSetHomeDrawer).toHaveBeenCalledWith('add')
@@ -335,13 +342,13 @@ describe('GettingStartedChecklist — welcome card and one done row', () => {
         render()
         // visible title (hidden from screen readers) plus its spoken form
         expect(screen.getAllByText('Welcome to Peanut!')).toHaveLength(2)
-        expect(screen.getByText('4 quick steps to pay, send and receive')).toBeInTheDocument()
+        expect(screen.getByText('3 steps left to pay, send and receive')).toBeInTheDocument()
         expect(screen.getByText('1 of 4 done')).toBeInTheDocument()
     })
 
-    it('says three steps when there is no payment row', () => {
+    it('counts the steps left when there is no payment row', () => {
         render({ firstPaymentRoute: 'none' })
-        expect(screen.getByText('3 quick steps to pay, send and receive')).toBeInTheDocument()
+        expect(screen.getByText('2 steps left to pay, send and receive')).toBeInTheDocument()
         expect(screen.getByText('1 of 3 done')).toBeInTheDocument()
     })
 

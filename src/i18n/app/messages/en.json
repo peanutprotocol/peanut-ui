@@ -131,7 +131,7 @@
             "firstPaymentHeldCardQrNote": "Pay with the card or a QR",
             "hide": "Hide",
             "welcomeTitle": "Welcome to Peanut!",
-            "welcomeBody": "{count} quick steps to pay, send and receive",
+            "welcomeBody": "{count, plural, one {# step} other {# steps}} left to pay, send and receive",
             "progress": "{done} of {total} done",
             "welcomeTitleSpoken": "Welcome to Peanut!"
         },
