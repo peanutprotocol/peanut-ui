@@ -23,6 +23,13 @@
 export const RESTRICTED_RESIDENCE_ISO2 = new Set(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'MM', 'VE', 'IQ'])
 
 /**
+ * Passports and IDs these countries issue are refused at verification, so their
+ * citizens verify with a document from where they live. Mirrors peanut-api-ts
+ * `RESTRICTED_DOCUMENT_COUNTRIES` (src/kyc/paperwork/rules.ts).
+ */
+export const REFUSED_ID_ISSUER_ISO2: ReadonlySet<string> = new Set(['IR', 'RU', 'BY', 'KP', 'SY', 'CU', 'MM'])
+
+/**
  * Card only: Rain's published prohibited-issuance list minus the full set
  * above (mirrored in peanut-api-ts card/geo-eligibility). Banking rails still
  * work. UA is country-wide per Rain's issuance list; the Crimea, Donetsk and

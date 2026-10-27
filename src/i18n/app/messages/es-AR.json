@@ -427,10 +427,6 @@
                 "title": "Pagale a cualquiera con un toque.",
                 "description": "Enviá dólares a un usuario de Peanut o compartí un enlace de pago."
             },
-            "residence": {
-                "title": "País de residencia legal",
-                "description": "Donde tenés residencia legal. No necesariamente donde naciste ni adonde viajás."
-            },
             "advantage-rewards": {
                 "title": "Lo bueno se disfruta en compañía.",
                 "description": "Invitá a tus amigos y desbloqueá recompensas cuando usen Peanut."
@@ -481,9 +477,6 @@
             "inviterCheckFailed": "No pudimos revisar este usuario. Intentá de nuevo."
         },
         "residenceStep": {
-            "countryPlaceholder": "Seleccioná el país",
-            "secondCountryPlaceholder": "Segundo país",
-            "multiDocLink": "¿Tenés residencia en otro país?",
             "errors": {
                 "invalidEmail": "Ingresá un correo electrónico válido"
             },
@@ -518,8 +511,15 @@
                 "changeCountry": "Elegir otro país"
             },
             "compare": {
-                "selectCountry": "Elegir {country}"
-            }
+                "selectCountry": "Elegir {country}",
+                "guideTitle": "¿Qué país debés seleccionar?",
+                "guideDeclaration": "Si tenés un permiso de residencia de alguno de los dos países, elegí ese país. Si no, elegí el país que emitió tu documento de identidad, como un pasaporte o una licencia de conducir.",
+                "description": "Elegí uno. Esto es lo que habilita cada uno."
+            },
+            "residenceTitle": "¿Dónde tenés residencia?",
+            "citizenshipTitle": "¿De qué país tenés ciudadanía?",
+            "hint": "Tocá un país para cambiarlo.",
+            "refusedPassport": "No podemos verificar pasaportes ni documentos de identidad de {citizenship}. Usá tu tarjeta de residencia de {residence} cuando verifiques tu identidad."
         },
         "passkey": {
             "notAvailable": "Las passkeys aún no están disponibles en este dispositivo. Intentalo de nuevo.",

@@ -79,9 +79,9 @@ beforeEach(() => {
 it('asks the residence, then the payment plan, saves both and reloads /verify', async () => {
     const { onDone } = render(['residence', 'features'])
 
-    expect(await screen.findByRole('heading', { name: 'Country of legal residence' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /I’m a resident of/ })).toBeInTheDocument()
     await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+        fireEvent.click(screen.getByTestId('setup-residence-continue'))
     })
 
     await choose('Add money with', 'Bank transfer')
@@ -90,9 +90,25 @@ it('asks the residence, then the payment plan, saves both and reloads /verify', 
         fireEvent.click(screen.getByRole('button', { name: 'Continue', hidden: true }))
     })
 
-    expect(updateUserById).toHaveBeenCalledWith({ userId: 'user-1', residenceCountry: 'PT' })
+    expect(updateUserById).toHaveBeenCalledWith({ userId: 'user-1', residenceCountry: 'PT', citizenship: 'PT' })
     expect(savePaperworkVerificationFeatures).toHaveBeenCalledWith({ qr: true, bank: true, local: false, card: false })
     expect(onDone).toHaveBeenCalled()
+})
+
+it('back from the two-country comparison returns to the residence sentence, not out of the flow', async () => {
+    const { onExit } = render(['residence', 'features'])
+
+    await screen.findByRole('heading', { name: /I’m a resident of/ })
+    fireEvent.click(screen.getByTestId('setup-citizenship-country'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Brazil' }))
+    fireEvent.click(screen.getByTestId('setup-residence-continue'))
+    expect(
+        await screen.findByRole('heading', { name: 'Which country should we set up Peanut for?' })
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'setup-back' }))
+    expect(await screen.findByRole('heading', { name: /I’m a resident of/ })).toBeInTheDocument()
+    expect(onExit).not.toHaveBeenCalled()
 })
 
 it('a known residence asks only the payment plan, and back from it leaves the flow', async () => {
@@ -100,7 +116,7 @@ it('a known residence asks only the payment plan, and back from it leaves the fl
     const { onExit, onDone } = render(['features'])
 
     expect(await screen.findByRole('button', { name: 'Add money with: Choose', hidden: true })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Country of legal residence' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /I’m a resident of/ })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'setup-back' }))
     expect(onExit).toHaveBeenCalled()
     expect(onDone).not.toHaveBeenCalled()
@@ -111,9 +127,9 @@ it('a residence that does not save stays on screen with an error, and /verify do
     mockDeclared = null
     const { onDone } = render(['residence'])
 
-    await screen.findByRole('heading', { name: 'Country of legal residence' })
+    await screen.findByRole('heading', { name: /I’m a resident of/ })
     await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+        fireEvent.click(screen.getByTestId('setup-residence-continue'))
     })
 
     expect(mockToastError).toHaveBeenCalled()

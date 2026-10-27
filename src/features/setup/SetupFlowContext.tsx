@@ -49,8 +49,9 @@ interface SetupFlowContextType {
     setSellScreensCountry: (country: string | null | undefined) => void
     residenceCountry: string
     setResidenceCountry: (country: string) => void
-    secondResidenceCountry: string
-    setSecondResidenceCountry: (country: string) => void
+    /** The citizenship declared beside the residence; empty means the residence country itself. */
+    citizenshipCountry: string
+    setCitizenshipCountry: (country: string) => void
     signupEntryFlow: SignupEntryFlow
     setSignupEntryFlow: (entryFlow: SignupEntryFlow) => void
     /**
@@ -87,7 +88,7 @@ export const SetupFlowProvider: React.FC<{
     const [inviterAccepted, setInviterAccepted] = useState(false)
     const [sellScreensCountry, setSellScreensCountry] = useState<string | null | undefined>(undefined)
     const [residenceCountry, setResidenceCountry] = useState('')
-    const [secondResidenceCountry, setSecondResidenceCountry] = useState('')
+    const [citizenshipCountry, setCitizenshipCountry] = useState('')
     const [signupEntryFlow, setSignupEntryFlow] = useState<SignupEntryFlow>('default')
     const [noBackLockScreenId, setNoBackLockScreenId] = useState<ScreenId | null>(null)
 
@@ -105,7 +106,7 @@ export const SetupFlowProvider: React.FC<{
         setInviterAccepted(false)
         setSellScreensCountry(undefined)
         setResidenceCountry('')
-        setSecondResidenceCountry('')
+        setCitizenshipCountry('')
         setNoBackLockScreenId(null)
     }, [])
 
@@ -136,8 +137,8 @@ export const SetupFlowProvider: React.FC<{
             setSellScreensCountry,
             residenceCountry,
             setResidenceCountry,
-            secondResidenceCountry,
-            setSecondResidenceCountry,
+            citizenshipCountry,
+            setCitizenshipCountry,
             signupEntryFlow,
             setSignupEntryFlow,
             noBackLockScreenId,
@@ -159,7 +160,7 @@ export const SetupFlowProvider: React.FC<{
             inviterAccepted,
             sellScreensCountry,
             residenceCountry,
-            secondResidenceCountry,
+            citizenshipCountry,
             signupEntryFlow,
             noBackLockScreenId,
             resetSetupFlow,

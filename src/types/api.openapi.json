@@ -19924,6 +19924,10 @@
                                     "bridge_customer_id": {
                                         "type": "string"
                                     },
+                                    "citizenship": {
+                                        "pattern": "^[A-Za-z]{2}$",
+                                        "type": "string"
+                                    },
                                     "dismissActivationCelebration": {
                                         "type": "boolean"
                                     },

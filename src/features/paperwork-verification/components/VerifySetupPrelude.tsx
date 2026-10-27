@@ -16,6 +16,7 @@ import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFl
 import { featuresFromPaymentPlan } from '@/features/setup/paymentChannels'
 import { SETUP_SCREEN_PARAM, useSetupFlow } from '@/hooks/useSetupFlow'
 import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
+import { dispatchBackPress } from '@/utils/back-handler'
 import { VerifyLoading } from './LoadScreens'
 
 const SCREEN_FOR_NEED: Record<KycPlanNeed, ScreenId> = { residence: 'residence', features: 'payment-plan' }
@@ -79,16 +80,16 @@ function PreludeScreens({
     const save = useCallback(async (): Promise<void> => {
         const failed = () => void toast.error(tCommon('genericError'))
         const userId = user?.user?.userId
-        const { secondResidenceCountry, fundingChannel, paymentChannel } = context
+        const { citizenshipCountry, fundingChannel, paymentChannel } = context
         if (needs.includes('residence')) {
             const result = await updateUserById({
                 userId,
                 residenceCountry,
-                ...(secondResidenceCountry ? { secondResidenceCountry } : {}),
+                citizenship: citizenshipCountry || residenceCountry,
             }).catch(() => ({ error: 'failed' }))
             if (!userId || result?.error) return failed()
             storeDeclaredResidence(userId, residenceCountry)
-            storeSecondResidence(userId, secondResidenceCountry || null)
+            storeSecondResidence(userId, null)
         }
         if (needs.includes('features') && fundingChannel && paymentChannel) {
             const result = await savePaperworkVerificationFeatures(
@@ -121,8 +122,11 @@ function PreludeStep({ screens, onExit }: { screens: ScreenId[]; onExit: () => v
             image={step.image}
             {...copy}
             showBackButton
-            // Back from the first screen leaves verification, as /verify's own first screen does.
-            onBack={currentIndex === 0 ? onExit : handleBack}
+            // A step's own sub-view (the residence comparison) takes Back first; back from the
+            // first screen leaves verification, as /verify's own first screen does.
+            onBack={() => {
+                if (!dispatchBackPress()) (currentIndex === 0 ? onExit : handleBack)()
+            }}
             imageClassName={step.imageClassName}
             contentClassName={step.contentClassName}
             step={currentIndex}

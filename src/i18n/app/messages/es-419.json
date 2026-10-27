@@ -773,10 +773,6 @@
                 "title": "Paga a quien quieras con un toque.",
                 "description": "Envía dólares a un usuario de Peanut o comparte un enlace de pago."
             },
-            "residence": {
-                "title": "País de residencia legal",
-                "description": "Donde tienes residencia legal. No necesariamente donde naciste ni adonde viajas."
-            },
             "advantage-rewards": {
                 "title": "Lo bueno se disfruta en compañía.",
                 "description": "Invita a tus amigos y desbloquea recompensas cuando usen Peanut."
@@ -869,9 +865,6 @@
             "termsAgreement": "Al crear una cuenta, aceptas los <terms>Términos y Condiciones</terms> y la <privacy>Política de Privacidad</privacy>"
         },
         "residenceStep": {
-            "countryPlaceholder": "Selecciona el país",
-            "secondCountryPlaceholder": "Segundo país",
-            "multiDocLink": "¿Tienes residencia en otro país?",
             "errors": {
                 "invalidEmail": "Ingresa un correo electrónico válido"
             },
@@ -915,8 +908,40 @@
                 "changeCountry": "Elegir otro país"
             },
             "compare": {
-                "selectCountry": "Elegir {country}"
-            }
+                "selectCountry": "Elegir {country}",
+                "cardTitle": "Disponible con {country}",
+                "items": {
+                    "p2p": "Peanut a Peanut",
+                    "pix": "Pagos y transferencias PIX",
+                    "arQr": "Pagos QR y transferencias propias",
+                    "spei": "Transferencias bancarias en pesos mexicanos",
+                    "usdAch": "Transferencias bancarias en dólares estadounidenses",
+                    "eurSepa": "Transferencias bancarias en euros",
+                    "gbpFps": "Transferencias bancarias en libras esterlinas",
+                    "bank": "Transferencias bancarias donde haya soporte",
+                    "card": "Tarjeta Peanut"
+                },
+                "missing": {
+                    "banking": "Transferencias bancarias",
+                    "card": "Tarjeta Peanut"
+                },
+                "multiCurrencyNote": "Las transferencias en otra moneda requieren una cuenta bancaria en esa moneda.",
+                "guideTitle": "¿Qué país debes seleccionar?",
+                "guideDeclaration": "Si tienes un permiso de residencia de alguno de los dos países, elige ese país. Si no, elige el país que emitió tu documento de identidad, como un pasaporte o una licencia de conducir.",
+                "title": "¿Para qué país configuramos Peanut?",
+                "description": "Elige uno. Esto es lo que habilita cada uno."
+            },
+            "sentence": "Mi país de residencia <nw>es <residence></residence></nw> y el de ciudadanía <nw>es <citizenship></citizenship>.</nw>",
+            "residenceTitle": "¿Dónde tienes residencia?",
+            "citizenshipTitle": "¿De qué país tienes ciudadanía?",
+            "sameCountry": "el mismo",
+            "sameCountryRow": "El mismo país",
+            "choose": "Elegir",
+            "searchCountry": "Buscar países",
+            "noCountry": "Ningún país coincide con “{query}”.",
+            "hint": "Toca un país para cambiarlo.",
+            "refusedPassport": "No podemos verificar pasaportes ni documentos de identidad de {citizenship}. Usa tu tarjeta de residencia de {residence} cuando verifiques tu identidad.",
+            "continue": "Continuar"
         },
         "passkey": {
             "notAvailable": "Las passkeys aún no están disponibles en este dispositivo. Inténtalo de nuevo.",

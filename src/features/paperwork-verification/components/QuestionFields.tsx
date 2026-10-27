@@ -21,7 +21,7 @@ import type {
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { countryForPhone } from '../callingCodes'
-import { fieldErrorKey, formatTaxId, looksLikeItin } from '../paperworkVerification.utils'
+import { fieldErrorKey, formatTaxId, jobFromEmploymentStatus, looksLikeItin } from '../paperworkVerification.utils'
 import { AnswerPicker } from './AnswerPicker'
 import { PlacePicker } from './PlaceField'
 
@@ -87,7 +87,9 @@ export function QuestionFields({
     const locale = useLocale()
     const Sentences = sentencesAsHeading ? 'h1' : 'p'
     const id = useId()
-    const sentences = fields.filter(isSentenceField)
+    // A status that names the job (retired, student, unemployed) answers it, so the job question hides.
+    const jobAnswered = !!jobFromEmploymentStatus(fields, values.employmentStatus)
+    const sentences = fields.filter((f) => isSentenceField(f) && !(jobAnswered && f.key === 'occupation'))
     const sentenceSections = (sections ?? [])
         .map((section) => ({ id: section.id, fields: sentences.filter((f) => section.keys.includes(f.key)) }))
         .filter((section) => section.fields.length > 0)

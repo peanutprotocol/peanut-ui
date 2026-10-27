@@ -47,6 +47,11 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         shotFixture: 'setup-payment-plan',
     },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
+    '03-b-residence-compare': {
+        name: 'Residence — two countries compared',
+        path: 'Setup/components/ResidenceCompare.tsx',
+        shotClickTestId: 'setup-residence-continue',
+    },
     '05-a-signtesttransaction': {
         name: 'Final passkey confirmation',
         path: 'Setup/Views/SignTestTransaction.tsx',

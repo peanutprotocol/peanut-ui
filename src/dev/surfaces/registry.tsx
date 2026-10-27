@@ -94,12 +94,14 @@ function SetupScreen({
     showProgress = true,
     forceFullScreen = false,
     residenceCountry,
+    citizenshipCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     showProgress?: boolean
     forceFullScreen?: boolean
     residenceCountry?: string
+    citizenshipCountry?: string
 }) {
     return (
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
@@ -108,6 +110,7 @@ function SetupScreen({
                 showProgress={showProgress}
                 forceFullScreen={forceFullScreen}
                 residenceCountry={residenceCountry}
+                citizenshipCountry={citizenshipCountry}
             >
                 {children}
             </SetupScreenBody>
@@ -120,18 +123,21 @@ function SetupScreenBody({
     showProgress = true,
     forceFullScreen = false,
     residenceCountry,
+    citizenshipCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     showProgress?: boolean
     forceFullScreen?: boolean
     residenceCountry?: string
+    citizenshipCountry?: string
 }) {
-    const { setSteps, setResidenceCountry } = useSetupFlowContext()
+    const { setSteps, setResidenceCountry, setCitizenshipCountry } = useSetupFlowContext()
     React.useLayoutEffect(() => setSteps(setupSteps), [setSteps])
     React.useLayoutEffect(() => {
         if (residenceCountry) setResidenceCountry(residenceCountry)
-    }, [residenceCountry, setResidenceCountry])
+        if (citizenshipCountry) setCitizenshipCountry(citizenshipCountry)
+    }, [residenceCountry, setResidenceCountry, citizenshipCountry, setCitizenshipCountry])
     const step = setupSteps.find((entry) => entry.screenId === screenId)
     const stepCopy = useSetupStepCopy(step)
     if (!step) return null
@@ -348,6 +354,10 @@ export const SURFACES: Record<string, Surface> = {
     '03-a-residence-select': {
         ...SURFACE_META['03-a-residence-select'],
         render: () => <SetupScreen screenId="residence" />,
+    },
+    '03-b-residence-compare': {
+        ...SURFACE_META['03-b-residence-compare'],
+        render: () => <SetupScreen screenId="residence" residenceCountry="PT" citizenshipCountry="BR" />,
     },
 
     '05-a-signtesttransaction': {

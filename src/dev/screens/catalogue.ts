@@ -168,6 +168,7 @@ const setupJourney: Record<string, { journey: string; step: number }> = {
     '08-a-passkeysetuphelpmodal': { journey: 'Account setup', step: 31 },
     '09-a-passkeyinfomodal': { journey: 'Account setup', step: 32 },
     '03-a-residence-select': { journey: 'Account setup', step: 40 },
+    '03-b-residence-compare': { journey: 'Account setup', step: 41 },
     '04-b-advantage-fees': { journey: 'Account setup', step: 42 },
     '02-b-advantage-card': { journey: 'Account setup', step: 44 },
     '03-c-residence-congrats': { journey: 'Account setup', step: 46 },

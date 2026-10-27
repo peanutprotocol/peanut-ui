@@ -19,6 +19,7 @@ import {
     stepProgress,
     linkedToUkraine,
     whyKeyOf,
+    withEmploymentStatus,
 } from '../paperworkVerification.utils'
 
 const field = (key: string, extra: Partial<PaperworkVerificationField> = {}): PaperworkVerificationField => ({
@@ -339,5 +340,32 @@ describe('whyKeyOf', () => {
         expect(whyKeyOf({ id: 'birth', features: ['base'] })).toBe('citizenship')
         expect(whyKeyOf({ id: 'birth', features: ['bank', 'base'] })).toBe('birth')
         expect(whyKeyOf({ id: 'address', features: ['base'] })).toBe('address')
+    })
+})
+
+describe('a work status that names the job', () => {
+    const work = [
+        field('employmentStatus', { kind: 'choice', options: ['employed', 'retired', 'student', 'unemployed'] }),
+        field('occupation', { kind: 'occupation' }),
+    ]
+
+    it('answers the job question, and a later status that does not name it clears that answer', () => {
+        const retired = withEmploymentStatus(work, { employmentStatus: '', occupation: '' }, 'retired')
+        expect(retired).toEqual({ employmentStatus: 'retired', occupation: 'retired' })
+        expect(withEmploymentStatus(work, retired, 'employed')).toEqual({
+            employmentStatus: 'employed',
+            occupation: '',
+        })
+    })
+
+    it('keeps a job picked for an employed status', () => {
+        expect(
+            withEmploymentStatus(work, { employmentStatus: 'employed', occupation: 'lawyer' }, 'self_employed')
+        ).toEqual({ employmentStatus: 'self_employed', occupation: 'lawyer' })
+    })
+
+    it('fills the job from a stored status, and leaves the job alone when the form does not ask it', () => {
+        expect(initialValues([{ ...work[0], value: 'student' }, work[1]])).toMatchObject({ occupation: 'student' })
+        expect(withEmploymentStatus([work[0]], {}, 'retired')).toEqual({ employmentStatus: 'retired' })
     })
 })

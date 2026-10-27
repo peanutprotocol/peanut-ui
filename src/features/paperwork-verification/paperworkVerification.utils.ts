@@ -129,11 +129,40 @@ export function stepProgress(screens: PaperworkVerificationStepId[], step: Paper
 }
 
 /** The server's saved values; an empty phone starts with the residence's calling code, an unset toggle reads no. */
+// A status that is also an entry of the job list answers the job question too.
+const JOB_FROM_EMPLOYMENT_STATUS: Readonly<Record<string, string>> = {
+    student: 'student',
+    retired: 'retired',
+    unemployed: 'unemployed',
+}
+
+/** The job a work status answers, when the form asks both. */
+export const jobFromEmploymentStatus = (
+    fields: Pick<PaperworkVerificationField, 'key'>[],
+    status: string | undefined
+): string | null =>
+    status && fields.some((f) => f.key === 'occupation') && fields.some((f) => f.key === 'employmentStatus')
+        ? (JOB_FROM_EMPLOYMENT_STATUS[status] ?? null)
+        : null
+
+/** A changed work status updates the job it answers, and drops one it no longer answers. */
+export function withEmploymentStatus(
+    fields: Pick<PaperworkVerificationField, 'key'>[],
+    values: PaperworkVerificationAnswers,
+    status: string
+): PaperworkVerificationAnswers {
+    const next: PaperworkVerificationAnswers = { ...values, employmentStatus: status }
+    const job = jobFromEmploymentStatus(fields, status)
+    if (job) next.occupation = job
+    else if (jobFromEmploymentStatus(fields, values.employmentStatus) === values.occupation) next.occupation = ''
+    return next
+}
+
 export const initialValues = (
     fields: PaperworkVerificationField[],
     residence: string | null = null
-): PaperworkVerificationAnswers =>
-    Object.fromEntries(
+): PaperworkVerificationAnswers => {
+    const values: PaperworkVerificationAnswers = Object.fromEntries(
         fields.map((f) => {
             if (f.value) return [f.key, f.value]
             if (f.kind === 'toggle') return [f.key, 'no']
@@ -141,6 +170,9 @@ export const initialValues = (
             return [f.key, code ? `+${code} ` : '']
         })
     )
+    const job = jobFromEmploymentStatus(fields, values.employmentStatus)
+    return job && !values.occupation ? { ...values, occupation: job } : values
+}
 
 /** What a step sends: trimmed, locked fields as the server gave them, empty optional fields left out. */
 export function stepPayload(

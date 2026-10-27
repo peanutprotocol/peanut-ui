@@ -8,7 +8,7 @@ import type {
     PaperworkVerificationStep,
     PaperworkVerificationStepId,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
-import { initialValues, stepPayload } from './paperworkVerification.utils'
+import { initialValues, stepPayload, withEmploymentStatus } from './paperworkVerification.utils'
 
 export type AnswerFormError =
     | 'retry'
@@ -77,15 +77,21 @@ export function useAnswerForm(
     const [saving, setSaving] = useState(false)
     const savingRef = useRef(false)
 
-    const change = useCallback((key: string, value: string) => {
-        setValues((current) => ({ ...current, [key]: value }))
-        setErrors((current) => {
-            if (!(key in current)) return current
-            const { [key]: _cleared, ...rest } = current
-            return rest
-        })
-        setFormError(null)
-    }, [])
+    const change = useCallback(
+        (key: string, value: string) => {
+            const fields = steps.flatMap((s) => s.fields)
+            setValues((current) =>
+                key === 'employmentStatus' ? withEmploymentStatus(fields, current, value) : { ...current, [key]: value }
+            )
+            setErrors((current) => {
+                if (!(key in current)) return current
+                const { [key]: _cleared, ...rest } = current
+                return rest
+            })
+            setFormError(null)
+        },
+        [steps]
+    )
 
     const save = useCallback(
         async (toSave: PaperworkVerificationStep[] = steps): Promise<SaveOutcome> => {

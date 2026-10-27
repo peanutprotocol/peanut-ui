@@ -773,10 +773,6 @@
                 "title": "Pay anyone in a tap.",
                 "description": "Send dollars to a Peanut username or share a payment link."
             },
-            "residence": {
-                "title": "Country of legal residence",
-                "description": "Where you are a legal resident. Not necessarily where you were born or where you’re travelling to."
-            },
             "advantage-rewards": {
                 "title": "Good things are better together.",
                 "description": "Invite friends and unlock rewards as they use Peanut."
@@ -869,9 +865,6 @@
             "termsAgreement": "By creating an account, you agree to the <terms>T&C</terms> and <privacy>Privacy Policy</privacy>"
         },
         "residenceStep": {
-            "countryPlaceholder": "Select country",
-            "secondCountryPlaceholder": "Second country",
-            "multiDocLink": "Have residence in another country?",
             "errors": {
                 "invalidEmail": "Please enter a valid email address"
             },
@@ -915,8 +908,40 @@
                 "changeCountry": "Choose a different country"
             },
             "compare": {
-                "selectCountry": "Select {country}"
-            }
+                "selectCountry": "Select {country}",
+                "cardTitle": "Available with {country}",
+                "items": {
+                    "p2p": "Peanut to Peanut",
+                    "pix": "PIX payments & transfers",
+                    "arQr": "QR payments & own-account transfers",
+                    "spei": "Mexican peso bank transfers",
+                    "usdAch": "US dollar bank transfers",
+                    "eurSepa": "Euro bank transfers",
+                    "gbpFps": "British pound bank transfers",
+                    "bank": "Bank transfers where supported",
+                    "card": "Peanut card"
+                },
+                "missing": {
+                    "banking": "Bank transfers",
+                    "card": "Peanut card"
+                },
+                "multiCurrencyNote": "Transfers in another currency need a bank account in that currency.",
+                "guideTitle": "Which country should be selected?",
+                "guideDeclaration": "If you have a residence permit for either country, choose that one. Otherwise, choose the country that issued your ID, like a passport or driver’s license.",
+                "title": "Which country should we set up Peanut for?",
+                "description": "Pick one. Here’s what each unlocks."
+            },
+            "sentence": "I’m a resident <nw>of <residence></residence></nw> and have citizenship <nw>in <citizenship></citizenship>.</nw>",
+            "residenceTitle": "Where are you a resident?",
+            "citizenshipTitle": "Where do you have citizenship?",
+            "sameCountry": "the same country",
+            "sameCountryRow": "The same country",
+            "choose": "Choose",
+            "searchCountry": "Search countries",
+            "noCountry": "No country matches “{query}”.",
+            "hint": "Tap a country to change it.",
+            "refusedPassport": "We can’t verify passports or ID cards from {citizenship}. Use your residence card from {residence} when you verify your identity.",
+            "continue": "Continue"
         },
         "passkey": {
             "notAvailable": "Passkeys aren't available on this device yet. Please try again.",

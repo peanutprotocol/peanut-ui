@@ -11573,6 +11573,7 @@ export interface paths {
                         avatarKey?: string | null;
                         bridgeKycStatus?: "not_started" | "incomplete" | "under_review" | "approved" | "rejected";
                         bridge_customer_id?: string;
+                        citizenship?: string;
                         dismissActivationCelebration?: boolean;
                         email?: string;
                         emailVerificationCode?: string;
