@@ -30,3 +30,20 @@ it('tells the English reader QR pay needs no local ID, not "with your passport"'
     expect(en.landingPayLocalLead).toMatch(/No DNI, no CPF\.$/)
     expect(en.landingPayLocalLead).not.toMatch(/passport/i)
 })
+
+it.each([
+    ['es-419', es419],
+    ['es-ar', esAr],
+] as const)('says the same no-local-ID point in %s', (_locale, catalog) => {
+    expect(catalog.landingPayLocalLead).toMatch(/Sin DNI ni CPF\.$/)
+})
+
+// localization.pt-br.md bans "sem CPF" and "sem DNI ou CPF" in body text, so pt-BR keeps its balance line.
+it('keeps "sem CPF" off the pt-BR pay-local lead', () => {
+    expect(ptBr.landingPayLocalLead).not.toMatch(/sem (DNI|CPF)/i)
+})
+
+// The visible h2 is one Knerd word; the hidden rest tells screen readers what is zero.
+it.each(Object.entries(CATALOGS))('gives the %s fees h2 a spoken qualifier', (_locale, catalog) => {
+    expect(catalog.landingZeroFeesSr).toMatch(/^\S.*\S$/)
+})
