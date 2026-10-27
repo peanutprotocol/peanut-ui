@@ -31,10 +31,10 @@ export function HomeCardFold({ strings, locale }: HomeCardFoldProps) {
                         aria-hidden
                         className="pointer-events-none w-9"
                     />
-                    {/* the gap clears the Knerd's ink, which rises above its line box */}
-                    <h2 className="grid gap-4 md:gap-6 lg:gap-8">
+                    {/* the gap clears the Knerd's ink, accents included ("DÓLARES"), which rises above its line box */}
+                    <h2 className="grid gap-6 md:gap-8 lg:gap-10">
                         <DisplayLine className={HOME_LOCKUP_LINE_CLASS}>{strings.lockup}</DisplayLine>
-                        <KnerdTitle text={strings.knerd} size="compact" />
+                        <KnerdTitle text={strings.knerd} size="compact" align="start" />
                     </h2>
                     <p className="text-body-l">{strings.line}</p>
                     <Button

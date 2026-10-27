@@ -25,7 +25,7 @@ export function HomeGetPaidFold({ strings }: HomeGetPaidFoldProps) {
                     <DisplayLine className={HOME_LOCKUP_LINE_CLASS}>{strings.lead}</DisplayLine>
                     {/* the margin clears the Knerd's ink, which rises above its line box */}
                     <span className="mt-4 block md:mt-6 lg:mt-8">
-                        <KnerdTitle text={strings.knerd} size="compact" />
+                        <KnerdTitle text={strings.knerd} size="compact" align="start" />
                     </span>
                 </h2>
                 {/* Art, as in the star-LP hero: its link is out of the tab order and the close CTA is the

@@ -37,6 +37,10 @@ export function UsEuRequestStrips({
     amount = DEFAULT_AMOUNT,
 }: UsEuRequestStripsProps = {}) {
     const slots = { main: main.short, payer: payer.short, amount, username: main.username }
+    // The indented strip is the reply. With the ask, the link answers it; without, the link leads
+    // flush and the payment answers it.
+    const requestIndent = labels.ask ? 'ml-6 md:ml-8' : ''
+    const paidIndent = labels.ask ? 'mr-6' : 'ml-6 md:ml-8'
     const requestStrip = (
         <UsEuStrip
             tone="pink"
@@ -67,16 +71,22 @@ export function UsEuRequestStrips({
                 key="link"
                 href={US_EU_REQUEST_HREF.guest}
                 signedInHref={US_EU_REQUEST_HREF.signedIn}
-                className="ml-6 block md:ml-8"
+                className={`block ${requestIndent}`}
             >
                 {requestStrip}
             </UsEuAppLink>
         ) : (
-            <div key="link" className="ml-6 md:ml-8">
+            <div key="link" className={requestIndent}>
                 {requestStrip}
             </div>
         ),
-        <UsEuStrip key="paid" tone="green" initial={payer.short[0]} who={payer.short} className="mr-6 -rotate-[0.5deg]">
+        <UsEuStrip
+            key="paid"
+            tone="green"
+            initial={payer.short[0]}
+            who={payer.short}
+            className={`${paidIndent} -rotate-[0.5deg]`}
+        >
             <span className="flex items-center gap-2">
                 {labels.paid}
                 <span className="star-lp-check-pop inline-flex">

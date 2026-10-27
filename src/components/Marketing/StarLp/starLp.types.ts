@@ -43,6 +43,8 @@ export interface KnerdTitleProps {
     size: KnerdSize
     /** A decoration Title anchors on one word (the close fold's circled word). */
     mark?: TitleMark
+    /** 'start' sets each line flush left, for a lockup under a left-aligned Roboto line. Centred by default. */
+    align?: 'center' | 'start'
 }
 
 export interface KnerdPullHeadlineProps {
@@ -191,7 +193,7 @@ export interface CloseFoldProps {
     ground?: BandGround
     /** Replaces the default two sparkles (approved doodles only). */
     decoration?: ReactNode
-    /** One word of `title` to circle with the hand-drawn scribble; its stroke crosses the letters, as in the homepage noFees fold. The circle replaces the default sparkles. */
+    /** One word of `title` to circle with the hand-drawn scribble; its stroke crosses the letters. The circle replaces the default sparkles. */
     circleWord?: string
     /** Band id, e.g. an anchor or an e2e hook. */
     id?: string
