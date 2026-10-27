@@ -69,7 +69,11 @@ export const rpcUrls: Record<number, string[]> = {
     ].filter(Boolean) as string[],
 }
 
-export { PEANUT_API_URL } from './api-url.consts'
+export const PEANUT_API_URL = (
+    process.env.PEANUT_API_URL ||
+    process.env.NEXT_PUBLIC_PEANUT_API_URL ||
+    'https://api.peanut.me'
+).replace(/\/$/, '') // remove any accidental trailing slash
 
 export const PEANUT_API_KEY = process.env.PEANUT_API_KEY!
 
