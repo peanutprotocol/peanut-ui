@@ -44,7 +44,7 @@ export function ResidenceCompare({
                     const summary = residenceAvailability(restrictionSets, iso2)
                     return (
                         <div key={iso2} className={`${CARD_SURFACE} min-w-0 p-3`}>
-                            <p className="mb-2 flex items-center gap-1.5 text-label-m">
+                            <p className="mb-2 flex items-center gap-2 text-label-m">
                                 <Image
                                     src={getFlagUrl(iso2.toLowerCase())}
                                     alt=""

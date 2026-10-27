@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import type { IconName } from '@/components/Global/Icons/Icon'
@@ -68,11 +69,7 @@ export function DocumentRequestState({
             >
                 {ctaLabel}
             </Button>
-            {error && (
-                <p role="alert" className="text-body-s text-foreground-error">
-                    {error}
-                </p>
-            )}
+            {error && <Callout priority="error">{error}</Callout>}
             {onContactSupport && <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>}
         </div>
     )
