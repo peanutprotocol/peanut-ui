@@ -68,7 +68,7 @@ describe('HomeFolds', () => {
 
     it('puts a ticker on every seam: each fold is followed by one, the close by the last before the footer', () => {
         const { container } = renderHome()
-        const children = Array.from(container.children)
+        const children = Array.from(container.querySelector('#home-get-paid')!.parentElement!.children)
         const tickers = children.filter((el) => el.classList.contains('star-lp-marquee'))
         // eleven folds (the persona fold has no id), so eleven seams below them, the footer seam included
         expect(tickers).toHaveLength(11)

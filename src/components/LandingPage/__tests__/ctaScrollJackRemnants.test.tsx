@@ -37,7 +37,7 @@ describe('Hero CTA', () => {
     it('fades and parks the CTA while the footer is on screen', () => {
         render(<Hero strings={strings} buttonVisible={false} primaryCta={{ label: 'Sign up', href: '/setup' }} />)
 
-        const holder = screen.getByRole('link', { name: 'Sign up' }).parentElement as HTMLElement
+        const holder = screen.getByRole('link', { name: 'Sign up' }).closest('[style*="--cta-x"]') as HTMLElement
         expect(holder.style.opacity).toBe('0')
         expect(holder.style.pointerEvents).toBe('none')
         expect(holder.style.getPropertyValue('--cta-x')).toBe('20px')
@@ -47,7 +47,7 @@ describe('Hero CTA', () => {
     it('rests the CTA in place while it is visible', () => {
         render(<Hero strings={strings} buttonVisible primaryCta={{ label: 'Sign up', href: '/setup' }} />)
 
-        const holder = screen.getByRole('link', { name: 'Sign up' }).parentElement as HTMLElement
+        const holder = screen.getByRole('link', { name: 'Sign up' }).closest('[style*="--cta-x"]') as HTMLElement
         expect(holder.style.opacity).toBe('1')
         expect(holder.style.getPropertyValue('--cta-x')).toBe('0px')
         expect(holder.style.getPropertyValue('--cta-y')).toBe('0px')
