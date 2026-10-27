@@ -18,6 +18,7 @@ import {
     stepPayload,
     stepProgress,
     linkedToUkraine,
+    whyKeyOf,
 } from '../paperworkVerification.utils'
 
 const field = (key: string, extra: Partial<PaperworkVerificationField> = {}): PaperworkVerificationField => ({
@@ -330,5 +331,13 @@ describe('linkedToUkraine', () => {
     it('is none of those for anyone else', () => {
         expect(linkedToUkraine('DE', { residence: residence('PL') })).toBe(false)
         expect(linkedToUkraine(null, null)).toBe(false)
+    })
+})
+
+describe('whyKeyOf', () => {
+    it('explains a birth step that asks only the citizenship as the ID picker’s, every other step as its own', () => {
+        expect(whyKeyOf({ id: 'birth', features: ['base'] })).toBe('citizenship')
+        expect(whyKeyOf({ id: 'birth', features: ['bank', 'base'] })).toBe('birth')
+        expect(whyKeyOf({ id: 'address', features: ['base'] })).toBe('address')
     })
 })

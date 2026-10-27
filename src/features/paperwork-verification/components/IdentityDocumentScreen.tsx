@@ -119,6 +119,12 @@ export function IdentityDocumentScreen({
         ? ['PASSPORT', 'ID_CARD'].filter((type) => !allowed(type, away)).map((type) => ({ type, issuingCountry: away }))
         : []
 
+    const otherChoices = [...other, ...(protectionInMain ? [] : protectionChoices)]
+    const pickable = main.length + (protectionInMain ? protectionChoices.length : 0) + otherChoices.length > 0
+    // Neither the residence's documents nor the citizenship's: name both, so the user knows what failed.
+    const unpickableCountries = new Intl.ListFormat(locale, { type: 'disjunction' }).format(
+        [...new Set([away ?? residence, residence].filter((c): c is string => !!c))].map(countryName)
+    )
     const [otherOpen, setOtherOpen] = useState(false)
     const [chosen, setChosen] = useState<string | null>(null)
     const track = usePaperworkVerificationTrack()
@@ -128,7 +134,7 @@ export function IdentityDocumentScreen({
             document_type_count: types.length,
             issuing_country_count: countries.length,
             main_options: main.length,
-            other_options: other.length + (protectionInMain ? 0 : protectionChoices.length),
+            other_options: otherChoices.length,
             refused_options: refused.length,
             citizenship_known: !!citizenship,
             temporary_protection_offered: protectionChoices.length > 0,
@@ -230,23 +236,33 @@ export function IdentityDocumentScreen({
                 <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
                     {t(restart ? 'midpoint.restartDescription' : 'documentList.description')}
                 </p>
-                {document && (
+                {document && !pickable && (
+                    <Callout priority="error" className="w-full text-left" data-testid="verify-id-none-accepted">
+                        {t('documentList.noneAccepted', { countries: unpickableCountries })}
+                    </Callout>
+                )}
+                {document && pickable && (
                     <ListGroup>
                         {main.map((c) => row(c, 'list'))}
                         {protectionInMain && protectionChoices.map((c) => row(c, 'list'))}
                         {refused.map(refusedRow)}
-                        <ListItem
-                            title={t('documentList.other')}
-                            body={t('documentList.otherHint')}
-                            leading={<IconBubble icon="docs" size="s" color="gray" />}
-                            chevron
-                            disabled={busy}
-                            onClick={() => {
-                                track(ANALYTICS_EVENTS.KYC_PV_PICKER_OPENED, { step: 'id', field: 'other_documents' })
-                                setOtherOpen(true)
-                            }}
-                            data-testid="verify-id-other"
-                        />
+                        {otherChoices.length > 0 && (
+                            <ListItem
+                                title={t('documentList.other')}
+                                body={t('documentList.otherHint')}
+                                leading={<IconBubble icon="docs" size="s" color="gray" />}
+                                chevron
+                                disabled={busy}
+                                onClick={() => {
+                                    track(ANALYTICS_EVENTS.KYC_PV_PICKER_OPENED, {
+                                        step: 'id',
+                                        field: 'other_documents',
+                                    })
+                                    setOtherOpen(true)
+                                }}
+                                data-testid="verify-id-other"
+                            />
+                        )}
                     </ListGroup>
                 )}
                 {!document && documentsLoading && <DocumentListSkeleton />}
@@ -272,9 +288,7 @@ export function IdentityDocumentScreen({
                     <div className="flex flex-col gap-4 pb-4" data-testid="verify-id-other-drawer">
                         <DrawerTitle>{t('documentList.otherTitle')}</DrawerTitle>
                         <p className="text-body-s text-foreground-secondary">{t('documentList.otherDescription')}</p>
-                        <ListGroup>
-                            {[...other, ...(protectionInMain ? [] : protectionChoices)].map((c) => row(c, 'other'))}
-                        </ListGroup>
+                        <ListGroup>{otherChoices.map((c) => row(c, 'other'))}</ListGroup>
                         <p className="flex items-start gap-2 text-body-s text-foreground-secondary">
                             <Icon name="info" size={16} className="mt-0.5 shrink-0" />
                             {t('documentList.otherNotAccepted')}

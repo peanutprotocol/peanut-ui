@@ -64,7 +64,11 @@ export function phoneJoinsAddress(questions: PaperworkVerificationQuestions): bo
     return !!address && !!phone && address.answered === phone.answered
 }
 
-/** The citizenship the questions asked (Bridge's EEA nationality), saved or not; null when they did not ask. */
+/** A birth step that asks only the citizenship serves the ID picker, not a provider, so it says so. */
+export const whyKeyOf = (step: { id: PaperworkVerificationStepId; features: string[] }) =>
+    step.id === 'birth' && step.features.every((f) => f === 'base') ? ('citizenship' as const) : step.id
+
+/** The citizenship the questions asked, saved or not; null when they did not ask. */
 export const citizenshipOf = (questions: PaperworkVerificationQuestions): string | null =>
     questions.steps.flatMap((s) => s.fields).find((f) => f.key === 'nationality')?.value ?? null
 

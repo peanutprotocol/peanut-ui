@@ -3504,7 +3504,8 @@
                 "phone": "Nuestros socios guardan tu número de teléfono para proteger tu cuenta.",
                 "tax": "Las cuentas en tu país deben estar vinculadas a tu número fiscal.",
                 "declarations": "Las normas financieras de tu país piden estas preguntas a todos. Si alguna aplica, podríamos pedirte un documento más adelante.",
-                "nationality": "Los bancos de la UE deben conocer cada país del que tienes ciudadanía."
+                "nationality": "Los bancos de la UE deben conocer cada país del que tienes ciudadanía.",
+                "citizenship": "Usamos tu ciudadanía para mostrarte el pasaporte y el documento nacional de identidad con los que puedes verificarte."
             },
             "sentence": {
                 "cardPurpose": "Usaré mi tarjeta <nw>para <pill></pill></nw>",
@@ -3847,7 +3848,8 @@
                 "backToList": "Volver a la lista",
                 "noneFit": "¿No tienes ninguno de estos?",
                 "changeResidence": "Cambiar residencia",
-                "stepDots": "Verificar identidad, paso 1 de 3"
+                "stepDots": "Verificar identidad, paso 1 de 3",
+                "noneAccepted": "Todavía no podemos verificar documentos emitidos en {countries}."
             }
         }
     },

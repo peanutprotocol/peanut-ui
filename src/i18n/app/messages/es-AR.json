@@ -1553,7 +1553,8 @@
             "why": {
                 "work": "Los bancos y emisores de tarjetas tienen que saber a qué te dedicás.",
                 "address": "Tu domicilio tiene que coincidir con donde vivís y aparece en los datos de tu cuenta.",
-                "nationality": "Los bancos de la UE tienen que conocer cada país del que tenés ciudadanía."
+                "nationality": "Los bancos de la UE tienen que conocer cada país del que tenés ciudadanía.",
+                "citizenship": "Usamos tu ciudadanía para mostrarte el pasaporte y el documento nacional de identidad con los que podés verificarte."
             },
             "search": {
                 "typeToSearch": "Escribí para buscar entre los {count} trabajos.",

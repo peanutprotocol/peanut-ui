@@ -24,7 +24,7 @@ import {
 } from '../analytics'
 import { isE164 } from '../callingCodes'
 import { useAnswerForm, type AnswerFormError, type SaveOutcome } from '../useAnswerForm'
-import { looksLikeItin, stepComplete } from '../paperworkVerification.utils'
+import { looksLikeItin, stepComplete, whyKeyOf } from '../paperworkVerification.utils'
 import { isSentenceField, QuestionFields } from './QuestionFields'
 import { VerifyFooter, VerifyQuestionLayout } from './VerifyLayout'
 
@@ -97,7 +97,7 @@ export function trackSaveOutcome(
 }
 
 /** "Why do we ask?": what each answer is for, and that it only reaches the partner that needs it. */
-export function WhyWeAsk({ steps }: { steps: PaperworkVerificationStepId[] }) {
+export function WhyWeAsk({ steps }: { steps: Array<PaperworkVerificationStepId | 'citizenship'> }) {
     const t = useTranslations('kyc.paperworkVerification')
     const track = usePaperworkVerificationTrack()
     const [open, setOpen] = useState(false)
@@ -304,7 +304,7 @@ export function QuestionStepScreen({
                                 {continueLabel ?? t('continue')}
                             </Button>
                         }
-                        secondary={<WhyWeAsk steps={steps.map((s) => s.id)} />}
+                        secondary={<WhyWeAsk steps={steps.map(whyKeyOf)} />}
                     >
                         {onContinueWithoutLocal && Object.values(form.errors).includes('us_citizen_not_supported') && (
                             <Button

@@ -3504,7 +3504,8 @@
                 "phone": "Our partners keep your phone number on file to protect your account.",
                 "tax": "Accounts in your country must be linked to your tax number.",
                 "declarations": "Financial rules in your country ask everyone these questions. If one applies, we may ask for a document later.",
-                "nationality": "Banks in the EU must know every country you’re a citizen of."
+                "nationality": "Banks in the EU must know every country you’re a citizen of.",
+                "citizenship": "We use your citizenship to show the passport and national ID card you can verify with."
             },
             "sentence": {
                 "cardPurpose": "I’ll use my card <nw>for <pill></pill></nw>",
@@ -3847,7 +3848,8 @@
                 "backToList": "Back to the list",
                 "noneFit": "Don’t have any of those?",
                 "changeResidence": "Change residence",
-                "stepDots": "Verify identity, step 1 of 3"
+                "stepDots": "Verify identity, step 1 of 3",
+                "noneAccepted": "We can’t verify documents issued by {countries} yet."
             }
         }
     },

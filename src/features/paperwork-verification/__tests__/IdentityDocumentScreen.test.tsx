@@ -102,6 +102,21 @@ describe('IdentityDocumentScreen: the list', () => {
         expect(option('RESIDENCE_PERMIT', 'KZ')).not.toHaveTextContent('proof of address')
     })
 
+    it('names both countries when the plan takes no document from either, instead of an empty list', () => {
+        render({ documentPlan: plan(['US']), residence: 'BO', citizenship: 'GB' })
+        expect(screen.getByTestId('verify-id-none-accepted')).toHaveTextContent(
+            'We can’t verify documents issued by United Kingdom or Bolivia yet.'
+        )
+        expect(screen.queryByTestId('verify-id-other')).toBeNull()
+    })
+
+    it('hides Other document when it holds nothing', () => {
+        render({ documentPlan: plan(['GB'], { types: ['PASSPORT'] }), residence: 'BO', citizenship: 'GB' })
+        expect(option('PASSPORT', 'GB')).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-id-other')).toBeNull()
+        expect(screen.queryByTestId('verify-id-none-accepted')).toBeNull()
+    })
+
     it('Change residence opens the residence change', () => {
         const onChangeResidence = jest.fn()
         render({ documentPlan: plan(['ES']), residence: 'ES', onChangeResidence })
