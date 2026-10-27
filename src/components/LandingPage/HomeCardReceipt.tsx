@@ -10,7 +10,7 @@ export function HomeCardReceipt({ strings, locale }: HomeCardReceiptProps) {
             <div className="flex items-center justify-between gap-3 text-body-xs whitespace-nowrap text-foreground-secondary">
                 <span>{strings.receiptTitle}</span>
                 <span className="flex items-center gap-2 text-label-l text-foreground-primary">
-                    <span className="grid size-6 shrink-0 place-items-center rounded-full border-2 border-border-default bg-green-500 text-foreground-inverse">
+                    <span className="grid size-6 shrink-0 place-items-center rounded-full border-2 border-border-default bg-background-brand text-foreground-primary">
                         <Icon name="check" size={16} strokeWidth={3} />
                     </span>
                     {strings.receiptApproved}

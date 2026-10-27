@@ -12,10 +12,10 @@ export function HomeBalanceActivityRow({ icon, title, detail, amount, tone, stac
         <div
             className={twMerge(
                 'flex flex-wrap items-center gap-x-3 gap-y-1 rounded-card border-2 border-border-default p-3',
-                tone === 'in' ? 'bg-background-badge-success' : 'bg-background-default'
+                tone === 'in' ? 'bg-background-brand' : 'bg-background-default'
             )}
         >
-            <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-border-default bg-background-icon-bubble-green text-label-l">
+            <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-border-default bg-background-brand text-label-l">
                 {icon}
             </span>
             <span className="grid min-w-28 flex-1">

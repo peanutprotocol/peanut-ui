@@ -13,7 +13,7 @@ export interface HomeCardStrings {
     cta: string
     /** "Card purchase", the receipt's kicker */
     receiptTitle: string
-    /** "Approved", beside the green tick */
+    /** "Approved", beside the approval tick */
     receiptApproved: string
 }
 
