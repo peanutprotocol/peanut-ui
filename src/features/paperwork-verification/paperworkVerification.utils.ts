@@ -1,4 +1,3 @@
-import type { IUserProfile } from '@/interfaces/interfaces'
 import type { SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import type {
@@ -22,31 +21,6 @@ export const DOCUMENT_KEYS = {
     RESIDENCE_PERMIT: 'residencePermit',
     TEMPORARY_PROTECTION: 'temporaryProtection',
 } as const
-
-/**
- * Temporary protection is for people displaced from Ukraine: offered only to an
- * account tied to it by citizenship, a residence, or where it signed up from
- * (Slava, 2026-10-26).
- */
-export function linkedToUkraine(
-    citizenship: string | null,
-    user: Pick<IUserProfile, 'residence' | 'geo'> | null | undefined,
-    residence: string | null = null
-): boolean {
-    const r = user?.residence
-    const signup = user?.geo?.signup
-    return [
-        citizenship,
-        residence,
-        r?.verified?.country,
-        r?.declared?.country,
-        r?.declared?.secondCountry,
-        r?.secondaryDeclaredCountry,
-        signup?.vercelIp?.country,
-        signup?.ipProvider?.country,
-        signup?.store?.country,
-    ].some((country) => country?.toUpperCase() === 'UA')
-}
 
 export const RESIDENCE_CHANGE_HREF = '/profile/accounts?open=residence'
 

@@ -62,7 +62,6 @@ import {
     citizenshipOf,
     DOCUMENT_KEYS,
     entryStep,
-    linkedToUkraine,
     FAILED_STATUSES,
     IN_REVIEW_STATUSES,
     markSaved,
@@ -585,7 +584,6 @@ function PaperworkVerificationSteps({
                 plan={plan}
                 residence={questions.residence}
                 citizenship={citizenshipOf(questions)}
-                ukraineLinked={linkedToUkraine(citizenshipOf(questions), user, questions.residence)}
                 documentsLoading={documentsLoading}
                 busy={identity.busy}
                 error={idError}

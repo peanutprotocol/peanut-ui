@@ -17,7 +17,6 @@ import {
     stepComplete,
     stepPayload,
     stepProgress,
-    linkedToUkraine,
     whyKeyOf,
     withEmploymentStatus,
 } from '../paperworkVerification.utils'
@@ -305,33 +304,6 @@ describe('tax numbers', () => {
         expect(looksLikeItin('ssn', '912-70-1234')).toBe(true)
         expect(looksLikeItin('ssn', '412-55-0198')).toBe(false)
         expect(looksLikeItin('cuit', '912701234')).toBe(false)
-    })
-})
-
-// Slava, 2026-10-26: temporary protection only with a tie to Ukraine.
-describe('linkedToUkraine', () => {
-    const residence = (declared: string | null, second: string | null = null) => ({
-        verified: null,
-        declared: declared
-            ? { country: declared, status: 'UNVERIFIED' as const, updatedAt: null, secondCountry: second }
-            : null,
-    })
-    it('is a Ukrainian citizenship, residence, second residence or sign-up location', () => {
-        expect(linkedToUkraine('UA', { residence: residence('PL') })).toBe(true)
-        expect(linkedToUkraine(null, { residence: residence('UA') })).toBe(true)
-        expect(linkedToUkraine(null, { residence: residence('PL', 'UA') })).toBe(true)
-        expect(
-            linkedToUkraine(null, {
-                residence: residence('PL'),
-                geo: { signup: { store: { country: 'UA', source: 'google-play', observedAt: '' } } },
-            })
-        ).toBe(true)
-        expect(linkedToUkraine(null, null, 'UA')).toBe(true)
-    })
-
-    it('is none of those for anyone else', () => {
-        expect(linkedToUkraine('DE', { residence: residence('PL') })).toBe(false)
-        expect(linkedToUkraine(null, null)).toBe(false)
     })
 })
 
