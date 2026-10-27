@@ -3,7 +3,7 @@
 import { Component, Suspense, useEffect, useRef, type ErrorInfo, type ReactNode } from 'react'
 import * as Sentry from '@sentry/nextjs'
 import { AttentionSurfaceContext } from '@/utils/overlay-visibility'
-import { useAttention } from './AttentionProvider'
+import { useAttentionOptional, type AttentionContextValue } from './AttentionProvider'
 import { INTERRUPT_SURFACES } from './surfaces'
 import type { AskId } from './types'
 
@@ -17,7 +17,13 @@ import type { AskId } from './types'
  * focus lock over B while B opens.
  */
 export function AttentionInterrupt() {
-    const { decision, state, asks, opened, crashed, acted, dismissed, snoozed } = useAttention()
+    const attention = useAttentionOptional()
+    // the manager crashed and its boundary renders the app without it: no pop-up, and no second throw
+    return attention ? <InterruptHost attention={attention} /> : null
+}
+
+function InterruptHost({ attention }: { attention: AttentionContextValue }) {
+    const { decision, state, asks, opened, crashed, acted, dismissed, snoozed } = attention
     const id = decision.interrupt
     const Surface = id ? INTERRUPT_SURFACES[id] : undefined
 
