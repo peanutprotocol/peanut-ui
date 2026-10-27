@@ -58,7 +58,7 @@ function Harness({
 }: {
     initialChainID?: string
     initialTokenAddress?: string
-    viewType?: 'withdraw' | 'other' | 'claim' | 'add' | 'req_pay'
+    viewType?: 'withdraw' | 'claim'
     isLoadingChains?: boolean
     onAutoCorrect?: () => void
     onNetworkSelect?: () => void
@@ -155,7 +155,7 @@ describe('TokenSelector (TASK-23392)', () => {
         expect(within(optionNamed('USDC')).queryByText(/^\+/)).toBeNull()
     })
 
-    test('the network drawer lists every network, the ones without the token last and disabled', () => {
+    test('the network drawer lists every network, the ones without the token last', () => {
         render(<Harness />)
         fireEvent.click(networkTrigger())
         expect(options().map((o) => within(o).getByText(/Arbitrum|Ethereum|Tron/).textContent)).toEqual([
@@ -165,22 +165,21 @@ describe('TokenSelector (TASK-23392)', () => {
         ])
         expect(within(optionNamed('Arbitrum')).getByText('No fee')).toBeInTheDocument()
         expect(within(optionNamed('Ethereum')).getByText('Network fee')).toBeInTheDocument()
-        // Sprint 165 smoke: with USDC selected, Tron was missing from the list
-        const tron = optionNamed('Tron')
-        expect(tron).toHaveAttribute('aria-disabled', 'true')
-        expect(within(tron).getByText('No USDC on this network')).toBeInTheDocument()
+        // Sprint 165 smoke: with USDC selected, Tron was missing from the list;
+        // TASK-24035: it then showed but was a dead end, so it names the token a tap selects
+        expect(within(optionNamed('Tron')).getByText('USDT only')).toBeInTheDocument()
     })
 
-    test('tapping a network that does not carry the token changes nothing', () => {
+    test('tapping a network that does not carry the token selects the token it does carry (TASK-24035)', () => {
         const onNetworkSelect = jest.fn()
         render(<Harness onNetworkSelect={onNetworkSelect} />)
         fireEvent.click(networkTrigger())
         fireEvent.click(optionNamed('Tron'))
-        fireEvent.keyDown(optionNamed('Tron'), { key: 'Enter' })
-        expect(chain()).toBe('42161')
-        expect(tokenAddress()).toBe(USDC_ARB)
-        expect(onNetworkSelect).not.toHaveBeenCalled()
-        expect(screen.getByRole('listbox')).toBeInTheDocument()
+        expect(chain()).toBe('tron')
+        expect(tokenAddress()).toBe(USDT_TRON)
+        expect(onNetworkSelect).toHaveBeenCalledTimes(1)
+        expect(screen.queryByRole('listbox')).toBeNull()
+        expect(tokenTrigger()).toHaveAccessibleName('Token: USDT')
     })
 
     test('USDT adds Tron to the network list', () => {
@@ -191,7 +190,7 @@ describe('TokenSelector (TASK-23392)', () => {
             'Ethereum',
             'Tron',
         ])
-        expect(optionNamed('Tron')).not.toHaveAttribute('aria-disabled')
+        expect(within(optionNamed('Tron')).queryByText('USDT only')).toBeNull()
         // USDT on Arbitrum is not the free route
         expect(within(optionNamed('Arbitrum')).getByText('Network fee')).toBeInTheDocument()
     })

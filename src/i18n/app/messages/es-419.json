@@ -2048,7 +2048,8 @@
             "placeholderEns": "Dirección o ENS",
             "placeholderAddress": "Dirección",
             "detailsMissing": "Faltan los datos del retiro",
-            "confirmNetwork": "Elige la red para esta dirección"
+            "confirmNetwork": "Elige la red para esta dirección",
+            "tronPickedByAddress": "Dirección de Tron: cambiamos a {token} en Tron"
         },
         "confirm": {
             "recipientReceives": "El destinatario recibe",
@@ -3476,7 +3477,7 @@
             "networkFee": "Comisión de red",
             "noTokensFoundTitle": "No se encontraron tokens",
             "lockedHint": "Por ahora, solo USDC en Arbitrum",
-            "tokenNotOnNetwork": "Sin {symbol} en esta red"
+            "tokenOnly": "Solo {symbol}"
         },
         "qrScanner": {
             "scanToPay": "Escanea para pagar",

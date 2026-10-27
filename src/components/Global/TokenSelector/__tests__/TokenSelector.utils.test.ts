@@ -172,24 +172,28 @@ test('withWalletChain adds the wallet chain only when the record lacks it', () =
 })
 
 describe("networkRowsForToken — every network, the token's own first", () => {
-    test('USDC lists Tron, after its own networks and without a network to select', () => {
+    test('USDC lists Tron last, and a tap there selects USDT on Tron (TASK-24035)', () => {
         const rows = networkRowsForToken(options(), option('USDC'))
-        expect(rows.map((r) => [r.chainId, !!r.network])).toEqual([
-            [WALLET_CHAIN_ID, true],
-            ['1', true],
-            ['10', true],
-            ['tron', false],
+        expect(rows.map((r) => [r.network.chainId, r.otherToken, r.network.token.symbol])).toEqual([
+            [WALLET_CHAIN_ID, false, 'USDC'],
+            ['1', false, 'USDC'],
+            ['10', false, 'USDC'],
+            ['tron', true, 'USDT'],
         ])
+        expect(rows[3].network.token.address).toBe(USDT_TRON)
     })
 
-    test('USDT lists Optimism as the one network that does not carry it', () => {
+    test('a network without the token offers the first token it carries, in token order', () => {
+        // Optimism carries USDC and ETH: USDC ranks first
         const rows = networkRowsForToken(options(), option('USDT'))
-        expect(rows.filter((r) => !r.network).map((r) => r.name)).toEqual(['Optimism'])
+        const optimism = rows.find((r) => r.network.chainId === '10')!
+        expect(optimism).toMatchObject({ otherToken: true, network: { token: { symbol: 'USDC' } } })
+        expect(rows.filter((r) => r.otherToken)).toHaveLength(1)
         expect(rows).toHaveLength(4)
     })
 
     test('a supported row carries the token on that chain', () => {
-        const eth = networkRowsForToken(options(), option('ETH')).find((r) => r.chainId === '1')!
-        expect(eth.network?.token.address).toBe(ETH)
+        const eth = networkRowsForToken(options(), option('ETH')).find((r) => r.network.chainId === '1')!
+        expect(eth).toMatchObject({ otherToken: false, network: { token: { address: ETH } } })
     })
 })

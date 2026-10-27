@@ -1081,7 +1081,8 @@
         "initial": {
             "placeholderEns": "Dirección o ENS",
             "placeholderAddress": "Dirección",
-            "confirmNetwork": "Elegí la red para esta dirección"
+            "confirmNetwork": "Elegí la red para esta dirección",
+            "tronPickedByAddress": "Dirección de Tron: cambiamos a {token} en Tron"
         },
         "confirm": {
             "youPay": "Total"

@@ -30,23 +30,43 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
     ),
 }))
 
+const USDT_TRON = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'
+
 jest.mock('@/components/Global/GeneralRecipientInput', () => ({
     __esModule: true,
     default: ({ onUpdate }: { onUpdate: (update: unknown) => void }) => (
-        <button
-            onClick={() =>
-                onUpdate({
-                    recipient: { name: 'alice.eth', address: '0x1111111111111111111111111111111111111111' },
-                    isValid: true,
-                    isChanging: false,
-                    errorMessage: '',
-                })
-            }
-        >
-            set ENS recipient
-        </button>
+        <>
+            <button
+                onClick={() =>
+                    onUpdate({
+                        recipient: { name: 'alice.eth', address: '0x1111111111111111111111111111111111111111' },
+                        isValid: true,
+                        isChanging: false,
+                        errorMessage: '',
+                    })
+                }
+            >
+                set ENS recipient
+            </button>
+            {/* what the input reports for a Tron address while an EVM network is selected */}
+            <button
+                onClick={() =>
+                    onUpdate({
+                        recipient: { name: undefined, address: 'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8' },
+                        isValid: false,
+                        isChanging: false,
+                        errorMessage: 'Enter a wallet address or an ENS name.',
+                    })
+                }
+            >
+                paste Tron address
+            </button>
+        </>
     ),
 }))
+
+const mockKillSwitches = { disableXchainWithdraw: false }
+jest.mock('@/features/kill-switches/useKillSwitches', () => ({ useKillSwitches: () => mockKillSwitches }))
 
 jest.mock('@/components/Global/NavHeader', () => ({
     __esModule: true,
@@ -194,9 +214,78 @@ const renderMountHarness = (prefillAddress?: string, { networkUnconfirmed = fals
     return { setSelectedChainID, setSelectedTokenAddress }
 }
 
+/** real chain + token state, with the Tron record the selector reads */
+function TronHarness() {
+    const [selectedChainID, setSelectedChainID] = useState('1')
+    const [selectedTokenAddress, setSelectedTokenAddress] = useState('0x0000000000000000000000000000000000000000')
+    const tokenContext = useMemo(
+        () =>
+            ({
+                selectedTokenData: {
+                    address: selectedTokenAddress,
+                    symbol: selectedTokenAddress === USDT_TRON ? 'USDT' : 'USDC',
+                },
+                selectedChainID,
+                supportedChainsAndTokens: {
+                    ...supportedChainsAndTokens,
+                    tron: {
+                        chainId: 'tron',
+                        networkName: 'Tron',
+                        chainIconURI: '',
+                        tokens: [{ symbol: 'USDT', address: USDT_TRON }],
+                    },
+                },
+                setSelectedChainID,
+                setSelectedTokenAddress,
+            }) as unknown as React.ContextType<typeof tokenSelectorContext>,
+        [selectedChainID, selectedTokenAddress]
+    )
+    return (
+        <WithdrawFlowProvider>
+            <tokenSelectorContext.Provider value={tokenContext}>
+                <output data-testid="chain">{selectedChainID}</output>
+                <output data-testid="token">{selectedTokenAddress}</output>
+                <InitialWithdrawView onContinue={jest.fn()} />
+            </tokenSelectorContext.Provider>
+        </WithdrawFlowProvider>
+    )
+}
+
 describe('InitialWithdrawView', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        mockKillSwitches.disableXchainWithdraw = false
+    })
+
+    it('a Tron address on an EVM network moves the selector to USDT on Tron and keeps the address (TASK-24035)', async () => {
+        render(
+            <IntlWrapper>
+                <TronHarness />
+            </IntlWrapper>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'paste Tron address' }))
+        await waitFor(() => expect(screen.getByTestId('chain')).toHaveTextContent('tron'))
+        expect(screen.getByTestId('token')).toHaveTextContent(USDT_TRON)
+        expect(screen.getByText('Tron address: switched to USDT on Tron')).toBeInTheDocument()
+        expect(screen.queryByText('Enter a wallet address or an ENS name.')).toBeNull()
+        // the address survived the family change, so the user can continue
+        expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled()
+        // a network pick is the user's own choice: the note goes
+        fireEvent.click(screen.getByRole('button', { name: 'selector network pick' }))
+        expect(screen.queryByText('Tron address: switched to USDT on Tron')).toBeNull()
+    })
+
+    it('a Tron address stays an error while cross-chain withdraw is switched off', async () => {
+        mockKillSwitches.disableXchainWithdraw = true
+        render(
+            <IntlWrapper>
+                <TronHarness />
+            </IntlWrapper>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'paste Tron address' }))
+        expect(await screen.findByText('Enter a wallet address or an ENS name.')).toBeInTheDocument()
+        expect(screen.getByTestId('chain')).toHaveTextContent('1')
+        expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
     })
 
     it('resets chain + token to the defaults on a fresh entry', async () => {

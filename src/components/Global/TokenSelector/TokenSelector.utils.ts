@@ -139,34 +139,32 @@ export function sortNetworks(networks: NetworkOption[]): NetworkOption[] {
     )
 }
 
-/** a row in the network drawer; `network` is undefined when the token is not on this chain */
+/**
+ * A row in the network drawer. `network` is what a tap selects: the selected
+ * token on this chain, or, when the chain does not carry it, the first
+ * offered token that it does (`otherToken`).
+ */
 export interface NetworkRow {
-    chainId: string
-    name: string
-    iconUrl: string
-    network?: NetworkOption
+    network: NetworkOption
+    otherToken: boolean
 }
 
 /**
  * Every network the selector offers, for the network drawer: the token's own
- * networks first (in their order), then the networks that do not carry it, so
- * a missing network (Tron for USDC) reads as "not for this token", not "not
- * supported at all". Support comes from the token/chain list alone, never
- * from price data.
+ * networks first (in their order), then the networks that do not carry it.
+ * Those stay tappable and switch the token too (TASK-24035): a disabled Tron
+ * row under USDC was a dead end, with nothing saying USDT is the way there.
+ * Support comes from the token/chain list alone, never from price data.
  */
 export function networkRowsForToken(options: TokenOption[], option: TokenOption | undefined): NetworkRow[] {
-    const rows: NetworkRow[] = (option?.networks ?? []).map((n) => ({
-        chainId: n.chainId,
-        name: n.name,
-        iconUrl: n.iconUrl,
-        network: n,
-    }))
-    const seen = new Set(rows.map((r) => r.chainId))
+    const rows: NetworkRow[] = (option?.networks ?? []).map((network) => ({ network, otherToken: false }))
+    const seen = new Set(rows.map((r) => r.network.chainId))
+    // options are in token order, so a chain gets the first token it carries (USDC, USDT, then A-Z)
     for (const other of options) {
-        for (const n of other.networks) {
-            if (seen.has(n.chainId)) continue
-            seen.add(n.chainId)
-            rows.push({ chainId: n.chainId, name: n.name, iconUrl: n.iconUrl })
+        for (const network of other.networks) {
+            if (seen.has(network.chainId)) continue
+            seen.add(network.chainId)
+            rows.push({ network, otherToken: true })
         }
     }
     return rows
@@ -232,8 +230,8 @@ export function filterTokenOptions(options: TokenOption[], query: string): Token
     return options.filter((o) => o.symbol.toLowerCase().includes(q) || o.name.toLowerCase().includes(q))
 }
 
-export function filterNetworks<T extends { name: string }>(networks: T[], query: string): T[] {
+export function filterNetworks(rows: NetworkRow[], query: string): NetworkRow[] {
     const q = query.trim().toLowerCase()
-    if (!q) return networks
-    return networks.filter((n) => n.name.toLowerCase().includes(q))
+    if (!q) return rows
+    return rows.filter((r) => r.network.name.toLowerCase().includes(q))
 }
