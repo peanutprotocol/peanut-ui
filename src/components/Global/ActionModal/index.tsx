@@ -224,7 +224,16 @@ const ActionModal: React.FC<ActionModalProps> = ({
 
                     <div className="flex w-full flex-col gap-1">
                         {/* board head: Heading XS + Body S */}
-                        <h3 className={twMerge('text-heading-xs text-foreground-primary', titleClassName)}>{title}</h3>
+                        {/* with no icon above it, the title shares a row with the close button */}
+                        <h3
+                            className={twMerge(
+                                'text-heading-xs text-foreground-primary',
+                                !iconContent && !hideModalCloseButton && 'px-4',
+                                titleClassName
+                            )}
+                        >
+                            {title}
+                        </h3>
                         {description && (
                             <div className={twMerge('text-body-s text-foreground-secondary', descriptionClassName)}>
                                 {typeof description === 'string' ? <p>{description}</p> : description}
