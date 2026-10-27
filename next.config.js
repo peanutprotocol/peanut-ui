@@ -347,6 +347,9 @@ let nextConfig = {
         ],
         // Speed up webpack builds (used for production builds with --webpack flag)
         webpackBuildWorker: true,
+        // The Release 166 production build (c755ec556) was killed for memory on Vercel.
+        // Production builds also upload Sentry source maps, so they peak higher than previews.
+        webpackMemoryOptimizations: true,
     },
 
     webpack: (config, { isServer, dev, webpack }) => {
