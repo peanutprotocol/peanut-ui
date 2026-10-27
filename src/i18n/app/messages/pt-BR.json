@@ -3675,7 +3675,7 @@
             "title": "Saldo alto",
             "congrats": "Você está rico! Parabéns por ter um saldo alto.",
             "goodToKnow": "Bom saber",
-            "selfCustody": "Com a Peanut, você é o único que pode acessar seus fundos. Nenhum banco, nenhuma empresa, nenhuma agência — nem mesmo nosso time de suporte — consegue acessá-los.",
+            "selfCustody": "Com o Peanut, você é o único que pode acessar seus fundos. Nenhum banco, nenhuma empresa, nenhuma agência — nem mesmo nosso time de suporte — consegue acessá-los.",
             "passkey": "Sua passkey biométrica é a sua chave para controle total e segurança. Se ela for perdida, não tem como recuperar, porque só você tem acesso.",
             "learnMore": "Saiba como manter sua passkey segura no <link>{platform}</link>.",
             "yourDevice": "seu dispositivo",

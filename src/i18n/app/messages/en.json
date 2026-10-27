@@ -3672,14 +3672,14 @@
             "cancelCta": "Cancel & Return Funds"
         },
         "balanceWarningModal": {
-            "title": "High Balance",
+            "title": "High balance",
             "congrats": "You're rich! Congrats on having a high balance.",
             "goodToKnow": "Good to know",
             "selfCustody": "With Peanut, you're the only one who can access your funds. No bank, no company, no agency — not even our support team — can ever access them.",
             "passkey": "Your biometric passkey is your key to full control and security. If it's lost, it can't be recovered because only you ever have access.",
             "learnMore": "Learn how to keep your passkey secure on <link>{platform}</link>.",
             "yourDevice": "your device",
-            "slideToContinue": "Slide to Continue"
+            "slideToContinue": "Slide to continue"
         },
         "guestLoginModal": {
             "title": "Sign in with Peanut Wallet",
