@@ -9,7 +9,7 @@ import {
     skipProofOfAddress,
     startPaperworkVerificationIdentity,
 } from '@/app/actions/kyc-paperwork-verification'
-import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-workflow'
+import { findKycDocumentPlan, getKycDocumentStatus, refreshKycIdentityStatus } from '@/app/actions/kyc-workflow'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { PaperworkVerificationFlow } from '../PaperworkVerificationFlow'
 import {
@@ -35,6 +35,7 @@ jest.mock('@/app/actions/kyc-paperwork-verification', () => ({
     skipProofOfAddress: jest.fn(async () => true),
 }))
 jest.mock('@/app/actions/kyc-workflow', () => ({
+    refreshKycIdentityStatus: jest.fn(async () => undefined),
     findKycDocumentPlan: jest.fn(),
     getKycDocumentStatus: jest.fn(),
 }))
@@ -64,6 +65,7 @@ const mockSave = saveKycAnswers as jest.MockedFunction<typeof saveKycAnswers>
 const mockToken = startPaperworkVerificationIdentity as jest.MockedFunction<typeof startPaperworkVerificationIdentity>
 const mockPlan = findKycDocumentPlan as jest.MockedFunction<typeof findKycDocumentPlan>
 const mockStatus = getKycDocumentStatus as jest.MockedFunction<typeof getKycDocumentStatus>
+const mockRefresh = refreshKycIdentityStatus as jest.MockedFunction<typeof refreshKycIdentityStatus>
 
 const plan = {
     available: true,
@@ -172,6 +174,7 @@ beforeEach(() => {
     })
     mockPlan.mockResolvedValue(plan)
     mockStatus.mockResolvedValue('NOT_STARTED')
+    mockRefresh.mockResolvedValue(undefined)
     mockQuestions.mockResolvedValue(build())
 })
 
@@ -455,6 +458,27 @@ describe('PaperworkVerificationFlow', () => {
         expect(mockToken).toHaveBeenCalledWith('attempt-1', { type: 'PASSPORT', issuingCountry: 'US' })
         fireEvent.click(await screen.findByText('sumsub-submit'))
         expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+        expect(screen.getByTestId('verify-steps')).toHaveAttribute('data-phase', 'review')
+        expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Get a secure review')
+        await waitFor(() => expect(mockRefresh).toHaveBeenCalled())
+        fireEvent.click(screen.getByTestId('verify-review-home'))
+        expect(mockPush).toHaveBeenCalledWith('/home')
+    })
+
+    // Slava, 2026-10-27: back from Home after the selfie, Verify restarted the questions and the ID.
+    it('a NOT_STARTED identity Sumsub already has in review opens on the review, not the questions', async () => {
+        mockStatus.mockResolvedValue('NOT_STARTED')
+        mockRefresh.mockResolvedValue('PENDING')
+        renderFlow()
+        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-steps-continue')).toBeNull()
+    })
+
+    it('a NOT_STARTED identity Sumsub has nothing for keeps the questions', async () => {
+        mockStatus.mockResolvedValue('NOT_STARTED')
+        mockRefresh.mockResolvedValue(undefined)
+        renderFlow()
+        expect(await screen.findByTestId('verify-steps-continue')).toBeInTheDocument()
     })
 
     // APK #5: the plan /verify read before the last answer had no documents for a taken-over applicant.
@@ -569,12 +593,14 @@ describe('PaperworkVerificationFlow', () => {
         await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
     })
 
-    it('an approved user lands on "Your ID is confirmed!", or on the proof-of-address suggestion', async () => {
+    it('an approved user lands on the finished timeline, or on the proof-of-address suggestion', async () => {
         mockStatus.mockResolvedValue('APPROVED')
         const { unmount } = renderFlow()
         expect(await screen.findByText('Your ID is confirmed!')).toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('verify-verified-home'))
-        expect(mockPush).toHaveBeenCalledWith('/home')
+        expect(screen.getByTestId('verify-steps')).toHaveAttribute('data-phase', 'verified')
+        expect(screen.queryByRole('listitem', { current: 'step' })).toBeNull()
+        fireEvent.click(screen.getByTestId('verify-verified-payments'))
+        expect(mockPush).toHaveBeenCalledWith('/profile/payments')
         unmount()
 
         mockPlan.mockResolvedValue({ ...plan, proofOfAddress: 'suggested', proofOfAddressReason: 'id_abroad' })

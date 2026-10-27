@@ -3857,7 +3857,10 @@
                 "selfie": "Take a quick selfie",
                 "review": "Get a secure review",
                 "unlock": "Unlock eligible payments",
-                "done": "Done"
+                "done": "Done",
+                "backHome": "Back to Home",
+                "setUpPayments": "Set up payments",
+                "verifiedNote": "Now choose how you want to pay and get paid."
             },
             "saved": {
                 "title": "Answers saved!",

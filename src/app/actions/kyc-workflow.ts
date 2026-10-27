@@ -31,6 +31,16 @@ async function read<T>(path: string, options?: RequestInit): Promise<T> {
     return response.json() as Promise<T>
 }
 const INVALID_PLAN = 'invalid_plan'
+const KNOWN_STATUSES = new Set([
+    'NOT_STARTED',
+    'PENDING',
+    'IN_REVIEW',
+    'REVERIFYING',
+    'APPROVED',
+    'ACTION_REQUIRED',
+    'REJECTED',
+    'FAILED',
+])
 
 export async function getKycDocumentPlan(restart = false): Promise<KycDocumentPlan> {
     const plan = await read<KycDocumentPlan>(`/users/kyc/plan${restart ? '?restart=true' : ''}`)
@@ -129,21 +139,24 @@ export async function resumeKycDocumentAttempt(attemptId: string) {
 export async function getKycDocumentStatus(): Promise<SumsubKycStatus | undefined> {
     const profile = await read<{ identity: { canonicalStatus: string } | null }>('/users/kyc/profile')
     const status = profile.identity?.canonicalStatus
-    if (
-        status &&
-        [
-            'NOT_STARTED',
-            'PENDING',
-            'IN_REVIEW',
-            'REVERIFYING',
-            'APPROVED',
-            'ACTION_REQUIRED',
-            'REJECTED',
-            'FAILED',
-        ].includes(status)
-    )
-        return status as SumsubKycStatus
-    return undefined
+    return status && KNOWN_STATUSES.has(status) ? (status as SumsubKycStatus) : undefined
+}
+
+/**
+ * Asks the API to read the applicant's status from Sumsub now, instead of
+ * waiting for the webhook. Right after the SDK the stored status can still say
+ * NOT_STARTED; undefined when there is nothing to refresh or the call failed.
+ */
+export async function refreshKycIdentityStatus(): Promise<SumsubKycStatus | undefined> {
+    try {
+        const { status } = await read<{ status: string | null }>('/users/kyc/identity/refresh', {
+            method: 'POST',
+            body: '{}',
+        })
+        return status && KNOWN_STATUSES.has(status) ? (status as SumsubKycStatus) : undefined
+    } catch {
+        return undefined
+    }
 }
 
 /** True when the current identity was verified through a verification attempt (Smart Paperwork Verification included). */
@@ -163,11 +176,15 @@ function attemptIdentity(profile: KycProfile): boolean {
  * features and the plan's refusals. Null for every other identity, and when
  * a read fails (the identity status then shows as before).
  */
-export async function findKycSetup(): Promise<{ features: KycFeatures; refusals: SetupRefusals } | null> {
+export async function findKycSetup(): Promise<{
+    features: KycFeatures
+    refusals: SetupRefusals
+    flow: KycDocumentPlan['flow']
+} | null> {
     try {
         const [profile, plan] = await Promise.all([read<KycProfile>('/users/kyc/profile'), getKycDocumentPlan()])
         return attemptIdentity(profile)
-            ? { features: plan.features, refusals: providerRefusalsOf(profile).refusals }
+            ? { features: plan.features, refusals: providerRefusalsOf(profile).refusals, flow: plan.flow }
             : null
     } catch {
         return null

@@ -32,6 +32,7 @@ jest.mock('@/app/actions/kyc-paperwork-verification', () => ({
     skipProofOfAddress: jest.fn(async () => true),
 }))
 jest.mock('@/app/actions/kyc-workflow', () => ({
+    refreshKycIdentityStatus: jest.fn(async () => undefined),
     findKycDocumentPlan: jest.fn(),
     getKycDocumentStatus: jest.fn(),
 }))

@@ -30,6 +30,7 @@ jest.mock('@/context/ModalsContext', () => ({
     useModalsContextOptional: () => undefined,
 }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ logoutUser: jest.fn() }) }))
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('../KYCStatusDrawerItem', () => ({
     KYCStatusDrawerItem: ({ status }: { status: string }) => <div data-testid={`status-${status}`} />,
 }))

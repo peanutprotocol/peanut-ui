@@ -3857,7 +3857,10 @@
                 "selfie": "Tómate una selfie rápida",
                 "review": "Recibe una revisión segura",
                 "unlock": "Desbloquea los pagos disponibles",
-                "done": "Listo"
+                "done": "Listo",
+                "backHome": "Volver al inicio",
+                "setUpPayments": "Configurar pagos",
+                "verifiedNote": "Ahora elige cómo quieres pagar y recibir pagos."
             },
             "saved": {
                 "title": "¡Respuestas guardadas!",

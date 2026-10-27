@@ -49,6 +49,7 @@ export function linkedToUkraine(
 }
 
 export const RESIDENCE_CHANGE_HREF = '/profile/accounts?open=residence'
+export const PAYMENT_METHODS_HREF = '/profile/payments'
 
 /** The server's next step when it names one, else the first one still open. */
 export function resumeStep(questions: PaperworkVerificationQuestions): PaperworkVerificationStepId | null {
