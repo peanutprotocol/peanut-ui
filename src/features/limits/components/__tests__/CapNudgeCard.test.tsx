@@ -15,6 +15,7 @@ import { act, screen, fireEvent, waitFor } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 import CapNudgeCard from '../CapNudgeCard'
+import { CapNudgeCtaContext } from '../../cap-nudge-cta-context'
 
 let mockRails: RailCapability[] = []
 let mockNextActions: NextAction[] = []
@@ -351,5 +352,43 @@ describe('CapNudgeCard', () => {
         mockNextActions = [reviewAction, raiseAction]
         render(<CapNudgeCard />)
         expect(screen.getByRole('button', { name: /verify income/i })).toBeInTheDocument()
+    })
+
+    describe('tells the limits page whether its CTA is on screen', () => {
+        const renderReporting = () => {
+            const report = jest.fn()
+            const view = render(
+                <CapNudgeCtaContext.Provider value={report}>
+                    <CapNudgeCard />
+                </CapNudgeCtaContext.Provider>
+            )
+            return { report, ...view }
+        }
+
+        test('reports the raise CTA, and withdraws it on unmount', () => {
+            mockRails = [mantecaRail({ hintActions: ['sumsub:source_of_funds'] })]
+            mockNextActions = [raiseAction]
+            const { report, unmount } = renderReporting()
+            expect(report).toHaveBeenLastCalledWith(true)
+            unmount()
+            expect(report).toHaveBeenLastCalledWith(false)
+        })
+
+        test('the review state reports no CTA', () => {
+            mockRails = [mantecaRail({ hintActions: ['manteca:limit-review'] })]
+            mockNextActions = [reviewAction]
+            const { report } = renderReporting()
+            expect(report).toHaveBeenLastCalledWith(false)
+            expect(report).not.toHaveBeenCalledWith(true)
+        })
+
+        test('a submitted document withdraws the CTA', async () => {
+            mockRails = [mantecaRail({ hintActions: ['sumsub:source_of_funds'] })]
+            mockNextActions = [raiseAction]
+            const { report } = renderReporting()
+            fireEvent.click(screen.getByRole('button', { name: /verify income/i }))
+            fireEvent.click(await screen.findByText('submit-document'))
+            await waitFor(() => expect(report).toHaveBeenLastCalledWith(false))
+        })
     })
 })

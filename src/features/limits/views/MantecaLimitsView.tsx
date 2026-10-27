@@ -19,6 +19,7 @@ import {
 } from '../utils'
 import { AttentionSlot } from '@/features/attention/AttentionSlot'
 import IncreaseLimitsButton from '../components/IncreaseLimitsButton'
+import { CapNudgeCtaContext } from '../cap-nudge-cta-context'
 import LimitsError from '../components/LimitsError'
 import LimitsDocsLink from '../components/LimitsDocsLink'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -33,6 +34,7 @@ const MantecaLimitsView = () => {
     const onBack = useSafeBack('/limits')
     const { mantecaLimits, isLoading, error, refetch, isRefetching } = useLimits()
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
+    const [capNudgeCtaShown, setCapNudgeCtaShown] = useState(false)
 
     return (
         <div className="flex min-h-inherit flex-col gap-6">
@@ -108,9 +110,11 @@ const MantecaLimitsView = () => {
                         </div>
                     </div>
 
-                    <AttentionSlot id="limits" />
+                    <CapNudgeCtaContext.Provider value={setCapNudgeCtaShown}>
+                        <AttentionSlot id="limits" />
+                    </CapNudgeCtaContext.Provider>
 
-                    <IncreaseLimitsButton />
+                    <IncreaseLimitsButton variant={capNudgeCtaShown ? 'secondary' : 'primary'} />
 
                     <LimitsDocsLink />
                 </>
