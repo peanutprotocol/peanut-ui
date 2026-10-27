@@ -4,7 +4,7 @@ import { UsEuAccountPair } from '../pages/UsEuAccountPair'
 import { UsEuAppLink } from '../pages/UsEuAppLink'
 
 const mockIntercept = jest.fn(() => true)
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }), useOptionalAuth: () => ({ user: null }) }))
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => true }))
 jest.mock('@/components/Migration/AppModalProvider', () => ({ useAppModal: () => mockIntercept }))
 

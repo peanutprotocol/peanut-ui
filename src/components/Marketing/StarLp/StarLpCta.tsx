@@ -3,7 +3,7 @@
 import { LandingAppLink } from '@/components/LandingPage/LandingAppLink'
 import { CTA_MOTION } from '@/components/Marketing/constants'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { useAuth } from '@/context/authContext'
+import { useOptionalAuth } from '@/context/authContext'
 import { COLOURED_GROUNDS } from './starLp.consts'
 import type { StarLpCtaProps } from './starLp.types'
 
@@ -22,7 +22,8 @@ export function StarLpCta({
     qrPlacement,
     surface = MIGRATION_SURFACES.STAR_LP,
 }: StarLpCtaProps) {
-    const { user } = useAuth()
+    // the homepage renders these with no AuthProvider above it: there every visitor gets the guest href
+    const user = useOptionalAuth()?.user
     const destination = user && signedInHref ? signedInHref : href
     return (
         <LandingAppLink

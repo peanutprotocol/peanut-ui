@@ -18,7 +18,7 @@ jest.mock('@/features/marketing-qr/consent', () => ({ marketingQrAnalyticsAllowe
 jest.mock('@/utils/migration.utils', () => ({ storeForDevice: () => null, openStore: jest.fn() }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key, useLocale: () => 'en' }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }), useOptionalAuth: () => ({ user: null }) }))
 jest.mock('@/components/LandingPage/LandingPageShell', () => ({ LandingPageShell: ({ children }: any) => children }))
 jest.mock('@/components/LandingPage/Footer', () => ({ __esModule: true, default: () => null }))
 jest.mock('../starLpFonts', () => ({ starLpKnerdFilled: { variable: '' }, starLpKnerdOutline: { variable: '' } }))

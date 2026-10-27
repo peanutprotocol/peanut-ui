@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useAppModal } from '@/components/Migration/AppModalProvider'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { useAuth } from '@/context/authContext'
+import { useOptionalAuth } from '@/context/authContext'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { twMerge } from '@/utils/tw'
 import type { UsEuAppLinkProps } from './usEuAccounts.types'
@@ -21,7 +21,8 @@ export function UsEuAppLink({
     className,
     surface = MIGRATION_SURFACES.STAR_LP,
 }: UsEuAppLinkProps) {
-    const { user } = useAuth()
+    // the homepage renders these with no AuthProvider above it: there every visitor gets the guest href
+    const user = useOptionalAuth()?.user
     const migrationOn = useMigrationFlag()
     const interceptAppCta = useAppModal()
     const destination = user && signedInHref ? signedInHref : href

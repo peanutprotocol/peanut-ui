@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { UsEuRequestStrips } from '../pages/UsEuRequestStrips'
 
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }), useOptionalAuth: () => ({ user: null }) }))
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('@/components/Migration/AppModalProvider', () => ({ useAppModal: () => () => false }))
 
