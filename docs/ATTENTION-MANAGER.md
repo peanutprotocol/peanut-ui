@@ -23,12 +23,12 @@ Tiers rank urgency among asks eligible at the same moment. Journey dependencies 
 
 | Tier | Who                                                                          | Interrupt budget                                             |
 | ---- | ---------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| 1    | terms, arrival in a new country, unprotected balance, verification due, half-done action, half-done card | any session                                                  |
-| 2    | the checklist (install, verify, add money, card, first payment), blocked card  | never (the download prompt opts into `session`)              |
-| 3    | repeat use                                                                   | one per session, none after a T1                             |
-| 4    | backup passkey, push, email, saved recipient                                 | one per session, none after a T1 (contextual moments later)  |
-| 5    | invite, rewards, profile, review, campaigns                                  | never                                                        |
-| 6    | announcements                                                                | only if the zone is idle, session ≥ 3, one per 7 days        |
+| 1    | install the app (web), maintenance banner, terms, arrival in a new country, unprotected balance, verification due, half-done action, half-done card | any session |
+| 2    | the checklist (verify, add money, first payment by card or QR), blocked card | never |
+| 3    | repeat use: a partner's document request, virtual account, QR payment and its ID check, card offer, next payment, share bank details, request money, send money; inline: verification deadline, limit cap | one per session, none after a T1 (no T3 ask opens by itself today) |
+| 4    | backup passkey, push, email                                                  | one per session, none after a T1 (contextual moments later)  |
+| 5    | user interview, invite, rewards, profile, bug bounty                         | never                                                        |
+| 6    | announcements (the early-user drawer)                                        | only if the zone is idle, session ≥ 3, one per 7 days        |
 
 ## Phases
 
@@ -37,7 +37,7 @@ Tiers rank urgency among asks eligible at the same moment. Journey dependencies 
 3. **Zone** (stacked on 2). One card, the manager's pick, through `AttentionZone` on Home (`zoneSurfaces.tsx`). The checklist until the first payment; after it, the next-best action with rotation: a T3+ card that held the zone three sessions in a row yields for one session (`pickWithFatigue`). The nine carousel slides became asks with one small card each (`surfaces/zone/`); the carousel and `useHomeCarouselCTAs` are gone. The zone holds (renders nothing) while a higher zone tier is still loading, so a lower card never flashes before the checklist. Legacy carousel closes are read into the ledger by slide id.
 4. **New asks** (stacked on 3). Nine cards, one file each in `surfaces/zone/`: virtual account, next payment, share bank details, request money, send money, backup passkey, add email, rewards, complete profile. Eligibility lives in `registry.ts`; copy in the four app locales under `home.carousel`. `GET /users/me` gained `passkeyCount` (peanut-api-ts); the balance warning is `done` at two credentials and the backup card shows at one. Not built: save a recipient and sync contacts, which have no feature behind them yet.
 5. **Server ledger** (stacked on 4; peanut-api-ts#1838). Every ledger entry carries `updatedAt`; a write mirrors the whole store to the profile (`ledgerSync.ts`, debounced 2 s, one call per quiet period, swallowed when offline). The profile's copy comes back on `/users/me` as `attention` and `readLedger` merges it with the device's copy per ask, newest `updatedAt` wins; the server merges the same way, so two devices agree and a stale device never erases a newer dismissal.
-6. **Push and email** (peanut-api-ts#1838). `decide.ts` is mirrored byte-for-byte into the API (`src/attention/`) and `types.ts` keeps every field `decide()` reads, with a server registry of the asks the server can judge from its own facts and a state builder that reads everything it cannot see as settled and quiet. `nextAttentionAsk` returns the one next action for a user the way Home would. `GET /users/me/attention` sends the ranking and the server's verdicts to the app, which uses them over its own. A server `show` waits as `pending` while the app cannot render the ask (`renderable`): the terms modal lists the documents from the app's own consent check. The lifecycle email job maps each step to its ask (verify / fund / first spend → the checklist, create card → the card offer, win back → next payment): a step the user dismissed or snoozed on the phone is held (`skip: 'attention'`), and a delivered email is recorded on the ledger as a show, so the phone's frequency rules see it. Completing a step needs no cancellation: the verdict is derived from state on both sides.
+6. **Push and email** (peanut-api-ts#1838). `decide.ts` is mirrored line for line into the API (its copy adds only a header comment) (`src/attention/`) and `types.ts` keeps every field `decide()` reads, with a server registry of the asks the server can judge from its own facts and a state builder that reads everything it cannot see as settled and quiet. `nextAttentionAsk` returns the one next action for a user the way Home would. `GET /users/me/attention` sends the ranking and the server's verdicts to the app, which uses them over its own. A server `show` waits as `pending` while the app cannot render the ask (`renderable`): the terms modal lists the documents from the app's own consent check. The lifecycle email job maps each step to its ask (verify / fund / create card / first spend → the checklist, since a card email reaches only verified users who have not paid yet; win back → next payment): a step the user dismissed or snoozed on the phone is held (`skip: 'attention'`), and a delivered email is recorded on the ledger as a show, so the phone's frequency rules see it. Completing a step needs no cancellation: the verdict is derived from state on both sides.
 
 ## Reading the trace
 
@@ -45,7 +45,7 @@ Tiers rank urgency among asks eligible at the same moment. Journey dependencies 
 
 ## Adding an ask
 
-One file in `asks/` (eligibility, policy, version) registered in `registry.ts`, a surface component taking `AskSurfaceProps` registered in `surfaces.tsx` (a parity test fails otherwise), and a row in `decide.test.ts` for every ask it can collide with. The component never decides whether to show; it renders visible when mounted and answers through the three callbacks.
+One entry in `registry.ts` (eligibility, policy, version) with its tier and rank in the API's `ASK_RANKING`, a surface component taking `AskSurfaceProps` in the matching surface map (`surfaces.tsx`, `zoneSurfaces.tsx`, `inlineSurfaces.tsx` or `bannerSurfaces.tsx`; a parity test fails otherwise), and a row in `decide.test.ts` for every ask it can collide with. The component never decides whether to show; it renders visible when mounted and answers through the three callbacks.
 
 
 ## Surfaces and presentation
