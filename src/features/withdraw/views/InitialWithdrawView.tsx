@@ -143,6 +143,7 @@ export default function InitialWithdrawView({
         setSelectedTokenAddress(token.address)
         setRecipient({ name: undefined, address })
         setIsValidRecipient(true)
+        setInputChanging(false)
         setError({ showError: false, errorMessage: '' })
         setNetworkUnconfirmed(false)
         setTronPickedBy(address)

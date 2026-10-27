@@ -48,16 +48,23 @@ jest.mock('@/components/Global/GeneralRecipientInput', () => ({
             >
                 set ENS recipient
             </button>
-            {/* what the input reports for a Tron address while an EVM network is selected */}
+            {/* what the input reports for a Tron address while an EVM network is selected:
+                the typing update first, then the failed EVM validation */}
             <button
-                onClick={() =>
+                onClick={() => {
+                    onUpdate({
+                        recipient: { name: undefined, address: 'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8' },
+                        isValid: false,
+                        isChanging: true,
+                        errorMessage: '',
+                    })
                     onUpdate({
                         recipient: { name: undefined, address: 'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8' },
                         isValid: false,
                         isChanging: false,
                         errorMessage: 'Enter a wallet address or an ENS name.',
                     })
-                }
+                }}
             >
                 paste Tron address
             </button>
