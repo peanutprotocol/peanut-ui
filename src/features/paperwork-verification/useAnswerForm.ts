@@ -9,7 +9,7 @@ import type {
     PaperworkVerificationStep,
     PaperworkVerificationStepId,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
-import { forgetSavedAnswers, keepAnswerDraft, readAnswerDraft, withAnswerDraft } from './answerDraft'
+import { draftResidenceOf, forgetSavedAnswers, keepAnswerDraft, readAnswerDraft, withAnswerDraft } from './answerDraft'
 import { initialValues, stepPayload, withEmploymentStatus } from './paperworkVerification.utils'
 
 export type AnswerFormError =
@@ -85,10 +85,12 @@ export function useAnswerForm(
     /** what a background save of these steps came back with */
     returned?: { errors?: Record<string, string>; formError?: AnswerFormError; message?: string }
 ) {
-    const userId = useOptionalAuth()?.user?.user.userId
+    const user = useOptionalAuth()?.user
+    const userId = user?.user.userId
+    const declared = draftResidenceOf(user)
     const [values, setValues] = useState<PaperworkVerificationAnswers>(() => {
         const fields = steps.flatMap((s) => s.fields)
-        return withAnswerDraft(initialValues(fields, residence), fields, readAnswerDraft(userId))
+        return withAnswerDraft(initialValues(fields, residence), fields, readAnswerDraft(userId, declared))
     })
     const [errors, setErrors] = useState<Record<string, string>>(() => returned?.errors ?? {})
     const [formError, setFormErrorState] = useState<AnswerFormError | null>(() => returned?.formError ?? null)
@@ -110,7 +112,8 @@ export function useAnswerForm(
             const job = key === 'employmentStatus' && fields.some((f) => f.key === 'occupation')
             keepAnswerDraft(
                 userId,
-                job ? { [key]: value, occupation: update(values).occupation ?? '' } : { [key]: value }
+                job ? { [key]: value, occupation: update(values).occupation ?? '' } : { [key]: value },
+                declared
             )
             setErrors((current) => {
                 if (!(key in current)) return current
@@ -119,7 +122,7 @@ export function useAnswerForm(
             })
             setFormError(null)
         },
-        [steps, userId, values, setFormError]
+        [steps, userId, declared, values, setFormError]
     )
 
     const save = useCallback(
