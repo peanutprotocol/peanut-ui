@@ -5,7 +5,6 @@ import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { STAR_LP_SKY_CLOUDS, STAR_LP_SKY_CLOUDS_CLASS } from '@/components/Marketing/StarLp/starLp.consts'
 import { UsEuAccountPair } from '@/components/Marketing/StarLp/pages/UsEuAccountPair'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { HOME_LOCKUP_LINE_CLASS } from './homeFolds.consts'
 import type { HomeGetPaidFoldProps } from './homeFolds.types'
 
 /**
@@ -21,11 +20,12 @@ export function HomeGetPaidFold({ strings }: HomeGetPaidFoldProps) {
         <Band ground="sky" id="home-get-paid">
             <CloudsCss clouds={[...STAR_LP_SKY_CLOUDS]} className={STAR_LP_SKY_CLOUDS_CLASS} />
             <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
-                <h2>
-                    <DisplayLine className={HOME_LOCKUP_LINE_CLASS}>{strings.lead}</DisplayLine>
+                {/* the star LPs' mid-page lockup: centred, the Knerd at hero size, "and" in small Roboto */}
+                <h2 className="text-center">
+                    <DisplayLine>{strings.lead}</DisplayLine>
                     {/* the margin clears the Knerd's ink, which rises above its line box */}
-                    <span className="mt-4 block md:mt-6 lg:mt-8">
-                        <KnerdTitle text={strings.knerd} size="compact" align="start" />
+                    <span className="mt-6 block md:mt-10 lg:mt-14">
+                        <KnerdTitle text={strings.knerd} size="hero" join={strings.join} />
                     </span>
                 </h2>
                 {/* Art, as in the star-LP hero: its link is out of the tab order and the close CTA is the

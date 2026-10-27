@@ -4,8 +4,8 @@ import type { HomeCardStrings } from '../homeCard.types'
 
 const STRINGS: HomeCardStrings = {
     lockup: 'Peanut Card',
-    knerd: 'In dollars',
-    line: 'Spend your Peanut balance with a virtual Visa card.',
+    knerd: 'In\ndollars',
+    line: 'Spend your Peanut balance with a Visa Platinum card.',
     cta: 'Get your card',
     receiptTitle: 'Card purchase',
     receiptApproved: 'Approved',

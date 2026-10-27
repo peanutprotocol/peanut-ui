@@ -1,6 +1,6 @@
 import { type Translations } from '@/i18n/types'
 import type { HomeCardStrings } from './homeCard.types'
-import type { HomeGetPaidStrings, HomePayLocalStrings, HomeRequestStrings } from './homeFolds.types'
+import type { HomeGetPaidStrings, HomePayLocalStrings, HomeRequestStrings, HomeSeamStrings } from './homeFolds.types'
 import type { HomeHingeStrings } from './homeHinge.types'
 import type { HomePersonaStrings } from './landing.types'
 
@@ -26,12 +26,16 @@ export interface LandingStrings {
     hinge: HomeHingeStrings
     card: HomeCardStrings
     payLocal: HomePayLocalStrings
-    /** First word of the ticker under the card fold; "Mercado Pago" and "Pix" follow it. */
-    seamCard: string
-    /** First words of the ticker over the trust band; "USD" and "EUR" follow them. */
-    seamPasskey: string
-    /** The black trust band. "\n" marks the line break from xs. */
-    trustLine: string
+    /** The restored zero-transfer-fees fold (noFees). */
+    zeroFees: string
+    reallyZero: string
+    noHiddenFees: string
+    seeMarkupOn: string
+    sendMoney: string
+    /** The wall of love's h2. */
+    wallOfLove: string
+    /** Marquee words for each seam a pink, sky or yellow fold touches. */
+    seams: HomeSeamStrings
     faqFootnote: string
     /** The closing Knerd title. "\n" between its lines. */
     closeTitle: string
@@ -50,6 +54,9 @@ export interface LandingStrings {
     }
 }
 
+/** A catalog's seam words arrive as one string, "\n" between the words. */
+const seamWords = (words: string): string[] => words.split('\n')
+
 export function landingStrings(i18n: Translations): LandingStrings {
     return {
         signUp: i18n.landingSignUp,
@@ -67,6 +74,7 @@ export function landingStrings(i18n: Translations): LandingStrings {
         getPaid: {
             lead: i18n.landingGetPaidLead,
             knerd: i18n.landingGetPaidKnerd,
+            join: i18n.landingGetPaidKnerdJoin,
         },
         personas: {
             heading: i18n.landingPersonasHeading,
@@ -103,9 +111,25 @@ export function landingStrings(i18n: Translations): LandingStrings {
             argentina: i18n.landingPayLocalArgentina,
             brazil: i18n.landingPayLocalBrazil,
         },
-        seamCard: i18n.landingSeamCard,
-        seamPasskey: i18n.landingSeamPasskey,
-        trustLine: i18n.landingTrustLine,
+        zeroFees: i18n.landingZeroFees,
+        reallyZero: i18n.landingReallyZero,
+        noHiddenFees: i18n.landingNoHiddenFees,
+        seeMarkupOn: i18n.landingSeeMarkupOn,
+        sendMoney: i18n.sendMoney,
+        wallOfLove: i18n.landingWallOfLove,
+        seams: {
+            accounts: seamWords(i18n.landingSeamAccounts),
+            personas: seamWords(i18n.landingSeamPersonas),
+            link: seamWords(i18n.landingSeamLink),
+            balance: seamWords(i18n.landingSeamBalance),
+            card: seamWords(i18n.landingSeamCard),
+            passkey: seamWords(i18n.landingSeamPasskey),
+            accountFees: seamWords(i18n.landingSeamAccountFees),
+            transferFees: seamWords(i18n.landingSeamTransferFees),
+            faq: seamWords(i18n.landingSeamFaq),
+            close: seamWords(i18n.landingSeamClose),
+            footer: seamWords(i18n.landingSeamFooter),
+        },
         faqFootnote: i18n.landingFaqFootnote,
         closeTitle: i18n.landingCloseTitle,
         exchange: {

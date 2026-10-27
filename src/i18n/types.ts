@@ -101,6 +101,7 @@ export interface Translations {
     // Landing page — home folds (c1-v3 "Balance hinge")
     landingGetPaidLead: string
     landingGetPaidKnerd: string // "\n" between the Knerd lines
+    landingGetPaidKnerdJoin: string // the small Roboto word inside landingGetPaidKnerd ("and")
     landingPersonasHeading: string
     landingPersonaDesignerWho: string
     landingPersonaDesignerLine: string
@@ -117,17 +118,39 @@ export interface Translations {
     landingHingeMoneyIn: string
     landingHingeScreenLabel: string // "… {balance} … {eur}, {usdIn} … {merchant}: {ars}, {usdOut}."
     landingCardLockup: string // brand name, the same in every locale
-    landingCardKnerd: string
+    landingCardKnerd: string // "\n" between the Knerd lines
     landingCardLine: string
     landingCardGetYourCard: string
     landingCardReceiptTitle: string
     landingCardReceiptApproved: string
-    landingSeamCard: string
+    landingSeamCard: string // marquee words, "\n" between them
     landingPayLocalLead: string // "… {argentina} … {brazil} …", each slot becomes a link
     landingPayLocalArgentina: string
     landingPayLocalBrazil: string
+    landingSecurityHeading: string
+    landingSecurityTotalTitle: string
+    landingSecurityTotalDesc: string
+    landingSecurityControlTitle: string
+    landingSecurityControlDesc: string
+    landingSecurityHelpTitle: string
+    landingSecurityHelpDesc: string
+    landingTalkToSupport: string
+    landingZeroFees: string
+    landingReallyZero: string // uppercase; the last word gets the scribble circle
+    landingNoHiddenFees: string // uppercase
+    landingSeeMarkupOn: string
+    landingWallOfLove: string
+    // Marquee words for the home's seams, "\n" between the words
     landingSeamPasskey: string
-    landingTrustLine: string // "\n" marks the line break from xs
+    landingSeamAccounts: string
+    landingSeamPersonas: string
+    landingSeamLink: string
+    landingSeamBalance: string
+    landingSeamAccountFees: string
+    landingSeamTransferFees: string
+    landingSeamFaq: string
+    landingSeamClose: string
+    landingSeamFooter: string
     landingFaqFootnote: string
     landingCloseTitle: string // "\n" between the Knerd lines
 

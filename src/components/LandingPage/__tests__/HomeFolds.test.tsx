@@ -2,6 +2,7 @@ import { render } from '@testing-library/react'
 import { getTranslations } from '@/i18n'
 import { SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
 import { HomeFolds } from '../HomeFolds'
+import { EN_LANDING_CONTENT_HREFS } from '../landingContentHrefs'
 import { landingStrings } from '../landingStrings'
 
 let cardFoldDisabled = false
@@ -14,6 +15,12 @@ jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('@/components/Migration/AppModalProvider', () => ({ useAppModal: () => () => false }))
 jest.mock('@/features/marketing-qr/consent', () => ({ marketingQrAnalyticsAllowed: () => false }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
+// The rate widget fetches live rates; the fold around it is what these tests cover.
+jest.mock('@/components/Global/ExchangeRateWidget', () => ({
+    __esModule: true,
+    default: () => <div data-testid="rates" />,
+}))
 jest.mock('react-qr-code', () => ({
     __esModule: true,
     default: ({ value }: { value: string }) => <div data-testid="qr" data-value={value} />,
@@ -29,6 +36,7 @@ function renderHome(locale: Locale = 'en') {
         <HomeFolds
             locale={locale}
             strings={landingStrings(getTranslations(locale))}
+            contentHrefs={EN_LANDING_CONTENT_HREFS}
             faqItems={FAQ_ITEMS}
             closeCta={{ label: 'Sign up', href: '/setup' }}
         />
@@ -42,7 +50,7 @@ describe('HomeFolds', () => {
         cardFoldDisabled = false
     })
 
-    it('renders the folds in the c1-v3 order', () => {
+    it('renders the folds in the round-2 order', () => {
         const { container } = renderHome()
         expect(foldIds(container)).toEqual([
             'home-get-paid',
@@ -50,25 +58,50 @@ describe('HomeFolds', () => {
             'home-balance',
             'peanut-card',
             'home-pay-local',
+            'security',
+            'no-fees',
+            'wall-of-love',
             'faq',
             'home-close',
         ])
     })
 
-    it('has the two tickers of the design: card/QR under the card fold, passkey over the trust band', () => {
+    it('puts a ticker on every seam: each fold is followed by one, the close by the last before the footer', () => {
         const { container } = renderHome()
-        const tickers = container.querySelectorAll('.star-lp-marquee')
-        expect(tickers).toHaveLength(2)
-        expect(tickers[0].previousElementSibling?.id).toBe('peanut-card')
-        expect(tickers[1].previousElementSibling?.id).toBe('home-pay-local')
+        const children = Array.from(container.children)
+        const tickers = children.filter((el) => el.classList.contains('star-lp-marquee'))
+        // eleven folds (the persona fold has no id), so eleven seams below them, the footer seam included
+        expect(tickers).toHaveLength(11)
+        children.forEach((el, i) => {
+            if (!el.classList.contains('star-lp-marquee')) {
+                expect(children[i + 1]?.classList.contains('star-lp-marquee')).toBe(true)
+            }
+        })
+        expect(children.at(-1)?.classList.contains('star-lp-marquee')).toBe(true)
     })
 
-    it('drops the card fold and its ticker when the kill switch is on', () => {
+    it('drops the card fold and its ticker when the kill switch is on, keeping a ticker on the new seam', () => {
         cardFoldDisabled = true
         const { container } = renderHome()
         expect(container.querySelector('#peanut-card')).toBeNull()
-        expect(container.querySelectorAll('.star-lp-marquee')).toHaveLength(1)
-        expect(foldIds(container)).toContain('home-pay-local')
+        expect(container.querySelectorAll('.star-lp-marquee')).toHaveLength(10)
+        const payLocal = container.querySelector('#home-pay-local')!
+        expect(payLocal.previousElementSibling?.classList.contains('star-lp-marquee')).toBe(true)
+    })
+
+    it('has no black trust band: the security fold carries trust', () => {
+        const { container } = renderHome()
+        expect(container.textContent).not.toMatch(/can't freeze/i)
+    })
+
+    it('shows real posts only, each linking to its post on X', () => {
+        const { container } = renderHome()
+        const posts = Array.from(container.querySelectorAll('#wall-of-love a'))
+        expect(posts).toHaveLength(6)
+        for (const a of posts) {
+            expect(a.getAttribute('href')).toMatch(/^https:\/\/x\.com\/\w+\/status\/\d+$/)
+            expect(a).toHaveAttribute('rel', 'noopener noreferrer')
+        }
     })
 
     it('emits one FAQPage JSON-LD, from the FAQ fold', () => {

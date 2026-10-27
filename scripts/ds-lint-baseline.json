@@ -3,7 +3,7 @@
     "rawHexFiles": 3,
     "inlineStyle": 22,
     "stockTextSize": 0,
-    "dsTextScale": 1571,
+    "dsTextScale": 1582,
     "legacyTextScale": 0,
     "nonDsClassesInViews": 6,
     "useSearchParamsFiles": 34,
@@ -14,7 +14,7 @@
     "consumedUndefinedTokens": 0,
     "classNameSitesInPages": 117,
     "fontWeightOnTypeToken": 26,
-    "offScaleSpacing": 65,
+    "offScaleSpacing": 67,
     "iconOffScale": 44,
     "offScaleRadius": 16,
     "rawDuration": 1,
@@ -147,6 +147,11 @@
             "date": "2026-10-19",
             "metrics": ["offScaleSpacing 81 -> 82"],
             "reason": "/dev/ds/marketing Landing shows the real band padding py-16 md:py-24 in its copyable snippet (design.md § marketing → layout: 64 mobile / 96 desktop); one documented sample, not a new call site"
+        },
+        {
+            "date": "2026-10-27",
+            "metrics": ["offScaleSpacing 65 -> 67"],
+            "reason": "home round 2 restores the production zero-transfer-fees fold (noFees.tsx from dev). offScaleSpacing 65 -> 67: its lettering's pt-[0.23em] and gap-[0.19em] set the scribble circle and the glove hands in em so they track the lettering size, geometry tied to the type, not box rhythm. Both counted on dev before this branch removed the fold."
         }
     ]
 }

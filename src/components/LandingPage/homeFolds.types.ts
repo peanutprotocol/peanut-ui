@@ -1,11 +1,13 @@
 import type { Locale } from '@/i18n/types'
 
-/** f2: the h2 "Get paid from" over the Knerd "US and\nEurope". */
+/** f2: the h2 "Get paid from" over the Knerd "US\nand Europe". */
 export interface HomeGetPaidStrings {
     /** Roboto line of the h2, e.g. "Get paid from". */
     lead: string
-    /** Knerd lines of the h2, "\n" between them, e.g. "US and\nEurope". */
+    /** Knerd lines of the h2, "\n" between them, e.g. "US\nand Europe". */
     knerd: string
+    /** The small Roboto word inside `knerd`, e.g. "and". */
+    join: string
 }
 
 export interface HomeGetPaidFoldProps {
@@ -55,4 +57,19 @@ export interface HomePayLocalLeadProps {
     lead: string
     names: { argentina: string; brazil: string }
     hrefs: { argentina: string; brazil: string }
+}
+
+/** Marquee words per seam, named by the fold above the strip (footer = under the close). */
+export interface HomeSeamStrings {
+    accounts: string[]
+    personas: string[]
+    link: string[]
+    balance: string[]
+    card: string[]
+    passkey: string[]
+    accountFees: string[]
+    transferFees: string[]
+    faq: string[]
+    close: string[]
+    footer: string[]
 }

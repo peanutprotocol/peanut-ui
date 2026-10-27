@@ -24,6 +24,8 @@ describe('landing content href overrides', () => {
             stablecoinBalanceVisaMerchants: '/en/blog/stablecoin-balance-visa-merchants',
             help: '/es-ar/help',
             depositBank: '/es-419/help/deposit-bank',
+            wiseComparison: '/es-ar/compare/peanut-vs-wise',
+            paypalComparison: '/es-419/compare/peanut-vs-paypal',
             securityDisclosure: '/es-419/help/security-disclosure',
         }
 

@@ -43,8 +43,8 @@ export interface KnerdTitleProps {
     size: KnerdSize
     /** A decoration Title anchors on one word (the close fold's circled word). */
     mark?: TitleMark
-    /** 'start' sets each line flush left, for a lockup under a left-aligned Roboto line. Centred by default. */
-    align?: 'center' | 'start'
+    /** A small Roboto word inside the lockup, e.g. "and" in "US\nand Europe" (Title's `join`). */
+    join?: string
 }
 
 export interface KnerdPullHeadlineProps {

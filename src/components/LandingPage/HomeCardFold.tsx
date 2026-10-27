@@ -7,7 +7,6 @@ import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { PeanutCardHeroFace } from '@/components/Marketing/StarLp/pages/PeanutCardHeroFace'
 import { STAR_LP_ROUTES } from '@/components/Marketing/StarLp/starLp.consts'
 import { HomeCardReceipt } from './HomeCardReceipt'
-import { HOME_LOCKUP_LINE_CLASS } from './homeFolds.consts'
 import type { HomeCardFoldProps } from './homeCard.types'
 
 /**
@@ -20,7 +19,7 @@ export function HomeCardFold({ strings, locale }: HomeCardFoldProps) {
     return (
         <Band ground="pink" id="peanut-card">
             <div className="grid items-center gap-12 md:grid-cols-2">
-                <div className="grid justify-items-start gap-6">
+                <div className="grid justify-items-center gap-6 text-center">
                     {/* in flow, so the sparkle stays over the title at every width and in every locale */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -32,9 +31,11 @@ export function HomeCardFold({ strings, locale }: HomeCardFoldProps) {
                         className="pointer-events-none w-9"
                     />
                     {/* the gap clears the Knerd's ink, accents included ("DÓLARES"), which rises above its line box */}
-                    <h2 className="grid gap-6 md:gap-8 lg:gap-10">
-                        <DisplayLine className={HOME_LOCKUP_LINE_CLASS}>{strings.lockup}</DisplayLine>
-                        <KnerdTitle text={strings.knerd} size="compact" align="start" />
+                    <h2>
+                        <DisplayLine>{strings.lockup}</DisplayLine>
+                        <span className="mt-6 block md:mt-10 lg:mt-14">
+                            <KnerdTitle text={strings.knerd} size="hero" />
+                        </span>
                     </h2>
                     <p className="text-body-l">{strings.line}</p>
                     <Button

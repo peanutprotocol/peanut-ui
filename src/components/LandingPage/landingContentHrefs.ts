@@ -15,6 +15,8 @@ export const EN_LANDING_CONTENT_HREFS = {
     stablecoinBalanceVisaMerchants: '/en/blog/stablecoin-balance-visa-merchants',
     help: '/en/help',
     depositBank: '/en/help/deposit-bank',
+    wiseComparison: '/en/compare/peanut-vs-wise',
+    paypalComparison: '/en/compare/peanut-vs-paypal',
     securityDisclosure: '/en/help/security-disclosure',
 }
 

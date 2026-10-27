@@ -17,21 +17,12 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
 
     const contentHrefs = contentHrefsFor(locale)
 
-    /*
-     * Only some answers have a single article worth linking. The named ids are
-     * the new four-question FAQ; the numbered ones keep the current content
-     * file's FAQ linked until it is replaced, then they go.
-     */
+    // Only some answers have a single article worth linking.
     const learnMoreHrefs: Record<string, string> = {
         'who-can-pay': contentHrefs.depositBank,
         cost: contentHrefs.feesPricing,
         'local-bank': contentHrefs.supportedGeographies,
-        freeze: contentHrefs.securityCustody,
-        '1': contentHrefs.whatAreDigitalDollars,
-        '2': contentHrefs.verification,
-        '3': contentHrefs.passkeys,
-        '4': contentHrefs.securityCustody,
-        '5': contentHrefs.feesPricing,
+        custody: contentHrefs.securityCustody,
     }
     const faqItems = faqData.questions.map((question) => ({
         ...question,
@@ -53,6 +44,7 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                         <HomeFolds
                             locale={locale}
                             strings={strings}
+                            contentHrefs={contentHrefs}
                             faqItems={faqItems}
                             closeCta={{ label: heroConfig.primaryCta.label, href: heroConfig.primaryCta.href }}
                         />
