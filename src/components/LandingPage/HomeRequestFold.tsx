@@ -1,0 +1,33 @@
+import { CloudsCss } from '@/components/LandingPage/CloudsCss'
+import { Band } from '@/components/Marketing/StarLp/Band'
+import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
+import { STAR_LP_SKY_CLOUDS, STAR_LP_SKY_CLOUDS_CLASS } from '@/components/Marketing/StarLp/starLp.consts'
+import { UsEuRequestStrips } from '@/components/Marketing/StarLp/pages/UsEuRequestStrips'
+import type { HomeRequestFoldProps } from './homeFolds.types'
+
+/**
+ * f4: someone already on Peanut pays by request link. The us-europe-accounts
+ * request strips without the "where do I pay you?" beat. The home fold has no
+ * CTA, so the strips render unlinked: no focusable link sits inside their
+ * aria-hidden art. From md the strips take the first column and the title the
+ * second; stacked, the title comes first.
+ */
+export function HomeRequestFold({ strings }: HomeRequestFoldProps) {
+    return (
+        <Band ground="sky" id="home-request">
+            <CloudsCss clouds={[...STAR_LP_SKY_CLOUDS]} className={STAR_LP_SKY_CLOUDS_CLASS} />
+            <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
+                <SectionTitle className="md:order-last">
+                    {/* one flowing title on phones; from md each sentence starts its own line */}
+                    <span className="md:block">{strings.question}</span>{' '}
+                    <span className="md:block">{strings.action}</span>
+                </SectionTitle>
+                <UsEuRequestStrips
+                    linked={false}
+                    // the strips fill {username}, {main}, {payer} and {amount} themselves
+                    labels={{ requesting: strings.requesting, paid: strings.paid, chatLabel: strings.chatLabel }}
+                />
+            </div>
+        </Band>
+    )
+}

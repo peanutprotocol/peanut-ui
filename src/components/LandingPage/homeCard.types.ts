@@ -1,0 +1,24 @@
+import type { Locale } from '@/i18n/types'
+
+/** Copy for the Peanut Card fold (f6). */
+export interface HomeCardStrings {
+    /** "Peanut Card": the brand name, the same in every locale */
+    lockup: string
+    /** "In dollars", the Knerd line under the lockup */
+    knerd: string
+    /** "Spend your Peanut balance with a virtual Visa card." */
+    line: string
+    /** "Get your card" */
+    cta: string
+    /** "Card purchase", the receipt's kicker */
+    receiptTitle: string
+    /** "Approved", beside the green tick */
+    receiptApproved: string
+}
+
+export interface HomeCardFoldProps {
+    strings: HomeCardStrings
+    locale: Locale
+}
+
+export type HomeCardReceiptProps = HomeCardFoldProps
