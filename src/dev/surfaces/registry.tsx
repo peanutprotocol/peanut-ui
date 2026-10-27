@@ -75,7 +75,7 @@ import ConfirmWithdrawView from '@/features/withdraw/views/ConfirmWithdrawView'
 import { WithdrawAmountView } from '@/features/withdraw/views/WithdrawAmountView'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import NotFoundScreen from '@/components/Global/NotFoundScreen'
-import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
+import { GuestPaymentMethodActionList } from './GuestPaymentMethodActionList'
 import { RequestPotActionList } from '@/features/payments/flows/contribute-pot/components/RequestPotActionList'
 import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
@@ -878,7 +878,7 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['79-f-choice-direct-send'],
         render: () => (
             <div className="flex min-h-dvh w-full flex-col justify-center p-4">
-                <PaymentMethodActionList isAmountEntered />
+                <GuestPaymentMethodActionList isAmountEntered />
             </div>
         ),
     },
@@ -886,7 +886,7 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['80-f-choice-semantic-request'],
         render: () => (
             <div className="flex min-h-dvh w-full flex-col justify-center p-4">
-                <PaymentMethodActionList isAmountEntered onPayWithExternalWallet={noop} />
+                <GuestPaymentMethodActionList isAmountEntered onPayWithExternalWallet={noop} />
             </div>
         ),
     },

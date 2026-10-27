@@ -190,6 +190,7 @@ export interface JourneyState {
     geoCountry: string | null
     invitesSent: number
     hasSupportSurvivorBadge: boolean
+    /** `geoProhibited`: the nav's card gate hides the card (a prohibited country or a card-restricted residence) */
     cardOffer: { loaded: boolean; geoProhibited: boolean; hasCardRelationship: boolean; promotionDisabled: boolean }
     qr: {
         canPayNow: boolean

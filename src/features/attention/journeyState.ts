@@ -10,6 +10,7 @@ import { QrKycState } from '@/constants/kyc.consts'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useCardInfo } from '@/hooks/useCardInfo'
+import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useArrivalPrompt } from '@/features/home/useArrivalPrompt'
@@ -305,15 +306,17 @@ export function useJourneyState(): JourneyState {
         isCardEligible,
     ])
 
+    // the offer follows the nav's card gate (TASK-23017): a card-restricted residence hides it too
+    const { showCardSurface } = useCardSurfaceAccess()
     const cardOffer = useMemo<JourneyState['cardOffer']>(
         () => ({
             // a failed request (retries spent) settles as loaded: no card offer, instead of a placeholder that never resolves
             loaded: !cardInfoLoading && (cardInfo !== undefined || !!cardInfoError),
-            geoProhibited: !!cardInfo?.geoProhibited,
+            geoProhibited: !showCardSurface,
             hasCardRelationship: rails.some((rail) => channelOf(rail) === 'card'),
             promotionDisabled: cardPromotionDisabled,
         }),
-        [cardInfoLoading, cardInfo, cardInfoError, rails, channelOf, cardPromotionDisabled]
+        [cardInfoLoading, cardInfo, cardInfoError, showCardSurface, rails, channelOf, cardPromotionDisabled]
     )
 
     const capNudge = useMemo(
