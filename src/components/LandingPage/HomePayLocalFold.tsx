@@ -12,7 +12,7 @@ import { homePayLocalHrefs } from './homePayLocal.utils'
 
 /**
  * f7: the Mercado Pago and Pix till stickers inside the app's scanner frame
- * (no scan line: review), beside "Pay like a local." Each sticker and its
+ * (one scan and a detected pulse), beside "Pay like a local." Each sticker and its
  * country caption lead to that country's QR page (the English star LP on
  * the English home, the localized pay-with page elsewhere). The sticker lines stay in
  * the till's language in every locale. Art first from md; stacked, the title
@@ -29,7 +29,7 @@ export function HomePayLocalFold({ strings, locale }: HomePayLocalFoldProps) {
                         <HomePayLocalLead lead={strings.lead} names={strings} hrefs={hrefs} />
                     </p>
                 </div>
-                <QrArgentinaScanFrame scanLine={false} className="mt-0 w-fit p-4 md:w-fit lg:p-6 xl:p-8">
+                <QrArgentinaScanFrame className="mt-0 w-fit p-4 md:w-fit lg:p-6 xl:p-8">
                     <div className="flex items-start gap-3 xs:gap-4 lg:gap-6 xl:gap-8">
                         <Link
                             href={hrefs.argentina}

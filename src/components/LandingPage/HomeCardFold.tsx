@@ -1,6 +1,8 @@
 import Sparkle from '@/assets/illustrations/sparkle.svg'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CTA_MOTION } from '@/components/Marketing/constants'
+import { PopIn } from '@/components/Marketing/StarLp/PopIn'
+import { DropIn } from '@/components/Marketing/StarLp/DropIn'
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { PeanutCardHeroFace } from '@/components/Marketing/StarLp/pages/PeanutCardHeroFace'
 import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
@@ -46,12 +48,16 @@ export function HomeCardFold({ strings, locale }: HomeCardFoldProps) {
                     </Button>
                 </div>
                 <div aria-hidden className="grid justify-items-center">
-                    <div className="w-full max-w-sm -rotate-6 md:max-w-md">
+                    <PopIn tilt={-6} className="w-full max-w-sm md:max-w-md">
                         <PeanutCardHeroFace />
-                    </div>
-                    <div className="relative z-10 -mt-16 w-full max-w-64 -rotate-2 justify-self-start md:-mt-20">
+                    </PopIn>
+                    <DropIn
+                        delay={0.3}
+                        tilt={-2}
+                        className="relative z-10 -mt-16 w-full max-w-64 justify-self-start md:-mt-20"
+                    >
                         <HomeCardReceipt strings={strings} locale={locale} />
-                    </div>
+                    </DropIn>
                 </div>
             </div>
         </Band>

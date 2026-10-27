@@ -17,7 +17,7 @@ import { WallOfLoveCard } from './WallOfLoveCard'
  * Under reduced motion the stack unfolds and every post shows, still.
  */
 const POST =
-    'flex [grid-area:1/1] motion-safe:transition-[opacity,translate,visibility] motion-safe:duration-slow motion-safe:ease-out data-[shown=false]:invisible data-[shown=false]:translate-y-2 data-[shown=false]:opacity-0 motion-reduce:[grid-area:auto]! motion-reduce:visible! motion-reduce:translate-y-0! motion-reduce:opacity-100!'
+    'flex [grid-area:1/1] motion-safe:transition-[opacity,translate,visibility] motion-safe:duration-moderate motion-safe:ease-spring data-[shown=false]:invisible data-[shown=false]:translate-y-2 data-[shown=false]:opacity-0 motion-reduce:[grid-area:auto]! motion-reduce:visible! motion-reduce:translate-y-0! motion-reduce:opacity-100!'
 
 /**
  * Real posts about Peanut as white sticker cards on pink, three at a time (a

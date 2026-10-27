@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import MercadoPagoIcon from '@/assets/payment-apps/mercado-pago.svg'
+import { StorySequence } from '@/components/Marketing/StarLp/StorySequence'
 import { PhoneFrame } from '@/components/Marketing/StarLp/PhoneFrame'
 import { QR_AR_MERCHANT, QR_AR_PRICE_ARS } from '@/components/Marketing/StarLp/pages/qrArgentina.consts'
 import { US_EU_EUR_IN } from '@/components/Marketing/StarLp/pages/usEuAccounts.consts'
@@ -33,21 +34,29 @@ export function HomeBalanceScreen({ strings, locale }: HomeBalanceScreenProps) {
             <p className="mt-2 text-center text-body-xs text-foreground-secondary">{strings.balance}</p>
             <p className="font-roboto-flex-extrabold text-center text-heading-l tabular-nums">{balance}</p>
             <p className="mt-2 text-body-xs text-foreground-secondary">{strings.activity}</p>
-            <HomeBalanceActivityRow
-                icon="€"
-                title={strings.moneyIn}
-                detail={`${HOME_SEPA_RAIL} · ${eur}`}
-                amount={usdIn}
-                tone="in"
-                stacked={stacked}
-            />
-            <HomeBalanceActivityRow
-                icon={<Image src={MercadoPagoIcon} alt="" width={24} height={24} className="size-6" />}
-                title={QR_AR_MERCHANT}
-                detail={`${HOME_QR_RAIL} · ${ars}`}
-                amount={usdOut}
-                tone="out"
-                stacked={stacked}
+            <StorySequence
+                className="grid gap-2"
+                stepMs={700}
+                beats={[
+                    <HomeBalanceActivityRow
+                        key="incoming"
+                        icon="€"
+                        title={strings.moneyIn}
+                        detail={`${HOME_SEPA_RAIL} · ${eur}`}
+                        amount={usdIn}
+                        tone="in"
+                        stacked={stacked}
+                    />,
+                    <HomeBalanceActivityRow
+                        key="outgoing"
+                        icon={<Image src={MercadoPagoIcon} alt="" width={24} height={24} className="size-6" />}
+                        title={QR_AR_MERCHANT}
+                        detail={`${HOME_QR_RAIL} · ${ars}`}
+                        amount={usdOut}
+                        tone="out"
+                        stacked={stacked}
+                    />,
+                ]}
             />
         </PhoneFrame>
     )

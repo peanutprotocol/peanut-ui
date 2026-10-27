@@ -8,6 +8,7 @@ import Image from 'next/image'
 import ExchangeRateWidget from '../Global/ExchangeRateWidget'
 import { useRouter } from 'next/navigation'
 import { Band } from '@/components/Marketing/StarLp/Band'
+import { PopIn } from '@/components/Marketing/StarLp/PopIn'
 import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { PROSE_WIDTH } from '@/components/Marketing/constants'
 import { ContextualLinks } from './ContextualLinks'
@@ -95,7 +96,9 @@ export function NoFees({
                     "ZERO" instead of "Zero transfer fees"); screen readers and heading lists
                     still hear what is zero. */}
                 <h2 className="mb-4 md:mb-6">
-                    <KnerdTitle text={strings.zeroFees} size="display" />
+                    <PopIn as="span" className="inline-block">
+                        <KnerdTitle text={strings.zeroFees} size="display" />
+                    </PopIn>
                     <span className="sr-only"> {strings.zeroFeesSr}</span>
                 </h2>
 

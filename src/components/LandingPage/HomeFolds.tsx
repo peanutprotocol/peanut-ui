@@ -7,6 +7,7 @@ import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { WALL_OF_LOVE_POSTS } from '@/constants/tweets.consts'
 import { singletonLocaleFor } from '@/lib/content'
+import { HomeMotionBoundary } from './HomeMotionBoundary'
 import { HomeCardFold } from './HomeCardFold'
 import { HomeCardGate } from './HomeCardGate'
 import { HomeGetPaidFold } from './HomeGetPaidFold'
@@ -29,7 +30,7 @@ import type { HomeFoldsProps } from './homePage.types'
 export function HomeFolds({ locale, strings, contentHrefs, faqItems, closeCta }: HomeFoldsProps) {
     const { seams } = strings
     return (
-        <>
+        <HomeMotionBoundary>
             <HomeGetPaidFold strings={strings.getPaid} />
             <StarLpMarquee between={['sky', 'yellow']} words={seams.accounts} />
             <HomePersonaFold strings={strings.personas} />
@@ -87,6 +88,6 @@ export function HomeFolds({ locale, strings, contentHrefs, faqItems, closeCta }:
                 }
             />
             <StarLpMarquee between={['pink', 'black']} words={seams.footer} />
-        </>
+        </HomeMotionBoundary>
     )
 }
