@@ -230,7 +230,7 @@ function TypedFields({
                 value={values[field.key] ?? ''}
                 onChange={(e) => onChange(field.key, e.target.value)}
                 onBlur={() => onFieldBlur?.(field.key)}
-                state={error ? 'error' : 'default'}
+                aria-invalid={error ? true : undefined}
                 aria-describedby={error ? `${inputId}-error` : undefined}
                 aria-required={field.required || undefined}
                 enterKeyHint="next"
@@ -368,7 +368,7 @@ function TypedFields({
                             enterKeyHint: 'done',
                             maxLength: 30,
                             onChange: (e) => onChange(f.key, formatTaxId(taxFormat, e.target.value)),
-                            state: itin || errorText(f.key) ? 'error' : 'default',
+                            'aria-invalid': itin || errorText(f.key) ? true : undefined,
                         }),
                     itin ? undefined : t(`tax.help.${taxFormat ?? 'other'}` as never)
                 )}

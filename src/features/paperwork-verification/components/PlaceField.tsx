@@ -126,7 +126,7 @@ export function PlaceField({
                 disabled={!country}
                 autoFocus={autoFocus}
                 placeholder={country ? t('placeholder') : t('countryFirst')}
-                state={invalid ? 'error' : 'default'}
+                aria-invalid={invalid || undefined}
                 value={value}
                 onChange={(event) => {
                     onChange(event.target.value)

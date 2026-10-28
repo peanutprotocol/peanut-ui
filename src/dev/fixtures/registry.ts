@@ -2685,6 +2685,32 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'The hub: one euro account held, the rest open to claim, every country below.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
+    'profile-details': {
+        route: '/profile/details',
+        about: 'Profile details for a verified Portuguese resident: the name and answers read live from Sumsub, the address and tax number kept only there.',
+        responses: {
+            'GET /users/me': PROFILE_ACCOUNTS_MIX['GET /users/me'],
+            'GET /users/kyc/details': {
+                name: { first: 'Ana', last: 'Teste' },
+                citizenship: 'PT',
+                idNationality: 'PRT',
+                document: { country: 'PRT', type: 'PASSPORT' },
+                heldBySumsub: ['address', 'taxId'],
+                stored: {
+                    dateOfBirth: '1990-05-14',
+                    countryOfBirth: 'PT',
+                    cityOfBirth: 'Lisboa',
+                    phone: '+351912345678',
+                    occupation: 'software_developer_applications',
+                    employmentStatus: 'employed',
+                    annualSalary: '25k_50k',
+                    expectedMonthlyVolume: '1k_5k',
+                    cardPurpose: 'personal_spending',
+                    sourceOfFunds: 'salary',
+                },
+            },
+        },
+    },
     'profile-accounts': {
         route: '/profile/accounts',
         about: 'Accounts page, a Portuguese resident: EUR held; in the fold USD opens, GBP is not offered where they live, MXN could not be checked (no verdict), COP needs verification.',

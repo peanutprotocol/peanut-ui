@@ -197,7 +197,7 @@ function RestartSteps({ plan, onExit }: { plan: KycDocumentPlan; onExit: () => v
                 <StepsScreen
                     phase="review"
                     hasQuestions={false}
-                    onBack={() => router.push('/home')}
+                    onBack={onExit}
                     onContinue={() => router.push('/home')}
                 />
             ) : (

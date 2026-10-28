@@ -36,6 +36,12 @@
         "source": "Setup/Views/Residence.tsx"
     },
     {
+        "id": "03-b-residence-compare",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-b-residence-compare",
+        "source": "Setup/components/ResidenceCompare.tsx"
+    },
+    {
         "id": "04-b-advantage-fees",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=04-b-advantage-fees",
@@ -1777,6 +1783,11 @@
         "id": "fixture-avatar-picker",
         "flow": "Profile and settings",
         "route": "/profile?avatarPicker=true"
+    },
+    {
+        "id": "fixture-profile-details",
+        "flow": "Profile and settings",
+        "route": "/profile/details"
     },
     {
         "id": "fixture-profile-accounts",

@@ -21,7 +21,6 @@ export const PROFILE_DETAILS_QUERY_KEY = ['kyc-details'] as const
 
 // What verification collected, in the page's order, by theme.
 const IDENTITY_ROWS = ['citizenship', 'dateOfBirth', 'countryOfBirth', 'cityOfBirth'] as const
-const CONTACT_ROWS = ['phone', 'address', 'taxId'] as const
 const MONEY_ROWS = [
     'occupation',
     'employmentStatus',
@@ -34,7 +33,11 @@ const MONEY_ROWS = [
     'actingAsIntermediary',
 ] as const
 const PERSONAL_ROWS = ['sex', 'maritalStatus', 'isPep', 'isFatca', 'isFep'] as const
-type DetailRow = (typeof IDENTITY_ROWS | typeof CONTACT_ROWS | typeof MONEY_ROWS | typeof PERSONAL_ROWS)[number]
+type DetailRow =
+    | (typeof IDENTITY_ROWS | typeof MONEY_ROWS | typeof PERSONAL_ROWS)[number]
+    | 'phone'
+    | 'address'
+    | 'taxId'
 
 const skeleton = 'animate-pulse rounded-full bg-foreground-primary/10 motion-reduce:animate-none'
 
