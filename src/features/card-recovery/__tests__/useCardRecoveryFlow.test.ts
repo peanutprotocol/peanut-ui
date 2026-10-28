@@ -38,7 +38,6 @@ const validPreview = {
     dustWei: '0',
     recipient: '0xabc',
     hasRecoverableCard: true,
-    autoBalanceEnabled: false,
 }
 
 const prep = {

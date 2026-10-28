@@ -19,11 +19,19 @@ import CancelCardModal from '@/components/Card/CancelCardModal'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import LockCardModal from '@/components/Card/LockCardModal'
 import { shouldShowAutoRenewBanner, daysUntilExpiry } from '@/components/Card/cardExpiry.utils'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useCardReveal } from '@/hooks/useCardReveal'
 import { usePushProvisioning } from '@/hooks/usePushProvisioning'
 import { useWalletPlatform } from '@/hooks/useWalletPlatform'
-import { cardBalanceDueCents } from '@/utils/balance.utils'
-import type { RainCardOverview, RainCardSummary } from '@/services/rain'
+import { useCardCollateralReturn } from '@/hooks/wallet/useCardCollateralReturn'
+import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@/context/authContext'
+import { useCardFundingAccess } from '@/hooks/useCardFundingAccess'
+import { RAIN_CARD_FUNDING_QUERY_KEY } from '@/hooks/useCardStopConfirmation'
+import type { CollateralReturnFailure } from '@/hooks/wallet/cardCollateralReturn'
+import { cardBalanceDueCents, isRainBalanceKnown } from '@/utils/balance.utils'
+import { rainApi, type RainCardFunding, type RainCardOverview, type RainCardSummary } from '@/services/rain'
+import type { StopAttempt } from '@/hooks/useCardStopConfirmation'
 
 type CardAction = 'lock' | 'unlock' | 'cancel'
 
@@ -31,6 +39,8 @@ interface Props {
     overview: RainCardOverview
     card: RainCardSummary
     onPrev?: () => void
+    /** Lock/cancel/unlock report their wallet stop here, to the page that outlives this screen. */
+    onStopAttempt?: (attempt: StopAttempt | null) => void
 }
 
 const COPIED_MESSAGE_KEY: Record<CopyableCardField, 'cardNumberCopied' | 'expiryCopied' | 'cvvCopied'> = {
@@ -39,8 +49,24 @@ const COPIED_MESSAGE_KEY: Record<CopyableCardField, 'cardNumberCopied' | 'expiry
     cvv: 'cvvCopied',
 }
 
-const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
+// A dismissed passkey is not an error.
+const RETURN_ERROR_KEY: Record<
+    CollateralReturnFailure,
+    'moveFailed' | 'movePending' | 'moveWait' | 'moveBalanceUnavailable' | 'moveBusy' | null
+> = {
+    'balance-unavailable': 'moveBalanceUnavailable',
+    pending: 'movePending',
+    cooldown: 'moveWait',
+    cancelled: null,
+    'account-changed': 'moveFailed',
+    busy: 'moveBusy',
+    failed: 'moveFailed',
+}
+
+const YourCardScreen: FC<Props> = ({ overview, card, onPrev, onStopAttempt }) => {
     const t = useTranslations('card.yourCard')
+    const tCommon = useTranslations('common')
+    const { setIsSupportModalOpen } = useModalsContext()
     const router = useRouter()
     const [autoRenewDismissed, setAutoRenewDismissed] = useState(false)
     const [action, setAction] = useState<CardAction | null>(null)
@@ -54,6 +80,10 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
         id: card.id,
         last4: card.last4,
     })
+    const { returnCollateral, isReturning, lastError: lastReturnError } = useCardCollateralReturn()
+    const { user } = useAuth()
+    const userId = user?.user?.userId
+    const { access: fundingAccess } = useCardFundingAccess()
 
     const handleAddToWallet = useCallback(async () => {
         if (isAdding) return
@@ -72,6 +102,33 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     const showAutoRenew = !autoRenewDismissed && shouldShowAutoRenewBanner(card.expiryMonth, card.expiryYear)
     const daysLeft = daysUntilExpiry(card.expiryMonth, card.expiryYear)
     const balanceDueCents = cardBalanceDueCents(overview.balance?.spendingPower)
+    // On the existing card permission the card balance is topped up
+    // automatically, so it is not offered back here. A managed account sees
+    // what is left, and can move it once managed funding is ready.
+    const isManaged = fundingAccess?.fundingMode === 'managed'
+    const { data: funding } = useQuery<RainCardFunding>({
+        queryKey: [RAIN_CARD_FUNDING_QUERY_KEY, userId],
+        queryFn: () => rainApi.getCardFunding(),
+        enabled: isManaged && !!userId,
+        staleTime: 30_000,
+        retry: false,
+    })
+    const collateralCents = isManaged ? Math.max(0, Math.floor(overview.balance?.spendingPower ?? 0)) : 0
+    // Offered only on a fresh provider figure; the return reads it again anyway.
+    const canMoveCollateral =
+        collateralCents > 0 &&
+        funding?.management.status === 'ready' &&
+        isRainBalanceKnown(overview) &&
+        !overview.balanceUnavailable
+    const returnErrorKey = lastReturnError ? RETURN_ERROR_KEY[lastReturnError.kind] : null
+
+    // Moves the card balance to this wallet. Never locks, cancels or grants.
+    const handleMoveToWallet = useCallback(() => {
+        if (isReturning) return
+        void returnCollateral().catch(() => {
+            // shown from `lastReturnError`
+        })
+    }, [isReturning, returnCollateral])
 
     const handleCopy = useCallback(
         (_value: string, field: CopyableCardField) => {
@@ -109,6 +166,32 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                     <GoogleWalletButton isAdding={isAdding} onClick={() => void handleAddToWallet()} />
                 ) : null)}
 
+            {/* Card payments come from the wallet; older collateral cannot pay them.
+                The note and its action leave only once a refreshed read shows none. */}
+            {collateralCents > 0 && (
+                <Callout
+                    priority="helper"
+                    data-testid="card-collateral"
+                    ctas={
+                        canMoveCollateral
+                            ? [
+                                  {
+                                      label: isReturning ? t('movingToWallet') : t('moveToWallet'),
+                                      onClick: handleMoveToWallet,
+                                  },
+                              ]
+                            : undefined
+                    }
+                >
+                    {t('cardFundsCollateral', { amount: `$${(collateralCents / 100).toFixed(2)}` })}
+                </Callout>
+            )}
+            {returnErrorKey && (
+                <Callout priority="error" data-testid="card-collateral-error">
+                    {t(returnErrorKey)}
+                </Callout>
+            )}
+
             {showAutoRenew && (
                 <Callout priority="attention" title={t('autoRenewTitle')} onDismiss={() => setAutoRenewDismissed(true)}>
                     {t('autoRenewBody', { days: daysLeft })}
@@ -119,6 +202,7 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 <Callout
                     priority="attention"
                     title={t('balanceDueTitle', { amount: `$${(balanceDueCents / 100).toFixed(2)}` })}
+                    ctas={[{ label: tCommon('contactSupport'), onClick: () => setIsSupportModalOpen(true) }]}
                 >
                     {t('balanceDueBody')}
                 </Callout>
@@ -201,8 +285,14 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 mode={action === 'unlock' ? 'unlock' : 'lock'}
                 isOpen={action === 'lock' || action === 'unlock'}
                 onClose={closeAction}
+                onStopAttempt={onStopAttempt}
             />
-            <CancelCardModal cardId={card.id} isOpen={action === 'cancel'} onClose={closeAction} />
+            <CancelCardModal
+                cardId={card.id}
+                isOpen={action === 'cancel'}
+                onClose={closeAction}
+                onStopAttempt={onStopAttempt}
+            />
         </PageStack>
     )
 }

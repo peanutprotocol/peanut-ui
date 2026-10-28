@@ -172,6 +172,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "previewClass": "bg-background-surface-helper"
     },
     {
+        "name": "background-skeleton",
+        "value": "color-mix(in oklab, var(--color-foreground-primary) 10%, transparent)",
+        "section": "semantic",
+        "previewClass": "bg-background-skeleton"
+    },
+    {
         "name": "background-badge-attention",
         "value": "#ffe6b3",
         "section": "semantic",

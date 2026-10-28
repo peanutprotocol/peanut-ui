@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import Modal from '@/components/Global/Modal'
-import { Icon } from '@/components/Global/Icons/Icon'
+import VerificationFrameHeader from '@/components/Global/VerificationFrameHeader'
 import Loading from '@/components/Global/Loading'
 import { SumsubSdkErrorView } from './SumsubSdkErrorView'
 import { SumsubHelpModal } from './SumsubHelpModal'
@@ -31,7 +31,6 @@ export const SumsubWebSdkModal = ({
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
     const [modalVariant, setModalVariant] = useState<SumsubHelpModalVariant>('trouble')
     const t = useTranslations('kyc')
-    const tCommon = useTranslations('common')
 
     const { sdkLoadError, setSdkContainer, hasSubmittedRef } = useSumsubWebSdk({
         visible,
@@ -77,27 +76,13 @@ export const SumsubWebSdkModal = ({
                     <SumsubSdkErrorView onClose={onClose} message={t('wrapper.loadError')} />
                 ) : (
                     <div className="flex h-full flex-col">
-                        <div className="flex items-center justify-between px-4 py-2">
-                            <button
-                                type="button"
-                                aria-label={tCommon('contactSupport')}
-                                onClick={() => {
-                                    setModalVariant('trouble')
-                                    setIsHelpModalOpen(true)
-                                }}
-                                className="relative flex items-center gap-1 p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
-                            >
-                                <Icon name="peanut-support" size={20} className="text-foreground-secondary" />
-                            </button>
-                            <button
-                                type="button"
-                                aria-label={tCommon('close')}
-                                onClick={handleCloseButton}
-                                className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
-                            >
-                                <Icon name="cancel" size={24} />
-                            </button>
-                        </div>
+                        <VerificationFrameHeader
+                            onSupport={() => {
+                                setModalVariant('trouble')
+                                setIsHelpModalOpen(true)
+                            }}
+                            onClose={handleCloseButton}
+                        />
                         <div className="relative w-full flex-1">
                             {/* sits behind the SDK iframe — covered once it paints */}
                             <div className="absolute inset-0 flex items-center justify-center">

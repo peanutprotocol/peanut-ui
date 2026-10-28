@@ -3378,6 +3378,7 @@
                         "name": "starting_after",
                         "required": false,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     },
@@ -3386,6 +3387,7 @@
                         "name": "ending_before",
                         "required": false,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     },
@@ -10471,6 +10473,15 @@
                 }
             }
         },
+        "/healthz/memory": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/healthz/mobula": {
             "get": {
                 "responses": {
@@ -13537,7 +13548,7 @@
                                                         "description": "The invitee's picked avatar, or null when they picked none or lost the badge behind it."
                                                     },
                                                     "contributedPoints": {
-                                                        "description": "Estimated points contributed to the inviter (directPoints × the current-era multiplier).",
+                                                        "description": "Estimated points contributed to the inviter (directPoints \u00d7 the current-era multiplier).",
                                                         "type": "number"
                                                     },
                                                     "directPoints": {
@@ -13784,9 +13795,6 @@
                                                         "creditLimit": {
                                                             "type": "number"
                                                         },
-                                                        "inTransitToCollateralCents": {
-                                                            "type": "number"
-                                                        },
                                                         "pendingCharges": {
                                                             "type": "number"
                                                         },
@@ -13802,8 +13810,7 @@
                                                         "pendingCharges",
                                                         "postedCharges",
                                                         "balanceDue",
-                                                        "spendingPower",
-                                                        "inTransitToCollateralCents"
+                                                        "spendingPower"
                                                     ],
                                                     "type": "object"
                                                 }
@@ -14238,6 +14245,12 @@
                                                         "paperwork_verification_required"
                                                     ],
                                                     "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "CARD_APP_UPDATE_REQUIRED"
+                                                    ],
+                                                    "type": "string"
                                                 }
                                             ]
                                         },
@@ -14287,95 +14300,6 @@
                                         "status",
                                         "code",
                                         "message"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
-        "/rain/cards/auto-balance/approve": {
-            "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "cardLimit": {
-                                        "minimum": 0,
-                                        "type": "number"
-                                    },
-                                    "serializedApproval": {
-                                        "minLength": 1,
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "serializedApproval"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "ok": {
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "code": {
-                                            "type": "string"
-                                        },
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "code": {
-                                            "type": "string"
-                                        },
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
                                     ],
                                     "type": "object"
                                 }
@@ -14546,6 +14470,935 @@
                         "description": "Default Response"
                     },
                     "502": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/rain/cards/funding": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "allowance": {
+                                            "type": "string"
+                                        },
+                                        "chainId": {
+                                            "type": "string"
+                                        },
+                                        "management": {
+                                            "properties": {
+                                                "migration": {
+                                                    "anyOf": [
+                                                        {
+                                                            "properties": {
+                                                                "invalidateNonceFloor": {
+                                                                    "type": "number"
+                                                                },
+                                                                "uninstall": {
+                                                                    "items": {
+                                                                        "properties": {
+                                                                            "deinitData": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "validationId": {
+                                                                                "type": "string"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "validationId",
+                                                                            "deinitData"
+                                                                        ],
+                                                                        "type": "object"
+                                                                    },
+                                                                    "type": "array"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "uninstall",
+                                                                "invalidateNonceFloor"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "reason": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "required"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "migration_required"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "pending"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "ready"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "temporarily_unavailable"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
+                                                "stop": {
+                                                    "anyOf": [
+                                                        {
+                                                            "properties": {
+                                                                "cause": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "enum": [
+                                                                                "card_locked"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "card_canceled"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "card_action_pending"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "paused"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "state": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "enum": [
+                                                                                "pending"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "confirmed"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "unavailable"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "cause",
+                                                                "state"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "status",
+                                                "reason",
+                                                "migration",
+                                                "stop"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "permission": {
+                                            "properties": {
+                                                "authorizationText": {
+                                                    "type": "string"
+                                                },
+                                                "ceiling": {
+                                                    "type": "string"
+                                                },
+                                                "scopeVersion": {
+                                                    "type": "number"
+                                                },
+                                                "termsVersion": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "scopeVersion",
+                                                "ceiling",
+                                                "termsVersion",
+                                                "authorizationText"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "sessionKeyAddress": {
+                                            "type": "string"
+                                        },
+                                        "spenderAddress": {
+                                            "type": "string"
+                                        },
+                                        "tokenAddress": {
+                                            "type": "string"
+                                        },
+                                        "walletAddress": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "chainId",
+                                        "tokenAddress",
+                                        "spenderAddress",
+                                        "walletAddress",
+                                        "allowance",
+                                        "sessionKeyAddress",
+                                        "permission",
+                                        "management"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/rain/cards/funding/access": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "enrollmentAllowed": {
+                                            "type": "boolean"
+                                        },
+                                        "fundingMode": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "legacy"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "managed"
+                                                    ],
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "fundingMode",
+                                        "enrollmentAllowed"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/rain/cards/funding/enroll": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "consent": {
+                                        "properties": {
+                                            "authorizationAccepted": {
+                                                "type": "boolean"
+                                            },
+                                            "authorizationText": {
+                                                "maxLength": 256,
+                                                "type": "string"
+                                            },
+                                            "termsVersion": {
+                                                "maxLength": 64,
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [
+                                            "termsVersion",
+                                            "authorizationAccepted",
+                                            "authorizationText"
+                                        ],
+                                        "type": "object"
+                                    }
+                                },
+                                "required": [
+                                    "consent"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "enrollmentAllowed": {
+                                            "type": "boolean"
+                                        },
+                                        "fundingMode": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "legacy"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "managed"
+                                                    ],
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "fundingMode",
+                                        "enrollmentAllowed"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/rain/cards/funding/grant": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "consent": {
+                                        "properties": {
+                                            "authorizationAccepted": {
+                                                "type": "boolean"
+                                            },
+                                            "authorizationText": {
+                                                "maxLength": 256,
+                                                "type": "string"
+                                            },
+                                            "termsVersion": {
+                                                "maxLength": 64,
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": [
+                                            "termsVersion",
+                                            "authorizationAccepted",
+                                            "authorizationText"
+                                        ],
+                                        "type": "object"
+                                    },
+                                    "serializedPermission": {
+                                        "maxLength": 32768,
+                                        "minLength": 1,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "serializedPermission",
+                                    "consent"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "202": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "allowance": {
+                                            "type": "string"
+                                        },
+                                        "chainId": {
+                                            "type": "string"
+                                        },
+                                        "management": {
+                                            "properties": {
+                                                "migration": {
+                                                    "anyOf": [
+                                                        {
+                                                            "properties": {
+                                                                "invalidateNonceFloor": {
+                                                                    "type": "number"
+                                                                },
+                                                                "uninstall": {
+                                                                    "items": {
+                                                                        "properties": {
+                                                                            "deinitData": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "validationId": {
+                                                                                "type": "string"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "validationId",
+                                                                            "deinitData"
+                                                                        ],
+                                                                        "type": "object"
+                                                                    },
+                                                                    "type": "array"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "uninstall",
+                                                                "invalidateNonceFloor"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "reason": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "required"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "migration_required"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "pending"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "ready"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "temporarily_unavailable"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
+                                                "stop": {
+                                                    "anyOf": [
+                                                        {
+                                                            "properties": {
+                                                                "cause": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "enum": [
+                                                                                "card_locked"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "card_canceled"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "card_action_pending"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "paused"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "state": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "enum": [
+                                                                                "pending"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "confirmed"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "unavailable"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "cause",
+                                                                "state"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "status",
+                                                "reason",
+                                                "migration",
+                                                "stop"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "permission": {
+                                            "properties": {
+                                                "authorizationText": {
+                                                    "type": "string"
+                                                },
+                                                "ceiling": {
+                                                    "type": "string"
+                                                },
+                                                "scopeVersion": {
+                                                    "type": "number"
+                                                },
+                                                "termsVersion": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "scopeVersion",
+                                                "ceiling",
+                                                "termsVersion",
+                                                "authorizationText"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "sessionKeyAddress": {
+                                            "type": "string"
+                                        },
+                                        "spenderAddress": {
+                                            "type": "string"
+                                        },
+                                        "tokenAddress": {
+                                            "type": "string"
+                                        },
+                                        "walletAddress": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "chainId",
+                                        "tokenAddress",
+                                        "spenderAddress",
+                                        "walletAddress",
+                                        "allowance",
+                                        "sessionKeyAddress",
+                                        "permission",
+                                        "management"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -14813,9 +15666,6 @@
                                         "amountWei": {
                                             "type": "string"
                                         },
-                                        "autoBalanceEnabled": {
-                                            "type": "boolean"
-                                        },
                                         "collateralProxy": {
                                             "type": "string"
                                         },
@@ -14835,7 +15685,6 @@
                                         "amountWei",
                                         "amountCents",
                                         "dustWei",
-                                        "autoBalanceEnabled",
                                         "hasRecoverableCard"
                                     ],
                                     "type": "object"
@@ -15474,7 +16323,49 @@
                         },
                         "description": "Default Response"
                     },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
                     "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -15586,6 +16477,203 @@
                         "description": "Default Response"
                     },
                     "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/rain/cards/withdraw/status/{preparationId}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "preparationId",
+                        "required": true,
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "chainId": {
+                                            "type": "string"
+                                        },
+                                        "expiresAt": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "number"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "preparationId": {
+                                            "type": "string"
+                                        },
+                                        "reason": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "not_submitted"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "submission_held"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "confirming"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "verification_unavailable"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "needs_reconciliation"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "receipt_confirmed"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "reverted"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "rejected"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "not_executed"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "cancelled"
+                                                    ],
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "state": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "pending"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "completed"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "failed"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "cancelled"
+                                                    ],
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "txHash": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "preparationId",
+                                        "state",
+                                        "reason",
+                                        "chainId",
+                                        "txHash",
+                                        "expiresAt"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -15841,9 +16929,6 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
-                                    "autoBalanceEnabled": {
-                                        "type": "boolean"
-                                    },
                                     "cardLimit": {
                                         "maximum": 2147483647,
                                         "minimum": 1,
@@ -16000,6 +17085,217 @@
                 ],
                 "responses": {
                     "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "fundingStop": {
+                                            "anyOf": [
+                                                {
+                                                    "properties": {
+                                                        "reason": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "type": "null"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "state": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "resumed"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "kept"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "none"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "state",
+                                                        "reason"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "status": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "fundingStop"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "410": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "502": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }
@@ -16094,6 +17390,210 @@
                 },
                 "responses": {
                     "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "fundingStop": {
+                                            "properties": {
+                                                "reason": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "state": {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "pending"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "unavailable"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "not_applicable"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "state",
+                                                "reason"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "status": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "fundingStop"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "410": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "502": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }
@@ -16519,6 +18019,210 @@
                 },
                 "responses": {
                     "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "fundingStop": {
+                                            "properties": {
+                                                "reason": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "state": {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "pending"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "unavailable"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "not_applicable"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "state",
+                                                "reason"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "status": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "fundingStop"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "410": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "502": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }
@@ -25723,6 +27427,62 @@
                 }
             }
         },
+        "/users/kyc/identity/refresh": {
+            "post": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "status"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "502": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "enum": [
+                                                "provider_unavailable"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error",
+                                        "code"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/users/kyc/paperwork": {
             "get": {
                 "responses": {
@@ -28025,8 +29785,17 @@
                                                     "fields": {
                                                         "items": {
                                                             "properties": {
+                                                                "checks": {
+                                                                    "items": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "type": "array"
+                                                                },
                                                                 "countryField": {
                                                                     "type": "string"
+                                                                },
+                                                                "everyStatus": {
+                                                                    "type": "boolean"
                                                                 },
                                                                 "format": {
                                                                     "anyOf": [

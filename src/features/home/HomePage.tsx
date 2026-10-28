@@ -4,6 +4,7 @@ import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Loading from '@/components/Global/Loading'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
+import FundingSetupPrompt from '@/components/Home/FundingSetupPrompt'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import HomeHistory from '@/components/Home/HomeHistory'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
@@ -74,7 +75,9 @@ export function HomePage() {
                     onToggleVisibility={toggleBalanceVisibility}
                 />
                 <div className="flex flex-col gap-2">
+                    {/* each shows only for its own funding setup path, so at most one appears */}
                     <EnableAutoBalanceBanner />
+                    <FundingSetupPrompt />
                     <PendingVerificationTasks
                         placement="home"
                         prioritizeIdentityRestart={prioritizeIdentityRestart}
