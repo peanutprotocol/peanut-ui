@@ -26227,6 +26227,40 @@
                                         "available": {
                                             "type": "boolean"
                                         },
+                                        "documentRefusals": {
+                                            "additionalProperties": {
+                                                "items": {
+                                                    "anyOf": [
+                                                        {
+                                                            "enum": [
+                                                                "qr"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "local"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "card"
+                                                            ],
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "enum": [
+                                                                "bank"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
+                                                "type": "array"
+                                            },
+                                            "type": "object"
+                                        },
                                         "features": {
                                             "additionalProperties": false,
                                             "properties": {
@@ -26493,6 +26527,7 @@
                                         "proofOfAddress",
                                         "proofOfAddressReason",
                                         "proofOfAddressIdCountries",
+                                        "documentRefusals",
                                         "temporaryProtection"
                                     ],
                                     "type": "object"
