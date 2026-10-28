@@ -23,7 +23,8 @@ const WEBAUTHN_RETRY_CONFIG = {
 }
 
 const IOS_LOGIN_RECOVERY_DELAY_MS = 250
-const IOS_AUTHORIZATION_FAILED = /AuthenticationServices\.AuthorizationError error 1004/
+// The word between the class and the code is localised: "error 1004" (en), "1004)" (es), "erro 1004" (pt).
+const IOS_AUTHORIZATION_FAILED = /AuthenticationServices\.AuthorizationError\D{0,12}1004\b/
 
 type IOSLoginRetryReason = 'authorization_failed' | 'verification_rejected'
 
@@ -203,16 +204,18 @@ export function getPasskeySetupKey(code: PasskeyErrorCode): PasskeyErrorSetupKey
  * zerodev's toWebAuthnKey reads passkey-server responses with no HTTP-status
  * check, so a non-2xx surfaces as a raw TypeError thrown from deep inside the
  * SDK. Two shapes, two meanings:
- * - `.replace is not a function` / `evaluating 'e.replace'`: /login/options
- *   returned an error body and @simplewebauthn's base64url decoder got no
- *   challenge. Nothing was authenticated and nothing is known about this
- *   device's passkey, so it must not classify as LOGIN_ERROR (whose handler
- *   wipes the session).
+ * - `.replace is not a function` / `evaluating 'e.replace'` (WebKit) and
+ *   `reading 'replace'` / `reading 'challenge'` (V8): /login/options or
+ *   /register/options returned an error body and @simplewebauthn's base64url
+ *   decoder got no challenge. Nothing was authenticated and nothing is known
+ *   about this device's passkey, so it must not classify as LOGIN_ERROR (whose
+ *   handler wipes the session).
  * - `…verification.verified`: /login/verify rejected this device's assertion
  *   (PEANUT-UI-R0V). That is a real login failure; it keeps the LOGIN_ERROR
  *   path, just with a readable message.
  */
-const PASSKEY_SERVER_TYPE_ERROR = /\.replace is not a function|evaluating '[^']*\.replace'/i
+const PASSKEY_SERVER_TYPE_ERROR =
+    /\.replace is not a function|evaluating '[^']*\.replace'|reading '(?:replace|challenge)'/i
 const LOGIN_NOT_VERIFIED_TYPE_ERROR = /verif(ication|ied)/i
 
 export class PasskeyServerError extends Error {
@@ -276,8 +279,9 @@ export function normalizeNativePasskeyError(error: unknown): unknown {
 function isNetworkError(error: Error): boolean {
     if (error.name === 'TypeError' && /fetch|network/i.test(error.message)) return true
     // "Load failed" is WebKit's message for a failed fetch (common when the
-    // request fires right as the app foregrounds from the passkey sheet)
-    return /failed to fetch|load failed|network ?error|timeout|connection|offline/i.test(error.message)
+    // request fires right as the app foregrounds from the passkey sheet);
+    // "Request timed out" is the native HTTP layer's.
+    return /failed to fetch|load failed|network ?error|time(?:out|d out)|connection|offline/i.test(error.message)
 }
 
 /**
@@ -296,6 +300,10 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
         biometry_required: 'PASSKEY_BIOMETRY_REQUIRED',
         authorization_failed: 'PASSKEY_INTERRUPTED',
         canceled: 'LOGIN_CANCELED',
+        // The unsupported copy already names the fixes: a Google account, Play Services, a screen lock.
+        setup_required: 'PASSKEY_UNSUPPORTED',
+        provider_failed: 'PASSKEY_INTERRUPTED',
+        credential_missing: 'PASSKEY_NOT_FOUND',
     } as const satisfies Record<NonNullable<ReturnType<typeof nativePasskeyFailure>>, PasskeyErrorCode>
     if (nativeReason) {
         const nativeCode = nativeCodes[nativeReason]
