@@ -16,6 +16,7 @@ import { checkPasskeySupport } from '@/utils/passkeyPreflight'
 import { nativeErrorCode, nativePasskeyFailure } from '@/utils/native-passkey-errors'
 import { reportPasskeyFailure } from '@/utils/passkey-failure-reporting'
 import { isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
+import { latestCeremony } from '@/utils/webauthn-ceremony-telemetry'
 import {
     PASSKEY_NOT_SAVED_HELP,
     WebAuthnErrorName,
@@ -44,6 +45,11 @@ const isUsernameTaken = async (username: string): Promise<boolean> => {
 
 // The first cancel is usually deliberate; the second on the same step usually means iOS refused to save.
 const IOS_CANCELS_BEFORE_HELP = 2
+// A sheet that closes this fast was never answered by a person: iOS refused
+// (no passcode, iCloud Passwords off, a wedged credential provider). Over 30
+// days of ceremonies a 1 s rule caught 1 of the 8 people who never recovered,
+// 2 s caught 4 (TASK-24017). `ceremony_ms` on the failure event recalibrates it.
+const IOS_FAST_CANCEL_MS = 2000
 
 const isProbablyPrivateMode = () => {
     try {
@@ -90,6 +96,7 @@ export function useSignupPasskey(username: string) {
      */
     const inFlightRef = useRef(false)
     const iosCancelsRef = useRef(0)
+    const attemptsRef = useRef(0)
     // Covers those same awaits in the UI, so the button reads as busy, not dead.
     const [isPreparing, setIsPreparing] = useState(false)
 
@@ -134,6 +141,8 @@ export function useSignupPasskey(username: string) {
 
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_STARTED, { device_type: deviceType })
 
+        attemptsRef.current += 1
+        const attemptStartedAt = Date.now()
         registrationInitiatedRef.current = true
         try {
             await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
@@ -141,11 +150,17 @@ export function useSignupPasskey(username: string) {
         } catch (error) {
             registrationInitiatedRef.current = false
             const err = error as Error
+            const nativeReason = nativePasskeyFailure(err)
+            // The OS sheet's own duration, without the network calls around it.
+            const ceremony = latestCeremony('create', 'registration', attemptStartedAt)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
                 error_name: err.name,
                 error_code: err.name === 'UsernameTaken' ? 'USERNAME_TAKEN' : classifyPasskeyError(err).code,
                 native_error_code: nativeErrorCode(err),
+                native_reason: nativeReason,
+                ceremony_ms: ceremony?.durationMs,
+                attempt: attemptsRef.current,
             })
 
             if (err.name === 'UsernameTaken') {
@@ -172,16 +187,34 @@ export function useSignupPasskey(username: string) {
                 return
             }
 
+            // The passkey server answered with an error body instead of a
+            // challenge: nothing reached the OS, so no device help applies.
+            if (err.name === 'PasskeyServerError') {
+                Sentry.captureException(err, { tags: { error_type: 'passkey_server_failure' } })
+                setInlineError(t('passkey.serverUnreachable'))
+                return
+            }
+
+            // Android cannot create a passkey yet (no screen lock, no Google
+            // account, no credential provider). The plugin reports it as a
+            // cancel; the help drawer lists the fixes.
+            if (nativeReason === 'setup_required') {
+                reportPasskeyFailure(err, 'registration')
+                setHelpErrorName(WebAuthnErrorName.NotAllowed)
+                setIsHelpOpen(true)
+                return
+            }
+
             // The iOS app ends the ceremony as a plain cancel when iCloud
             // Passwords is off, even after its own prompt sent the user to
             // Settings. iPhone Safari keeps the browser path below.
-            const nativeReason = nativePasskeyFailure(err)
             const cancelled =
                 nativeReason === 'canceled' || (!nativeReason && err.name === WebAuthnErrorName.NotAllowed)
             if (cancelled && isIOSNativeBridge()) {
                 if (nativeReason) reportPasskeyFailure(err, 'registration')
                 iosCancelsRef.current += 1
-                if (iosCancelsRef.current >= IOS_CANCELS_BEFORE_HELP) {
+                const fastCancel = ceremony !== undefined && ceremony.durationMs < IOS_FAST_CANCEL_MS
+                if (fastCancel || iosCancelsRef.current >= IOS_CANCELS_BEFORE_HELP) {
                     setHelpErrorName(PASSKEY_NOT_SAVED_HELP)
                     setIsHelpOpen(true)
                 } else {
