@@ -48,8 +48,8 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
                 {isLoading ? (
                     <ListItem
                         position="solo"
-                        title={<span className="h-5 w-32 animate-pulse rounded bg-foreground-primary/10" />}
-                        trailing={<span className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />}
+                        title={<span className="h-5 w-32 animate-pulse rounded bg-background-skeleton" />}
+                        trailing={<span className="h-5 w-16 animate-pulse rounded bg-background-skeleton" />}
                         chevron
                     />
                 ) : error ? (

@@ -229,15 +229,15 @@ const CardFace: FC<Props> = ({
                         </>
                     ) : loading ? (
                         <>
-                            <div className="h-7 w-56 animate-pulse rounded bg-foreground-primary/10" />
+                            <div className="h-7 w-56 animate-pulse rounded bg-background-skeleton" />
                             <div className="mt-2 flex items-end gap-6 text-body-xs">
                                 <div>
                                     {/* label dropped to match the revealed layout — no height jump on reveal */}
-                                    <div className="mt-1 h-4 w-12 animate-pulse rounded bg-foreground-primary/10" />
+                                    <div className="mt-1 h-4 w-12 animate-pulse rounded bg-background-skeleton" />
                                 </div>
                                 <div>
                                     {/* label dropped to match the revealed layout */}
-                                    <div className="mt-1 h-4 w-10 animate-pulse rounded bg-foreground-primary/10" />
+                                    <div className="mt-1 h-4 w-10 animate-pulse rounded bg-background-skeleton" />
                                 </div>
                             </div>
                         </>

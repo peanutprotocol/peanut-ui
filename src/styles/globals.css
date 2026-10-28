@@ -80,14 +80,19 @@
 
     /* The floating (toast) surface: each iconBubble tone composited at 5% over
        background/default, precomputed so the fill stays opaque — a toast must
-       never read as a wash over the screen behind it. No board defines these
-       yet; same open gap as the skeleton/muted-surface tint, and they want a
-       vlad ruling before anything but the toast uses them. */
+       never read as a wash over the screen behind it. No board defines these;
+       ruled 2026-10-27 (TASK-23135) for any soft tinted box. */
     --color-background-surface-success: #f4fcf8;
     --color-background-surface-error: #fef9f9;
     --color-background-surface-attention: #fffcf2;
     --color-background-surface-info: #f9fbfe;
     --color-background-surface-helper: #fdfdfd;
+
+    /* skeleton placeholder fill (ruled 2026-10-27, TASK-23135). translucent on
+       purpose, unlike the surfaces above: a skeleton sits on cream pages and
+       white cards alike and must darken both the same way. same value as the
+       old `bg-foreground-primary/10` class, so nothing shifts. */
+    --color-background-skeleton: color-mix(in oklab, var(--color-foreground-primary) 10%, transparent);
 
     --color-background-badge-attention: #ffe6b3;
     --color-background-badge-info: #dbeafe;
