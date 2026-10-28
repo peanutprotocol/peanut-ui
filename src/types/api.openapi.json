@@ -26232,27 +26232,19 @@
                                                 "items": {
                                                     "anyOf": [
                                                         {
-                                                            "enum": [
-                                                                "qr"
-                                                            ],
+                                                            "const": "qr",
                                                             "type": "string"
                                                         },
                                                         {
-                                                            "enum": [
-                                                                "local"
-                                                            ],
+                                                            "const": "local",
                                                             "type": "string"
                                                         },
                                                         {
-                                                            "enum": [
-                                                                "card"
-                                                            ],
+                                                            "const": "card",
                                                             "type": "string"
                                                         },
                                                         {
-                                                            "enum": [
-                                                                "bank"
-                                                            ],
+                                                            "const": "bank",
                                                             "type": "string"
                                                         }
                                                     ]
