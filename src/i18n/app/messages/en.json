@@ -1081,7 +1081,7 @@
                 "crypto": "Crypto",
                 "peanut": "Another Peanut user",
                 "bank": "Bank transfer",
-                "bankCurrencies": "Bank transfer (USD, EUR, GBP, MXN)",
+                "bankCurrencies": "Bank transfer ({currencies})",
                 "brlBank": "Bank transfer (BRL)",
                 "arsBank": "Bank transfer (ARS)"
             },

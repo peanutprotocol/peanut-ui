@@ -9,6 +9,7 @@ import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { type ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
+import { useKycIntents } from '@/hooks/useKycIntents'
 import { residenceAvailability } from '@/utils/residence-availability'
 import SetupFooter from './SetupFooter'
 
@@ -35,18 +36,22 @@ export function ResidenceCompare({
     onChoose: (country: string) => void
 }) {
     const t = useTranslations('setup.residenceStep.compare')
+    // Each country's offers come from the rules the verification applies.
+    const intentsOf = { [residence]: useKycIntents(residence), [citizenship]: useKycIntents(citizenship) }
     return (
         <div className="flex w-full flex-1 flex-col gap-4">
             <div className="flex flex-col gap-1">
                 <h1 className="text-heading-s">{t('title')}</h1>
                 <p className="text-body-m text-foreground-secondary">{t('description')}</p>
             </div>
-            {/* Client-derived from the restriction tiers and the same rail map as Unlock payments. */}
+            {/* The server's answer per country (GET /config/kyc-intents); the tiers only if it failed. */}
             <div className="grid grid-cols-2 gap-2">
                 {[residence, citizenship].map((iso2) => {
-                    const summary = restrictionsSettled
-                        ? residenceAvailability(restrictionSets, iso2)
-                        : { available: [], unavailable: [], multiCurrency: false }
+                    const { intents, settled } = intentsOf[iso2]
+                    const summary =
+                        settled && (intents || restrictionsSettled)
+                            ? residenceAvailability(restrictionSets, iso2, intents)
+                            : { available: [], unavailable: [], multiCurrency: false }
                     return (
                         <div key={iso2} className={`${CARD_SURFACE} min-w-0 p-3`}>
                             <p className="mb-2 flex items-center gap-2 text-label-m">

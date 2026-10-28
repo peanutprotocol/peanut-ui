@@ -13,12 +13,14 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import {
+    bankCurrenciesFor,
     setupChannelsForResidence,
     SETUP_CHANNEL_CONCEPTS,
     type SetupChannel,
     type SetupFundingChannel,
     type SetupPaymentChannel,
 } from '@/features/setup/paymentChannels'
+import { useKycIntents } from '@/hooks/useKycIntents'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import SetupFooter from '../components/SetupFooter'
@@ -74,7 +76,7 @@ function ChannelPicker<C extends SetupChannel>({
                     <span className="relative grid min-w-0 overflow-hidden text-left" title={shown}>
                         {/* All labels share one grid cell: the longest translated label
                             sizes the picker, so choosing never changes its width. */}
-                        {[placeholder, ...options.map(compactLabel)].map((text) => (
+                        {[...new Set([placeholder, ...options.map(compactLabel)])].map((text) => (
                             <span
                                 key={text}
                                 aria-hidden="true"
@@ -128,10 +130,13 @@ export default function PaymentPlanStep() {
     const { residenceCountry, fundingChannel, setFundingChannel, paymentChannel, setPaymentChannel } =
         useSetupFlowContext()
     const { handleNext, isLoading } = useSetupFlow()
-    const { sets, settled } = useResidenceRestrictionSetsWithStatus()
+    const { sets, settled: setsSettled } = useResidenceRestrictionSetsWithStatus()
+    const { intents, settled: intentsSettled } = useKycIntents(residenceCountry)
+    // The server's answer for the residence, or the tiers when it could not be read.
+    const settled = intentsSettled && (!!intents || setsSettled)
     const options = useMemo(
-        () => setupChannelsForResidence(sets, residenceCountry, settled),
-        [sets, residenceCountry, settled]
+        () => setupChannelsForResidence(sets, residenceCountry, settled, intents),
+        [sets, residenceCountry, settled, intents]
     )
     const funding = fundingChannel && options.funding.includes(fundingChannel) ? fundingChannel : null
     const payment = paymentChannel && options.payment.includes(paymentChannel) ? paymentChannel : null
@@ -170,9 +175,10 @@ export default function PaymentPlanStep() {
                             t(`funding.${channel === 'brlBank' || channel === 'arsBank' ? 'bank' : channel}`)
                         }
                         label={(channel) =>
-                            channel === 'bank' &&
-                            options.funding.some((option) => option === 'brlBank' || option === 'arsBank')
-                                ? t('funding.bankCurrencies')
+                            channel === 'bank'
+                                ? t('funding.bankCurrencies', {
+                                      currencies: bankCurrenciesFor(residenceCountry).join(', '),
+                                  })
                                 : t(`funding.${channel}`)
                         }
                         onChange={setFundingChannel}

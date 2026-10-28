@@ -23,7 +23,7 @@ describe('retired profile routes', () => {
 
     it.each<[string, ComponentType, string, string]>([
         // the card recovery and add money residence links
-        ['/profile/accounts-and-payments', AccountsAndPaymentsAlias, '?open=residence', '/profile/accounts'],
+        ['/profile/accounts-and-payments', AccountsAndPaymentsAlias, '?open=residence', '/profile/payments'],
         [
             '/profile/accounts-and-payments/additional',
             AccountsAndPaymentsAdditionalAlias,
