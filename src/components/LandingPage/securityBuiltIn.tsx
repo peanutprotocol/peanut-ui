@@ -9,6 +9,7 @@ import type { LandingContentHrefs } from './landingContentHrefs'
 import { contentHrefsFor } from './landingContentHrefs.server'
 import { CTA_MOTION } from '@/components/Marketing/constants'
 import { Band } from '@/components/Marketing/StarLp/Band'
+import { PopIn } from '@/components/Marketing/StarLp/PopIn'
 
 interface Feature {
     id: number
@@ -74,7 +75,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                             className="my-2 flex flex-col items-start text-center md:my-0 md:text-left"
                         >
                             <div className="mb-4">
-                                <div className="flex h-10 w-10 items-center justify-center md:h-12 md:w-12">
+                                <PopIn className="flex h-10 w-10 items-center justify-center md:h-12 md:w-12">
                                     <Image
                                         src={feature.iconSrc}
                                         alt={feature.iconAlt}
@@ -82,7 +83,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                         height={40}
                                         className="max-h-full max-w-full object-contain md:h-12 md:w-12"
                                     />
-                                </div>
+                                </PopIn>
                             </div>
                             {/* a column that fills the row, so each Learn more sits on the same baseline */}
                             <div className="flex w-full flex-1 flex-col">

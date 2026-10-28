@@ -125,9 +125,13 @@ export function NoFees({
                             </span>
                         </p>
                         <p className="flex items-center justify-center gap-[0.19em]">
-                            <Image src={gotItHand} alt="" aria-hidden className="w-[0.887em] shrink-0" />
+                            <PopIn as="span" className="inline-block w-[0.887em] shrink-0">
+                                <Image src={gotItHand} alt="" aria-hidden className="w-full" />
+                            </PopIn>
                             <span>{strings.noHiddenFees}</span>
-                            <Image src={gotItHandFlipped} alt="" aria-hidden className="w-[0.887em] shrink-0" />
+                            <PopIn as="span" className="inline-block w-[0.887em] shrink-0">
+                                <Image src={gotItHandFlipped} alt="" aria-hidden className="w-full" />
+                            </PopIn>
                         </p>
                     </div>
                 </div>
