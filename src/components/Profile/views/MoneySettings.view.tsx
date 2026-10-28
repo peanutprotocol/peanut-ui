@@ -422,7 +422,11 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
 
     return (
         <PageStack gap="6" className="pb-10">
-            <NavHeader title={t(`titles.${page}`)} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
+            <NavHeader
+                title={t(`titles.${page}`)}
+                onPrev={onBack}
+                titleClassName="py-2 text-heading-xs md:py-1 md:text-heading-s"
+            />
 
             {/* Residence anchor: explains WHY the list looks the way it does. */}
             <div className="flex flex-col gap-1">
