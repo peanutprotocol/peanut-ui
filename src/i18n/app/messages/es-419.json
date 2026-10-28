@@ -813,6 +813,24 @@
             "signUp": "Regístrate",
             "recoverWallet": "¿Necesitas recuperar la cuenta de Peanut?"
         },
+        "loginRecovery": {
+            "title": "Tu passkey puede estar en el teléfono donde creaste tu cuenta",
+            "steps": {
+                "ios": {
+                    "sameAccount": "Inicia sesión en la cuenta de Apple de ese teléfono, con Contraseñas de iCloud activadas.",
+                    "thatPhone": "O inicia sesión en ese teléfono."
+                },
+                "android": {
+                    "sameAccount": "Inicia sesión en la cuenta de Google de ese teléfono.",
+                    "thatPhone": "O inicia sesión en ese teléfono."
+                },
+                "web": {
+                    "thatPhone": "Inicia sesión en ese teléfono.",
+                    "sameAccount": "O inicia sesión en su cuenta de Apple o Google en este navegador."
+                }
+            },
+            "signUp": "No tengo cuenta, crear una"
+        },
         "waitlist": {
             "loginCanceled": "El inicio de sesión fue cancelado. Inténtalo de nuevo.",
             "noPasskey": "No se encontró ninguna passkey. Primero crea una billetera.",
@@ -941,7 +959,7 @@
                     "updateBrowserOs": "Actualiza el navegador y el sistema operativo"
                 },
                 "warnings": {
-                    "lowEndAndroid": "Los dispositivos Android de gama baja pueden necesitar actualizaciones de seguridad recientes para que las passkeys funcionen bien."
+                    "androidSecurityUpdates": "Los dispositivos Android pueden necesitar actualizaciones de seguridad recientes para que las passkeys funcionen."
                 }
             },
             "info": {

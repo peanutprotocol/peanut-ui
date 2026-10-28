@@ -15,6 +15,7 @@ import {
     classifyPasskeyError,
     normalizeNativePasskeyError,
     normalizePasskeyServerError,
+    PasskeyServerError,
     withIOSPasskeyLoginRecovery,
     type PasskeyErrorCode,
 } from '@/utils/webauthn.utils'
@@ -231,7 +232,13 @@ export const useZeroDev = () => {
                 zeroDevFlowActions.setIsRegistering(false)
                 return
             }
-            const err = normalizeNativePasskeyError(e) as Error
+            // A /register/options error body throws the same decoder TypeError as
+            // login's; the verify-side wording differs, so only the server-request
+            // case is taken from the login normaliser.
+            const serverError = normalizePasskeyServerError(e)
+            const err = normalizeNativePasskeyError(
+                serverError instanceof PasskeyServerError ? serverError : e
+            ) as Error
             if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'register')
             }

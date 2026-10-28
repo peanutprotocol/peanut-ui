@@ -23,6 +23,8 @@ export const ANALYTICS_EVENTS = {
     KYC_DEGRADED_NOTIFY_REQUESTED: 'kyc_degraded_notify_requested',
     SIGNUP_CLICKED: 'signup_signup_clicked',
     SIGNUP_LOGIN_ERROR: 'signup_login_error',
+    // `action`: retry | signup | support | dismiss, from the drawer that follows a failed login.
+    LOGIN_RECOVERY_ACTION: 'login_recovery_action',
     PASSKEY_LOGIN_RETRY: 'passkey_login_retry',
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
     SIGNUP_USERNAME_VALIDATED: 'signup_username_validated',
