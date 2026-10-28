@@ -68,7 +68,7 @@ describe('Landing — recovery after a failed login (TASK-24017)', () => {
 
         logIn()
 
-        expect(await screen.findByRole('dialog')).toHaveTextContent('Your passkey may be on another phone')
+        expect(await screen.findByRole('dialog')).toHaveTextContent('Your passkey may be on the phone you signed up on')
         expect(mockToastError).not.toHaveBeenCalled()
         expect(Sentry.captureException).not.toHaveBeenCalled()
         expect(posthog.capture).toHaveBeenCalledWith(
@@ -145,7 +145,7 @@ describe('Landing — recovery after a failed login (TASK-24017)', () => {
         expect(screen.getByTestId('store-buttons')).toBeInTheDocument()
         logIn()
 
-        expect(await screen.findByRole('dialog')).toHaveTextContent('Log in on the phone where you created Peanut.')
+        expect(await screen.findByRole('dialog')).toHaveTextContent('Log in on that phone.')
         expect(screen.queryByRole('button', { name: /create an account/i })).not.toBeInTheDocument()
     })
 })

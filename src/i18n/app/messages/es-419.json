@@ -814,8 +814,7 @@
             "recoverWallet": "¿Necesitas recuperar la cuenta de Peanut?"
         },
         "loginRecovery": {
-            "title": "Tu passkey puede estar en otro teléfono",
-            "description": "Peanut inicia tu sesión con la passkey que guardaste al crear tu cuenta.",
+            "title": "Tu passkey puede estar en el teléfono donde creaste tu cuenta",
             "steps": {
                 "ios": {
                     "sameAccount": "Inicia sesión en la cuenta de Apple de ese teléfono, con Contraseñas de iCloud activadas.",
@@ -826,7 +825,7 @@
                     "thatPhone": "O inicia sesión en ese teléfono."
                 },
                 "web": {
-                    "thatPhone": "Inicia sesión en el teléfono donde creaste Peanut.",
+                    "thatPhone": "Inicia sesión en ese teléfono.",
                     "sameAccount": "O inicia sesión en su cuenta de Apple o Google en este navegador."
                 }
             },

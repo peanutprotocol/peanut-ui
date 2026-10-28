@@ -814,8 +814,7 @@
             "recoverWallet": "Need to recover a Peanut account?"
         },
         "loginRecovery": {
-            "title": "Your passkey may be on another phone",
-            "description": "Peanut logs you in with the passkey saved when you created your account.",
+            "title": "Your passkey may be on the phone you signed up on",
             "steps": {
                 "ios": {
                     "sameAccount": "Sign in to that phone’s Apple Account, with iCloud Passwords on.",
@@ -826,7 +825,7 @@
                     "thatPhone": "Or log in on that phone."
                 },
                 "web": {
-                    "thatPhone": "Log in on the phone where you created Peanut.",
+                    "thatPhone": "Log in on that phone.",
                     "sameAccount": "Or sign in to its Apple or Google account in this browser."
                 }
             },

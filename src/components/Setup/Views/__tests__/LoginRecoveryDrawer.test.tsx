@@ -12,7 +12,7 @@ describe('LoginRecoveryDrawer', () => {
     it.each([
         ['ios', 'Apple Account', 'Or log in on that phone.'],
         ['android', 'Google account', 'Or log in on that phone.'],
-        ['web', 'Log in on the phone where you created Peanut.', 'Apple or Google account in this browser'],
+        ['web', 'Log in on that phone.', 'Apple or Google account in this browser'],
     ] as const)('lists the way back in on %s', (platform, first, second) => {
         renderWithIntl(
             <LoginRecoveryDrawer
@@ -24,8 +24,7 @@ describe('LoginRecoveryDrawer', () => {
             />
         )
 
-        expect(screen.getByText('Your passkey may be on another phone')).toBeInTheDocument()
-        expect(screen.getByText(/passkey saved when you created your account/)).toBeInTheDocument()
+        expect(screen.getByText('Your passkey may be on the phone you signed up on')).toBeInTheDocument()
         const [stepOne, stepTwo] = steps()
         expect(steps()).toHaveLength(2)
         expect(stepOne).toContain(first)

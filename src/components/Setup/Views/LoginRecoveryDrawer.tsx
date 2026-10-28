@@ -57,7 +57,6 @@ export const LoginRecoveryDrawer = ({
                         </DrawerHeader>
                     </div>
                     <div className="flex w-full flex-col gap-4 text-left">
-                        <p className="text-body-s text-foreground-secondary">{t('description')}</p>
                         <NumberedList items={steps} />
                         <div className="flex w-full flex-col items-center gap-4">
                             <Button icon="retry" shadowSize="4" onClick={onRetry} className="w-full justify-center">
