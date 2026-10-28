@@ -543,6 +543,29 @@ describe('PaperworkVerificationFlow', () => {
         expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
     })
 
+    it('the review asks the API to re-read Sumsub every fourth poll, so a lost webhook cannot hold it', async () => {
+        mockSave.mockResolvedValue({ kind: 'conflict', code: 'identity_submitted' })
+        await startFlow()
+        await screen.findByTestId('verify-pick-annualSalary')
+        mockStatus.mockResolvedValue('IN_REVIEW')
+        jest.useFakeTimers()
+        try {
+            fireEvent.click(continueButton())
+            expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+            mockRefresh.mockClear()
+            await act(async () => {
+                await jest.advanceTimersByTimeAsync(45_000)
+            })
+            expect(mockRefresh).not.toHaveBeenCalled()
+            await act(async () => {
+                await jest.advanceTimersByTimeAsync(15_000)
+            })
+            expect(mockRefresh).toHaveBeenCalledTimes(1)
+        } finally {
+            jest.useRealTimers()
+        }
+    })
+
     it('a check that already ended reloads into the review', async () => {
         mockSave.mockResolvedValue({ kind: 'conflict', code: 'verification_complete' })
         await startFlow()

@@ -1,6 +1,8 @@
 'use client'
 
 import { SetupCelebrationView } from '@/components/Setup/Views/Success'
+import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
+import { API_CONTRACT_STATES } from './api-contract-states'
 
 /**
  * Every modal, drawer and full-screen surface in the content-taxonomy review,
@@ -24,6 +26,7 @@ import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
+import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
@@ -333,6 +336,15 @@ export type Surface = SurfaceMeta & {
 }
 
 export const SURFACES: Record<string, Surface> = {
+    ...Object.fromEntries(
+        Object.entries(API_CONTRACT_STATES).map(([id, state]) => [
+            id,
+            {
+                ...SURFACE_META[id],
+                render: () => <TestBuildRibbonView branch="test/kyc-contract" api={state.api} />,
+            },
+        ])
+    ),
     '01-a-landing': {
         ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,
@@ -416,6 +428,23 @@ export const SURFACES: Record<string, Surface> = {
                 platform="android"
             />
         ),
+    },
+    '08-b-loginrecoverydrawer': {
+        ...SURFACE_META['08-b-loginrecoverydrawer'],
+        render: () => (
+            <LoginRecoveryDrawer
+                visible
+                onClose={noop}
+                onRetry={noop}
+                onSignUp={noop}
+                onSupport={noop}
+                platform="ios"
+            />
+        ),
+    },
+    '08-c-loginrecoverydrawer-web': {
+        ...SURFACE_META['08-c-loginrecoverydrawer-web'],
+        render: () => <LoginRecoveryDrawer visible onClose={noop} onRetry={noop} onSupport={noop} platform="web" />,
     },
     '09-a-passkeyinfomodal': {
         name: 'PasskeyInfoDrawer',

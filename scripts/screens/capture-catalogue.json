@@ -202,6 +202,18 @@
         "route": "/dev/surfaces?s=03-a-residence-select"
     },
     {
+        "id": "08-b-loginrecoverydrawer",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=08-b-loginrecoverydrawer",
+        "source": "Setup/Views/LoginRecoveryDrawer.tsx"
+    },
+    {
+        "id": "08-c-loginrecoverydrawer-web",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=08-c-loginrecoverydrawer-web",
+        "source": "Setup/Views/LoginRecoveryDrawer.tsx"
+    },
+    {
         "id": "45-c-residencechangemodal",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=45-c-residencechangemodal",
@@ -499,6 +511,42 @@
         "id": "p77-base-select-dropdown",
         "flow": "Home and shared states",
         "route": "/dev/ds/primitives/base-select"
+    },
+    {
+        "id": "api-ribbon-loading",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=api-ribbon-loading",
+        "source": "Global/TestBuildRibbon.tsx"
+    },
+    {
+        "id": "api-ribbon-compatible",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=api-ribbon-compatible",
+        "source": "Global/TestBuildRibbon.tsx"
+    },
+    {
+        "id": "api-ribbon-too-old",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=api-ribbon-too-old",
+        "source": "Global/TestBuildRibbon.tsx"
+    },
+    {
+        "id": "api-ribbon-missing-version",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=api-ribbon-missing-version",
+        "source": "Global/TestBuildRibbon.tsx"
+    },
+    {
+        "id": "api-ribbon-unavailable",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=api-ribbon-unavailable",
+        "source": "Global/TestBuildRibbon.tsx"
+    },
+    {
+        "id": "api-ribbon-contract-error",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=api-ribbon-contract-error",
+        "source": "Global/TestBuildRibbon.tsx"
     },
     {
         "id": "11-a-earlyusermodal",

@@ -3,9 +3,15 @@ import {
     KycPlanUnavailableError,
     resumeKycDocumentAttempt,
     startKycDocumentReplacement,
+    refreshKycIdentityStatus,
+    getKycDocumentStatus,
+    findKycSetup,
 } from '@/app/actions/kyc-workflow'
 import { serverFetch } from '@/utils/api-fetch'
 import posthog from 'posthog-js'
+import * as Sentry from '@/utils/sentry-lazy'
+
+jest.mock('@/utils/sentry-lazy', () => ({ captureMessage: jest.fn() }))
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
@@ -27,7 +33,10 @@ const notJson = (status: number) =>
         json: async () => JSON.parse('<html>Bad Gateway</html>'),
     }) as unknown as Response
 
-beforeEach(() => mockFetch.mockReset())
+beforeEach(() => {
+    mockFetch.mockReset()
+    jest.mocked(Sentry.captureMessage).mockClear()
+})
 
 // APK #4: Android WebView GETs fail intermittently, and a failed plan read used
 // to read as "today's flow", which opened a legacy applicant for a Smart
@@ -59,9 +68,52 @@ describe('findKycDocumentPlan', () => {
         expect(mockFetch).toHaveBeenCalledTimes(3)
         expect(posthog.capture).not.toHaveBeenCalled()
 
-        // an API with no plan route is today's flow, and is not retried
-        mockFetch.mockReset().mockResolvedValue(status(404))
+        // A domain answer that says no plan preserves the legacy flow.
+        mockFetch
+            .mockReset()
+            .mockResolvedValue({ ok: false, status: 404, json: async () => ({ error: 'No plan' }) } as Response)
         await expect(read()).resolves.toBeNull()
+        expect(mockFetch).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([
+        { ok: false, status: 404, json: async () => ({ error: 'Not Found', code: 'route_not_found' }) },
+        { ok: false, status: 404, json: async () => ({}) },
+        { ok: true, status: 200, json: async () => null },
+        { ok: true, status: 200, json: async () => ({ available: true }) },
+        {
+            ok: true,
+            status: 200,
+            json: async () => {
+                throw new SyntaxError('private response')
+            },
+        },
+    ])('rejects contract faults without retrying on test builds', async (response) => {
+        process.env.NEXT_PUBLIC_TEST_BUILD_BRANCH = 'test-kyc'
+        try {
+            mockFetch.mockResolvedValue(response as Response)
+            await expect(read()).rejects.toBeInstanceOf(KycPlanUnavailableError)
+            expect(mockFetch).toHaveBeenCalledTimes(1)
+            expect(Sentry.captureMessage).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({
+                    extra: expect.objectContaining({ route: '/users/kyc/plan' }),
+                })
+            )
+            expect(JSON.stringify(jest.mocked(Sentry.captureMessage).mock.calls)).not.toContain('private response')
+        } finally {
+            delete process.env.NEXT_PUBLIC_TEST_BUILD_BRANCH
+        }
+    })
+
+    it('reports a production contract failure while retaining the legacy fallback', async () => {
+        mockFetch.mockResolvedValue({
+            ok: false,
+            status: 404,
+            json: async () => ({ code: 'route_not_found' }),
+        } as Response)
+        await expect(read()).resolves.toBeNull()
+        expect(Sentry.captureMessage).toHaveBeenCalled()
         expect(mockFetch).toHaveBeenCalledTimes(1)
     })
 
@@ -88,6 +140,61 @@ describe('findKycDocumentPlan', () => {
             source: 'initiate',
         })
     })
+})
+
+describe('refreshKycIdentityStatus', () => {
+    it('returns a known status', async () => {
+        mockFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ status: 'APPROVED' }) } as Response)
+        await expect(refreshKycIdentityStatus()).resolves.toBe('APPROVED')
+    })
+    it.each([
+        () => Promise.reject(new Error('private applicant token')),
+        () => Promise.resolve({ ok: false, status: 404, json: async () => ({ code: 'route_not_found' }) } as Response),
+        () =>
+            Promise.resolve({
+                ok: true,
+                status: 200,
+                json: async () => ({ unexpected: 'private applicant token' }),
+            } as Response),
+    ])('returns undefined and reports failures without PII', async (reply) => {
+        mockFetch.mockImplementation(reply)
+        await expect(refreshKycIdentityStatus()).resolves.toBeUndefined()
+        expect(Sentry.captureMessage).toHaveBeenCalled()
+        const events = JSON.stringify(jest.mocked(Sentry.captureMessage).mock.calls)
+        expect(events).toContain('/users/kyc/identity/refresh')
+        expect(events).not.toContain('private applicant token')
+    })
+})
+
+it.each([{}, { identity: { canonicalStatus: 'UNKNOWN_ENUM' } }, { identity: [] }])(
+    'reports malformed profile status: %p',
+    async (profile) => {
+        mockFetch.mockResolvedValue({ ok: true, status: 200, json: async () => profile } as Response)
+        await expect(getKycDocumentStatus()).rejects.toThrow('API contract error')
+        expect(Sentry.captureMessage).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({
+                extra: expect.objectContaining({ route: '/users/kyc/profile' }),
+            })
+        )
+    }
+)
+
+it('reports a malformed setup profile before preserving its fallback', async () => {
+    mockFetch.mockImplementation(
+        async (route) =>
+            ({
+                ok: true,
+                status: 200,
+                json: async () =>
+                    route === '/users/kyc/profile'
+                        ? { identity: { verificationId: 'private-id', canonicalStatus: 'APPROVED' } }
+                        : { available: true, routes: [] },
+            }) as Response
+    )
+    await expect(findKycSetup()).resolves.toBeNull()
+    expect(Sentry.captureMessage).toHaveBeenCalled()
+    expect(JSON.stringify(jest.mocked(Sentry.captureMessage).mock.calls)).not.toContain('private-id')
 })
 
 describe('resumeKycDocumentAttempt', () => {

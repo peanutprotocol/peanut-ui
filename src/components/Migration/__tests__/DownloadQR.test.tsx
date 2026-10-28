@@ -71,7 +71,7 @@ it('uses a registered marketing URL only with explicit context', () => {
     const { rerender } = render(
         <DownloadQR surface="landing_hero" marketingQr={{ page: 'home', placement: 'hero', locale: 'en' }} />
     )
-    expect(screen.getByTestId('qr')).toHaveAttribute('href', `${window.location.origin}/q/home-hero-en`)
+    expect(screen.getByTestId('qr')).toHaveAttribute('href', `${window.location.origin}/home?mqr=home-hero-en`)
     expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'M')
     rerender(<DownloadQR surface="home_banner" />)
     expect(screen.getByTestId('qr')).toHaveAttribute('href', `${window.location.origin}/home?app_entry=1`)

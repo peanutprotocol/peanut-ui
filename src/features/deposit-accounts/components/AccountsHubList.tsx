@@ -163,6 +163,9 @@ export function AccountsHubList({
             // a reviewer acts next (design.md, "rows the user cannot act on")
             case 'review-pending':
                 return <Badge status="pending" customText={t('list.badgeUnderReview')} />
+            // the account is being opened after verification; support takes over if it doesn't finish
+            case 'setup-pending':
+                return <Badge status="pending" customText={t('list.badgeSettingUp')} />
         }
         if (!openable) return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
         switch (accounts?.claimable?.[corridor]?.blockedBy) {

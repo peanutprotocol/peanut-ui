@@ -76,6 +76,7 @@ import { saveSteps, type AnswerFormError, type SaveOutcome } from './useAnswerFo
 import { paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
 
 const STATUS_POLL_MS = 15_000
+const REFRESH_EVERY_POLLS = 4
 const SAVE_RETRY_DELAYS_MS = [1_000, 3_000]
 
 type Loaded = {
@@ -534,10 +535,11 @@ function PaperworkVerificationSteps({
     })
     useEffect(() => {
         if (step !== 'review' || failed) return
+        let polls = 0
         const timer = setInterval(() => {
-            void getKycDocumentStatus()
-                .then((next) => next && setStatus(next))
-                .catch(() => {})
+            // Every fourth poll asks the API to re-read Sumsub, so a lost webhook can't hold the review for hours.
+            const read = ++polls % REFRESH_EVERY_POLLS === 0 ? refreshKycIdentityStatus() : getKycDocumentStatus()
+            void read.then((next) => next && setStatus(next)).catch(() => {})
         }, STATUS_POLL_MS)
         return () => clearInterval(timer)
     }, [step, failed])

@@ -398,7 +398,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
             <NavHeader
                 title={t(view === 'bank' ? 'titles.bank' : 'titles.methods')}
                 onPrev={onBack}
-                titleClassName="text-heading-xs md:text-heading-s"
+                titleClassName="py-2 text-heading-xs md:py-1 md:text-heading-s"
             />
 
             {isKycDegraded && (

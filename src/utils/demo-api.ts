@@ -986,6 +986,16 @@ export async function demoRespond(
     const method = (options?.method ?? 'GET').toUpperCase()
     const pathname = path.split('?')[0].replace(/\/+$/, '') || '/'
 
+    if (method === 'GET' && pathname === '/version') {
+        return json({
+            commit: '0000000',
+            branch: 'synthetic',
+            builtAt: null,
+            migrationsHead: null,
+            contracts: { kyc: 2 },
+        })
+    }
+
     // The withdraw quote depends on its query, which route handlers never see:
     // answer it here at a synthetic 1:1 rate, so the USDC equals the typed amount.
     if (method === 'GET' && pathname === '/bridge/offramp/quote') {

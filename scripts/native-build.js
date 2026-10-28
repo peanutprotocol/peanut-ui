@@ -12,6 +12,9 @@ const dotenv = require('dotenv')
 const fs = require('fs')
 const path = require('path')
 const { processNativeSourceMaps } = require('./native-source-maps')
+const { buildBranch, isTestBuild } = require('./build-branch.cjs')
+const { checkApiContracts } = require('./api-contract-check')
+const { calledApiOperations } = require('./api-called-operations')
 
 const APP_DIR = path.join(__dirname, '..', 'src', 'app')
 
@@ -613,6 +616,17 @@ async function main() {
         } else {
             console.warn('⚠️  .env.production.local not found — using default rpId (peanut.me)')
         }
+
+        const buildEnv = { ...bakedEnv, ...process.env }
+        const skipApiCheck = process.env.SKIP_API_CONTRACT_CHECK === '1'
+        await checkApiContracts({
+            apiUrl: buildEnv.NEXT_PUBLIC_PEANUT_API_URL,
+            production: !isTestBuild(buildBranch(buildEnv)),
+            skip: skipApiCheck,
+            requiredOperations: skipApiCheck
+                ? []
+                : calledApiOperations(path.join(__dirname, '..', 'src'), require('../src/types/api.openapi.json')),
+        })
 
         // Keep deferred web attribution readable in native bundles. The sitemap
         // is disabled below, so generation must happen before any route moves.
