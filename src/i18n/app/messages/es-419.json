@@ -311,6 +311,7 @@
             "updateAvailable": "Actualización disponible"
         },
         "logOut": "Cerrar sesión",
+        "logOutAllDevices": "Cerrar sesión en todos los dispositivos",
         "edit": {
             "title": "Editar perfil",
             "fields": {
