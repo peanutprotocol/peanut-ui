@@ -87,6 +87,11 @@ const RULES: Record<Exclude<(typeof APP_LOCALES)[number], 'en'>, Rule[]> = {
         // stricter than glossary.pt-br.md (which allows one positively-framed body
         // use): app strings are short CTA-like copy — exempt per key if ever needed
         { name: '"sem CPF" framing is banned (trust rules)', pattern: word('sem\\s+CPF') },
+        // a product name keeps its head noun's gender, so "a Peanut Wallet" (carteira) stays
+        {
+            name: 'the brand is masculine: "o Peanut", never "a Peanut"',
+            pattern: word('(?:a|à|da|na|pela)\\s+Peanut(?!\\s+wallet)'),
+        },
         {
             name: 'no circumvention language (trust rules)',
             // "não/nem exige verificação" is the same claim as "sem verificação": a

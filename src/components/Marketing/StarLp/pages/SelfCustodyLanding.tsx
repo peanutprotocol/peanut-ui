@@ -119,7 +119,7 @@ export function SelfCustodyLanding() {
                 subtitle="Your balance sits in your own account. Sending from it needs your passkey."
                 art={<SelfCustodySendScreen />}
                 cta={
-                    <StarLpCta href={STAR_LP_HREF.signup} ground="pink">
+                    <StarLpCta qrPlacement="hero" href={STAR_LP_HREF.signup} ground="pink">
                         Create an account
                     </StarLpCta>
                 }

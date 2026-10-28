@@ -18,7 +18,7 @@ import {
     savePaperworkVerificationFeatures,
     skipProofOfAddress,
 } from '@/app/actions/kyc-paperwork-verification'
-import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-workflow'
+import { findKycDocumentPlan, getKycDocumentStatus, refreshKycIdentityStatus } from '@/app/actions/kyc-workflow'
 import type { SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type {
     PaperworkVerificationAnswers,
@@ -39,13 +39,7 @@ import { QuestionStepScreen, trackSaveOutcome } from './components/QuestionStepS
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
 import { VerifySetupPrelude } from './components/VerifySetupPrelude'
 import { restoreNativeStatusBar } from './useInsetColor'
-import {
-    ProofOfAddressScreen,
-    ReviewScreen,
-    SavedScreen,
-    StepsScreen,
-    VerifiedScreen,
-} from './components/StatusScreens'
+import { ProofOfAddressScreen, ReviewScreen, SavedScreen, StepsScreen } from './components/StatusScreens'
 import {
     stepsLabel,
     trackPaperworkVerification,
@@ -69,7 +63,7 @@ import {
     RETRYABLE_STATUSES,
     markSaved,
     composeScreens,
-    openFeatures,
+    PAYMENT_METHODS_HREF,
     phoneJoinsAddress,
     RESIDENCE_CHANGE_HREF,
     resumeStep,
@@ -110,6 +104,13 @@ const shapeOf = ({ questions, plan, status }: Loaded) =>
     ])
 
 const RETRY: SaveOutcome = { ok: false, error: 'retry', formError: 'retry' }
+
+/** A NOT_STARTED identity may have been submitted before Sumsub's webhook arrived: the server reads Sumsub then. */
+async function readIdentityStatus(): Promise<SumsubKycStatus | undefined> {
+    const stored = await getKycDocumentStatus().catch(() => undefined)
+    if (stored && stored !== 'NOT_STARTED') return stored
+    return (await refreshKycIdentityStatus()) ?? stored
+}
 
 async function saveWithRetries(
     steps: PaperworkVerificationStep[],
@@ -159,7 +160,7 @@ export function PaperworkVerificationFlow() {
                 getKycQuestions().catch(() => null),
                 // a plan that cannot be read throws: the retry screen, not Home
                 findKycDocumentPlan('verify'),
-                getKycDocumentStatus().catch(() => undefined),
+                readIdentityStatus(),
             ])
             if (plan?.flow === PAPERWORK_VERIFICATION_FLOW && plan.needs?.length) {
                 setState({ kind: 'setup', needs: plan.needs })
@@ -654,10 +655,8 @@ function PaperworkVerificationSteps({
             />
         )
     } else if (step === 'review') {
-        screen = (
+        screen = failed ? (
             <ReviewScreen
-                failed={failed}
-                features={openFeatures(plan?.features, questions.closed)}
                 onHome={goHome}
                 onRetry={
                     status && RETRYABLE_STATUSES.has(status)
@@ -670,9 +669,18 @@ function PaperworkVerificationSteps({
                 busy={identity.busy}
                 error={idError}
             />
+        ) : (
+            <StepsScreen phase="review" hasQuestions={questionIds.length > 0} onBack={goHome} onContinue={goHome} />
         )
     } else if (step === 'verified') {
-        screen = <VerifiedScreen features={openFeatures(plan?.features, questions.closed)} onHome={goHome} />
+        screen = (
+            <StepsScreen
+                phase="verified"
+                hasQuestions={questionIds.length > 0}
+                onBack={goHome}
+                onContinue={() => router.push(PAYMENT_METHODS_HREF)}
+            />
+        )
     } else if (step === 'address-proof') {
         screen = (
             <ProofOfAddressStep
@@ -727,7 +735,13 @@ function PaperworkVerificationSteps({
                     identity.close()
                     setStatus('PENDING')
                     setSubmitted(true)
+                    queryClient.setQueryData(PAPERWORK_VERIFICATION_STATUS_QUERY_KEY, 'PENDING')
                     void stepper.goTo('review')
+                    // Home reads the identity from the user: refreshed once the server has read Sumsub.
+                    void refreshKycIdentityStatus().then((next) => {
+                        if (next && next !== 'NOT_STARTED') setStatus(next)
+                        void fetchUser()
+                    })
                 }}
                 onRefreshToken={identity.refreshToken}
             />

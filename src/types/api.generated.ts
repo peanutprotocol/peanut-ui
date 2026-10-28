@@ -7677,7 +7677,52 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            invitees: {
+                                /** @description The invitee's picked avatar, or null when they picked none or lost the badge behind it. */
+                                avatarKey: string | null;
+                                /** @description Estimated points contributed to the inviter (directPoints × the current-era multiplier). */
+                                contributedPoints: number;
+                                directPoints: number;
+                                /** @description The name to show: the invitee's full name, or their username when they hid their name. Null when neither exists. */
+                                fullName: string | null;
+                                hasInvitedOthers: boolean;
+                                /** Format: date-time */
+                                invitedAt: string;
+                                inviteeId: string;
+                                inviteesCount: number;
+                                kycStatus: string | null;
+                                kycVerified: boolean;
+                                /** @description USD earned from this invitee's transactions (Rewards v2). */
+                                lifetimeEarnedUsd: number;
+                                totalPoints: number;
+                                /** @description Null for an invitee who never finished signup. */
+                                username: string | null;
+                            }[];
+                            summary: {
+                                multiplier: number;
+                                pendingInvites: number;
+                                totalContributedPoints: number;
+                                totalDirectPoints: number;
+                                totalInvites: number;
+                                totalLifetimeEarnedUsd: number;
+                                totalPendingUsd?: number;
+                                verifiedInvites: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
                 };
             };
         };

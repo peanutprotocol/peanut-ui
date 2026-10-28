@@ -1,6 +1,6 @@
 'use client'
 
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -14,7 +14,6 @@ import type {
     PaperworkVerificationClosedFeature,
     PaperworkVerificationFeature,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
-import type { KycFeatures } from '@/app/actions/types/kyc-workflow.types'
 import { twMerge } from '@/utils/tw'
 import { useInsetColor } from '../useInsetColor'
 import { VerifyCelebrationLayout, VerifyFooter, VerifyHeroLayout, VerifyQuestionLayout } from './VerifyLayout'
@@ -36,23 +35,66 @@ const primary = (label: string, onClick: () => void, testId: string, loading = f
 )
 
 type StepState = 'done' | 'current' | 'next'
-type StepRow = { key: 'residence' | 'questions' | 'photo' | 'selfie' | 'review' | 'unlock'; state: StepState }
+type StepKey = 'residence' | 'questions' | 'photo' | 'selfie' | 'review' | 'unlock'
+type StepRow = { key: StepKey; state: StepState }
+
+/** Before the ID check, waiting for its review, or verified: one timeline, its rows filled in as far as the user got. */
+export type StepsPhase = 'intro' | 'review' | 'verified'
 
 const SKELETON_ROWS = 6
 const skeleton = 'animate-pulse bg-foreground-primary/10 motion-reduce:animate-none'
 
+const PHASE_COPY = {
+    intro: { title: 'steps.title', note: null, cta: 'continue', testId: 'verify-steps-continue' },
+    review: { title: 'review.title', note: 'review.description', cta: 'steps.backHome', testId: 'verify-review-home' },
+    verified: {
+        title: 'verified.title',
+        note: 'steps.verifiedNote',
+        cta: 'steps.setUpPayments',
+        testId: 'verify-verified-payments',
+    },
+} as const
+
+function stepRows(phase: StepsPhase, hasQuestions: boolean, questionsDone: boolean): StepRow[] {
+    const keys: StepKey[] = [
+        'residence',
+        ...(hasQuestions ? (['questions'] as const) : []),
+        'photo',
+        'selfie',
+        'review',
+        'unlock',
+    ]
+    if (phase === 'verified') return keys.map((key) => ({ key, state: 'done' }))
+    if (phase === 'review')
+        return keys.map((key) => ({ key, state: key === 'review' ? 'current' : key === 'unlock' ? 'next' : 'done' }))
+    const photoCurrent = !hasQuestions || questionsDone
+    return keys.map((key) => ({
+        key,
+        state:
+            key === 'residence' || (key === 'questions' && questionsDone)
+                ? 'done'
+                : key === 'questions' || (key === 'photo' && photoCurrent)
+                  ? 'current'
+                  : 'next',
+    }))
+}
+
 /**
  * Where the user is on the way to verified: the questions show only when the
  * features ask any. `loading` is every visit's first frame while the server
- * says which steps are left: the screen with its rows still to fill.
+ * says which steps are left: the screen with its rows still to fill. After the
+ * selfie the same timeline waits on the review, and once verified sends the
+ * user on to their payment methods.
  */
 export function StepsScreen({
+    phase = 'intro',
     hasQuestions = true,
     questionsDone = false,
     loading = false,
     onBack,
     onContinue,
 }: {
+    phase?: StepsPhase
     hasQuestions?: boolean
     questionsDone?: boolean
     loading?: boolean
@@ -61,16 +103,8 @@ export function StepsScreen({
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     useInsetColor(false)
-    const photoCurrent = !hasQuestions || questionsDone
-    const questions: StepRow[] = hasQuestions ? [{ key: 'questions', state: questionsDone ? 'done' : 'current' }] : []
-    const rows: StepRow[] = [
-        { key: 'residence', state: 'done' },
-        ...questions,
-        { key: 'photo', state: photoCurrent ? 'current' : 'next' },
-        { key: 'selfie', state: 'next' },
-        { key: 'review', state: 'next' },
-        { key: 'unlock', state: 'next' },
-    ]
+    const rows = stepRows(phase, hasQuestions, questionsDone)
+    const copy = PHASE_COPY[phase]
     return (
         <div className={twMerge('flex w-full flex-col bg-white px-6 pt-4 pb-6', SCREEN_HEIGHT)}>
             <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-x-6">
@@ -84,10 +118,15 @@ export function StepsScreen({
                     <Icon name="chevron-up" size={20} className="-rotate-90" />
                 </Button>
                 <h1 className="text-center text-heading-xs tracking-[-0.3px] whitespace-pre-line text-foreground-primary">
-                    {t('steps.title')}
+                    {t(copy.title)}
                 </h1>
                 <span />
             </div>
+            {copy.note && (
+                <p className="mt-3 text-center text-body-s text-foreground-secondary" data-testid="verify-steps-note">
+                    {t(copy.note)}
+                </p>
+            )}
             {loading ? (
                 <ol aria-hidden className="mt-10 flex flex-col" data-testid="verify-steps-loading">
                     {Array.from({ length: SKELETON_ROWS }, (_, index) => (
@@ -106,7 +145,7 @@ export function StepsScreen({
                     ))}
                 </ol>
             ) : (
-                <ol className="mt-10 flex flex-col" data-testid="verify-steps">
+                <ol className="mt-10 flex flex-col" data-testid="verify-steps" data-phase={phase}>
                     {rows.map((row, index) => (
                         <li
                             key={row.key}
@@ -130,7 +169,13 @@ export function StepsScreen({
                                           : 'bg-background-icon-bubble-gray'
                                 )}
                             >
-                                {row.state === 'done' ? <Icon name="check" size={16} /> : index + 1}
+                                {row.state === 'done' ? (
+                                    <Icon name="check" size={16} />
+                                ) : row.state === 'current' && phase === 'review' ? (
+                                    <span className="size-3.5 animate-spin rounded-full border-2 border-black border-r-transparent motion-reduce:animate-none" />
+                                ) : (
+                                    index + 1
+                                )}
                             </span>
                             <span className="flex h-8 items-center text-body-m-semibold text-foreground-primary">
                                 {t(`steps.${row.key}`)}
@@ -146,9 +191,9 @@ export function StepsScreen({
                     className="w-full"
                     onClick={onContinue}
                     disabled={loading || !onContinue}
-                    data-testid="verify-steps-continue"
+                    data-testid={copy.testId}
                 >
-                    {t('continue')}
+                    {t(copy.cta)}
                 </Button>
             </div>
         </div>
@@ -194,123 +239,36 @@ export function SavedScreen({
     )
 }
 
-const SETUP_FEATURES = ['bank', 'card', 'local'] as const
-
-/** The features being set up, in a sentence ("bank accounts and card"); empty when only QR pay is on. */
-function useSetupFeatures(features: KycFeatures | undefined) {
-    const t = useTranslations('kyc.paperworkVerification')
-    const locale = useLocale()
-    const names = SETUP_FEATURES.filter((f) => features?.[f]).map((f) => t(`featureNames.${f}`))
-    return { names: new Intl.ListFormat(locale, { type: 'conjunction' }).format(names), count: names.length }
-}
-
-type WaitState = 'done' | 'current' | 'next'
-
-function WaitList({ rows }: { rows: { label: string; state: WaitState }[] }) {
-    return (
-        <ul className="mt-2 flex w-full max-w-[18.5rem] flex-col gap-3 text-left" data-testid="verify-review-steps">
-            {rows.map((row) => (
-                <li
-                    key={row.label}
-                    aria-current={row.state === 'current' ? 'step' : undefined}
-                    className={twMerge(
-                        'flex items-center gap-3',
-                        row.state === 'current'
-                            ? 'text-body-s-semibold text-foreground-primary'
-                            : 'text-body-s text-foreground-secondary'
-                    )}
-                >
-                    <span
-                        aria-hidden
-                        className={twMerge(
-                            'flex size-6 shrink-0 items-center justify-center rounded-full',
-                            row.state === 'done'
-                                ? 'bg-background-icon-bubble-green'
-                                : row.state === 'current'
-                                  ? 'bg-background-icon-bubble-yellow'
-                                  : 'bg-background-icon-bubble-gray'
-                        )}
-                    >
-                        {row.state === 'done' && <Icon name="check" size={16} />}
-                        {row.state === 'current' && (
-                            <span className="size-3 animate-spin rounded-full border-2 border-black border-r-transparent motion-reduce:animate-none" />
-                        )}
-                    </span>
-                    {row.label}
-                </li>
-            ))}
-        </ul>
-    )
-}
-
-/** After the selfie: wait for review, or resume a retryable ID check. */
+/** The ID check failed or needs another try: Home, or a retry when Sumsub allows one. */
 export function ReviewScreen({
-    failed,
-    features,
     onHome,
     onRetry,
     busy = false,
     error,
 }: {
-    failed: boolean
-    features?: KycFeatures
     onHome: () => void
     onRetry?: () => void
     busy?: boolean
     error?: string | null
 }) {
     const t = useTranslations('kyc.paperworkVerification')
-    const setup = useSetupFeatures(features)
-    const copy = failed ? 'failed' : 'review'
     return (
         <VerifyCelebrationLayout
-            pose={failed ? 'sad' : 'thinking'}
-            title={t(`${copy}.title`)}
-            description={t(`${copy}.description`)}
+            pose="sad"
+            title={t('failed.title')}
+            description={t('failed.description')}
             footer={
                 <VerifyFooter
                     actions={
                         onRetry
                             ? primary(t('failed.retry'), onRetry, 'verify-review-retry', busy)
-                            : primary(t(`${copy}.cta`), onHome, 'verify-review-home', false, 'secondary')
+                            : primary(t('failed.cta'), onHome, 'verify-review-home', false, 'secondary')
                     }
                     secondary={onRetry ? primary(t('failed.cta'), onHome, 'verify-review-home') : undefined}
                 >
                     {error && <Callout priority="error">{error}</Callout>}
                 </VerifyFooter>
             }
-        >
-            {!failed && (
-                <WaitList
-                    rows={[
-                        { label: t('review.photos'), state: 'done' },
-                        { label: t('review.reading'), state: 'current' },
-                        {
-                            label: setup.count
-                                ? t('review.settingUp', { features: setup.names })
-                                : t('review.unlocking'),
-                            state: 'next',
-                        },
-                    ]}
-                />
-            )}
-        </VerifyCelebrationLayout>
-    )
-}
-
-/** Approved: Home's next step is adding money. */
-export function VerifiedScreen({ features, onHome }: { features?: KycFeatures; onHome: () => void }) {
-    const t = useTranslations('kyc.paperworkVerification')
-    const setup = useSetupFeatures(features)
-    return (
-        <VerifyCelebrationLayout
-            pose="cheering"
-            celebrate
-            title={t('verified.title')}
-            description={
-                setup.count ? t('verified.description', { features: setup.names }) : t('verified.descriptionQrOnly')
-            }
-            footer={<VerifyFooter actions={primary(t('verified.cta'), onHome, 'verify-verified-home')} />}
         />
     )
 }

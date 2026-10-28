@@ -9,7 +9,7 @@
  * congrats) for the country Peanut is set up for.
  */
 import React from 'react'
-import { act, render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { act, render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
@@ -76,6 +76,13 @@ jest.mock('@/hooks/useResidenceRestrictionSets', () => {
         useResidenceRestrictionSets: () => mockRestrictionSets ?? actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
     }
 })
+
+jest.mock('@/hooks/useKycIntents', () => ({
+    useKycIntents: (country: string) => ({
+        intents: jest.requireActual('@/test-utils/kycIntents.fixture').KYC_INTENTS_BY_COUNTRY[country],
+        settled: true,
+    }),
+}))
 
 describe('ResidenceStep', () => {
     beforeEach(() => {
@@ -160,6 +167,15 @@ describe('ResidenceStep', () => {
         expect(screen.getByRole('heading', { name: en.setup.residenceStep.compare.title })).toBeInTheDocument()
         expect(screen.getByRole('heading', { level: 2, name: 'Portugal' })).toBeInTheDocument()
         expect(screen.getByRole('heading', { level: 2, name: 'Brazil' })).toBeInTheDocument()
+        // Slava, 2026-10-27: the server opens Brazil's bank accounts beside Pix, as Portugal's
+        const brazil = within(screen.getByRole('heading', { level: 2, name: 'Brazil' }).closest('section')!)
+        for (const item of [
+            'PIX payments & transfers',
+            'US dollar bank transfers',
+            'Euro bank transfers',
+            'Peanut card',
+        ])
+            expect(brazil.getByText(item)).toBeInTheDocument()
         expect(screen.getByText(en.setup.residenceStep.compare.guideTitle)).toBeInTheDocument()
         // Back returns to the sentence instead of leaving the step.
         act(() => expect(dispatchBackPress()).toBe(true))

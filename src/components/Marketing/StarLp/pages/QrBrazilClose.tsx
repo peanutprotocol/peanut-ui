@@ -28,7 +28,7 @@ export function QrBrazilClose() {
             </QrBrazilScanFrame>
             <p className="mx-auto mt-14 max-w-xl text-body-l">Verify with your passport before you land.</p>
             <div className="mx-auto mt-8 w-fit">
-                <StarLpCta href={STAR_LP_HREF.signup} ground="pink">
+                <StarLpCta qrPlacement="close" href={STAR_LP_HREF.signup} ground="pink">
                     Create an account
                 </StarLpCta>
             </div>

@@ -26,13 +26,16 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, replace: mockReplace, back: jest.fn(), prefetch: jest.fn() }),
 }))
 jest.mock('@/app/actions/kyc-workflow', () => ({
+    refreshKycIdentityStatus: jest.fn(async () => undefined),
     getKycReplacementPlan: jest.fn(),
     resumeKycDocumentAttempt: jest.fn(),
     startKycDocumentReplacement: jest.fn(),
 }))
+const mockFetchUser = jest.fn(async () => {})
 jest.mock('@/context/authContext', () => ({
     useOptionalAuth: () => null,
     useAuth: () => ({
+        fetchUser: mockFetchUser,
         user: {
             user: { username: 'tester' },
             residence: {
@@ -147,6 +150,7 @@ describe('IdentityRestartFlow', () => {
 
         fireEvent.click(screen.getByText('sumsub-submit'))
         expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
         expect(screen.queryByTestId('sumsub')).toBeNull()
     })
 

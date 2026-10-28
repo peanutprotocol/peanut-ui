@@ -19,8 +19,7 @@ export function RequestPotProgressRow({ transaction }: { transaction: Transactio
     // A settled request has nothing left to pay, even when it closed a few cents
     // short in USD: a request asked in another currency settles on what was sent.
     const isSettled = transaction.status === 'completed'
-    // in whole cents: $99.16 − $73.65 is 25.509999… in floating point, and the
-    // label truncates, so it read "$25.50"
+    // in whole cents: $99.16 − $73.65 is 25.509999… in floating point
     const potRemaining = isSettled ? 0 : Math.max(Math.round((potGoal - potCollected) * 100) / 100, 0)
     // A closed request takes no more money: what is left is not "remaining",
     // nobody can pay it any more (TASK-23856).

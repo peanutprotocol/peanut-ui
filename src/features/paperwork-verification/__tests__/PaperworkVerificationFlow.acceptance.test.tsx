@@ -32,6 +32,7 @@ jest.mock('@/app/actions/kyc-paperwork-verification', () => ({
     skipProofOfAddress: jest.fn(async () => true),
 }))
 jest.mock('@/app/actions/kyc-workflow', () => ({
+    refreshKycIdentityStatus: jest.fn(async () => undefined),
     findKycDocumentPlan: jest.fn(),
     getKycDocumentStatus: jest.fn(),
 }))
@@ -228,7 +229,7 @@ describe('canonical identity recovery acceptance', () => {
         mockStatus.mockResolvedValue('REVERIFYING')
         mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         renderFlow()
-        expect(await screen.findByTestId('verify-verified-home')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-verified-payments')).toBeInTheDocument()
         expect(screen.queryByText('Checking your ID')).not.toBeInTheDocument()
     })
 

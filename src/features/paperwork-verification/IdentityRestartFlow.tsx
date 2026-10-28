@@ -9,6 +9,7 @@ import { useAuth } from '@/context/authContext'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import {
     getKycReplacementPlan,
+    refreshKycIdentityStatus,
     resumeKycDocumentAttempt,
     startKycDocumentReplacement,
     type KycReplacementResult,
@@ -19,7 +20,7 @@ import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
 import { DOCUMENT_KEYS } from './paperworkVerification.utils'
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
-import { ReviewScreen } from './components/StatusScreens'
+import { StepsScreen } from './components/StatusScreens'
 import {
     trackPaperworkVerification,
     PaperworkVerificationTrackingProvider,
@@ -85,7 +86,7 @@ function RestartSteps({ plan, onExit }: { plan: KycDocumentPlan; onExit: () => v
     const tCooldown = useTranslations('profile.unlockPayments.cooldown')
     const locale = useLocale()
     const router = useRouter()
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     // a requested change is the residence the new check is for
     const residence = user?.residence?.declared?.country ?? user?.residence?.verified?.country ?? null
     const [submitted, setSubmitted] = useState(false)
@@ -193,7 +194,12 @@ function RestartSteps({ plan, onExit }: { plan: KycDocumentPlan; onExit: () => v
     return (
         <PaperworkVerificationTrackingProvider value={tracking}>
             {step === 'review' ? (
-                <ReviewScreen failed={false} onHome={() => router.push('/home')} />
+                <StepsScreen
+                    phase="review"
+                    hasQuestions={false}
+                    onBack={() => router.push('/home')}
+                    onContinue={() => router.push('/home')}
+                />
             ) : (
                 <IdentityDocumentScreen
                     plan={plan}
@@ -221,6 +227,7 @@ function RestartSteps({ plan, onExit }: { plan: KycDocumentPlan; onExit: () => v
                     closeSession()
                     setSubmitted(true)
                     void stepper.goTo('review')
+                    void refreshKycIdentityStatus().then(() => fetchUser())
                 }}
                 onRefreshToken={refreshToken}
             />

@@ -22,7 +22,17 @@ export type UnlockChip = 'active' | 'alwaysOn' | 'unlock' | 'processing' | 'atte
 export type BankRegionChip = Exclude<UnlockChip, 'alwaysOn' | 'notAvailable'>
 
 /** Exact key unions so next-intl's typed t() accepts the derived keys. */
-export type UnlockRowLabelKey = 'p2p' | 'card' | 'crypto' | 'qrPay' | 'brl' | 'ars' | 'usd' | 'mxn' | 'sepa'
+export type UnlockRowLabelKey =
+    | 'p2p'
+    | 'card'
+    | 'crypto'
+    | 'qrPay'
+    | 'bankAccount'
+    | 'brl'
+    | 'ars'
+    | 'usd'
+    | 'mxn'
+    | 'sepa'
 
 /** The bank corridors, one per currency (2026-09-21). */
 export type BankRowKey = Extract<UnlockRowLabelKey, 'brl' | 'ars' | 'usd' | 'mxn' | 'sepa'>
@@ -41,6 +51,8 @@ export interface UnlockRow {
     href?: string
     /** the explainer line under the title, as a key under profile.unlockPayments */
     note?: 'qrPayNote' | 'pixSendNote'
+    /** the bank account row: the currencies it can hold, named under the title */
+    currencies?: readonly string[]
     /**
      * Which limits apply once the row is active: Manteca per-currency
      * allowances (BRL/ARS) and/or the shared Bridge per-transaction cap.
@@ -327,6 +339,46 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
             rows: [cardRow, qrRow],
         },
     ]
+}
+
+/** Where the one bank account row leads: the currency is picked on that screen. */
+export const BANK_ACCOUNT_HREF = '/profile/accounts'
+
+const BANK_CHIP_ORDER: readonly UnlockChip[] = ['active', 'processing', 'attention', 'unlock']
+
+/**
+ * Every bank currency as one row (Slava, 2026-10-27: "Bank account should be
+ * one item, currency to select on the next step"). It reads the best status
+ * any currency has, and names the currencies the user can still use.
+ */
+export function bankAccountRow(bankRows: readonly UnlockRow[]): UnlockRow {
+    const open = bankRows.filter((row) => row.chip !== 'notAvailable')
+    const chips = open.map((row) => row.chip)
+    return {
+        id: 'bank-account',
+        labelKey: 'bankAccount',
+        concept: 'bank',
+        chip: BANK_CHIP_ORDER.find((chip) => chips.includes(chip)) ?? 'notAvailable',
+        href: BANK_ACCOUNT_HREF,
+        currencies: [...new Set(open.flatMap((row) => (row.currency ? [row.currency] : [])))],
+    }
+}
+
+export type PaymentMethodSection = 'active' | 'notActive' | 'unavailable'
+
+/** Active methods first, then what the user can still set up or waits on, then what their residence closes. */
+export function paymentMethodSections(rows: readonly UnlockRow[]): Record<PaymentMethodSection, UnlockRow[]> {
+    const sections: Record<PaymentMethodSection, UnlockRow[]> = { active: [], notActive: [], unavailable: [] }
+    for (const row of rows) {
+        const section =
+            row.chip === 'active' || row.chip === 'alwaysOn'
+                ? 'active'
+                : row.chip === 'notAvailable'
+                  ? 'unavailable'
+                  : 'notActive'
+        sections[section].push(row)
+    }
+    return sections
 }
 
 /**

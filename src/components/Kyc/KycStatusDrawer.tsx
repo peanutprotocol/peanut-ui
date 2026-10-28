@@ -6,7 +6,9 @@ import { KycProcessing } from './states/KycProcessing'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { Drawer, DrawerContent } from '../Global/Drawer'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { PAPERWORK_VERIFICATION_FLOW } from '@/app/actions/types/kyc-workflow.types'
 import { findKycSetup } from '@/app/actions/kyc-workflow'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useTranslations } from 'next-intl'
@@ -57,19 +59,28 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
         onManualClose: handleFlowDone,
     })
 
-    // An identity verified through a verification attempt shows its setup status
-    // instead: this drawer steps aside for it and stays mounted under it.
-    const handoffRef = useRef({ onClose, onKeepMounted, openSetupStatus: sumsubFlow.openSetupStatus })
-    handoffRef.current = { onClose, onKeepMounted, openSetupStatus: sumsubFlow.openSetupStatus }
+    // An identity verified through a verification attempt shows its own status
+    // instead: the verification timeline for Smart Paperwork Verification, the
+    // setup status for the rest. This drawer opens only once that is ruled out,
+    // so two drawers never follow each other.
+    const router = useRouter()
+    const handoffRef = useRef({ onClose, onKeepMounted, openSetupStatus: sumsubFlow.openSetupStatus, router })
+    handoffRef.current = { onClose, onKeepMounted, openSetupStatus: sumsubFlow.openSetupStatus, router }
     const checksSetup = isOpen && !!user?.user?.userId && (status === 'processing' || status === 'verified')
+    const [setupChecked, setSetupChecked] = useState(false)
     useEffect(() => {
-        if (!checksSetup) return
+        if (!checksSetup) {
+            setSetupChecked(false)
+            return
+        }
         let cancelled = false
         void findKycSetup().then((setup) => {
-            if (cancelled || !setup) return
+            if (cancelled) return
             const handoff = handoffRef.current
-            handoff.onKeepMounted?.(true)
+            if (!setup) return setSetupChecked(true)
             handoff.onClose()
+            if (setup.flow === PAPERWORK_VERIFICATION_FLOW) return handoff.router.push('/verify')
+            handoff.onKeepMounted?.(true)
             handoff.openSetupStatus(setup.features, setup.refusals)
         })
         return () => {
@@ -157,7 +168,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
 
     return (
         <>
-            <Drawer open={isOpen} onOpenChange={onClose}>
+            <Drawer open={isOpen && (!checksSetup || setupChecked)} onOpenChange={onClose}>
                 <DrawerContent accessibleTitle={t('statusDrawerTitle')} className="pt-4" scrollAreaClassName="pb-12">
                     {renderContent()}
                     {sumsubFlow.error && (

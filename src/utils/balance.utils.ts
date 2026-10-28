@@ -1,5 +1,6 @@
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 import { formatUnits, parseUnits } from 'viem'
+import { formatAmountNumber } from '@/utils/currency'
 
 /**
  * Parse a USD amount (string or number) to token base units PRECISELY — the same
@@ -55,6 +56,13 @@ export const printableUsdc = (balance: bigint): string => {
     const formatted = formatUnits(flooredBigint, PEANUT_WALLET_TOKEN_DECIMALS)
     return Number(formatted).toFixed(2)
 }
+
+/**
+ * A USDC balance for display: "257.50", "1,234.56", "257". Rounded DOWN to the
+ * cent, so it never shows more than the user can spend, and read like every
+ * other amount after that (design.md, copy → amounts).
+ */
+export const formatUsdcBalance = (balance: bigint): string => formatAmountNumber(printableUsdc(balance))
 
 /**
  * Shared balance error copy lives in the `errors` next-intl namespace:

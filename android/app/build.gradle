@@ -41,6 +41,7 @@ def resolvedVersionCode = (System.getenv('ANDROID_VERSION_CODE')?.isInteger()
 android {
     namespace = "me.peanut.wallet"
     compileSdk = rootProject.ext.compileSdkVersion
+    ndkVersion = rootProject.ext.ndkVersion
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17

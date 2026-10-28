@@ -406,6 +406,36 @@ describe('SupportDrawer — pointer-events when opened inside a vaul drawer', ()
     })
 })
 
+describe('SupportDrawer — closed panel', () => {
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset().mockReturnValue({ userId: undefined, email: undefined })
+        mockUseCrispTokenId.mockReset().mockReturnValue(undefined)
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+    })
+    afterEach(() => {
+        modalsState.isSupportModalOpen = true
+    })
+
+    it('is not a dialog to assistive tech and takes no focus while closed', () => {
+        modalsState.isSupportModalOpen = false
+        const { container } = render(<SupportDrawer />)
+
+        expect(screen.queryByRole('dialog')).toBeNull()
+        const panel = container.querySelector('[role="dialog"]')
+        expect(panel).toHaveAttribute('aria-hidden', 'true')
+        expect(panel).toHaveAttribute('inert')
+    })
+
+    it('is a focusable dialog again once open', () => {
+        modalsState.isSupportModalOpen = true
+        render(<SupportDrawer />)
+
+        const panel = screen.getByRole('dialog', { name: 'Support' })
+        expect(panel).not.toHaveAttribute('aria-hidden')
+        expect(panel).not.toHaveAttribute('inert')
+    })
+})
+
 describe('SupportDrawer — iOS keyboard', () => {
     // iOS leaves the layout viewport at full height when the keyboard opens, so a
     // `bottom: 0` panel keeps Crisp's composer underneath the keys. The drawer has to

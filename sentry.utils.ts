@@ -6,32 +6,33 @@ import { isExpectedCancellation, isExpectedCancellationChain } from './src/utils
 // Used by: sentry.client.config.ts, sentry.edge.config.ts, sentry.server.config.ts
 
 import type { ErrorEvent } from '@sentry/nextjs'
-import { PAYMENT_NETWORK_PATH, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
+import { PRIVATE_DATA_PATHS, isPrivateDataPath } from '@/utils/private-routes'
 
 interface RoutableSentryEvent {
     request?: { url?: string }
     transaction?: string
 }
 
-function sentryValueTargetsPaymentNetwork(value: string | undefined): boolean {
-    if (!value) return false
+function routeIsPrivate(route: string): boolean {
     try {
-        if (value.startsWith('/') || /^[a-z][a-z\d+.-]*:\/\//i.test(value)) {
-            return isPaymentNetworkExplorerPath(new URL(value, 'https://peanut.invalid').pathname)
-        }
-    } catch {}
-    const pathIndex = value.indexOf(PAYMENT_NETWORK_PATH)
-    if (pathIndex < 0) return false
-    const routeLikeValue = value.slice(pathIndex).split(/\s/, 1)[0]
-    try {
-        return isPaymentNetworkExplorerPath(new URL(routeLikeValue, 'https://peanut.invalid').pathname)
+        return isPrivateDataPath(new URL(route, 'https://peanut.invalid').pathname)
     } catch {
         return false
     }
 }
 
-export function isPaymentNetworkSentryEvent(event: RoutableSentryEvent): boolean {
-    return sentryValueTargetsPaymentNetwork(event.request?.url) || sentryValueTargetsPaymentNetwork(event.transaction)
+function sentryValueTargetsPrivateData(value: string | undefined): boolean {
+    if (!value) return false
+    if (value.startsWith('/') || /^[a-z][a-z\d+.-]*:\/\//i.test(value)) return routeIsPrivate(value)
+    // Transaction names like "GET /dev/users" carry the route after a method.
+    return PRIVATE_DATA_PATHS.some((path) => {
+        const pathIndex = value.indexOf(path)
+        return pathIndex >= 0 && routeIsPrivate(value.slice(pathIndex).split(/\s/, 1)[0])
+    })
+}
+
+export function isPrivateDataSentryEvent(event: RoutableSentryEvent): boolean {
+    return sentryValueTargetsPrivateData(event.request?.url) || sentryValueTargetsPrivateData(event.transaction)
 }
 
 import { CRITICAL_FLOW_TAG } from '@/utils/sentry-critical-flow'
@@ -678,9 +679,9 @@ export function beforeSendHandler(event: ErrorEvent): ErrorEvent | null {
 }
 
 export function beforeSendRouteAwareHandler(event: ErrorEvent): ErrorEvent | null {
-    return isPaymentNetworkSentryEvent(event) ? null : beforeSendHandler(event)
+    return isPrivateDataSentryEvent(event) ? null : beforeSendHandler(event)
 }
 
 export function beforeSendRouteAwareTransaction<T extends RoutableSentryEvent>(event: T): T | null {
-    return isPaymentNetworkSentryEvent(event) ? null : redactSentryTelemetry(event)
+    return isPrivateDataSentryEvent(event) ? null : redactSentryTelemetry(event)
 }

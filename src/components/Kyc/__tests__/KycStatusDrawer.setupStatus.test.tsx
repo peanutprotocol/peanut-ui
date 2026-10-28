@@ -6,7 +6,8 @@ import { findKycSetup } from '@/app/actions/kyc-workflow'
 
 // The way back to the setup status: a returning user whose identity was
 // verified through a verification attempt opens the identity status and gets the
-// setup status instead. Every other identity keeps the status drawer.
+// verification timeline (Smart Paperwork Verification) or the setup status
+// instead, with no drawer in between. Every other identity keeps the status drawer.
 
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
@@ -25,6 +26,8 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     }),
 }))
 jest.mock('@/app/actions/kyc-workflow', () => ({ findKycSetup: jest.fn() }))
+const mockPush = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
@@ -72,14 +75,26 @@ describe('KycStatusDrawer — the setup status of a verification-attempt identit
         expect(onClose).toHaveBeenCalled()
     })
 
+    it.each(['verified', 'processing'] as const)(
+        'a %s Smart Paperwork Verification identity opens the verification timeline, never a drawer',
+        async (status) => {
+            identity(status)
+            mockFind.mockResolvedValue({ features, refusals, flow: 'verify-once' })
+            const { onClose } = open()
+            expect(screen.queryByTestId(`status-${status === 'verified' ? 'completed' : 'processing'}`)).toBeNull()
+            await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
+            expect(onClose).toHaveBeenCalled()
+            expect(mockOpenSetupStatus).not.toHaveBeenCalled()
+        }
+    )
+
     it('every other identity keeps the status drawer', async () => {
         identity('verified')
         mockFind.mockResolvedValue(null)
         const { onClose } = open()
-        await waitFor(() => expect(mockFind).toHaveBeenCalled())
+        expect(await screen.findByTestId('status-completed')).toBeInTheDocument()
         expect(mockOpenSetupStatus).not.toHaveBeenCalled()
         expect(onClose).not.toHaveBeenCalled()
-        expect(screen.getByTestId('status-completed')).toBeInTheDocument()
     })
 
     it('an identity that needs action keeps its own fix and is not checked', () => {

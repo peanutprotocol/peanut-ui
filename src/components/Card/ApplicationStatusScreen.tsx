@@ -102,7 +102,7 @@ const SUPPORT_VARIANTS: ReadonlySet<Variant> = new Set(['requires-info', 'requir
  * the full list is published. Mirrors CardTermsScreen's absolute-URL pattern.
  */
 const PROHIBITED_ACTIVITIES_POLICY_URL = 'https://peanut.me/en/card-prohibited-activities'
-const RESIDENCE_CHANGE_URL = '/profile/payments?open=residence'
+const RESIDENCE_CHANGE_URL = '/profile?open=residence'
 
 const ApplicationStatusScreen: FC<Props> = ({
     variant,

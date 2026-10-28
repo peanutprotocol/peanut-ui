@@ -99,14 +99,14 @@ describe('TransactionDetailsHeaderCard direction words', () => {
         expect(screen.getByText('Paid to Museumsinsel')).toBeInTheDocument()
     })
 
-    it('titles a PIX-key payment "Paid to {owner} · {key}"', () => {
+    it('titles a PIX-key send "Sent to {owner} · {key}" (TASK-24054)', () => {
         renderHeaderCard({
-            direction: 'qr_payment',
+            direction: 'send',
             status: 'completed',
             userName: 'Maria Da Silva',
             nameDetail: 'maria@silva.com.br',
         })
-        const title = screen.getByText('Paid to Maria Da Silva · maria@silva.com.br')
+        const title = screen.getByText('Sent to Maria Da Silva · maria@silva.com.br')
         // A person's name and key: masked in session replay.
         expect(title.closest('h2')).toHaveClass('ph-mask', 'ph-no-capture')
     })

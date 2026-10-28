@@ -494,7 +494,7 @@ describe('an account the user could open', () => {
         search('mxn')
 
         expect(inRow(container, 'SPEI_MX').getByText(LIST.badgeLimitReached)).toBeInTheDocument()
-        expect(inRow(container, 'SPEI_MX').queryByText('Available')).not.toBeInTheDocument()
+        expect(inRow(container, 'SPEI_MX').queryByText('Active')).not.toBeInTheDocument()
         fireEvent.click(rowOf(container, 'SPEI_MX') as HTMLElement)
         expect(onOpen).toHaveBeenCalledWith('SPEI_MX')
     })
@@ -646,7 +646,7 @@ describe('a row the user cannot use', () => {
         fireEvent.click(link)
         jest.runAllTimers()
         jest.useRealTimers()
-        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile/accounts?open=residence', HUB_RETURN))
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile?open=residence', HUB_RETURN))
         expect(mockOpenSupport).not.toHaveBeenCalled()
     })
 
@@ -684,7 +684,7 @@ describe('a row the user cannot use', () => {
         fireEvent.click(drawer().getByRole('button', { name: messages.depositAccounts.details.residenceCta }))
         jest.runAllTimers()
         jest.useRealTimers()
-        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile/accounts?open=residence', HUB_RETURN))
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile?open=residence', HUB_RETURN))
     })
 
     it('says bank transfers and the card are closed where the country of residence closes both', () => {
@@ -720,7 +720,7 @@ describe('the other ways in', () => {
         const section = within(screen.getByTestId('other-ways'))
         expect(section.getByRole('heading', { name: LIST.otherWaysTitle })).toBeInTheDocument()
         expect(section.getByText(LIST.otherWaysBody)).toBeInTheDocument()
-        expect(within(bankRow('brl')).getByText('Available')).toBeInTheDocument()
+        expect(within(bankRow('brl')).getByText('Active')).toBeInTheDocument()
         // C16: USD is listed to open above, with its own status; a second USD
         // row down here could only say it again in other words
         expect(screen.queryByTestId('bank-row-usd')).not.toBeInTheDocument()
