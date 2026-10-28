@@ -246,6 +246,22 @@ export function marketingQrHandoffUrl(url: URL): URL | null {
     return target
 }
 
+/** The opening event's fields, shared by the web handoff and the installed apps. */
+export function marketingQrEventFields(
+    registration: MarketingQrRegistration,
+    attribution: MarketingQrAttribution
+): Record<string, string> {
+    return {
+        qr_id: registration.qr_id,
+        utm_source: attribution.campaign.source,
+        utm_medium: attribution.campaign.medium,
+        utm_campaign: attribution.campaign.campaign,
+        ...(attribution.campaign.content ? { utm_content: attribution.campaign.content } : {}),
+        attribution_origin: attribution.attributionOrigin,
+        attribution_adjustment: attribution.attributionAdjustment,
+    }
+}
+
 export function marketingQrContinuation(
     registration: MarketingQrRegistration,
     campaign: MarketingQrCampaign,

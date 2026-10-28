@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import { STORE_NAME, STORE_URL } from '@/constants/migration.consts'
 import { marketingQrAnalyticsAllowed } from './consent'
-import { marketingQrContinuation, type MarketingQrAttribution, type MarketingQrRegistration } from './contract'
+import {
+    marketingQrContinuation,
+    marketingQrEventFields,
+    type MarketingQrAttribution,
+    type MarketingQrRegistration,
+} from './contract'
 
 type HandoffState = {
     captureEnabled: boolean
@@ -70,15 +75,7 @@ export async function renderMarketingQrHandoff(
         projectKey: process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim() ?? '',
         allowedContinuation: marketingQrContinuation(registration, attribution.campaign, true),
         deniedContinuation: marketingQrContinuation(registration, attribution.campaign, false),
-        event: {
-            qr_id: registration.qr_id,
-            utm_source: attribution.campaign.source,
-            utm_medium: attribution.campaign.medium,
-            utm_campaign: attribution.campaign.campaign,
-            ...(attribution.campaign.content ? { utm_content: attribution.campaign.content } : {}),
-            attribution_origin: attribution.attributionOrigin,
-            attribution_adjustment: attribution.attributionAdjustment,
-        },
+        event: marketingQrEventFields(registration, attribution),
     }
     const nonce = randomUUID()
     const serialized = JSON.stringify(state)
