@@ -24229,6 +24229,18 @@
                                                             },
                                                             {
                                                                 "enum": [
+                                                                    "setup-pending"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "setup-failed"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
                                                                     "review-closed"
                                                                 ],
                                                                 "type": "string"
@@ -24254,6 +24266,10 @@
                                                         "type": "string"
                                                     },
                                                     "method": {
+                                                        "type": "string"
+                                                    },
+                                                    "pendingSince": {
+                                                        "format": "date-time",
                                                         "type": "string"
                                                     },
                                                     "railId": {
@@ -33339,6 +33355,85 @@
                 },
                 "responses": {
                     "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/version": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "branch": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "builtAt": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "commit": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "contracts": {
+                                            "properties": {
+                                                "kyc": {
+                                                    "enum": [
+                                                        2
+                                                    ],
+                                                    "type": "number"
+                                                }
+                                            },
+                                            "required": [
+                                                "kyc"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        "migrationsHead": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "commit",
+                                        "branch",
+                                        "builtAt",
+                                        "migrationsHead",
+                                        "contracts"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }

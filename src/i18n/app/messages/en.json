@@ -4866,6 +4866,7 @@
             "errorBody": "Your accounts are fine. Check the connection and try again.",
             "errorRetry": "Try again",
             "badgeActionNeeded": "Action needed",
+            "badgeSettingUp": "Setting up",
             "badgeUnderReview": "Under review"
         },
         "claim": {

@@ -4866,6 +4866,7 @@
             "errorBody": "Tus cuentas están bien. Revisa la conexión e inténtalo de nuevo.",
             "errorRetry": "Intentar de nuevo",
             "badgeActionNeeded": "Acción requerida",
+            "badgeSettingUp": "Configurando",
             "badgeUnderReview": "En revisión"
         },
         "claim": {

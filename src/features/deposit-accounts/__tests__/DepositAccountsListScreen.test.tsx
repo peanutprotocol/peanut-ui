@@ -560,6 +560,16 @@ describe('a withheld account with the cause the backend names', () => {
         expect(onOpen).toHaveBeenCalledWith('SPEI_MX')
     })
 
+    it('shows an account still being opened after verification as setting up, not as "not available"', () => {
+        const { container } = list(false, {
+            unavailable: { ACH_US: withheld('ACH_US', 'not-offered', 'setup-pending') },
+        })
+
+        const row = rowOf(container, 'ACH_US') as HTMLElement
+        expect(within(row).getByText(LIST.badgeSettingUp)).toBeInTheDocument()
+        expect(within(row).queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
+    })
+
     it('sends a closed review to support', () => {
         const { container } = list(false, {
             unavailable: { ACH_US: withheld('ACH_US', 'support-required', 'review-closed') },

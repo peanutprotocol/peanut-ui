@@ -13183,10 +13183,12 @@ export interface paths {
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             }[];
                             unavailable: {
-                                cause?: "review-action" | "review-pending" | "review-closed" | "residence-restricted" | "not-open";
+                                cause?: "review-action" | "review-pending" | "setup-pending" | "setup-failed" | "review-closed" | "residence-restricted" | "not-open";
                                 country: string;
                                 currency: string;
                                 method: string;
+                                /** Format: date-time */
+                                pendingSince?: string;
                                 railId: string;
                                 reason: "identity-required" | "support-required" | "not-offered";
                             }[];
@@ -16492,6 +16494,50 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            branch: string | null;
+                            builtAt: string | null;
+                            commit: string | null;
+                            contracts: {
+                                /** @enum {number} */
+                                kyc: 2;
+                            };
+                            migrationsHead: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
