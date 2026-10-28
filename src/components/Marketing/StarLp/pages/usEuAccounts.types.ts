@@ -1,11 +1,13 @@
 import type { StaticImageData } from 'next/image'
 import type { ReactNode } from 'react'
-import type { StarLpFxRate } from '@/components/Marketing/StarLp/starLp.types'
+import type { DropInProps, StarLpFxRate } from '@/components/Marketing/StarLp/starLp.types'
 import type { MigrationSurface } from '@/constants/migration.consts'
 
 /** One real bank-details capture in the hero pair. */
 export interface UsEuAccountCaptureProps {
     src: StaticImageData
+    /** Shared entrance for the homepage pair; its coin paints above both card faces. */
+    entrance?: DropInProps['entrance']
     /** Resting tilt in degrees. */
     tilt: number
     /** Delay of the drop-in, in seconds. */
@@ -36,6 +38,8 @@ export interface UsEuAppLinkProps {
 
 /** The hero pair of bank-details captures, as art that links to the accounts screen. */
 export interface UsEuAccountPairProps {
+    /** Both home-fold cards share one viewport trigger and a short stagger. */
+    pairedEntrance?: boolean
     /** Merged onto the link wrapper, e.g. to cap the pair to a half column. */
     className?: string
     /** Analytics surface of the click; STAR_LP by default. */

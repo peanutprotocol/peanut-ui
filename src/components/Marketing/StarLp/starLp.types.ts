@@ -237,6 +237,8 @@ export interface PopInProps {
 
 export interface DropInProps {
     children: ReactNode
+    /** A shared offscreen arm and viewport trigger for stickers that enter together. */
+    entrance?: { armed: boolean; visible: boolean }
     delay?: number
     /** Tilt it falls from, degrees (Split uses −14, 12, −8). */
     fromTilt?: number

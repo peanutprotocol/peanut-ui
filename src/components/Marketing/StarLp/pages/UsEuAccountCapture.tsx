@@ -23,34 +23,69 @@ const BADGE_CORNER_CLASS: Record<UsEuAccountCaptureProps['badgeCorner'], string>
  * stop inside the decorative hero art. Hover adds no motion (design.md §
  * marketing components).
  */
-export function UsEuAccountCapture({ src, tilt, delay, badge, badgeCorner, className }: UsEuAccountCaptureProps) {
+export function UsEuAccountCapture({
+    src,
+    tilt,
+    delay,
+    badge,
+    badgeCorner,
+    className,
+    entrance,
+}: UsEuAccountCaptureProps) {
+    const card = (
+        <div
+            className={twMerge(
+                'overflow-hidden rounded-card border-2 border-border-default bg-background-page shadow-4',
+                PRESS
+            )}
+        >
+            <Image
+                src={src}
+                alt=""
+                sizes="(min-width: 1024px) 480px, (min-width: 768px) 352px, 90vw"
+                className="h-auto w-full"
+                priority
+            />
+        </div>
+    )
+    const coin = (
+        <span
+            aria-hidden
+            className={twMerge(
+                'font-roboto-flex-extrabold shadow-2 absolute grid size-12 place-items-center rounded-full border-2 border-border-default bg-yellow-500 text-heading-s',
+                BADGE_CORNER_CLASS[badgeCorner],
+                PRESS
+            )}
+        >
+            {badge}
+        </span>
+    )
+
+    if (entrance) {
+        // A stationary layout wrapper lets the coin's layer clear both card transforms.
+        return (
+            <div className={className}>
+                <DropIn fromTilt={tilt * 4} tilt={tilt} delay={delay} entrance={entrance}>
+                    {card}
+                </DropIn>
+                <DropIn
+                    fromTilt={tilt * 4}
+                    tilt={tilt}
+                    delay={delay}
+                    entrance={entrance}
+                    className="pointer-events-none absolute inset-0 z-20"
+                >
+                    {coin}
+                </DropIn>
+            </div>
+        )
+    }
+
     return (
         <DropIn fromTilt={tilt * 4} tilt={tilt} delay={delay} className={className}>
             <div className="relative">
-                <div
-                    className={twMerge(
-                        'overflow-hidden rounded-card border-2 border-border-default bg-background-page shadow-4',
-                        PRESS
-                    )}
-                >
-                    <Image
-                        src={src}
-                        alt=""
-                        sizes="(min-width: 1024px) 480px, (min-width: 768px) 352px, 90vw"
-                        className="h-auto w-full"
-                        priority
-                    />
-                </div>
-                <span
-                    aria-hidden
-                    className={twMerge(
-                        'font-roboto-flex-extrabold shadow-2 absolute grid size-12 place-items-center rounded-full border-2 border-border-default bg-yellow-500 text-heading-s',
-                        BADGE_CORNER_CLASS[badgeCorner],
-                        PRESS
-                    )}
-                >
-                    {badge}
-                </span>
+                {card}
+                {coin}
             </div>
         </DropIn>
     )

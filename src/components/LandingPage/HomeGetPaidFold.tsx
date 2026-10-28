@@ -24,7 +24,11 @@ export function HomeGetPaidFold({ strings }: HomeGetPaidFoldProps) {
                 {/* Art, as in the star-LP hero: its link is out of the tab order and the close CTA is the
                     keyboard path. The pair is sized for a hero column; here it fills its half and no more. */}
                 <div aria-hidden>
-                    <UsEuAccountPair surface={MIGRATION_SURFACES.LANDING_APP_FOLD} className="md:pt-0 lg:max-w-none" />
+                    <UsEuAccountPair
+                        pairedEntrance
+                        surface={MIGRATION_SURFACES.LANDING_APP_FOLD}
+                        className="md:pt-0 lg:max-w-none"
+                    />
                 </div>
             </div>
         </Band>

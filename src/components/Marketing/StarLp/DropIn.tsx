@@ -11,8 +11,9 @@ import type { DropInProps } from './starLp.types'
  * Renders at rest on the server and above the fold (see useEntranceArm), so
  * hero art never waits for hydration.
  */
-export function DropIn({ children, delay = 0, fromTilt = -12, tilt = 0, className }: DropInProps) {
-    const { ref, armed } = useEntranceArm()
+export function DropIn({ children, delay = 0, fromTilt = -12, tilt = 0, className, entrance }: DropInProps) {
+    const { ref, armed: locallyArmed } = useEntranceArm()
+    const armed = entrance?.armed ?? locallyArmed
     const rest = { opacity: 1, y: 0, scale: 1, rotate: tilt }
     return (
         <MotionConfig reducedMotion="user">
@@ -22,8 +23,8 @@ export function DropIn({ children, delay = 0, fromTilt = -12, tilt = 0, classNam
                 ref={ref}
                 className={className}
                 initial={armed ? { opacity: 0, y: -24, scale: 0.6, rotate: fromTilt } : false}
-                animate={armed ? undefined : rest}
-                whileInView={armed ? rest : undefined}
+                animate={armed ? (entrance?.visible ? rest : undefined) : rest}
+                whileInView={armed && !entrance ? rest : undefined}
                 viewport={{ once: true, amount: 0.3 }}
                 transition={{ ...STAR_LP_SPRING.drop, delay }}
             >
