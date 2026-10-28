@@ -1,6 +1,8 @@
 'use client'
 
 import { SetupCelebrationView } from '@/components/Setup/Views/Success'
+import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
+import { API_CONTRACT_STATES } from './api-contract-states'
 
 /**
  * Every modal, drawer and full-screen surface in the content-taxonomy review,
@@ -333,6 +335,15 @@ export type Surface = SurfaceMeta & {
 }
 
 export const SURFACES: Record<string, Surface> = {
+    ...Object.fromEntries(
+        Object.entries(API_CONTRACT_STATES).map(([id, state]) => [
+            id,
+            {
+                ...SURFACE_META[id],
+                render: () => <TestBuildRibbonView branch="test/kyc-contract" api={state.api} />,
+            },
+        ])
+    ),
     '01-a-landing': {
         ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,

@@ -5,6 +5,8 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { paperworkVerificationHeaders } from '@/features/paperwork-verification/paperworkVerificationHeaders'
 import { providerRefusalsOf, type SetupRefusals } from '@/utils/kyc-setup-status.utils'
 import { restartIdentityVerification, type SumsubActionErrorCode } from './sumsub'
+import * as Sentry from '@/utils/sentry-lazy'
+import { isTestApiBuild, reportApiContractError } from '@/utils/api-contracts'
 import type {
     KycAttemptSession,
     KycDocumentPlan,
@@ -20,18 +22,35 @@ async function read<T>(path: string, options?: RequestInit): Promise<T> {
         cache: 'no-store',
         redactTelemetry: true,
     })
+    const body: unknown = await response.json().catch(() => null)
+    const object = body && typeof body === 'object' && !Array.isArray(body) ? (body as Record<string, unknown>) : null
+    if (
+        (response.status === 404 &&
+            (object?.code === 'route_not_found' ||
+                !(typeof object?.error === 'string' || typeof object?.code === 'string'))) ||
+        (response.ok && !object)
+    )
+        throw contractError(
+            path,
+            options?.method ?? 'GET',
+            response.status,
+            object?.code === 'route_not_found' ? 'route_not_found' : 'invalid_response'
+        )
     if (!response.ok) {
-        const body = await response.json().catch(() => null)
         throw Object.assign(new Error('KYC request failed'), {
-            code: body?.code ?? body?.error,
-            userMessage: typeof body?.userMessage === 'string' ? body.userMessage : undefined,
-            feature: body?.feature,
+            code: object?.code ?? object?.error,
+            userMessage: typeof object?.userMessage === 'string' ? object.userMessage : undefined,
+            feature: object?.feature,
             status: response.status,
         })
     }
-    return response.json() as Promise<T>
+    return body as T
 }
-const INVALID_PLAN = 'invalid_plan'
+const API_CONTRACT_ERROR = 'api_contract_error'
+function contractError(path: string, method: string, status: number, reason: string): Error {
+    reportApiContractError(path.split('?')[0], method, reason, status)
+    return Object.assign(new Error('API contract error'), { code: API_CONTRACT_ERROR, status })
+}
 const KNOWN_STATUSES = new Set([
     'NOT_STARTED',
     'PENDING',
@@ -46,7 +65,7 @@ const KNOWN_STATUSES = new Set([
 export async function getKycDocumentPlan(restart = false): Promise<KycDocumentPlan> {
     const plan = await read<KycDocumentPlan>(`/users/kyc/plan${restart ? '?restart=true' : ''}`)
     if (typeof plan.available !== 'boolean' || !Array.isArray(plan.routes))
-        throw Object.assign(new Error('Invalid KYC plan'), { code: INVALID_PLAN })
+        throw contractError('/users/kyc/plan', 'GET', 200, 'invalid_plan')
     return plan
 }
 
@@ -67,8 +86,9 @@ export class KycPlanUnavailableError extends Error {
 }
 
 /**
- * The plan, or null when the API has none to give: no plan route (an older
- * API, a rollback) or a body in another contract. Both mean today's flow.
+ * The plan, or null when the API has none to give: a domain 404, or on a
+ * production build an API in another contract (reported, never silent). A
+ * test build throws instead, so a wrong API pairing can't hide.
  *
  * A read that keeps failing THROWS instead. Guessing today's flow there starts
  * a legacy applicant for a Smart Paperwork Verification user, and that applicant
@@ -80,7 +100,11 @@ export async function findKycDocumentPlan(source?: KycPlanReadSource): Promise<K
             return await getKycDocumentPlan()
         } catch (error) {
             const { status, code } = error as { status?: number; code?: string }
-            if (status === 404 || code === INVALID_PLAN) return null
+            if (code === API_CONTRACT_ERROR) {
+                if (!isTestApiBuild()) return null
+                throw new KycPlanUnavailableError(attempt, status)
+            }
+            if (status === 404) return null
             if (attempt > KYC_PLAN_RETRY_DELAYS_MS.length) {
                 posthog.capture(ANALYTICS_EVENTS.KYC_PV_PLAN_FAILED, {
                     attempts: attempt,
@@ -117,6 +141,7 @@ export async function startKycDocumentReplacement(replacement: KycReplacementCho
     try {
         return { kind: 'session', session: validSession(response.data as KycAttemptSession) }
     } catch {
+        reportApiContractError('/users/identity/restart', 'POST', 'invalid_session', 200)
         return { kind: 'failed', code: 'invalid_response' }
     }
 }
@@ -129,7 +154,19 @@ export async function resumeKycDocumentAttempt(attemptId: string) {
         redactTelemetry: true,
     })
     const body = await response.json().catch(() => null)
-    if (response.ok) return validSession(body, false)
+    if (response.ok) {
+        try {
+            return validSession(body, false)
+        } catch (error) {
+            reportApiContractError('/users/kyc/attempts/{attemptId}/token', 'POST', 'invalid_session', response.status)
+            throw error
+        }
+    }
+    if (
+        response.status === 404 &&
+        (body?.code === 'route_not_found' || !(typeof body?.error === 'string' || typeof body?.code === 'string'))
+    )
+        throw contractError('/users/kyc/attempts/{attemptId}/token', 'POST', response.status, 'route_not_found')
     // A crash can leave the saved replacement before its remote reset. Only that explicit response resumes the authorised reset ledger.
     // Conflicts carry a stable `code`; older bodies name it only in `error`.
     if (response.status === 409 && [body?.code, body?.error].includes('replacement_reset_required'))
@@ -144,6 +181,8 @@ export async function resumeKycDocumentAttempt(attemptId: string) {
 export async function getKycDocumentStatus(): Promise<SumsubKycStatus | undefined> {
     const profile = await read<{ identity: { canonicalStatus: string } | null }>('/users/kyc/profile')
     const status = profile.identity?.canonicalStatus
+    if (profile.identity !== null && (typeof status !== 'string' || !KNOWN_STATUSES.has(status)))
+        throw contractError('/users/kyc/profile', 'GET', 200, 'invalid_status')
     return status && KNOWN_STATUSES.has(status) ? (status as SumsubKycStatus) : undefined
 }
 
@@ -158,14 +197,38 @@ export async function refreshKycIdentityStatus(): Promise<SumsubKycStatus | unde
             method: 'POST',
             body: '{}',
         })
-        return status && KNOWN_STATUSES.has(status) ? (status as SumsubKycStatus) : undefined
-    } catch {
+        if (status !== null && (typeof status !== 'string' || !KNOWN_STATUSES.has(status)))
+            throw contractError('/users/kyc/identity/refresh', 'POST', 200, 'invalid_status')
+        return status ? (status as SumsubKycStatus) : undefined
+    } catch (error) {
+        if ((error as { code?: string })?.code !== API_CONTRACT_ERROR) {
+            Sentry.captureMessage('KYC identity refresh failed', {
+                level: 'warning',
+                extra: { route: '/users/kyc/identity/refresh', method: 'POST' },
+            })
+        }
         return undefined
     }
 }
 
 /** True when the current identity was verified through a verification attempt (Smart Paperwork Verification included). */
 function attemptIdentity(profile: KycProfile): boolean {
+    if (
+        !('identity' in profile) ||
+        (profile.identity !== null && (typeof profile.identity !== 'object' || Array.isArray(profile.identity)))
+    )
+        throw contractError('/users/kyc/profile', 'GET', 200, 'invalid_identity')
+    if (
+        !Array.isArray(profile.attempts) ||
+        profile.attempts.some(
+            (attempt) =>
+                !attempt ||
+                typeof attempt !== 'object' ||
+                typeof attempt.kind !== 'string' ||
+                typeof attempt.status !== 'string'
+        )
+    )
+        throw contractError('/users/kyc/profile', 'GET', 200, 'invalid_attempts')
     const identityId = profile.identity?.verificationId
     return (
         !!identityId &&

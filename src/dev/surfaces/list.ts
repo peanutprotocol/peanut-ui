@@ -7,6 +7,8 @@
  * to force; the gallery prints the reason instead of a staged mock.
  */
 
+import { API_CONTRACT_STATES } from './api-contract-states'
+
 export type SurfaceMeta = {
     name: string
     path: string
@@ -28,6 +30,17 @@ export type SurfaceMeta = {
 }
 
 export const SURFACE_META: Record<string, SurfaceMeta> = {
+    ...Object.fromEntries(
+        Object.entries(API_CONTRACT_STATES).map(([id, state]) => [
+            id,
+            {
+                name: state.name,
+                path: 'Global/TestBuildRibbon.tsx',
+                captureState: [`API status: ${state.api.status}`, `route contract fault: ${state.api.contractError}`],
+                expectSelector: '[data-testid="test-build-ribbon"]',
+            },
+        ])
+    ),
     '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx' },
     '03-c-residence-congrats': {
         name: 'Payment plan',
