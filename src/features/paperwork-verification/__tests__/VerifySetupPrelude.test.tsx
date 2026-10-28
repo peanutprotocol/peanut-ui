@@ -110,7 +110,7 @@ it('back from the two-country comparison returns to the residence sentence, not 
     fireEvent.click(await screen.findByRole('button', { name: 'Brazil' }))
     fireEvent.click(screen.getByTestId('setup-residence-continue'))
     expect(
-        await screen.findByRole('heading', { name: 'Which country should we set up Peanut for?' })
+        await screen.findByRole('heading', { name: 'Link your profile to one country' })
     ).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'setup-back' }))
