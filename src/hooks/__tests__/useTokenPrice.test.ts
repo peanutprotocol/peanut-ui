@@ -1,7 +1,8 @@
 /**
  * The price hook asks the API for any token on an EVM chain (TASK-23850).
- * It used to skip every chain outside a hand-kept Mobula list, so a chain
- * that list missed (Linea, HyperEVM) never got a price even when the API had one.
+ * It used to skip every chain outside a hand-kept list of the old price
+ * provider's chains, so a chain that list missed (Linea, HyperEVM) never got a
+ * price even when the API had one.
  * Non-numeric ids are the synthetic Solana and Tron records: they carry
  * stablecoins only, which the hook prices at $1 without a call.
  */
@@ -58,7 +59,7 @@ const renderPrice = (tokenAddress: string, chainId: string) => {
 describe('useTokenPrice chain guard', () => {
     beforeEach(() => mockFetchTokenPrice.mockReset())
 
-    it('asks the API for a token on an EVM chain the old Mobula list did not have', async () => {
+    it('asks the API for a token on an EVM chain the old chain list did not have', async () => {
         mockFetchTokenPrice.mockResolvedValue({
             chainId: '59144',
             address: NATIVE,

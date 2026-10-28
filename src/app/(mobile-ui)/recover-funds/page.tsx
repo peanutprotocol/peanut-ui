@@ -6,7 +6,8 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import TokenListItem from '@/components/Global/TokenSelector/Components/TokenListItem'
-import { type IUserBalance } from '@/interfaces/interfaces'
+import DisplayIcon from '@/components/Global/DisplayIcon'
+import type { RecoverableBalance } from '@/types/recover-funds'
 import { useState, useCallback, useContext } from 'react'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useRecoverableBalances } from '@/hooks/useRecoverableBalances'
@@ -17,10 +18,9 @@ import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Card from '@/components/Global/Card'
-import Image from 'next/image'
 import AddressLink from '@/components/Global/AddressLink'
 import Loading from '@/components/Global/Loading'
-import { erc20Abi, parseUnits, encodeFunctionData } from 'viem'
+import { erc20Abi, encodeFunctionData } from 'viem'
 import type { Address, Hash, TransactionReceipt } from 'viem'
 import { useRouter } from 'next/navigation'
 import { loadingStateContext } from '@/context/loadingStates.context'
@@ -34,15 +34,15 @@ const isNativeToken = (tokenAddress: string): boolean => {
     return nativeCurrencyAddresses.some((nativeAddr) => areEvmAddressesEqual(nativeAddr, tokenAddress))
 }
 
-// helper to fetch exact native balance from chain to avoid floating-point precision issues
-// mobula returns balance as a float which causes precision loss with 18 decimals
+// the native balance is read again at send time, so a balance that moved
+// since the list loaded is still sent in full
 const fetchExactNativeBalance = async (chainId: string, address: Address): Promise<bigint> => {
     const client = getPublicClient(Number(chainId) as ChainId)
     return await client.getBalance({ address })
 }
 
 export default function RecoverFundsPage() {
-    const [selectedBalance, setSelectedBalance] = useState<IUserBalance | undefined>()
+    const [selectedBalance, setSelectedBalance] = useState<RecoverableBalance | undefined>()
     const [recipient, setRecipient] = useState<RecipientState>({ address: '', name: '' })
     const [errorMessage, setErrorMessage] = useState('')
     const [inputChanging, setInputChanging] = useState(false)
@@ -83,10 +83,7 @@ export default function RecoverFundsPage() {
         try {
             // Check if the token is native ETH
             if (isNativeToken(selectedBalance.address)) {
-                // for native eth, fetch the exact balance from chain to avoid floating-point precision issues
-                // mobula returns balance as a float which can cause precision loss with 18 decimals
-                // e.g. 0.049917499999999997 ETH might become 0.049917500000000003 after toFixed(18)
-                // resulting in trying to send more wei than the account has
+                // native coin: the exact balance at send time, in wei
                 const exactBalance = await fetchExactNativeBalance(selectedBalance.chainId, peanutAddress as Address)
                 const result = await sendTransactions(
                     [
@@ -100,14 +97,12 @@ export default function RecoverFundsPage() {
                 receipt = result.receipt
                 userOpHash = result.userOpHash
             } else {
-                // for erc20 tokens, use the float-based amount (less precision sensitive with 6-8 decimals)
-                const amountStr = selectedBalance.amount.toFixed(selectedBalance.decimals)
-                const amount = parseUnits(amountStr, selectedBalance.decimals)
-                // For ERC20 tokens, encode the transfer function
+                // ERC-20: the exact on-chain balance read for the list, never a
+                // float round-trip that could ask for more than the account holds
                 const data = encodeFunctionData({
                     abi: erc20Abi,
                     functionName: 'transfer',
-                    args: [recipient.address as Address, amount],
+                    args: [recipient.address as Address, selectedBalance.rawAmount],
                 })
                 const result = await sendTransactions([{ to: selectedBalance.address, data }], selectedBalance.chainId)
                 receipt = result.receipt
@@ -162,12 +157,10 @@ export default function RecoverFundsPage() {
                                     'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-green-500 font-bold'
                                 }
                             >
-                                <Image
-                                    src={selectedBalance!.logoURI}
-                                    alt={t('tokenLogoAlt', { symbol: selectedBalance!.symbol })}
-                                    width={24}
-                                    height={24}
-                                    className="rounded-full"
+                                <DisplayIcon
+                                    iconUrl={selectedBalance!.logoURI}
+                                    altText={t('tokenLogoAlt', { symbol: selectedBalance!.symbol })}
+                                    fallbackName={selectedBalance!.symbol}
                                 />
                             </div>
                         </div>
@@ -218,12 +211,11 @@ export default function RecoverFundsPage() {
                                     'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-green-500 font-bold'
                                 }
                             >
-                                <Image
-                                    src={selectedBalance!.logoURI}
-                                    alt={t('tokenLogoAlt', { symbol: selectedBalance!.symbol })}
-                                    width={24}
-                                    height={24}
-                                    className="rounded-full"
+                                {/* a token from Rhino's list can come without a logo: initials then */}
+                                <DisplayIcon
+                                    iconUrl={selectedBalance!.logoURI}
+                                    altText={t('tokenLogoAlt', { symbol: selectedBalance!.symbol })}
+                                    fallbackName={selectedBalance!.symbol}
                                 />
                             </div>
                         </div>
@@ -319,7 +311,7 @@ export default function RecoverFundsPage() {
                     <ListGroup role="listbox" aria-label={t('selectToken')}>
                         {tokenBalances.map((balance) => (
                             <TokenListItem
-                                key={balance.address}
+                                key={`${balance.chainId}-${balance.address}`}
                                 balance={balance}
                                 showBalance
                                 isSelected={

@@ -245,7 +245,6 @@ export interface Translations {
     statusServiceBridge: string
     statusServiceRhino: string
     statusServiceRpc: string
-    statusServiceMobula: string
     statusServiceRain: string
     statusLegendOperational: string
     statusLegendDegraded: string
@@ -258,7 +257,6 @@ export interface Translations {
     statusImpactBridge: string
     statusImpactRhino: string
     statusImpactRpc: string
-    statusImpactMobula: string
     statusImpactRain: string
     statusImpactGeneric: string
     statusReasonTimeout: string

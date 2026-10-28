@@ -1,4 +1,4 @@
-import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll } from 'viem/chains'
+import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll, linea } from 'viem/chains'
 
 // Verified 2026-05-13 with curl from staging.peanut.me origin.
 // Commented entries are kept inline for visibility — re-enable when fixed.
@@ -66,6 +66,12 @@ export const rpcUrls: Record<number, string[]> = {
     [scroll.id]: [
         // infuraUrl('scroll-mainnet'),
         'https://rpc.scroll.io', // Official Scroll RPC
+    ].filter(Boolean) as string[],
+    // recover funds reads Linea balances (TASK-23850); verified 2026-10-28 with
+    // curl from staging.peanut.me origin (CORS *, chain id 59144)
+    [linea.id]: [
+        'https://rpc.linea.build', // Official Linea RPC
+        'https://linea-rpc.publicnode.com', // Public fallback
     ].filter(Boolean) as string[],
 }
 

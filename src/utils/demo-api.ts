@@ -22,8 +22,7 @@ const PASSTHROUGH_TIMEOUT_MS = 10_000
 // Public read-only rate endpoints proxied to the real backend so demo shows live
 // FX rates. Best-effort: any failure falls through to the canned handler below.
 // /tokens/price is public too — the canned {} fallback is NOT a valid shape
-// for it. /tokens/wallet-portfolio is owner-only (session required), so it
-// gets a synthetic handler instead of a passthrough that would 401.
+// for it.
 const PASSTHROUGH_GET = new Set(['/bridge/exchange-rate', '/manteca/prices', '/fx/rate', '/tokens/price'])
 
 const EMPTY_GRAPH = {
@@ -668,10 +667,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         pattern: '/fx/card-markup',
         handler: () => json({ error: 'NO_CARD_MARKUP', message: 'No card markup to compare.' }, 404),
     },
-
-    // The demo wallet holds nothing to recover; the shape is what
-    // fetchWalletBalances reads.
-    { method: 'GET', pattern: '/tokens/wallet-portfolio', handler: () => ({ balances: [], totalBalance: 0 }) },
 
     // Without a handler this landed on defaultShape ({}), and the recovery page
     // called BigInt(undefined) during render.
