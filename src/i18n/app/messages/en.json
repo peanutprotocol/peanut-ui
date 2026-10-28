@@ -922,7 +922,6 @@
             },
             "compare": {
                 "selectCountry": "Select {country}",
-                "cardTitle": "Available with {country}",
                 "items": {
                     "p2p": "Peanut to Peanut",
                     "pix": "PIX payments & transfers",
@@ -941,8 +940,8 @@
                 "multiCurrencyNote": "Transfers in another currency need a bank account in that currency.",
                 "guideTitle": "Which country should be selected?",
                 "guideDeclaration": "If you have a residence permit for either country, choose that one. Otherwise, choose the country that issued your ID, like a passport or driver’s license.",
-                "title": "Which country should we set up Peanut for?",
-                "description": "Pick one. Here’s what each unlocks."
+                "title": "Link your profile to one country",
+                "description": "Here’s what each unlocks."
             },
             "sentence": "I’m a resident <nw>of <residence></residence></nw> and have citizenship <nw>in <citizenship></citizenship>.</nw>",
             "residenceTitle": "Where are you a resident?",

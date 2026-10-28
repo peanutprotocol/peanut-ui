@@ -165,10 +165,10 @@ describe('ResidenceStep', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockHandleNext).not.toHaveBeenCalled()
         expect(screen.getByRole('heading', { name: en.setup.residenceStep.compare.title })).toBeInTheDocument()
-        expect(screen.getByText('Available with Portugal')).toBeInTheDocument()
-        expect(screen.getByText('Available with Brazil')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 2, name: 'Portugal' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 2, name: 'Brazil' })).toBeInTheDocument()
         // Slava, 2026-10-27: the server opens Brazil's bank accounts beside Pix, as Portugal's
-        const brazil = within(screen.getByText('Available with Brazil').parentElement!)
+        const brazil = within(screen.getByRole('heading', { level: 2, name: 'Brazil' }).closest('section')!)
         for (const item of [
             'PIX payments & transfers',
             'US dollar bank transfers',

@@ -922,7 +922,6 @@
             },
             "compare": {
                 "selectCountry": "Escolher {country}",
-                "cardTitle": "Disponível com {country}",
                 "items": {
                     "p2p": "Peanut para Peanut",
                     "pix": "Pagamentos e transferências PIX",
@@ -941,8 +940,8 @@
                 "multiCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda.",
                 "guideTitle": "Qual país você deve selecionar?",
                 "guideDeclaration": "Se você tem uma autorização de residência de um dos dois países, escolha esse país. Caso contrário, escolha o país que emitiu seu documento de identidade, como um passaporte ou uma carteira de motorista.",
-                "title": "Para qual país devemos configurar o Peanut?",
-                "description": "Escolha um. Veja o que cada um libera."
+                "title": "Vincule seu perfil a um único país",
+                "description": "Veja o que cada um libera."
             },
             "sentence": "Meu país de residência <nw>é <residence></residence></nw> e o de cidadania <nw>é <citizenship></citizenship>.</nw>",
             "residenceTitle": "Onde você tem residência?",
