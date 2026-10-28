@@ -78,6 +78,16 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '07-e-setup-celebration': { name: 'Setup — full-screen account celebration', path: 'Setup/Views/Success.tsx' },
     '07-b-advantage-control': { name: 'Setup benefit — control', path: 'Setup/Views/Advantage.tsx' },
     '08-a-passkeysetuphelpmodal': { name: 'PasskeySetupHelpDrawer', path: 'Setup/Views/PasskeySetupHelpDrawer.tsx' },
+    '08-b-loginrecoverydrawer': {
+        name: 'LoginRecoveryDrawer',
+        path: 'Setup/Views/LoginRecoveryDrawer.tsx',
+        captureState: ['platform=ios', 'signup=offered'],
+    },
+    '08-c-loginrecoverydrawer-web': {
+        name: 'LoginRecoveryDrawer — web, no sign-up',
+        path: 'Setup/Views/LoginRecoveryDrawer.tsx',
+        captureState: ['platform=web', 'signup=omitted'],
+    },
     '09-a-passkeyinfomodal': { name: 'PasskeyInfoDrawer', path: 'Setup/components/PasskeyInfoDrawer.tsx' },
     '10-a-confirminvitemodal': { name: 'ConfirmInviteModal', path: 'Global/ConfirmInviteModal/index.tsx' },
     '11-a-earlyusermodal': {

@@ -189,6 +189,54 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
         )
     })
 
+    // TASK-24017: three transient failures used to reach LOGIN_ERROR and wipe a valid session.
+    it("treats V8's wording of the options error body the same way", async () => {
+        const thrown = await loginRejectingWith(
+            new TypeError("Cannot read properties of undefined (reading 'replace')")
+        )
+
+        expect(thrown.code).toBe('NETWORK')
+        expect(clearAuthState).not.toHaveBeenCalled()
+        expect(mockCaptureException).toHaveBeenCalledWith(
+            expect.objectContaining({ name: 'PasskeyServerError' }),
+            expect.objectContaining({ tags: { error_type: 'passkey_server_failure' } })
+        )
+    })
+
+    it('treats a native HTTP timeout as a network failure', async () => {
+        const thrown = await loginRejectingWith(new Error('Request timed out'))
+
+        expect(thrown.code).toBe('NETWORK')
+        expect(clearAuthState).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        'The operation couldn’t be completed. (AuthenticationServicesCore.ASCABLEClient.ClientError error 2.)',
+        'Couldn’t communicate with a helper application.',
+        'Unsuccessful result from folsom activity.',
+    ])('treats a credential-provider failure as an interruption that keeps the session: %s', async (message) => {
+        const thrown = await loginRejectingWith(new Error(message))
+
+        expect(thrown.code).toBe('PASSKEY_INTERRUPTED')
+        expect(clearAuthState).not.toHaveBeenCalled()
+    })
+
+    it('reads "User canceled the request" as a cancel, not a login failure', async () => {
+        const thrown = await loginRejectingWith(new Error('User canceled the request'))
+
+        expect(thrown.code).toBe('LOGIN_CANCELED')
+        expect(clearAuthState).not.toHaveBeenCalled()
+    })
+
+    it('maps a credential missing from the local store to PASSKEY_NOT_FOUND', async () => {
+        const thrown = await loginRejectingWith(
+            new Error('[50156] Cannot find credential in local KeyStore or database.')
+        )
+
+        expect(thrown.code).toBe('PASSKEY_NOT_FOUND')
+        expect(clearAuthState).not.toHaveBeenCalled()
+    })
+
     it('keeps the login_error path for a rejected /login/verify', async () => {
         const thrown = await loginRejectingWith(
             new TypeError("undefined is not an object (evaluating 'loginVerifyResult.verification.verified')")
@@ -515,6 +563,24 @@ it.each(['login', 'registration'])(
         }
     }
 )
+
+// TASK-24017: a /register/options error body throws the same decoder TypeError as
+// login's; signup used to show the generic device drawer for it.
+it('normalises a /register/options error body to PasskeyServerError at signup', async () => {
+    mockToWebAuthnKey.mockRejectedValue(new TypeError("Cannot read properties of undefined (reading 'challenge')"))
+    const { result } = renderHook(() => useZeroDev())
+    let thrown: unknown
+    await act(async () => {
+        try {
+            await result.current.handleRegister('alice')
+        } catch (e) {
+            thrown = e
+        }
+    })
+
+    expect((thrown as Error).name).toBe('PasskeyServerError')
+    expect(clearAuthState).not.toHaveBeenCalled()
+})
 
 it('retains a newly registered key if API session hydration fails', async () => {
     const { PasskeyServerError } = jest.requireActual('@/utils/webauthn.utils')
