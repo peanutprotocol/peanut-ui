@@ -499,7 +499,7 @@ export const PASSKEY_TROUBLESHOOTING_STEPS = {
  */
 export const PASSKEY_WARNINGS = {
     android: {
-        NotAllowedError: 'lowEndAndroid',
+        NotAllowedError: 'androidSecurityUpdates',
     },
 } as const
 

@@ -959,7 +959,7 @@
                     "updateBrowserOs": "Update browser and OS"
                 },
                 "warnings": {
-                    "lowEndAndroid": "Lower end Android devices may require recent security updates for passkeys to work properly."
+                    "androidSecurityUpdates": "Android devices may need recent security updates for passkeys to work."
                 }
             },
             "info": {
