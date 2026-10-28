@@ -10,6 +10,7 @@
  * - a failed Rhino list must not hide the tokens our own list knows.
  */
 import { renderHook, waitFor, act } from '@testing-library/react'
+import { ContractFunctionRevertedError, erc20Abi } from 'viem'
 import { useRecoverableBalances } from '@/hooks/useRecoverableBalances'
 import { fetchRhinoTokenConfigs } from '@/services/rhino-token-configs'
 import { fetchTokenPrice } from '@/services/tokens-price'
@@ -19,10 +20,17 @@ import type { RhinoTokenConfigs } from '@/types/recover-funds'
 jest.mock('@/services/rhino-token-configs', () => ({ fetchRhinoTokenConfigs: jest.fn() }))
 jest.mock('@/services/tokens-price', () => ({ fetchTokenPrice: jest.fn() }))
 
-// one fake client per chain: native balance, and balanceOf results by token address
-type ChainState = { native: bigint; tokens: Record<string, bigint>; fail?: boolean }
+// one fake client per chain: native balance, and balanceOf results by token address.
+// 'fail' fails that token inside the multicall; `alone` answers its own read.
+type ChainState = {
+    native: bigint
+    tokens: Record<string, bigint | 'fail'>
+    alone?: Record<string, bigint | Error>
+    fail?: boolean
+}
 let mockChains: Record<string, ChainState> = {}
 const mockMulticall = jest.fn()
+const mockReadContract = jest.fn()
 jest.mock('@/app/actions/clients', () => ({
     getPublicClient: (chainId: number) => {
         const state = (): ChainState => mockChains[String(chainId)] ?? { native: 0n, tokens: {} }
@@ -34,10 +42,18 @@ jest.mock('@/app/actions/clients', () => ({
             multicall: async (args: { contracts: { address: string }[]; allowFailure: boolean }) => {
                 mockMulticall(chainId, args)
                 if (state().fail) throw new Error(`rpc down on ${chainId}`)
-                return args.contracts.map(({ address }) => ({
-                    status: 'success',
-                    result: state().tokens[address.toLowerCase()] ?? 0n,
-                }))
+                return args.contracts.map(({ address }) => {
+                    const balance = state().tokens[address.toLowerCase()] ?? 0n
+                    return balance === 'fail'
+                        ? { status: 'failure', error: new Error('out of gas') }
+                        : { status: 'success', result: balance }
+                })
+            },
+            readContract: async ({ address }: { address: string }) => {
+                mockReadContract(chainId, address.toLowerCase())
+                const answer = state().alone?.[address.toLowerCase()]
+                if (answer instanceof Error) throw answer
+                return answer ?? 0n
             },
         }
     },
@@ -172,6 +188,44 @@ describe('useRecoverableBalances', () => {
             expect(result.current.balancesError).toBe(false)
             expect(result.current.tokenBalances).toEqual([expect.objectContaining({ address: ETHEREUM_CBBTC })])
             expect(mockCaptureException).toHaveBeenCalledTimes(1)
+        })
+    })
+
+    // Multicall3 gives every token one shared gas budget, so a token can fail
+    // inside it and still answer its own call (Chip, #3880).
+    describe('a token whose read fails inside the multicall', () => {
+        it('is read again on its own, and its balance counts', async () => {
+            mockChains[BASE] = { native: 0n, tokens: { [BASE_USDT]: 'fail' }, alone: { [BASE_USDT]: 7_000_000n } }
+            const { result } = await render()
+
+            expect(mockReadContract).toHaveBeenCalledWith(Number(BASE), BASE_USDT)
+            expect(result.current.balancesError).toBe(false)
+            expect(result.current.tokenBalances).toEqual([
+                expect.objectContaining({ address: BASE_USDT, rawAmount: 7_000_000n }),
+            ])
+        })
+
+        // EURO3 on Linea reverts balanceOf for every holder: treating that as an
+        // unknown chain would show every empty wallet an error.
+        it('is skipped when it reverts on its own too, without an error', async () => {
+            const revert = new ContractFunctionRevertedError({ abi: erc20Abi, functionName: 'balanceOf' })
+            mockChains[BASE] = { native: 0n, tokens: { [BASE_USDT]: 'fail' }, alone: { [BASE_USDT]: revert } }
+            const { result } = await render()
+
+            expect(result.current.balancesError).toBe(false)
+            expect(result.current.tokenBalances).toHaveLength(0)
+        })
+
+        it('fails the chain when its own read fails for another reason', async () => {
+            mockChains[BASE] = {
+                native: 0n,
+                tokens: { [BASE_USDT]: 'fail' },
+                alone: { [BASE_USDT]: new Error('rpc timeout') },
+            }
+            const { result } = await render()
+
+            expect(result.current.balancesError).toBe(true)
+            expect(mockCaptureException).toHaveBeenCalled()
         })
     })
 

@@ -18,11 +18,15 @@
  * - a chain's read fails but other balances exist → the list renders without
  *   that chain (captured to Sentry); hiding a user's other tokens over one
  *   RPC hiccup is the worse trade.
+ * - one token's read fails inside the multicall → it is read again on its own.
+ *   A revert or a non-contract address answers the same every time (EURO3 on
+ *   Linea reverts balanceOf for every holder), so that token is skipped; any
+ *   other failure fails the chain, as above.
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { erc20Abi, formatUnits } from 'viem'
-import type { Address, Chain } from 'viem'
+import { BaseError, ContractFunctionRevertedError, ContractFunctionZeroDataError, erc20Abi, formatUnits } from 'viem'
+import type { Address, Chain, PublicClient } from 'viem'
 import { mainnet, base, linea } from 'viem/chains'
 import { captureException } from '@sentry/nextjs'
 import { type ChainId, getPublicClient } from '@/app/actions/clients'
@@ -40,6 +44,36 @@ interface HeldToken {
     chainId: string
     token: RecoverableToken
     rawAmount: bigint
+}
+
+/** A read that answers the same every time: the call reverted, or the address holds no contract. */
+const isDeterministicReadFailure = (error: unknown) =>
+    error instanceof BaseError &&
+    !!error.walk(
+        (cause) => cause instanceof ContractFunctionRevertedError || cause instanceof ContractFunctionZeroDataError
+    )
+
+/**
+ * A token whose read failed inside the multicall, read again on its own call:
+ * the multicall shares one gas budget, a single call does not. Undefined when
+ * the token cannot be read at all; rejects on any other failure.
+ */
+async function readTokenAlone(
+    client: PublicClient,
+    token: RecoverableToken,
+    owner: Address
+): Promise<bigint | undefined> {
+    try {
+        return await client.readContract({
+            address: token.address as Address,
+            abi: erc20Abi,
+            functionName: 'balanceOf',
+            args: [owner],
+        })
+    } catch (error) {
+        if (isDeterministicReadFailure(error)) return undefined
+        throw error
+    }
 }
 
 /** Every non-zero balance the account holds on one chain. Rejects when the chain's reads fail. */
@@ -60,10 +94,15 @@ async function readChainBalances(
                 functionName: 'balanceOf' as const,
                 args: [owner] as const,
             })),
-            // a listed address that is not a token on this chain fails alone
+            // one failing token must not fail the others; it is read again below
             allowFailure: true,
         }),
     ])
+    const balances = await Promise.all(
+        tokenResults.map((result, index) =>
+            result.status === 'success' ? result.result : readTokenAlone(client, tokens[index], owner)
+        )
+    )
     const held: HeldToken[] = []
     if (nativeBalance > 0n) {
         const { symbol, name, decimals } = chain.nativeCurrency
@@ -73,10 +112,8 @@ async function readChainBalances(
             rawAmount: nativeBalance,
         })
     }
-    tokenResults.forEach((result, index) => {
-        if (result.status === 'success' && result.result > 0n) {
-            held.push({ chainId, token: tokens[index], rawAmount: result.result })
-        }
+    balances.forEach((rawAmount, index) => {
+        if (rawAmount && rawAmount > 0n) held.push({ chainId, token: tokens[index], rawAmount })
     })
     return held
 }
