@@ -11,8 +11,6 @@ const CACHE_NAMES = {
     PAGES_RSC: 'pages-rsc',
     PAGES_RSC_PREFETCH: 'pages-rsc-prefetch',
     OTHERS: 'others',
-    // serwist's catch-all for other origins; older workers stored API responses here.
-    CROSS_ORIGIN: 'cross-origin',
 } as const
 
 /**
@@ -23,7 +21,6 @@ export const USER_DATA_CACHE_PATTERNS = [
     CACHE_NAMES.USER_API,
     CACHE_NAMES.TRANSACTIONS,
     CACHE_NAMES.KYC_MERCHANT,
-    CACHE_NAMES.CROSS_ORIGIN,
 ] as const
 
 /**

@@ -30,15 +30,7 @@ export function isSensitivePaymentNetworkUrl(url: URL | string): boolean {
 }
 
 /** Delete only sensitive request entries; unrelated cache names and entries survive. */
-export function purgeSensitivePaymentNetworkCacheEntries(cacheStorage: CacheStorage): Promise<number> {
-    return purgeCacheEntriesMatching(cacheStorage, isSensitivePaymentNetworkUrl)
-}
-
-/** Delete every entry whose request URL matches, across all caches; the rest survives. */
-export async function purgeCacheEntriesMatching(
-    cacheStorage: CacheStorage,
-    matches: (url: string) => boolean
-): Promise<number> {
+export async function purgeSensitivePaymentNetworkCacheEntries(cacheStorage: CacheStorage): Promise<number> {
     let cacheNames: readonly string[]
     try {
         cacheNames = await cacheStorage.keys()
@@ -58,7 +50,7 @@ export async function purgeCacheEntriesMatching(
             continue
         }
         for (const request of requests) {
-            if (!matches(request.url)) continue
+            if (!isSensitivePaymentNetworkUrl(request.url)) continue
             try {
                 if (await cache.delete(request)) deleted += 1
             } catch {

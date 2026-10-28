@@ -84,7 +84,6 @@ jest.mock('posthog-js', () => ({
 import { AuthProvider, useAuth } from '../authContext'
 import { clearRedirectUrl, endIntentionalLogout, getRedirectUrl, saveRedirectUrl } from '@/utils/general.utils'
 import { clearSessionHeld, hasHeldSession, markSessionHeld } from '@/utils/session-presence'
-import { purgeCaches } from '@/utils/cache.utils'
 
 const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>
 
@@ -159,17 +158,6 @@ describe('logoutUser', () => {
         })
 
         expect(hasHeldSession()).toBe(false)
-    })
-
-    it('purges the cross-origin cache, where older workers stored API responses', async () => {
-        stubLocation()
-        const { result } = renderHook(() => useAuth(), { wrapper })
-
-        await act(async () => {
-            await result.current.logoutUser()
-        })
-
-        expect(purgeCaches).toHaveBeenCalledWith(expect.arrayContaining(['cross-origin', 'user-api']))
     })
 
     it('forgets the analytics identity fingerprint, so the next user starts clean', async () => {

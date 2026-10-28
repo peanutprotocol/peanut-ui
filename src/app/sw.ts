@@ -1,8 +1,7 @@
 import { defaultCache } from '@serwist/next/worker'
 import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig } from 'serwist'
 import { NetworkOnly, Serwist, Strategy } from 'serwist'
-import { isSensitivePaymentNetworkUrl, purgeCacheEntriesMatching } from './payment-network-sw-privacy'
-import { isPeanutApiUrl } from './sw-api-privacy'
+import { isSensitivePaymentNetworkUrl, purgeSensitivePaymentNetworkCacheEntries } from './payment-network-sw-privacy'
 import { navigationRedirectPlugin } from './sw-navigation-redirects'
 
 // This declares the value of `injectionPoint` to TypeScript.
@@ -41,10 +40,6 @@ const runtimeCaching: RuntimeCaching[] = [
         // Covers the protected document/RSC path on peanut.me and the
         // /invites/graph API path on every origin, regardless of query.
         matcher: ({ url }) => isSensitivePaymentNetworkUrl(url),
-        handler: new NetworkOnly(),
-    },
-    {
-        matcher: ({ url }) => isPeanutApiUrl(url),
         handler: new NetworkOnly(),
     },
     {
@@ -101,12 +96,10 @@ self.addEventListener('notificationclick', (event) => {
 })
 
 self.addEventListener('activate', (event) => {
-    // Earlier default routes could persist graph bodies, credential-bearing
-    // legacy URLs and API responses. Purge matching entries individually
-    // without touching any unrelated cache or logging request keys.
-    event.waitUntil(
-        purgeCacheEntriesMatching(self.caches, (url) => isSensitivePaymentNetworkUrl(url) || isPeanutApiUrl(url))
-    )
+    // Earlier default routes could persist graph bodies and credential-bearing
+    // legacy URLs. Purge matching entries individually without touching any
+    // unrelated cache or logging request keys.
+    event.waitUntil(purgeSensitivePaymentNetworkCacheEntries(self.caches))
 })
 
 serwist.addEventListeners()
