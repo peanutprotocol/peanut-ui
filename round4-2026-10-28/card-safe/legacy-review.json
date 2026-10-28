@@ -1,0 +1,63 @@
+{
+  "head": "2591bbd63cc752670c9d5d1bd403f51070f22fa5",
+  "status": 200,
+  "ssrRealNav": true,
+  "links": [
+    {
+      "href": "/request-links",
+      "text": "Request links"
+    },
+    {
+      "href": "/self-custody",
+      "text": "Self-custody"
+    },
+    {
+      "href": "/peanut-card",
+      "text": "Peanut Card"
+    },
+    {
+      "href": "/lp#footer-features",
+      "text": "Explore all features"
+    }
+  ],
+  "idCount": 1,
+  "hasSeo": false,
+  "overflow": 0,
+  "target": {
+    "links": [
+      {
+        "href": "/us-europe-accounts",
+        "top": 105.875,
+        "bottom": 119.875
+      },
+      {
+        "href": "/request-links",
+        "top": 105.875,
+        "bottom": 119.875
+      },
+      {
+        "href": "/self-custody",
+        "top": 137.875,
+        "bottom": 151.875
+      },
+      {
+        "href": "/peanut-card",
+        "top": 137.875,
+        "bottom": 151.875
+      },
+      {
+        "href": "/qr-payments/argentina",
+        "top": 169.875,
+        "bottom": 183.875
+      },
+      {
+        "href": "/qr-payments/brazil",
+        "top": 169.875,
+        "bottom": 183.875
+      }
+    ],
+    "height": 900
+  },
+  "errors": [],
+  "captureOnlyConnectivityOverlayHidden": true
+}

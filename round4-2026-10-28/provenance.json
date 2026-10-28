@@ -8,7 +8,8 @@
     "Motion clips show earlier entrances; updated contextual links are visible in the stills.",
     "Final-head proofs show aligned64px desktop footer and current clean content. Final release changes from built runtime are tests and lower DS baseline only. See final-head manifest for capture conditions.",
     "Current card directory proofs are in card-safe. The final implementation uses neutral card-footer links plus /lp#footer-features and the server landing shell. Earlier card footer images in crosslinks/final-head are historical.",
-    "Final release899f66a16 adds a reviewed login/passkey base sync. Marketing/footer/alias source remains identical to the captured cbd200ed runtime; exact-head build, affected suites and browser regressions passed."
+    "Final release899f66a16 adds a reviewed login/passkey base sync. Marketing/footer/alias source remains identical to the captured cbd200ed runtime; exact-head build, affected suites and browser regressions passed.",
+    "Legacy /shhhhh card footer uses the same restricted directory flags. Its exact-head capture and cold-navigation proof are card-safe/legacy-card-390.png and legacy-review.json."
   ],
   "files": [
     {
@@ -262,6 +263,7 @@
       "height": 974
     }
   ],
-  "finalReleaseCandidate": "899f66a16e4eb7a582f6e6e4bf5616fdb11e81c2",
-  "finalRuntimeSource": "cbd200ed0426eeea7535b4f8de03bc88040195c6"
+  "finalReleaseCandidate": "2591bbd63cc752670c9d5d1bd403f51070f22fa5",
+  "finalRuntimeSource": "cbd200ed0426eeea7535b4f8de03bc88040195c6",
+  "legacyCardCaptureSource": "2591bbd63cc752670c9d5d1bd403f51070f22fa5"
 }
