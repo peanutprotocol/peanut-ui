@@ -1,10 +1,10 @@
 /**
  * Regression tests for the displayed spendable balance (PEANUT-UI-QD5).
  *
- * `/rain/cards` supplies BOTH Rain terms of `smart + spendingPower + inTransit`.
- * When it hasn't answered, those terms fold to 0n — indistinguishable from "this
- * user has no collateral" — so a card user whose funds the auto-balancer swept
- * into collateral was shown a confident, wrong $0.
+ * `/rain/cards` supplies the Rain term of `smart + spendingPower`. When it
+ * hasn't answered, that term folds to 0n — indistinguishable from "this user
+ * has no collateral" — so a card user whose funds sit in collateral was shown
+ * a confident, wrong $0.
  *
  * The contract these lock down:
  *  1. Rain unavailable + no cache      → undefined (UI shows a loader, never $0)
@@ -27,14 +27,20 @@ const USER_ID = 'user-under-test'
 let mockSmartBalance: bigint | undefined
 let mockRainOverview:
     | {
-          balance: { spendingPower: number; inTransitToCollateralCents?: number } | null
+          balance: { spendingPower: number } | null
           balanceUnavailable?: boolean
       }
     | undefined
 let mockAnyFetching: boolean
+let mockSmartLoading: boolean
+let mockKernelAddress: string | undefined
 
 jest.mock('../useBalance', () => ({
-    useBalance: () => ({ data: mockSmartBalance, isLoading: false, refetch: jest.fn() }),
+    useBalance: (address: string | undefined) => ({
+        data: address ? mockSmartBalance : undefined,
+        isLoading: !!address && mockSmartLoading,
+        refetch: jest.fn(),
+    }),
 }))
 
 jest.mock('../../useRainCardOverview', () => ({
@@ -47,7 +53,7 @@ jest.mock('@tanstack/react-query', () => ({
 }))
 
 jest.mock('../../useZeroDev', () => ({
-    useZeroDev: () => ({ address: WALLET_ADDRESS, isKernelClientReady: true, handleSendUserOpEncoded: jest.fn() }),
+    useZeroDev: () => ({ address: mockKernelAddress, isKernelClientReady: true, handleSendUserOpEncoded: jest.fn() }),
 }))
 
 let mockUserId: string = USER_ID
@@ -79,6 +85,8 @@ beforeEach(() => {
     mockSmartBalance = undefined
     mockRainOverview = undefined
     mockAnyFetching = false
+    mockSmartLoading = false
+    mockKernelAddress = WALLET_ADDRESS
     mockDemoMode = false
     mockDemoBalanceUnits = undefined
 })
@@ -112,13 +120,13 @@ describe('useWallet spendable balance', () => {
     it('replaces the cached value with the live sum once Rain answers, and re-caches it', async () => {
         writeLastKnownSpendable(USER_ID, usd(120.5))
         mockSmartBalance = usd(10)
-        mockRainOverview = { balance: { spendingPower: 9000, inTransitToCollateralCents: 500 } } // $90 + $5
+        mockRainOverview = { balance: { spendingPower: 9000 } } // $90
 
         const { result } = renderHook(() => useWallet())
 
-        await waitFor(() => expect(result.current.spendableBalance).toBe(usd(105)))
+        await waitFor(() => expect(result.current.spendableBalance).toBe(usd(100)))
         expect(result.current.isSpendableBalanceStale).toBe(false)
-        await waitFor(() => expect(readLastKnownSpendable(USER_ID)).toBe(usd(105)))
+        await waitFor(() => expect(readLastKnownSpendable(USER_ID)).toBe(usd(100)))
     })
 
     it('never caches a total computed without Rain', async () => {
@@ -226,6 +234,83 @@ describe('useWallet spendable balance', () => {
         // The cached $500 is on screen, but nothing is actually spendable yet.
         await waitFor(() => expect(result.current.spendableBalance).toBe(usd(500)))
         expect(result.current.hasSufficientSpendableBalance('100')).toBe(false)
+    })
+
+    describe('isSpendableBalanceReady — the live terms, never the display cache', () => {
+        it.each([
+            ['$3.90', 3.9],
+            ['$0', 0],
+        ])('is not ready while Rain is pending behind a cached %s', async (_, cached) => {
+            writeLastKnownSpendable(USER_ID, usd(cached))
+            mockSmartBalance = 0n
+            mockRainOverview = undefined
+
+            const { result } = renderHook(() => useWallet())
+
+            // the display has settled on the cached number...
+            await waitFor(() => expect(result.current.spendableBalance).toBe(usd(cached)))
+            expect(result.current.isFetchingSpendableBalance).toBe(false)
+            // ...but nothing live has answered
+            expect(result.current.isSpendableBalanceReady).toBe(false)
+        })
+
+        it.each([
+            ['$3.90', 3.9],
+            ['$0', 0],
+        ])('is not ready while the wallet balance is pending behind a cached %s', async (_, cached) => {
+            writeLastKnownSpendable(USER_ID, usd(cached))
+            mockSmartBalance = undefined
+            mockSmartLoading = true
+            mockRainOverview = { balance: { spendingPower: 390 } }
+
+            const { result } = renderHook(() => useWallet())
+
+            await waitFor(() => expect(result.current.isFetchingSpendableBalance).toBe(true))
+            expect(result.current.isSpendableBalanceReady).toBe(false)
+        })
+
+        it('is not ready before the wallet address is validated, even with Rain answered', () => {
+            mockKernelAddress = undefined
+            mockSmartBalance = usd(5)
+            mockRainOverview = { balance: { spendingPower: 390 } }
+
+            const { result } = renderHook(() => useWallet())
+
+            expect(result.current.isSpendableBalanceReady).toBe(false)
+        })
+
+        // A query that gave up with no data has stopped loading; the balance is
+        // still unknown, so it must not read as ready.
+        it('is not ready when the wallet balance query stopped without data', () => {
+            mockSmartBalance = undefined
+            mockSmartLoading = false
+            mockRainOverview = { balance: { spendingPower: 390 } }
+
+            const { result } = renderHook(() => useWallet())
+
+            expect(result.current.isFetchingBalance).toBe(false)
+            expect(result.current.isSpendableBalanceReady).toBe(false)
+        })
+
+        it('is ready with an empty wallet and enough collateral, and the gate agrees', () => {
+            mockSmartBalance = 0n
+            mockRainOverview = { balance: { spendingPower: 390 } }
+
+            const { result } = renderHook(() => useWallet())
+
+            expect(result.current.isSpendableBalanceReady).toBe(true)
+            expect(result.current.hasSufficientSpendableBalance('0.50')).toBe(true)
+            expect(result.current.hasSufficientSpendableBalance('5')).toBe(false)
+        })
+
+        it('is ready in demo mode, which makes no Rain call', async () => {
+            mockDemoMode = true
+            mockDemoBalanceUnits = usd(42)
+
+            const { result } = renderHook(() => useWallet())
+
+            await waitFor(() => expect(result.current.isSpendableBalanceReady).toBe(true))
+        })
     })
 
     it('drops a last-known total once it is older than the max age', () => {

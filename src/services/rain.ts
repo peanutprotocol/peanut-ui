@@ -17,6 +17,7 @@ import { isCapacitor } from '@/utils/capacitor'
 import type { SignedRainWithdrawal } from '@/hooks/wallet/useSignSpendBundle'
 import { API_ERROR_CODES, ApiError } from './api-error'
 import type { AcceptedLegalDocument } from '@/services/consent'
+import type { paths } from '@/types/api.generated'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -43,14 +44,46 @@ export interface RainCardBalance {
     pendingCharges: number
     postedCharges: number
     balanceDue: number
-    /**
-     * Card collateral top-up funds debited from the smart account on-chain but
-     * not yet credited to Rain collateral (the ~10–45s smart→collateral
-     * handoff). Folded into the displayed balance so it doesn't crater to 0
-     * mid-top-up. Optional for backward-compat with a pre-deploy backend.
-     */
-    inTransitToCollateralCents?: number
 }
+
+/**
+ * Managed card funding state from `GET /rain/cards/funding`, taken from the API
+ * schema. Peanut's backend keeps a finite allowance for the user's Rain collateral proxy
+ * on `walletAddress` under one scoped, approve-only permission the user signs
+ * once. The client signs that permission; it never sends an approve UserOp
+ * itself.
+ *
+ * `management.status` is the backend's own statement, confirmed from chain
+ * state: `ready` is the only state that means the permission works. The
+ * `allowance` is informational and never consent or readiness. `reason` is a
+ * machine code, never shown to the user; `scope_retired` means the permission
+ * id was spent on this wallet and only internal support can restore it.
+ * `management.migration` lists the legacy validations to uninstall.
+ */
+export type RainCardFunding = paths['/rain/cards/funding']['get']['responses'][200]['content']['application/json']
+export type RainFundingManagementStatus = RainCardFunding['management']['status']
+export type RainFundingMigration = NonNullable<RainCardFunding['management']['migration']>
+
+type CardLockResponse = paths['/rain/cards/{cardId}/lock']['post']['responses'][200]['content']['application/json']
+type CardCancelResponse = paths['/rain/cards/{cardId}/cancel']['post']['responses'][200]['content']['application/json']
+type CardActivateResponse =
+    paths['/rain/cards/{cardId}/activate']['post']['responses'][200]['content']['application/json']
+export type CardFundingStop = CardLockResponse['fundingStop']
+
+export type SubmitRainFundingGrantInput =
+    paths['/rain/cards/funding/grant']['post']['requestBody']['content']['application/json']
+
+/**
+ * `fundingMode` is the user's persisted transition for the current wallet,
+ * decided by the server only (the app never derives it from anything else),
+ * and never goes back to `legacy`. `enrollmentAllowed` is only whether a NEW enrollment is open to
+ * this user right now; `managed` with `false` still has to finish.
+ */
+export type RainFundingAccess =
+    paths['/rain/cards/funding/access']['get']['responses'][200]['content']['application/json']
+
+export type EnrollRainFundingInput =
+    paths['/rain/cards/funding/enroll']['post']['requestBody']['content']['application/json']
 
 export interface RainCardSummary {
     id: string
@@ -65,7 +98,7 @@ export interface RainCardSummary {
      *  used to submit collateral withdrawals with a single passkey tap — AND
      *  it still targets the coordinator the backend has on record. After a Rain
      *  controller upgrade the backend reports `false` for grants pinned to the
-     *  old controller, so the existing prompts (EnableAutoBalanceBanner, the
+     *  old controller, so the existing prompts (FundingSetupPrompt, the
      *  collateral-only spend preflight) drive a re-grant without any new UI —
      *  a fresh address can NOT retarget an already-signed CallPolicy grant. */
     hasWithdrawApproval: boolean
@@ -111,7 +144,6 @@ export type RainCollateralKind =
     | 'FIAT_OFFRAMP'
     | 'FIAT_ONRAMP'
     | 'REQUEST_PAY'
-    | 'AUTO_REBALANCE'
     | 'CARD_SPEND'
     | 'DEPOSIT_EXTERNAL'
     | 'OTHER'
@@ -185,6 +217,28 @@ export interface SubmitRainWithdrawalResponse {
     txHash: string
 }
 
+/** `GET /rain/cards/withdraw/status/:preparationId`. No signatures, amounts or PII. */
+export interface RainWithdrawalStatus {
+    preparationId: string
+    state: 'pending' | 'completed' | 'failed' | 'cancelled'
+    reason:
+        | 'not_submitted'
+        | 'submission_held'
+        | 'confirming'
+        | 'verification_unavailable'
+        | 'needs_reconciliation'
+        | 'receipt_confirmed'
+        | 'reverted'
+        | 'rejected'
+        | 'not_executed'
+        | 'cancelled'
+    chainId: string
+    /** The transaction on record for this preparation, if any. */
+    txHash: string | null
+    /** Provider signature expiry (unix seconds). */
+    expiresAt: number | null
+}
+
 /** `changed` is true only when the stored controller actually moved. */
 export interface RefreshRainControllerResponse {
     coordinatorAddress: string
@@ -209,7 +263,6 @@ export interface RecoverFundsPreviewResponse {
     amountCents: string
     /** Wei below one cent — stays in the contract after recovery. */
     dustWei: string
-    autoBalanceEnabled: boolean
     hasRecoverableCard: boolean
 }
 
@@ -444,6 +497,12 @@ interface RequestOpts {
      * the recovery exists to avoid.
      */
     suppressCooldownEvent?: boolean
+    /**
+     * Suppress the GLOBAL re-enable modal for a submit's 409 STALE_CARD_APPROVAL
+     * (the typed `StaleCardApprovalError` is unchanged). The card balance return
+     * owns that outcome in its own dialog and never re-grants from it.
+     */
+    suppressStaleApprovalEvent?: boolean
 }
 
 async function rainRequest<T>(opts: RequestOpts): Promise<T> {
@@ -509,7 +568,7 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
             const message =
                 err.error ||
                 'Your card needs to be re-enabled before you can withdraw. Please re-enable your card and try again.'
-            if (typeof window !== 'undefined') {
+            if (typeof window !== 'undefined' && !opts.suppressStaleApprovalEvent) {
                 posthog.capture(ANALYTICS_EVENTS.CARD_STALE_APPROVAL_HIT)
                 window.dispatchEvent(new CustomEvent(RAIN_STALE_APPROVAL_EVENT))
             }
@@ -551,6 +610,51 @@ export const rainApi = {
     /** Authoritative card-section state: status + balance + cards. */
     getOverview: async (): Promise<RainCardOverview> => {
         return rainRequest<RainCardOverview>({ method: 'GET', path: '/rain/cards' })
+    },
+
+    /**
+     * Managed funding config + backend-confirmed status. The backend owns the
+     * chain/token/spender addresses, the signed ceiling and the terms text;
+     * a 409 means the wallet does not match or Rain has no usable collateral
+     * proxy on the configured chain.
+     */
+    getCardFunding: async (): Promise<RainCardFunding> => {
+        return rainRequest<RainCardFunding>({ method: 'GET', path: '/rain/cards/funding', noStore: true })
+    },
+
+    /**
+     * The server's funding decision for this account. A 503 means the state
+     * could not be read: callers treat it as unknown and sign nothing.
+     */
+    getFundingAccess: async (): Promise<RainFundingAccess> => {
+        return rainRequest<RainFundingAccess>({ method: 'GET', path: '/rain/cards/funding/access', noStore: true })
+    },
+
+    /**
+     * Record the user's accepted funding consent for their current wallet.
+     * Idempotent once admitted; refused (403) when new enrollment is not open.
+     * It signs nothing and must come before any old permission is retired.
+     */
+    enrollFunding: async (input: EnrollRainFundingInput): Promise<RainFundingAccess> => {
+        return rainRequest<RainFundingAccess>({
+            method: 'POST',
+            path: '/rain/cards/funding/enroll',
+            body: input,
+        })
+    },
+
+    /**
+     * Hand the backend the one signed permission plus the user's explicit
+     * consent. The backend enables it and sets the first finite allowance; the
+     * answer is the funding state, `pending` until the chain confirms.
+     */
+    submitFundingGrant: async (input: SubmitRainFundingGrantInput): Promise<RainCardFunding> => {
+        return rainRequest<RainCardFunding>({
+            method: 'POST',
+            path: '/rain/cards/funding/grant',
+            body: input,
+            timeoutMs: 30_000,
+        })
     },
 
     /**
@@ -615,12 +719,16 @@ export const rainApi = {
      * payment that actually succeeded, retries, and double-sends. (#2245 routed
      * request payments through this path for the first time → the regression.)
      */
-    submitWithdrawal: async (input: SubmitRainWithdrawalInput): Promise<SubmitRainWithdrawalResponse> => {
+    submitWithdrawal: async (
+        input: SubmitRainWithdrawalInput,
+        opts?: { suppressStaleApprovalEvent?: boolean }
+    ): Promise<SubmitRainWithdrawalResponse> => {
         return rainRequest<SubmitRainWithdrawalResponse>({
             method: 'POST',
             path: '/rain/cards/withdraw/submit',
             body: input,
             timeoutMs: 120_000,
+            suppressStaleApprovalEvent: opts?.suppressStaleApprovalEvent,
         })
     },
 
@@ -639,9 +747,8 @@ export const rainApi = {
     },
 
     /**
-     * Read-only preview of what would be recovered: on-chain USDC balance,
-     * the user's smart-wallet recipient, and the current autoBalanceEnabled
-     * flag. Backed by GET /rain/cards/recover-funds/preview — no side
+     * Read-only preview of what would be recovered: on-chain USDC balance
+     * and the user's smart-wallet recipient. Backed by GET /rain/cards/recover-funds/preview — no side
      * effects, so safe to call on page mount and on refresh.
      */
     getRecoverFundsPreview: async (): Promise<RecoverFundsPreviewResponse> => {
@@ -653,8 +760,7 @@ export const rainApi = {
     },
 
     /**
-     * Side-effectful: flips autoBalanceEnabled to false, reads on-chain
-     * balance, fetches Rain's executor signature for the FULL cent-aligned
+     * Side-effectful: reads on-chain balance, fetches Rain's executor signature for the FULL cent-aligned
      * amount payable to the user's smart wallet, creates a TransactionIntent.
      * Returns the prepared payload the caller signs with their kernel and
      * submits to /rain/cards/withdraw/submit (unchanged).
@@ -674,7 +780,13 @@ export const rainApi = {
      * hash so the Rain collateral webhook can reconcile against the right
      * intent. Non-fatal on failure.
      */
-    stampWithdrawal: async (input: { preparationId: string; txHash: string }): Promise<void> => {
+    stampWithdrawal: async (
+        input: { preparationId: string; txHash: string },
+        opts: {
+            /** Rethrow instead of logging: the caller keeps the hash and stamps again. */
+            throwOnError?: boolean
+        } = {}
+    ): Promise<void> => {
         try {
             await rainRequest<{ ok: boolean }>({
                 method: 'POST',
@@ -682,10 +794,24 @@ export const rainApi = {
                 body: input,
             })
         } catch (e) {
+            if (opts.throwOnError) throw e
             // Non-fatal: intent stays PENDING until expiry, no history
             // categorization until then. Log loudly but don't block the user.
             console.warn('[rainApi.stampWithdrawal] failed:', (e as Error).message)
         }
+    },
+
+    /**
+     * Status of one of the user's own withdrawal preparations. `pending` never
+     * means nothing moved; `completed` is receipt-backed. A failed read throws
+     * and is never a terminal state.
+     */
+    getWithdrawalStatus: async (preparationId: string): Promise<RainWithdrawalStatus> => {
+        return rainRequest<RainWithdrawalStatus>({
+            method: 'GET',
+            path: `/rain/cards/withdraw/status/${encodeURIComponent(preparationId)}`,
+            noStore: true,
+        })
     },
 
     /**
@@ -694,7 +820,13 @@ export const rainApi = {
      * signature could still execute (409) and the 30-min TTL sweep is the
      * guaranteed cleanup, so every failure mode here is safe to swallow.
      */
-    cancelPreparation: async (preparationId: string): Promise<void> => {
+    cancelPreparation: async (
+        preparationId: string,
+        opts: {
+            /** Rethrow instead of logging: the caller treats only a 2xx as a verified cancel. */
+            throwOnError?: boolean
+        } = {}
+    ): Promise<void> => {
         try {
             await rainRequest<{ ok: boolean }>({
                 method: 'POST',
@@ -702,6 +834,7 @@ export const rainApi = {
                 body: { preparationId },
             })
         } catch (e) {
+            if (opts.throwOnError) throw e
             console.warn('[rainApi.cancelPreparation] failed (non-fatal):', (e as Error).message)
         }
     },
@@ -722,21 +855,19 @@ export const rainApi = {
     applyForCard: async (
         opts: {
             termsAccepted?: boolean
-            serializedApproval?: string
             confirmedResidenceCountry?: string
             /** Consent-ledger echo: the legal documents the agreement screen
              *  actually displayed (slug + version + hash), so the backend
              *  records what the user was shown. Only sent with acceptance. */
             acceptedDocuments?: AcceptedLegalDocument[]
+            /** Legacy re-issue only: the card permission signed right before the
+             *  application, for a user whose collateral contracts already exist. */
+            serializedApproval?: string
         } = {}
     ): Promise<ApplyForCardResponse> => {
-        // `serializedApproval` is consumed only by the re-issue branch on the
-        // backend (where a RainCard row is created synchronously). First-time
-        // applicants don't have a collateral proxy yet, so the frontend omits
-        // the field entirely in that case.
         const body: Record<string, unknown> = { termsAccepted: opts.termsAccepted === true }
-        if (opts.serializedApproval) body.serializedApproval = opts.serializedApproval
         if (opts.confirmedResidenceCountry) body.confirmedResidenceCountry = opts.confirmedResidenceCountry
+        if (opts.serializedApproval) body.serializedApproval = opts.serializedApproval
         if (opts.termsAccepted === true && opts.acceptedDocuments?.length) {
             body.acceptedDocuments = opts.acceptedDocuments
         }
@@ -792,31 +923,31 @@ export const rainApi = {
         })
     },
 
-    /** Activate a card (from locked or not-activated). Returns the new Rain status. */
-    activateCard: async (cardId: string): Promise<string> => {
-        const { status } = await rainRequest<{ status: string }>({
+    /**
+     * Activate a card (from locked or not-activated). `fundingStop` says whether
+     * the wallet payment stop this card's lock created was lifted (`resumed`) or
+     * is still in force (`kept`).
+     */
+    activateCard: async (cardId: string): Promise<CardActivateResponse> =>
+        rainRequest<CardActivateResponse>({
             method: 'POST',
             path: `/rain/cards/${cardId}/activate`,
-        })
-        return status
-    },
+        }),
 
     /**
      * Lock an active card. When the user has positive spending power, the
      * caller MUST pass `verifiedWithdrawal` — the backend returns 400
      * otherwise. Funds are returned to the user's smart wallet before the
-     * lock so they stay liquid. Returns the new Rain status.
+     * lock so they stay liquid. Idempotent on an already locked card.
      */
-    lockCard: async (cardId: string, verifiedWithdrawal?: SignedRainWithdrawal): Promise<string> => {
-        const { status } = await rainRequest<{ status: string }>({
+    lockCard: async (cardId: string, verifiedWithdrawal?: SignedRainWithdrawal): Promise<CardLockResponse> =>
+        rainRequest<CardLockResponse>({
             method: 'POST',
             path: `/rain/cards/${cardId}/lock`,
             body: verifiedWithdrawal ? { verifiedWithdrawal } : {},
             // Withdrawal path includes a UserOp wait — extend past the 10s default.
             timeoutMs: verifiedWithdrawal ? 120_000 : undefined,
-        })
-        return status
-    },
+        }),
 
     /**
      * Cancel a card. When the user has positive spending power, the caller
@@ -828,11 +959,11 @@ export const rainApi = {
     cancelCard: async (
         cardId: string,
         opts?: { feedback?: string; verifiedWithdrawal?: SignedRainWithdrawal }
-    ): Promise<string> => {
+    ): Promise<CardCancelResponse> => {
         const body: Record<string, unknown> = {}
         if (opts?.feedback) body.feedback = opts.feedback
         if (opts?.verifiedWithdrawal) body.verifiedWithdrawal = opts.verifiedWithdrawal
-        const { status } = await rainRequest<{ status: string }>({
+        return rainRequest<CardCancelResponse>({
             method: 'POST',
             path: `/rain/cards/${cardId}/cancel`,
             // Always send an object — Fastify's schema validator rejects a
@@ -842,7 +973,6 @@ export const rainApi = {
             // Withdrawal path includes a UserOp wait — extend past the 10s default.
             timeoutMs: opts?.verifiedWithdrawal ? 120_000 : undefined,
         })
-        return status
     },
 
     /** Attach feedback to an already-canceled card. Non-fatal on failure. */

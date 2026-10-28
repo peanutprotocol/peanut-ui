@@ -87,7 +87,7 @@ export function RequestPotActionList({
     const tCommon = useTranslations('common')
     const methodLabels = usePaymentMethodLabels()
     const { user, isFetchingUser } = useAuth()
-    const { hasSufficientSpendableBalance: hasSufficientBalance, isFetchingSpendableBalance } = useWallet()
+    const { hasSufficientSpendableBalance: hasSufficientBalance, isSpendableBalanceReady } = useWallet()
     // MIGRATION-REVIEW: mercadopago/pix are QR `pay` methods over Manteca. Old gate was
     // `isUserMantecaKycApproved`; mapped to canDo('pay', { provider: 'manteca' }) (operation-specific).
     const isMantecaPayEnabled = useCapabilities().canDo('pay', { provider: 'manteca' })
@@ -102,6 +102,10 @@ export function RequestPotActionList({
     const [unavailableRails, setUnavailableRails] = useState<ReadonlySet<string>>(new Set())
 
     const isLoggedIn = !!user?.user?.userId
+    // The view only pays on a live, sufficient balance, so a Send offered before
+    // that is a tap that silently does nothing. A cached total on screen is not
+    // a live balance.
+    const isBalancePending = isLoggedIn && !isSpendableBalanceReady
 
     // check if verification is required for bank
     const requiresVerification = useMemo(() => {
@@ -112,12 +116,11 @@ export function RequestPotActionList({
     // only show insufficient balance after balance has loaded to avoid flash
     const userHasSufficientPeanutBalance = useMemo(() => {
         if (!user || !usdAmount) return false
-        // wait on BOTH smart + Rain overview (spendable) — using the smart-only
-        // flag would gate on a partial balance and flash a false "insufficient"
-        // for split-funds users during the Rain-overview load window.
-        if (isFetchingSpendableBalance) return true // assume sufficient while loading to avoid flash
+        // wait on BOTH live terms (smart + Rain overview) — a partial or cached
+        // balance would flash a false "insufficient" for split-funds users.
+        if (!isSpendableBalanceReady) return true // assume sufficient while loading to avoid flash
         return hasSufficientBalance(usdAmount)
-    }, [user, usdAmount, hasSufficientBalance, isFetchingSpendableBalance])
+    }, [user, usdAmount, hasSufficientBalance, isSpendableBalanceReady])
 
     // filter and sort payment methods
     const { filteredMethods: sortedMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({
@@ -143,7 +146,12 @@ export function RequestPotActionList({
         }
 
         // if user has sufficient peanut balance and hasn't dismissed the modal, suggest using peanut
-        if (!bypassBalanceModal && !isUsePeanutBalanceModalShown && userHasSufficientPeanutBalance) {
+        if (
+            !bypassBalanceModal &&
+            !isUsePeanutBalanceModalShown &&
+            userHasSufficientPeanutBalance &&
+            !isBalancePending
+        ) {
             setSelectedPaymentMethod(method)
             setShowUsePeanutBalanceModal(true)
             return
@@ -315,7 +323,7 @@ export function RequestPotActionList({
             {/* pay with peanut button */}
             <SendWithPeanutCta
                 onClick={onPayWithPeanut}
-                disabled={!isAmountEntered || isPaymentLoading || isExternalWalletLoading}
+                disabled={!isAmountEntered || isPaymentLoading || isExternalWalletLoading || isBalancePending}
                 loading={isPaymentLoading}
                 insufficientBalance={!userHasSufficientPeanutBalance}
                 inviterUsername={recipientUsername}
