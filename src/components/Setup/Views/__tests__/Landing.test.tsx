@@ -12,16 +12,17 @@ const mockLogin = jest.fn()
 const mockNext = jest.fn()
 const mockToastError = jest.fn()
 let mockNative = true
+let mockAndroidNative = false
 let mockMigrationOn = false
 let mockDeviceType = 'ios'
 
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => mockNative,
     isNativeBridge: () => mockNative,
-    isIOSNative: () => mockNative,
-    isAndroidNative: () => false,
-    isAndroidNativeBridge: () => false,
-    getPlatform: () => (mockNative ? 'ios-native' : 'web'),
+    isIOSNative: () => mockNative && !mockAndroidNative,
+    isAndroidNative: () => mockNative && mockAndroidNative,
+    isAndroidNativeBridge: () => mockNative && mockAndroidNative,
+    getPlatform: () => (mockNative ? (mockAndroidNative ? 'android-native' : 'ios-native') : 'web'),
 }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext }) }))
@@ -55,6 +56,7 @@ const recoveryActions = () =>
 beforeEach(() => {
     jest.clearAllMocks()
     mockNative = true
+    mockAndroidNative = false
     mockMigrationOn = false
     mockDeviceType = 'ios'
 })
@@ -87,6 +89,19 @@ describe('Landing — recovery after a failed login (TASK-24017)', () => {
         logIn()
         expect(await screen.findByRole('dialog')).toBeInTheDocument()
         expect(mockToastError).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps the toast for repeated cancels in the Android app, where a missing passkey is PASSKEY_NOT_FOUND', async () => {
+        mockAndroidNative = true
+        mockDeviceType = 'android'
+        mockLogin.mockRejectedValue(passkeyError('LOGIN_CANCELED'))
+        renderWithIntl(<LandingStep />)
+
+        logIn()
+        await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1))
+        logIn()
+        await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(2))
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
     it('keeps the toast for every other failure', async () => {

@@ -187,8 +187,9 @@ export function useSignupPasskey(username: string) {
                 return
             }
 
-            // The passkey server answered with an error body instead of a
-            // challenge: nothing reached the OS, so no device help applies.
+            // The passkey server answered the options request with an error
+            // body instead of a challenge, so the OS prompt never opened: no
+            // device help applies.
             if (err.name === 'PasskeyServerError') {
                 Sentry.captureException(err, { tags: { error_type: 'passkey_server_failure' } })
                 setInlineError(t('passkey.serverUnreachable'))

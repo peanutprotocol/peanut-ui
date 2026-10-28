@@ -59,13 +59,15 @@ const LandingStep = () => {
     }, [])
 
     /**
-     * Android answers "no credential" with PASSKEY_NOT_FOUND since ui#3752. iOS
-     * and the web report an empty passkey list as a cancel, which a deliberate
-     * dismissal also is, so a cancel opens the drawer only when it repeats.
+     * The Android app answers "no credential" with PASSKEY_NOT_FOUND since
+     * ui#3752, so a cancel there is a deliberate dismissal and keeps the toast.
+     * iOS and browsers report an empty passkey list as a cancel, which a
+     * deliberate dismissal also is, so a cancel opens the drawer only when it
+     * repeats.
      */
     const offersRecovery = (code: string | undefined): boolean => {
         if (code === 'PASSKEY_NOT_FOUND') return true
-        if (code === 'LOGIN_CANCELED') {
+        if (code === 'LOGIN_CANCELED' && !nativePlatform.isAndroidNative) {
             loginCancelsRef.current += 1
             return loginCancelsRef.current >= LOGIN_CANCELS_BEFORE_RECOVERY
         }
