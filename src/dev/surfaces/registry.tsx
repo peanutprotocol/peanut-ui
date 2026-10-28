@@ -223,7 +223,6 @@ function WithdrawReviewSurface({
                         address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
                         symbol: 'USDC',
                         decimals: 6,
-                        price: 1,
                     } as React.ComponentProps<typeof ConfirmWithdrawView>['token']
                 }
                 chain={

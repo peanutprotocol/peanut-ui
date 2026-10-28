@@ -81,13 +81,30 @@ jest.mock('@/constants/zerodev.consts', () => ({
 const USDC_ARB = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
 const USDC_BASE = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
 const USDT_BASE = '0xfde4c96c8593536e31f229ea8f37b2ada2699bb2'
+const WETH_BASE = '0x4200000000000000000000000000000000000006'
 const ADDRESS = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'
 
+const baseToken = (address: string, symbol: string, decimals = 6) => ({
+    chainId: '8453',
+    address,
+    symbol,
+    name: symbol,
+    decimals,
+    logoURI: '',
+})
 // the record is mainnet-only, so it never lists a sandbox wallet chain; here it
-// leaves the wallet chain out on purpose, to cover the synthesized entry
+// leaves the wallet chain out on purpose, to cover the synthesized entry. It
+// holds metadata only: nothing on this screen reads a price (TASK-23850).
 const CHAINS = {
-    '8453': { chainId: '8453', networkName: 'Base', chainIconURI: '', tokens: [] },
+    '8453': {
+        chainId: '8453',
+        networkName: 'Base',
+        chainIconURI: '',
+        tokens: [baseToken(USDC_BASE, 'USDC'), baseToken(USDT_BASE, 'USDT'), baseToken(WETH_BASE, 'WETH', 18)],
+    },
 }
+// the wallet chain's USDC, as the selector synthesizes it when the record lacks the chain
+const WALLET_USDC = expect.objectContaining({ chainId: '42161', address: USDC_ARB, symbol: 'USDC', decimals: 6 })
 
 /** Seeds the scanned recipient into the real flow context before the view mounts, the way the root flow does. */
 function Seeded({ name, scanned, children }: { name?: string; scanned?: ScannedRecipient; children: React.ReactNode }) {
@@ -140,41 +157,44 @@ function renderView({
     scanned?: ScannedRecipient
     chains?: Record<string, unknown>
 } = {}) {
-    const tokenFor = (address: string) => ({ address, symbol: 'USDC', decimals: 6, price: 1 })
-    const token = tokenFor(tokenAddress)
+    const token =
+        CHAINS['8453'].tokens.find((candidate) => candidate.address.toLowerCase() === tokenAddress.toLowerCase()) ??
+        WALLET_USDC
     function Harness() {
         const [selectedChainID, setSelectedChainID] = useState(chainId)
         const [selectedTokenAddress, setSelectedTokenAddress] = useState(tokenAddress)
-        // the token data can trail the address while it loads
-        const [selectedTokenData, setSelectedTokenData] = useState(token)
         return (
             <tokenSelectorContext.Provider
                 value={
                     {
-                        selectedTokenData,
                         selectedChainID,
                         selectedTokenAddress,
                         supportedChainsAndTokens: chains,
                         isLoadingChains: false,
                         setSelectedChainID,
-                        setSelectedTokenAddress: (address: string) => {
-                            setSelectedTokenAddress(address)
-                            setSelectedTokenData(tokenFor(address))
-                        },
+                        setSelectedTokenAddress,
                     } as never
                 }
             >
-                <button onClick={() => setSelectedChainID('8453')}>switch network</button>
-                <button onClick={() => setSelectedChainID('42161')}>switch back</button>
+                {/* a network pick selects that network's USDC, as the real selector does */}
                 <button
                     onClick={() => {
-                        setSelectedTokenAddress(USDT_BASE)
-                        setSelectedTokenData(tokenFor(USDT_BASE))
+                        setSelectedChainID('8453')
+                        setSelectedTokenAddress(USDC_BASE)
                     }}
                 >
-                    switch token
+                    switch network
                 </button>
-                <button onClick={() => setSelectedTokenData(tokenFor(USDT_BASE))}>token data drifts</button>
+                <button
+                    onClick={() => {
+                        setSelectedChainID('42161')
+                        setSelectedTokenAddress(USDC_ARB)
+                    }}
+                >
+                    switch back
+                </button>
+                <button onClick={() => setSelectedTokenAddress(USDT_BASE)}>switch token</button>
+                <button onClick={() => setSelectedTokenAddress(WETH_BASE)}>switch to a token not paid out</button>
                 <Seeded name={name} scanned={scanned}>
                     <ScannedDestinationPayView
                         addressFamily={addressFamily}
@@ -325,21 +345,17 @@ describe('ScannedDestinationPayView (TASK-23974)', () => {
             expect(onContinue).not.toHaveBeenCalled()
         })
 
-        it('token data that drifted from the requested contract never continues', async () => {
-            const { onContinue } = requested()
-            await ctaReady()
-            fireEvent.click(screen.getByText('token data drifts'))
-            expect(cta()).toBeDisabled()
-            fireEvent.click(cta())
-            expect(onContinue).not.toHaveBeenCalled()
-        })
-
         // The real selector corrects a pair it does not offer (here the record
         // has no Base tokens) to the wallet chain's USDC by itself.
         it('the selector correcting the pair by itself never continues on the corrected pair', async () => {
             mockRealSelector = true
             try {
-                const { onContinue } = requested()
+                const { onContinue } = renderView({
+                    chainId: '8453',
+                    tokenAddress: USDC_BASE,
+                    scanned: BASE_USDC_REQUEST,
+                    chains: { '8453': { ...CHAINS['8453'], tokens: [] } },
+                })
                 await waitFor(() => expect(screen.queryByText('switch network')).toBeInTheDocument())
                 await waitFor(() => expect(cta()).toBeDisabled())
                 fireEvent.click(cta())
@@ -378,6 +394,17 @@ describe('ScannedDestinationPayView (TASK-23974)', () => {
         const { token, onContinue } = renderView({ chainId: '8453', tokenAddress: USDC_BASE })
         fireEvent.click(await ctaReady())
         expect(onContinue).toHaveBeenCalledWith({ token, chain: CHAINS['8453'], address: ADDRESS })
+    })
+
+    // TASK-23850: the gate is the chain's withdraw list, not a price lookup
+    it('never continues with a token the chain does not pay out', async () => {
+        const { onContinue } = renderView({ chainId: '8453', tokenAddress: USDC_BASE })
+        await ctaReady()
+        fireEvent.click(screen.getByText('switch to a token not paid out'))
+        expect(cta()).toBeDisabled()
+        fireEvent.click(cta())
+        fireEvent.keyDown(screen.getByTestId('amount-field'), { key: 'Enter' })
+        expect(onContinue).not.toHaveBeenCalled()
     })
 
     it('synthesizes the wallet chain when the record does not list it', async () => {

@@ -1215,6 +1215,15 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Crypto withdrawal: select the token, network and address before entering an amount.',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
     },
+    // TASK-23850: every token price lookup fails, as when Mobula refused every
+    // call. Pick ETH, then Base, and enter an address: Continue still works,
+    // because a withdrawal needs the chain's withdraw list, not a price.
+    'withdraw-crypto-eth-no-price': {
+        route: '/withdraw/crypto',
+        about: 'Crypto withdrawal while every token price lookup fails: ETH on Base still continues.',
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
+        fails: ['GET /tokens/price'],
+    },
     // Crypto address book beside the saved bank accounts. The three entries hit
     // the three last-used pill tones against the shots' frozen clock
     // (2026-08-15): <7d recent, 7-30d aging, 30+d stale.

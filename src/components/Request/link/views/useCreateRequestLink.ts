@@ -148,11 +148,6 @@ export const useCreateRequestLink = () => {
     const createLinkAbortRef = useRef<AbortController | null>(null)
     const submissionKey = useSubmissionKey()
 
-    const _usdValue = useMemo(() => {
-        if (!selectedTokenData?.price || !tokenValue) return ''
-        return (parseFloat(tokenValue) * selectedTokenData.price).toString()
-    }, [tokenValue, selectedTokenData?.price])
-
     // Harness-only: when the playwright session sets the passkey-bypass flag,
     // fall back to the user's peanut-wallet identifier (seeded by the harness)
     // so Create doesn't block on wagmi connection state. HARNESS_ENABLED is

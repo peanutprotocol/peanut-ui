@@ -7,7 +7,7 @@ import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components
 import NavHeader from '@/components/Global/NavHeader'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { type ITokenPriceData } from '@/interfaces/interfaces'
+import { type IToken } from '@/interfaces/interfaces'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { useRouter } from 'next/navigation'
 import { useContext, useEffect, useMemo, useRef } from 'react'
@@ -16,11 +16,11 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { addressFamilyForChainId } from '@/lib/validation/addressFamily'
 import { printableAddress } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
-import { withdrawChainRecord } from '../chain-record'
+import { withdrawChainRecord, withdrawTokenRecord } from '../chain-record'
 import { useEnsRecipientForChain } from '../useEnsRecipientForChain'
 
 interface InitialWithdrawViewProps {
-    onContinue: (data: { token: ITokenPriceData; chain: ChainWithTokens; address: string }) => void
+    onContinue: (data: { token: IToken; chain: ChainWithTokens; address: string }) => void
     onBack?: () => void
     isProcessing?: boolean
     /** Reached via Send → Exchange or Wallet, so the copy says send, not withdraw. */
@@ -39,12 +39,14 @@ export default function InitialWithdrawView({
     const tNav = useTranslations('navigation')
     const router = useRouter()
     const {
-        selectedTokenData,
+        selectedTokenAddress,
         selectedChainID,
         supportedChainsAndTokens,
         setSelectedChainID,
         setSelectedTokenAddress,
     } = useContext(tokenSelectorContext)
+    // Continue needs the token in the destination chain's withdraw list, never a price
+    const selectedToken = withdrawTokenRecord(supportedChainsAndTokens, selectedChainID, selectedTokenAddress)
 
     const {
         isValidRecipient,
@@ -95,9 +97,9 @@ export default function InitialWithdrawView({
     const handleContinue = () => {
         const selectedChainData = withdrawChainRecord(supportedChainsAndTokens, selectedChainID)
 
-        if (selectedTokenData && selectedChainData && recipient.address) {
+        if (selectedToken && selectedChainData && recipient.address) {
             onContinue({
-                token: selectedTokenData,
+                token: selectedToken,
                 chain: selectedChainData,
                 address: recipient.address,
             })
@@ -107,7 +109,7 @@ export default function InitialWithdrawView({
                 errorMessage: t('initial.detailsMissing'),
             })
             console.error('Token, chain, or address not selected/entered', {
-                hasToken: !!selectedTokenData,
+                hasToken: !!selectedToken,
                 hasChain: !!selectedChainData,
                 hasAddress: !!recipient.address,
                 selectedChainID,
@@ -194,7 +196,7 @@ export default function InitialWithdrawView({
                     shadowSize="4"
                     onClick={handleContinue}
                     disabled={
-                        !selectedTokenData ||
+                        !selectedToken ||
                         !selectedChainID ||
                         !recipient.address ||
                         !isValidRecipient ||
