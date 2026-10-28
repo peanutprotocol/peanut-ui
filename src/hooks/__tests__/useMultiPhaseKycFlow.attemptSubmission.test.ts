@@ -162,6 +162,21 @@ describe('useMultiPhaseKycFlow — a submitted verification attempt goes to /ver
         expect(view.result.current.showWrapper).toBe(false)
         expect(view.result.current.isModalOpen).toBe(false)
     })
+
+    it('an approval after closing without submitting starts none of the legacy post-approval steps', async () => {
+        const onKycSuccess = jest.fn()
+        const onKycApproved = jest.fn()
+        const view = await openRejectedAttempt({ onKycSuccess, onKycApproved })
+        act(() => view.result.current.handleSdkClose())
+
+        await act(async () => {
+            mockWs.handler?.('APPROVED')
+        })
+
+        expect(onKycSuccess).not.toHaveBeenCalled()
+        expect(onKycApproved).not.toHaveBeenCalled()
+        expect(view.result.current.isModalOpen).toBe(false)
+    })
 })
 
 describe('useMultiPhaseKycFlow — every other flow keeps the progress modal', () => {

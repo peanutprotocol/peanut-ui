@@ -782,7 +782,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // any close as a submission would swallow a real action-required state.
     // Only single-level completion consumes the deferred action.
     const handleClose = useCallback(() => {
-        if (residenceChangeRef.current) userInitiatedRef.current = false
+        // A closed attempt's approval belongs to /verify, not to today's post-approval steps.
+        if (residenceChangeRef.current || documentAttemptRef.current) userInitiatedRef.current = false
         residenceChangeRef.current = false
         residenceChangeCountryRef.current = null
         setShowWrapper(false)
