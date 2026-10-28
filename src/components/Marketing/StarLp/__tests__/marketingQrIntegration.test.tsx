@@ -104,7 +104,7 @@ it.each(['en', 'es-419', 'es-ar', 'pt-br'])(
         expect(await screen.findByRole('dialog')).toBeInTheDocument()
         expect(await screen.findByTestId('qr')).toHaveAttribute(
             'data-value',
-            `${window.location.origin}/q/home-artwork-${locale}`
+            `${window.location.origin}/home?mqr=home-artwork-${locale}`
         )
     }
 )
@@ -127,7 +127,7 @@ it.each([
     const { rerender } = render(sticker())
     expect(screen.getByTestId('qr')).toHaveAttribute(
         'data-value',
-        `${window.location.origin}/q/home-${placement}-${locale}`
+        `${window.location.origin}/home?mqr=home-${placement}-${locale}`
     )
     expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'M')
     // sunset off: the legacy signup URL, tagged as the home sticker

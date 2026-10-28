@@ -196,7 +196,7 @@ it('registers the homepage artwork and pay-like-a-local slots in all four home l
             origin: 'https://peanut.me',
             context: { page: 'home', placement: 'artwork', locale: 'es-AR' },
         })
-    ).toBe('https://peanut.me/q/home-artwork-es-ar')
+    ).toBe('https://peanut.me/home?mqr=home-artwork-es-ar')
 })
 
 it('preserves existing inline QR campaign defaults', () => {

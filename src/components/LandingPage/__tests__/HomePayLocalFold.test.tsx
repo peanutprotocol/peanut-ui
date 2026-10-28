@@ -64,8 +64,8 @@ describe('HomePayLocalFold', () => {
             render(<HomePayLocalFold strings={PT_BR} locale={locale} />)
             const origin = window.location.origin
             expect(screen.getAllByTestId('qr').map((qr) => qr.getAttribute('data-value'))).toEqual([
-                `${origin}/q/home-pay-local-ar-${locale}`,
-                `${origin}/q/home-pay-local-br-${locale}`,
+                `${origin}/home?mqr=home-pay-local-ar-${locale}`,
+                `${origin}/home?mqr=home-pay-local-br-${locale}`,
             ])
         }
     )
