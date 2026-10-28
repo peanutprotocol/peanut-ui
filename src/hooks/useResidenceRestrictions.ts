@@ -69,16 +69,8 @@ export const useResidenceRestrictions = (): ResidenceRestrictions => {
             user?.residence?.verified?.country ||
             user?.residence?.declared?.country ||
             residenceCountry ||
-            localDeclared
+            (user?.residence ? null : localDeclared)
         if (!country?.trim()) return NONE
         return settled ? deriveResidenceRestrictionsFrom(sets, country) : UNKNOWN
-    }, [
-        user?.residenceRestrictions,
-        user?.residence?.verified?.country,
-        user?.residence?.declared?.country,
-        residenceCountry,
-        sets,
-        settled,
-        localDeclared,
-    ])
+    }, [user?.residenceRestrictions, user?.residence, residenceCountry, sets, settled, localDeclared])
 }

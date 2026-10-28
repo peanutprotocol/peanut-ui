@@ -196,6 +196,16 @@ describe('ResidenceChangeDrawer', () => {
         })
     })
 
+    it('a server answer of no second residence keeps a stale device mirror from reordering', async () => {
+        storeSecondResidence('u1', 'FR')
+        const { onClose } = render({ declared: 'ES', verified: 'ES', declaredSecond: null })
+        fireEvent.click(screen.getByRole('combobox'))
+        fireEvent.click(screen.getByText('France'))
+        fireEvent.click(screen.getByText('Save'))
+        await waitFor(() => expect(onClose).toHaveBeenCalled())
+        expect(mockedUpdate).toHaveBeenCalledWith({ userId: 'u1', residenceCountry: 'FR' })
+    })
+
     it('preselects an existing pending residence without treating it as active', async () => {
         const { onClose } = render({ declared: 'BR', verified: 'BR', pending: 'ES' })
         expect(screen.getByText('Submit documents')).toBeInTheDocument()
