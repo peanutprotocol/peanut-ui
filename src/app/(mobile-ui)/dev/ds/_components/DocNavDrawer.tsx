@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import { twMerge } from '@/utils/tw'
 import { DocNavList } from './DocNavList'
@@ -44,24 +44,8 @@ export function DocNavDrawer() {
                 {/* the sheet fills the screen below the drag handle: the nav is
                     long and its own scroll is what makes it usable at 375x667 */}
                 <DrawerContent className="md:hidden" scrollAreaClassName="max-h-[85vh]">
-                    {/* `flex` is load-bearing: DrawerHeader is a grid, and
-                        flex-row alone leaves it one — that dropped the close
-                        button onto its own row under the title. */}
-                    <DrawerHeader className="flex flex-row items-center justify-between text-left">
+                    <DrawerHeader className="text-left">
                         <DrawerTitle>Design System</DrawerTitle>
-                        <DrawerClose asChild>
-                            <Button
-                                variant="ghost"
-                                shape="square"
-                                size="small"
-                                icon="cancel"
-                                aria-label="Close menu"
-                                // btn-square's w-10 is a component class, so the
-                                // base w-full utility beats it and the button
-                                // spans the row. The utility has to be passed.
-                                className="w-10"
-                            />
-                        </DrawerClose>
                     </DrawerHeader>
                     <nav aria-label="Design system" className="pb-6">
                         <DocNavList onNavigate={() => setIsOpen(false)} />

@@ -291,7 +291,7 @@ export default function DebugPage() {
                     key: 'fundRainCollateral',
                     label: 'Fund me $5 Rain USDCR (collateral)',
                     description:
-                        'Real on-chain transfer of Rain testnet USDCR (RAIN_TOKEN_ADDRESS) from harness EOA → my SA. Different ERC-20 from the Peanut wallet USDC — auto-balancer reads/transfers this token on card spend, so the SA must hold it for card flows to work end-to-end.',
+                        'Real on-chain transfer of Rain testnet USDCR (RAIN_TOKEN_ADDRESS) from harness EOA → my SA. Different ERC-20 from the Peanut wallet USDC — card spend reads/transfers this token, so the SA must hold it for card flows to work end-to-end.',
                     run: () =>
                         call('fundRainCollateral', '/dev/cheats/fund-rain-collateral', {
                             userId,

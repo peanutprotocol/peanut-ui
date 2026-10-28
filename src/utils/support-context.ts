@@ -16,7 +16,7 @@
  */
 
 import {
-    computeDisplaySpendable,
+    computeAvailableSpendable,
     formatUsdcBalance,
     isRainBalanceKnown,
     rainCentsToUsdcUnits,
@@ -72,11 +72,7 @@ export function buildBalanceSummary(
 
     if (!walletKnown || !cardKnown) return `${halves} — total unknown`
 
-    const total = computeDisplaySpendable(
-        smartBalance,
-        spendingPower,
-        rainOverview?.balance?.inTransitToCollateralCents
-    )
+    const total = computeAvailableSpendable(smartBalance, spendingPower)
     return `${usd(total)} spendable (${halves})`
 }
 

@@ -96,11 +96,14 @@ const CardFace: FC<Props> = ({
                 // physical-card geometry token — value lives in globals.css.
                 // intentionally off the ds radius scale, same exemption class
                 // as the aspect ratio (visual-qa verdict ui#3201).
-                'relative aspect-[1.586/1] w-full overflow-hidden rounded-card bg-action-primary text-foreground-primary',
+                // Keep the ratio as a minimum height and constrain the column
+                // to the card width so larger text can wrap and grow.
+                'relative grid w-full grid-cols-[minmax(0,1fr)] overflow-hidden rounded-card bg-action-primary text-foreground-primary',
                 isLocked && 'grayscale',
                 className
             )}
         >
+            <div aria-hidden className="col-start-1 row-start-1 aspect-[1.586/1] w-full" />
             {/* issued artwork uses 90% of the card height */}
             <Image
                 src={PEANUT_CARD_HAND}
@@ -113,19 +116,20 @@ const CardFace: FC<Props> = ({
                 priority
             />
 
-            <div className="relative flex h-full w-full flex-col p-4">
+            <div className="relative col-start-1 row-start-1 flex w-full flex-col p-4">
                 {/* Top row: peanut mascot + wordmark (left) + Visa Platinum (right).
                  * Matches the finalised Rain card art (Apple Wallet): yellow mascot +
                  * black PEANUT wordmark (WORDMARK from @/assets/brand is the text-only
                  * black master; the footer tints it white with CSS invert) and a
                  * dark VISA with a "Platinum" tier line — not the old inverted-white
                  * Visa with no tier. */}
-                <div className="flex items-start justify-between">
+                <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
                     <div className="flex items-center gap-2">
                         <Image src={LOGO} alt="" aria-hidden className="h-8 w-auto" />
                         <Image src={WORDMARK} alt="Peanut" className="h-3 w-auto" />
                     </div>
-                    <div className="flex flex-col items-end leading-none">
+                    {/* ml-auto keeps it right-aligned if large text wraps it to its own line */}
+                    <div className="ml-auto flex flex-col items-end leading-none">
                         <Image src={VISA_BRAND_MARK} alt="Visa" className="h-6 w-auto brightness-0" />
                         {/* Card-tier brand lockup, not copy — stays English in every locale. */}
                         <span className="mt-0.5 text-label-m tracking-wide">{'Platinum'}</span>
@@ -229,15 +233,15 @@ const CardFace: FC<Props> = ({
                         </>
                     ) : loading ? (
                         <>
-                            <div className="h-7 w-56 animate-pulse rounded bg-foreground-primary/10" />
+                            <div className="h-7 w-56 animate-pulse rounded bg-background-skeleton" />
                             <div className="mt-2 flex items-end gap-6 text-body-xs">
                                 <div>
                                     {/* label dropped to match the revealed layout — no height jump on reveal */}
-                                    <div className="mt-1 h-4 w-12 animate-pulse rounded bg-foreground-primary/10" />
+                                    <div className="mt-1 h-4 w-12 animate-pulse rounded bg-background-skeleton" />
                                 </div>
                                 <div>
                                     {/* label dropped to match the revealed layout */}
-                                    <div className="mt-1 h-4 w-10 animate-pulse rounded bg-foreground-primary/10" />
+                                    <div className="mt-1 h-4 w-10 animate-pulse rounded bg-background-skeleton" />
                                 </div>
                             </div>
                         </>

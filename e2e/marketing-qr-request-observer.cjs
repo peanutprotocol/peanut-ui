@@ -1,6 +1,6 @@
 // QA-only observer for browser keepalive delivery across a document navigation.
 // Capture route handling and bodies remain unchanged. Only an explicitly marked
-// QA /home continuation is stubbed to avoid loading the downstream app layout.
+// QA /app continuation is stubbed to avoid loading the downstream app layout.
 const { appendFileSync } = require('node:fs')
 const { Server } = require('node:http')
 
@@ -14,8 +14,8 @@ Server.prototype.emit = function marketingQrObservedEmit(event, request, respons
     if (
         event === 'request' &&
         request.method === 'GET' &&
-        request.url.split('?')[0] === '/home' &&
-        request.headers['x-marketing-qr-qa-home-stub'] === '1'
+        request.url.split('?')[0] === '/app' &&
+        request.headers['x-marketing-qr-qa-continuation-stub'] === '1'
     ) {
         response.writeHead(200, {
             'Content-Type': 'text/html',

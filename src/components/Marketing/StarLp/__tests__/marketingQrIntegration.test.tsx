@@ -62,7 +62,7 @@ it.each(['us-europe-accounts', 'qr-argentina', 'qr-brazil', 'request-links', 'se
         expect(await screen.findByRole('dialog')).toBeInTheDocument()
         expect(await screen.findByTestId('qr')).toHaveAttribute(
             'data-value',
-            `${window.location.origin}/q/${page}-hero-en`
+            `${window.location.origin}/home?mqr=${page}-hero-en`
         )
         expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'M')
     }
@@ -76,7 +76,10 @@ it.each([
     ['qr-brazil', 'ways-in'],
 ] as const)('registers inline %s/%s only when both rollout and app migration are enabled', (campaign, slot) => {
     const { rerender } = render(<StarLpQrCode campaign={campaign} slot={slot} />)
-    expect(screen.getByTestId('qr')).toHaveAttribute('data-value', `${window.location.origin}/q/${campaign}-${slot}-en`)
+    expect(screen.getByTestId('qr')).toHaveAttribute(
+        'data-value',
+        `${window.location.origin}/home?mqr=${campaign}-${slot}-en`
+    )
     expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'M')
     mockMigrationOn = false
     rerender(<StarLpQrCode campaign={campaign} slot={slot} />)

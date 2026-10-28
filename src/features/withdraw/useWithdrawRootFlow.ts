@@ -118,7 +118,13 @@ export function useWithdrawRootFlow() {
                 setSelectedTokenAddress(tokenAddress)
                 setRecipient({ name: scanned.name, address: scanned.address })
                 setIsValidRecipient(true)
-                setScannedRecipient({ addressFamily: addressFamilyForChainId(scanned.chainId) })
+                // The network and asset the scan named travel with it: the pay
+                // screen sends on that pair or not at all.
+                setScannedRecipient({
+                    addressFamily: addressFamilyForChainId(scanned.chainId),
+                    ...(scanned.chainId ? { chainId: scanned.chainId } : {}),
+                    ...(scanned.tokenSymbol || scanned.tokenAddress ? { tokenAddress } : {}),
+                })
             }
         }
         if (selectedMethod?.type !== 'crypto') {
