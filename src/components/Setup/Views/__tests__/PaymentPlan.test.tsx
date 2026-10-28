@@ -7,12 +7,20 @@ import PaymentPlanStep from '../PaymentPlan'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { LOCAL_RESIDENCE_RESTRICTION_SETS } from '@/hooks/useResidenceRestrictionSets'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
 
 let mockSets = LOCAL_RESIDENCE_RESTRICTION_SETS
 let mockSettled = true
 jest.mock('@/hooks/useResidenceRestrictionSets', () => ({
     ...jest.requireActual('@/hooks/useResidenceRestrictionSets'),
     useResidenceRestrictionSetsWithStatus: () => ({ sets: mockSets, settled: mockSettled }),
+}))
+let mockIntentsSettled = true
+jest.mock('@/hooks/useKycIntents', () => ({
+    useKycIntents: (country: string) => ({
+        intents: mockIntentsSettled ? KYC_INTENTS_BY_COUNTRY[country] : undefined,
+        settled: mockIntentsSettled,
+    }),
 }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 const mockNext = jest.fn()
@@ -57,6 +65,7 @@ function optionsIn(kind: 'Add money with' | 'Make a payment with', current = 'Ch
 beforeEach(() => {
     mockSets = LOCAL_RESIDENCE_RESTRICTION_SETS
     mockSettled = true
+    mockIntentsSettled = true
     mockIsLoading = false
     jest.clearAllMocks()
 })
@@ -70,7 +79,7 @@ it('starts both pickers on Choose and keeps Continue disabled until both are set
     expect(screen.getByLabelText('Plan')).toHaveTextContent('/')
     expect(continueButton()).toBeDisabled()
 
-    await choose('Add money with', 'Choose', 'Bank transfer')
+    await choose('Add money with', 'Choose', 'Bank transfer (USD, EUR, GBP)')
     expect(continueButton()).toBeDisabled()
     fireEvent.click(continueButton())
     expect(mockNext).not.toHaveBeenCalled()
@@ -109,7 +118,7 @@ it.each([
     renderWithIntl(ui(country))
     expect(optionsIn('Add money with')).toEqual([
         `Bank transfer (${currency})`,
-        'Bank transfer (USD, EUR, GBP, MXN)',
+        'Bank transfer (USD, EUR, GBP)',
         'Crypto',
         'Another Peanut user',
     ])
@@ -121,6 +130,18 @@ it.each([
     expect(funding).not.toHaveTextContent(/\(/)
 })
 
+// Slava, 2026-10-27: Brazil named its bank currencies, North Macedonia did not.
+it.each([
+    ['MK', ['Bank transfer (USD, EUR, GBP)', 'Crypto', 'Another Peanut user']],
+    ['DE', ['Bank transfer (USD, EUR, GBP)', 'Crypto', 'Another Peanut user']],
+    ['MX', ['Bank transfer (USD, EUR, GBP, MXN)', 'Crypto', 'Another Peanut user']],
+    // the server closes banking here, though no tier list names it
+    ['KR', ['Crypto', 'Another Peanut user']],
+])('names the bank currencies wherever the server opens the bank feature: %s', (country, expected) => {
+    renderWithIntl(ui(country))
+    expect(optionsIn('Add money with')).toEqual(expected)
+})
+
 it('names a Peanut-to-Peanut top-up "Another Peanut user"', async () => {
     renderWithIntl(ui('JP'))
     await choose('Add money with', 'Choose', 'Another Peanut user')
@@ -129,17 +150,18 @@ it('names a Peanut-to-Peanut top-up "Another Peanut user"', async () => {
 
 it('clears a choice the residence no longer offers and asks again', async () => {
     const view = renderWithIntl(ui('PT'))
-    await choose('Add money with', 'Choose', 'Bank transfer')
+    await choose('Add money with', 'Choose', 'Bank transfer (USD, EUR, GBP)')
     await choose('Make a payment with', 'Choose', 'Peanut Card')
-    mockSets = { ...LOCAL_RESIDENCE_RESTRICTION_SETS, full: new Set(['PT']) }
-    view.rerender(ui('PT'))
-    await waitFor(() => expect(screen.getByLabelText('Plan')).toHaveTextContent('/'))
+    // Japan: the server closes the bank feature and keeps the card
+    view.rerender(ui('JP'))
+    await waitFor(() => expect(screen.getByLabelText('Plan')).toHaveTextContent(/^\/card$/))
     expect(screen.getByRole('button', { name: 'Add money with: Choose', hidden: true })).toBeInTheDocument()
     expect(continueButton()).toBeDisabled()
 })
 
 it('offers only universal channels while the restriction lookup is unsettled', async () => {
     mockSettled = false
+    mockIntentsSettled = false
     renderWithIntl(ui('PT'))
     await choose('Add money with', 'Choose', 'Crypto')
     await choose('Make a payment with', 'Choose', 'Another Peanut user')

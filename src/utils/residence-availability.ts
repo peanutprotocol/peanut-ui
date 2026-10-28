@@ -2,6 +2,7 @@ import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestriction
 import { type ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 import { regionIntentForResidence } from '@/utils/regions.utils'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import type { KycIntents } from '@/hooks/useKycIntents'
 
 /** What a residence can make available: a bank rail, bank transfers where supported, the card, P2P. */
 export type AvailabilityItemKey = 'p2p' | 'pix' | 'arQr' | 'spei' | 'usdAch' | 'eurSepa' | 'gbpFps' | 'bank' | 'card'
@@ -93,24 +94,51 @@ export function bankRailsFor(iso2: string): AvailabilityItemKey[] {
     return rails.length ? rails : ['bank']
 }
 
+/** The accounts Bridge opens with the bank feature: every residence it serves gets these, Mexico its own peso. */
+const BANK_FEATURE_RAILS: readonly AvailabilityRailKey[] = ['usdAch', 'eurSepa', 'gbpFps']
+const LOCAL_FEATURE_RAIL: Readonly<Record<string, AvailabilityRailKey>> = { BR: 'pix', AR: 'arQr' }
+
+function railsFromIntents(code: string, intents: KycIntents): AvailabilityItemKey[] {
+    const rails: AvailabilityItemKey[] = []
+    if (intents.local.available && LOCAL_FEATURE_RAIL[code]) rails.push(LOCAL_FEATURE_RAIL[code])
+    if (intents.bank.available) {
+        const home = HOME_RAIL[code]
+        if (home && !rails.includes(home) && (home === 'spei' || BANK_FEATURE_RAILS.includes(home))) rails.push(home)
+        for (const rail of BANK_FEATURE_RAILS) if (!rails.includes(rail)) rails.push(rail)
+    }
+    return rails
+}
+
 /**
  * Per-country availability summary for the dual-residence comparison at
- * signup. Client-side on purpose: the tiers arrive via the restriction-sets
- * hook (server lists with the bundled mirror as fallback) and the
- * country-to-rails mapping is the same static knowledge Unlock payments
- * renders, so the comparison needs no backend. Informational only.
+ * signup. With `intents` (GET /config/kyc-intents) it says exactly what the
+ * verification will offer that residence: the local rail when the local
+ * feature is open, Bridge's accounts when the bank one is, the card when Rain
+ * takes it. Without them (the read failed) it falls back to the restriction
+ * tiers and the static rail map. Informational only.
  */
-export function residenceAvailability(sets: ResidenceRestrictionSets, iso2: string): ResidenceAvailability {
+export function residenceAvailability(
+    sets: ResidenceRestrictionSets,
+    iso2: string,
+    intents?: KycIntents
+): ResidenceAvailability {
     const code = iso2.toUpperCase()
-    const restrictions = deriveResidenceRestrictionsFrom(sets, code)
     const available: AvailabilityItemKey[] = []
     const unavailable: Array<'banking' | 'card'> = []
 
-    if (restrictions.banking) unavailable.push('banking')
-    else available.push(...bankRailsFor(code))
-
-    if (restrictions.card) unavailable.push('card')
-    else available.push('card')
+    if (intents) {
+        const rails = railsFromIntents(code, intents)
+        if (rails.length) available.push(...rails)
+        else unavailable.push('banking')
+        if (intents.card.available) available.push('card')
+        else unavailable.push('card')
+    } else {
+        const restrictions = deriveResidenceRestrictionsFrom(sets, code)
+        if (restrictions.banking) unavailable.push('banking')
+        else available.push(...bankRailsFor(code))
+        if (restrictions.card) unavailable.push('card')
+        else available.push('card')
+    }
 
     available.push('p2p')
 
