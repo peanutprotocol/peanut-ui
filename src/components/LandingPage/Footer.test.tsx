@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import Footer from './Footer'
 import { SUPPORTED_LOCALES } from '@/i18n/types'
+import { getTranslations } from '@/i18n'
 
 const FEATURE_HREFS = [
     '/us-europe-accounts',
@@ -74,9 +75,29 @@ describe('Footer feature discovery', () => {
         render(<Footer locale="en" />)
         const navigation = screen.getByRole('navigation', { name: 'Features' })
 
+        expect(navigation).toHaveAttribute('id', 'features')
         expect(within(navigation).getAllByRole('link')).toHaveLength(6)
         expect(within(navigation).getByRole('link', { name: 'Peanut Card' })).toHaveAttribute('href', '/peanut-card')
         expect(screen.getByRole('link', { name: 'Docs' })).toHaveAttribute('href', '/en/help')
+    })
+
+    it.each(SUPPORTED_LOCALES)('keeps the card footer country-free with access to all features in %s', (locale) => {
+        render(<Footer showSiteDirectory={false} showLocaleSwitcher={false} locale={locale} />)
+        const i18n = getTranslations(locale)
+        const navigation = screen.getByRole('navigation', { name: i18n.footerFeatures })
+        const directoryHref = locale === 'en' ? '/lp#features' : `/${locale}#features`
+
+        expect(
+            within(navigation)
+                .getAllByRole('link')
+                .map((link) => link.getAttribute('href'))
+        ).toEqual(['/request-links', '/self-custody', '/peanut-card', directoryHref])
+        expect(navigation).not.toHaveTextContent(/Argentina|Brazil|Brasil|Europe|Europa|EUA|EE\. UU\./)
+        expect(within(navigation).getByRole('link', { name: i18n.footerExploreFeatures })).toHaveAttribute(
+            'hreflang',
+            locale
+        )
+        expect(screen.queryByRole('button', { name: /^Language:/ })).not.toBeInTheDocument()
     })
 
     it.each([

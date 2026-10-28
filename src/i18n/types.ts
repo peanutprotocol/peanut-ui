@@ -287,6 +287,7 @@ export interface Translations {
 
     // Footer — SEO site directory
     footerFeatures: string
+    footerExploreFeatures: string
     starLpUsEuAccounts: string
     starLpRequestLinks: string
     starLpSelfCustody: string
