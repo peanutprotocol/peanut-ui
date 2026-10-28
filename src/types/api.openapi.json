@@ -28843,6 +28843,41 @@
                                                                     ],
                                                                     "type": "object"
                                                                 },
+                                                                "store": {
+                                                                    "additionalProperties": false,
+                                                                    "properties": {
+                                                                        "country": {
+                                                                            "pattern": "^[A-Z]{2}$",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "observedAt": {
+                                                                            "format": "date-time",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "source": {
+                                                                            "anyOf": [
+                                                                                {
+                                                                                    "enum": [
+                                                                                        "app-store"
+                                                                                    ],
+                                                                                    "type": "string"
+                                                                                },
+                                                                                {
+                                                                                    "enum": [
+                                                                                        "google-play"
+                                                                                    ],
+                                                                                    "type": "string"
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "country",
+                                                                        "source",
+                                                                        "observedAt"
+                                                                    ],
+                                                                    "type": "object"
+                                                                },
                                                                 "vercelIp": {
                                                                     "additionalProperties": false,
                                                                     "properties": {
@@ -29931,6 +29966,25 @@
                 }
             }
         },
+        "/users/logout/all": {
+            "post": {
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/users/me": {
             "get": {
                 "parameters": [
@@ -30696,6 +30750,41 @@
                                                                     "required": [
                                                                         "country",
                                                                         "provider",
+                                                                        "observedAt"
+                                                                    ],
+                                                                    "type": "object"
+                                                                },
+                                                                "store": {
+                                                                    "additionalProperties": false,
+                                                                    "properties": {
+                                                                        "country": {
+                                                                            "pattern": "^[A-Z]{2}$",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "observedAt": {
+                                                                            "format": "date-time",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "source": {
+                                                                            "anyOf": [
+                                                                                {
+                                                                                    "enum": [
+                                                                                        "app-store"
+                                                                                    ],
+                                                                                    "type": "string"
+                                                                                },
+                                                                                {
+                                                                                    "enum": [
+                                                                                        "google-play"
+                                                                                    ],
+                                                                                    "type": "string"
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "country",
+                                                                        "source",
                                                                         "observedAt"
                                                                     ],
                                                                     "type": "object"
@@ -31535,6 +31624,41 @@
                                                                     ],
                                                                     "type": "object"
                                                                 },
+                                                                "store": {
+                                                                    "additionalProperties": false,
+                                                                    "properties": {
+                                                                        "country": {
+                                                                            "pattern": "^[A-Z]{2}$",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "observedAt": {
+                                                                            "format": "date-time",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "source": {
+                                                                            "anyOf": [
+                                                                                {
+                                                                                    "enum": [
+                                                                                        "app-store"
+                                                                                    ],
+                                                                                    "type": "string"
+                                                                                },
+                                                                                {
+                                                                                    "enum": [
+                                                                                        "google-play"
+                                                                                    ],
+                                                                                    "type": "string"
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    "required": [
+                                                                        "country",
+                                                                        "source",
+                                                                        "observedAt"
+                                                                    ],
+                                                                    "type": "object"
+                                                                },
                                                                 "vercelIp": {
                                                                     "additionalProperties": false,
                                                                     "properties": {
@@ -31833,6 +31957,41 @@
                                                 "required": [
                                                     "country",
                                                     "provider",
+                                                    "observedAt"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "store": {
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                    "country": {
+                                                        "pattern": "^[A-Z]{2}$",
+                                                        "type": "string"
+                                                    },
+                                                    "observedAt": {
+                                                        "format": "date-time",
+                                                        "type": "string"
+                                                    },
+                                                    "source": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "app-store"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "google-play"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "country",
+                                                    "source",
                                                     "observedAt"
                                                 ],
                                                 "type": "object"
@@ -33127,25 +33286,6 @@
                     {
                         "in": "path",
                         "name": "username",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
-        "/users/logout/all": {
-            "post": {
-                "parameters": [
-                    {
-                        "in": "header",
-                        "name": "Authorization",
                         "required": true,
                         "schema": {
                             "type": "string"

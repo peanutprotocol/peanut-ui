@@ -49,10 +49,14 @@ const begin = async () => {
 test('missing observations are not invented from declared residence', () => {
     expect(signupGeoPayload(snapshot)).toBeNull()
 })
-test('delivers a late signal bound to the signup user', async () => {
+test('delivers late store signal bound to the signup user', async () => {
     snapshot = { ...snapshot, collectedAt: '2026-10-06T12:00:00Z', vercelIpCountry: 'PT' }
     await begin()
-    snapshot = { ...snapshot, ipCountry: 'BR' }
+    snapshot = {
+        ...snapshot,
+        storeCountry: { countryCode: 'BR', source: 'google-play' },
+        storeCountryCollectedAt: '2026-10-06T12:00:02Z',
+    }
     listener?.()
     await flush()
     expect(mockApiFetch).toHaveBeenLastCalledWith(
