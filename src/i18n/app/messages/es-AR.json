@@ -1676,8 +1676,7 @@
             "troubleTitle": "¿Necesitás ayuda?",
             "troubleDescriptionLine1": "Si la verificación de identidad no carga aquí, completala en tu navegador.",
             "troubleDescriptionLine2": "Solo copiá este enlace y abrilo allí.",
-            "exitDescription": "Podés volver y terminar esto en cualquier momento.",
-            "havingTrouble": "¿Tenés problemas?"
+            "exitDescription": "Podés volver y terminar esto en cualquier momento."
         },
         "supportDrawer": {
             "chatLoadFailedDescription": "Hubo un problema al cargar el chat de soporte. Escribinos por correo y te ayudamos:"

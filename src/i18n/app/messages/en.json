@@ -3684,9 +3684,7 @@
             "exitTitle": "Exit for now?",
             "exitDescription": "You can come back and finish this anytime.",
             "exit": "Exit",
-            "continueVerifying": "Continue verifying",
-            "stopVerification": "Stop verification process",
-            "havingTrouble": "Having trouble?"
+            "continueVerifying": "Continue verifying"
         },
         "supportDrawer": {
             "chatLoadFailed": "Chat couldn't load",
