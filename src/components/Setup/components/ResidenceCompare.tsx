@@ -96,7 +96,7 @@ export function ResidenceCompare({
             <SetupFooter
                 actions={
                     <div className="flex w-full flex-col gap-3">
-                        {[citizenship, residence].map((iso2) => (
+                        {[residence, citizenship].map((iso2) => (
                             <Button
                                 key={iso2}
                                 shadowSize="4"
