@@ -34,9 +34,10 @@ export function FooterFeatures({
                 ))}
                 {!showCountryLinks && (
                     <li>
-                        <Link prefetch={false} href={directoryHref} hrefLang={locale} className={FEATURE_LINK_CLASS}>
+                        {/* Native navigation lets the destination apply its fragment after hydration. */}
+                        <a href={directoryHref} hrefLang={locale} className={FEATURE_LINK_CLASS}>
                             {i18n.footerExploreFeatures}
-                        </Link>
+                        </a>
                     </li>
                 )}
             </ul>
