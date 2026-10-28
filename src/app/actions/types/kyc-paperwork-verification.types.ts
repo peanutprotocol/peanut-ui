@@ -26,6 +26,8 @@ export interface PaperworkVerificationField {
     required: boolean
     options?: string[]
     format?: PaperworkVerificationTaxFormat
+    /** A tax number's stdnum validators (`de.idnr`), any one of which must accept it; the API runs them too. */
+    checks?: string[]
     locked?: boolean
     /** A saved value shown masked (`•••• 1234`): shown as saved, never sent back. */
     masked?: boolean

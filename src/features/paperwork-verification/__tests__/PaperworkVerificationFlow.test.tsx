@@ -411,6 +411,29 @@ describe('PaperworkVerificationFlow', () => {
         expect(continueButton()).toBeDisabled()
     })
 
+    // Slava, 2026-10-27: any random number passed the tax step.
+    it('checks the tax number with the residence validators the API names, as it is typed', async () => {
+        const questions = build({ money: true }, 'tax')
+        questions.steps[2].fields = [
+            { key: 'taxId', kind: 'taxId', required: true, format: null, checks: ['de.idnr'], value: null },
+        ]
+        mockQuestions.mockResolvedValue({ ...questions, residence: 'DE' })
+        const wrong = 'Check the number. It doesn’t look right.'
+        await startFlow()
+        const input = await screen.findByTestId('verify-input-taxId')
+        fireEvent.change(input, { target: { value: '3657426' } })
+        await waitFor(() => expect(continueButton()).toBeDisabled())
+        expect(screen.queryByText(wrong)).not.toBeInTheDocument()
+        fireEvent.blur(input)
+        expect(await screen.findByText(wrong)).toBeInTheDocument()
+        fireEvent.change(input, { target: { value: '36574261808' } })
+        expect(screen.getByText(wrong)).toBeInTheDocument()
+        expect(continueButton()).toBeDisabled()
+        fireEvent.change(input, { target: { value: '36 574 261 809' } })
+        expect(screen.queryByText(wrong)).not.toBeInTheDocument()
+        expect(continueButton()).toBeEnabled()
+    })
+
     it('offline or a 5xx past its retries: back on the step with a retry message and its values, nothing stored', async () => {
         const setItem = jest.spyOn(Storage.prototype, 'setItem')
         mockQuestions.mockResolvedValue(build({ money: true }, 'tax'))
