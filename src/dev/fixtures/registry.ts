@@ -3280,9 +3280,12 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     // Tap Token: the request payment offers USDC and USDT, never ETH (TASK-23850).
+    // Cross-chain send is on here: its kill switch (on by default) locks the
+    // picker to USDC on Arbitrum.
     'pay-request-address-tokens': {
         route: '/send?recipient=0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
         about: 'Paying a request to an address: the token picker offers USDC and USDT, not ETH.',
+        responses: { 'GET /config/kill-switches': { disableXchainSend: false } },
     },
     'pay-request-pot-partial-success': {
         // The pay screen of a part-paid €88 pot. Tap External wallet: about
