@@ -1,8 +1,10 @@
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
 import { STAR_LP_SKY_CLOUDS, STAR_LP_SKY_CLOUDS_CLASS } from '@/components/Marketing/StarLp/starLp.consts'
 import { UsEuAccountPair } from '@/components/Marketing/StarLp/pages/UsEuAccountPair'
+import { getStarLpLink } from '@/components/Marketing/StarLp/starLpNavigation'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import type { HomeGetPaidFoldProps } from './homeFolds.types'
 
@@ -15,12 +17,25 @@ import type { HomeGetPaidFoldProps } from './homeFolds.types'
  * assistive tech, as there), and reports the
  * home's app-fold surface so home clicks stay out of the star-LP funnel.
  */
-export function HomeGetPaidFold({ strings }: HomeGetPaidFoldProps) {
+export function HomeGetPaidFold({ strings, locale }: HomeGetPaidFoldProps) {
+    const accounts = getStarLpLink('usEuAccounts', locale)
     return (
         <Band ground="sky" id="home-get-paid">
             <CloudsCss clouds={[...STAR_LP_SKY_CLOUDS]} className={STAR_LP_SKY_CLOUDS_CLASS} />
             <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
-                <SectionTitle>{strings.heading}</SectionTitle>
+                <div>
+                    <SectionTitle>{strings.heading}</SectionTitle>
+                    <p className="mt-6">
+                        <LinkButton
+                            href={accounts.href}
+                            hrefLang={accounts.hrefLang}
+                            className="text-foreground-over-color-secondary"
+                        >
+                            {accounts.label}
+                            {accounts.languageLabel && ` (${accounts.languageLabel})`} →
+                        </LinkButton>
+                    </p>
+                </div>
                 {/* Art, as in the star-LP hero: its link is out of the tab order and the close CTA is the
                     keyboard path. The pair is sized for a hero column; here it fills its half and no more. */}
                 <div aria-hidden>

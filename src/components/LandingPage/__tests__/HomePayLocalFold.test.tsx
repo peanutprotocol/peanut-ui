@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import { HomePayLocalFold } from '../HomePayLocalFold'
+import { getTranslations } from '@/i18n'
 import type { HomePayLocalStrings } from '../homeFolds.types'
 
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => true }))
@@ -20,19 +21,24 @@ const PT_BR: HomePayLocalStrings = {
 describe('HomePayLocalFold', () => {
     it.each([
         ['en', '/qr-payments/argentina', '/qr-payments/brazil'],
-        ['pt-br', '/pt-br/pay-with/mercadopago', '/pt-br/pay-with/pix'],
-        ['es-ar', '/es-ar/pay-with/mercadopago', '/es-ar/pay-with/pix'],
+        ['pt-br', '/qr-payments/argentina', '/qr-payments/brazil'],
+        ['es-ar', '/qr-payments/argentina', '/qr-payments/brazil'],
+        ['es-419', '/qr-payments/argentina', '/qr-payments/brazil'],
     ] as const)(
-        'links each country in the lead to its QR page in the page language (%s), keeping the words around them',
+        'links each country to its QR feature page and discloses the English fallback (%s)',
         (locale, argentina, brazil) => {
             const { container } = render(<HomePayLocalFold strings={PT_BR} locale={locale} />)
             const lead = container.querySelector('p:not([lang])')!
-            expect(lead).toHaveTextContent('Mercado Pago na Argentina. Pix no Brasil.')
-            expect(within(lead as HTMLElement).getByRole('link', { name: 'Argentina' })).toHaveAttribute(
+            const cue = locale === 'en' ? '' : ` (${getTranslations(locale).inEnglish})`
+            expect(lead).toHaveTextContent(`Mercado Pago na Argentina${cue}. Pix no Brasil${cue}.`)
+            expect(within(lead as HTMLElement).getByRole('link', { name: /^Argentina/ })).toHaveAttribute(
                 'href',
                 argentina
             )
-            expect(within(lead as HTMLElement).getByRole('link', { name: 'Brasil' })).toHaveAttribute('href', brazil)
+            expect(within(lead as HTMLElement).getByRole('link', { name: /^Brasil/ })).toHaveAttribute('href', brazil)
+            for (const link of within(lead as HTMLElement).getAllByRole('link')) {
+                expect(link).toHaveAttribute('hrefLang', 'en')
+            }
         }
     )
 
@@ -41,8 +47,8 @@ describe('HomePayLocalFold', () => {
         expect(screen.getAllByRole('link')).toHaveLength(2)
         const stickerLinks = document.querySelectorAll('a[aria-hidden="true"]')
         expect(Array.from(stickerLinks, (a) => [a.getAttribute('href'), a.getAttribute('tabindex')])).toEqual([
-            ['/pt-br/pay-with/mercadopago', '-1'],
-            ['/pt-br/pay-with/pix', '-1'],
+            ['/qr-payments/argentina', '-1'],
+            ['/qr-payments/brazil', '-1'],
         ])
     })
 

@@ -31,9 +31,13 @@ describe('HomeRequestFold', () => {
         expect(screen.getByText('Pagado')).toBeInTheDocument()
     })
 
-    it('draws two beats with no link: the home fold has no CTA to stand in for it', () => {
+    it('keeps the feature link outside the two decorative request beats', () => {
         const { container } = render(<HomeRequestFold strings={ES_AR} locale="es-ar" />)
-        expect(container.querySelector('a, button, [tabindex]')).toBeNull()
+        const link = screen.getByRole('link')
+        expect(link).toHaveAttribute('href', '/request-links')
+        expect(link).toHaveAttribute('hrefLang', 'en')
+        expect(link.closest('[aria-hidden], [role="img"]')).toBeNull()
+        expect(container.querySelector('[role="img"] a, button')).toBeNull()
         // the star-LP "where do I pay you?" beat stays out
         expect(screen.queryByText('Where do I pay you?')).not.toBeInTheDocument()
     })

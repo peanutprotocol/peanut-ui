@@ -31,7 +31,7 @@ export function HomeFolds({ locale, strings, contentHrefs, faqItems, closeCta }:
     const { seams } = strings
     return (
         <HomeMotionBoundary>
-            <HomeGetPaidFold strings={strings.getPaid} />
+            <HomeGetPaidFold strings={strings.getPaid} locale={locale} />
             <StarLpMarquee between={['sky', 'yellow']} words={seams.accounts} />
             <HomePersonaFold strings={strings.personas} />
             <StarLpMarquee between={['yellow', 'sky']} words={seams.personas} />

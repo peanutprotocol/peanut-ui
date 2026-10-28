@@ -1,5 +1,6 @@
 import Image, { type StaticImageData } from 'next/image'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import handWaving from '@/assets/illustrations/hand-waving.svg'
 import handPeace from '@/assets/illustrations/hand-peace.svg'
@@ -10,6 +11,7 @@ import { contentHrefsFor } from './landingContentHrefs.server'
 import { CTA_MOTION } from '@/components/Marketing/constants'
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { PopIn } from '@/components/Marketing/StarLp/PopIn'
+import { getStarLpLink } from '@/components/Marketing/StarLp/starLpNavigation'
 
 interface Feature {
     id: number
@@ -52,6 +54,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
     const i18n = getTranslations(locale)
     const contentHrefs = contentHrefsFor(locale)
     const features = buildFeatures(i18n, contentHrefs)
+    const selfCustody = getStarLpLink('selfCustody', locale)
 
     return (
         <Band ground="pink" id="security">
@@ -96,6 +99,18 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                 <p className="font-roboto-flex w-full max-w-[360px] text-left text-body-l md:text-xl">
                                     {feature.description}
                                 </p>
+                                {feature.id === 2 && (
+                                    <p className="mt-6 text-left">
+                                        <LinkButton
+                                            href={selfCustody.href}
+                                            hrefLang={selfCustody.hrefLang}
+                                            className="text-foreground-over-color-secondary"
+                                        >
+                                            {selfCustody.label}
+                                            {selfCustody.languageLabel && ` (${selfCustody.languageLabel})`} →
+                                        </LinkButton>
+                                    </p>
+                                )}
                                 {feature.learnMoreHref && (
                                     // max-w matches the paragraph above, so the link
                                     // lands on that right edge instead of the wider cell; mt-auto pins it to the column foot

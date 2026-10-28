@@ -8,6 +8,7 @@ export interface HomeGetPaidStrings {
 
 export interface HomeGetPaidFoldProps {
     strings: HomeGetPaidStrings
+    locale: Locale
 }
 
 /** f4: request strips beside "Just send a link." */
@@ -51,6 +52,7 @@ export interface HomePayLocalLeadProps {
     lead: string
     names: { argentina: string; brazil: string }
     hrefs: { argentina: string; brazil: string }
+    languageLabel: string | null
 }
 
 /** Marquee words per seam, named by the fold above the strip (footer = under the close). */

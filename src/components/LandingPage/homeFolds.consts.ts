@@ -8,4 +8,5 @@ export const HOME_STICKER_LINK_CLASS =
 
 export const HOME_STICKER_CAPTION_CLASS = 'mt-2 block text-body-s-semibold underline decoration-2 underline-offset-4'
 
-export const HOME_PAY_LOCAL_LEAD_LINK_CLASS = 'font-bold underline decoration-2 underline-offset-4'
+export const HOME_PAY_LOCAL_LEAD_LINK_CLASS =
+    'rounded font-bold underline decoration-2 underline-offset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus'

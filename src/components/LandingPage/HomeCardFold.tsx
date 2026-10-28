@@ -6,7 +6,7 @@ import { DropIn } from '@/components/Marketing/StarLp/DropIn'
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { PeanutCardHeroFace } from '@/components/Marketing/StarLp/pages/PeanutCardHeroFace'
 import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
-import { STAR_LP_ROUTES } from '@/components/Marketing/StarLp/starLp.consts'
+import { getStarLpLink } from '@/components/Marketing/StarLp/starLpNavigation'
 import { HomeCardReceipt } from './HomeCardReceipt'
 import type { HomeCardFoldProps } from './homeCard.types'
 
@@ -18,6 +18,7 @@ import type { HomeCardFoldProps } from './homeCard.types'
  * here: card rules bar them. The art is decorative; the title and line say it.
  */
 export function HomeCardFold({ strings, locale }: HomeCardFoldProps) {
+    const card = getStarLpLink('peanutCard', locale)
     return (
         <Band ground="pink" id="peanut-card">
             <div className="grid items-center gap-12 md:grid-cols-2">
@@ -37,15 +38,24 @@ export function HomeCardFold({ strings, locale }: HomeCardFoldProps) {
                         <span className="block">{strings.tagline}</span>
                     </SectionTitle>
                     <p className="text-body-l">{strings.line}</p>
-                    <Button
-                        href={STAR_LP_ROUTES.peanutCard}
-                        variant="secondary"
-                        size="large"
-                        prefetch={false}
-                        className={`w-fit ${CTA_MOTION}`}
-                    >
-                        {strings.cta}
-                    </Button>
+                    <div className="grid justify-items-center gap-4">
+                        <Button
+                            href={card.href}
+                            hrefLang={card.hrefLang}
+                            aria-describedby={card.languageLabel ? 'home-card-language' : undefined}
+                            variant="secondary"
+                            size="large"
+                            prefetch={false}
+                            className={`w-fit ${CTA_MOTION}`}
+                        >
+                            {strings.cta}
+                        </Button>
+                        {card.languageLabel && (
+                            <p id="home-card-language" className="text-body-s">
+                                {card.languageLabel}
+                            </p>
+                        )}
+                    </div>
                 </div>
                 <div aria-hidden className="grid justify-items-center">
                     <PopIn tilt={-6} className="w-full max-w-sm md:max-w-md">

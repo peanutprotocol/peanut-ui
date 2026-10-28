@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { render, within } from '@testing-library/react'
 import { getTranslations } from '@/i18n'
 import { SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
 import { HomeFolds } from '../HomeFolds'
@@ -133,5 +133,39 @@ describe('HomeFolds', () => {
         expect(text).not.toMatch(/undefined|\{(username|main|payer|amount|argentina|brazil)\}/)
         const labels = Array.from(container.querySelectorAll('[aria-label]'), (el) => el.getAttribute('aria-label'))
         for (const label of labels) expect(label).not.toMatch(/undefined|\{\w+\}/)
+    })
+
+    it.each(SUPPORTED_LOCALES)('%s exposes all six feature pages in their relevant folds', (locale) => {
+        const { container } = renderHome(locale)
+        const routes = [
+            ['home-get-paid', '/us-europe-accounts'],
+            ['home-request', '/request-links'],
+            ['peanut-card', '/peanut-card'],
+            ['home-pay-local', '/qr-payments/argentina'],
+            ['home-pay-local', '/qr-payments/brazil'],
+            ['security', '/self-custody'],
+        ]
+        for (const [foldId, href] of routes) {
+            const fold = container.querySelector<HTMLElement>(`#${foldId}`)!
+            const link = within(fold)
+                .getAllByRole('link')
+                .find((a) => a.getAttribute('href') === href)
+            expect(link).toBeDefined()
+            expect(link).toHaveAttribute('hrefLang', 'en')
+            if (locale !== 'en') {
+                const languageLabel = getTranslations(locale).inEnglish
+                if (foldId === 'peanut-card') expect(link).toHaveAccessibleDescription(languageLabel)
+                else expect(link).toHaveTextContent(languageLabel)
+            }
+        }
+        const custody = container.querySelector('a[href="/self-custody"]')!
+        const controlColumn = custody.closest('.flex-1') as HTMLElement
+        expect(within(controlColumn).getByRole('heading', { level: 3 })).toHaveTextContent(
+            getTranslations(locale).landingSecurityControlTitle
+        )
+        expect(controlColumn.querySelectorAll('a')).toHaveLength(2)
+        // The account art still opens the app; the new text link adds the feature explainer.
+        const accountHrefs = Array.from(container.querySelectorAll('#home-get-paid a'), (a) => a.getAttribute('href'))
+        expect(accountHrefs).toContain('/setup?redirect_uri=%2Fadd-money%3Fmethod%3Dbank')
     })
 })
