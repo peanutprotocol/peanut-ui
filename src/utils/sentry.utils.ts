@@ -107,10 +107,6 @@ const BODY_SENSITIVE_URLS: RegExp[] = [
     /\/(?:login|signup|register|set-password|reset-password|change-password)/,
     // The user's own verified postal address — the whole body is the address
     /\/users\/me\/verified-address(?:[/?]|$)/,
-    // Profile and identity saves — name, address, tax number, citizenship, residence
-    /\/update-user(?:[/?]|$)/,
-    /\/users\/identity(?:[/?]|$)/,
-    /\/users\/residence-change\/start(?:[/?]|$)/,
     // KYC — Bridge, Sumsub, Manteca
     /\/kyc\/(?:start|submit|update)/,
     /\/bridge\/customers/,
@@ -184,10 +180,6 @@ const SENSITIVE_KEYS = new Set([
     'nif',
     'governmentid',
     'governmentidnumber',
-    'nationality',
-    'citizenship',
-    'countryofbirth',
-    'cityofbirth',
     'documentnumber',
     'passport',
     'passportnumber',
@@ -229,7 +221,6 @@ const SENSITIVE_KEYS = new Set([
     // PII — address. NOTE: `address` alone is NOT here — onchain addresses
     // (walletAddress, recipientAddress, etc.) must stay visible for
     // debugging onchain flows.
-    'street',
     'streetaddress',
     'street1',
     'street2',
@@ -247,7 +238,6 @@ const SENSITIVE_KEYS = new Set([
     'permanentaddress',
     'direccion',
     'domicilio',
-    'town',
     'postalcode',
     'zipcode',
     'zip',
@@ -257,7 +247,6 @@ const SENSITIVE_KEYS = new Set([
     'dateofbirth',
     'birthdate',
     'birthday',
-    'phone',
     'phonenumber',
     'mobilenumber',
     'telephone',
