@@ -21,6 +21,6 @@ The one-line (primary) button is Google's choice for light backgrounds. It rende
 
 ## Google Pay logo (`google-pay-logo.svg`)
 
-The card intro (`AddCardEntryScreen`) shows it beside the Visa logo. Source: `Google Pay Mark/google-pay-mark_800.svg` in https://developers.google.com/static/pay/api/download-assets/Google-Pay-Acceptance.zip, retrieved 2026-10-28.
+The card intro (`AddCardEntryScreen`) shows it beside the Visa logo on Android, where iOS shows `../apple/apple-pay-logo.svg`. Source: `Google Pay Mark/google-pay-mark_800.svg` in https://developers.google.com/static/pay/api/download-assets/Google-Pay-Acceptance.zip, retrieved 2026-10-28.
 
 Changed from the source on Slava's call: the pill outline is removed, and the viewBox is cropped so the G fills 24 of every 32 units, with the rest left for the descender of the y. The glyph paths and colours are unchanged. Google's public guidelines say "Use only the Google Pay mark provided by Google" and not to alter the mark. Google's issuer branding review must clear this before rollout.

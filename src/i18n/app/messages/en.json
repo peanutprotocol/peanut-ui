@@ -1714,7 +1714,7 @@
             "title": "Spend anywhere Visa is accepted",
             "description": "Use your balance at 150M+ merchants. Online, contactless, yours.",
             "visaAcceptance": "Accepted at Visa merchants worldwide",
-            "googlePay": "Contactless with Google Pay",
+            "contactless": "Contactless with {wallet}",
             "cta": "Get card"
         },
         "addToWallet": {

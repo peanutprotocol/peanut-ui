@@ -1714,7 +1714,7 @@
             "title": "Gasta donde acepten Visa",
             "description": "Usa tu saldo en más de 150M de comercios. En línea, sin contacto, tuya.",
             "visaAcceptance": "Aceptada en comercios Visa de todo el mundo",
-            "googlePay": "Sin contacto con Google Pay",
+            "contactless": "Sin contacto con {wallet}",
             "cta": "Pedir tarjeta"
         },
         "addToWallet": {
