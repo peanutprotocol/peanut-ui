@@ -216,6 +216,29 @@ describe('logoutUser', () => {
         expect(order).toEqual(['api:/users/logout', 'cache-cleared'])
     })
 
+    it('signs out every device through /users/logout/all when asked', async () => {
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser({ allDevices: true })
+        })
+
+        expect(mockApiFetch.mock.calls.map(([path]) => path)).toEqual(['/users/logout/all'])
+    })
+
+    it('falls back to /users/logout, which revokes everything there, on an API without /all', async () => {
+        mockApiFetch.mockResolvedValueOnce({ status: 404 }).mockResolvedValueOnce({ status: 200 })
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser({ allDevices: true })
+        })
+
+        expect(mockApiFetch.mock.calls.map(([path]) => path)).toEqual(['/users/logout/all', '/users/logout'])
+    })
+
     it('awaits signup-attribution cleanup before leaving the account boundary', async () => {
         let finishAttributionCleanup: (() => void) | undefined
         mockClearSignupAttribution.mockImplementation(
