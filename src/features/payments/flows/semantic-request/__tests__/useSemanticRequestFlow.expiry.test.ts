@@ -110,7 +110,6 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { us
 const mockRefetchTokenData = jest.fn()
 const mockTokenSelection = {
     refetchTokenData: mockRefetchTokenData,
-    readTokenPrice: () => () => {},
     selectedChainID: '8453',
     selectedTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
     selectedTokenData: {
@@ -133,6 +132,7 @@ jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_CHAIN: { id: 42161 },
     PEANUT_WALLET_TOKEN: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
     PEANUT_WALLET_TOKEN_DECIMALS: 6,
+    PEANUT_WALLET_TOKEN_SYMBOL: 'USDC',
 }))
 jest.mock('@/hooks/useFriendlyError', () => ({ useFriendlyError: () => (e: unknown) => String(e) }))
 jest.mock('@tanstack/react-query', () => ({
@@ -505,5 +505,71 @@ describe('a fetched charge in a token requests no longer take', () => {
 
         expect(mockTokenSelection.setSelectedTokenAddress).toHaveBeenCalledWith(originalCharge.tokenAddress)
         expect(mockTokenSelection.setSelectedChainID).toHaveBeenCalledWith('8453')
+    })
+})
+
+/**
+ * A request is paid in USDC or USDT at $1 (TASK-23850). Paying one used to
+ * wait for a price: while the chain list was still loading, the lookup fell
+ * through to /tokens/price, which has no $1 entry for USDC on chains such as
+ * Avalanche, and the tap ended in "Token price is unavailable".
+ */
+describe('paying a USDC or USDT request needs no price', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockRefetchTokenData.mockReset()
+        mockRefetchTokenData.mockResolvedValue(null)
+        route.quoteExpiresAt = null
+        ctx.charge = null
+        ctx.currentView = 'INITIAL'
+        ctx.amount = '10'
+        ctx.recipient.recipientType = 'ADDRESS'
+        ctx.recipient.resolvedAddress = originalCharge.requestLink.recipientAddress
+        // the chain list is still loading, so the context has no token data yet
+        mockTokenSelection.selectedTokenData = null as any
+        mockCreateCharge.mockResolvedValue(originalCharge)
+    })
+
+    it.each([
+        ['USDC on Avalanche', '43114', '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e', 'USDC'],
+        ['USDT on Gnosis', '100', '0x4ecaba5870353805a9f068101a40e0f32ed605c6', 'USDT'],
+        ['USDC on Celo', '42220', '0xceba9300f2b948710d2653dd7b07f33a8b32118c', 'USDC'],
+        ['the wallet USDC on Arbitrum', '42161', '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', 'USDC'],
+    ])('creates the charge for %s with no price lookup and no error', async (_case, chainId, token, symbol) => {
+        mockTokenSelection.selectedChainID = chainId
+        mockTokenSelection.selectedTokenAddress = token
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            expect(await result.current.handlePayment(true, true)).toEqual({ success: true })
+        })
+
+        expect(mockRefetchTokenData).not.toHaveBeenCalled()
+        expect(ctx.setError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        expect(mockCreateCharge).toHaveBeenCalledWith(
+            expect.objectContaining({
+                chainId,
+                tokenAddress: token,
+                tokenSymbol: symbol,
+                tokenDecimals: 6,
+                tokenAmount: '10',
+                currencyAmount: '10',
+                transactionType: 'REQUEST',
+            })
+        )
+    })
+
+    it('still refuses a token that is not USDC or USDT when its price is missing', async () => {
+        mockTokenSelection.selectedChainID = '8453'
+        mockTokenSelection.selectedTokenAddress = '0x0000000000000000000000000000000000000000'
+        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+        await act(async () => {
+            expect(await result.current.handlePayment(true, true)).toEqual({ success: false })
+        })
+
+        expect(mockRefetchTokenData).toHaveBeenCalledTimes(1)
+        expect(mockCreateCharge).not.toHaveBeenCalled()
+        expect(ctx.setError).toHaveBeenCalledWith(
+            expect.objectContaining({ showError: true, errorMessage: expect.stringContaining('price is unavailable') })
+        )
     })
 })

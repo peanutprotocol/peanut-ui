@@ -1,7 +1,7 @@
 /**
  * The token context fetches the selected token's price only while a flow that
- * reads it is mounted (TASK-23850). Claim and request payment read it; withdraw
- * no longer does, so a token pick there must not ask /tokens/price.
+ * reads it is mounted (TASK-23850). The claim flow reads it; withdraw and
+ * request payment do not, so a token pick there must not ask /tokens/price.
  */
 import React, { useContext, useState } from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -58,7 +58,7 @@ function Picker() {
     )
 }
 
-/** A flow that reads the price: claim and request payment call this hook. */
+/** A flow that reads the price: the claim flow calls this hook. */
 function Reader() {
     useReadsSelectedTokenPrice()
     return null

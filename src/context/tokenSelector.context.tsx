@@ -65,7 +65,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [devconnectTokenAddress, setDevconnectTokenAddress] = useState<string>('')
     const [devconnectChainId, setDevconnectChainId] = useState<string>('')
     const [devconnectRecipientAddress, setDevconnectRecipientAddress] = useState<string>('')
-    // how many mounted flows read selectedTokenData (claim, request payment)
+    // how many mounted flows read selectedTokenData (today: claim)
     const [tokenPriceReaders, setTokenPriceReaders] = useState(0)
     const readTokenPrice = useCallback(() => {
         setTokenPriceReaders((count) => count + 1)
