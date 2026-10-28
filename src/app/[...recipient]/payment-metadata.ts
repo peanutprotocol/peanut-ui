@@ -6,6 +6,7 @@ import { chargesApi } from '@/services/charges'
 import { parseAmountAndToken } from '@/lib/url-parser/parser'
 import { buildOgImageUrl } from '@/utils/og.utils'
 import { couldBeRecipient, isReservedRoute } from '@/constants/routes'
+import { isRequestToken } from '@/utils/request-token.utils'
 
 const NOINDEX = { index: false, follow: false } as const
 const NOINDEX_META = { robots: NOINDEX, alternates: { canonical: null } } as const
@@ -93,6 +94,13 @@ export async function buildPaymentMetadata(segments: string[] | undefined, charg
         } catch (error) {
             console.error('Failed to fetch charge details:', error)
         }
+    }
+
+    // The page refuses a request in any token but USDC or USDT (TASK-23850), so
+    // its preview must not advertise "0.1 ETH": it gets the same neutral card as
+    // a link the app cannot show. A paid one is a receipt and keeps its card.
+    if (token && !isRequestToken(token) && !isPaid) {
+        return { ...NOINDEX_META }
     }
 
     // Generate custom OG image only for addresses/ENS or when there's an amount
