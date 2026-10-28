@@ -62,8 +62,8 @@ export interface PaperworkVerificationEntry {
 /**
  * Where an entry point's Verify goes for a Smart Paperwork Verification user,
  * read before any start modal opens; null keeps today's start. A plan that
- * cannot be read keeps it too: that start reads the plan again, and refuses to
- * open a legacy applicant while it still cannot.
+ * cannot be read keeps it too: the API refuses that start for a Smart Paperwork
+ * Verification user, and the start then opens /verify.
  */
 export async function paperworkVerificationEntryRoute(entry: PaperworkVerificationEntry): Promise<string | null> {
     const plan = await findKycDocumentPlan('entry').catch(() => null)

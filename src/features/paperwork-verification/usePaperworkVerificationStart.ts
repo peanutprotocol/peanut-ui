@@ -40,11 +40,9 @@ export function prefetchPaperworkVerification(queryClient: QueryClient) {
  * before the first read waits. The modal's own short-circuits (verification
  * outage, region-restricted ID) keep it in front.
  *
- * A plan that cannot be read goes to /verify too, never to the start modal: its
- * Verify would open a legacy applicant, which shuts a Smart Paperwork
- * Verification user out of that flow for good. /verify reads the plan again,
- * shows its retry screen if it still fails, and sends anyone the server keeps
- * on today's flow back Home.
+ * A plan that cannot be read keeps the start modal: its start asks the API,
+ * which refuses a Smart Paperwork Verification user with
+ * paperwork_verification_required and the start then opens /verify.
  */
 export function usePaperworkVerificationStart(): () => Promise<boolean> {
     const degraded = useKycDegraded()
@@ -80,7 +78,7 @@ export function usePaperworkVerificationStart(): () => Promise<boolean> {
             })
             return fresh?.flow === PAPERWORK_VERIFICATION_FLOW
         } catch {
-            return true
+            return false
         }
     }, [degraded, isRegionRestricted, queryClient])
 }

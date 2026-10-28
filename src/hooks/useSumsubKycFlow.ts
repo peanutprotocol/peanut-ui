@@ -485,16 +485,10 @@ export const useSumsubKycFlow = ({
 
             try {
                 if (!correctSession && !levelName) {
-                    try {
-                        plan = await findKycDocumentPlan('initiate')
-                    } catch {
-                        // Unknown flow: today's start would open a legacy applicant,
-                        // which shuts a Smart Paperwork Verification user out for good.
-                        userInitiatedRef.current = false
-                        if (crossRegion) prevStatusRef.current = savedPrevStatus
-                        setError(t('errorInitiateFailed'))
-                        return false
-                    }
+                    // An unreadable plan starts today's flow: the API refuses that start with
+                    // paperwork_verification_required for a Smart Paperwork Verification user
+                    // (handled below), so a failed GET never blocks everyone else.
+                    plan = await findKycDocumentPlan('initiate').catch(() => null)
                     // Smart Paperwork Verification users answer Peanut's questions on /verify before any document.
                     const paperworkVerificationPath = await paperworkVerificationRoute(
                         plan,

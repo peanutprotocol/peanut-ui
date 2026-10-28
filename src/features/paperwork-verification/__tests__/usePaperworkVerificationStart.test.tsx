@@ -1,7 +1,9 @@
 /**
  * APK #4: Home's Verify opened the legacy start modal whenever the plan read
  * failed, and its Verify opened a legacy applicant for a Smart Paperwork
- * Verification user. An unreadable plan now goes to /verify, which retries.
+ * Verification user. The API now refuses that start (409
+ * paperwork_verification_required, which opens /verify), so an unreadable plan
+ * keeps the start modal instead of stranding legacy users on a retry screen.
  */
 import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -38,8 +40,11 @@ beforeEach(() => {
 })
 afterEach(() => jest.useRealTimers())
 
-it('a plan that cannot be read opens /verify; only a plan that says so keeps the start modal', async () => {
+it('only a plan that says so opens /verify; an unreadable one keeps the start modal', async () => {
     jest.mocked(serverFetch).mockRejectedValue(new TypeError('Failed to fetch'))
+    await expect(start()).resolves.toBe(false)
+
+    jest.mocked(serverFetch).mockResolvedValue(ok({ available: true, routes: [], flow: 'verify-once', needs: [] }))
     await expect(start()).resolves.toBe(true)
 
     // the server keeps the user on today's flow
