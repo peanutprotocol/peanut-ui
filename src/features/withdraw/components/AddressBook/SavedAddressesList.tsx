@@ -58,8 +58,8 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                                 position="solo"
                                 title={label}
                                 truncate
+                                // one line like the saved bank rows: a wrapped body made rows uneven heights
                                 body={`${shortAddress} · ${chainName} · ${t('savedAddresses.lastUsed', { days: daysSince(saved.lastUsedAt) })}`}
-                                bodyWrap
                                 // one leading element: the chain logo. the wallet
                                 // mini-bubble it used to carry was a composite
                                 // (design.md, ListItem leading)
