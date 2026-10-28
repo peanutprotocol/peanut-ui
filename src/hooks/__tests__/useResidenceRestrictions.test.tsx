@@ -63,6 +63,20 @@ describe('useResidenceRestrictions', () => {
         window.localStorage.clear()
     })
 
+    it('ignores the device mirror once the server answered with no residence', () => {
+        window.localStorage.setItem('peanut:declaredResidence:u1', 'RU')
+        mockUser = { user: { userId: 'u1' }, residence: normalizeResidence({ verified: null, declared: null }) }
+        const { result } = renderHook(() => useResidenceRestrictions())
+        expect(result.current).toEqual({ banking: false, card: false })
+    })
+
+    it('uses the device mirror only before the server answers', () => {
+        window.localStorage.setItem('peanut:declaredResidence:u1', 'RU')
+        mockUser = { user: { userId: 'u1' } }
+        const { result } = renderHook(() => useResidenceRestrictions())
+        expect(result.current).toEqual(deriveResidenceRestrictions('RU'))
+    })
+
     it('prefers the server value when present', () => {
         mockUser = { residenceRestrictions: { banking: true, card: false } }
         mockSetupState = { residenceCountry: 'RU' } // stale local value must lose

@@ -89,7 +89,8 @@ const ResidenceChangeDrawer = ({
             // device, and trusting it there is what let a reorder wipe the
             // outgoing country. The mirror is the fallback for the window
             // before the /users/me field reaches production.
-            const previousSecond = declaredSecond ?? readSecondResidence(userId)
+            // `null` from the server means "no second residence"; only an absent field falls back.
+            const previousSecond = declaredSecond === undefined ? readSecondResidence(userId) : declaredSecond
             const isReorder = !!declared && previousSecond === selected
             const result = await updateUserById({
                 userId,

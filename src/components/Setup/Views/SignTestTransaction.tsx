@@ -213,7 +213,10 @@ const SignTestTransaction = ({
                         // it doesn't throw them — inspect the result.
                         if (result?.error) {
                             console.error('[SignTestTransaction] Failed to persist residence:', result.error)
+                            return
                         }
+                        // Readers drop the device mirror once /users/me carries a residence, so fetch it now.
+                        void fetchUser().catch(() => undefined)
                     })
                     .catch((err: unknown) => {
                         console.error('[SignTestTransaction] Failed to persist residence:', err)

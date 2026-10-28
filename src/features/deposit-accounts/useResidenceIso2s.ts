@@ -28,8 +28,9 @@ export function useResidenceIso2s(): string[] {
         () =>
             gatingResidenceIso2s({
                 verified: residence?.verified?.country,
-                declared: residence?.declared?.country ?? localDeclared,
+                // the device mirror only stands in until the server answers
+                declared: residence ? residence.declared?.country : localDeclared,
             }),
-        [residence?.verified?.country, residence?.declared?.country, localDeclared]
+        [residence, localDeclared]
     )
 }
