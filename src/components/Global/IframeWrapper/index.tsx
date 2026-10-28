@@ -229,7 +229,9 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
             preventClose={true}
             hideOverlay={false}
         >
-            <div className="flex h-full flex-col pt-safe-top">
+            {/* pb-safe-bottom: the frame is full height now, so the provider's bottom
+                submit button would otherwise sit under the home indicator */}
+            <div className="flex h-full flex-col pt-safe-top pb-safe-bottom">
                 <VerificationFrameHeader
                     onSupport={() => {
                         setModalVariant('trouble')
