@@ -1,10 +1,7 @@
 import posthog from 'posthog-js'
 import * as Sentry from '@/utils/sentry-lazy'
-import { PEANUT_API_URL } from '@/constants/general.consts'
+import { apiFetch } from './api-fetch'
 import { REQUIRED_API_CONTRACTS } from '@/constants/api-contracts.json'
-import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
-import { ensureActiveFixture } from '@/dev/fixtures/active'
-import { isDemoMode } from './demo'
 
 export { REQUIRED_API_CONTRACTS }
 
@@ -84,13 +81,9 @@ export function loadApiVersion(): Promise<void> {
     if (pending) return pending
     const controller = new AbortController()
     let timer: ReturnType<typeof setTimeout>
-    const request = async () => {
-        if (DEV_TOOLS_ENABLED && ensureActiveFixture()) {
-            return import('@/dev/fixtures/respond').then((m) => m.fixtureRespond('/version'))
-        }
-        if (isDemoMode()) return import('./demo-api').then((m) => m.demoRespond('/version'))
-        return fetch(`${PEANUT_API_URL}/version`, { signal: controller.signal, cache: 'no-store', credentials: 'omit' })
-    }
+    // apiFetch answers demo sessions and dev fixtures itself; /version needs no token.
+    const request = () =>
+        apiFetch('/version', { includeAuth: false, signal: controller.signal, cache: 'no-store', credentials: 'omit' })
     const read = async (): Promise<ApiVersion> => {
         const response = await request()
         if (response.status === 404) return LEGACY_API

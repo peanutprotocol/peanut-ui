@@ -104,6 +104,10 @@ for (const c of [...SURFACE_CASES, ...FLOW_CASES]) {
             return hostname === '127.0.0.1' || hostname === 'localhost' ? route.continue() : route.abort()
         })
         await page.addInitScript(seenOnceModals)
+        // The fixture banner sits over the bottom of the screen, where a surface's continue button is tapped.
+        await page.addInitScript(() => {
+            ;(window as Window & { __screenCapture?: boolean }).__screenCapture = true
+        })
         await page.addInitScript((css) => {
             document.addEventListener('DOMContentLoaded', () => {
                 const style = document.createElement('style')
