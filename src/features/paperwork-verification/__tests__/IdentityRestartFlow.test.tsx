@@ -149,7 +149,7 @@ describe('IdentityRestartFlow', () => {
         expect(sdk).toHaveAttribute('data-document', JSON.stringify({ country: 'PRT', idDocType: 'PASSPORT' }))
 
         fireEvent.click(screen.getByText('sumsub-submit'))
-        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
         expect(screen.queryByTestId('sumsub')).toBeNull()
     })

@@ -46,9 +46,9 @@ const skeleton = 'animate-pulse bg-foreground-primary/10 motion-reduce:animate-n
 
 const PHASE_COPY = {
     intro: { title: 'steps.title', note: null, cta: 'continue', testId: 'verify-steps-continue' },
-    review: { title: 'review.title', note: 'review.description', cta: 'steps.backHome', testId: 'verify-review-home' },
+    review: { title: 'steps.title', note: 'review.description', cta: 'steps.backHome', testId: 'verify-review-home' },
     verified: {
-        title: 'verified.title',
+        title: 'steps.title',
         note: 'steps.verifiedNote',
         cta: 'steps.setUpPayments',
         testId: 'verify-verified-payments',

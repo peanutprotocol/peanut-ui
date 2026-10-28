@@ -3844,7 +3844,6 @@
                 "unavailable": "We can’t show the documents right now. Try again later."
             },
             "review": {
-                "title": "Checking your ID",
                 "description": "Checks usually come back in a few minutes. If a reviewer needs to look, it takes 1 to 3 business days. You can leave this screen, and we’ll let you know when it’s done.",
                 "cta": "Go to Home",
                 "photos": "Photos received",
@@ -3859,7 +3858,6 @@
                 "retry": "Try again"
             },
             "verified": {
-                "title": "Your ID is confirmed!",
                 "description": "We’re setting up your {features}. It usually takes a few minutes, and we’ll let you know when everything is ready.",
                 "cta": "Go to Home",
                 "descriptionQrOnly": "You can start using Peanut."
@@ -3917,7 +3915,7 @@
             },
             "continueWithoutLocal": "Continue without local bank transfers",
             "steps": {
-                "title": "A few steps to\nverify your ID",
+                "title": "Your ID check",
                 "residence": "Set your country of residence",
                 "questions": "Answer a few questions",
                 "photo": "Take a photo of your ID",

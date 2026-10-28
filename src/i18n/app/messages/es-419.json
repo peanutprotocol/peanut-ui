@@ -3844,7 +3844,6 @@
                 "unavailable": "No podemos mostrar los documentos ahora. Inténtalo más tarde."
             },
             "review": {
-                "title": "Revisando tu documento",
                 "description": "La revisión suele tardar unos minutos. Si una persona necesita revisarlo, tarda de 1 a 3 días hábiles. Puedes salir de esta pantalla y te avisaremos cuando esté listo.",
                 "cta": "Ir al inicio",
                 "photos": "Fotos recibidas",
@@ -3859,7 +3858,6 @@
                 "retry": "Intentar de nuevo"
             },
             "verified": {
-                "title": "¡Tu identidad está confirmada!",
                 "description": "Estamos configurando {features}. Suele tardar unos minutos y te avisaremos cuando todo esté listo.",
                 "cta": "Ir al inicio",
                 "descriptionQrOnly": "Ya puedes empezar a usar Peanut."
@@ -3917,7 +3915,7 @@
             },
             "continueWithoutLocal": "Continuar sin transferencias bancarias locales",
             "steps": {
-                "title": "Unos pocos pasos para\nverificar tu identidad",
+                "title": "Tu verificación de identidad",
                 "residence": "Elige tu país de residencia",
                 "questions": "Responde unas preguntas",
                 "photo": "Toma una foto de tu documento",

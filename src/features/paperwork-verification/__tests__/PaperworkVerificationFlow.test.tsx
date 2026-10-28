@@ -235,7 +235,8 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         mockQuestions.mockImplementation(() => new Promise((resolve) => (answer = resolve)))
         renderFlow()
         expect(screen.getByTestId('verify-steps-loading')).toBeInTheDocument()
-        expect(screen.getByText(/A few steps to/)).toBeInTheDocument()
+        expect(screen.getByTestId('verify-steps-continue')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'Your ID check' })).toBeInTheDocument()
         expect(screen.getByTestId('verify-steps-continue')).toBeDisabled()
         expect(screen.queryByText('loading')).not.toBeInTheDocument()
 
@@ -248,7 +249,7 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         mockQuestions.mockResolvedValue(build({ purpose: false }, 'purpose'))
         renderFlow()
         const steps = await screen.findByTestId('verify-steps')
-        expect(screen.getByText(/A few steps to/)).toBeInTheDocument()
+        expect(screen.getByTestId('verify-steps-continue')).toBeInTheDocument()
         expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent('Answer a few questions')
         expect(screen.getByText('Unlock eligible payments')).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-steps-continue'))
@@ -480,7 +481,8 @@ describe('PaperworkVerificationFlow', () => {
         fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
         expect(mockToken).toHaveBeenCalledWith('attempt-1', { type: 'PASSPORT', issuingCountry: 'US' })
         fireEvent.click(await screen.findByText('sumsub-submit'))
-        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'Your ID check' })).toBeInTheDocument()
         expect(screen.getByTestId('verify-steps')).toHaveAttribute('data-phase', 'review')
         expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Get a secure review')
         await waitFor(() => expect(mockRefresh).toHaveBeenCalled())
@@ -493,7 +495,7 @@ describe('PaperworkVerificationFlow', () => {
         mockStatus.mockResolvedValue('NOT_STARTED')
         mockRefresh.mockResolvedValue('PENDING')
         renderFlow()
-        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
         expect(screen.queryByTestId('verify-steps-continue')).toBeNull()
     })
 
@@ -540,7 +542,7 @@ describe('PaperworkVerificationFlow', () => {
         await screen.findByTestId('verify-pick-annualSalary')
         mockStatus.mockResolvedValue('IN_REVIEW')
         fireEvent.click(continueButton())
-        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
     })
 
     it('the review asks the API to re-read Sumsub every fourth poll, so a lost webhook cannot hold it', async () => {
@@ -551,7 +553,7 @@ describe('PaperworkVerificationFlow', () => {
         jest.useFakeTimers()
         try {
             fireEvent.click(continueButton())
-            expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+            expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
             mockRefresh.mockClear()
             await act(async () => {
                 await jest.advanceTimersByTimeAsync(45_000)
@@ -572,7 +574,7 @@ describe('PaperworkVerificationFlow', () => {
         await screen.findByTestId('verify-pick-annualSalary')
         mockStatus.mockResolvedValue('IN_REVIEW')
         fireEvent.click(continueButton())
-        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
     })
 
     it("an answer refused with a code the app does not know shows the server's line on that step, unsaved", async () => {
@@ -635,7 +637,7 @@ describe('PaperworkVerificationFlow', () => {
         await startFlow()
         mockStatus.mockResolvedValue('IN_REVIEW')
         fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
-        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
     })
 
     it("any other refused token shows the server's line", async () => {
@@ -726,14 +728,14 @@ describe('PaperworkVerificationFlow', () => {
         mockQuestions.mockResolvedValue(questions)
         renderFlow()
         await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/verify?feature=bank'))
-        expect(screen.queryByText('Your ID is confirmed!')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('verify-verified-payments')).not.toBeInTheDocument()
     })
 
     it('a review that turns approved with a question open goes to the add-later screen', async () => {
         mockStatus.mockResolvedValue('IN_REVIEW')
         mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         renderFlow()
-        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
         const opened = build({ money: true, tax: true }, 'nationality')
         opened.steps.push({
             id: 'nationality',
@@ -759,7 +761,9 @@ describe('PaperworkVerificationFlow', () => {
         // approved, so every question was answered before the ID check
         mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         const { unmount } = renderFlow()
-        expect(await screen.findByText('Your ID is confirmed!')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-verified-payments')).toBeInTheDocument()
+        // One title on every state of the screen: before, during and after the check.
+        expect(screen.getByRole('heading', { name: 'Your ID check' })).toBeInTheDocument()
         expect(screen.getByTestId('verify-steps')).toHaveAttribute('data-phase', 'verified')
         expect(screen.queryByRole('listitem', { current: 'step' })).toBeNull()
         fireEvent.click(screen.getByTestId('verify-verified-payments'))
@@ -797,7 +801,7 @@ describe('PaperworkVerificationFlow', () => {
         expect(mockStartAction).toHaveBeenCalledWith('supplement:bridge')
         fireEvent.click(screen.getByTestId('verify-poa-skip'))
         expect(skipProofOfAddress).toHaveBeenCalledTimes(1)
-        expect(await screen.findByText('Your ID is confirmed!')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-verified-payments')).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
     })
 })

@@ -193,7 +193,7 @@ describe('canonical identity recovery acceptance', () => {
         jest.useFakeTimers()
         mockStatus.mockResolvedValue('PENDING')
         renderFlow()
-        expect(await screen.findByText('Checking your ID')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
         const readsBeforePoll = mockStatus.mock.calls.length
         await act(async () => {
             jest.advanceTimersByTime(30_000)
@@ -230,7 +230,7 @@ describe('canonical identity recovery acceptance', () => {
         mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         renderFlow()
         expect(await screen.findByTestId('verify-verified-payments')).toBeInTheDocument()
-        expect(screen.queryByText('Checking your ID')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('verify-review-home')).not.toBeInTheDocument()
     })
 
     it.each(['REJECTED'])('%s offers Home and cannot retry identity', async (status) => {
