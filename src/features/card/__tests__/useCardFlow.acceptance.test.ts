@@ -87,6 +87,10 @@ jest.mock('@/hooks/useSumsubReloadResume', () => ({
     useSumsubReloadResume: jest.fn(),
 }))
 const mockStartAction = jest.fn()
+jest.mock('@/hooks/useZeroDev', () => ({ useZeroDev: () => ({ address: '0xA' }) }))
+jest.mock('@/context/kernelClient.context', () => ({
+    useKernelClient: () => ({ address: '0xA', isKernelClientReady: true }),
+}))
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({ handleStartAction: mockStartAction }),
 }))

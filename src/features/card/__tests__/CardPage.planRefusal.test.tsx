@@ -5,6 +5,7 @@
  */
 import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
 import { CardPage } from '../CardPage'
 
@@ -62,9 +63,11 @@ const flow = (overrides: Record<string, unknown>) => ({
 
 const renderPage = () =>
     render(
-        <IntlWrapper>
-            <CardPage />
-        </IntlWrapper>
+        <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+            <IntlWrapper>
+                <CardPage />
+            </IntlWrapper>
+        </QueryClientProvider>
     )
 
 beforeEach(() => jest.clearAllMocks())
