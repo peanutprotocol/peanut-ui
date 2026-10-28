@@ -24229,6 +24229,12 @@
                                                             },
                                                             {
                                                                 "enum": [
+                                                                    "not_started"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
                                                                     "setup-pending"
                                                                 ],
                                                                 "type": "string"
@@ -25836,6 +25842,12 @@
                                                                         "supplement:rain"
                                                                     ],
                                                                     "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "activate"
+                                                                    ],
+                                                                    "type": "string"
                                                                 }
                                                             ]
                                                         },
@@ -25923,6 +25935,12 @@
                                                         },
                                                         "state": {
                                                             "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "ready"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
                                                                 {
                                                                     "enum": [
                                                                         "on"
@@ -25989,6 +26007,12 @@
                                                                         "supplement:rain"
                                                                     ],
                                                                     "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "activate"
+                                                                    ],
+                                                                    "type": "string"
                                                                 }
                                                             ]
                                                         },
@@ -26076,6 +26100,12 @@
                                                         },
                                                         "state": {
                                                             "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "ready"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
                                                                 {
                                                                     "enum": [
                                                                         "on"
@@ -26142,6 +26172,12 @@
                                                                         "supplement:rain"
                                                                     ],
                                                                     "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "activate"
+                                                                    ],
+                                                                    "type": "string"
                                                                 }
                                                             ]
                                                         },
@@ -26229,6 +26265,12 @@
                                                         },
                                                         "state": {
                                                             "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "ready"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
                                                                 {
                                                                     "enum": [
                                                                         "on"
@@ -26295,6 +26337,12 @@
                                                                         "supplement:rain"
                                                                     ],
                                                                     "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "activate"
+                                                                    ],
+                                                                    "type": "string"
                                                                 }
                                                             ]
                                                         },
@@ -26382,6 +26430,12 @@
                                                         },
                                                         "state": {
                                                             "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "ready"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
                                                                 {
                                                                     "enum": [
                                                                         "on"
@@ -27246,6 +27300,259 @@
                                             "type": "string"
                                         }
                                     },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/kyc/features/{feature}/activate": {
+            "post": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "feature",
+                        "required": true,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "enum": [
+                                        "qr"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "local"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "card"
+                                    ],
+                                    "type": "string"
+                                },
+                                {
+                                    "enum": [
+                                        "bank"
+                                    ],
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "action": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "supplement:bridge"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "supplement:manteca"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "supplement:rain"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "activate"
+                                                    ],
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "reason": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "under_minimum_age"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "residence_unknown"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "residence_sanctioned"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "uk_resident_blocked"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "residence_bank_restricted"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "us_state_unsupported"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "geo-blocked"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "local_residence_unsupported"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "manteca_us_nationality_restricted"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "local_tax_id_missing"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "document_country_unsupported"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "identity_document_insufficient"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "requirements_uncollectable"
+                                                    ],
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "state": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "ready"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "on"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "setting_up"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "action_required"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "refused"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "not_requested"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "pending"
+                                                    ],
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "state"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "anyOf": [
+                                                {
+                                                    "enum": [
+                                                        "identity_not_approved"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "feature_not_open"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "enum": [
+                                                        "questions_missing"
+                                                    ],
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "step": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "code"
+                                    ],
                                     "type": "object"
                                 }
                             }

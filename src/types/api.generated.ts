@@ -13183,7 +13183,7 @@ export interface paths {
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             }[];
                             unavailable: {
-                                cause?: "review-action" | "review-pending" | "setup-pending" | "setup-failed" | "review-closed" | "residence-restricted" | "not-open";
+                                cause?: "review-action" | "review-pending" | "not_started" | "setup-pending" | "setup-failed" | "review-closed" | "residence-restricted" | "not-open";
                                 country: string;
                                 currency: string;
                                 method: string;
@@ -13985,24 +13985,24 @@ export interface paths {
                         "application/json": {
                             features?: {
                                 bank: {
-                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain";
+                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
                                     reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
-                                    state: "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
+                                    state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 card: {
-                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain";
+                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
                                     reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
-                                    state: "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
+                                    state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 local: {
-                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain";
+                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
                                     reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
-                                    state: "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
+                                    state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 qr: {
-                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain";
+                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
                                     reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
-                                    state: "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
+                                    state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                             };
                             intents: {
@@ -14368,6 +14368,59 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/features/{feature}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    feature: "qr" | "local" | "card" | "bank";
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                            reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                            state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: "identity_not_approved" | "feature_not_open" | "questions_missing";
+                            step?: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
