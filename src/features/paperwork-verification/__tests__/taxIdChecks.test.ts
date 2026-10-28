@@ -17,6 +17,9 @@ describe('loadTaxIdChecker', () => {
         const germany = (await loadTaxIdChecker(['de.idnr']))!
         expect(germany('36 574 261 809')).toBe('valid')
         expect(germany('36574261809')).toBe('valid')
+        const germanyOrSteuernummer = (await loadTaxIdChecker(['de.idnr', 'de.stnr']))!
+        expect(germanyOrSteuernummer('181/815/08155')).toBe('valid')
+        expect(germanyOrSteuernummer('12345678901')).toBe('invalid')
         const uk = (await loadTaxIdChecker(['gb.nino', 'gb.utr']))!
         expect(uk('hh 01 23 45 d')).toBe('valid')
         expect(uk('1955839661')).toBe('valid')
