@@ -3,10 +3,16 @@ import type { paths } from '@/types/api.generated'
 type DocumentPlanResponse = paths['/users/kyc/plan']['get']['responses'][200]['content']['application/json']
 /** What an older account still has to answer before Smart Paperwork Verification can ask its questions. */
 export type KycPlanNeed = DocumentPlanResponse['needs'][number]
-// `needs` is optional for a response from an API before the field
+// `needs` and the picker annotations are optional for a response from an API before the field
 export type KycDocumentPlan = Omit<
     DocumentPlanResponse,
-    'flow' | 'proofOfAddress' | 'proofOfAddressReason' | 'proofOfAddressIdCountries' | 'temporaryProtection' | 'needs'
+    | 'flow'
+    | 'proofOfAddress'
+    | 'proofOfAddressReason'
+    | 'proofOfAddressIdCountries'
+    | 'documentRefusals'
+    | 'temporaryProtection'
+    | 'needs'
 > &
     Partial<
         Pick<
@@ -15,6 +21,7 @@ export type KycDocumentPlan = Omit<
             | 'proofOfAddress'
             | 'proofOfAddressReason'
             | 'proofOfAddressIdCountries'
+            | 'documentRefusals'
             | 'temporaryProtection'
             | 'needs'
         >

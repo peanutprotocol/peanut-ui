@@ -13853,6 +13853,9 @@ export interface paths {
                         "application/json": {
                             activeAttemptId: string | null;
                             available: boolean;
+                            documentRefusals: {
+                                [key: string]: ("qr" | "local" | "card" | "bank")[];
+                            };
                             features: {
                                 bank: boolean;
                                 card: boolean;

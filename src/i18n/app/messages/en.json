@@ -3893,6 +3893,7 @@
                 "description": "Choose one to start verification. You’ll take photos of it and a selfie.",
                 "issuedBy": "Issued by {country}",
                 "issuedByWithProof": "Issued by {country}. You’ll also add a proof of address.",
+                "issuedByLimited": "Issued by {country}. {limits}",
                 "other": "Other document",
                 "otherHint": "Like a driver’s license",
                 "otherTitle": "Other documents",
@@ -3903,7 +3904,17 @@
                 "noneFit": "Don’t have any of those?",
                 "changeResidence": "Change residence",
                 "stepDots": "Verify identity, step 1 of 3",
-                "noneAccepted": "We can’t verify documents issued by {countries} yet."
+                "noneAccepted": "We can’t verify documents issued by {countries} yet.",
+                "closesAll": "Issued by {country}. Can’t be used for what you picked.",
+                "closes": {
+                    "qr": "QR payments aren’t available with this document.",
+                    "local": "Local bank transfers aren’t available with this document.",
+                    "card": "The Peanut card isn’t available with this document.",
+                    "bank": "Bank accounts aren’t available with this document."
+                },
+                "limitedTitle": "Continue with this document?",
+                "residenceUnlocks": "A document issued by {country} doesn’t have this limit.",
+                "chooseAnother": "Choose another document"
             }
         }
     },
