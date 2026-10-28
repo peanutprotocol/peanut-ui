@@ -2,7 +2,6 @@ import { kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
 import { isBridgeProcessingSlow } from '@/utils/kyc-processing.utils'
 import { KYC_PROCESSING_STALE_AFTER_MS } from '@/constants/kyc.consts'
 import { deriveGate } from '@/utils/capability-gate'
-import { setupRows } from '@/utils/kyc-setup-status.utils'
 import type { RailCapability } from '@/types/capabilities'
 
 describe('KYC action copy', () => {
@@ -74,7 +73,7 @@ describe('Bridge review age', () => {
             )
         ).toBe(false)
     })
-    test('the gate and setup row preserve the waiting timestamp', () => {
+    test('the gate preserves the waiting timestamp', () => {
         const pendingSince = new Date(now - 2 * KYC_PROCESSING_STALE_AFTER_MS).toISOString()
         const rail: RailCapability = {
             id: 'bridge.ach_us',
@@ -92,22 +91,5 @@ describe('Bridge review age', () => {
         expect(deriveGate({ ...capabilities, isLoading: false, identityVerified: true }, 'deposit')).toEqual(
             expect.objectContaining({ kind: 'waiting-on-provider', pendingSince, railId: rail.id })
         )
-        expect(
-            setupRows({
-                features: { qr: false, local: false, bank: true, card: false },
-                residence: null,
-                capabilities,
-                identityVerified: true,
-            })
-        ).toEqual([expect.objectContaining({ key: 'bank', pendingSince, reason: 'bridge_processing' })])
-        const freshRail: RailCapability = { ...rail, id: 'bridge.sepa_eu', pendingSince: new Date(now).toISOString() }
-        expect(
-            setupRows({
-                features: { qr: false, local: false, bank: true, card: false },
-                residence: null,
-                capabilities: { ...capabilities, rails: [freshRail, rail] },
-                identityVerified: true,
-            })
-        ).toEqual([expect.objectContaining({ key: 'bank', pendingSince, railId: rail.id })])
     })
 })

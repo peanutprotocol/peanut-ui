@@ -3,7 +3,6 @@ import { useTranslations } from 'next-intl'
 import { KycRestartCooldownModal } from './KycRestartCooldownModal'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
-import { KycSetupStatusDrawer } from '@/components/Kyc/KycSetupStatusDrawer'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { type useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 
@@ -55,46 +54,20 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
                 isMultiLevel={flow.isMultiLevel}
             />
 
-            {flow.setupStatus ? (
-                <>
-                    <KycSetupStatusDrawer
-                        open={flow.setupStatus.open}
-                        residence={flow.setupStatus.residence}
-                        rows={flow.setupStatus.rows}
-                        error={flow.error}
-                        busy={flow.isLoading}
-                        onClose={flow.handleModalClose}
-                        onContinue={flow.completeFlow}
-                        onUploadDocument={(step) => void flow.handleSetupDocument(step)}
-                        onReviewTerms={flow.handleSetupTerms}
-                        onVerifyAgain={() => void flow.handleSetupRestart()}
-                    />
-                    {/* the existing terms step, which names and links Bridge's documents */}
-                    <KycVerificationInProgressModal
-                        isOpen={flow.isModalOpen && flow.modalPhase === 'bridge_tos'}
-                        onClose={flow.handleSetupBack}
-                        phase="bridge_tos"
-                        onAcceptTerms={flow.handleAcceptTerms}
-                        tosError={flow.tosError}
-                        isLoadingTos={flow.isLoadingTos}
-                    />
-                </>
-            ) : (
-                <KycVerificationInProgressModal
-                    isOpen={flow.isModalOpen}
-                    onClose={flow.handleModalClose}
-                    phase={flow.modalPhase}
-                    onAcceptTerms={flow.handleAcceptTerms}
-                    onSkipTerms={flow.handleSkipTerms}
-                    onStartSupplement={() => void flow.handleStartSupplement()}
-                    onSkipSupplement={flow.handleSkipSupplement}
-                    onContinue={flow.completeFlow}
-                    tosError={flow.tosError}
-                    isLoadingTos={flow.isLoadingTos}
-                    preparingTimedOut={flow.preparingTimedOut}
-                    preparingStage={flow.preparingStage}
-                />
-            )}
+            <KycVerificationInProgressModal
+                isOpen={flow.isModalOpen}
+                onClose={flow.handleModalClose}
+                phase={flow.modalPhase}
+                onAcceptTerms={flow.handleAcceptTerms}
+                onSkipTerms={flow.handleSkipTerms}
+                onStartSupplement={() => void flow.handleStartSupplement()}
+                onSkipSupplement={flow.handleSkipSupplement}
+                onContinue={flow.completeFlow}
+                tosError={flow.tosError}
+                isLoadingTos={flow.isLoadingTos}
+                preparingTimedOut={flow.preparingTimedOut}
+                preparingStage={flow.preparingStage}
+            />
 
             {flow.tosLink && (
                 <IframeWrapper src={flow.tosLink} visible={flow.showTosIframe} onClose={flow.handleTosIframeClose} />

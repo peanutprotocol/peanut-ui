@@ -1,15 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import {
-    findKycDocumentPlan,
-    findKycReplacementPlan,
-    getKycDocumentStatus,
-    resumeKycDocumentAttempt,
-} from '@/app/actions/kyc-workflow'
+import { findKycDocumentPlan, findKycReplacementPlan, resumeKycDocumentAttempt } from '@/app/actions/kyc-workflow'
 import {
     PAPERWORK_VERIFICATION_FLOW,
     type KycDocumentPlan,
     type KycAttemptSession,
-    type KycFeatures,
 } from '@/app/actions/types/kyc-workflow.types'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -47,8 +41,6 @@ interface UseSumsubKycFlowOptions {
     onKycSuccess?: () => void
     onManualClose?: () => void
     regionIntent?: KYCRegionIntent
-    /** The saved features once a verification attempt's session opens; null when a flow starts that is not one. */
-    onSetupFeatures?: (features: KycFeatures | null) => void
 }
 
 // Time-escalating schedule for the verification-progress-modal status poll.
@@ -123,12 +115,7 @@ const getKycPollDelayMs = (elapsedMs: number): number => {
     return KYC_POLL_MAX_DELAY_MS
 }
 
-export const useSumsubKycFlow = ({
-    onKycSuccess,
-    onManualClose,
-    regionIntent,
-    onSetupFeatures,
-}: UseSumsubKycFlowOptions = {}) => {
+export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: UseSumsubKycFlowOptions = {}) => {
     const { user } = useAuth()
     const router = useRouter()
     const t = useTranslations('kyc')
@@ -157,9 +144,6 @@ export const useSumsubKycFlow = ({
     const sessionGeneration = verificationSession?.generation
     const [showCorrection, setShowCorrection] = useState(false)
     const [documentConfig, setDocumentConfig] = useState<KycAttemptSession['sdkConfig']>()
-    // called synchronously: the caller decides on it before the next render
-    const onSetupFeaturesRef = useRef(onSetupFeatures)
-    onSetupFeaturesRef.current = onSetupFeatures
     const documentAttemptRef = useRef<string | null>(null)
     const [showWrapper, setShowWrapper] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
@@ -246,6 +230,15 @@ export const useSumsubKycFlow = ({
     // never refresh through ordinary /users/identity.
     const residenceChangeRef = useRef(false)
 
+    // A submitted verification attempt is followed on /verify's own status screens, not in a modal here.
+    const handOffAttemptToVerify = useCallback(() => {
+        userInitiatedRef.current = false
+        setShowWrapper(false)
+        setIsActionFlow(false)
+        setIsMultiLevel(false)
+        router.push('/verify')
+    }, [router])
+
     useEffect(() => {
         regionIntentRef.current = regionIntent
     }, [regionIntent])
@@ -298,6 +291,10 @@ export const useSumsubKycFlow = ({
         prevStatusRef.current = liveKycStatus
 
         if (prevStatus !== 'APPROVED' && liveKycStatus === 'APPROVED') {
+            if (showWrapperRef.current && documentAttemptRef.current) {
+                handOffAttemptToVerify()
+                return
+            }
             // if SDK is still open (multi-level), close it now —
             // applicantWorkflowCompleted has fired, all levels are done.
             if (showWrapperRef.current) {
@@ -323,7 +320,7 @@ export const useSumsubKycFlow = ({
             // close modal for any non-success terminal state (REJECTED, ACTION_REQUIRED, FAILED, etc.)
             setIsVerificationProgressModalOpen(false)
         }
-    }, [liveKycStatus, onKycSuccess, showWrapper, isMultiLevel])
+    }, [liveKycStatus, onKycSuccess, showWrapper, isMultiLevel, handOffAttemptToVerify])
 
     // fetch current status to recover from missed websocket events.
     // skip when regionIntent is undefined to avoid creating an applicant with the wrong template
@@ -373,11 +370,6 @@ export const useSumsubKycFlow = ({
 
         const pollStatus = async () => {
             try {
-                if (documentAttemptRef.current) {
-                    const status = await getKycDocumentStatus()
-                    if (status) setLiveKycStatus(status)
-                    return
-                }
                 const response = await initiateSumsubKyc({
                     corridor: corridorRef.current,
                     regionIntent: regionIntentRef.current,
@@ -410,9 +402,8 @@ export const useSumsubKycFlow = ({
         }
     }, [isVerificationProgressModalOpen, sessionId])
 
-    const acceptDocumentSession = useCallback((session: KycAttemptSession, features: KycFeatures | null) => {
+    const acceptDocumentSession = useCallback((session: KycAttemptSession) => {
         documentAttemptRef.current = session.attemptId
-        onSetupFeaturesRef.current?.(features)
         setDocumentConfig(session.sdkConfig?.documentDefinitions?.IDENTITY ? session.sdkConfig : undefined)
         verificationSessionRef.current = null
         setVerificationSession(null)
@@ -480,15 +471,13 @@ export const useSumsubKycFlow = ({
             if (crossRegion) {
                 prevStatusRef.current = 'APPROVED'
             }
-            onSetupFeaturesRef.current?.(null)
-            let plan: KycDocumentPlan | null = null
 
             try {
                 if (!correctSession && !levelName) {
                     // An unreadable plan starts today's flow: the API refuses that start with
                     // paperwork_verification_required for a Smart Paperwork Verification user
                     // (handled below), so a failed GET never blocks everyone else.
-                    plan = await findKycDocumentPlan('initiate').catch(() => null)
+                    const plan = await findKycDocumentPlan('initiate').catch(() => null)
                     // Smart Paperwork Verification users answer Peanut's questions on /verify before any document.
                     const paperworkVerificationPath = await paperworkVerificationRoute(
                         plan,
@@ -506,7 +495,7 @@ export const useSumsubKycFlow = ({
                     }
                     if (plan?.activeAttemptId) {
                         try {
-                            acceptDocumentSession(await resumeKycDocumentAttempt(plan.activeAttemptId), plan.features)
+                            acceptDocumentSession(await resumeKycDocumentAttempt(plan.activeAttemptId))
                         } catch (error) {
                             userInitiatedRef.current = false
                             if (crossRegion) prevStatusRef.current = savedPrevStatus
@@ -544,17 +533,14 @@ export const useSumsubKycFlow = ({
                 }
 
                 if (response.data?.attemptId && response.data.token && response.data.sdkConfig) {
-                    acceptDocumentSession(
-                        {
-                            ...response.data,
-                            attemptId: response.data.attemptId,
-                            token: response.data.token,
-                            applicantId: response.data.applicantId!,
-                            levelName: levelName ?? '',
-                            sdkConfig: response.data.sdkConfig,
-                        },
-                        plan?.features ?? null
-                    )
+                    acceptDocumentSession({
+                        ...response.data,
+                        attemptId: response.data.attemptId,
+                        token: response.data.token,
+                        applicantId: response.data.applicantId!,
+                        levelName: levelName ?? '',
+                        sdkConfig: response.data.sdkConfig,
+                    })
                     return false
                 }
                 if (response.data?.session) {
@@ -777,6 +763,10 @@ export const useSumsubKycFlow = ({
             onManualClose?.()
             return
         }
+        if (documentAttemptRef.current) {
+            handOffAttemptToVerify()
+            return
+        }
         userInitiatedRef.current = true
         // Only a single-level submission proves the deferred action was completed.
         if (!isMultiLevel && liveKycStatus === 'ACTION_REQUIRED') prevStatusRef.current = 'ACTION_REQUIRED'
@@ -784,7 +774,7 @@ export const useSumsubKycFlow = ({
         setIsActionFlow(false)
         setIsMultiLevel(false)
         setIsVerificationProgressModalOpen(true)
-    }, [isMultiLevel, liveKycStatus, onManualClose])
+    }, [isMultiLevel, liveKycStatus, onManualClose, handOffAttemptToVerify])
 
     // Called when the user manually closes the SDK modal. Every manual close
     // replays a deferred ACTION_REQUIRED: the wrapper cannot tell "submitted the
@@ -921,10 +911,7 @@ export const useSumsubKycFlow = ({
                 if (replacement?.activeAttemptId) {
                     // A replacement already under way keeps the documents it froze.
                     try {
-                        acceptDocumentSession(
-                            await resumeKycDocumentAttempt(replacement.activeAttemptId),
-                            replacement.features
-                        )
+                        acceptDocumentSession(await resumeKycDocumentAttempt(replacement.activeAttemptId))
                     } catch {
                         userInitiatedRef.current = false
                         setError(t('errorRestartFailed'))

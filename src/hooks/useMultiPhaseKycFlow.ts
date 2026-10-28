@@ -14,15 +14,10 @@ import { type KycModalPhase, type IUserProfile } from '@/interfaces/interfaces'
 import { type UserCapabilities } from '@/types/capabilities'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
-import type { KycFeatures } from '@/app/actions/types/kyc-workflow.types'
-import { setupRows, type SetupRefusals, type SetupRowStep } from '@/utils/kyc-setup-status.utils'
-import { findKycProviderRefusals } from '@/app/actions/kyc-workflow'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const PREPARING_TIMEOUT_MS = 30000
-const REFUSAL_READS = 5
-const REFUSAL_READ_DELAY_MS = 4000
 
 const EMPTY_CAPABILITIES: UserCapabilities = { rails: [], nextActions: [], restrictions: [] }
 
@@ -206,19 +201,6 @@ export const useMultiPhaseKycFlow = ({
     // ref for closeVerificationProgressModal (avoids circular dep with completeFlow)
     const closeVerificationModalRef = useRef<() => void>(() => {})
 
-    // A flow on a verification attempt shows the setup status instead of
-    // the phases. The ref answers callbacks that run before the next render
-    // (an approval reported in the same turn the features were saved).
-    const [setupFeatures, setSetupFeatures] = useState<KycFeatures | null>(null)
-    const setupFlowRef = useRef(false)
-    const latchSetupFeatures = useCallback((features: KycFeatures | null) => {
-        setupFlowRef.current = !!features
-        setSetupFeatures(features)
-    }, [])
-    const [termsAccepted, setTermsAccepted] = useState(false)
-    // The plan's refusals no rail carries; read from the profile once the identity is approved.
-    const [setupRefusals, setSetupRefusals] = useState<SetupRefusals>({})
-
     // rail tracking — sourced from the backend capability model.
     // MIGRATION-REVIEW: replaces useRailStatusTracking. `allSettled` / `needsTos`
     // are now derived reactively from `useCapabilities()` (its rails update as the
@@ -289,12 +271,6 @@ export const useMultiPhaseKycFlow = ({
         // user's side. Fire here (not in completeFlow) so a "completed" signal
         // survives a drop during the post-approval ToS / preparing steps.
         onKycApproved?.()
-
-        if (setupFlowRef.current) {
-            setForceShowModal(true)
-            await fetchUser()
-            return
-        }
 
         // for real-time flow, optimistically show "Identity verified!" while we check rails
         if (isRealtimeFlowRef.current) {
@@ -400,7 +376,6 @@ export const useMultiPhaseKycFlow = ({
         onKycSuccess: handleSumsubApproved,
         onManualClose,
         regionIntent,
-        onSetupFeatures: latchSetupFeatures,
     })
 
     const [submissionAttempt, setSubmissionAttempt] = useState(() => ({
@@ -555,8 +530,6 @@ export const useMultiPhaseKycFlow = ({
             setTosError(null)
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
-            setTermsAccepted(false)
-            setSetupRefusals({})
 
             return originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry, false, corridor)
         },
@@ -648,7 +621,7 @@ export const useMultiPhaseKycFlow = ({
 
     // phase transitions driven by rail tracking
     useEffect(() => {
-        if (verificationSession || setupFeatures) return
+        if (verificationSession) return
         if (modalPhase === 'preparing') {
             if (supplementInReview && !supplementKey) {
                 clearPreparingTimer()
@@ -695,7 +668,6 @@ export const useMultiPhaseKycFlow = ({
         clearPreparingTimer,
         stopTracking,
         verificationSession,
-        setupFeatures,
         closeVerificationProgressModal,
     ])
 
@@ -728,27 +700,6 @@ export const useMultiPhaseKycFlow = ({
     const handleTosIframeClose = useCallback(
         async (source: IframeCloseSource = 'manual') => {
             setShowTosIframe(false)
-
-            // The setup status asked for the terms: back to it, which reads the rails.
-            if (setupFlowRef.current) {
-                setModalPhase('verifying')
-                if (source !== 'tos_accepted' && source !== 'returned') return
-                if (source === 'tos_accepted') setTermsAccepted(true)
-                setIsLoadingTos(true)
-                try {
-                    if (!(await resolveBridgeTosClose(fetchUser, source))) {
-                        setModalPhase('bridge_tos')
-                        setTosError("The terms weren't accepted. You can accept them later from your activity feed.")
-                        return
-                    }
-                    setTermsAccepted(true)
-                } catch {
-                    // the rails still say where the terms stand
-                } finally {
-                    setIsLoadingTos(false)
-                }
-                return
-            }
 
             // a manual exit stays on the bridge_tos phase (user can try again)
             if (source === 'manual') return
@@ -820,39 +771,6 @@ export const useMultiPhaseKycFlow = ({
         setModalPhase('verifying')
     }, [handleModalClose])
 
-    // The status stays open under the SDK and shows again when it closes.
-    const handleSetupDocument = useCallback(
-        async (step: SetupRowStep) => {
-            setForceShowModal(true)
-            const actionKey = step.action?.key
-            if (actionKey?.startsWith('supplement:')) return handleStartAction(actionKey)
-            if (step.provider === 'rain') return
-            await handleFixableGate(step.provider === 'bridge' ? 'BRIDGE' : 'MANTECA', {
-                actionKey,
-                reason: { code: step.reasonCode },
-            })
-        },
-        [handleStartAction, handleFixableGate]
-    )
-
-    // The terms step names and links the documents before Bridge's own page.
-    const handleSetupTerms = useCallback(() => {
-        setTosError(null)
-        setModalPhase('bridge_tos')
-        setForceShowModal(true)
-    }, [])
-
-    const handleSetupBack = useCallback(() => {
-        setTosError(null)
-        setModalPhase('verifying')
-    }, [])
-
-    const handleSetupRestart = useCallback(async () => {
-        setForceShowModal(false)
-        closeVerificationProgressModal()
-        await handleRestartIdentity()
-    }, [closeVerificationProgressModal, handleRestartIdentity])
-
     // cleanup on unmount
     useEffect(() => {
         return () => {
@@ -872,52 +790,6 @@ export const useMultiPhaseKycFlow = ({
 
     const depositBlocked =
         !verificationSession && !showWrapper && allBlocked && !supplementKey && modalPhase === 'preparing'
-
-    const identityVerified = user?.identityVerification?.status === 'verified'
-    // Only a provider attempt can be refused, and the approval records the
-    // attempts after the identity status changes: read until they are there.
-    const readsRefusals =
-        !!setupFeatures && identityVerified && (setupFeatures.local || setupFeatures.bank || setupFeatures.card)
-    useEffect(() => {
-        if (!readsRefusals) return
-        let cancelled = false
-        let timer: ReturnType<typeof setTimeout> | undefined
-        let reads = 0
-        const read = async () => {
-            reads++
-            let answer: Awaited<ReturnType<typeof findKycProviderRefusals>> = null
-            try {
-                answer = await findKycProviderRefusals()
-            } catch {
-                // a failed read keeps what the rails say
-            }
-            if (cancelled) return
-            if (answer) setSetupRefusals(answer.refusals)
-            if (!answer?.recorded && reads < REFUSAL_READS) timer = setTimeout(read, REFUSAL_READ_DELAY_MS)
-        }
-        void read()
-        return () => {
-            cancelled = true
-            clearTimeout(timer)
-        }
-    }, [readsRefusals])
-
-    const residence = user?.residence?.verified?.country ?? user?.residence?.declared?.country ?? null
-    const setupStatus = setupFeatures
-        ? {
-              // the SDK and the terms take the screen; the status waits under them
-              open: isModalOpen && modalPhase !== 'bridge_tos' && !showWrapper && !showTosIframe,
-              residence,
-              rows: setupRows({
-                  features: setupFeatures,
-                  residence,
-                  capabilities,
-                  identityVerified,
-                  submitted: { supplements: submittedSupplementsRef.current, terms: termsAccepted },
-                  refusals: setupRefusals,
-              }),
-          }
-        : null
 
     return {
         // initiation
@@ -970,12 +842,5 @@ export const useMultiPhaseKycFlow = ({
         tosLink,
         showTosIframe,
         handleTosIframeClose,
-
-        // setup status, for a flow on a verification attempt
-        setupStatus,
-        handleSetupDocument,
-        handleSetupTerms,
-        handleSetupBack,
-        handleSetupRestart,
     }
 }

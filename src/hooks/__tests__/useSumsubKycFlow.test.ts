@@ -1629,12 +1629,11 @@ describe('a user the plan keeps off Smart Paperwork Verification keeps the legac
         expect(result.current.isLoading).toBe(false)
     })
 
-    it('recovers a missed approval through a read-only profile poll', async () => {
+    it('a submitted attempt goes to /verify, with no progress modal or status poll here', async () => {
         jest.useFakeTimers()
         const onKycSuccess = jest.fn()
         try {
             jest.mocked(getKycDocumentPlan).mockResolvedValue({ ...plan, activeAttemptId: 'attempt-1' })
-            jest.mocked(getKycDocumentStatus).mockResolvedValue('APPROVED')
             const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
             await act(async () => {
                 await result.current.handleInitiateKyc()
@@ -1642,12 +1641,15 @@ describe('a user the plan keeps off Smart Paperwork Verification keeps the legac
             act(() => {
                 result.current.handleSdkComplete()
             })
+            expect(mockRouterPush).toHaveBeenCalledWith('/verify')
+            expect(result.current.showWrapper).toBe(false)
+            expect(result.current.isVerificationProgressModalOpen).toBe(false)
             await act(async () => {
                 await jest.advanceTimersByTimeAsync(5000)
+                mockWs.handler?.('APPROVED')
             })
-            expect(getKycDocumentStatus).toHaveBeenCalled()
             expect(mockInitiate).not.toHaveBeenCalled()
-            expect(onKycSuccess).toHaveBeenCalledTimes(1)
+            expect(onKycSuccess).not.toHaveBeenCalled()
         } finally {
             jest.useRealTimers()
         }

@@ -300,10 +300,6 @@ export const ANALYTICS_EVENTS = {
     KYC_PV_ADD_FEATURE_VIEWED: 'kyc_paperwork_add_feature_viewed',
     KYC_PV_ADD_FEATURE_OUTCOME: 'kyc_paperwork_add_feature_outcome',
 
-    // ── KYC: setup status ──
-    KYC_SETUP_STATUS_VIEWED: 'kyc_setup_status_viewed',
-    KYC_SETUP_STATUS_ACTION: 'kyc_setup_status_action',
-
     // ── Card: acquisition funnel (Rain virtual card) ──
     // State observed on /card mount or transition. `state` matches CardTopLevelState.
     CARD_STATE_VIEWED: 'card_state_viewed',

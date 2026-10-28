@@ -3,7 +3,6 @@ import type { SumsubKycStatus } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { kycClientHeaders } from '@/utils/kyc-client-headers'
-import { providerRefusalsOf } from '@/utils/kyc-setup-status.utils'
 import { restartIdentityVerification, type SumsubActionErrorCode } from './sumsub'
 import * as Sentry from '@/utils/sentry-lazy'
 import { isTestApiBuild, reportApiContractError } from '@/utils/api-contracts'
@@ -266,15 +265,6 @@ export async function getKycReplacementPlan(): Promise<KycDocumentPlan | null> {
 export async function findKycReplacementPlan(): Promise<KycDocumentPlan | null> {
     try {
         return await getKycReplacementPlan()
-    } catch {
-        return null
-    }
-}
-
-/** The plan's refusals of the current identity's providers; null when the profile cannot be read. */
-export async function findKycProviderRefusals(): Promise<ReturnType<typeof providerRefusalsOf> | null> {
-    try {
-        return providerRefusalsOf(await read<KycProfile>('/users/kyc/profile'))
     } catch {
         return null
     }

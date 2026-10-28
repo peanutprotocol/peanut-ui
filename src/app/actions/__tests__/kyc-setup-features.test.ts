@@ -1,5 +1,4 @@
 import {
-    findKycProviderRefusals,
     findKycReplacementPlan,
     getKycReplacementPlan,
     isPaperworkVerificationIdentity,
@@ -60,18 +59,6 @@ describe('isPaperworkVerificationIdentity', () => {
     it('a failed read is not, so the identity status shows', async () => {
         answers(profile([attempt({})]), false)
         await expect(isPaperworkVerificationIdentity()).resolves.toBe(false)
-    })
-})
-
-describe('findKycProviderRefusals', () => {
-    it('reads the refusals and whether the plan is recorded', async () => {
-        answers(profile([attempt({})]))
-        await expect(findKycProviderRefusals()).resolves.toEqual({ refusals: {}, recorded: false })
-    })
-
-    it('a failed read has none, so the rails alone decide', async () => {
-        mockFetch.mockResolvedValue(answer(null, false))
-        await expect(findKycProviderRefusals()).resolves.toBeNull()
     })
 })
 

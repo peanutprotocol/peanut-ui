@@ -4,8 +4,6 @@ import { renderWithIntl as render, renderHookWithIntl as renderHook } from '@/te
 import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
 import { KycReverificationPendingModal } from '../KycReverificationPendingModal'
 import { InitiateKycModal } from '../InitiateKycModal'
-import { KycSetupStatusDrawer } from '../KycSetupStatusDrawer'
-import type { SetupRow } from '@/utils/kyc-setup-status.utils'
 
 const mockSupport = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
@@ -23,24 +21,6 @@ const renderModal = (props: Partial<React.ComponentProps<typeof InitiateKycModal
     render(
         <InitiateKycModal visible onClose={jest.fn()} onVerify={jest.fn()} variant="provider_rejection" {...props} />
     )
-const renderDrawer = (rows: SetupRow[]) => {
-    const onVerifyAgain = jest.fn()
-    const onUploadDocument = jest.fn()
-    const onReviewTerms = jest.fn()
-    render(
-        <KycSetupStatusDrawer
-            open
-            residence="BR"
-            rows={rows}
-            onClose={jest.fn()}
-            onContinue={jest.fn()}
-            onVerifyAgain={onVerifyAgain}
-            onUploadDocument={onUploadDocument}
-            onReviewTerms={onReviewTerms}
-        />
-    )
-    return { onVerifyAgain, onUploadDocument, onReviewTerms }
-}
 
 beforeEach(() => jest.clearAllMocks())
 
@@ -97,48 +77,6 @@ describe('KYC follow-up actions', () => {
             expect(screen.queryByRole('button', { name: 'Contact support' })).not.toBeInTheDocument()
         }
     )
-    it('an identity restart precedes a document and card agreements', () => {
-        const handlers = renderDrawer([
-            { key: 'bank', state: 'document-needed', step: { provider: 'bridge' } },
-            { key: 'local', state: 'verify-again' },
-            { key: 'card', state: 'agreements-needed' },
-        ])
-        fireEvent.click(screen.getByRole('button', { name: 'Verify with a different document' }))
-        expect(handlers.onVerifyAgain).toHaveBeenCalledTimes(1)
-        expect(handlers.onUploadDocument).not.toHaveBeenCalled()
-    })
-    it('terms precede an identity restart', () => {
-        const handlers = renderDrawer([
-            { key: 'bank', state: 'terms-needed' },
-            { key: 'local', state: 'verify-again' },
-        ])
-        fireEvent.click(screen.getByRole('button', { name: 'Review terms' }))
-        expect(handlers.onReviewTerms).toHaveBeenCalledTimes(1)
-        expect(handlers.onVerifyAgain).not.toHaveBeenCalled()
-    })
-    it('document and terms rows explain the request', () => {
-        renderDrawer([
-            { key: 'bank', state: 'document-needed', step: { provider: 'bridge' } },
-            { key: 'local', state: 'terms-needed' },
-        ])
-        expect(
-            screen.getByText('Our payment partner needs one more document to finish opening this account.')
-        ).toBeInTheDocument()
-        expect(screen.getByText('Accept the updated terms to keep using bank transfers.')).toBeInTheDocument()
-    })
-    it('an overdue setting-up row offers support with the reason', () => {
-        renderDrawer([
-            {
-                key: 'bank',
-                state: 'setting-up',
-                reason: 'bridge_processing',
-                pendingSince: new Date(Date.now() - 25 * 3600000).toISOString(),
-            },
-        ])
-        expect(screen.getByText(slowMessage)).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
-        expect(mockSupport).toHaveBeenCalledWith(expect.stringContaining('reason: bridge_processing'))
-    })
     it('the waiting hook opens support with the rail reason and closes', () => {
         const { result } = renderHook(() =>
             useWaitingOnProviderModal({

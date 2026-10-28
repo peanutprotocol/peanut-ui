@@ -39,7 +39,6 @@
         "components/IdentityVerification/UnlockMethodModal.tsx": 220,
         "components/Kyc/AdditionalVerificationView.tsx": 359,
         "components/Kyc/InitiateKycModal.tsx": 504,
-        "components/Kyc/KycSetupStatusDrawer.tsx": 124,
         "components/Kyc/KycStatusDrawer.tsx": 255,
         "components/Kyc/KycVerificationInProgressModal.tsx": 186,
         "components/Kyc/modals/KycActionRequiredModal.tsx": 78,
