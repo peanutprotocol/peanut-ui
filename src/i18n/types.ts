@@ -286,6 +286,13 @@ export interface Translations {
     localeSuggestionDismiss: string
 
     // Footer — SEO site directory
+    footerFeatures: string
+    starLpUsEuAccounts: string
+    starLpRequestLinks: string
+    starLpSelfCustody: string
+    starLpPeanutCard: string
+    starLpQrArgentina: string
+    starLpQrBrazil: string
     footerSiteDirectory: string
     footerCompare: string
     footerLearnMoreSection: string
