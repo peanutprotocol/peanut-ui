@@ -413,7 +413,16 @@
                 "cardRestrictionNote": "Atenção: o cartão não está disponível para residentes deste país.",
                 "bankingRestrictionNote": "Atenção: transferências bancárias não estão disponíveis para residentes deste país.",
                 "save": "Salvar",
-                "saveAndReverify": "Enviar documentos"
+                "saveAndReverify": "Enviar documentos",
+                "lostTitle": "Você vai perder alguns serviços",
+                "lostBody": "{country} não permite {services}. Eles são desativados quando aprovarmos sua mudança.",
+                "saveAnyway": "Mudar mesmo assim",
+                "lost": {
+                    "card": "o cartão Peanut",
+                    "bank": "contas bancárias",
+                    "local": "transferências bancárias locais",
+                    "qr": "Pagamentos QR"
+                }
             },
             "degraded": {
                 "title": "A verificação está temporariamente fora do ar",
