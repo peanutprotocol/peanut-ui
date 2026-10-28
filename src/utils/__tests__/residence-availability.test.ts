@@ -9,6 +9,7 @@ import {
 import { isBridgeSupportedCountry, regionIntentForResidence } from '@/utils/regions.utils'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { buildBankRows, type UnlockRowLabelKey } from '@/utils/unlock-payments.utils'
+import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
 
 const sets = LOCAL_RESIDENCE_RESTRICTION_SETS
 
@@ -163,5 +164,34 @@ describe('residenceAvailability vs buildBankRows', () => {
             )
             expect(bankRows.every((row) => row.chip === 'notAvailable')).toBe(true)
         }
+    })
+})
+
+// Slava, 2026-10-27: the comparison listed the wrong things for 178 of 250
+// countries. With the server's answer it lists what the verification will open.
+describe('residenceAvailability from the server intents', () => {
+    const of = (iso2: string) =>
+        residenceAvailability(LOCAL_RESIDENCE_RESTRICTION_SETS, iso2, KYC_INTENTS_BY_COUNTRY[iso2])
+
+    it('names the bank currencies wherever the bank feature is open, not "where supported"', () => {
+        expect(of('MK').available).toEqual(['usdAch', 'eurSepa', 'gbpFps', 'card', 'p2p'])
+        expect(of('MK').unavailable).toEqual([])
+    })
+
+    it('lists Brazil and Argentina their local rail and the bank accounts both', () => {
+        expect(of('BR').available).toEqual(['pix', 'usdAch', 'eurSepa', 'gbpFps', 'card', 'p2p'])
+        expect(of('AR').available).toEqual(['arQr', 'usdAch', 'eurSepa', 'gbpFps', 'card', 'p2p'])
+    })
+
+    it('leads with the home currency in Mexico and the US', () => {
+        expect(of('MX').available.slice(0, 2)).toEqual(['spei', 'usdAch'])
+        expect(of('US').available[0]).toBe('usdAch')
+    })
+
+    it('says what the server closes, even where no tier list names it', () => {
+        expect(of('KR').unavailable).toEqual(['banking'])
+        expect(of('KR').available).toEqual(['card', 'p2p'])
+        expect(of('VE').unavailable).toEqual(['banking', 'card'])
+        expect(of('VE').available).toEqual(['p2p'])
     })
 })

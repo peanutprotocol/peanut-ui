@@ -623,7 +623,7 @@
         },
         "details": {
             "title": "Perfil",
-            "notStored": "Não armazenado na Peanut",
+            "notStored": "Não armazenado no Peanut",
             "yes": "Sim",
             "no": "Não",
             "rows": {
@@ -922,7 +922,6 @@
             },
             "compare": {
                 "selectCountry": "Escolher {country}",
-                "cardTitle": "Disponível com {country}",
                 "items": {
                     "p2p": "Peanut para Peanut",
                     "pix": "Pagamentos e transferências PIX",
@@ -941,8 +940,8 @@
                 "multiCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda.",
                 "guideTitle": "Qual país você deve selecionar?",
                 "guideDeclaration": "Se você tem uma autorização de residência de um dos dois países, escolha esse país. Caso contrário, escolha o país que emitiu seu documento de identidade, como um passaporte ou uma carteira de motorista.",
-                "title": "Para qual país devemos configurar o Peanut?",
-                "description": "Escolha um. Veja o que cada um libera."
+                "title": "Vincule seu perfil a um único país",
+                "description": "Veja o que cada um libera."
             },
             "sentence": "Meu país de residência <nw>é <residence></residence></nw> e o de cidadania <nw>é <citizenship></citizenship>.</nw>",
             "residenceTitle": "Onde você tem residência?",
@@ -1081,7 +1080,7 @@
                 "crypto": "Cripto",
                 "peanut": "Outro usuário do Peanut",
                 "bank": "Transferência bancária",
-                "bankCurrencies": "Transferência bancária (USD, EUR, GBP, MXN)",
+                "bankCurrencies": "Transferência bancária ({currencies})",
                 "brlBank": "Transferência bancária (BRL)",
                 "arsBank": "Transferência bancária (ARS)"
             },
@@ -3962,7 +3961,7 @@
             "bridge_processing": "Nosso parceiro de pagamentos está finalizando sua verificação. Isso costuma levar alguns minutos.",
             "verification_blocked": "Problema na verificação: fale com o suporte para receber ajuda.",
             "terminal_rejection": "Problema na verificação: fale com o suporte para receber ajuda.",
-            "bridge_terminal_rejection": "Nosso parceiro de pagamentos não aprovou as transferências bancárias para esta conta, e a Peanut não pode mudar essa decisão. Seus fundos na Peanut não são afetados. Se você acha que houve um engano, fale com o suporte.",
+            "bridge_terminal_rejection": "Nosso parceiro de pagamentos não aprovou as transferências bancárias para esta conta, e o Peanut não pode mudar essa decisão. Seus fundos no Peanut não são afetados. Se você acha que houve um engano, fale com o suporte.",
             "duplicate_customer_detected": "Nosso parceiro de pagamentos marcou sua conta como possível duplicata. Fale com o suporte para verificar e desbloquear.",
             "duplicate_account": "Seu e-mail já está vinculado a outra conta Peanut, então não conseguimos terminar de configurar esta. Se a outra conta for sua, entre nela. Se não for, fale com o suporte e a gente resolve.",
             "imported_identity_rejected": "Nosso parceiro de pagamentos não conseguiu verificar o documento da sua verificação anterior. Ele precisa de um documento de identidade oficial válido e pode pedir também um comprovante de endereço. Fale com o suporte e a gente cuida do resto.",

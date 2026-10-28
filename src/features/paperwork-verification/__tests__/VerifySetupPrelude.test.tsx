@@ -32,6 +32,12 @@ jest.mock('@/context/authContext', () => ({
     useOptionalAuth: () => null,
     useAuth: () => ({ user: { user: { userId: 'user-1' }, residence: { declared: mockDeclared } } }),
 }))
+jest.mock('@/hooks/useKycIntents', () => ({
+    useKycIntents: (country: string) => ({
+        intents: jest.requireActual('@/test-utils/kycIntents.fixture').KYC_INTENTS_BY_COUNTRY[country],
+        settled: true,
+    }),
+}))
 jest.mock('@/hooks/useResidenceRestrictionSets', () => ({
     ...jest.requireActual('@/hooks/useResidenceRestrictionSets'),
     useResidenceRestrictionSetsWithStatus: () => ({ sets: LOCAL_RESIDENCE_RESTRICTION_SETS, settled: true }),
@@ -85,7 +91,7 @@ it('asks the residence, then the payment plan, saves both and reloads /verify', 
         fireEvent.click(screen.getByTestId('setup-residence-continue'))
     })
 
-    await choose('Add money with', 'Bank transfer')
+    await choose('Add money with', 'Bank transfer (USD, EUR, GBP)')
     await choose('Make a payment with', 'QR payments')
     await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Continue', hidden: true }))
