@@ -1,6 +1,9 @@
 jest.mock('@/utils/sentry-lazy', () => ({ captureMessage: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/constants/general.consts', () => ({ PEANUT_API_URL: 'https://api.test' }))
+jest.mock('../api-fetch', () => ({
+    apiFetch: (path: string, init?: RequestInit) => global.fetch(`https://api.test${path}`, init),
+}))
 
 const version = (kyc = 2) => ({
     commit: 'e7a93bf7d',
