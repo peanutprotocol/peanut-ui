@@ -1,0 +1,169 @@
+{
+  "folds": [
+    {
+      "order": 1,
+      "slug": "hero",
+      "title": "Get paid globally. Spend locally.",
+      "change": "Approved hero motion; Sign up and Log in share one row.",
+      "still": {
+        "390": "after/en-390-01-hero.png",
+        "1440": "after/en-1440-01-hero.png"
+      },
+      "clip": {
+        "390": "clips/390-01-hero.webp",
+        "1440": "clips/1440-01-hero.webp"
+      }
+    },
+    {
+      "order": 2,
+      "slug": "get-paid",
+      "title": "Get paid from the US and Europe",
+      "change": "Both account cards pop into place, with coins above them. Added a link to US & Europe accounts.",
+      "still": {
+        "390": "after/en-390-02-get-paid.png",
+        "1440": "after/en-1440-02-get-paid.png"
+      },
+      "clip": {
+        "390": "clips/390-02-get-paid.webp",
+        "1440": "clips/1440-02-get-paid.webp"
+      }
+    },
+    {
+      "order": 3,
+      "slug": "personas",
+      "title": "Sound like you?",
+      "change": "A 3.6-second cycle, spring avatar focus, and copy slides inside a stationary card.",
+      "still": {
+        "390": "after/en-390-03-personas.png",
+        "1440": "after/en-1440-03-personas.png"
+      },
+      "clip": {
+        "390": "clips/390-03-personas.webp",
+        "1440": "clips/1440-03-personas.webp"
+      }
+    },
+    {
+      "order": 4,
+      "slug": "request",
+      "title": "Just send a link.",
+      "change": "Existing request-to-paid story sequence. Added a link to request links.",
+      "still": {
+        "390": "after/en-390-04-request.png",
+        "1440": "after/en-1440-04-request.png"
+      },
+      "clip": {
+        "390": "clips/390-04-request.webp",
+        "1440": "clips/1440-04-request.webp"
+      }
+    },
+    {
+      "order": 5,
+      "slug": "balance",
+      "title": "Your earnings, ready to use",
+      "change": "Money-in and payment beats connect the balance; illustration accents use pink.",
+      "still": {
+        "390": "after/en-390-05-balance.png",
+        "1440": "after/en-1440-05-balance.png"
+      },
+      "clip": {
+        "390": "clips/390-05-balance.webp",
+        "1440": "clips/1440-05-balance.webp"
+      }
+    },
+    {
+      "order": 6,
+      "slug": "card",
+      "title": "Peanut Card. In dollars.",
+      "change": "The card appears before its approved receipt; illustration accents use pink. Added a link to the Peanut Card page.",
+      "still": {
+        "390": "after/en-390-06-card.png",
+        "1440": "after/en-1440-06-card.png"
+      },
+      "clip": {
+        "390": "clips/390-06-card.webp",
+        "1440": "clips/1440-06-card.webp"
+      }
+    },
+    {
+      "order": 7,
+      "slug": "local",
+      "title": "Pay like a local.",
+      "change": "The existing QR story gains a scan sweep. Argentina and Brazil each link to their QR feature page.",
+      "still": {
+        "390": "after/en-390-07-local.png",
+        "1440": "after/en-1440-07-local.png"
+      },
+      "clip": {
+        "390": "clips/390-07-local.webp",
+        "1440": "clips/1440-07-local.webp"
+      }
+    },
+    {
+      "order": 8,
+      "slug": "security",
+      "title": "Security. Control. Support.",
+      "change": "The hands enter subtly, using the closing glove’s motion. Added a link to self-custody.",
+      "still": {
+        "390": "after/en-390-08-security.png",
+        "1440": "after/en-1440-08-security.png"
+      },
+      "clip": {
+        "390": "clips/390-08-security.webp",
+        "1440": "clips/1440-08-security.webp"
+      }
+    },
+    {
+      "order": 9,
+      "slug": "zero",
+      "title": "ZERO",
+      "change": "The hands enter subtly; ZERO lands once and the calculator stays stable.",
+      "still": {
+        "390": "after/en-390-09-zero.png",
+        "1440": "after/en-1440-09-zero.png"
+      },
+      "clip": {
+        "390": "clips/390-09-zero.webp",
+        "1440": "clips/1440-09-zero.webp"
+      }
+    },
+    {
+      "order": 10,
+      "slug": "wall",
+      "title": "Wall of love",
+      "change": "Real posts change one slot at a time with a 500ms spring.",
+      "still": {
+        "390": "after/en-390-10-wall.png",
+        "1440": "after/en-1440-10-wall.png"
+      },
+      "clip": {
+        "390": "clips/390-10-wall.webp",
+        "1440": "clips/1440-10-wall.webp"
+      }
+    },
+    {
+      "order": 11,
+      "slug": "faq",
+      "title": "FAQ.",
+      "change": "Answers stay still; reduced motion skips the plus rotation.",
+      "still": {
+        "390": "after/en-390-11-faq.png",
+        "1440": "after/en-1440-11-faq.png"
+      },
+      "clip": {}
+    },
+    {
+      "order": 12,
+      "slug": "close",
+      "title": "Open yours now",
+      "change": "The glove gives one farewell beside the existing CTA.",
+      "still": {
+        "390": "after/en-390-12-close.png",
+        "1440": "after/en-1440-12-close.png"
+      },
+      "clip": {
+        "390": "clips/390-12-close.webp",
+        "1440": "clips/1440-12-close.webp"
+      }
+    }
+  ]
+}

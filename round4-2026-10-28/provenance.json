@@ -1,0 +1,262 @@
+{
+  "purpose": "Homepage Round4 PR visual evidence",
+  "stillCandidate": "94872a115204593368c933e04f6cf03fba617fc0",
+  "releaseCandidate": "780c9165dbd5f7c71834cac067d51b919afa5ec3",
+  "notes": [
+    "Independent reviewer confirmed fold production sources are unchanged by the dev merge.",
+    "Hero and FAQ captures include unshipped preview content; the four landing content files ship separately after the code.",
+    "Motion clips show earlier entrances; updated contextual links are visible in the stills."
+  ],
+  "files": [
+    {
+      "path": "after/en-1440-02-get-paid.png",
+      "width": 1440,
+      "height": 467
+    },
+    {
+      "path": "after/en-1440-10-wall.png",
+      "width": 1440,
+      "height": 580
+    },
+    {
+      "path": "after/en-390-02-get-paid.png",
+      "width": 390,
+      "height": 710
+    },
+    {
+      "path": "after/en-1440-01-hero.png",
+      "width": 1440,
+      "height": 766
+    },
+    {
+      "path": "after/en-1440-08-security.png",
+      "width": 1440,
+      "height": 538
+    },
+    {
+      "path": "after/en-390-03-personas.png",
+      "width": 390,
+      "height": 406
+    },
+    {
+      "path": "after/en-1440-12-close.png",
+      "width": 1440,
+      "height": 441
+    },
+    {
+      "path": "after/en-1440-06-card.png",
+      "width": 1440,
+      "height": 550
+    },
+    {
+      "path": "after/en-390-08-security.png",
+      "width": 390,
+      "height": 938
+    },
+    {
+      "path": "after/en-390-01-hero.png",
+      "width": 390,
+      "height": 655
+    },
+    {
+      "path": "after/en-1440-04-request.png",
+      "width": 1440,
+      "height": 400
+    },
+    {
+      "path": "after/en-390-12-close.png",
+      "width": 390,
+      "height": 307
+    },
+    {
+      "path": "after/en-1440-07-local.png",
+      "width": 1440,
+      "height": 524
+    },
+    {
+      "path": "after/en-390-04-request.png",
+      "width": 390,
+      "height": 497
+    },
+    {
+      "path": "after/en-1440-11-faq.png",
+      "width": 1440,
+      "height": 930
+    },
+    {
+      "path": "after/en-390-10-wall.png",
+      "width": 390,
+      "height": 850
+    },
+    {
+      "path": "after/en-1440-05-balance.png",
+      "width": 1440,
+      "height": 569
+    },
+    {
+      "path": "after/en-390-06-card.png",
+      "width": 390,
+      "height": 742
+    },
+    {
+      "path": "after/en-390-11-faq.png",
+      "width": 390,
+      "height": 930
+    },
+    {
+      "path": "after/en-390-05-balance.png",
+      "width": 390,
+      "height": 512
+    },
+    {
+      "path": "after/en-390-07-local.png",
+      "width": 390,
+      "height": 533
+    },
+    {
+      "path": "after/en-1440-03-personas.png",
+      "width": 1440,
+      "height": 428
+    },
+    {
+      "path": "after/en-1440-09-zero.png",
+      "width": 1440,
+      "height": 1027
+    },
+    {
+      "path": "after/en-390-09-zero.png",
+      "width": 390,
+      "height": 974
+    },
+    {
+      "path": "crosslinks/footer-card-390.png",
+      "width": 390,
+      "height": 900
+    },
+    {
+      "path": "crosslinks/footer-en-1440.png",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "crosslinks/footer-en-390.png",
+      "width": 390,
+      "height": 900
+    },
+    {
+      "path": "crosslinks/footer-pt-br-390.png",
+      "width": 390,
+      "height": 900
+    },
+    {
+      "path": "clips/1440-02-get-paid.webp",
+      "width": 600,
+      "height": 195
+    },
+    {
+      "path": "clips/1440-08-security.webp",
+      "width": 600,
+      "height": 218
+    },
+    {
+      "path": "clips/1440-05-balance.webp",
+      "width": 600,
+      "height": 237
+    },
+    {
+      "path": "clips/390-04-request.webp",
+      "width": 390,
+      "height": 449
+    },
+    {
+      "path": "clips/1440-01-hero.webp",
+      "width": 600,
+      "height": 319
+    },
+    {
+      "path": "clips/390-02-get-paid.webp",
+      "width": 390,
+      "height": 662
+    },
+    {
+      "path": "clips/1440-09-zero.webp",
+      "width": 600,
+      "height": 428
+    },
+    {
+      "path": "clips/390-06-card.webp",
+      "width": 390,
+      "height": 742
+    },
+    {
+      "path": "clips/1440-04-request.webp",
+      "width": 600,
+      "height": 167
+    },
+    {
+      "path": "clips/390-08-security.webp",
+      "width": 390,
+      "height": 890
+    },
+    {
+      "path": "clips/390-12-close.webp",
+      "width": 390,
+      "height": 307
+    },
+    {
+      "path": "clips/390-07-local.webp",
+      "width": 390,
+      "height": 533
+    },
+    {
+      "path": "clips/390-03-personas.webp",
+      "width": 390,
+      "height": 406
+    },
+    {
+      "path": "clips/1440-12-close.webp",
+      "width": 600,
+      "height": 184
+    },
+    {
+      "path": "clips/1440-10-wall.webp",
+      "width": 600,
+      "height": 242
+    },
+    {
+      "path": "clips/390-05-balance.webp",
+      "width": 390,
+      "height": 512
+    },
+    {
+      "path": "clips/390-10-wall.webp",
+      "width": 390,
+      "height": 850
+    },
+    {
+      "path": "clips/1440-06-card.webp",
+      "width": 600,
+      "height": 229
+    },
+    {
+      "path": "clips/1440-07-local.webp",
+      "width": 600,
+      "height": 218
+    },
+    {
+      "path": "clips/1440-03-personas.webp",
+      "width": 600,
+      "height": 178
+    },
+    {
+      "path": "clips/390-01-hero.webp",
+      "width": 390,
+      "height": 655
+    },
+    {
+      "path": "clips/390-09-zero.webp",
+      "width": 390,
+      "height": 974
+    }
+  ]
+}
