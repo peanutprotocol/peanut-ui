@@ -1,4 +1,3 @@
-import { APP_ENTRY_QUERY_PARAM } from '@/constants/migration.consts'
 import { UTM_MEDIUMS, UTM_SOURCES } from '@/utils/utm.utils'
 
 const LOCALES = ['en', 'es-419', 'es-ar', 'pt-br'] as const
@@ -32,6 +31,8 @@ export type MarketingQrRegistration = {
 }
 
 export const MARKETING_QR_MAX_URL_BYTES = 200
+/** Names the registration on the scanned /home URL; kept short so sticker QRs stay at version 4. */
+export const MARKETING_QR_ENTRY_PARAM = 'mqr'
 export const MARKETING_QR_EVENT = 'marketing_qr_opened'
 const SOURCES = new Set<string>(Object.values(UTM_SOURCES))
 const MEDIUMS = new Set<string>(Object.values(UTM_MEDIUMS))
@@ -187,9 +188,9 @@ export function buildMarketingQrUrl({
         const parsedOrigin = new URL(origin)
         if (!['https:', 'http:'].includes(parsedOrigin.protocol) || parsedOrigin.username || parsedOrigin.password)
             return null
-        // Released native apps claim /home, so an installed app opens directly. Browsers
-        // reach the /q handoff through the proxy (marketingQrHandoffUrl).
-        base = `${parsedOrigin.origin}/home?${APP_ENTRY_QUERY_PARAM}=1&marketing_qr=${registration.qr_id}`
+        // Released native apps claim /home whatever its query, so an installed app opens
+        // directly. Browsers reach the /q handoff through the proxy (marketingQrHandoffUrl).
+        base = `${parsedOrigin.origin}/home?${MARKETING_QR_ENTRY_PARAM}=${registration.qr_id}`
     } catch {
         return null
     }
@@ -234,12 +235,13 @@ export function buildMarketingQrUrl({
  * QR's campaign labels. Returns null for any other URL, which keeps its existing route.
  */
 export function marketingQrHandoffUrl(url: URL): URL | null {
-    const registration = getMarketingQrRegistration(url.searchParams.get('marketing_qr') ?? '')
-    if (url.pathname !== '/home' || url.searchParams.get(APP_ENTRY_QUERY_PARAM) !== '1' || !registration) return null
+    if (url.pathname !== '/home') return null
+    const registration = getMarketingQrRegistration(url.searchParams.get(MARKETING_QR_ENTRY_PARAM) ?? '')
+    if (!registration) return null
     const target = new URL(`/q/${registration.qr_id}`, url.origin)
     // Pass every other key through, so /q still rejects unknown or duplicate keys.
     url.searchParams.forEach((value, key) => {
-        if (key !== APP_ENTRY_QUERY_PARAM && key !== 'marketing_qr') target.searchParams.append(key, value)
+        if (key !== MARKETING_QR_ENTRY_PARAM) target.searchParams.append(key, value)
     })
     return target
 }
@@ -259,7 +261,7 @@ export function marketingQrContinuation(
         params.set('utm_campaign', campaign.campaign)
         if (campaign.content) params.set('utm_content', campaign.content)
     }
-    // Straight to the store page: /home with app_entry would send the browser back to /q.
+    // Straight to the store page: the browser has already passed /home and the proxy.
     return `/app?${params}`
 }
 

@@ -391,8 +391,7 @@ test.describe('rendered marketing QR', () => {
             const url = new URL(decoded)
             expect(url.origin).toBe(new URL(baseURL!).origin)
             expect(url.pathname).toBe('/home')
-            expect(url.searchParams.get('app_entry')).toBe('1')
-            expect(url.searchParams.get('marketing_qr')).toBe('home-hero-en')
+            expect(url.searchParams.get('mqr')).toBe('home-hero-en')
             expect(Buffer.byteLength(decoded)).toBeLessThanOrEqual(200)
             expect(url.searchParams.get('s')).toBe('google')
             expect(url.searchParams.get('m')).toBe('cpc')
@@ -508,7 +507,7 @@ test.describe('rendered marketing QR', () => {
                     const url = new URL(decoded)
                     expect(Buffer.byteLength(decoded)).toBeLessThanOrEqual(200)
                     const expectedIdPrefix = route.endsWith('argentina') ? 'qr-argentina' : 'qr-brazil'
-                    const qrId = url.searchParams.get('marketing_qr') ?? ''
+                    const qrId = url.searchParams.get('mqr') ?? ''
                     expect(url.pathname).toBe('/home')
                     expect(qrId).toMatch(new RegExp(`^${expectedIdPrefix}-(hero-sticker|close-sticker|ways-in)-en$`))
                     const expectedSlot = qrId.includes('hero-sticker')

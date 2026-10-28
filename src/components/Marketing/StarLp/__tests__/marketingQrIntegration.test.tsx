@@ -58,7 +58,7 @@ it.each(['us-europe-accounts', 'qr-argentina', 'qr-brazil', 'request-links', 'se
         expect(await screen.findByRole('dialog')).toBeInTheDocument()
         expect(await screen.findByTestId('qr')).toHaveAttribute(
             'data-value',
-            `${window.location.origin}/home?app_entry=1&marketing_qr=${page}-hero-en`
+            `${window.location.origin}/home?mqr=${page}-hero-en`
         )
         expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'M')
     }
@@ -74,7 +74,7 @@ it.each([
     const { rerender } = render(<StarLpQrCode campaign={campaign} slot={slot} />)
     expect(screen.getByTestId('qr')).toHaveAttribute(
         'data-value',
-        `${window.location.origin}/home?app_entry=1&marketing_qr=${campaign}-${slot}-en`
+        `${window.location.origin}/home?mqr=${campaign}-${slot}-en`
     )
     expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'M')
     mockMigrationOn = false

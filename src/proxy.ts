@@ -27,14 +27,16 @@ export function proxy(request: NextRequest) {
         return new NextResponse(null, { status: 410, headers: { 'X-Robots-Tag': 'noindex' } })
     }
 
+    // Registered landing-page QRs also enter through /home, so an installed app opens
+    // directly. A browser records the opening on /q first; /q continues to /app.
+    const marketingQrHandoff = marketingQrHandoffUrl(new URL(request.url))
+    if (marketingQrHandoff) return NextResponse.redirect(marketingQrHandoff, 307)
+
     // QR downloads enter through /home because that path is already claimed by
     // every released native shell. A browser has no App Link interception, so
     // route it to the web-only smart-store page while preserving the deferred
     // handoff. Remove the routing marker so /app can never loop back here.
     if (pathname === '/home' && request.nextUrl.searchParams.get(APP_ENTRY_QUERY_PARAM) === '1') {
-        // Registered landing-page QRs record their opening on /q first; /q continues to /app.
-        const marketingQrHandoff = marketingQrHandoffUrl(new URL(request.url))
-        if (marketingQrHandoff) return NextResponse.redirect(marketingQrHandoff, 307)
         const target = request.nextUrl.clone()
         target.pathname = '/app'
         target.searchParams.delete(APP_ENTRY_QUERY_PARAM)

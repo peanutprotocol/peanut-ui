@@ -25,8 +25,7 @@ it('carries campaign labels without identifiers or unrelated query parameters', 
     const url = new URL(result.current!)
     expect(url.pathname).toBe('/home')
     expect(Object.fromEntries(url.searchParams)).toEqual({
-        app_entry: '1',
-        marketing_qr: 'home-hero-en',
+        mqr: 'home-hero-en',
         s: 'google',
         m: 'cpc',
         c: 'accounts-launch',
@@ -39,7 +38,7 @@ it('does not read saved attribution when analytics is denied', () => {
     jest.mocked(marketingQrAnalyticsAllowed).mockReturnValue(false)
     window.history.replaceState({}, '', '/?utm_source=google&utm_medium=cpc&utm_campaign=accounts-launch')
     const { result } = renderHook(() => useMarketingQrUrl({ origin: 'https://peanut.me', context }))
-    expect(result.current).toBe('https://peanut.me/home?app_entry=1&marketing_qr=home-hero-en')
+    expect(result.current).toBe('https://peanut.me/home?mqr=home-hero-en')
     expect(readSignupAttribution).not.toHaveBeenCalled()
 })
 
@@ -72,8 +71,7 @@ it.each([{ utmSource: 'unknown-source', utmMedium: 'cpc', utmCampaign: 'newest' 
         })
         const { result } = renderHook(() => useMarketingQrUrl({ origin: 'https://peanut.me', context }))
         expect(Object.fromEntries(new URL(result.current!).searchParams)).toEqual({
-            app_entry: '1',
-            marketing_qr: 'home-hero-en',
+            mqr: 'home-hero-en',
             s: 'google',
             m: 'content',
             c: 'older-valid',

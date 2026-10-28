@@ -25,15 +25,13 @@ it('keeps every registered default within the QR URL budget and canonicalizes lo
     for (const item of MARKETING_QR_REGISTRATIONS) {
         expect(item.qr_id).toMatch(/^[a-z0-9-]{1,48}$/)
         expect(item.defaults.source).toBeDefined()
-        expect(
-            Buffer.byteLength(`https://peanut.me/home?app_entry=1&marketing_qr=${item.qr_id}&a=length_fallback`)
-        ).toBeLessThanOrEqual(200)
+        expect(Buffer.byteLength(`https://peanut.me/home?mqr=${item.qr_id}&a=length_fallback`)).toBeLessThanOrEqual(200)
     }
     expect(buildMarketingQrUrl({ origin: 'https://peanut.me', context: { ...context, locale: 'es-AR' } })).toBe(
-        'https://peanut.me/home?app_entry=1&marketing_qr=home-hero-es-ar'
+        'https://peanut.me/home?mqr=home-hero-es-ar'
     )
     expect(buildMarketingQrUrl({ origin: 'https://peanut.me', context: { ...context, locale: 'es' } })).toBe(
-        'https://peanut.me/home?app_entry=1&marketing_qr=home-hero-es-419'
+        'https://peanut.me/home?mqr=home-hero-es-419'
     )
 })
 
@@ -78,9 +76,7 @@ it('uses a whole saved tuple or defaults, and does not recover campaign state af
         campaign,
         attributionOrigin: 'saved_campaign',
     })
-    expect(buildMarketingQrUrl({ ...input, analyticsEnabled: false })).toBe(
-        'https://peanut.me/home?app_entry=1&marketing_qr=home-hero-en'
-    )
+    expect(buildMarketingQrUrl({ ...input, analyticsEnabled: false })).toBe('https://peanut.me/home?mqr=home-hero-en')
 })
 
 it.each([
@@ -225,11 +221,17 @@ it('sends a browser that opened a registered QR to /q with every other key, so /
     expect(parseMarketingQrQuery(registration, tampered.searchParams).valid).toBe(false)
 })
 
+it('keeps every default QR URL within version 4 at level M, so sticker QRs stay as dense as before', () => {
+    for (const item of MARKETING_QR_REGISTRATIONS) {
+        expect(Buffer.byteLength(`https://peanut.me/home?mqr=${item.qr_id}`)).toBeLessThanOrEqual(62)
+    }
+})
+
 it.each([
     'https://peanut.me/home?app_entry=1',
-    'https://peanut.me/home?app_entry=1&marketing_qr=send-hero-en',
+    'https://peanut.me/home?mqr=send-hero-en',
     'https://peanut.me/home?marketing_qr=home-hero-en',
-    'https://peanut.me/app?app_entry=1&marketing_qr=home-hero-en',
+    'https://peanut.me/app?mqr=home-hero-en',
 ])('leaves %s on its existing route', (url) => {
     expect(marketingQrHandoffUrl(new URL(url))).toBeNull()
 })
