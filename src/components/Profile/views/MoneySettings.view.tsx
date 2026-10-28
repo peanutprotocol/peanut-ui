@@ -396,7 +396,6 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     return (
         <PageStack gap="6" className="pb-10">
             <NavHeader
-            <NavHeader
                 title={t(view === 'bank' ? 'titles.bank' : 'titles.methods')}
                 onPrev={onBack}
                 titleClassName="py-2 text-heading-xs md:py-1 md:text-heading-s"
