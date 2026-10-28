@@ -1,5 +1,6 @@
 import { SEOFooter } from './SEOFooter'
 import { FooterChrome } from './FooterChrome'
+import { FooterFeatures } from './FooterFeatures'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { contentHrefsFor } from './landingContentHrefs.server'
 
@@ -23,6 +24,7 @@ const Footer = ({
                 securityDisclosureHref={contentHrefsFor(locale).securityDisclosure}
                 showLocaleSwitcher={showLocaleSwitcher}
             />
+            <FooterFeatures locale={locale} />
             {showSiteDirectory && <SEOFooter locale={locale} padForStickyCta={padForStickyCta} />}
         </>
     )
