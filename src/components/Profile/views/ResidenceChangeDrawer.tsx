@@ -9,12 +9,23 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/G
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
+import { useKycIntents, type KycIntents } from '@/hooks/useKycIntents'
+import { localizedCountryName } from '@/utils/country-name.utils'
 import { updateUserById } from '@/app/actions/users'
 import posthog from 'posthog-js'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { readSecondResidence, storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+
+const SERVICES = ['card', 'bank', 'local', 'qr'] as const
+type Service = (typeof SERVICES)[number]
+
+/** What the verified residence opens that the new one closes: the services a move ends once approved. */
+function servicesLost(current: KycIntents | undefined, next: KycIntents | undefined): Service[] {
+    if (!current || !next) return []
+    return SERVICES.filter((service) => current[service].available && !next[service].available)
+}
 
 interface ResidenceChangeDrawerProps {
     visible: boolean
@@ -73,6 +84,14 @@ const ResidenceChangeDrawer = ({
 
     const selectedRestrictions = deriveResidenceRestrictionsFrom(restrictionSets, selected || null)
     const differsFromVerified = !!verified && !!selected && selected !== verified
+    // Slava, 2026-10-27: an approved move into a country that restricts a service closes it,
+    // so a verified user is told what they lose before confirming.
+    const { intents: verifiedIntents } = useKycIntents(verified)
+    const { intents: selectedIntents } = useKycIntents(differsFromVerified ? selected : null)
+    const lost = differsFromVerified ? servicesLost(verifiedIntents, selectedIntents) : []
+    const lostList = new Intl.ListFormat(locale, { type: 'conjunction' }).format(
+        lost.map((service) => t(`lost.${service}`))
+    )
 
     const save = async (reverifyAfter: boolean) => {
         if (!userId || !selected || isSaving) return false
@@ -156,14 +175,23 @@ const ResidenceChangeDrawer = ({
                         {differsFromVerified && (
                             <p className="text-body-xs text-foreground-secondary">{t('verifiedMismatchNote')}</p>
                         )}
-                        {(selectedRestrictions.banking || selectedRestrictions.card) && (
-                            <p className="text-body-xs text-foreground-secondary">
-                                {selectedRestrictions.banking && selectedRestrictions.card
-                                    ? t('fullRestrictionNote')
-                                    : selectedRestrictions.card
-                                      ? t('cardRestrictionNote')
-                                      : t('bankingRestrictionNote')}
-                            </p>
+                        {lost.length > 0 ? (
+                            <Callout priority="attention" title={t('lostTitle')} data-testid="residence-change-lost">
+                                {t('lostBody', {
+                                    country: localizedCountryName(locale, selected, selected),
+                                    services: lostList,
+                                })}
+                            </Callout>
+                        ) : (
+                            (selectedRestrictions.banking || selectedRestrictions.card) && (
+                                <p className="text-body-xs text-foreground-secondary">
+                                    {selectedRestrictions.banking && selectedRestrictions.card
+                                        ? t('fullRestrictionNote')
+                                        : selectedRestrictions.card
+                                          ? t('cardRestrictionNote')
+                                          : t('bankingRestrictionNote')}
+                                </p>
+                            )
                         )}
                         {error && <Callout priority="error">{error}</Callout>}
                         <Button
@@ -173,7 +201,7 @@ const ResidenceChangeDrawer = ({
                             disabled={isSaving || !selected || !userId}
                             onClick={() => void save(false)}
                         >
-                            {isSaving ? tCommon('loading') : t('save')}
+                            {isSaving ? tCommon('loading') : lost.length > 0 ? t('saveAnyway') : t('save')}
                         </Button>
                         {differsFromVerified && (
                             <Button
