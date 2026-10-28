@@ -66,16 +66,16 @@ export function shortDepositReference(reference: string | undefined): string | u
 }
 
 /**
- * "2099-03-01" → "March 1, 2099". Capability advisory deadlines
+ * "2099-03-01" → "March 1, 2099" (en), "1 de março de 2099" (pt-BR). Capability advisory deadlines
  * (`NextAction.effectiveDate`) are date-only YYYY-MM-DD strings, which
  * `new Date()` parses at UTC midnight — format in UTC too, or Americas
  * timezones render the day before the deadline. Used by the pending
  * verification tasks card, so every slide renders the date the same way.
  */
-export function formatEffectiveDate(iso?: string): string | null {
+export function formatEffectiveDate(iso: string | undefined, locale: string): string | null {
     if (!iso) return null
     const date = new Date(iso)
     return Number.isNaN(date.getTime())
         ? null
-        : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+        : date.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
 }

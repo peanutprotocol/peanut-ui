@@ -1987,7 +1987,11 @@ export const FIXTURES: Record<string, Fixture> = {
     'early-user': {
         route: '/home',
         about: 'Early-user reward drawer over home, opened by the user flag.',
-        responses: { 'GET /users/me': { showEarlyUserModal: true } },
+        responses: {
+            'GET /users/me': { showEarlyUserModal: true },
+            // a tier-6 announcement waits for a third session; the server ranking lets a capture's first one open it
+            'GET /users/me/attention': { ranking: [{ id: 'early-user', tier: 1, rank: 0 }] },
+        },
     },
 
     // Arrival prompt (TASK-23251). The app must resolve a country first (the

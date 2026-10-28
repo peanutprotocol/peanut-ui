@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
@@ -12,6 +12,7 @@ import { useLimits } from '@/hooks/useLimits'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { selectMantecaCapNudge } from '@/utils/capability-gate'
+import { CapNudgeCtaContext } from '../cap-nudge-cta-context'
 
 /**
  * How long a local submission suppresses the CTA on its own.
@@ -108,6 +109,13 @@ export default function CapNudgeCard() {
     }, [expiresAt])
 
     const recentlySubmitted = expiresAt !== null && now < expiresAt
+    const showsCta = !!nudge && nudge.state === 'raise' && !recentlySubmitted
+
+    const reportCta = useContext(CapNudgeCtaContext)
+    useLayoutEffect(() => {
+        reportCta(showsCta)
+        return () => reportCta(false)
+    }, [reportCta, showsCta])
 
     // Once the backend's own state takes over, drop the local flag: the marker
     // it wrote outlives this device, and leaving ours behind would suppress a
@@ -177,7 +185,7 @@ export default function CapNudgeCard() {
 
     if (!nudge) return null
 
-    if (nudge.state === 'under-review' || recentlySubmitted) {
+    if (!showsCta) {
         return (
             <Card position="solo" className="p-4">
                 <p className="text-body-s text-foreground-secondary">{t('underReview')}</p>

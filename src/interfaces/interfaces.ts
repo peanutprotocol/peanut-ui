@@ -1,3 +1,4 @@
+import type { AttentionLedgerEntry } from '@/utils/general.utils'
 import type { SignupPreferences } from '@/types/signup-preferences'
 import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import { type UserCapabilities, type IdentityVerification } from '@/types/capabilities'
@@ -311,6 +312,10 @@ export interface IUserProfile {
     rails: IUserRail[]
     invitesSent: userInvites[]
     showEarlyUserModal: boolean
+    /** passkeys backing the account; absent on an API deployed before the field */
+    passkeyCount?: number
+    /** the attention manager's server-side ledger (features/attention/ledger.ts), absent on an older API */
+    attention?: Partial<Record<string, AttentionLedgerEntry>>
     invitedBy: string | null // Username of the person who invited this user
     // Backend-computed capability model — TOP-LEVEL sibling of `user` on the
     // /get-user response (NOT user.capabilities). Read via useCapabilities().

@@ -1,6 +1,6 @@
 'use client'
 
-import { Banner } from '@/components/Global/Banner'
+import { AttentionBanner } from '@/features/attention/AttentionBanner'
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { Widget } from '@typeform/embed-react'
 import { Roboto_Flex } from 'next/font/google'
@@ -36,7 +36,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                 `}</style>
                 <div className="relative">
                     <div className="flex min-h-screen flex-col">
-                        <Banner />
+                        <AttentionBanner />
                         <div className="flex grow justify-center">
                             <div
                                 className={`4xl:max-w-full flex grow flex-col justify-center pt-6 pb-2 sm:mx-auto sm:px-16 md:px-5 lg:px-6 2xl:px-8 ${className}`}

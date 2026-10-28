@@ -6,7 +6,7 @@ import { setupScreenIds, setupSteps } from '../../components/Setup/Setup.consts'
 import '../../styles/globals.css'
 import Loading from '@/components/Global/Loading'
 import { AppShell } from '@/components/Global/AppShell'
-import { Banner } from '@/components/Global/Banner'
+import { AttentionBanner } from '@/features/attention/AttentionBanner'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
@@ -73,7 +73,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     return (
         <AppShell
             variant="onboarding"
-            banner={<Banner />}
+            banner={<AttentionBanner />}
             bottomInsetClassName={bottomInsetFill}
             modals={<SupportDrawer />}
         >

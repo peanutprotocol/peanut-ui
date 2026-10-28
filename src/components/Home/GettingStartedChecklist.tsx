@@ -16,7 +16,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useHomeDrawer } from '@/features/home/useHomeDrawer'
-import { type OnboardingState } from '@/utils/activation-step.utils'
+import { checklistProgress, type OnboardingState } from '@/utils/activation-step.utils'
 import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
@@ -232,8 +232,8 @@ const GettingStartedChecklist = ({
 
     // the bar and the count cover every row; the list shows every open row and
     // only the latest done one, so finished steps do not crowd out what is next
-    const doneCount = items.filter((item) => item.done).length
-    const completionPercent = Math.round((doneCount / items.length) * 100)
+    const { done: doneCount, total } = checklistProgress(onboarding)
+    const completionPercent = Math.round((doneCount / total) * 100)
     const latestDoneId = items.filter((item) => item.done).at(-1)?.id
     const visibleItems = items.filter((item) => !item.done || item.id === latestDoneId)
 
@@ -278,7 +278,7 @@ const GettingStartedChecklist = ({
             )}
             <div className="flex flex-col gap-1">
                 <span className="text-body-s text-foreground-secondary">
-                    {t('progress', { done: doneCount, total: items.length })}
+                    {t('progress', { done: doneCount, total })}
                 </span>
                 <ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />
             </div>

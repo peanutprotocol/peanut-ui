@@ -50,7 +50,6 @@ jest.mock('@/components/Global/AppShell', () => ({
 jest.mock('@/components/Global/BottomNav', () => ({ BottomNav: () => <div /> }))
 jest.mock('@/components/Global/Banner', () => ({ Banner: () => <div /> }))
 jest.mock('@/components/Global/GuestLoginModal', () => ({ __esModule: true, default: () => <div /> }))
-jest.mock('@/components/Global/ReConsentModal', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/SupportDrawer', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/SupportDeepLink', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/QRScannerOverlay', () => ({ __esModule: true, default: () => <div /> }))

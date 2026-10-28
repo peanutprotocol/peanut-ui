@@ -211,6 +211,42 @@
             "card": {
                 "title": "Get the <b>Peanut Card</b>",
                 "description": "Spend your balance <b>anywhere Visa works</b>."
+            },
+            "virtualAccount": {
+                "title": "Open your bank account",
+                "description": "Get account details to receive bank transfers in your balance."
+            },
+            "nextPayment": {
+                "title": "Pay with Peanut again",
+                "description": "Your balance is ready. Scan a QR or tap your card."
+            },
+            "shareBankDetails": {
+                "title": "Share your bank details",
+                "description": "Give your account details to an employer or client to get paid here."
+            },
+            "requestMoney": {
+                "title": "Request money",
+                "description": "Expecting a payment or splitting a cost? Send a request."
+            },
+            "sendMoney": {
+                "title": "Send money to a friend",
+                "description": "Pay anyone in seconds, straight from your balance."
+            },
+            "backupPasskey": {
+                "title": "Add a backup passkey",
+                "description": "A second passkey keeps your money reachable if you lose this device."
+            },
+            "addEmail": {
+                "title": "Add your email",
+                "description": "Get receipts and account alerts by email."
+            },
+            "rewards": {
+                "title": "You have rewards waiting",
+                "description": "Open Rewards to see what you have earned."
+            },
+            "completeProfile": {
+                "title": "Complete your profile",
+                "description": "Add your name so friends recognise you when you pay them."
             }
         },
         "pendingTasks": {
@@ -251,6 +287,20 @@
             "shareRequestLinkDescription": "Request an amount with a shareable link",
             "shareBankDetails": "Share bank details",
             "shareBankDetailsDescription": "Get paid in EUR, USD and more with bank details in your name."
+        },
+        "attention": {
+            "label": "Next steps"
+        },
+        "postVerification": {
+            "title": "Verification complete!",
+            "claim": {
+                "description": "Your identity has been successfully verified. You can now claim money directly to your bank account.",
+                "cta": "Claim to bank"
+            },
+            "request": {
+                "description": "Your identity has been successfully verified. You can now send the money your friend requested!",
+                "cta": "Send it!"
+            }
         },
         "arrival": {
             "qr_ar": {
@@ -3622,14 +3672,14 @@
             "cancelCta": "Cancel & Return Funds"
         },
         "balanceWarningModal": {
-            "title": "High Balance",
+            "title": "High balance",
             "congrats": "You're rich! Congrats on having a high balance.",
             "goodToKnow": "Good to know",
             "selfCustody": "With Peanut, you're the only one who can access your funds. No bank, no company, no agency — not even our support team — can ever access them.",
             "passkey": "Your biometric passkey is your key to full control and security. If it's lost, it can't be recovered because only you ever have access.",
             "learnMore": "Learn how to keep your passkey secure on <link>{platform}</link>.",
             "yourDevice": "your device",
-            "slideToContinue": "Slide to Continue"
+            "slideToContinue": "Slide to continue"
         },
         "guestLoginModal": {
             "title": "Sign in with Peanut Wallet",

@@ -1,6 +1,8 @@
 import { useFormatter, useTranslations } from 'next-intl'
 import { Callout } from '@/components/0_Bruddle/Callout'
 
+import type { InlineSurfaceProps } from '@/features/attention/types'
+
 interface VerificationDeadlineNoticeProps {
     /** ISO date (YYYY-MM-DD) the requirement becomes due. */
     effectiveDate: string
@@ -12,10 +14,12 @@ interface VerificationDeadlineNoticeProps {
  * rail is fully usable, and the request itself is started from the Home and
  * Accounts task cards.
  */
-export default function VerificationDeadlineNotice({ effectiveDate }: VerificationDeadlineNoticeProps) {
+export default function VerificationDeadlineNotice(props: InlineSurfaceProps | VerificationDeadlineNoticeProps) {
     const t = useTranslations('kyc.advisory')
     const format = useFormatter()
 
+    const effectiveDate = 'effectiveDate' in props ? props.effectiveDate : props.context?.advisoryDeadline
+    if (typeof effectiveDate !== 'string') return null
     const parsed = new Date(effectiveDate)
     // Without a readable date there is nothing true to say here; the Home and
     // Accounts task cards still carry the request.

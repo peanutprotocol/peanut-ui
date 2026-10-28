@@ -72,6 +72,9 @@ jest.mock('@/components/Global/ActionModal', () => ({
 
 import EnableAutoBalanceBanner from '../EnableAutoBalanceBanner'
 
+const onActed = jest.fn()
+const onSnoozed = jest.fn()
+
 beforeEach(() => {
     mockKernelReady = true
     jest.clearAllMocks()
@@ -82,14 +85,30 @@ beforeEach(() => {
 
 describe('EnableAutoBalanceBanner', () => {
     it('shows only Continue (no escape) before any error', () => {
-        render(<EnableAutoBalanceBanner />)
+        render(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
         expect(screen.getByText('Continue')).toBeInTheDocument()
         expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
     })
 
     it('after a cancelled/failed passkey, surfaces an escape so the non-dismissible modal cannot trap the user', () => {
         mockLastError = { kind: 'user-cancelled' }
-        render(<EnableAutoBalanceBanner />)
+        render(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
         const skip = screen.getByText('Skip for now')
         expect(skip).toBeInTheDocument()
         fireEvent.click(skip)
@@ -98,7 +117,15 @@ describe('EnableAutoBalanceBanner', () => {
 
     it('surfaces a recoverable message + Try again on a hard error', () => {
         mockLastError = { kind: 'unexpected', message: 'boom' }
-        render(<EnableAutoBalanceBanner />)
+        render(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
         expect(screen.getByText(/couldn't finish setting up your card/i)).toBeInTheDocument()
         expect(screen.getByText('Try again')).toBeInTheDocument()
     })
@@ -109,7 +136,15 @@ describe('EnableAutoBalanceBanner', () => {
             { id: 'card-dup', status: 'CANCELED', hasWithdrawApproval: false },
             { id: 'card-real', status: 'ACTIVE', hasWithdrawApproval: true },
         ]
-        render(<EnableAutoBalanceBanner />)
+        render(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
     })
 
@@ -118,7 +153,15 @@ describe('EnableAutoBalanceBanner', () => {
             { id: 'card-dup', status: 'CANCELED', hasWithdrawApproval: false },
             { id: 'card-real', status: 'ACTIVE', hasWithdrawApproval: false },
         ]
-        render(<EnableAutoBalanceBanner />)
+        render(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
         expect(screen.getByTestId('modal')).toBeInTheDocument()
     })
 
@@ -126,7 +169,15 @@ describe('EnableAutoBalanceBanner', () => {
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
         mockGrant.mockResolvedValue({ ok: true, overviewFresh: true })
         // Overview never flips hasWithdrawApproval — the lockout shape.
-        render(<EnableAutoBalanceBanner />)
+        render(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
         expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
 
         await act(async () => {
@@ -151,7 +202,15 @@ describe('EnableAutoBalanceBanner', () => {
         // Grant succeeded but the follow-up refetch died (flaky network):
         // the cached flag is stale; treating it as the lockout would false-page.
         mockGrant.mockResolvedValue({ ok: true, overviewFresh: false })
-        render(<EnableAutoBalanceBanner />)
+        render(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
 
         await act(async () => {
             fireEvent.click(screen.getByText('Continue'))
@@ -166,7 +225,15 @@ describe('EnableAutoBalanceBanner', () => {
         const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
         mockGrant.mockResolvedValue({ ok: true, overviewFresh: true })
         mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: false }]
-        const { rerender } = render(<EnableAutoBalanceBanner />)
+        const { rerender } = render(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
 
         // Card A gets stuck; user escapes via Skip.
         await act(async () => {
@@ -180,7 +247,15 @@ describe('EnableAutoBalanceBanner', () => {
             { id: 'card-a', status: 'CANCELED', hasWithdrawApproval: false },
             { id: 'card-b', status: 'ACTIVE', hasWithdrawApproval: false },
         ]
-        rerender(<EnableAutoBalanceBanner />)
+        rerender(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
         expect(screen.getByTestId('modal')).toBeInTheDocument()
         warnSpy.mockRestore()
     })
@@ -194,13 +269,29 @@ describe('EnableAutoBalanceBanner', () => {
             return { ok: true, overviewFresh: true }
         })
         mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: false }]
-        const { rerender } = render(<EnableAutoBalanceBanner />)
+        const { rerender } = render(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
 
         // Grant succeeds for card A and the flag flips — modal hides, all good.
         await act(async () => {
             fireEvent.click(screen.getByText('Continue'))
         })
-        rerender(<EnableAutoBalanceBanner />)
+        rerender(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
 
         // Card A is replaced by card B, which legitimately needs its own setup:
@@ -209,7 +300,15 @@ describe('EnableAutoBalanceBanner', () => {
             { id: 'card-a', status: 'CANCELED', hasWithdrawApproval: true },
             { id: 'card-b', status: 'ACTIVE', hasWithdrawApproval: false },
         ]
-        rerender(<EnableAutoBalanceBanner />)
+        rerender(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
         // findActiveCard skips CANCELED → card-b drives the modal
         expect(screen.getByTestId('modal')).toBeInTheDocument()
         expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
@@ -220,12 +319,28 @@ describe('EnableAutoBalanceBanner', () => {
         // Grant fails hard for card A → error copy + escape for A.
         mockGrant.mockResolvedValue({ ok: false })
         mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: false }]
-        const { rerender } = render(<EnableAutoBalanceBanner />)
+        const { rerender } = render(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
         await act(async () => {
             fireEvent.click(screen.getByText('Continue'))
         })
         mockLastError = { kind: 'unexpected', message: 'boom' }
-        rerender(<EnableAutoBalanceBanner />)
+        rerender(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
         expect(screen.getByText('Try again')).toBeInTheDocument()
         expect(screen.getByText('Skip for now')).toBeInTheDocument()
 
@@ -235,7 +350,15 @@ describe('EnableAutoBalanceBanner', () => {
             { id: 'card-a', status: 'CANCELED', hasWithdrawApproval: false },
             { id: 'card-b', status: 'ACTIVE', hasWithdrawApproval: false },
         ]
-        rerender(<EnableAutoBalanceBanner />)
+        rerender(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
         expect(screen.getByText('Continue')).toBeInTheDocument()
         expect(screen.queryByText('Try again')).not.toBeInTheDocument()
         expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
@@ -249,7 +372,15 @@ it('allows wallet initialization to retry and exposes Skip if it fails', async (
         mockLastError = { kind: 'unexpected', message: 'Wallet initialization failed' }
         return { ok: false }
     })
-    render(<EnableAutoBalanceBanner />)
+    render(
+        <EnableAutoBalanceBanner
+            presentation="modal"
+            askId="finish-card-setup"
+            onActed={onActed}
+            onDismissed={jest.fn()}
+            onSnoozed={onSnoozed}
+        />
+    )
     const button = screen.getByRole('button', { name: 'Continue' })
     expect(button).toBeEnabled()
     await act(async () => {

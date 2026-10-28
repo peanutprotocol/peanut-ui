@@ -485,6 +485,12 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/avatars/art', handler: () => ({}) },
     // the app reads kill switches on start; empty keeps the built-in defaults
     { method: 'GET', pattern: '/config/kill-switches', handler: () => ({}) },
+    // the attention manager asks on every authed screen; no ranking and no verdicts leave the app's registry in charge
+    {
+        method: 'GET',
+        pattern: '/users/me/attention',
+        handler: () => ({ version: 1, ranking: [], verdicts: {}, nextAsk: null }),
+    },
     {
         method: 'GET',
         pattern: '/users/contacts',

@@ -317,6 +317,7 @@ jest.mock('@/constants/manteca.consts', () => ({
 }))
 
 jest.mock('@/constants/analytics.consts', () => ({
+    ...jest.requireActual('@/constants/analytics.consts'),
     ANALYTICS_EVENTS: {
         DEPOSIT_METHOD_SELECTED: 'deposit_method_selected',
         DEPOSIT_AMOUNT_ENTERED: 'deposit_amount_entered',
