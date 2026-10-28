@@ -22,14 +22,6 @@ export function signupGeoPayload(snapshot: SetupCountrySignals): Snapshot | null
         ...(snapshot.ipCountry && {
             ipProvider: { country: snapshot.ipCountry, provider: 'ipapi' as const, observedAt },
         }),
-        ...(snapshot.storeCountry &&
-            snapshot.storeCountryCollectedAt && {
-                store: {
-                    country: snapshot.storeCountry.countryCode,
-                    source: snapshot.storeCountry.source,
-                    observedAt: snapshot.storeCountryCollectedAt,
-                },
-            }),
         ...((snapshot.deviceLanguage || snapshot.browserLanguages?.length || snapshot.deviceTimezone) && {
             device: {
                 locale: snapshot.deviceLanguage ?? null,
