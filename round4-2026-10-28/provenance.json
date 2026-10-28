@@ -5,7 +5,8 @@
   "notes": [
     "Independent reviewer confirmed fold production sources are unchanged by the dev merge.",
     "Hero and FAQ captures include unshipped preview content; the four landing content files ship separately after the code.",
-    "Motion clips show earlier entrances; updated contextual links are visible in the stills."
+    "Motion clips show earlier entrances; updated contextual links are visible in the stills.",
+    "Final-head proofs show aligned64px desktop footer and current clean content. Final release changes from built runtime are tests and lower DS baseline only. See final-head manifest for capture conditions."
   ],
   "files": [
     {
@@ -258,5 +259,7 @@
       "width": 390,
       "height": 974
     }
-  ]
+  ],
+  "finalReleaseCandidate": "4c43faf58f5764da59c0d4d4a26093c69b1a969c",
+  "finalRuntimeSource": "2d2fc3172162e16841c7d96d2e57cb6780f43247"
 }

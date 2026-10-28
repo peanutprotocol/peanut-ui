@@ -1,0 +1,264 @@
+{
+  "runtimeHead": "2d2fc3172162e16841c7d96d2e57cb6780f43247",
+  "contentPin": "39e6759c3ef507e8cd828373ec987d516c776956",
+  "equivalentFinalHead": "4c43faf58f5764da59c0d4d4a26093c69b1a969c",
+  "results": [
+    {
+      "locale": "en",
+      "width": 390,
+      "route": "/",
+      "file": "style-en-390-footer-context.png",
+      "imgs": [
+        {
+          "src": "/_next/static/media/hand-peace.b6f63df2.svg",
+          "complete": true,
+          "width": 37
+        },
+        {
+          "src": "/_next/static/media/hand-thumbs-up.551d3d70.svg",
+          "complete": true,
+          "width": 206
+        },
+        {
+          "src": "/_next/static/media/hand-middle-finger.75315af8.svg",
+          "complete": true,
+          "width": 16
+        },
+        {
+          "src": "/_next/static/media/hand-waving.81f10315.svg",
+          "complete": true,
+          "width": 58
+        },
+        {
+          "src": "/_next/static/media/logo.a80ce583.svg",
+          "complete": true,
+          "width": 114
+        },
+        {
+          "src": "/_next/static/media/wordmark.647f02a6.svg",
+          "complete": true,
+          "width": 300
+        },
+        {
+          "src": "/_next/static/media/x-logo.98ce5bfb.svg",
+          "complete": true,
+          "width": 24
+        },
+        {
+          "src": "/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fgithub-white.7f0dd16e.png&w=48&q=75",
+          "complete": true,
+          "width": 32
+        },
+        {
+          "src": "/flags/us.svg",
+          "complete": true,
+          "width": 512
+        }
+      ]
+    },
+    {
+      "locale": "en",
+      "width": 1440,
+      "route": "/",
+      "file": "style-en-1440-footer-context.png",
+      "imgs": [
+        {
+          "src": "/_next/static/media/logo.a80ce583.svg",
+          "complete": true,
+          "width": 114
+        },
+        {
+          "src": "/_next/static/media/wordmark.647f02a6.svg",
+          "complete": true,
+          "width": 300
+        },
+        {
+          "src": "/_next/static/media/x-logo.98ce5bfb.svg",
+          "complete": true,
+          "width": 24
+        },
+        {
+          "src": "/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fgithub-white.7f0dd16e.png&w=48&q=75",
+          "complete": true,
+          "width": 32
+        },
+        {
+          "src": "/flags/us.svg",
+          "complete": true,
+          "width": 512
+        },
+        {
+          "src": "/_next/static/media/hand-peace.b6f63df2.svg",
+          "complete": true,
+          "width": 37
+        },
+        {
+          "src": "/_next/static/media/hand-thumbs-up.551d3d70.svg",
+          "complete": true,
+          "width": 206
+        },
+        {
+          "src": "/_next/static/media/hand-middle-finger.75315af8.svg",
+          "complete": true,
+          "width": 16
+        },
+        {
+          "src": "/_next/static/media/hand-waving.81f10315.svg",
+          "complete": true,
+          "width": 58
+        }
+      ]
+    },
+    {
+      "locale": "pt-br",
+      "width": 390,
+      "route": "/pt-br",
+      "file": "style-pt-br-390-footer-context.png",
+      "imgs": [
+        {
+          "src": "/_next/static/media/hand-peace.b6f63df2.svg",
+          "complete": true,
+          "width": 37
+        },
+        {
+          "src": "/_next/static/media/hand-thumbs-up.551d3d70.svg",
+          "complete": true,
+          "width": 206
+        },
+        {
+          "src": "/_next/static/media/hand-middle-finger.75315af8.svg",
+          "complete": true,
+          "width": 16
+        },
+        {
+          "src": "/_next/static/media/hand-waving.81f10315.svg",
+          "complete": true,
+          "width": 58
+        },
+        {
+          "src": "/_next/static/media/logo.a80ce583.svg",
+          "complete": true,
+          "width": 114
+        },
+        {
+          "src": "/_next/static/media/wordmark.647f02a6.svg",
+          "complete": true,
+          "width": 300
+        },
+        {
+          "src": "/_next/static/media/x-logo.98ce5bfb.svg",
+          "complete": true,
+          "width": 24
+        },
+        {
+          "src": "/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fgithub-white.7f0dd16e.png&w=48&q=75",
+          "complete": true,
+          "width": 32
+        },
+        {
+          "src": "/flags/br.svg",
+          "complete": true,
+          "width": 512
+        }
+      ]
+    },
+    {
+      "locale": "card",
+      "width": 390,
+      "route": "/peanut-card",
+      "file": "style-card-390-footer-context.png",
+      "imgs": [
+        {
+          "src": "/_next/static/media/hand-peace.b6f63df2.svg",
+          "complete": true,
+          "width": 37
+        },
+        {
+          "src": "/_next/static/media/hand-thumbs-up.551d3d70.svg",
+          "complete": true,
+          "width": 206
+        },
+        {
+          "src": "/_next/static/media/hand-middle-finger.75315af8.svg",
+          "complete": true,
+          "width": 16
+        },
+        {
+          "src": "/_next/static/media/hand-waving.81f10315.svg",
+          "complete": true,
+          "width": 58
+        },
+        {
+          "src": "/_next/static/media/logo.a80ce583.svg",
+          "complete": true,
+          "width": 114
+        },
+        {
+          "src": "/_next/static/media/wordmark.647f02a6.svg",
+          "complete": true,
+          "width": 300
+        },
+        {
+          "src": "/_next/static/media/x-logo.98ce5bfb.svg",
+          "complete": true,
+          "width": 24
+        },
+        {
+          "src": "/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fgithub-white.7f0dd16e.png&w=48&q=75",
+          "complete": true,
+          "width": 32
+        }
+      ],
+      "captureOnlyConnectivityOverlayHidden": true
+    },
+    {
+      "locale": "card",
+      "width": 1440,
+      "route": "/peanut-card",
+      "file": "style-card-1440-footer-context.png",
+      "imgs": [
+        {
+          "src": "/_next/static/media/logo.a80ce583.svg",
+          "complete": true,
+          "width": 114
+        },
+        {
+          "src": "/_next/static/media/wordmark.647f02a6.svg",
+          "complete": true,
+          "width": 300
+        },
+        {
+          "src": "/_next/static/media/x-logo.98ce5bfb.svg",
+          "complete": true,
+          "width": 24
+        },
+        {
+          "src": "/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fgithub-white.7f0dd16e.png&w=48&q=75",
+          "complete": true,
+          "width": 32
+        },
+        {
+          "src": "/_next/static/media/hand-peace.b6f63df2.svg",
+          "complete": true,
+          "width": 37
+        },
+        {
+          "src": "/_next/static/media/hand-thumbs-up.551d3d70.svg",
+          "complete": true,
+          "width": 206
+        },
+        {
+          "src": "/_next/static/media/hand-middle-finger.75315af8.svg",
+          "complete": true,
+          "width": 16
+        },
+        {
+          "src": "/_next/static/media/hand-waving.81f10315.svg",
+          "complete": true,
+          "width": 58
+        }
+      ],
+      "captureOnlyConnectivityOverlayHidden": true
+    }
+  ]
+}

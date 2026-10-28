@@ -1,0 +1,1375 @@
+{
+  "head": "2d2fc3172162e16841c7d96d2e57cb6780f43247",
+  "origin": "http://localhost:8777",
+  "rows": [
+    {
+      "locale": "en",
+      "width": 320,
+      "status": 200,
+      "overflow": 0,
+      "nav": {
+        "x": 0,
+        "y": 9657.625,
+        "width": 320,
+        "height": 204
+      },
+      "padding": "24px",
+      "footerPadding": "24px",
+      "seoPadding": "24px",
+      "features": [
+        {
+          "text": "US & Europe accounts",
+          "href": "/us-europe-accounts",
+          "rect": {
+            "x": 24,
+            "y": 9723.625,
+            "width": 117.703125,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Request links",
+          "href": "/request-links",
+          "rect": {
+            "x": 172,
+            "y": 9723.625,
+            "width": 70.71875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Self-custody",
+          "href": "/self-custody",
+          "rect": {
+            "x": 24,
+            "y": 9755.625,
+            "width": 66.09375,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Peanut Card",
+          "href": "/peanut-card",
+          "rect": {
+            "x": 172,
+            "y": 9755.625,
+            "width": 65.1875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "QR payments in Argentina",
+          "href": "/qr-payments/argentina",
+          "rect": {
+            "x": 24,
+            "y": 9787.625,
+            "width": 83.21875,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "QR payments in Brazil",
+          "href": "/qr-payments/brazil",
+          "rect": {
+            "x": 172,
+            "y": 9787.625,
+            "width": 115.53125,
+            "height": 14
+          },
+          "hreflang": "en"
+        }
+      ],
+      "localLinks": [
+        {
+          "text": "Argentina",
+          "rect": {
+            "x": 163.140625,
+            "y": 3989.78125,
+            "width": 82.34375,
+            "height": 21
+          },
+          "cueWeight": null
+        },
+        {
+          "text": "Brazil",
+          "rect": {
+            "x": 42.796875,
+            "y": 4015.78125,
+            "width": 47.453125,
+            "height": 21
+          },
+          "cueWeight": null
+        }
+      ],
+      "lead": {
+        "x": 24,
+        "y": 3987.78125,
+        "width": 272,
+        "height": 52
+      }
+    },
+    {
+      "locale": "en",
+      "width": 390,
+      "status": 200,
+      "overflow": 0,
+      "nav": {
+        "x": 0,
+        "y": 8504.265625,
+        "width": 390,
+        "height": 180
+      },
+      "padding": "24px",
+      "footerPadding": "24px",
+      "seoPadding": "24px",
+      "features": [
+        {
+          "text": "US & Europe accounts",
+          "href": "/us-europe-accounts",
+          "rect": {
+            "x": 24,
+            "y": 8570.265625,
+            "width": 117.703125,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Request links",
+          "href": "/request-links",
+          "rect": {
+            "x": 207,
+            "y": 8570.265625,
+            "width": 70.71875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Self-custody",
+          "href": "/self-custody",
+          "rect": {
+            "x": 24,
+            "y": 8602.265625,
+            "width": 66.09375,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Peanut Card",
+          "href": "/peanut-card",
+          "rect": {
+            "x": 207,
+            "y": 8602.265625,
+            "width": 65.1875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "QR payments in Argentina",
+          "href": "/qr-payments/argentina",
+          "rect": {
+            "x": 24,
+            "y": 8634.265625,
+            "width": 137.421875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "QR payments in Brazil",
+          "href": "/qr-payments/brazil",
+          "rect": {
+            "x": 207,
+            "y": 8634.265625,
+            "width": 115.53125,
+            "height": 14
+          },
+          "hreflang": "en"
+        }
+      ],
+      "localLinks": [
+        {
+          "text": "Argentina",
+          "rect": {
+            "x": 163.140625,
+            "y": 3963.84375,
+            "width": 82.34375,
+            "height": 21
+          },
+          "cueWeight": null
+        },
+        {
+          "text": "Brazil",
+          "rect": {
+            "x": 301.703125,
+            "y": 3963.84375,
+            "width": 47.453125,
+            "height": 21
+          },
+          "cueWeight": null
+        }
+      ],
+      "lead": {
+        "x": 24,
+        "y": 3961.84375,
+        "width": 342,
+        "height": 52
+      }
+    },
+    {
+      "locale": "en",
+      "width": 1440,
+      "status": 200,
+      "overflow": 0,
+      "nav": {
+        "x": 0,
+        "y": 7092.875,
+        "width": 1440,
+        "height": 148
+      },
+      "padding": "64px",
+      "footerPadding": "64px",
+      "seoPadding": "64px",
+      "features": [
+        {
+          "text": "US & Europe accounts",
+          "href": "/us-europe-accounts",
+          "rect": {
+            "x": 64,
+            "y": 7158.875,
+            "width": 117.703125,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Request links",
+          "href": "/request-links",
+          "rect": {
+            "x": 509.328125,
+            "y": 7158.875,
+            "width": 70.71875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Self-custody",
+          "href": "/self-custody",
+          "rect": {
+            "x": 954.65625,
+            "y": 7158.875,
+            "width": 66.09375,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Peanut Card",
+          "href": "/peanut-card",
+          "rect": {
+            "x": 64,
+            "y": 7190.875,
+            "width": 65.1875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "QR payments in Argentina",
+          "href": "/qr-payments/argentina",
+          "rect": {
+            "x": 509.328125,
+            "y": 7190.875,
+            "width": 137.421875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "QR payments in Brazil",
+          "href": "/qr-payments/brazil",
+          "rect": {
+            "x": 954.65625,
+            "y": 7190.875,
+            "width": 115.53125,
+            "height": 14
+          },
+          "hreflang": "en"
+        }
+      ],
+      "localLinks": [
+        {
+          "text": "Argentina",
+          "rect": {
+            "x": 883.140625,
+            "y": 3777.609375,
+            "width": 82.34375,
+            "height": 21
+          },
+          "cueWeight": null
+        },
+        {
+          "text": "Brazil",
+          "rect": {
+            "x": 1021.703125,
+            "y": 3777.609375,
+            "width": 47.453125,
+            "height": 21
+          },
+          "cueWeight": null
+        }
+      ],
+      "lead": {
+        "x": 744,
+        "y": 3775.609375,
+        "width": 616,
+        "height": 26
+      }
+    },
+    {
+      "locale": "es-419",
+      "width": 320,
+      "status": 200,
+      "overflow": 0,
+      "nav": {
+        "x": 0,
+        "y": 8924.421875,
+        "width": 320,
+        "height": 252
+      },
+      "padding": "24px",
+      "footerPadding": "24px",
+      "seoPadding": "24px",
+      "features": [
+        {
+          "text": "Cuentas de EE. UU. y Europa (En inglés)",
+          "href": "/us-europe-accounts",
+          "rect": {
+            "x": 24,
+            "y": 8990.421875,
+            "width": 110.578125,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Links de cobro (En inglés)",
+          "href": "/request-links",
+          "rect": {
+            "x": 172,
+            "y": 8990.421875,
+            "width": 98.34375,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Autocustodia (En inglés)",
+          "href": "/self-custody",
+          "rect": {
+            "x": 24,
+            "y": 9046.421875,
+            "width": 90.734375,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Tarjeta Peanut (En inglés)",
+          "href": "/peanut-card",
+          "rect": {
+            "x": 172,
+            "y": 9046.421875,
+            "width": 96.5625,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagos QR en Argentina (En inglés)",
+          "href": "/qr-payments/argentina",
+          "rect": {
+            "x": 24,
+            "y": 9102.421875,
+            "width": 122.015625,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagos QR en Brasil (En inglés)",
+          "href": "/qr-payments/brazil",
+          "rect": {
+            "x": 172,
+            "y": 9102.421875,
+            "width": 120.765625,
+            "height": 38
+          },
+          "hreflang": "en"
+        }
+      ],
+      "localLinks": [
+        {
+          "text": "Argentina (En inglés)",
+          "rect": {
+            "x": 24,
+            "y": 4030.765625,
+            "width": 251,
+            "height": 47
+          },
+          "cueWeight": "500"
+        },
+        {
+          "text": "Brasil (En inglés)",
+          "rect": {
+            "x": 128.1875,
+            "y": 4056.765625,
+            "width": 118.5,
+            "height": 21
+          },
+          "cueWeight": "500"
+        }
+      ],
+      "lead": {
+        "x": 24,
+        "y": 4028.765625,
+        "width": 272,
+        "height": 78
+      }
+    },
+    {
+      "locale": "es-419",
+      "width": 390,
+      "status": 200,
+      "overflow": 0,
+      "nav": {
+        "x": 0,
+        "y": 8684.265625,
+        "width": 390,
+        "height": 228
+      },
+      "padding": "24px",
+      "footerPadding": "24px",
+      "seoPadding": "24px",
+      "features": [
+        {
+          "text": "Cuentas de EE. UU. y Europa (En inglés)",
+          "href": "/us-europe-accounts",
+          "rect": {
+            "x": 24,
+            "y": 8750.265625,
+            "width": 151.015625,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Links de cobro (En inglés)",
+          "href": "/request-links",
+          "rect": {
+            "x": 207,
+            "y": 8750.265625,
+            "width": 137.03125,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Autocustodia (En inglés)",
+          "href": "/self-custody",
+          "rect": {
+            "x": 24,
+            "y": 8806.265625,
+            "width": 129.421875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Tarjeta Peanut (En inglés)",
+          "href": "/peanut-card",
+          "rect": {
+            "x": 207,
+            "y": 8806.265625,
+            "width": 135.25,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagos QR en Argentina (En inglés)",
+          "href": "/qr-payments/argentina",
+          "rect": {
+            "x": 24,
+            "y": 8838.265625,
+            "width": 142.53125,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagos QR en Brasil (En inglés)",
+          "href": "/qr-payments/brazil",
+          "rect": {
+            "x": 207,
+            "y": 8838.265625,
+            "width": 120.765625,
+            "height": 38
+          },
+          "hreflang": "en"
+        }
+      ],
+      "localLinks": [
+        {
+          "text": "Argentina (En inglés)",
+          "rect": {
+            "x": 168.3125,
+            "y": 4047.84375,
+            "width": 152.90625,
+            "height": 21
+          },
+          "cueWeight": "500"
+        },
+        {
+          "text": "Brasil (En inglés)",
+          "rect": {
+            "x": 47.96875,
+            "y": 4073.84375,
+            "width": 118.5,
+            "height": 21
+          },
+          "cueWeight": "500"
+        }
+      ],
+      "lead": {
+        "x": 24,
+        "y": 4045.84375,
+        "width": 342,
+        "height": 52
+      }
+    },
+    {
+      "locale": "es-419",
+      "width": 1440,
+      "status": 200,
+      "overflow": 0,
+      "nav": {
+        "x": 0,
+        "y": 7243.25,
+        "width": 1440,
+        "height": 148
+      },
+      "padding": "64px",
+      "footerPadding": "64px",
+      "seoPadding": "64px",
+      "features": [
+        {
+          "text": "Cuentas de EE. UU. y Europa (En inglés)",
+          "href": "/us-europe-accounts",
+          "rect": {
+            "x": 64,
+            "y": 7309.25,
+            "width": 210.21875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Links de cobro (En inglés)",
+          "href": "/request-links",
+          "rect": {
+            "x": 509.328125,
+            "y": 7309.25,
+            "width": 137.03125,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Autocustodia (En inglés)",
+          "href": "/self-custody",
+          "rect": {
+            "x": 954.65625,
+            "y": 7309.25,
+            "width": 129.421875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Tarjeta Peanut (En inglés)",
+          "href": "/peanut-card",
+          "rect": {
+            "x": 64,
+            "y": 7341.25,
+            "width": 135.25,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagos QR en Argentina (En inglés)",
+          "href": "/qr-payments/argentina",
+          "rect": {
+            "x": 509.328125,
+            "y": 7341.25,
+            "width": 181.21875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagos QR en Brasil (En inglés)",
+          "href": "/qr-payments/brazil",
+          "rect": {
+            "x": 954.65625,
+            "y": 7341.25,
+            "width": 159.453125,
+            "height": 14
+          },
+          "hreflang": "en"
+        }
+      ],
+      "localLinks": [
+        {
+          "text": "Argentina (En inglés)",
+          "rect": {
+            "x": 888.3125,
+            "y": 3839.984375,
+            "width": 152.90625,
+            "height": 21
+          },
+          "cueWeight": "500"
+        },
+        {
+          "text": "Brasil (En inglés)",
+          "rect": {
+            "x": 1102.609375,
+            "y": 3839.984375,
+            "width": 118.5,
+            "height": 21
+          },
+          "cueWeight": "500"
+        }
+      ],
+      "lead": {
+        "x": 744,
+        "y": 3837.984375,
+        "width": 616,
+        "height": 26
+      }
+    },
+    {
+      "locale": "es-ar",
+      "width": 320,
+      "status": 200,
+      "overflow": 0,
+      "nav": {
+        "x": 0,
+        "y": 8924.421875,
+        "width": 320,
+        "height": 252
+      },
+      "padding": "24px",
+      "footerPadding": "24px",
+      "seoPadding": "24px",
+      "features": [
+        {
+          "text": "Cuentas de EE. UU. y Europa (En inglés)",
+          "href": "/us-europe-accounts",
+          "rect": {
+            "x": 24,
+            "y": 8990.421875,
+            "width": 110.578125,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Links de cobro (En inglés)",
+          "href": "/request-links",
+          "rect": {
+            "x": 172,
+            "y": 8990.421875,
+            "width": 98.34375,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Autocustodia (En inglés)",
+          "href": "/self-custody",
+          "rect": {
+            "x": 24,
+            "y": 9046.421875,
+            "width": 90.734375,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Tarjeta Peanut (En inglés)",
+          "href": "/peanut-card",
+          "rect": {
+            "x": 172,
+            "y": 9046.421875,
+            "width": 96.5625,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagos QR en Argentina (En inglés)",
+          "href": "/qr-payments/argentina",
+          "rect": {
+            "x": 24,
+            "y": 9102.421875,
+            "width": 122.015625,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagos QR en Brasil (En inglés)",
+          "href": "/qr-payments/brazil",
+          "rect": {
+            "x": 172,
+            "y": 9102.421875,
+            "width": 120.765625,
+            "height": 38
+          },
+          "hreflang": "en"
+        }
+      ],
+      "localLinks": [
+        {
+          "text": "Argentina (En inglés)",
+          "rect": {
+            "x": 24,
+            "y": 4030.765625,
+            "width": 251,
+            "height": 47
+          },
+          "cueWeight": "500"
+        },
+        {
+          "text": "Brasil (En inglés)",
+          "rect": {
+            "x": 128.1875,
+            "y": 4056.765625,
+            "width": 118.5,
+            "height": 21
+          },
+          "cueWeight": "500"
+        }
+      ],
+      "lead": {
+        "x": 24,
+        "y": 4028.765625,
+        "width": 272,
+        "height": 78
+      }
+    },
+    {
+      "locale": "es-ar",
+      "width": 390,
+      "status": 200,
+      "overflow": 0,
+      "nav": {
+        "x": 0,
+        "y": 8684.265625,
+        "width": 390,
+        "height": 228
+      },
+      "padding": "24px",
+      "footerPadding": "24px",
+      "seoPadding": "24px",
+      "features": [
+        {
+          "text": "Cuentas de EE. UU. y Europa (En inglés)",
+          "href": "/us-europe-accounts",
+          "rect": {
+            "x": 24,
+            "y": 8750.265625,
+            "width": 151.015625,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Links de cobro (En inglés)",
+          "href": "/request-links",
+          "rect": {
+            "x": 207,
+            "y": 8750.265625,
+            "width": 137.03125,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Autocustodia (En inglés)",
+          "href": "/self-custody",
+          "rect": {
+            "x": 24,
+            "y": 8806.265625,
+            "width": 129.421875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Tarjeta Peanut (En inglés)",
+          "href": "/peanut-card",
+          "rect": {
+            "x": 207,
+            "y": 8806.265625,
+            "width": 135.25,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagos QR en Argentina (En inglés)",
+          "href": "/qr-payments/argentina",
+          "rect": {
+            "x": 24,
+            "y": 8838.265625,
+            "width": 142.53125,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagos QR en Brasil (En inglés)",
+          "href": "/qr-payments/brazil",
+          "rect": {
+            "x": 207,
+            "y": 8838.265625,
+            "width": 120.765625,
+            "height": 38
+          },
+          "hreflang": "en"
+        }
+      ],
+      "localLinks": [
+        {
+          "text": "Argentina (En inglés)",
+          "rect": {
+            "x": 168.3125,
+            "y": 4047.84375,
+            "width": 152.90625,
+            "height": 21
+          },
+          "cueWeight": "500"
+        },
+        {
+          "text": "Brasil (En inglés)",
+          "rect": {
+            "x": 47.96875,
+            "y": 4073.84375,
+            "width": 118.5,
+            "height": 21
+          },
+          "cueWeight": "500"
+        }
+      ],
+      "lead": {
+        "x": 24,
+        "y": 4045.84375,
+        "width": 342,
+        "height": 52
+      }
+    },
+    {
+      "locale": "es-ar",
+      "width": 1440,
+      "status": 200,
+      "overflow": 0,
+      "nav": {
+        "x": 0,
+        "y": 7243.25,
+        "width": 1440,
+        "height": 148
+      },
+      "padding": "64px",
+      "footerPadding": "64px",
+      "seoPadding": "64px",
+      "features": [
+        {
+          "text": "Cuentas de EE. UU. y Europa (En inglés)",
+          "href": "/us-europe-accounts",
+          "rect": {
+            "x": 64,
+            "y": 7309.25,
+            "width": 210.21875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Links de cobro (En inglés)",
+          "href": "/request-links",
+          "rect": {
+            "x": 509.328125,
+            "y": 7309.25,
+            "width": 137.03125,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Autocustodia (En inglés)",
+          "href": "/self-custody",
+          "rect": {
+            "x": 954.65625,
+            "y": 7309.25,
+            "width": 129.421875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Tarjeta Peanut (En inglés)",
+          "href": "/peanut-card",
+          "rect": {
+            "x": 64,
+            "y": 7341.25,
+            "width": 135.25,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagos QR en Argentina (En inglés)",
+          "href": "/qr-payments/argentina",
+          "rect": {
+            "x": 509.328125,
+            "y": 7341.25,
+            "width": 181.21875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagos QR en Brasil (En inglés)",
+          "href": "/qr-payments/brazil",
+          "rect": {
+            "x": 954.65625,
+            "y": 7341.25,
+            "width": 159.453125,
+            "height": 14
+          },
+          "hreflang": "en"
+        }
+      ],
+      "localLinks": [
+        {
+          "text": "Argentina (En inglés)",
+          "rect": {
+            "x": 888.3125,
+            "y": 3839.984375,
+            "width": 152.90625,
+            "height": 21
+          },
+          "cueWeight": "500"
+        },
+        {
+          "text": "Brasil (En inglés)",
+          "rect": {
+            "x": 1102.609375,
+            "y": 3839.984375,
+            "width": 118.5,
+            "height": 21
+          },
+          "cueWeight": "500"
+        }
+      ],
+      "lead": {
+        "x": 744,
+        "y": 3837.984375,
+        "width": 616,
+        "height": 26
+      }
+    },
+    {
+      "locale": "pt-br",
+      "width": 320,
+      "status": 200,
+      "overflow": 0,
+      "nav": {
+        "x": 0,
+        "y": 9016.421875,
+        "width": 320,
+        "height": 252
+      },
+      "padding": "24px",
+      "footerPadding": "24px",
+      "seoPadding": "24px",
+      "features": [
+        {
+          "text": "Contas dos EUA e da Europa (Em inglês)",
+          "href": "/us-europe-accounts",
+          "rect": {
+            "x": 24,
+            "y": 9082.421875,
+            "width": 110.84375,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Links de cobrança (Em inglês)",
+          "href": "/request-links",
+          "rect": {
+            "x": 172,
+            "y": 9082.421875,
+            "width": 120.984375,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Autocustódia (Em inglês)",
+          "href": "/self-custody",
+          "rect": {
+            "x": 24,
+            "y": 9138.421875,
+            "width": 94.40625,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Cartão Peanut (Em inglês)",
+          "href": "/peanut-card",
+          "rect": {
+            "x": 172,
+            "y": 9138.421875,
+            "width": 100.015625,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagamentos QR na Argentina (Em inglês)",
+          "href": "/qr-payments/argentina",
+          "rect": {
+            "x": 24,
+            "y": 9194.421875,
+            "width": 114.15625,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagamentos QR no Brasil (Em inglês)",
+          "href": "/qr-payments/brazil",
+          "rect": {
+            "x": 172,
+            "y": 9194.421875,
+            "width": 101.796875,
+            "height": 38
+          },
+          "hreflang": "en"
+        }
+      ],
+      "localLinks": [
+        {
+          "text": "Argentina (Em inglês)",
+          "rect": {
+            "x": 24,
+            "y": 4054.765625,
+            "width": 255.46875,
+            "height": 47
+          },
+          "cueWeight": "500"
+        },
+        {
+          "text": "Brasil (Em inglês)",
+          "rect": {
+            "x": 128.84375,
+            "y": 4080.765625,
+            "width": 122.796875,
+            "height": 21
+          },
+          "cueWeight": "500"
+        }
+      ],
+      "lead": {
+        "x": 24,
+        "y": 4052.765625,
+        "width": 272,
+        "height": 78
+      }
+    },
+    {
+      "locale": "pt-br",
+      "width": 390,
+      "status": 200,
+      "overflow": 0,
+      "nav": {
+        "x": 0,
+        "y": 8764.265625,
+        "width": 390,
+        "height": 228
+      },
+      "padding": "24px",
+      "footerPadding": "24px",
+      "seoPadding": "24px",
+      "features": [
+        {
+          "text": "Contas dos EUA e da Europa (Em inglês)",
+          "href": "/us-europe-accounts",
+          "rect": {
+            "x": 24,
+            "y": 8830.265625,
+            "width": 151.265625,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Links de cobrança (Em inglês)",
+          "href": "/request-links",
+          "rect": {
+            "x": 207,
+            "y": 8830.265625,
+            "width": 120.984375,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Autocustódia (Em inglês)",
+          "href": "/self-custody",
+          "rect": {
+            "x": 24,
+            "y": 8886.265625,
+            "width": 133.09375,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Cartão Peanut (Em inglês)",
+          "href": "/peanut-card",
+          "rect": {
+            "x": 207,
+            "y": 8886.265625,
+            "width": 138.703125,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagamentos QR na Argentina (Em inglês)",
+          "href": "/qr-payments/argentina",
+          "rect": {
+            "x": 24,
+            "y": 8918.265625,
+            "width": 155.671875,
+            "height": 38
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagamentos QR no Brasil (Em inglês)",
+          "href": "/qr-payments/brazil",
+          "rect": {
+            "x": 207,
+            "y": 8918.265625,
+            "width": 158.421875,
+            "height": 38
+          },
+          "hreflang": "en"
+        }
+      ],
+      "localLinks": [
+        {
+          "text": "Argentina (Em inglês)",
+          "rect": {
+            "x": 168.46875,
+            "y": 4077.84375,
+            "width": 157.203125,
+            "height": 21
+          },
+          "cueWeight": "500"
+        },
+        {
+          "text": "Brasil (Em inglês)",
+          "rect": {
+            "x": 48.609375,
+            "y": 4103.84375,
+            "width": 122.796875,
+            "height": 21
+          },
+          "cueWeight": "500"
+        }
+      ],
+      "lead": {
+        "x": 24,
+        "y": 4075.84375,
+        "width": 342,
+        "height": 78
+      }
+    },
+    {
+      "locale": "pt-br",
+      "width": 1440,
+      "status": 200,
+      "overflow": 0,
+      "nav": {
+        "x": 0,
+        "y": 7243.25,
+        "width": 1440,
+        "height": 148
+      },
+      "padding": "64px",
+      "footerPadding": "64px",
+      "seoPadding": "64px",
+      "features": [
+        {
+          "text": "Contas dos EUA e da Europa (Em inglês)",
+          "href": "/us-europe-accounts",
+          "rect": {
+            "x": 64,
+            "y": 7309.25,
+            "width": 214.140625,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Links de cobrança (Em inglês)",
+          "href": "/request-links",
+          "rect": {
+            "x": 509.328125,
+            "y": 7309.25,
+            "width": 159.671875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Autocustódia (Em inglês)",
+          "href": "/self-custody",
+          "rect": {
+            "x": 954.65625,
+            "y": 7309.25,
+            "width": 133.09375,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Cartão Peanut (Em inglês)",
+          "href": "/peanut-card",
+          "rect": {
+            "x": 64,
+            "y": 7341.25,
+            "width": 138.703125,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagamentos QR na Argentina (Em inglês)",
+          "href": "/qr-payments/argentina",
+          "rect": {
+            "x": 509.328125,
+            "y": 7341.25,
+            "width": 218.546875,
+            "height": 14
+          },
+          "hreflang": "en"
+        },
+        {
+          "text": "Pagamentos QR no Brasil (Em inglês)",
+          "href": "/qr-payments/brazil",
+          "rect": {
+            "x": 954.65625,
+            "y": 7341.25,
+            "width": 197.109375,
+            "height": 14
+          },
+          "hreflang": "en"
+        }
+      ],
+      "localLinks": [
+        {
+          "text": "Argentina (Em inglês)",
+          "rect": {
+            "x": 888.46875,
+            "y": 3856.984375,
+            "width": 157.203125,
+            "height": 21
+          },
+          "cueWeight": "500"
+        },
+        {
+          "text": "Brasil (Em inglês)",
+          "rect": {
+            "x": 1107.71875,
+            "y": 3856.984375,
+            "width": 122.796875,
+            "height": 21
+          },
+          "cueWeight": "500"
+        }
+      ],
+      "lead": {
+        "x": 744,
+        "y": 3854.984375,
+        "width": 616,
+        "height": 52
+      }
+    },
+    {
+      "route": "/peanut-card",
+      "width": 320,
+      "footerPadding": "24px",
+      "featuresPadding": "24px",
+      "hasDirectory": false,
+      "overflow": 0,
+      "links": 6
+    },
+    {
+      "route": "/peanut-card",
+      "width": 390,
+      "footerPadding": "24px",
+      "featuresPadding": "24px",
+      "hasDirectory": false,
+      "overflow": 0,
+      "links": 6
+    },
+    {
+      "route": "/peanut-card",
+      "width": 1440,
+      "footerPadding": "64px",
+      "featuresPadding": "64px",
+      "hasDirectory": false,
+      "overflow": 0,
+      "links": 6
+    }
+  ],
+  "personaActive": {
+    "opacity": "1",
+    "active": true,
+    "enabled": true
+  },
+  "linkActive": {
+    "color": "rgba(255, 255, 255, 0.6)",
+    "active": true
+  },
+  "errors": []
+}
