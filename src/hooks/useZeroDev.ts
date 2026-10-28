@@ -411,7 +411,8 @@ export const useZeroDev = () => {
                     })
                     zeroDevFlowActions.setIsSendingUserOp(false)
                     if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
-                    logoutUser()
+                    // this device's key is stale; the account's other sessions are fine
+                    logoutUser({ skipBackendCall: true })
                     throw createStaleSessionError(error)
                 }
 

@@ -433,7 +433,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     /**
      * Logs out the user
-     * @param options.skipBackendCall - If true, skips the backend logout call (useful when backend is down)
+     * @param options.skipBackendCall - If true, skips the backend logout call, so the account's
+     * sessions on other devices survive (backend down, or a forced re-auth about this device's key)
      */
     const logoutUser = useCallback(
         async (options?: { skipBackendCall?: boolean }) => {

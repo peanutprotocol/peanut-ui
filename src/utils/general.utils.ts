@@ -787,6 +787,8 @@ export const endIntentionalLogout = () => {
     intentionalLogout = false
 }
 
+export const isIntentionalLogout = () => intentionalLogout
+
 /**
  * Why a post-auth destination was stored. `deep-link` is an intent of the
  * person who will authenticate — they asked for that page and could not have
