@@ -413,7 +413,16 @@
                 "cardRestrictionNote": "Heads up: the card isn't available for residents of this country.",
                 "bankingRestrictionNote": "Heads up: bank transfers aren't available for residents of this country.",
                 "save": "Save",
-                "saveAndReverify": "Submit documents"
+                "saveAndReverify": "Submit documents",
+                "lostTitle": "You'll lose some services",
+                "lostBody": "{country} doesn't allow {services}. They stop once we approve your move.",
+                "saveAnyway": "Move anyway",
+                "lost": {
+                    "card": "the Peanut card",
+                    "bank": "bank accounts",
+                    "local": "local bank transfers",
+                    "qr": "QR payments"
+                }
             },
             "degraded": {
                 "title": "Verification is temporarily down",
