@@ -4056,7 +4056,7 @@
             "verifyTitle": "Verifique.",
             "verifyBody": "Uma verificação de identidade, mais os termos do titular.",
             "spendTitle": "Pague.",
-            "spendBody": "Aprovado? Adicione saldo e pague."
+            "spendBody": "Tenha USD 10 no saldo, peça e pague."
         },
         "marquee": {
             "peanutCard": "PEANUT CARD",
@@ -4081,11 +4081,11 @@
             },
             "q5": {
                 "question": "Como consigo um cartão?",
-                "answer": "Entre na sua conta, conclua a verificação e aceite os termos do titular. Sua solicitação está sujeita à aprovação."
+                "answer": "Entre na sua conta, conclua a verificação, tenha pelo menos USD 10 no seu saldo do Peanut e aceite os termos do titular. Sua solicitação está sujeita à aprovação."
             },
             "q6": {
-                "question": "Preciso depositar antes de pedir o cartão?",
-                "answer": "Não. Você pode pedir o cartão antes de adicionar dinheiro. Adicione saldo quando o cartão estiver pronto para pagar."
+                "question": "Preciso ter saldo para pedir o cartão?",
+                "answer": "Sim. Para pedir seu primeiro cartão, você precisa de pelo menos USD 10 no seu saldo do Peanut. Não é uma taxa: o dinheiro continua sendo seu para gastar com o cartão."
             },
             "q7": {
                 "question": "Há tarifas?",
