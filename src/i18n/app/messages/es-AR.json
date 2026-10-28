@@ -471,6 +471,22 @@
             "signUp": "Registrate",
             "recoverWallet": "¿Necesitás recuperar la cuenta de Peanut?"
         },
+        "loginRecovery": {
+            "steps": {
+                "ios": {
+                    "sameAccount": "Iniciá sesión en la cuenta de Apple de ese teléfono, con Contraseñas de iCloud activadas.",
+                    "thatPhone": "O iniciá sesión en ese teléfono."
+                },
+                "android": {
+                    "sameAccount": "Iniciá sesión en la cuenta de Google de ese teléfono.",
+                    "thatPhone": "O iniciá sesión en ese teléfono."
+                },
+                "web": {
+                    "thatPhone": "Iniciá sesión en el teléfono donde creaste Peanut.",
+                    "sameAccount": "O iniciá sesión en su cuenta de Apple o Google en este navegador."
+                }
+            }
+        },
         "waitlist": {
             "loginCanceled": "El inicio de sesión fue cancelado. Intentalo de nuevo.",
             "noPasskey": "No se encontró ninguna passkey. Primero creá una billetera."

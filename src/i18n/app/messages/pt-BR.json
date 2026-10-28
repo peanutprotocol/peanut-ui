@@ -813,6 +813,25 @@
             "signUp": "Criar conta",
             "recoverWallet": "Precisa recuperar uma conta Peanut?"
         },
+        "loginRecovery": {
+            "title": "Sua passkey pode estar em outro celular",
+            "description": "O Peanut faz seu login com a passkey salva quando você criou sua conta.",
+            "steps": {
+                "ios": {
+                    "sameAccount": "Entre na Conta Apple desse celular, com as Senhas do iCloud ativadas.",
+                    "thatPhone": "Ou entre nesse celular."
+                },
+                "android": {
+                    "sameAccount": "Entre na conta do Google desse celular.",
+                    "thatPhone": "Ou entre nesse celular."
+                },
+                "web": {
+                    "thatPhone": "Entre no celular onde você criou o Peanut.",
+                    "sameAccount": "Ou entre na Conta Apple ou Google dele neste navegador."
+                }
+            },
+            "signUp": "Não tenho conta, criar uma"
+        },
         "waitlist": {
             "loginCanceled": "O login foi cancelado. Tente de novo.",
             "noPasskey": "Nenhuma passkey encontrada. Primeiro crie uma carteira.",
