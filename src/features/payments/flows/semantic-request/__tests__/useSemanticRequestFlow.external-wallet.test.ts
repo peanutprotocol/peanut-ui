@@ -37,8 +37,6 @@ const ctx = {
     isAmountFromUrl: false,
     isTokenFromUrl: false,
     isChainFromUrl: false,
-    urlToken: null as { symbol: string; address: string; chainId: string } | null,
-    isTokenDenominated: false,
     attachment: {},
     setAttachment: jest.fn(),
     charge: originalCharge as typeof originalCharge | null,

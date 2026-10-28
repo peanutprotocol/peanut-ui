@@ -49,7 +49,9 @@ import {
     type TokenOption,
 } from './TokenSelector.utils'
 
-// outside withdraw, the selector offers the popular tokens: USDC, USDT and the native token
+// outside withdraw, the selector offers the popular tokens: USDC, USDT and the
+// native token. A request payment drops the native token: requests are paid in
+// USDC or USDT only (TASK-23850)
 const POPULAR_SYMBOLS = ['USDC', 'USDT']
 // the network drawer gets a search field only when the list is long
 const NETWORK_SEARCH_MIN = 7
@@ -116,13 +118,15 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
                 !!RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN[chainId]?.includes(token.symbol.toUpperCase()) ||
                 isFeeFreeRoute(chainId, token.address)
         } else {
+            const offersNative = viewType !== 'req_pay'
             chainIds = unique(TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS)
             isAllowed = (_chainId, token) =>
-                POPULAR_SYMBOLS.includes(token.symbol.toUpperCase()) || isNativeCurrency(token.address)
+                POPULAR_SYMBOLS.includes(token.symbol.toUpperCase()) ||
+                (offersNative && isNativeCurrency(token.address))
         }
         if (addressFamily) chainIds = chainIds.filter((chainId) => addressFamilyForChainId(chainId) === addressFamily)
         return buildTokenOptions(chains, chainIds, isAllowed)
-    }, [supportedChainsAndTokens, isLocked, restrictToRhino, addressFamily])
+    }, [supportedChainsAndTokens, isLocked, restrictToRhino, addressFamily, viewType])
 
     const current = useMemo(
         () => findSelection(options, selectedChainID, selectedTokenAddress),

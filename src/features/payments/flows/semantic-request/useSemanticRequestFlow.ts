@@ -28,13 +28,14 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useTranslations } from 'next-intl'
-import { areEvmAddressesEqual, isStableCoin, floorFixed } from '@/utils/general.utils'
+import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 import { chargesApi } from '@/services/charges'
 import { toApiAmount } from '@/components/Request/link/requestCurrency'
 import { isPriceFreshForConversion } from '@/utils/token-price.utils'
+import { isUnpayableRequestCharge } from '@/utils/request-token.utils'
 
 export function useSemanticRequestFlow() {
     const t = useTranslations('payment')
@@ -52,8 +53,6 @@ export function useSemanticRequestFlow() {
         isAmountFromUrl,
         isTokenFromUrl,
         isChainFromUrl,
-        urlToken,
-        isTokenDenominated,
         attachment,
         setAttachment,
         charge,
@@ -113,28 +112,10 @@ export function useSemanticRequestFlow() {
 
     const isLoggedIn = !!user?.user?.userId
 
-    // Prices come from the selected token query, never from the static catalog.
-    const tokenUsdPrice =
-        selectedTokenData &&
-        selectedTokenData.address.toLowerCase() === selectedTokenAddress.toLowerCase() &&
-        selectedTokenData?.chainId === selectedChainID &&
-        Number.isFinite(selectedTokenData.price) &&
-        selectedTokenData.price > 0
-            ? selectedTokenData.price
-            : undefined
-    const currentUsdAmount = isTokenDenominated
-        ? tokenUsdPrice &&
-          Number.isFinite(Number(amount)) &&
-          Number(amount) > 0 &&
-          Number.isFinite(Number(amount) * tokenUsdPrice)
-            ? (Number(amount) * tokenUsdPrice).toString()
-            : ''
-        : amount
-
-    // Recalculate preset amounts too, including when the price arrives after mount.
+    // The amount is always USD: a request is paid in USDC or USDT only (TASK-23850).
     useEffect(() => {
-        if (!charge) setUsdAmount(currentUsdAmount)
-    }, [charge, currentUsdAmount, setUsdAmount])
+        if (!charge) setUsdAmount(amount)
+    }, [charge, amount, setUsdAmount])
 
     // clear error
     const clearError = useCallback(() => {
@@ -175,9 +156,9 @@ export function useSemanticRequestFlow() {
 
     // check if has sufficient balance for current amount
     const hasEnoughBalance = useMemo(() => {
-        if (!currentUsdAmount) return false
-        return hasSufficientBalance(currentUsdAmount)
-    }, [currentUsdAmount, hasSufficientBalance])
+        if (!amount) return false
+        return hasSufficientBalance(amount)
+    }, [amount, hasSufficientBalance])
 
     // check if should show insufficient balance error
     // gate on !isFetchingSpendableBalance (NOT isFetchingBalance) so we wait
@@ -189,7 +170,7 @@ export function useSemanticRequestFlow() {
     const isInsufficientBalance = useMemo(() => {
         return (
             isLoggedIn &&
-            !!currentUsdAmount &&
+            !!amount &&
             !hasEnoughBalance &&
             !isFetchingSpendableBalance &&
             !isLoading &&
@@ -200,7 +181,7 @@ export function useSemanticRequestFlow() {
         )
     }, [
         isLoggedIn,
-        currentUsdAmount,
+        amount,
         hasEnoughBalance,
         isFetchingSpendableBalance,
         isLoading,
@@ -301,27 +282,14 @@ export function useSemanticRequestFlow() {
                     ) {
                         throw new Error('Token price is unavailable. Please try again.')
                     }
-                    const paymentUsdAmount = isTokenDenominated ? Number(amount) * priceData.price : Number(amount)
+                    // USDC and USDT only (TASK-23850): the token amount is the USD amount
+                    const paymentUsdAmount = Number(amount)
                     if (!Number.isFinite(paymentUsdAmount) || paymentUsdAmount <= 0) {
                         throw new Error('Token price is unavailable. Please try again.')
                     }
-                    let requestedTokenAmount = amount
-                    if (!isTokenDenominated && !isStableCoin(priceData.symbol)) {
-                        if (!isPriceFreshForConversion(priceData)) {
-                            throw new Error('Token price is unavailable. Please try again.')
-                        }
-                        const convertedAmount = Number(amount) / priceData.price
-                        if (!Number.isFinite(convertedAmount) || convertedAmount <= 0) {
-                            throw new Error('Token amount is invalid. Please try again.')
-                        }
-                        requestedTokenAmount = floorFixed(convertedAmount, priceData.decimals)
-                        if (Number(requestedTokenAmount) <= 0) {
-                            throw new Error('Amount is too small for this token.')
-                        }
-                    }
                     // only create new charge if we don't have one already
                     chargeResult = await createCharge({
-                        tokenAmount: requestedTokenAmount,
+                        tokenAmount: amount,
                         tokenAddress: selectedTokenAddress as Address,
                         chainId: selectedChainID,
                         tokenSymbol: priceData.symbol,
@@ -412,7 +380,6 @@ export function useSemanticRequestFlow() {
         [
             recipient,
             amount,
-            isTokenDenominated,
             attachment,
             walletAddress,
             selectedTokenAddress,
@@ -492,6 +459,10 @@ export function useSemanticRequestFlow() {
                         setCurrentView('RECEIPT')
                         return
                     }
+                    // A request in a token requests no longer take (ETH) can't be
+                    // paid anymore: the page says so and never opens Confirm, so
+                    // nothing here selects its token (TASK-23850).
+                    if (isUnpayableRequestCharge(fetchedCharge)) return
                     // the requestee chooses an open amount on the input view
                     if (fetchedCharge.openAmount && currentView === 'CONFIRM') {
                         setCurrentView('INITIAL')
@@ -732,7 +703,6 @@ export function useSemanticRequestFlow() {
         // state
         amount,
         usdAmount,
-        tokenUsdPrice,
         currentView,
         parsedUrl,
         recipient,
@@ -740,8 +710,6 @@ export function useSemanticRequestFlow() {
         isAmountFromUrl,
         isTokenFromUrl,
         isChainFromUrl,
-        urlToken,
-        isTokenDenominated,
         attachment,
         charge,
         payment,

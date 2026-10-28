@@ -93,6 +93,11 @@ export const nativeCurrencyAddresses: string[] = [
 
 export const STABLE_COINS = ['USDC', 'USDT', 'DAI', 'BUSD']
 
+// The tokens a payment request can be paid in (TASK-23850). Only USDC and USDT
+// have the deposit-address route; DAI and BUSD are stable but cannot be paid.
+// STABLE_COINS stays the display rule ($ amounts).
+export const REQUEST_TOKEN_SYMBOLS: readonly string[] = ['USDC', 'USDT']
+
 export const ROUTE_NOT_FOUND_ERROR =
     'No route found for this token pair. You can try with a different token pair, or contact support.'
 

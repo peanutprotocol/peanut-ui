@@ -46,6 +46,14 @@ const CHAINS = {
     tron: { chainId: 'tron', networkName: 'Tron', chainIconURI: '', tokens: [token(USDT_TRON, 'USDT')] },
 }
 
+const NATIVE = '0x0000000000000000000000000000000000000000'
+// the same record with native ETH on Arbitrum and Ethereum
+const CHAINS_WITH_ETH = {
+    ...CHAINS,
+    '42161': { ...CHAINS['42161'], tokens: [...CHAINS['42161'].tokens, token(NATIVE, 'ETH')] },
+    '1': { ...CHAINS['1'], tokens: [...CHAINS['1'].tokens, token(NATIVE, 'ETH')] },
+}
+
 function Harness({
     initialChainID = '42161',
     initialTokenAddress = USDC_ARB,
@@ -55,7 +63,9 @@ function Harness({
     onNetworkSelect,
     networkHelper,
     addressFamily,
+    chains = CHAINS,
 }: {
+    chains?: Record<string, unknown>
     initialChainID?: string
     initialTokenAddress?: string
     viewType?: 'withdraw' | 'other' | 'claim' | 'add' | 'req_pay'
@@ -72,7 +82,7 @@ function Harness({
             <tokenSelectorContext.Provider
                 value={
                     {
-                        supportedChainsAndTokens: CHAINS,
+                        supportedChainsAndTokens: chains,
                         isLoadingChains,
                         selectedChainID,
                         setSelectedChainID,
@@ -294,5 +304,27 @@ describe('TokenSelector (TASK-23392)', () => {
         render(<Harness initialChainID="tron" initialTokenAddress={USDT_TRON} />)
         expect(chain()).toBe('42161')
         expect(tokenTrigger()).toBeDisabled()
+    })
+
+    // TASK-23850: a request is paid in USDC or USDT only, so the request-payment
+    // selector never offers the native token. Other flows keep it.
+    describe('the native token', () => {
+        const offers = (symbol: string) =>
+            options().some((option) => !!within(option).queryByText(symbol, { exact: true }))
+
+        test('a request payment offers USDC and USDT, never ETH', () => {
+            render(<Harness viewType="req_pay" chains={CHAINS_WITH_ETH} />)
+            fireEvent.click(tokenTrigger())
+            expect(options()).toHaveLength(2)
+            expect(offers('USDC')).toBe(true)
+            expect(offers('USDT')).toBe(true)
+            expect(offers('ETH')).toBe(false)
+        })
+
+        test.each(['withdraw', 'claim'] as const)('%s still offers ETH', (viewType) => {
+            render(<Harness viewType={viewType} chains={CHAINS_WITH_ETH} />)
+            fireEvent.click(tokenTrigger())
+            expect(offers('ETH')).toBe(true)
+        })
     })
 })

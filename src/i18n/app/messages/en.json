@@ -1319,7 +1319,9 @@
             "requestNotFoundTitle": "Request not found",
             "requestNotFoundDescription": "This payment request doesn't exist or was removed. Ask the sender for a new link.",
             "requestClosedTitle": "This request is closed",
-            "externalPaymentNotConfirmed": "This payment could not be confirmed. If money left your wallet, contact support."
+            "externalPaymentNotConfirmed": "This payment could not be confirmed. If money left your wallet, contact support.",
+            "requestTokenNotAccepted": "This link asks for {symbol}. Requests can only be paid in USDC or USDT.",
+            "requestTokenRetired": "This request can't be paid anymore. Ask for a new one in USDC."
         },
         "bankTransfer": {
             "title": "Pay by bank transfer",

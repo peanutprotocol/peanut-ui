@@ -3253,6 +3253,37 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    // TASK-23850: a request is paid in USDC or USDT only. A link that asks for
+    // ETH is refused and says why; it is never paid in USDC instead. Opened
+    // through /send?recipient=, the route a native app and a scan use.
+    'pay-request-eth-link': {
+        route: '/send?recipient=0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed%40base%2F0.1eth',
+        about: 'A request link that asks for ETH: refused, requests are paid in USDC or USDT only.',
+    },
+    // An ETH request made before TASK-23850, opened by its charge id, which
+    // skips the URL parser: it can't be paid anymore and never opens Confirm.
+    'pay-request-eth-charge': {
+        route: '/pay-request?chargeId=demo-eth-charge',
+        about: "An ETH request opened by its charge id: it can't be paid anymore (TASK-23850).",
+        responses: {
+            'GET /request-charges/demo-eth-charge': {
+                transactionType: 'REQUEST',
+                chainId: '8453',
+                tokenAddress: '0x0000000000000000000000000000000000000000',
+                tokenSymbol: 'ETH',
+                tokenDecimals: 18,
+                tokenType: 'native',
+                tokenAmount: '0.01',
+                currencyAmount: '25',
+                requestLink: { recipientAddress: '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed' },
+            },
+        },
+    },
+    // Tap Token: the request payment offers USDC and USDT, never ETH (TASK-23850).
+    'pay-request-address-tokens': {
+        route: '/send?recipient=0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
+        about: 'Paying a request to an address: the token picker offers USDC and USDT, not ETH.',
+    },
     'pay-request-pot-partial-success': {
         // The pay screen of a part-paid €88 pot. Tap External wallet: about
         // 15 s later the deposit poll answers completed and the charge reads
