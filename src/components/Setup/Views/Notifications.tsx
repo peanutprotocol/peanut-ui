@@ -15,7 +15,7 @@ import { notificationsApi } from '@/services/notifications'
 
 /**
  * Push notifications only; the email was collected on the step before. The toggle
- * starts on, and Continue asks the OS for permission in the same tap.
+ * starts off, and turning it on asks the OS for permission in the same tap.
  */
 export default function NotificationsStep() {
     const t = useTranslations('setup.notifications')
@@ -23,48 +23,43 @@ export default function NotificationsStep() {
     const { handleNext } = useSetupFlow()
     const { requestPermission, afterPermissionAttempt } = useNotifications()
     const [saving, setSaving] = useState(false)
+    const [requesting, setRequesting] = useState(false)
     const [error, setError] = useState<string>()
-    // Only a user who turned push off opted out. An OS refusal leaves the
-    // account's server default alone.
+    // Only a user who turned push on and then off again opted out. The default
+    // off state and an OS refusal leave the account's server default alone.
     const [optedOut, setOptedOut] = useState(false)
     const savingRef = useRef(false)
     const push = notificationChoices.push
 
-    const onToggle = (on: boolean) => {
+    const onToggle = async (on: boolean) => {
         setError(undefined)
-        setOptedOut(!on)
         setNotificationChoices({ ...notificationChoices, push: on })
-    }
-
-    const askPermission = async () => {
+        if (!on) {
+            setOptedOut(true)
+            return
+        }
+        setOptedOut(false)
+        setRequesting(true)
         try {
+            // Started inside the tap, so the browser accepts the permission request.
             const permission = await requestPermission()
             await afterPermissionAttempt()
-            return permission === 'granted'
+            if (permission !== 'granted') setNotificationChoices({ ...notificationChoices, push: false })
         } catch {
-            return false
+            setNotificationChoices({ ...notificationChoices, push: false })
+        } finally {
+            setRequesting(false)
         }
     }
 
     const save = async () => {
         if (savingRef.current) return
         savingRef.current = true
-        // Started before any other await, so the browser accepts the prompt from this tap.
-        const granted = push ? askPermission() : Promise.resolve(false)
         setSaving(true)
         setSetupLoading(true)
         setError(undefined)
         try {
-            if (push) {
-                if (await granted) {
-                    // Subscribed is the server default, so a failure never blocks signup. The write
-                    // is still awaited: left in flight, it could land after an opt-out made by coming
-                    // back to this step, and the API keeps the last write.
-                    await notificationsApi.savePreferences({ push: true, email: true }).catch(() => {})
-                } else {
-                    setNotificationChoices({ ...notificationChoices, push: false })
-                }
-            } else if (optedOut) {
+            if (optedOut && !push) {
                 // An explicit opt-out must be acknowledged before leaving: unset
                 // preferences default to subscribed on the server.
                 const saved = await notificationsApi.savePreferences({ push: false, email: true }).then(
@@ -75,6 +70,11 @@ export default function NotificationsStep() {
                     setError(t('saveFailed'))
                     return
                 }
+            } else if (push) {
+                // Subscribed is the server default, so a failure never blocks signup. The write is
+                // still awaited: left in flight, it could land after an opt-out made by coming back
+                // to this step, and the API keeps the last write.
+                await notificationsApi.savePreferences({ push: true, email: true }).catch(() => {})
             }
             await handleNext()
         } finally {
@@ -93,14 +93,19 @@ export default function NotificationsStep() {
                     // A toggle row sets a preference, so its bubble is blue (design.md icon bubble ruling).
                     leading={<IconBubble icon="bell" size="s" color="blue" />}
                     trailing={
-                        <Toggle aria-label={t('pushLabel')} checked={push} onChange={onToggle} disabled={saving} />
+                        <Toggle
+                            aria-label={t('pushLabel')}
+                            checked={push}
+                            onChange={(value) => void onToggle(value)}
+                            disabled={saving || requesting}
+                        />
                     }
                 />
                 {error && <Callout priority="error">{error}</Callout>}
             </div>
             <SetupFooter
                 actions={
-                    <Button onClick={save} shadowSize="4" loading={saving} disabled={saving}>
+                    <Button onClick={save} shadowSize="4" loading={saving} disabled={saving || requesting}>
                         {t('continue')}
                     </Button>
                 }
