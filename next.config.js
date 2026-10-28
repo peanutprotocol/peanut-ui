@@ -359,7 +359,11 @@ let nextConfig = {
 
     webpack: (config, { isServer, dev, webpack }) => {
         /* screen-capture-cache-v1 */
-        if (process.env.SCREEN_CAPTURE_BUILD === '1') config.cache = false
+        // Forced-cold Vercel builds do not restore this cache. Avoid retaining
+        // modules and serializing source maps into a cache that is never read.
+        if (process.env.SCREEN_CAPTURE_BUILD === '1' || process.env.VERCEL_FORCE_NO_BUILD_CACHE) {
+            config.cache = false
+        }
         // `pnpm build` is `next build --webpack`, and the native builder runs the
         // same webpack path — so a turbopack resolveAlias alone never reaches a
         // build the repo actually runs. A resolve.alias does not work either:
