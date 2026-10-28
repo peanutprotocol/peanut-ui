@@ -67,10 +67,10 @@ export default function DividerPage() {
                         </div>
                         <div>
                             <p className="mb-2 text-body-s text-foreground-secondary">Vertical, between two columns</p>
-                            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-4">
-                                <p className="text-body-s">A short column</p>
+                            <div className="flex gap-4">
+                                <p className="min-w-0 flex-1 text-body-s">A short column</p>
                                 <Divider orientation="vertical" />
-                                <p className="text-body-s">
+                                <p className="min-w-0 flex-1 text-body-s">
                                     A longer column. The rule runs the height of the taller side, so the columns need no
                                     box.
                                 </p>
@@ -84,10 +84,10 @@ export default function DividerPage() {
                     <CodeBlock label="With Text" code={`<Divider text="or" />`} />
                     <CodeBlock
                         label="Vertical"
-                        code={`<div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-4">
-    <Column />
+                        code={`<div className="flex gap-4">
+    <Column className="min-w-0 flex-1" />
     <Divider orientation="vertical" />
-    <Column />
+    <Column className="min-w-0 flex-1" />
 </div>`}
                     />
                 </DocSection.Code>
@@ -152,25 +152,25 @@ export default function DividerPage() {
                 <ProductUsage.Example
                     title="Setup — residence and citizenship compared"
                     path="src/components/Setup/components/ResidenceCompare.tsx"
-                    description="The vertical rule. Two countries side by side, each a flag, a name and what it unlocks; the dashed rule is the only line between them, and neither column has a box."
-                    code={`<div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-4 gap-y-3">
-    <Divider orientation="vertical" className="col-start-2 row-span-2 row-start-1" />
-    {[residence, citizenship].map((iso2) => (
-        <section key={iso2} className="row-span-2 grid grid-rows-subgrid">…</section>
-    ))}
-</div>`}
+                    description="The vertical rule. Two countries side by side, each a flag, a name and what it unlocks; the dashed rule is the only line between them, and neither column has a box. The columns share subgrid rows, so both lists start on one line when a country name wraps."
+                    code={`<Divider orientation="vertical" className="col-start-2 row-span-3 row-start-1" />
+{[residence, citizenship].map((iso2) => (
+    <section key={iso2} className="row-span-3 grid grid-rows-subgrid">
+        <h2 className="mb-3 flex flex-col items-start gap-2 text-heading-card">…</h2>
+        <BulletList size="xs" items={items} />
+    </section>
+))}`}
                 >
-                    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-4 gap-y-3">
-                        <Divider orientation="vertical" className="col-start-2 row-span-2 row-start-1" />
-                        {[
-                            { country: 'Portugal', items: ['Euro bank transfers', 'Peanut card', 'Peanut to Peanut'] },
-                            { country: 'Brazil', items: ['PIX payments & transfers', 'Peanut to Peanut'] },
-                        ].map(({ country, items }) => (
-                            <section key={country} className="row-span-2 grid grid-rows-subgrid">
-                                <h4 className="text-heading-card">{country}</h4>
-                                <BulletList size="xs" items={items} />
-                            </section>
-                        ))}
+                    <div className="flex gap-4">
+                        <section className="flex min-w-0 flex-1 flex-col gap-3">
+                            <h4 className="text-heading-card">Portugal</h4>
+                            <BulletList size="xs" items={['Euro bank transfers', 'Peanut card', 'Peanut to Peanut']} />
+                        </section>
+                        <Divider orientation="vertical" />
+                        <section className="flex min-w-0 flex-1 flex-col gap-3">
+                            <h4 className="text-heading-card">Brazil</h4>
+                            <BulletList size="xs" items={['PIX payments & transfers', 'Peanut to Peanut']} />
+                        </section>
                     </div>
                 </ProductUsage.Example>
             </ProductUsage>
