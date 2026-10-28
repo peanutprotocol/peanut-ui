@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
+import { Divider } from '@/components/0_Bruddle/Divider'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { type ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
@@ -36,29 +36,31 @@ export function ResidenceCompare({
 }) {
     const t = useTranslations('setup.residenceStep.compare')
     return (
-        <div className="flex w-full flex-1 flex-col gap-4">
+        <div className="flex w-full flex-1 flex-col gap-6">
             <div className="flex flex-col gap-1">
                 <h1 className="text-heading-s">{t('title')}</h1>
                 <p className="text-body-m text-foreground-secondary">{t('description')}</p>
             </div>
             {/* Client-derived from the restriction tiers and the same rail map as Unlock payments. */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-4">
+                <Divider orientation="vertical" className="col-start-2 row-span-3 row-start-1" />
                 {[residence, citizenship].map((iso2) => {
                     const summary = restrictionsSettled
                         ? residenceAvailability(restrictionSets, iso2)
                         : { available: [], unavailable: [], multiCurrency: false }
                     return (
-                        <div key={iso2} className={`${CARD_SURFACE} min-w-0 p-3`}>
-                            <p className="mb-2 flex items-center gap-2 text-label-m">
+                        // subgrid rows: the lists and the notes line up when one country name wraps
+                        <section key={iso2} className="row-span-3 grid grid-rows-subgrid">
+                            <h2 className="mb-3 flex flex-col items-start gap-2 text-heading-card break-words">
                                 <Image
                                     src={getFlagUrl(iso2.toLowerCase())}
                                     alt=""
-                                    width={36}
-                                    height={36}
-                                    className="size-[18px] shrink-0 rounded-full object-cover"
+                                    width={64}
+                                    height={64}
+                                    className="size-8 shrink-0 rounded-full object-cover"
                                 />
-                                {t('cardTitle', { country: labelOf(iso2) })}
-                            </p>
+                                {labelOf(iso2)}
+                            </h2>
                             <BulletList
                                 size="xs"
                                 items={[
@@ -78,7 +80,7 @@ export function ResidenceCompare({
                             {summary.multiCurrency && (
                                 <p className="mt-2 text-body-xs text-foreground-secondary">{t('multiCurrencyNote')}</p>
                             )}
-                        </div>
+                        </section>
                     )
                 })}
             </div>
