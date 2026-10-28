@@ -1,8 +1,7 @@
 'use client'
 
-import { useCallback, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useInView } from 'framer-motion'
-import { useEntranceArm } from '../useEntranceArm'
 import detailsEur from '@/assets/star-lp/us-eu-details-eur.webp'
 import detailsUsd from '@/assets/star-lp/us-eu-details-usd.webp'
 import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
@@ -22,16 +21,17 @@ import type { UsEuAccountPairProps } from './usEuAccounts.types'
  */
 export function UsEuAccountPair({ className, surface, pairedEntrance = false }: UsEuAccountPairProps = {}) {
     const pairRef = useRef<HTMLDivElement | null>(null)
-    const { ref: armRef, armed } = useEntranceArm()
-    const ref = useCallback(
-        (node: HTMLDivElement | null) => {
-            pairRef.current = node
-            armRef(node)
-        },
-        [armRef]
-    )
+    const [motionAllowed, setMotionAllowed] = useState(false)
+    useEffect(() => {
+        if (!pairedEntrance) return
+        const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+        const sync = () => setMotionAllowed(!media.matches)
+        sync()
+        media.addEventListener('change', sync)
+        return () => media.removeEventListener('change', sync)
+    }, [pairedEntrance])
     const visible = useInView(pairRef, { once: true, amount: 0.9 })
-    const entrance = pairedEntrance ? { armed, visible } : undefined
+    const entrance = pairedEntrance ? { enabled: motionAllowed, visible } : undefined
     const captures = (
         <>
             <UsEuAccountCapture
@@ -69,7 +69,7 @@ export function UsEuAccountPair({ className, surface, pairedEntrance = false }: 
             )}
         >
             {pairedEntrance ? (
-                <div ref={ref} className="relative flex w-full flex-col lg:flex-row lg:items-start">
+                <div ref={pairRef} className="relative flex w-full flex-col lg:flex-row lg:items-start">
                     {captures}
                 </div>
             ) : (
