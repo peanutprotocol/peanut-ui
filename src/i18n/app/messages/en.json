@@ -311,6 +311,7 @@
             "updateAvailable": "Update available"
         },
         "logOut": "Log out",
+        "logOutAllDevices": "Log out on all devices",
         "edit": {
             "title": "Edit profile",
             "fields": {
