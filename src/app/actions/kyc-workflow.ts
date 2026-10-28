@@ -2,7 +2,7 @@ import posthog from 'posthog-js'
 import type { SumsubKycStatus } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { paperworkVerificationHeaders } from '@/features/paperwork-verification/paperworkVerificationHeaders'
+import { kycClientHeaders } from '@/utils/kyc-client-headers'
 import { providerRefusalsOf, type SetupRefusals } from '@/utils/kyc-setup-status.utils'
 import { restartIdentityVerification, type SumsubActionErrorCode } from './sumsub'
 import * as Sentry from '@/utils/sentry-lazy'
@@ -18,7 +18,7 @@ import type {
 async function read<T>(path: string, options?: RequestInit): Promise<T> {
     const response = await serverFetch(path, {
         ...options,
-        headers: { ...paperworkVerificationHeaders(), ...(options?.headers as Record<string, string> | undefined) },
+        headers: { ...kycClientHeaders(), ...(options?.headers as Record<string, string> | undefined) },
         cache: 'no-store',
         redactTelemetry: true,
     })
@@ -149,7 +149,7 @@ export async function resumeKycDocumentAttempt(attemptId: string) {
     const response = await serverFetch(`/users/kyc/attempts/${encodeURIComponent(attemptId)}/token`, {
         method: 'POST',
         body: '{}',
-        headers: paperworkVerificationHeaders(),
+        headers: kycClientHeaders(),
         cache: 'no-store',
         redactTelemetry: true,
     })

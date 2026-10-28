@@ -6,9 +6,6 @@ import { getKycDocumentPlan } from '@/app/actions/kyc-workflow'
 import { AddFeatureFlow, AddFeatureQuestions } from '../AddFeatureFlow'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
-jest.mock('../paperworkVerificationHeaders', () => ({
-    paperworkVerificationHeaders: () => ({ 'x-kyc-paperwork-verification': '1' }),
-}))
 jest.mock('@/app/actions/kyc-workflow', () => ({ getKycDocumentPlan: jest.fn() }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div>loading</div> }))

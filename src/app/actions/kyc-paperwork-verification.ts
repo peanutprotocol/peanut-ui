@@ -1,6 +1,6 @@
 import { savedFeaturesOutcome } from '@/utils/kyc-feature-outcome.utils'
 import { serverFetch } from '@/utils/api-fetch'
-import { paperworkVerificationHeaders } from '@/features/paperwork-verification/paperworkVerificationHeaders'
+import { kycClientHeaders } from '@/utils/kyc-client-headers'
 import { validSession } from './kyc-workflow'
 import type { KycAttemptSession, KycFeatures, KycFeatureReports } from './types/kyc-workflow.types'
 import type {
@@ -18,7 +18,7 @@ const featureQuery = (feature?: PaperworkVerificationFeature) => (feature ? `?fe
 
 // Answers carry tax numbers and addresses: never in telemetry, never cached.
 const call = (path: string, init?: RequestInit) =>
-    serverFetch(path, { ...init, headers: paperworkVerificationHeaders(), cache: 'no-store', redactTelemetry: true })
+    serverFetch(path, { ...init, headers: kycClientHeaders(), cache: 'no-store', redactTelemetry: true })
 
 const json = (response: Response) => response.json().catch(() => null)
 

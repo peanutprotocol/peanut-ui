@@ -6,7 +6,7 @@ const version = (...values) => ({
     branch: null,
     builtAt: null,
     migrationsHead: null,
-    contracts: { kyc: values.length ? values[0] : 2 },
+    contracts: { kyc: values.length ? values[0] : 3 },
 })
 const openapi = (paths = { '/users/kyc/plan': { get: {} } }) => ({ openapi: '3.0.0', paths })
 const response = (status, body) => ({
@@ -27,7 +27,7 @@ const options = (fetchImpl, overrides = {}) => ({ apiUrl, fetchImpl, logger: log
 const messages = (mock) => mock.mock.calls.flat().map(String).join(' ')
 
 describe('native API contract preflight', () => {
-    test.each([2, 3])('accepts compatible kyc contract version %i and required operation', async (kyc) => {
+    test.each([3, 4])('accepts compatible kyc contract version %i and required operation', async (kyc) => {
         const fetchImpl = fetchFor(response(200, version(kyc)))
         await checkApiContracts(options(fetchImpl))
         expect(fetchImpl.mock.calls.map(([url]) => String(url))).toEqual(
@@ -43,7 +43,7 @@ describe('native API contract preflight', () => {
         )
     })
 
-    test.each([0, 1, -1, 1.5, '2', null, undefined])(
+    test.each([0, 1, 2, -1, 1.5, '3', null, undefined])(
         'rejects invalid or insufficient kyc contract %p in test builds',
         async (kyc) => {
             await expect(checkApiContracts(options(fetchFor(response(200, version(kyc)))))).rejects.toThrow(/kyc/i)

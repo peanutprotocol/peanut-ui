@@ -22,9 +22,9 @@ afterEach(() => {
 })
 
 it.each([
-    ['compatible', 2, false, 'API e7a93bf · kyc v2', false],
-    ['incompatible', 1, false, 'API too old for this build', true],
-    ['compatible', 2, true, 'API contract error', true],
+    ['compatible', 3, false, 'API e7a93bf · kyc v3', false],
+    ['incompatible', 2, false, 'API too old for this build', true],
+    ['compatible', 3, true, 'API contract error', true],
     ['unknown', undefined, false, 'API version unavailable', false],
     ['loading', undefined, false, 'API version loading', false],
 ] as const)('shows the named %s / contract fault %s state', (status, kyc, contractError, label, red) => {

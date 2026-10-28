@@ -4,7 +4,7 @@ import {
     type VerificationActionSession,
 } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
-import { paperworkVerificationHeaders } from '@/features/paperwork-verification/paperworkVerificationHeaders'
+import { kycClientHeaders } from '@/utils/kyc-client-headers'
 import type { paths } from '@/types/api.generated'
 import type { KycDocumentConfig, KycReplacementChoices } from './types/kyc-workflow.types'
 
@@ -124,7 +124,7 @@ export const initiateSumsubKyc = async (params?: {
         const response = await serverFetch('/users/identity', {
             method: 'POST',
             // lets the API refuse today's start to a user it put on Smart Paperwork Verification
-            headers: { 'x-residence-format': 'compact', ...paperworkVerificationHeaders() },
+            headers: { 'x-residence-format': 'compact', ...kycClientHeaders() },
             body: JSON.stringify(body),
         })
 

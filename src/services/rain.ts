@@ -16,7 +16,7 @@ import { getAuthToken } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
 import type { SignedRainWithdrawal } from '@/hooks/wallet/useSignSpendBundle'
 import { API_ERROR_CODES, ApiError } from './api-error'
-import { paperworkVerificationHeaders } from '@/features/paperwork-verification/paperworkVerificationHeaders'
+import { kycClientHeaders } from '@/utils/kyc-client-headers'
 import type { AcceptedLegalDocument } from '@/services/consent'
 import type { paths } from '@/types/api.generated'
 
@@ -897,7 +897,7 @@ export const rainApi = {
                 method: 'POST',
                 path: '/rain/cards',
                 body,
-                headers: paperworkVerificationHeaders(),
+                headers: kycClientHeaders(),
                 // The first-time-application path runs 7 sequential Sumsub calls, a
                 // deliberate 2.5s readiness sleep, the Rain createApplication call,
                 // and an optional inline issueCard — routinely 7-13s. The default

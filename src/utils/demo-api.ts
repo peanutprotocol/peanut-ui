@@ -992,7 +992,7 @@ export async function demoRespond(
             branch: 'synthetic',
             builtAt: null,
             migrationsHead: null,
-            contracts: { kyc: 2 },
+            contracts: { kyc: 3 },
         })
     }
 

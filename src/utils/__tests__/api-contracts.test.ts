@@ -2,7 +2,7 @@ jest.mock('@/utils/sentry-lazy', () => ({ captureMessage: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/constants/general.consts', () => ({ PEANUT_API_URL: 'https://api.test' }))
 
-const version = (kyc = 2) => ({
+const version = (kyc = 3) => ({
     commit: 'e7a93bf7d',
     branch: 'preview',
     builtAt: null,
@@ -44,7 +44,7 @@ describe('session API compatibility', () => {
         expect(getApiCompatibility()).toMatchObject({ status: 'compatible', version: version() })
     })
 
-    it.each([0, 1])('reports kyc v%i once with both commits and no response data', async (kyc) => {
+    it.each([0, 1, 2])('reports kyc v%i once with both commits and no response data', async (kyc) => {
         global.fetch = jest.fn().mockResolvedValue(response(200, version(kyc)))
         const { loadApiVersion } = require('../api-contracts')
         await Promise.all([loadApiVersion(), loadApiVersion()])
@@ -68,7 +68,7 @@ describe('session API compatibility', () => {
         expect(getApiCompatibility()).toMatchObject({ status: 'incompatible', version: { contracts: { kyc: 0 } } })
     })
 
-    it.each([null, {}, { ...version(), contracts: { kyc: '2' } }])(
+    it.each([null, {}, { ...version(), contracts: { kyc: '3' } }])(
         'keeps malformed metadata unknown: %p',
         async (body) => {
             global.fetch = jest.fn().mockResolvedValue(response(200, body))

@@ -1,6 +1,6 @@
 import type { ApiCompatibility } from '@/utils/api-contracts'
 
-const version = { commit: 'e7a93bf7d', branch: 'preview', builtAt: null, migrationsHead: null, contracts: { kyc: 2 } }
+const version = { commit: 'e7a93bf7d', branch: 'preview', builtAt: null, migrationsHead: null, contracts: { kyc: 3 } }
 
 export const API_CONTRACT_STATES: Record<string, { name: string; api: ApiCompatibility }> = {
     'api-ribbon-loading': {
@@ -13,7 +13,7 @@ export const API_CONTRACT_STATES: Record<string, { name: string; api: ApiCompati
     },
     'api-ribbon-too-old': {
         name: 'Test build — API too old',
-        api: { status: 'incompatible', version: { ...version, contracts: { kyc: 1 } }, contractError: false },
+        api: { status: 'incompatible', version: { ...version, contracts: { kyc: 2 } }, contractError: false },
     },
     'api-ribbon-missing-version': {
         name: 'Test build — version endpoint missing',

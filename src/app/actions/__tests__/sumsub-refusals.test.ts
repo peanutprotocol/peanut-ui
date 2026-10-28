@@ -42,7 +42,7 @@ describe('initiateSumsubKyc — Smart Paperwork Verification users', () => {
         await initiateSumsubKyc({ regionIntent: 'EU' })
         expect(mockFetch).toHaveBeenCalledWith(
             '/users/identity',
-            expect.objectContaining({ headers: expect.objectContaining({ 'x-kyc-paperwork-verification': '1' }) })
+            expect.objectContaining({ headers: expect.objectContaining({ 'x-kyc-client': '2' }) })
         )
     })
 
@@ -122,7 +122,7 @@ describe('initiateSumsubKyc — backend refusals', () => {
         expect(mockFetch).toHaveBeenCalledWith(
             '/users/identity',
             expect.objectContaining({
-                headers: { 'x-residence-format': 'compact', 'x-kyc-paperwork-verification': '1' },
+                headers: { 'x-residence-format': 'compact', 'x-kyc-client': '2' },
             })
         )
     })
