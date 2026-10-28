@@ -297,7 +297,7 @@ describe('deriveProviderRejection — a requirement the approved identity never 
     })
 })
 
-// The send gate parks a document-first user's rail for a need the approved
+// The send gate parks a Smart Paperwork Verification user's rail for a need the approved
 // identity cannot meet. Either provider: the restart is the user's own step,
 // the uncollectable need is support's.
 describe('deriveProviderRejection — a need the approved identity cannot meet', () => {

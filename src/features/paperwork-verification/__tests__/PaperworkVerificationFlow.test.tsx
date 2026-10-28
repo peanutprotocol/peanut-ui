@@ -751,7 +751,7 @@ describe('PaperworkVerificationFlow', () => {
     })
 
     it('sends a user the server keeps on today’s flow back to Home', async () => {
-        mockPlan.mockResolvedValue({ ...plan, flow: 'document-first' })
+        mockPlan.mockResolvedValue({ ...plan, available: false, flow: null })
         renderFlow()
         await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
     })

@@ -1515,27 +1515,14 @@ describe('useSumsubKycFlow — capability action sessions', () => {
     })
 })
 
-describe('a published document plan keeps the legacy flow', () => {
+describe('a user the plan keeps off Smart Paperwork Verification keeps the legacy flow', () => {
     const plan = {
-        available: true,
+        available: false,
         activeAttemptId: null,
         policyVersion: 'v1',
-        flow: 'document-first' as const,
+        flow: null,
         features: { qr: true, bank: false, local: false, card: false },
-        routes: [
-            {
-                id: 'shared',
-                documents: [
-                    {
-                        key: 'identity',
-                        code: 'IDENTITY' as const,
-                        types: ['PASSPORT'] as never[],
-                        countries: ['PT'],
-                        requiredBy: ['SUMSUB' as const],
-                    },
-                ],
-            },
-        ],
+        routes: [],
     }
     const session = {
         attemptId: 'attempt-1',
@@ -1557,18 +1544,16 @@ describe('a published document plan keeps the legacy flow', () => {
         mockRouterPush.mockReset()
         jest.mocked(getKycDocumentStatus).mockResolvedValue('IN_REVIEW')
     })
-    afterEach(() => jest.mocked(getKycDocumentPlan).mockResolvedValue({ ...plan, available: false, routes: [] }))
+    afterEach(() => jest.mocked(getKycDocumentPlan).mockResolvedValue(plan))
 
-    it('opens the SDK through the legacy initiate instead of a document picker', async () => {
+    it('opens the SDK through the legacy initiate', async () => {
         const { result } = renderHook(() => useSumsubKycFlow({}))
         await act(async () => {
             await result.current.handleInitiateKyc()
         })
         expect(mockInitiate).toHaveBeenCalledTimes(1)
-        expect(mockInitiate.mock.calls[0][0]).not.toHaveProperty('documentSelection')
         expect(result.current.accessToken).toBe('legacy-token')
         expect(result.current.showWrapper).toBe(true)
-        expect(result.current).not.toHaveProperty('documentPlan')
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
 

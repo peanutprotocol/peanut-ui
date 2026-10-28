@@ -8,8 +8,7 @@ import { Drawer, DrawerContent } from '../Global/Drawer'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PAPERWORK_VERIFICATION_FLOW } from '@/app/actions/types/kyc-workflow.types'
-import { findKycSetup } from '@/app/actions/kyc-workflow'
+import { isPaperworkVerificationIdentity } from '@/app/actions/kyc-workflow'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -59,34 +58,30 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
         onManualClose: handleFlowDone,
     })
 
-    // An identity verified through a verification attempt shows its own status
-    // instead: the verification timeline for Smart Paperwork Verification, the
-    // setup status for the rest. This drawer opens only once that is ruled out,
-    // so two drawers never follow each other.
+    // A Smart Paperwork Verification identity shows its status on the /verify
+    // timeline instead. This drawer opens only once that is ruled out, so the
+    // two never follow each other.
     const router = useRouter()
-    const handoffRef = useRef({ onClose, onKeepMounted, openSetupStatus: sumsubFlow.openSetupStatus, router })
-    handoffRef.current = { onClose, onKeepMounted, openSetupStatus: sumsubFlow.openSetupStatus, router }
-    const checksSetup = isOpen && !!user?.user?.userId && (status === 'processing' || status === 'verified')
-    const [setupChecked, setSetupChecked] = useState(false)
+    const handoffRef = useRef({ onClose, router })
+    handoffRef.current = { onClose, router }
+    const checksTimeline = isOpen && !!user?.user?.userId && (status === 'processing' || status === 'verified')
+    const [timelineChecked, setTimelineChecked] = useState(false)
     useEffect(() => {
-        if (!checksSetup) {
-            setSetupChecked(false)
+        if (!checksTimeline) {
+            setTimelineChecked(false)
             return
         }
         let cancelled = false
-        void findKycSetup().then((setup) => {
+        void isPaperworkVerificationIdentity().then((onTimeline) => {
             if (cancelled) return
-            const handoff = handoffRef.current
-            if (!setup) return setSetupChecked(true)
-            handoff.onClose()
-            if (setup.flow === PAPERWORK_VERIFICATION_FLOW) return handoff.router.push('/verify')
-            handoff.onKeepMounted?.(true)
-            handoff.openSetupStatus(setup.features, setup.refusals)
+            if (!onTimeline) return setTimelineChecked(true)
+            handoffRef.current.onClose()
+            handoffRef.current.router.push('/verify')
         })
         return () => {
             cancelled = true
         }
-    }, [checksSetup])
+    }, [checksTimeline])
 
     // close drawer but keep mounted so SumsubKycModals persists, then start kyc
     const resumeKyc = useCallback(async () => {
@@ -168,7 +163,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
 
     return (
         <>
-            <Drawer open={isOpen && (!checksSetup || setupChecked)} onOpenChange={onClose}>
+            <Drawer open={isOpen && (!checksTimeline || timelineChecked)} onOpenChange={onClose}>
                 <DrawerContent accessibleTitle={t('statusDrawerTitle')} className="pt-4" scrollAreaClassName="pb-12">
                     {renderContent()}
                     {sumsubFlow.error && (

@@ -662,7 +662,7 @@ describe('useMultiPhaseKycFlow — submission analytics per attempt', () => {
     })
 })
 
-// A document-first approval with bank accounts ticked parks Bridge until the
+// A Smart Paperwork Verification approval with bank accounts ticked parks Bridge until the
 // proof of address arrives on its supplement action (supplement:bridge).
 describe('useMultiPhaseKycFlow — the proof of address after the identity', () => {
     const parked = {

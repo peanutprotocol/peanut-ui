@@ -39,7 +39,7 @@ describe('paperworkVerificationEntryRoute', () => {
         )
 
         // today's flow, or a plan that cannot be read: the start modal stays
-        jest.mocked(findKycDocumentPlan).mockResolvedValue(plan({ flow: 'document-first' }))
+        jest.mocked(findKycDocumentPlan).mockResolvedValue(plan({ available: false, flow: null }))
         await expect(paperworkVerificationEntryRoute({ corridor: 'SEPA_EU' })).resolves.toBeNull()
         jest.mocked(findKycDocumentPlan).mockRejectedValue(new Error('KYC plan unavailable'))
         await expect(paperworkVerificationEntryRoute({ corridor: 'SEPA_EU' })).resolves.toBeNull()
@@ -48,7 +48,7 @@ describe('paperworkVerificationEntryRoute', () => {
 
 describe('paperworkVerificationRoute', () => {
     it('keeps today’s flow when the server does not put the user on Smart Paperwork Verification', async () => {
-        await expect(paperworkVerificationRoute(plan({ flow: 'document-first' }), null)).resolves.toBeNull()
+        await expect(paperworkVerificationRoute(plan({ available: false, flow: null }), null)).resolves.toBeNull()
         await expect(paperworkVerificationRoute(null, null)).resolves.toBeNull()
         expect(mockStatus).not.toHaveBeenCalled()
     })

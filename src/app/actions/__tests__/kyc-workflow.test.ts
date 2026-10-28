@@ -5,7 +5,7 @@ import {
     startKycDocumentReplacement,
     refreshKycIdentityStatus,
     getKycDocumentStatus,
-    findKycSetup,
+    isPaperworkVerificationIdentity,
 } from '@/app/actions/kyc-workflow'
 import { serverFetch } from '@/utils/api-fetch'
 import posthog from 'posthog-js'
@@ -180,7 +180,7 @@ it.each([{}, { identity: { canonicalStatus: 'UNKNOWN_ENUM' } }, { identity: [] }
     }
 )
 
-it('reports a malformed setup profile before preserving its fallback', async () => {
+it('reports a malformed identity profile before preserving its fallback', async () => {
     mockFetch.mockImplementation(
         async (route) =>
             ({
@@ -192,7 +192,7 @@ it('reports a malformed setup profile before preserving its fallback', async () 
                         : { available: true, routes: [] },
             }) as Response
     )
-    await expect(findKycSetup()).resolves.toBeNull()
+    await expect(isPaperworkVerificationIdentity()).resolves.toBe(false)
     expect(Sentry.captureMessage).toHaveBeenCalled()
     expect(JSON.stringify(jest.mocked(Sentry.captureMessage).mock.calls)).not.toContain('private-id')
 })

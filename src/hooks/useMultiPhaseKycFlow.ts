@@ -215,8 +215,6 @@ export const useMultiPhaseKycFlow = ({
         setupFlowRef.current = !!features
         setSetupFeatures(features)
     }, [])
-    // Opened from the identity status (a returning user) rather than by a submission in this flow.
-    const setupOriginRef = useRef<'submission' | 'status'>('submission')
     const [termsAccepted, setTermsAccepted] = useState(false)
     // The plan's refusals no rail carries; read from the profile once the identity is approved.
     const [setupRefusals, setSetupRefusals] = useState<SetupRefusals>({})
@@ -488,7 +486,6 @@ export const useMultiPhaseKycFlow = ({
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
         reportedRejectionRef.current = null
-        if (!isActionFlow && !isResidenceChangeFlow) setupOriginRef.current = 'submission'
         if (!isResidenceChangeFlow) {
             captureSubmission('sdk_complete')
             isRealtimeFlowRef.current = true
@@ -558,7 +555,6 @@ export const useMultiPhaseKycFlow = ({
             setTosError(null)
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
-            setupOriginRef.current = 'submission'
             setTermsAccepted(false)
             setSetupRefusals({})
 
@@ -824,32 +820,6 @@ export const useMultiPhaseKycFlow = ({
         setModalPhase('verifying')
     }, [handleModalClose])
 
-    // A returning user's setup status, opened from the identity status.
-    const openSetupStatus = useCallback(
-        (features: KycFeatures, refusals: SetupRefusals = {}) => {
-            setupOriginRef.current = 'status'
-            setSetupRefusals(refusals)
-            latchSetupFeatures(features)
-            setModalPhase('verifying')
-            setForceShowModal(true)
-        },
-        [latchSetupFeatures]
-    )
-
-    // Leaving after a submission is the progress modal's way out; leaving a
-    // status the user only looked at reports no abandonment.
-    const handleSetupClose = useCallback(() => {
-        if (setupOriginRef.current === 'submission') return handleModalClose()
-        setForceShowModal(false)
-        closeVerificationProgressModal()
-        onManualClose?.()
-    }, [handleModalClose, closeVerificationProgressModal, onManualClose])
-
-    const handleSetupContinue = useCallback(() => {
-        if (setupOriginRef.current === 'submission') completeFlow()
-        else handleSetupClose()
-    }, [completeFlow, handleSetupClose])
-
     // The status stays open under the SDK and shows again when it closes.
     const handleSetupDocument = useCallback(
         async (step: SetupRowStep) => {
@@ -1003,9 +973,6 @@ export const useMultiPhaseKycFlow = ({
 
         // setup status, for a flow on a verification attempt
         setupStatus,
-        openSetupStatus,
-        handleSetupClose,
-        handleSetupContinue,
         handleSetupDocument,
         handleSetupTerms,
         handleSetupBack,

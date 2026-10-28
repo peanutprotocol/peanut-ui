@@ -63,8 +63,8 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
                         rows={flow.setupStatus.rows}
                         error={flow.error}
                         busy={flow.isLoading}
-                        onClose={flow.handleSetupClose}
-                        onContinue={flow.handleSetupContinue}
+                        onClose={flow.handleModalClose}
+                        onContinue={flow.completeFlow}
                         onUploadDocument={(step) => void flow.handleSetupDocument(step)}
                         onReviewTerms={flow.handleSetupTerms}
                         onVerifyAgain={() => void flow.handleSetupRestart()}

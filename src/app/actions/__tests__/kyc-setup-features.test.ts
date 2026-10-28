@@ -1,19 +1,19 @@
 import {
     findKycProviderRefusals,
     findKycReplacementPlan,
-    findKycSetup,
     getKycReplacementPlan,
+    isPaperworkVerificationIdentity,
 } from '@/app/actions/kyc-workflow'
 import { serverFetch } from '@/utils/api-fetch'
 
-// A returning user sees the setup status only when the current identity was
-// verified through a verification attempt, and the rows follow the saved set.
+// A returning user sees the /verify timeline only when the current identity was
+// verified through a Smart Paperwork Verification attempt.
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
 const mockFetch = serverFetch as jest.MockedFunction<typeof serverFetch>
 
 const features = { qr: true, local: false, bank: true, card: false }
-const plan = { available: false, activeAttemptId: null, policyVersion: 'v1', features, routes: [] }
+const plan = { available: true, activeAttemptId: null, policyVersion: 'v1', features, routes: [], flow: 'verify-once' }
 const attempt = (overrides: Record<string, unknown>) => ({
     id: 'identity-attempt',
     kind: 'IDENTITY',
@@ -23,54 +23,43 @@ const attempt = (overrides: Record<string, unknown>) => ({
     ...overrides,
 })
 const answer = (body: unknown, ok = true) => ({ ok, status: ok ? 200 : 500, json: async () => body }) as Response
-const answers = (profile: unknown, planOk = true) =>
+const answers = (profile: unknown, planOk = true, planBody: unknown = plan) =>
     mockFetch.mockImplementation(async (path) =>
-        String(path).startsWith('/users/kyc/profile') ? answer(profile) : answer(plan, planOk)
+        String(path).startsWith('/users/kyc/profile') ? answer(profile) : answer(planBody, planOk)
     )
 const profile = (attempts: unknown[], identity: unknown = { verificationId: 'identity-1' }) => ({ identity, attempts })
 
 beforeEach(() => mockFetch.mockReset())
 
-describe('findKycSetup', () => {
-    it('returns the saved features of an identity verified through a verification attempt', async () => {
+describe('isPaperworkVerificationIdentity', () => {
+    it('an identity verified through a Smart Paperwork Verification attempt is on the timeline', async () => {
         answers(profile([attempt({})]))
-        await expect(findKycSetup()).resolves.toEqual({ features, refusals: {} })
+        await expect(isPaperworkVerificationIdentity()).resolves.toBe(true)
     })
 
-    it('carries the plan refusals the onboarding attempts record', async () => {
-        const refused = attempt({
-            id: 'manteca-onboarding',
-            kind: 'ONBOARDING',
-            provider: 'MANTECA',
-            verificationId: 'manteca-1',
-            status: 'REJECTED',
-            decisionSource: 'POLICY',
-            reasonCode: 'local_tax_id_missing',
-            sourceAttemptId: 'identity-attempt',
-            createdAt: '2026-10-01T10:01:00.000Z',
-        })
-        answers(profile([refused, attempt({})]))
-        await expect(findKycSetup()).resolves.toEqual({ features, refusals: { manteca: 'local_tax_id_missing' } })
+    it('an attempt identity the plan keeps off the flow is not', async () => {
+        answers(profile([attempt({})]), true, { ...plan, available: false, flow: null })
+        await expect(isPaperworkVerificationIdentity()).resolves.toBe(false)
     })
 
-    it('an identity verified any other way has none', async () => {
+    it('an identity verified any other way is not', async () => {
         answers(profile([]))
-        await expect(findKycSetup()).resolves.toBeNull()
+        await expect(isPaperworkVerificationIdentity()).resolves.toBe(false)
     })
 
     it('ignores a replaced attempt and an attempt of an older identity', async () => {
         answers(profile([attempt({ status: 'SUPERSEDED' }), attempt({ verificationId: 'identity-0' })]))
-        await expect(findKycSetup()).resolves.toBeNull()
+        await expect(isPaperworkVerificationIdentity()).resolves.toBe(false)
     })
 
-    it('no identity has none', async () => {
+    it('no identity is not', async () => {
         answers(profile([attempt({})], null))
-        await expect(findKycSetup()).resolves.toBeNull()
+        await expect(isPaperworkVerificationIdentity()).resolves.toBe(false)
     })
 
-    it('a failed read has none, so the legacy status shows', async () => {
+    it('a failed read is not, so the identity status shows', async () => {
         answers(profile([attempt({})]), false)
-        await expect(findKycSetup()).resolves.toBeNull()
+        await expect(isPaperworkVerificationIdentity()).resolves.toBe(false)
     })
 })
 

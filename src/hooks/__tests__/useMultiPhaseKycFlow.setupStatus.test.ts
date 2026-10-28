@@ -310,47 +310,23 @@ describe('useMultiPhaseKycFlow — the setup status of a verification attempt', 
         const view = await submitOnAttempt({ onKycSuccess })
         await approve(view, parked)
 
-        act(() => view.result.current.handleSetupClose())
+        act(() => view.result.current.handleModalClose())
         expect(view.result.current.isModalOpen).toBe(false)
         expect(view.result.current.setupStatus?.open).toBe(false)
         expect(captured(ANALYTICS_EVENTS.KYC_ABANDONED)).toHaveLength(1)
         expect(onKycSuccess).not.toHaveBeenCalled()
 
-        act(() => view.result.current.handleSetupContinue())
+        act(() => view.result.current.completeFlow())
         expect(onKycSuccess).toHaveBeenCalledTimes(1)
         expect(captured(ANALYTICS_EVENTS.KYC_APPROVED)).toHaveLength(1)
     })
 })
 
-describe('useMultiPhaseKycFlow — a returning user opens the status from the identity status', () => {
-    it('shows the saved features and closes without reporting an abandonment or an approval', async () => {
-        mockUser = verifiedUser(parked)
-        mockCapabilities = parked
-        const onManualClose = jest.fn()
-        const onKycSuccess = jest.fn()
-        const view = renderHook(() => useMultiPhaseKycFlow({ onManualClose, onKycSuccess }))
-
-        act(() => view.result.current.openSetupStatus(features))
-        expect(view.result.current.setupStatus?.open).toBe(true)
-        expect(view.result.current.setupStatus?.rows.map((row) => row.state)).toEqual(['available', 'document-needed'])
-
-        act(() => view.result.current.handleSetupClose())
-        expect(view.result.current.setupStatus?.open).toBe(false)
-        expect(onManualClose).toHaveBeenCalledTimes(1)
-        expect(captured(ANALYTICS_EVENTS.KYC_ABANDONED)).toHaveLength(0)
-
-        act(() => view.result.current.openSetupStatus(features))
-        act(() => view.result.current.handleSetupContinue())
-        expect(onKycSuccess).not.toHaveBeenCalled()
-        expect(captured(ANALYTICS_EVENTS.KYC_APPROVED)).toHaveLength(0)
-    })
-
-    it('Verify again picks the new ID on the Smart Paperwork Verification ID screen, not through the legacy restart', async () => {
-        mockUser = verifiedUser(parked)
-        mockCapabilities = parked
+describe('useMultiPhaseKycFlow — Verify again from the setup status', () => {
+    it('picks the new ID on the Smart Paperwork Verification ID screen, not through the legacy restart', async () => {
+        const view = await submitOnAttempt()
+        await approve(view, parked)
         jest.mocked(findKycReplacementPlan).mockResolvedValueOnce(plan)
-        const view = renderHook(() => useMultiPhaseKycFlow({}))
-        act(() => view.result.current.openSetupStatus(features))
         await act(async () => {
             await view.result.current.handleSetupRestart()
         })
@@ -452,23 +428,5 @@ describe('useMultiPhaseKycFlow — the plan refusals no rail carries', () => {
             { key: 'qr', state: 'available' },
             { key: 'local', state: 'setting-up' },
         ])
-    })
-
-    it('a returning user gets the refusals the identity status read, before any read of its own', () => {
-        jest.mocked(findKycProviderRefusals).mockReturnValue(new Promise(() => {}))
-        mockUser = verifiedUser(pixPool)
-        mockCapabilities = pixPool
-        const view = renderHook(() => useMultiPhaseKycFlow({}))
-        act(() =>
-            view.result.current.openSetupStatus(
-                { qr: true, local: true, bank: false, card: false },
-                { manteca: 'local_tax_id_missing' }
-            )
-        )
-        expect(view.result.current.setupStatus?.rows[1]).toEqual({
-            key: 'local',
-            state: 'not-available',
-            reason: 'local_tax_id_missing',
-        })
     })
 })

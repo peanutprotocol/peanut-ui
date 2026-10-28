@@ -935,7 +935,7 @@ describe('MoneySettings', () => {
         expect(mockSelfHealResubmit).not.toHaveBeenCalled()
     })
 
-    // The send gate's parks for a document-first user. The fix button follows
+    // The send gate's parks for a Smart Paperwork Verification user. The fix button follows
     // the row's action: a supplement opens through start-action, never the
     // resubmit route that 404s without a provider rejection.
     describe('a rail parked for a need the approved identity did not meet', () => {

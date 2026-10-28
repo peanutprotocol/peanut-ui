@@ -49,8 +49,8 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockRouterPush, 
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 
 const mockInitiate = initiateSumsubKyc as jest.MockedFunction<typeof initiateSumsubKyc>
-const selectionPlan = (flow: 'verify-once' | 'document-first') => ({
-    available: true,
+const selectionPlan = (flow: 'verify-once' | null) => ({
+    available: flow !== null,
     activeAttemptId: null,
     policyVersion: 'v1',
     flow,
@@ -64,7 +64,7 @@ describe('legacy identity selection recovery acceptance', () => {
         mockInitiate.mockResolvedValue({ error: 'Choose your features', code: 'feature_selection_required' })
         jest.mocked(getKycDocumentStatus).mockResolvedValue('NOT_STARTED')
     })
-    it.each(['verify-once', 'document-first'] as const)(
+    it.each(['verify-once', null] as const)(
         '%s recovers the selection requirement without another SDK identity attempt',
         async (flow) => {
             const plan = selectionPlan(flow)

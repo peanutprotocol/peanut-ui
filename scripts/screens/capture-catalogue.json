@@ -147,41 +147,6 @@
         "route": "/dev/surfaces?s=03-c-residence-congrats"
     },
     {
-        "id": "fixture-kyc-setup-all-available",
-        "flow": "Setup and login",
-        "route": "/history"
-    },
-    {
-        "id": "fixture-kyc-setup-bank-document-needed",
-        "flow": "Setup and login",
-        "route": "/history"
-    },
-    {
-        "id": "fixture-kyc-setup-bank-address-review",
-        "flow": "Setup and login",
-        "route": "/history"
-    },
-    {
-        "id": "fixture-kyc-setup-card-agreements-needed",
-        "flow": "Setup and login",
-        "route": "/history"
-    },
-    {
-        "id": "fixture-kyc-setup-bank-terms-needed",
-        "flow": "Setup and login",
-        "route": "/history"
-    },
-    {
-        "id": "fixture-kyc-setup-bank-local-id-refused",
-        "flow": "Setup and login",
-        "route": "/history"
-    },
-    {
-        "id": "fixture-kyc-setup-local-account-refused",
-        "flow": "Setup and login",
-        "route": "/history"
-    },
-    {
         "id": "fixture-profile-accounts-no-residence",
         "flow": "Setup and login",
         "route": "/profile/accounts"

@@ -48,7 +48,7 @@ it('only a plan that says so opens /verify; an unreadable one keeps the start mo
     await expect(start()).resolves.toBe(true)
 
     // the server keeps the user on today's flow
-    jest.mocked(serverFetch).mockResolvedValue(ok({ available: false, routes: [], flow: 'document-first' }))
+    jest.mocked(serverFetch).mockResolvedValue(ok({ available: false, routes: [], flow: null }))
     await expect(start()).resolves.toBe(false)
 
     // an API with no plan route

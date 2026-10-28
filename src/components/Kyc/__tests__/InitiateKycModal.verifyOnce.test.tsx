@@ -23,8 +23,8 @@ jest.mock('@/components/Kyc/modals/KycRegionRestrictedModal', () => ({
     KycRegionRestrictedModal: () => <div>region-restricted</div>,
 }))
 
-const plan = (flow: string) => ({
-    available: true,
+const plan = (flow: string | null) => ({
+    available: flow !== null,
     routes: [],
     flow,
     features: { qr: true, bank: false, local: false, card: false },
@@ -58,7 +58,7 @@ it('sends a verify-once user to /verify without painting the unlock offer', asyn
     expect(screen.queryByRole('button', { name: 'Verify identity' })).not.toBeInTheDocument()
 
     // a user the plan keeps on today's flow gets the offer
-    jest.mocked(findKycDocumentPlan).mockResolvedValue(plan('document-first') as never)
+    jest.mocked(findKycDocumentPlan).mockResolvedValue(plan(null) as never)
     mockPush.mockClear()
     renderModal()
     expect(await screen.findByRole('button', { name: 'Verify identity' })).toBeInTheDocument()

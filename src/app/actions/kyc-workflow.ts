@@ -3,16 +3,16 @@ import type { SumsubKycStatus } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { kycClientHeaders } from '@/utils/kyc-client-headers'
-import { providerRefusalsOf, type SetupRefusals } from '@/utils/kyc-setup-status.utils'
+import { providerRefusalsOf } from '@/utils/kyc-setup-status.utils'
 import { restartIdentityVerification, type SumsubActionErrorCode } from './sumsub'
 import * as Sentry from '@/utils/sentry-lazy'
 import { isTestApiBuild, reportApiContractError } from '@/utils/api-contracts'
-import type {
-    KycAttemptSession,
-    KycDocumentPlan,
-    KycFeatures,
-    KycProfile,
-    KycReplacementChoices,
+import {
+    PAPERWORK_VERIFICATION_FLOW,
+    type KycAttemptSession,
+    type KycDocumentPlan,
+    type KycProfile,
+    type KycReplacementChoices,
 } from './types/kyc-workflow.types'
 
 async function read<T>(path: string, options?: RequestInit): Promise<T> {
@@ -211,7 +211,7 @@ export async function refreshKycIdentityStatus(): Promise<SumsubKycStatus | unde
     }
 }
 
-/** True when the current identity was verified through a verification attempt (Smart Paperwork Verification included). */
+/** True when the current identity was verified through a verification attempt. */
 function attemptIdentity(profile: KycProfile): boolean {
     if (
         !('identity' in profile) ||
@@ -240,22 +240,16 @@ function attemptIdentity(profile: KycProfile): boolean {
 }
 
 /**
- * The setup of an identity verified through a verification attempt: its saved
- * features and the plan's refusals. Null for every other identity, and when
- * a read fails (the identity status then shows as before).
+ * True when the current identity was verified through a Smart Paperwork
+ * Verification attempt, whose status is the /verify timeline. False for every
+ * other identity, and when a read fails (the identity status then shows).
  */
-export async function findKycSetup(): Promise<{
-    features: KycFeatures
-    refusals: SetupRefusals
-    flow: KycDocumentPlan['flow']
-} | null> {
+export async function isPaperworkVerificationIdentity(): Promise<boolean> {
     try {
         const [profile, plan] = await Promise.all([read<KycProfile>('/users/kyc/profile'), getKycDocumentPlan()])
-        return attemptIdentity(profile)
-            ? { features: plan.features, refusals: providerRefusalsOf(profile).refusals, flow: plan.flow }
-            : null
+        return attemptIdentity(profile) && plan.flow === PAPERWORK_VERIFICATION_FLOW
     } catch {
-        return null
+        return false
     }
 }
 

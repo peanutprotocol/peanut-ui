@@ -29,8 +29,8 @@ jest.mock('../../QrPayFlowContext', () => ({
     }),
 }))
 
-const plan = (flow: string) => ({
-    available: true,
+const plan = (flow: string | null) => ({
+    available: flow !== null,
     routes: [],
     flow,
     features: { qr: true, bank: false, local: false, card: false },
@@ -54,7 +54,7 @@ it('sends a verify-once user to /verify instead of the unlock offer; today’s f
     expect(screen.queryByText('Unlock QR payments')).not.toBeInTheDocument()
     unmount()
 
-    jest.mocked(findKycDocumentPlan).mockResolvedValue(plan('document-first') as never)
+    jest.mocked(findKycDocumentPlan).mockResolvedValue(plan(null) as never)
     mockPush.mockClear()
     renderView()
     expect(await screen.findByText('Unlock QR payments')).toBeInTheDocument()
