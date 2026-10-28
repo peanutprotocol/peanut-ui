@@ -6,7 +6,8 @@
     "Independent reviewer confirmed fold production sources are unchanged by the dev merge.",
     "Hero and FAQ captures include unshipped preview content; the four landing content files ship separately after the code.",
     "Motion clips show earlier entrances; updated contextual links are visible in the stills.",
-    "Final-head proofs show aligned64px desktop footer and current clean content. Final release changes from built runtime are tests and lower DS baseline only. See final-head manifest for capture conditions."
+    "Final-head proofs show aligned64px desktop footer and current clean content. Final release changes from built runtime are tests and lower DS baseline only. See final-head manifest for capture conditions.",
+    "Current card directory proofs are in card-safe. The final implementation uses neutral card-footer links plus /lp#footer-features and the server landing shell. Earlier card footer images in crosslinks/final-head are historical."
   ],
   "files": [
     {
@@ -260,6 +261,6 @@
       "height": 974
     }
   ],
-  "finalReleaseCandidate": "4c43faf58f5764da59c0d4d4a26093c69b1a969c",
-  "finalRuntimeSource": "2d2fc3172162e16841c7d96d2e57cb6780f43247"
+  "finalReleaseCandidate": "cbd200ed0426eeea7535b4f8de03bc88040195c6",
+  "finalRuntimeSource": "cbd200ed0426eeea7535b4f8de03bc88040195c6"
 }

@@ -1,0 +1,580 @@
+{
+  "head": "cbd200ed0426eeea7535b4f8de03bc88040195c6",
+  "origin": "http://localhost:8777",
+  "rows": [
+    {
+      "route": "/peanut-card",
+      "width": 390,
+      "idCount": 1,
+      "text": "FeaturesRequest linksSelf-custodyPeanut CardExplore all features",
+      "links": [
+        {
+          "text": "Request links",
+          "href": "/request-links",
+          "lang": "en",
+          "visible": true,
+          "top": 3815.46875,
+          "bottom": 3829.46875
+        },
+        {
+          "text": "Self-custody",
+          "href": "/self-custody",
+          "lang": "en",
+          "visible": true,
+          "top": 3815.46875,
+          "bottom": 3829.46875
+        },
+        {
+          "text": "Peanut Card",
+          "href": "/peanut-card",
+          "lang": "en",
+          "visible": true,
+          "top": 3847.46875,
+          "bottom": 3861.46875
+        },
+        {
+          "text": "Explore all features",
+          "href": "/lp#footer-features",
+          "lang": "en",
+          "visible": true,
+          "top": 3847.46875,
+          "bottom": 3861.46875
+        }
+      ],
+      "height": 900,
+      "overflow": 0,
+      "padding": "24px",
+      "chromePadding": "24px",
+      "proof": {
+        "file": "card-390-footer.png",
+        "captureOnlyConnectivityOverlayHidden": true
+      }
+    },
+    {
+      "fromCard": true,
+      "width": 390,
+      "url": "http://localhost:8777/lp#footer-features",
+      "idCount": 1,
+      "text": "FeaturesUS & Europe accountsRequest linksSelf-custodyPeanut CardQR payments in ArgentinaQR payments in Brazil",
+      "links": [
+        {
+          "text": "US & Europe accounts",
+          "href": "/us-europe-accounts",
+          "lang": "en",
+          "visible": true,
+          "top": 105.875,
+          "bottom": 119.875
+        },
+        {
+          "text": "Request links",
+          "href": "/request-links",
+          "lang": "en",
+          "visible": true,
+          "top": 105.875,
+          "bottom": 119.875
+        },
+        {
+          "text": "Self-custody",
+          "href": "/self-custody",
+          "lang": "en",
+          "visible": true,
+          "top": 137.875,
+          "bottom": 151.875
+        },
+        {
+          "text": "Peanut Card",
+          "href": "/peanut-card",
+          "lang": "en",
+          "visible": true,
+          "top": 137.875,
+          "bottom": 151.875
+        },
+        {
+          "text": "QR payments in Argentina",
+          "href": "/qr-payments/argentina",
+          "lang": "en",
+          "visible": true,
+          "top": 169.875,
+          "bottom": 183.875
+        },
+        {
+          "text": "QR payments in Brazil",
+          "href": "/qr-payments/brazil",
+          "lang": "en",
+          "visible": true,
+          "top": 169.875,
+          "bottom": 183.875
+        }
+      ],
+      "height": 900,
+      "overflow": 0,
+      "padding": "24px",
+      "chromePadding": "24px",
+      "initialTab": "/us-europe-accounts"
+    },
+    {
+      "firstFeatureClick": true,
+      "url": "http://localhost:8777/us-europe-accounts",
+      "status": 200
+    },
+    {
+      "route": "/peanut-card",
+      "width": 1440,
+      "idCount": 1,
+      "text": "FeaturesRequest linksSelf-custodyPeanut CardExplore all features",
+      "links": [
+        {
+          "text": "Request links",
+          "href": "/request-links",
+          "lang": "en",
+          "visible": true,
+          "top": 4260.3125,
+          "bottom": 4274.3125
+        },
+        {
+          "text": "Self-custody",
+          "href": "/self-custody",
+          "lang": "en",
+          "visible": true,
+          "top": 4260.3125,
+          "bottom": 4274.3125
+        },
+        {
+          "text": "Peanut Card",
+          "href": "/peanut-card",
+          "lang": "en",
+          "visible": true,
+          "top": 4260.3125,
+          "bottom": 4274.3125
+        },
+        {
+          "text": "Explore all features",
+          "href": "/lp#footer-features",
+          "lang": "en",
+          "visible": true,
+          "top": 4292.3125,
+          "bottom": 4306.3125
+        }
+      ],
+      "height": 900,
+      "overflow": 0,
+      "padding": "64px",
+      "chromePadding": "64px",
+      "proof": {
+        "file": "card-1440-footer.png",
+        "captureOnlyConnectivityOverlayHidden": true
+      }
+    },
+    {
+      "fromCard": true,
+      "width": 1440,
+      "url": "http://localhost:8777/lp#footer-features",
+      "idCount": 1,
+      "text": "FeaturesUS & Europe accountsRequest linksSelf-custodyPeanut CardQR payments in ArgentinaQR payments in Brazil",
+      "links": [
+        {
+          "text": "US & Europe accounts",
+          "href": "/us-europe-accounts",
+          "lang": "en",
+          "visible": true,
+          "top": 478.453125,
+          "bottom": 492.453125
+        },
+        {
+          "text": "Request links",
+          "href": "/request-links",
+          "lang": "en",
+          "visible": true,
+          "top": 478.453125,
+          "bottom": 492.453125
+        },
+        {
+          "text": "Self-custody",
+          "href": "/self-custody",
+          "lang": "en",
+          "visible": true,
+          "top": 478.453125,
+          "bottom": 492.453125
+        },
+        {
+          "text": "Peanut Card",
+          "href": "/peanut-card",
+          "lang": "en",
+          "visible": true,
+          "top": 510.453125,
+          "bottom": 524.453125
+        },
+        {
+          "text": "QR payments in Argentina",
+          "href": "/qr-payments/argentina",
+          "lang": "en",
+          "visible": true,
+          "top": 510.453125,
+          "bottom": 524.453125
+        },
+        {
+          "text": "QR payments in Brazil",
+          "href": "/qr-payments/brazil",
+          "lang": "en",
+          "visible": true,
+          "top": 510.453125,
+          "bottom": 524.453125
+        }
+      ],
+      "height": 900,
+      "overflow": 0,
+      "padding": "64px",
+      "chromePadding": "64px",
+      "initialTab": "/us-europe-accounts"
+    },
+    {
+      "locale": "en",
+      "route": "/lp#footer-features",
+      "width": 390,
+      "idCount": 1,
+      "text": "FeaturesUS & Europe accountsRequest linksSelf-custodyPeanut CardQR payments in ArgentinaQR payments in Brazil",
+      "links": [
+        {
+          "text": "US & Europe accounts",
+          "href": "/us-europe-accounts",
+          "lang": "en",
+          "visible": true,
+          "top": 105.875,
+          "bottom": 119.875
+        },
+        {
+          "text": "Request links",
+          "href": "/request-links",
+          "lang": "en",
+          "visible": true,
+          "top": 105.875,
+          "bottom": 119.875
+        },
+        {
+          "text": "Self-custody",
+          "href": "/self-custody",
+          "lang": "en",
+          "visible": true,
+          "top": 137.875,
+          "bottom": 151.875
+        },
+        {
+          "text": "Peanut Card",
+          "href": "/peanut-card",
+          "lang": "en",
+          "visible": true,
+          "top": 137.875,
+          "bottom": 151.875
+        },
+        {
+          "text": "QR payments in Argentina",
+          "href": "/qr-payments/argentina",
+          "lang": "en",
+          "visible": true,
+          "top": 169.875,
+          "bottom": 183.875
+        },
+        {
+          "text": "QR payments in Brazil",
+          "href": "/qr-payments/brazil",
+          "lang": "en",
+          "visible": true,
+          "top": 169.875,
+          "bottom": 183.875
+        }
+      ],
+      "height": 900,
+      "overflow": 0,
+      "padding": "24px",
+      "chromePadding": "24px",
+      "focused": [
+        {
+          "href": "/us-europe-accounts",
+          "focusVisible": true
+        },
+        {
+          "href": "/request-links",
+          "focusVisible": true
+        },
+        {
+          "href": "/self-custody",
+          "focusVisible": true
+        },
+        {
+          "href": "/peanut-card",
+          "focusVisible": true
+        },
+        {
+          "href": "/qr-payments/argentina",
+          "focusVisible": true
+        },
+        {
+          "href": "/qr-payments/brazil",
+          "focusVisible": true
+        }
+      ]
+    },
+    {
+      "locale": "es-419",
+      "route": "/es-419#footer-features",
+      "width": 390,
+      "idCount": 1,
+      "text": "FuncionesCuentas de EE. UU. y Europa (En inglés)Links de cobro (En inglés)Autocustodia (En inglés)Tarjeta Peanut (En inglés)Pagos QR en Argentina (En inglés)Pagos QR en Brasil (En inglés)",
+      "links": [
+        {
+          "text": "Cuentas de EE. UU. y Europa (En inglés)",
+          "href": "/us-europe-accounts",
+          "lang": "en",
+          "visible": true,
+          "top": 71.53125,
+          "bottom": 109.53125
+        },
+        {
+          "text": "Links de cobro (En inglés)",
+          "href": "/request-links",
+          "lang": "en",
+          "visible": true,
+          "top": 71.53125,
+          "bottom": 85.53125
+        },
+        {
+          "text": "Autocustodia (En inglés)",
+          "href": "/self-custody",
+          "lang": "en",
+          "visible": true,
+          "top": 127.53125,
+          "bottom": 141.53125
+        },
+        {
+          "text": "Tarjeta Peanut (En inglés)",
+          "href": "/peanut-card",
+          "lang": "en",
+          "visible": true,
+          "top": 127.53125,
+          "bottom": 141.53125
+        },
+        {
+          "text": "Pagos QR en Argentina (En inglés)",
+          "href": "/qr-payments/argentina",
+          "lang": "en",
+          "visible": true,
+          "top": 159.53125,
+          "bottom": 197.53125
+        },
+        {
+          "text": "Pagos QR en Brasil (En inglés)",
+          "href": "/qr-payments/brazil",
+          "lang": "en",
+          "visible": true,
+          "top": 159.53125,
+          "bottom": 197.53125
+        }
+      ],
+      "height": 900,
+      "overflow": 0,
+      "padding": "24px",
+      "chromePadding": "24px",
+      "focused": [
+        {
+          "href": "/us-europe-accounts",
+          "focusVisible": true
+        },
+        {
+          "href": "/request-links",
+          "focusVisible": true
+        },
+        {
+          "href": "/self-custody",
+          "focusVisible": true
+        },
+        {
+          "href": "/peanut-card",
+          "focusVisible": true
+        },
+        {
+          "href": "/qr-payments/argentina",
+          "focusVisible": true
+        },
+        {
+          "href": "/qr-payments/brazil",
+          "focusVisible": true
+        }
+      ]
+    },
+    {
+      "locale": "es-ar",
+      "route": "/es-ar#footer-features",
+      "width": 390,
+      "idCount": 1,
+      "text": "FuncionesCuentas de EE. UU. y Europa (En inglés)Links de cobro (En inglés)Autocustodia (En inglés)Tarjeta Peanut (En inglés)Pagos QR en Argentina (En inglés)Pagos QR en Brasil (En inglés)",
+      "links": [
+        {
+          "text": "Cuentas de EE. UU. y Europa (En inglés)",
+          "href": "/us-europe-accounts",
+          "lang": "en",
+          "visible": true,
+          "top": 65.53125,
+          "bottom": 103.53125
+        },
+        {
+          "text": "Links de cobro (En inglés)",
+          "href": "/request-links",
+          "lang": "en",
+          "visible": true,
+          "top": 65.53125,
+          "bottom": 79.53125
+        },
+        {
+          "text": "Autocustodia (En inglés)",
+          "href": "/self-custody",
+          "lang": "en",
+          "visible": true,
+          "top": 121.53125,
+          "bottom": 135.53125
+        },
+        {
+          "text": "Tarjeta Peanut (En inglés)",
+          "href": "/peanut-card",
+          "lang": "en",
+          "visible": true,
+          "top": 121.53125,
+          "bottom": 135.53125
+        },
+        {
+          "text": "Pagos QR en Argentina (En inglés)",
+          "href": "/qr-payments/argentina",
+          "lang": "en",
+          "visible": true,
+          "top": 153.53125,
+          "bottom": 191.53125
+        },
+        {
+          "text": "Pagos QR en Brasil (En inglés)",
+          "href": "/qr-payments/brazil",
+          "lang": "en",
+          "visible": true,
+          "top": 153.53125,
+          "bottom": 191.53125
+        }
+      ],
+      "height": 900,
+      "overflow": 0,
+      "padding": "24px",
+      "chromePadding": "24px",
+      "focused": [
+        {
+          "href": "/us-europe-accounts",
+          "focusVisible": true
+        },
+        {
+          "href": "/request-links",
+          "focusVisible": true
+        },
+        {
+          "href": "/self-custody",
+          "focusVisible": true
+        },
+        {
+          "href": "/peanut-card",
+          "focusVisible": true
+        },
+        {
+          "href": "/qr-payments/argentina",
+          "focusVisible": true
+        },
+        {
+          "href": "/qr-payments/brazil",
+          "focusVisible": true
+        }
+      ]
+    },
+    {
+      "locale": "pt-br",
+      "route": "/pt-br#footer-features",
+      "width": 390,
+      "idCount": 1,
+      "text": "FuncionalidadesContas dos EUA e da Europa (Em inglês)Links de cobrança (Em inglês)Autocustódia (Em inglês)Cartão Peanut (Em inglês)Pagamentos QR na Argentina (Em inglês)Pagamentos QR no Brasil (Em inglês)",
+      "links": [
+        {
+          "text": "Contas dos EUA e da Europa (Em inglês)",
+          "href": "/us-europe-accounts",
+          "lang": "en",
+          "visible": true,
+          "top": 71.53125,
+          "bottom": 109.53125
+        },
+        {
+          "text": "Links de cobrança (Em inglês)",
+          "href": "/request-links",
+          "lang": "en",
+          "visible": true,
+          "top": 71.53125,
+          "bottom": 109.53125
+        },
+        {
+          "text": "Autocustódia (Em inglês)",
+          "href": "/self-custody",
+          "lang": "en",
+          "visible": true,
+          "top": 127.53125,
+          "bottom": 141.53125
+        },
+        {
+          "text": "Cartão Peanut (Em inglês)",
+          "href": "/peanut-card",
+          "lang": "en",
+          "visible": true,
+          "top": 127.53125,
+          "bottom": 141.53125
+        },
+        {
+          "text": "Pagamentos QR na Argentina (Em inglês)",
+          "href": "/qr-payments/argentina",
+          "lang": "en",
+          "visible": true,
+          "top": 159.53125,
+          "bottom": 197.53125
+        },
+        {
+          "text": "Pagamentos QR no Brasil (Em inglês)",
+          "href": "/qr-payments/brazil",
+          "lang": "en",
+          "visible": true,
+          "top": 159.53125,
+          "bottom": 197.53125
+        }
+      ],
+      "height": 900,
+      "overflow": 0,
+      "padding": "24px",
+      "chromePadding": "24px",
+      "focused": [
+        {
+          "href": "/us-europe-accounts",
+          "focusVisible": true
+        },
+        {
+          "href": "/request-links",
+          "focusVisible": true
+        },
+        {
+          "href": "/self-custody",
+          "focusVisible": true
+        },
+        {
+          "href": "/peanut-card",
+          "focusVisible": true
+        },
+        {
+          "href": "/qr-payments/argentina",
+          "focusVisible": true
+        },
+        {
+          "href": "/qr-payments/brazil",
+          "focusVisible": true
+        }
+      ]
+    }
+  ],
+  "errors": []
+}
