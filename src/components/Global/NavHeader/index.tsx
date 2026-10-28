@@ -113,10 +113,10 @@ const NavHeader = ({
                             // weight pair used here happened to render the same
                             // 24/800/32, but off the token the two drift apart the
                             // moment Heading/S moves.
-                            // the padding centres the first line on the 40px back
-                            // button at any title size (1lh = this line height);
-                            // pt-0.5 pb-1 put it 2px high, more on smaller titles
-                            'col-start-2 row-start-1 min-w-0 py-[calc((2.5rem-1lh)/2)] text-center text-heading-s break-words whitespace-normal',
+                            // py-1 + the 32px line = the 40px back button, so the
+                            // first line sits on its centre. a smaller title size
+                            // needs its own padding (see MoneySettings)
+                            'col-start-2 row-start-1 min-w-0 py-1 text-center text-heading-s break-words whitespace-normal',
                             titleClassName
                         )}
                     >
