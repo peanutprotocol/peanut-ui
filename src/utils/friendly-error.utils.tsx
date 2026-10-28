@@ -349,6 +349,11 @@ const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyErr
         biometry_required: 'passkeyBiometryRequired',
         authorization_failed: 'passkeyNotCompleted',
         canceled: 'passkeyVerificationIncomplete',
+        // Signing never creates a credential, so setup_required cannot reach a
+        // payment; the retry copy is the safe answer for all three.
+        setup_required: 'passkeyNotCompleted',
+        provider_failed: 'passkeyNotCompleted',
+        credential_missing: 'passkeyNotCompleted',
     } as const
     if (nativeReason) return code(passkeyCodes[nativeReason])
     if (text.includes('not allowed by the user agent')) return code('passkeyNotCompleted')
