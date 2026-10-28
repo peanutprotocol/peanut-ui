@@ -18,3 +18,9 @@ Google-supplied Add to Google Wallet SVG artwork with only the pill removed. `Go
 Each file is the archive file minus its two `<rect>` elements (pill fill and outline). Icon and text paths, viewBox and internal spacing are unchanged.
 
 The one-line (primary) button is Google's choice for light backgrounds. It renders 48px high and needs its full drawn width at that height (Google's side padding included). Where the pill is narrower, the button falls back to the two-line (condensed) badge at 56px, as Google's guidelines direct. Keep at least 8dp clear space around the button. Only show it when it starts native card provisioning. Google UX/branding review and production launch approval remain required before rollout.
+
+## Google Pay logo (`google-pay-logo.svg`)
+
+The card intro (`AddCardEntryScreen`) shows it beside the Visa logo. Source: `Google Pay Mark/google-pay-mark_800.svg` in https://developers.google.com/static/pay/api/download-assets/Google-Pay-Acceptance.zip, retrieved 2026-10-28.
+
+Changed from the source on Slava's call: the pill outline is removed, and the viewBox is cropped so the G fills 24 of every 32 units, with the rest left for the descender of the y. The glyph paths and colours are unchanged. Google's public guidelines say "Use only the Google Pay mark provided by Google" and not to alter the mark. Google's issuer branding review must clear this before rollout.

@@ -1713,9 +1713,8 @@
             "navTitle": "Cartão Peanut",
             "title": "Gaste onde a Visa é aceita",
             "description": "Use seu saldo em mais de 150M de lojas. Online, por aproximação, seu.",
-            "featureBalance": "Um saldo único",
-            "featureControl": "Controle total",
-            "featureOnline": "Funciona online e por aproximação",
+            "visaAcceptance": "Aceito em lojas Visa do mundo todo",
+            "googlePay": "Por aproximação com o Google Pay",
             "cta": "Pedir cartão"
         },
         "addToWallet": {

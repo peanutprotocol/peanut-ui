@@ -1713,9 +1713,8 @@
             "navTitle": "Peanut Card",
             "title": "Spend anywhere Visa is accepted",
             "description": "Use your balance at 150M+ merchants. Online, contactless, yours.",
-            "featureBalance": "One unified balance",
-            "featureControl": "Full control",
-            "featureOnline": "Works online & contactless",
+            "visaAcceptance": "Accepted at Visa merchants worldwide",
+            "googlePay": "Contactless with Google Pay",
             "cta": "Get card"
         },
         "addToWallet": {

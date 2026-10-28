@@ -1713,9 +1713,8 @@
             "navTitle": "Tarjeta Peanut",
             "title": "Gasta donde acepten Visa",
             "description": "Usa tu saldo en más de 150M de comercios. En línea, sin contacto, tuya.",
-            "featureBalance": "Un solo saldo unificado",
-            "featureControl": "Control total",
-            "featureOnline": "Funciona en línea y sin contacto",
+            "visaAcceptance": "Aceptada en comercios Visa de todo el mundo",
+            "googlePay": "Sin contacto con Google Pay",
             "cta": "Pedir tarjeta"
         },
         "addToWallet": {
