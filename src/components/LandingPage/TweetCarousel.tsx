@@ -131,7 +131,7 @@ const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {
             className={CARD_BASE_CLASSES}
         >
             {photoMedia && !imgError ? (
-                <div className="relative h-[220px] w-full flex-shrink-0 overflow-hidden border-b-2 border-border-default bg-gray-200">
+                <div className="relative h-[220px] w-full flex-shrink-0 overflow-hidden border-b-2 border-border-default bg-background-badge-helper">
                     <Image
                         src={photoMedia.url}
                         alt="Tweet media"
@@ -147,7 +147,7 @@ const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {
                     <PlayOverlay />
                 </div>
             ) : (
-                <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden border-b-2 border-border-default bg-gradient-to-br from-background-badge-attention to-yellow-200">
+                <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden border-b-2 border-border-default bg-gradient-to-br from-background-badge-attention to-avatar-yellow">
                     <div className="absolute inset-0 opacity-10">
                         <div className="absolute -top-4 -left-4 text-7xl">🥜</div>
                         <div className="absolute -right-4 -bottom-4 text-7xl">🥜</div>

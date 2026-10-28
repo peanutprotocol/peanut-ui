@@ -139,7 +139,7 @@ export function getLimitColorClass(remainingPercent: number, type: 'bg' | 'text'
         return type === 'bg' ? 'bg-background-icon-bubble-green' : 'text-green-800'
     }
     if (remainingPercent > LIMIT_WARNING_THRESHOLD) {
-        return type === 'bg' ? 'bg-action-secondary' : 'text-action-secondary'
+        return type === 'bg' ? 'bg-background-accent-yellow' : 'text-background-accent-yellow'
     }
     return type === 'bg' ? 'bg-red-200' : 'text-foreground-error'
 }
