@@ -104,7 +104,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                         <LinkButton
                                             href={selfCustody.href}
                                             hrefLang={selfCustody.hrefLang}
-                                            className="text-foreground-over-color-secondary"
+                                            className="text-foreground-over-color-primary"
                                         >
                                             {selfCustody.label}
                                             {selfCustody.languageLabel && ` (${selfCustody.languageLabel})`} →

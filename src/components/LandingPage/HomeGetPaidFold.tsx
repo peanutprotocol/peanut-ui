@@ -29,7 +29,7 @@ export function HomeGetPaidFold({ strings, locale }: HomeGetPaidFoldProps) {
                         <LinkButton
                             href={accounts.href}
                             hrefLang={accounts.hrefLang}
-                            className="text-foreground-over-color-secondary"
+                            className="text-foreground-over-color-primary"
                         >
                             {accounts.label}
                             {accounts.languageLabel && ` (${accounts.languageLabel})`} →

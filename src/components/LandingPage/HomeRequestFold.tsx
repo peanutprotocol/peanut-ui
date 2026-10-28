@@ -28,7 +28,7 @@ export function HomeRequestFold({ strings, locale }: HomeRequestFoldProps) {
                         <LinkButton
                             href={requestLinks.href}
                             hrefLang={requestLinks.hrefLang}
-                            className="text-foreground-over-color-secondary"
+                            className="text-foreground-over-color-primary"
                         >
                             {requestLinks.label}
                             {requestLinks.languageLabel && ` (${requestLinks.languageLabel})`} →
