@@ -14,6 +14,12 @@ explicitly define allowed countries and what to do when the answer is unknown.
 Never grant a store-restricted feature on unknown/loading, or replace unknown with
 an IP, locale, SIM, or timezone guess.
 
+Current consumer: when an OTA needs a newer binary, `isStoreUpdateAvailable()`
+(`src/utils/store-update.ts`) decides whether Profile offers the store update.
+On iOS it looks the update up in the user's own App Store storefront and offers
+nothing while the country is unknown, so until a binary carries this plugin the
+iOS store-update prompt never appears.
+
 ## Use in a feature surface
 
 ```tsx
