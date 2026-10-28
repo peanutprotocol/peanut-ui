@@ -25,6 +25,7 @@ import {
 import { isE164 } from '../callingCodes'
 import { useAnswerForm, type AnswerFormError, type SaveOutcome } from '../useAnswerForm'
 import { looksLikeItin, stepComplete, whyKeyOf } from '../paperworkVerification.utils'
+import { taxIdVerdict, useTaxIdChecker } from '../taxIdChecks'
 import { isSentenceField, QuestionFields } from './QuestionFields'
 import { VerifyFooter, VerifyQuestionLayout } from './VerifyLayout'
 
@@ -219,7 +220,17 @@ export function QuestionStepScreen({
     // Past three sentences the step uses the smaller heading, so its CTA stays on screen.
     const titled = !!title || !!heading
     const compact = titled || fields.filter(isSentenceField).length > 3
-    const complete = stepComplete(fields, form.values)
+    const tax = fields.find((f) => f.kind === 'taxId')
+    const taxCheck = useTaxIdChecker(tax?.checks)
+    const taxVerdict = tax ? taxIdVerdict(tax, form.values, taxCheck) : 'valid'
+    const [blurred, setBlurred] = useState<ReadonlySet<string>>(() => new Set())
+    const complete = stepComplete(fields, form.values, new Set(tax && taxVerdict !== 'valid' ? [tax.key] : []))
+    // Shown once the number is whole, or the field is left part-typed; the server's own error wins.
+    const shownTaxError =
+        tax && (taxVerdict === 'invalid' || (taxVerdict === 'incomplete' && blurred.has(tax.key)))
+            ? { [tax.key]: 'invalid_tax_id' }
+            : {}
+    const errors = { ...shownTaxError, ...form.errors }
 
     useEffect(() => {
         trackPaperworkVerification(tracking, ANALYTICS_EVENTS.KYC_PV_STEP_VIEWED, {
@@ -238,13 +249,16 @@ export function QuestionStepScreen({
         const field = fields.find((f) => f.key === key)
         const value = form.values[key]?.trim() ?? ''
         if (!field || !value) return
+        setBlurred((current) => (current.has(key) ? current : new Set([...current, key])))
         const phone = field.kind === 'phone' ? value.replace(/[\s()-]/g, '') : ''
         const code =
             field.kind === 'phone' && phone.replace(/\D/g, '').length >= 5 && !isE164(phone)
                 ? 'invalid_phone'
                 : field.kind === 'taxId' && looksLikeItin(field.format, value)
                   ? 'itin_not_accepted'
-                  : null
+                  : field.kind === 'taxId' && (taxVerdict === 'invalid' || taxVerdict === 'incomplete')
+                    ? 'invalid_tax_id'
+                    : null
         if (!code || flagged.current.has(`${key}:${code}`)) return
         flagged.current.add(`${key}:${code}`)
         track(ANALYTICS_EVENTS.KYC_PV_FIELD_ERROR, { field: key, code, source: 'typing' })
@@ -345,7 +359,7 @@ export function QuestionStepScreen({
                     <QuestionFields
                         fields={fields}
                         values={form.values}
-                        errors={form.errors}
+                        errors={errors}
                         residence={residence}
                         onChange={form.change}
                         onFieldBlur={onFieldBlur}

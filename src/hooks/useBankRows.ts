@@ -139,7 +139,10 @@ export function useBankRows() {
         if (userId && serverSecond !== undefined) storeSecondResidence(userId, serverSecond)
     }, [userId, serverSecond])
 
-    const residenceIso2 = residence?.verified?.country ?? residence?.declared?.country ?? localDeclared ?? null
+    // Once /users/me carries the residence, the server's answer stands, "none" included.
+    const residenceIso2 = residence
+        ? (residence.verified?.country ?? residence.declared?.country ?? null)
+        : (localDeclared ?? null)
 
     const input: BankRowsInput = useMemo(() => {
         const asked = { approved: isKycApproved, requested, residenceIso2 }

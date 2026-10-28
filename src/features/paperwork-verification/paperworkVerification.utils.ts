@@ -206,10 +206,15 @@ export const stepUnchanged = (step: PaperworkVerificationStep, values: Paperwork
         (f) => (stepPayload([f], values)[f.key] ?? '') === (stepPayload([f], { [f.key]: f.value ?? '' })[f.key] ?? '')
     )
 
-/** Continue waits for every required answer; the server still checks each one. */
-export const stepComplete = (fields: PaperworkVerificationField[], values: PaperworkVerificationAnswers) =>
+/** Continue waits for every required answer and none the screen refuses; the server still checks each one. */
+export const stepComplete = (
+    fields: PaperworkVerificationField[],
+    values: PaperworkVerificationAnswers,
+    refused: ReadonlySet<string> = new Set()
+) =>
     fields.every((f) => {
         const value = values[f.key]?.trim() ?? ''
+        if (refused.has(f.key)) return false
         if (f.kind === 'phone' && value && !isE164(value)) return false
         if (f.kind === 'taxId' && looksLikeItin(f.format, value)) return false
         return !f.required || f.locked || !!value
