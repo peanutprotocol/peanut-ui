@@ -6,6 +6,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * components and saves as signup, then /verify reloads.
  */
 import { type ReactNode, useEffect, useState } from 'react'
+import en from '@/i18n/app/messages/en.json'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
@@ -109,9 +110,7 @@ it('back from the two-country comparison returns to the residence sentence, not 
     fireEvent.click(screen.getByTestId('setup-citizenship-country'))
     fireEvent.click(await screen.findByRole('button', { name: 'Brazil' }))
     fireEvent.click(screen.getByTestId('setup-residence-continue'))
-    expect(
-        await screen.findByRole('heading', { name: 'Link your profile to one country' })
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: en.setup.residenceStep.compare.title })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'setup-back' }))
     expect(await screen.findByRole('heading', { name: /I’m a resident of/ })).toBeInTheDocument()
