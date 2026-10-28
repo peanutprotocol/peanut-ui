@@ -1852,7 +1852,7 @@
             "signInBody": "O creá tu cuenta. Toma un minuto.",
             "verifyTitle": "Verificá.",
             "spendTitle": "Pagá.",
-            "spendBody": "¿Aprobada? Agregá plata y pagá."
+            "spendBody": "Tené USD 10 en tu saldo, pedila y pagá."
         },
         "marquee": {
             "available": "OBTENÉ TU TARJETA"
@@ -1862,10 +1862,10 @@
                 "answer": "Los pagos con tarjeta usan USDC en un contrato inteligente dedicado. Podés agregar fondos de tu billetera Peanut al saldo de tu tarjeta."
             },
             "q5": {
-                "answer": "Iniciá sesión, completá la verificación y aceptá los términos del titular. Tu solicitud está sujeta a aprobación."
+                "answer": "Iniciá sesión, completá la verificación, tené al menos USD 10 en tu saldo de Peanut y aceptá los términos del titular. Tu solicitud está sujeta a aprobación."
             },
             "q6": {
-                "answer": "No. Podés solicitarla antes de agregar dinero. Agregá fondos cuando tu tarjeta esté lista para pagar."
+                "answer": "Sí. Para solicitar tu primera tarjeta necesitás al menos USD 10 en tu saldo de Peanut. No es una comisión: la plata sigue siendo tuya para gastarla con la tarjeta."
             },
             "q8": {
                 "answer": "Peanut Card es virtual. Podés registrar tu interés en una tarjeta física desde la app."
