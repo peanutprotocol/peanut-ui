@@ -14,6 +14,24 @@ describe('app-entry gateway', () => {
         expect(response.headers.get('location')).toBe('https://peanut.me/app?pnutdl=1&badgeCampaign=door&dest=%2Fcard')
     })
 
+    it('sends a browser that opened a registered marketing QR to the /q handoff with its campaign', () => {
+        const response = runProxy(
+            '/home?app_entry=1&marketing_qr=home-hero-en&s=twitter&m=social&c=qr-test&o=current_url'
+        )
+
+        expect(response.status).toBe(307)
+        expect(response.headers.get('location')).toBe(
+            'https://peanut.me/q/home-hero-en?s=twitter&m=social&c=qr-test&o=current_url'
+        )
+    })
+
+    it('treats an unregistered marketing QR id as a plain app entry', () => {
+        const response = runProxy('/home?app_entry=1&marketing_qr=send-hero-en')
+
+        expect(response.status).toBe(307)
+        expect(response.headers.get('location')).toBe('https://peanut.me/app?marketing_qr=send-hero-en')
+    })
+
     it('does not redirect ordinary /home navigation', () => {
         const response = runProxy('/home?tab=activity')
 

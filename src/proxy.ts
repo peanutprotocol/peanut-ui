@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server'
 import { shouldBlockDevRoute } from '@/constants/dev-tools.consts'
 import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import { APP_ENTRY_QUERY_PARAM } from '@/constants/migration.consts'
+import { marketingQrHandoffUrl } from '@/features/marketing-qr/contract'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale, withCountry } from '@/i18n/localeBridge'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
@@ -31,6 +32,9 @@ export function proxy(request: NextRequest) {
     // route it to the web-only smart-store page while preserving the deferred
     // handoff. Remove the routing marker so /app can never loop back here.
     if (pathname === '/home' && request.nextUrl.searchParams.get(APP_ENTRY_QUERY_PARAM) === '1') {
+        // Registered landing-page QRs record their opening on /q first; /q continues to /app.
+        const marketingQrHandoff = marketingQrHandoffUrl(new URL(request.url))
+        if (marketingQrHandoff) return NextResponse.redirect(marketingQrHandoff, 307)
         const target = request.nextUrl.clone()
         target.pathname = '/app'
         target.searchParams.delete(APP_ENTRY_QUERY_PARAM)

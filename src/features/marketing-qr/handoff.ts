@@ -86,7 +86,9 @@ export async function renderMarketingQrHandoff(
         .replace(/\u2028/g, '\\u2028')
         .replace(/\u2029/g, '\\u2029')
     const script = `(${runMarketingQrHandoff.toString()})(${serialized},${marketingQrAnalyticsAllowed.toString()});`
-    // Strip Apple campaign tokens from the no-JS/manual fallback links.
+    // Strip Apple campaign tokens from the no-JS/manual fallback links. The fallback sits in
+    // <noscript>: with JavaScript the page stays blank until the script continues, instead of
+    // flashing unstyled links.
     const stores = Object.entries(STORE_URL)
         .map(([store, url]) => {
             const target = new URL(url)
@@ -95,7 +97,7 @@ export async function renderMarketingQrHandoff(
         })
         .join('')
     return {
-        html: `<!doctype html><html lang="${registration.locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><title>${escapeHtml(messages.migration.qr.title)}</title></head><body><main><h1>${escapeHtml(messages.migration.qr.title)}</h1><p>${escapeHtml(messages.migration.smartLink.pickStore)}</p>${stores}</main><script nonce="${nonce}">${script}</script></body></html>`,
+        html: `<!doctype html><html lang="${registration.locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><title>${escapeHtml(messages.migration.qr.title)}</title></head><body><noscript><main><h1>${escapeHtml(messages.migration.qr.title)}</h1><p>${escapeHtml(messages.migration.smartLink.pickStore)}</p>${stores}</main></noscript><script nonce="${nonce}">${script}</script></body></html>`,
         csp: `default-src 'none'; script-src 'nonce-${nonce}'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'`,
     }
 }
