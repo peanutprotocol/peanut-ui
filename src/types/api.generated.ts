@@ -14194,95 +14194,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/users/kyc/attempts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        documents: {
-                            issuingCountry: string;
-                            key: string;
-                            type: string;
-                        }[];
-                        policyVersion: string;
-                        requestKey: string;
-                        routeId: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            applicantId: string | null;
-                            /** Format: uuid */
-                            attemptId: string;
-                            levelName: string;
-                            sdkConfig: {
-                                /** @enum {boolean} */
-                                autoSelectDocumentDefinitions?: true;
-                                documentDefinitions?: {
-                                    IDENTITY: {
-                                        country: string;
-                                        idDocType: string;
-                                    };
-                                };
-                            };
-                            status: string;
-                            token: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code: string;
-                            error: string;
-                            userMessage: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/users/kyc/attempts/{attemptId}/token": {
         parameters: {
             query?: never;
@@ -14647,7 +14558,7 @@ export interface paths {
                                 local: boolean;
                                 qr: boolean;
                             };
-                            flow: "verify-once" | "document-first" | null;
+                            flow: "verify-once" | null;
                             needs: ("residence" | "features")[];
                             policyVersion: string | null;
                             proofOfAddress: "suggested" | null;
@@ -14789,12 +14700,6 @@ export interface paths {
                                         observedAt: string;
                                         /** @enum {string} */
                                         provider: "ipapi";
-                                    };
-                                    store?: {
-                                        country: string;
-                                        /** Format: date-time */
-                                        observedAt: string;
-                                        source: "app-store" | "google-play";
                                     };
                                     vercelIp?: {
                                         country: string;
@@ -15263,12 +15168,6 @@ export interface paths {
                                         /** @enum {string} */
                                         provider: "ipapi";
                                     };
-                                    store?: {
-                                        country: string;
-                                        /** Format: date-time */
-                                        observedAt: string;
-                                        source: "app-store" | "google-play";
-                                    };
                                     vercelIp?: {
                                         country: string;
                                         /** Format: date-time */
@@ -15487,12 +15386,6 @@ export interface paths {
                                         /** @enum {string} */
                                         provider: "ipapi";
                                     };
-                                    store?: {
-                                        country: string;
-                                        /** Format: date-time */
-                                        observedAt: string;
-                                        source: "app-store" | "google-play";
-                                    };
                                     vercelIp?: {
                                         country: string;
                                         /** Format: date-time */
@@ -15556,12 +15449,6 @@ export interface paths {
                                 observedAt: string;
                                 /** @enum {string} */
                                 provider: "ipapi";
-                            };
-                            store?: {
-                                country: string;
-                                /** Format: date-time */
-                                observedAt: string;
-                                source: "app-store" | "google-play";
                             };
                             vercelIp?: {
                                 country: string;
@@ -16528,7 +16415,7 @@ export interface paths {
                             commit: string | null;
                             contracts: {
                                 /** @enum {number} */
-                                kyc: 2;
+                                kyc: 3;
                             };
                             migrationsHead: string | null;
                         };
@@ -16623,6 +16510,41 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/logout/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

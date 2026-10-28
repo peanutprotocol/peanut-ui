@@ -3,10 +3,7 @@ import type { paths } from '@/types/api.generated'
 type DocumentPlanResponse = paths['/users/kyc/plan']['get']['responses'][200]['content']['application/json']
 /** What an older account still has to answer before Smart Paperwork Verification can ask its questions. */
 export type KycPlanNeed = DocumentPlanResponse['needs'][number]
-/** Smart Paperwork Verification's stored `flow` value; the API keeps it on existing attempts. */
-export const PAPERWORK_VERIFICATION_FLOW = 'verify-once'
-// `needs` and the picker annotations are optional for a response from an API before the field.
-// `flow` is written out because the API snapshot still lists the dropped 'document-first'.
+// `needs` and the picker annotations are optional for a response from an API before the field
 export type KycDocumentPlan = Omit<
     DocumentPlanResponse,
     | 'flow'
@@ -20,6 +17,7 @@ export type KycDocumentPlan = Omit<
     Partial<
         Pick<
             DocumentPlanResponse,
+            | 'flow'
             | 'proofOfAddress'
             | 'proofOfAddressReason'
             | 'proofOfAddressIdCountries'
@@ -27,8 +25,10 @@ export type KycDocumentPlan = Omit<
             | 'temporaryProtection'
             | 'needs'
         >
-    > & { flow?: typeof PAPERWORK_VERIFICATION_FLOW | null }
+    >
 export type KycFeatures = KycDocumentPlan['features']
+/** Smart Paperwork Verification's stored `flow` value; the API keeps it on existing attempts. */
+export const PAPERWORK_VERIFICATION_FLOW = 'verify-once' satisfies NonNullable<KycDocumentPlan['flow']>
 type AttemptResponse =
     paths['/users/kyc/attempts/{attemptId}/token']['post']['responses'][200]['content']['application/json']
 export type KycDocumentConfig = AttemptResponse['sdkConfig']
