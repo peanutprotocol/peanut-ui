@@ -81,6 +81,23 @@ test.describe('desktop entry points', () => {
         deviceScaleFactor: 1,
         viewport: { width: 1440, height: 900 },
     })
+    test('server-renders the feature directory on the English landing alias', async ({ request }) => {
+        const response = await request.get('/lp')
+
+        expect(response.ok()).toBe(true)
+        expect(await response.text()).toMatch(/<nav[^>]*\bid="footer-features"/)
+    })
+
+    test('card feature exploration lands on the complete directory', async ({ page }) => {
+        await page.goto('/peanut-card', { waitUntil: 'domcontentloaded' })
+        await page.getByRole('link', { name: 'Explore all features' }).click()
+
+        await expect(page).toHaveURL(/\/lp#footer-features$/)
+        const directory = page.locator('nav#footer-features')
+        await expect(directory.getByRole('link')).toHaveCount(6)
+        await expect(directory).toBeInViewport({ ratio: 1 })
+    })
+
     test('hero, account pair and close CTA reuse a dismissible modal', async ({ page }) => {
         await landing(page, '/', true)
         const entries = [
