@@ -68,7 +68,7 @@ beforeEach(() => jest.clearAllMocks())
 describe('KycStatusDrawer — the setup status of a verification-attempt identity', () => {
     it.each(['verified', 'processing'] as const)('a %s identity hands over to the setup status', async (status) => {
         identity(status)
-        mockFind.mockResolvedValue({ features, refusals })
+        mockFind.mockResolvedValue({ features, refusals, flow: null })
         const { onClose, onKeepMounted } = open()
         await waitFor(() => expect(mockOpenSetupStatus).toHaveBeenCalledWith(features, refusals))
         expect(onKeepMounted).toHaveBeenCalledWith(true)
