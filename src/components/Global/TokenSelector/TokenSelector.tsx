@@ -249,7 +249,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
                 </div>
                 {visible.length > 0 ? (
                     <ListGroup role="listbox" aria-label={t('tokenSelector.networkLabel')}>
-                        {visible.map(({ network, otherToken }) => (
+                        {visible.map(({ network, otherToken, otherSymbols }) => (
                             <SelectorOptionRow
                                 key={network.chainId}
                                 title={network.name}
@@ -259,13 +259,15 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
                                 body={
                                     <div className="flex pt-1">
                                         {otherToken ? (
-                                            // `custom`: names what a tap selects, the accent pill of the
-                                            // approved prototype (TASK-24035)
+                                            // `custom`: names the tokens a tap leads to, the accent pill of the
+                                            // approved prototype (TASK-24035); "only" just when it is true
                                             <Badge
                                                 status="custom"
-                                                customText={t('tokenSelector.tokenOnly', {
-                                                    symbol: network.token.symbol.toUpperCase(),
-                                                })}
+                                                customText={
+                                                    otherSymbols.length === 1
+                                                        ? t('tokenSelector.tokenOnly', { symbol: otherSymbols[0] })
+                                                        : otherSymbols.join(', ')
+                                                }
                                             />
                                         ) : network.isFree ? (
                                             // `custom`: "No fee" is a benefit, not a status — the

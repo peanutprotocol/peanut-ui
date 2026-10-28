@@ -181,13 +181,18 @@ describe("networkRowsForToken — every network, the token's own first", () => {
             ['tron', true, 'USDT'],
         ])
         expect(rows[3].network.token.address).toBe(USDT_TRON)
+        expect(rows[3].otherSymbols).toEqual(['USDT'])
     })
 
     test('a network without the token offers the first token it carries, in token order', () => {
         // Optimism carries USDC and ETH: USDC ranks first
         const rows = networkRowsForToken(options(), option('USDT'))
         const optimism = rows.find((r) => r.network.chainId === '10')!
-        expect(optimism).toMatchObject({ otherToken: true, network: { token: { symbol: 'USDC' } } })
+        expect(optimism).toMatchObject({
+            otherToken: true,
+            otherSymbols: ['USDC', 'ETH'],
+            network: { token: { symbol: 'USDC' } },
+        })
         expect(rows.filter((r) => r.otherToken)).toHaveLength(1)
         expect(rows).toHaveLength(4)
     })

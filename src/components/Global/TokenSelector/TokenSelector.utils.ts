@@ -147,6 +147,8 @@ export function sortNetworks(networks: NetworkOption[]): NetworkOption[] {
 export interface NetworkRow {
     network: NetworkOption
     otherToken: boolean
+    /** for an `otherToken` row: every offered token on this chain, in token order */
+    otherSymbols: string[]
 }
 
 /**
@@ -157,14 +159,23 @@ export interface NetworkRow {
  * Support comes from the token/chain list alone, never from price data.
  */
 export function networkRowsForToken(options: TokenOption[], option: TokenOption | undefined): NetworkRow[] {
-    const rows: NetworkRow[] = (option?.networks ?? []).map((network) => ({ network, otherToken: false }))
-    const seen = new Set(rows.map((r) => r.network.chainId))
-    // options are in token order, so a chain gets the first token it carries (USDC, USDT, then A-Z)
+    const rows: NetworkRow[] = (option?.networks ?? []).map((network) => ({
+        network,
+        otherToken: false,
+        otherSymbols: [],
+    }))
+    const byChain = new Map(rows.map((r) => [r.network.chainId, r]))
+    // options are in token order, so a chain is selected with the first token it carries (USDC, USDT, then A-Z)
     for (const other of options) {
         for (const network of other.networks) {
-            if (seen.has(network.chainId)) continue
-            seen.add(network.chainId)
-            rows.push({ network, otherToken: true })
+            const row = byChain.get(network.chainId)
+            if (row) {
+                if (row.otherToken) row.otherSymbols.push(other.symbol)
+                continue
+            }
+            const added = { network, otherToken: true, otherSymbols: [other.symbol] }
+            byChain.set(network.chainId, added)
+            rows.push(added)
         }
     }
     return rows
