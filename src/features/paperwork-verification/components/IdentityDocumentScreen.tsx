@@ -28,6 +28,8 @@ const SCREEN_HEIGHT = 'min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom)
 
 /** The list's order: what a resident most likely holds first. */
 const MAIN_TYPES = ['RESIDENCE_PERMIT', 'PASSPORT', 'ID_CARD'] as const
+const FEATURES = ['qr', 'local', 'card', 'bank'] as const
+type Feature = (typeof FEATURES)[number]
 
 function Flag({ country }: { country: string }) {
     return (
@@ -49,6 +51,9 @@ type Choice = PaperworkVerificationDocument
  * permit or a licence, the citizenship for a passport or a national ID), and a
  * tap opens Sumsub on it. Anything else is in "Other document"; a document
  * from a country not on these lists cannot be picked (Slava, 2026-10-26).
+ * An ID whose issuer would make a provider refuse every feature the user
+ * asked for is greyed; one that refuses some says which, and asks before
+ * Sumsub opens (Slava, 2026-10-27).
  * `restart`: a verified user picks the ID of a new identity check.
  */
 export function IdentityDocumentScreen({
@@ -113,13 +118,21 @@ export function IdentityDocumentScreen({
         : []
 
     const otherChoices = [...other, ...(protectionInMain ? [] : protectionChoices)]
-    const pickable = main.length + (protectionInMain ? protectionChoices.length : 0) + otherChoices.length > 0
+    const asked = FEATURES.filter((f) => plan?.features?.[f])
+    const closedBy = (c: Choice): Feature[] => plan?.documentRefusals?.[c.issuingCountry] ?? []
+    const closesAll = (c: Choice) => asked.length > 0 && asked.every((f) => closedBy(c).includes(f))
+    const listed = [...main, ...(protectionInMain ? protectionChoices : []), ...otherChoices]
+    const pickable = listed.some((c) => !closesAll(c))
+    const featureRefused = listed.filter(closesAll).length
     // Neither the residence's documents nor the citizenship's: name both, so the user knows what failed.
     const unpickableCountries = new Intl.ListFormat(locale, { type: 'disjunction' }).format(
         [...new Set([away ?? residence, residence].filter((c): c is string => !!c))].map(countryName)
     )
     const [otherOpen, setOtherOpen] = useState(false)
     const [chosen, setChosen] = useState<string | null>(null)
+    // Kept after the drawer closes, so its content stays while it slides away.
+    const [limited, setLimited] = useState<{ choice: Choice; source: 'list' | 'other' } | null>(null)
+    const [limitedOpen, setLimitedOpen] = useState(false)
     const track = usePaperworkVerificationTrack()
     useEffect(() => {
         track(ANALYTICS_EVENTS.KYC_PV_ID_VIEWED, {
@@ -129,6 +142,8 @@ export function IdentityDocumentScreen({
             main_options: main.length,
             other_options: otherChoices.length,
             refused_options: refused.length,
+            feature_refused_options: featureRefused,
+            feature_limited_options: listed.filter((c) => !closesAll(c) && closedBy(c).length > 0).length,
             citizenship_known: !!citizenship,
             temporary_protection_offered: protectionChoices.length > 0,
             temporary_protection_in_main: protectionInMain && protectionChoices.length > 0,
@@ -145,6 +160,7 @@ export function IdentityDocumentScreen({
             ? !!plan?.temporaryProtection?.proofOfAddress
             : c.issuingCountry !== residence && (plan?.proofOfAddressIdCountries ?? []).includes(c.issuingCountry)
     const keyOf = (c: Choice) => `${c.type}-${c.issuingCountry}`
+    const limits = (c: Choice) => closedBy(c).map((f) => t(`documentList.closes.${f}`))
 
     const choose = (c: Choice, source: 'list' | 'other') => {
         if (busy) return
@@ -156,14 +172,27 @@ export function IdentityDocumentScreen({
             source,
             issuing_country_is_residence: c.issuingCountry === residence,
             proof_of_address_expected: needsProofOfAddress(c),
+            features_closed: closedBy(c).length,
         })
         onContinue(c)
     }
+    const pick = (c: Choice, source: 'list' | 'other') => {
+        if (busy) return
+        if (closedBy(c).length === 0) return choose(c, source)
+        setOtherOpen(false)
+        setLimited({ choice: c, source })
+        setLimitedOpen(true)
+    }
     const row = (c: Choice, source: 'list' | 'other') => {
+        if (closesAll(c)) return refusedRow(c, t('documentList.closesAll', { country: countryName(c.issuingCountry) }))
         const key = keyOf(c)
+        const country = countryName(c.issuingCountry)
+        const closed = limits(c).join(' ')
         const issued = needsProofOfAddress(c)
-            ? t('documentList.issuedByWithProof', { country: countryName(c.issuingCountry) })
-            : t('documentList.issuedBy', { country: countryName(c.issuingCountry) })
+            ? [t('documentList.issuedByWithProof', { country }), closed].filter(Boolean).join(' ')
+            : closed
+              ? t('documentList.issuedByLimited', { country, limits: closed })
+              : t('documentList.issuedBy', { country })
         return (
             <ListItem
                 key={key}
@@ -174,17 +203,20 @@ export function IdentityDocumentScreen({
                 trailing={busy && chosen === key ? <Spinner /> : undefined}
                 chevron={!(busy && chosen === key)}
                 disabled={busy && chosen !== key}
-                onClick={() => choose(c, source)}
+                onClick={() => pick(c, source)}
                 data-testid={`verify-id-option-${key}`}
             />
         )
     }
 
-    const refusedRow = (c: Choice) => (
+    const refusedRow = (
+        c: Choice,
+        body = t('documentList.notAccepted', { country: countryName(c.issuingCountry) })
+    ) => (
         <ListItem
             key={`refused-${keyOf(c)}`}
             title={typeName(c.type)}
-            body={t('documentList.notAccepted', { country: countryName(c.issuingCountry) })}
+            body={body}
             bodyWrap
             leading={
                 <span className="opacity-50 grayscale">
@@ -229,16 +261,16 @@ export function IdentityDocumentScreen({
                 <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
                     {t(restart ? 'midpoint.restartDescription' : 'documentList.description')}
                 </p>
-                {document && !pickable && (
+                {document && !pickable && featureRefused === 0 && (
                     <Callout priority="error" className="w-full text-left" data-testid="verify-id-none-accepted">
                         {t('documentList.noneAccepted', { countries: unpickableCountries })}
                     </Callout>
                 )}
-                {document && pickable && (
+                {document && (pickable || featureRefused > 0) && (
                     <ListGroup>
                         {protectionInMain && protectionChoices.map((c) => row(c, 'list'))}
                         {main.map((c) => row(c, 'list'))}
-                        {refused.map(refusedRow)}
+                        {refused.map((c) => refusedRow(c))}
                         {otherChoices.length > 0 && (
                             <ListItem
                                 title={t('documentList.other')}
@@ -295,6 +327,54 @@ export function IdentityDocumentScreen({
                             {t('documentList.backToList')}
                         </Button>
                     </div>
+                </DrawerContent>
+            </Drawer>
+            <Drawer open={limitedOpen} onOpenChange={setLimitedOpen}>
+                <DrawerContent>
+                    {limited && (
+                        <div className="flex flex-col gap-4 pb-4" data-testid="verify-id-limited-drawer">
+                            <DrawerTitle>{t('documentList.limitedTitle')}</DrawerTitle>
+                            <ListGroup>
+                                <ListItem
+                                    title={typeName(limited.choice.type)}
+                                    body={t('documentList.issuedBy', {
+                                        country: countryName(limited.choice.issuingCountry),
+                                    })}
+                                    leading={<Flag country={limited.choice.issuingCountry} />}
+                                />
+                            </ListGroup>
+                            <Callout priority="attention" className="w-full text-left">
+                                {limits(limited.choice).join(' ')}
+                            </Callout>
+                            {residence &&
+                                limited.choice.issuingCountry !== residence &&
+                                !plan?.documentRefusals?.[residence]?.length && (
+                                    <p className="text-body-s text-foreground-secondary">
+                                        {t('documentList.residenceUnlocks', { country: countryName(residence) })}
+                                    </p>
+                                )}
+                            <Button
+                                shadowSize="4"
+                                className="w-full"
+                                onClick={() => {
+                                    setLimitedOpen(false)
+                                    choose(limited.choice, limited.source)
+                                }}
+                                data-testid="verify-id-limited-continue"
+                            >
+                                {t('continue')}
+                            </Button>
+                            <Button
+                                variant="secondary"
+                                shadowSize="4"
+                                className="w-full"
+                                onClick={() => setLimitedOpen(false)}
+                                data-testid="verify-id-limited-back"
+                            >
+                                {t('documentList.chooseAnother')}
+                            </Button>
+                        </div>
+                    )}
                 </DrawerContent>
             </Drawer>
         </div>

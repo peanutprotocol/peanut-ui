@@ -10,7 +10,14 @@ const plan = (
     {
         types = ['PASSPORT', 'ID_CARD', 'RESIDENCE_PERMIT', 'DRIVERS'],
         proofOfAddressIdCountries,
-    }: { types?: string[]; proofOfAddressIdCountries?: string[] } = {}
+        documentRefusals,
+        features = { qr: true, local: false, card: false, bank: true },
+    }: {
+        types?: string[]
+        proofOfAddressIdCountries?: string[]
+        documentRefusals?: KycDocumentPlan['documentRefusals']
+        features?: KycDocumentPlan['features']
+    } = {}
 ) =>
     ({
         available: true,
@@ -19,7 +26,8 @@ const plan = (
         flow: 'verify-once',
         proofOfAddress: null,
         proofOfAddressIdCountries,
-        features: { qr: true, local: false, card: false, bank: true },
+        documentRefusals,
+        features,
         routes: [
             {
                 id: 'base',
@@ -228,5 +236,86 @@ describe('IdentityDocumentScreen: a citizenship whose IDs the route refuses', ()
         render({ documentPlan: plan(['PT', 'UA']), residence: 'PT', citizenship: 'UA' })
         expect(screen.queryByTestId('verify-id-refused-PASSPORT-UA')).toBeNull()
         expect(option('PASSPORT', 'UA')).toBeInTheDocument()
+    })
+})
+
+// Slava, 2026-10-27: a Venezuelan in Argentina was offered their passport with nothing said about the card it closes.
+describe('IdentityDocumentScreen: an ID that closes features the user asked for', () => {
+    const NONE = { qr: false, local: false, card: false, bank: false }
+    const venezuelan = (features: KycDocumentPlan['features']) =>
+        plan(['AR', 'VE'], { documentRefusals: { VE: ['card'] }, features })
+
+    it('says what a partly refused ID closes, and asks before Sumsub opens', () => {
+        const onContinue = render({
+            documentPlan: venezuelan({ ...NONE, qr: true, card: true }),
+            residence: 'AR',
+            citizenship: 'VE',
+        })
+        const passport = option('PASSPORT', 'VE')!
+        expect(passport).toHaveTextContent('Issued by Venezuela. The Peanut card isn’t available with this document.')
+        expect(option('RESIDENCE_PERMIT', 'AR')).not.toHaveTextContent('isn’t available')
+        fireEvent.click(passport)
+        expect(onContinue).not.toHaveBeenCalled()
+        const drawer = within(screen.getByTestId('verify-id-limited-drawer'))
+        expect(drawer.getByText('Continue with this document?')).toBeInTheDocument()
+        expect(drawer.getByText('The Peanut card isn’t available with this document.')).toBeInTheDocument()
+        expect(drawer.getByText('A document issued by Argentina doesn’t have this limit.')).toBeInTheDocument()
+        fireEvent.click(drawer.getByTestId('verify-id-limited-continue'))
+        expect(onContinue).toHaveBeenCalledWith({ type: 'PASSPORT', issuingCountry: 'VE' })
+    })
+
+    it('Choose another document closes the question and opens nothing', () => {
+        const onContinue = render({
+            documentPlan: venezuelan({ ...NONE, qr: true, card: true }),
+            residence: 'AR',
+            citizenship: 'VE',
+        })
+        fireEvent.click(option('ID_CARD', 'VE')!)
+        fireEvent.click(screen.getByTestId('verify-id-limited-back'))
+        expect(onContinue).not.toHaveBeenCalled()
+        fireEvent.click(option('RESIDENCE_PERMIT', 'AR')!)
+        expect(onContinue).toHaveBeenCalledWith({ type: 'RESIDENCE_PERMIT', issuingCountry: 'AR' })
+    })
+
+    it('greys out an ID that closes every feature asked for, in the list and under Other documents', () => {
+        const onContinue = render({
+            documentPlan: venezuelan({ ...NONE, card: true }),
+            residence: 'AR',
+            citizenship: 'VE',
+        })
+        for (const type of ['PASSPORT', 'ID_CARD']) {
+            const row = screen.getByTestId(`verify-id-refused-${type}-VE`)
+            expect(row).toHaveTextContent('Issued by Venezuela. Can’t be used for what you picked.')
+            expect(row).toHaveAttribute('aria-disabled', 'true')
+            fireEvent.click(row)
+        }
+        expect(option('PASSPORT', 'VE')).toBeNull()
+        fireEvent.click(screen.getByTestId('verify-id-other'))
+        const drawer = within(screen.getByTestId('verify-id-other-drawer'))
+        expect(drawer.getByTestId('verify-id-refused-DRIVERS-VE')).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.queryByTestId('verify-id-limited-drawer')).toBeNull()
+        expect(onContinue).not.toHaveBeenCalled()
+        fireEvent.click(drawer.getByTestId('verify-id-option-DRIVERS-AR'))
+        expect(onContinue).toHaveBeenCalledWith({ type: 'DRIVERS', issuingCountry: 'AR' })
+    })
+
+    it('shows the greyed IDs rather than an empty list when every offered ID closes everything', () => {
+        render({
+            documentPlan: plan(['VE'], { documentRefusals: { VE: ['card'] }, features: { ...NONE, card: true } }),
+            residence: 'VE',
+        })
+        expect(screen.getByTestId('verify-id-refused-PASSPORT-VE')).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-id-none-accepted')).toBeNull()
+    })
+
+    it('opens an ID straight away when the plan names no refusal for it', () => {
+        const onContinue = render({
+            documentPlan: plan(['AR', 'VE'], { features: { ...NONE, qr: true, card: true } }),
+            residence: 'AR',
+            citizenship: 'VE',
+        })
+        fireEvent.click(option('PASSPORT', 'VE')!)
+        expect(onContinue).toHaveBeenCalledWith({ type: 'PASSPORT', issuingCountry: 'VE' })
+        expect(screen.queryByTestId('verify-id-limited-drawer')).toBeNull()
     })
 })

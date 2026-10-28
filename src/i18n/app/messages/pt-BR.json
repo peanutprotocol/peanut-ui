@@ -3893,6 +3893,7 @@
                 "description": "Escolha um para começar a verificação. Você vai tirar fotos dele e uma selfie.",
                 "issuedBy": "Emitido por {country}",
                 "issuedByWithProof": "Emitido por {country}. Você também vai enviar um comprovante de endereço.",
+                "issuedByLimited": "Emitido por {country}. {limits}",
                 "other": "Outro documento",
                 "otherHint": "Como uma carteira de habilitação",
                 "otherTitle": "Outros documentos",
@@ -3903,7 +3904,17 @@
                 "noneFit": "Não tem nenhum destes?",
                 "changeResidence": "Alterar residência",
                 "stepDots": "Verificar identidade, passo 1 de 3",
-                "noneAccepted": "Ainda não conseguimos verificar documentos emitidos por {countries}."
+                "noneAccepted": "Ainda não conseguimos verificar documentos emitidos por {countries}.",
+                "closesAll": "Emitido por {country}. Não serve para o que você escolheu.",
+                "closes": {
+                    "qr": "Pagamentos com QR não estão disponíveis com este documento.",
+                    "local": "Transferências bancárias locais não estão disponíveis com este documento.",
+                    "card": "O cartão Peanut não está disponível com este documento.",
+                    "bank": "Contas bancárias não estão disponíveis com este documento."
+                },
+                "limitedTitle": "Continuar com este documento?",
+                "residenceUnlocks": "Um documento emitido por {country} não tem essa limitação.",
+                "chooseAnother": "Escolher outro documento"
             }
         }
     },
