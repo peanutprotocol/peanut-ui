@@ -12,7 +12,7 @@ export function HomePayLocalLead({ lead, names, hrefs, languageLabel }: HomePayL
                 return (
                     <Link key={i} href={hrefs[country]} hrefLang="en" className={HOME_PAY_LOCAL_LEAD_LINK_CLASS}>
                         {names[country]}
-                        {languageLabel && <span className="text-body-s font-normal"> ({languageLabel})</span>}
+                        {languageLabel && <span className="text-body-s"> ({languageLabel})</span>}
                     </Link>
                 )
             })}

@@ -50,7 +50,7 @@ export function HomePersonaFold({ strings }: HomePersonaFoldProps) {
                                     FOCUS_RING,
                                     i === index
                                         ? 'scale-125 -rotate-6 opacity-100'
-                                        : 'opacity-60 enabled:hover:opacity-100'
+                                        : 'opacity-60 enabled:hover:opacity-100 enabled:active:opacity-100'
                                 )}
                             >
                                 <Image
