@@ -22,6 +22,7 @@ import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentR
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { isQuoteNearExpiry } from '@/services/rhino-bridge'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useReadsSelectedTokenPrice } from '@/hooks/useReadsSelectedTokenPrice'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { useAuth } from '@/context/authContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
@@ -100,6 +101,8 @@ export function useSemanticRequestFlow() {
         isFetchingSpendableBalance,
     } = useWallet()
 
+    // a new charge takes the selected token's symbol and decimals from its data
+    useReadsSelectedTokenPrice()
     // use token selector context for ui integration
     const {
         selectedChainID,

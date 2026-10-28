@@ -110,6 +110,7 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { us
 const mockRefetchTokenData = jest.fn()
 const mockTokenSelection = {
     refetchTokenData: mockRefetchTokenData,
+    readTokenPrice: () => () => {},
     selectedChainID: '8453',
     selectedTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
     selectedTokenData: {

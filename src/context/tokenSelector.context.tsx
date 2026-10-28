@@ -30,6 +30,13 @@ export const tokenSelectorContext = createContext({
     selectedTokenData: undefined as ITokenPriceData | null | undefined,
     isFetchingTokenData: false as boolean,
     refetchTokenData: async (): Promise<ITokenPriceData | null | undefined> => undefined,
+    /**
+     * Marks the caller as a reader of selectedTokenData while it is mounted;
+     * returns the release. The price is fetched only while one is mounted, so
+     * a token pick in a flow that never reads it (withdraw) asks the API for
+     * nothing. Call it through useReadsSelectedTokenPrice.
+     */
+    readTokenPrice: (): (() => void) => () => {},
     supportedChainsAndTokens: {} as Record<string, ChainWithTokens>,
     /** true until the chain/token record loads — a selection must not be "corrected" against a partial record */
     isLoadingChains: false as boolean,
@@ -58,6 +65,12 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [devconnectTokenAddress, setDevconnectTokenAddress] = useState<string>('')
     const [devconnectChainId, setDevconnectChainId] = useState<string>('')
     const [devconnectRecipientAddress, setDevconnectRecipientAddress] = useState<string>('')
+    // how many mounted flows read selectedTokenData (claim, request payment)
+    const [tokenPriceReaders, setTokenPriceReaders] = useState(0)
+    const readTokenPrice = useCallback(() => {
+        setTokenPriceReaders((count) => count + 1)
+        return () => setTokenPriceReaders((count) => count - 1)
+    }, [])
 
     // Fetch supported chains and tokens (cached for 24 hours - static data)
     const { data: fetchedChainsAndTokens = {}, isPending: isLoadingChains } = useSupportedChainsAndTokens()
@@ -85,6 +98,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         chainId: selectedChainID,
         supportedChainsAndTokens,
         isPeanutWallet,
+        enabled: tokenPriceReaders > 0,
     })
 
     // Derive selectedTokenData from query (single source of truth)
@@ -133,6 +147,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 selectedTokenData,
                 isFetchingTokenData,
                 refetchTokenData,
+                readTokenPrice,
                 supportedChainsAndTokens,
                 isLoadingChains,
                 selectedTokenBalance,

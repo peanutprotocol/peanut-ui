@@ -18,6 +18,8 @@ interface UseTokenPriceParams {
     chainId: string | undefined
     supportedChainsAndTokens: Record<string, ChainWithTokens>
     isPeanutWallet: boolean
+    /** false while no mounted flow reads the price: then nothing is fetched */
+    enabled?: boolean
 }
 
 /**
@@ -42,6 +44,7 @@ export const useTokenPrice = ({
     chainId,
     supportedChainsAndTokens,
     isPeanutWallet,
+    enabled = true,
 }: UseTokenPriceParams) => {
     // React Query v5 rejects `undefined` returns from queryFn with
     //   "Query data cannot be undefined. Please make sure to return a value
@@ -107,7 +110,7 @@ export const useTokenPrice = ({
                 return null
             }
         },
-        enabled: !!tokenAddress && !!chainId, // Only run when both are defined
+        enabled: enabled && !!tokenAddress && !!chainId, // Only run when both are defined
         staleTime: 60 * 1000, // 1 minute (prices don't change that often)
         gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
         refetchOnWindowFocus: true, // Refresh when user returns to tab
