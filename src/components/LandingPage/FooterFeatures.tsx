@@ -18,10 +18,10 @@ export function FooterFeatures({
     const features = getStarLpLinks(locale).filter(
         (link) => showCountryLinks || COUNTRY_NEUTRAL_FEATURE_KEYS.has(link.key)
     )
-    const directoryHref = locale === DEFAULT_LOCALE ? '/lp#features' : `/${locale}#features`
+    const directoryHref = locale === DEFAULT_LOCALE ? '/lp#footer-features' : `/${locale}#footer-features`
 
     return (
-        <nav id="features" aria-label={i18n.footerFeatures} className="bg-black px-6 py-8 md:px-16">
+        <nav id="footer-features" aria-label={i18n.footerFeatures} className="bg-black px-6 py-8 md:px-16">
             <h3 className="mb-3 text-label-m text-white">{i18n.footerFeatures}</h3>
             <ul className="grid grid-cols-2 gap-x-6 gap-y-2 md:grid-cols-3">
                 {features.map((link) => (

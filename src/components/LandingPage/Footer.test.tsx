@@ -75,7 +75,7 @@ describe('Footer feature discovery', () => {
         render(<Footer locale="en" />)
         const navigation = screen.getByRole('navigation', { name: 'Features' })
 
-        expect(navigation).toHaveAttribute('id', 'features')
+        expect(navigation).toHaveAttribute('id', 'footer-features')
         expect(within(navigation).getAllByRole('link')).toHaveLength(6)
         expect(within(navigation).getByRole('link', { name: 'Peanut Card' })).toHaveAttribute('href', '/peanut-card')
         expect(screen.getByRole('link', { name: 'Docs' })).toHaveAttribute('href', '/en/help')
@@ -85,7 +85,7 @@ describe('Footer feature discovery', () => {
         render(<Footer showSiteDirectory={false} showLocaleSwitcher={false} locale={locale} />)
         const i18n = getTranslations(locale)
         const navigation = screen.getByRole('navigation', { name: i18n.footerFeatures })
-        const directoryHref = locale === 'en' ? '/lp#features' : `/${locale}#features`
+        const directoryHref = locale === 'en' ? '/lp#footer-features' : `/${locale}#footer-features`
 
         expect(
             within(navigation)
