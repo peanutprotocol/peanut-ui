@@ -483,6 +483,11 @@
         "route": "/dev/ds/primitives/base-select"
     },
     {
+        "id": "p79-notifications",
+        "flow": "Home and shared states",
+        "route": "/settings/notifications"
+    },
+    {
         "id": "api-ribbon-loading",
         "flow": "Home and shared states",
         "route": "/dev/surfaces?s=api-ribbon-loading",
@@ -517,11 +522,6 @@
         "flow": "Home and shared states",
         "route": "/dev/surfaces?s=api-ribbon-contract-error",
         "source": "Global/TestBuildRibbon.tsx"
-    },
-    {
-        "id": "p79-notifications",
-        "flow": "Home and shared states",
-        "route": "/settings/notifications"
     },
     {
         "id": "11-a-earlyusermodal",
