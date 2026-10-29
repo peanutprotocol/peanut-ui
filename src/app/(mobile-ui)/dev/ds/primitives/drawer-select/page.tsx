@@ -8,6 +8,7 @@ import { SelectList } from '@/components/0_Bruddle/SelectList'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { LANGUAGE_OPTIONS } from '@/components/Global/languageOptions'
+import { type AppLocale } from '@/i18n/app/config'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocPage } from '../../_components/DocPage'
@@ -28,6 +29,9 @@ const METHODS = [
 export default function DrawerSelectPage() {
     const [method, setMethod] = useState<Method | null>(null)
     const [listValue, setListValue] = useState<Method | null>('crypto')
+    const [funding, setFunding] = useState<Method | null>(null)
+    const [language, setLanguage] = useState<AppLocale>('en')
+    const fundingChosen = METHODS.find((m) => m.value === funding)
     const chosen = METHODS.find((m) => m.value === method)
 
     return (
@@ -143,7 +147,31 @@ export default function DrawerSelectPage() {
   trigger={<Button variant="secondary" size="compact" shadowSize="2" aria-haspopup="dialog">…</Button>}
 />`}
                 >
-                    <SelectList options={METHODS} value="bank" onSelect={() => {}} />
+                    <p className="text-heading-xs">
+                        You&apos;ll first add money with{' '}
+                        <DrawerSelect
+                            title="Add money with"
+                            options={METHODS}
+                            value={funding}
+                            onChange={setFunding}
+                            trigger={
+                                <Button
+                                    variant="secondary"
+                                    size="compact"
+                                    shadowSize="2"
+                                    aria-haspopup="dialog"
+                                    className="inline-flex w-fit align-middle"
+                                    icon={
+                                        fundingChosen?.leading ?? <IconBubble icon={<span />} size="xs" color="gray" />
+                                    }
+                                    iconContainerClassName="size-6"
+                                >
+                                    {fundingChosen?.label ?? 'Choose'}
+                                    <Icon name="chevron-down" size={20} className="shrink-0" />
+                                </Button>
+                            }
+                        />
+                    </p>
                 </ProductUsage.Example>
                 <ProductUsage.Example
                     title="Sign-up language picker"
@@ -157,7 +185,18 @@ export default function DrawerSelectPage() {
   trigger={<Button variant="ghost" aria-label={t('title')}>EN <Icon name="chevron-down" size={20} /></Button>}
 />`}
                 >
-                    <SelectList options={LANGUAGE_OPTIONS} value="en" onSelect={() => {}} />
+                    <DrawerSelect
+                        title="Language"
+                        options={LANGUAGE_OPTIONS}
+                        value={language}
+                        onChange={setLanguage}
+                        trigger={
+                            <Button variant="ghost" aria-label="Language" className="w-fit shrink-0 gap-1">
+                                {language.split('-')[0].toUpperCase()}
+                                <Icon name="chevron-down" size={20} />
+                            </Button>
+                        }
+                    />
                 </ProductUsage.Example>
             </ProductUsage>
         </DocPage>
