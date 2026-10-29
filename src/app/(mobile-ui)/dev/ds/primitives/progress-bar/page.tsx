@@ -85,15 +85,15 @@ export default function ProgressBarPage() {
                     code={`<ProgressBar
     value={isOverGoal ? goalPercentage : progressPercentage}
     trackClassName={getTrackColor()}
-    fillClassName="bg-green-500"
+    fillClassName="bg-background-icon-bubble-green"
     markers={getMarkers()}
 />`}
                 >
                     <ProgressBar
                         value={80}
-                        fillClassName="bg-green-500"
+                        fillClassName="bg-background-icon-bubble-green"
                         markers={[
-                            { position: 80, className: 'bg-green-500' },
+                            { position: 80, className: 'bg-background-icon-bubble-green' },
                             { position: 'end', className: 'bg-background-accent-yellow' },
                         ]}
                     />
