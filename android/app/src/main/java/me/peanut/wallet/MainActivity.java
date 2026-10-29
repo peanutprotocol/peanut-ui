@@ -2,7 +2,6 @@ package me.peanut.wallet;
 
 import android.content.Intent;
 import android.content.res.Configuration;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -19,7 +18,6 @@ import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
 
 import androidx.core.view.WindowCompat;
-import androidx.core.view.WindowInsetsControllerCompat;
 
 import io.sentry.Sentry;
 import io.sentry.SentryLevel;
@@ -34,13 +32,9 @@ public class MainActivity extends BridgeActivity {
     private RendererRecovery rendererRecovery;
     private WebViewRepaint webViewRepaint;
 
-    private void useDarkSystemBarIcons() {
-        WindowInsetsControllerCompat bars =
-                WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
-        bars.setAppearanceLightStatusBars(true);
-        // Below Android 15 the navigation bar is the theme's dark one, which needs light icons.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM)
-            bars.setAppearanceLightNavigationBars(true);
+    private void useDarkStatusBarIcons() {
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
+                .setAppearanceLightStatusBars(true);
     }
 
     @Override
@@ -48,7 +42,7 @@ public class MainActivity extends BridgeActivity {
         super.onResume();
         // Native SDK screens can change system-bar appearance. Restore dark
         // icons when our light WebView window returns to the foreground.
-        useDarkSystemBarIcons();
+        useDarkStatusBarIcons();
         rendererRecovery.onResume();
         webViewRepaint.onResume(hasWindowFocus());
     }
@@ -87,7 +81,7 @@ public class MainActivity extends BridgeActivity {
         // uiMode is handled in-place by this Activity. Android can replace the
         // status-bar appearance when the device theme changes, so restore it
         // after Capacitor has handled the new configuration.
-        useDarkSystemBarIcons();
+        useDarkStatusBarIcons();
     }
 
     @Override
@@ -215,13 +209,6 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ReceiptSharePlugin.class);
         registerPushProvisioningPlugin();
         super.onCreate(savedInstanceState);
-        /*
-         * Edge to edge (Android 15+), the OS lays a grey scrim over the page
-         * under 3-button navigation, so a white screen ended in a grey band.
-         * The page paints that inset itself (AppShell); the icons stay dark.
-         */
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM)
-            getWindow().setNavigationBarContrastEnforced(false);
 
         /*
          * Sentry reconciliation hook (TASK-20964): deliberately crash the native

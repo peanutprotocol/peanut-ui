@@ -14,17 +14,6 @@ try {
     }
 } catch {}
 
-// Builds for testing (any branch but main) take OTAs only from their branch's
-// own channel, signed with the test key: a production binary refuses a test
-// bundle, and a test binary never sees a production one (Slava, 2026-10-26).
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { buildBranch, isTestBuild, testOtaChannel } = require('./scripts/build-branch.cjs')
-const branch: string = buildBranch()
-const testBuild: boolean = isTestBuild(branch)
-// The private half lives on the machines that build test APKs (scripts/test-ota.mjs), never in CI or git.
-const TEST_OTA_PUBLIC_KEY =
-    '-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAqcq6erletc6QblH5Z84PUCkuXdm3gQWfbkiuAEzs5wO65btL6mxK\nUOqytG7eUK+ZBR/9z/JnTMG87CRyX/Wcaxc6aSHsuWx05oUrBtSg7h+XDj4pfdUr\nx2CJdaEKroyp2iWKHSGRceSBh4pdUWzg/p3EDXmwBIM+0Btdbw2R1b+FHFoWRdtZ\n7vPn73ofUNAFyGnf3vXw4Ypx+lBVK2dw1jQV7nPLR4/QsP0HcKd5um/RaJPxYMiS\n4EJkKDhw9X84GhAMYj0uC4B+CEapiAcXOf9xt+fhf1FQ+3MHA36nUM1cIGl4qeU+\nAj9d1eLGUHQTtIDHQqlylpIAvPjcbsdf1QIDAQAB\n-----END RSA PUBLIC KEY-----\n'
-
 const config: CapacitorConfig = {
     appId: 'me.peanut.wallet',
     appName: 'Peanut',
@@ -84,10 +73,8 @@ const config: CapacitorConfig = {
             // E2E signing: bundles are encrypted/signed with the private key
             // (.capgo_key_v2, CI secret only) and verified on-device with this
             // public key, so only we can ship an OTA the app will accept.
-            ...(testBuild && { defaultChannel: testOtaChannel(branch) }),
-            publicKey: testBuild
-                ? TEST_OTA_PUBLIC_KEY
-                : '-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAr0HzEca/1vuvWcJ8/xYB6tx0j4uJMzw/kT34GnjyMlRmLLUIO9sj\nroXaUGaNoqlOCx73b7Qgp10TLPOAVxmoHV9ZJ4BS9cMCl5mvzB4qIdl6FZLcl3g5\nk5Nkj4w22nskqbBqL7eqMXpk4DD9oWRclnaZC/lCpok1n2AWy4EMZrshemBQ6iXr\ncppo+WByPbqmh/GbHvJyRvkx4Rgt2LSBJBI3laP3eEDkujCq1ZH9qgcIE4MXO5xq\n7c6LsLjN5wkQiNPSPI81zAbqBThhqodKzwav0FwIE1pyiJeGk1nV5Ji5kUgpFNwY\nY78iDVq4OP2jPfWO4jXnnJtnGN7aeKDMEQIDAQAB\n-----END RSA PUBLIC KEY-----\n',
+            publicKey:
+                '-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAr0HzEca/1vuvWcJ8/xYB6tx0j4uJMzw/kT34GnjyMlRmLLUIO9sj\nroXaUGaNoqlOCx73b7Qgp10TLPOAVxmoHV9ZJ4BS9cMCl5mvzB4qIdl6FZLcl3g5\nk5Nkj4w22nskqbBqL7eqMXpk4DD9oWRclnaZC/lCpok1n2AWy4EMZrshemBQ6iXr\ncppo+WByPbqmh/GbHvJyRvkx4Rgt2LSBJBI3laP3eEDkujCq1ZH9qgcIE4MXO5xq\n7c6LsLjN5wkQiNPSPI81zAbqBThhqodKzwav0FwIE1pyiJeGk1nV5Ji5kUgpFNwY\nY78iDVq4OP2jPfWO4jXnnJtnGN7aeKDMEQIDAQAB\n-----END RSA PUBLIC KEY-----\n',
         },
         // CapacitorHttp OFF: its Android GET proxy (_capacitor_http_interceptor_)
         // stalls under load, timing out every in-flight request (PEANUT-UI-R44).

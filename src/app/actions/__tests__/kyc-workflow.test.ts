@@ -11,7 +11,7 @@ import { serverFetch } from '@/utils/api-fetch'
 import posthog from 'posthog-js'
 import * as Sentry from '@/utils/sentry-lazy'
 
-jest.mock('@/utils/sentry-lazy', () => ({ captureMessage: jest.fn() }))
+jest.mock('@/utils/sentry-lazy', () => ({ captureMessage: jest.fn(), captureException: jest.fn() }))
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))

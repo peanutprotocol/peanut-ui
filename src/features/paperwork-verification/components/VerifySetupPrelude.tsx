@@ -1,5 +1,7 @@
 'use client'
 
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { type MutableRefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { useQueryState } from 'nuqs'
@@ -86,8 +88,23 @@ function PreludeScreens({
                 userId,
                 residenceCountry,
                 nationality: nationalityCountry || residenceCountry,
-            }).catch(() => ({ error: 'failed' }))
-            if (!userId || result?.error) return failed()
+            }).catch((error) => {
+                Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'residence_save' } })
+                return { error: 'failed' }
+            })
+            if (!userId || result?.error) {
+                if (
+                    userId &&
+                    result?.error &&
+                    'failureKind' in result &&
+                    (result.failureKind !== 'http' ||
+                        ('status' in result && typeof result.status === 'number' && result.status >= 500))
+                )
+                    Sentry.captureException(new Error('KYC residence save failed'), {
+                        tags: { ...criticalFlowTags('kyc'), kyc_step: 'residence_save' },
+                    })
+                return failed()
+            }
             storeDeclaredResidence(userId, residenceCountry)
             storeSecondResidence(userId, null)
         }

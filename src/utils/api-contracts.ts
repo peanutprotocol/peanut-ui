@@ -1,5 +1,6 @@
 import posthog from 'posthog-js'
 import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { apiFetch } from './api-fetch'
 import { REQUIRED_API_CONTRACTS } from '@/constants/api-contracts.json'
 
@@ -43,9 +44,9 @@ function update(next: ApiCompatibility) {
     listeners.forEach((listener) => listener())
 }
 
-function captureWarning(message: string, extra: Record<string, unknown>): void {
+function captureWarning(message: string, extra: Record<string, unknown>, tags?: Record<string, string>): void {
     try {
-        Sentry.captureMessage(message, { level: 'warning', extra })
+        Sentry.captureMessage(message, { level: 'warning', extra, ...(tags ? { tags } : {}) })
     } catch {}
 }
 
@@ -67,14 +68,20 @@ function validVersion(value: unknown): value is ApiVersion {
 
 export function reportApiContractError(route: string, method: string, reason: string, status?: number): void {
     update({ ...state, contractError: true })
-    captureWarning('API contract error', {
-        route,
-        method,
-        reason,
-        status,
-        app_commit: process.env.NEXT_PUBLIC_GIT_COMMIT_HASH ?? null,
-        api_commit: state.version?.commit ?? null,
-    })
+    captureWarning(
+        'API contract error',
+        {
+            route,
+            method,
+            reason,
+            status,
+            app_commit: process.env.NEXT_PUBLIC_GIT_COMMIT_HASH ?? null,
+            api_commit: state.version?.commit ?? null,
+        },
+        route.startsWith('/users/kyc/') || route.startsWith('/users/identity')
+            ? { ...criticalFlowTags('kyc'), kyc_step: 'api_contract' }
+            : undefined
+    )
 }
 
 export function loadApiVersion(): Promise<void> {

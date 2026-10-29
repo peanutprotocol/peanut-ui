@@ -5,6 +5,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { kycClientHeaders } from '@/utils/kyc-client-headers'
 import { restartIdentityVerification, type SumsubActionErrorCode } from './sumsub'
 import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import type { FeatureReport } from '@/types/capabilities'
 import { isTestApiBuild, reportApiContractError } from '@/utils/api-contracts'
 import {
@@ -15,7 +16,7 @@ import {
     type KycReplacementChoices,
 } from './types/kyc-workflow.types'
 
-async function read<T>(path: string, options?: RequestInit): Promise<T> {
+async function readResponse<T>(path: string, options?: RequestInit): Promise<T> {
     const response = await serverFetch(path, {
         ...options,
         headers: { ...kycClientHeaders(), ...(options?.headers as Record<string, string> | undefined) },
@@ -45,6 +46,30 @@ async function read<T>(path: string, options?: RequestInit): Promise<T> {
         })
     }
     return body as T
+}
+async function read<T>(path: string, options?: RequestInit): Promise<T> {
+    try {
+        return await readResponse<T>(path, options)
+    } catch (error) {
+        const failure = error as { status?: number; code?: string }
+        if (
+            path !== '/users/kyc/identity/refresh' &&
+            failure?.code !== API_CONTRACT_ERROR &&
+            !(failure?.status !== undefined && failure.status >= 400 && failure.status < 500)
+        ) {
+            const step = path.startsWith('/users/kyc/plan')
+                ? 'plan_read'
+                : path === '/users/kyc/features'
+                  ? 'features_read'
+                  : path === '/users/identity/restart'
+                    ? 'identity_restart'
+                    : 'identity_status'
+            Sentry.captureException(failure?.status === undefined ? error : new Error('KYC request failed'), {
+                tags: { ...criticalFlowTags('kyc'), kyc_step: step },
+            })
+        }
+        throw error
+    }
 }
 const API_CONTRACT_ERROR = 'api_contract_error'
 function contractError(path: string, method: string, status: number, reason: string): Error {
@@ -155,37 +180,54 @@ export async function startKycDocumentReplacement(replacement: KycReplacementCho
     }
 }
 export async function resumeKycDocumentAttempt(attemptId: string) {
-    const response = await serverFetch(`/users/kyc/attempts/${encodeURIComponent(attemptId)}/token`, {
-        method: 'POST',
-        body: '{}',
-        headers: kycClientHeaders(),
-        cache: 'no-store',
-        redactTelemetry: true,
-    })
-    const body = await response.json().catch(() => null)
-    if (response.ok) {
-        try {
-            return validSession(body, false)
-        } catch (error) {
-            reportApiContractError('/users/kyc/attempts/{attemptId}/token', 'POST', 'invalid_session', response.status)
-            throw error
+    let status: number | undefined
+    try {
+        const response = await serverFetch(`/users/kyc/attempts/${encodeURIComponent(attemptId)}/token`, {
+            method: 'POST',
+            body: '{}',
+            headers: kycClientHeaders(),
+            cache: 'no-store',
+            redactTelemetry: true,
+        })
+        status = response.status
+        const body = await response.json().catch(() => null)
+        if (response.ok) {
+            try {
+                return validSession(body, false)
+            } catch (error) {
+                reportApiContractError(
+                    '/users/kyc/attempts/{attemptId}/token',
+                    'POST',
+                    'invalid_session',
+                    response.status
+                )
+                throw error
+            }
         }
+        if (
+            response.status === 404 &&
+            (body?.code === 'route_not_found' || !(typeof body?.error === 'string' || typeof body?.code === 'string'))
+        )
+            throw contractError('/users/kyc/attempts/{attemptId}/token', 'POST', response.status, 'route_not_found')
+        // A crash can leave the saved replacement before its remote reset. Only that explicit response resumes the authorised reset ledger.
+        // Conflicts carry a stable `code`; older bodies name it only in `error`.
+        if (response.status === 409 && [body?.code, body?.error].includes('replacement_reset_required'))
+            return validSession(
+                await read<KycAttemptSession>('/users/identity/restart', { method: 'POST', body: '{}' })
+            )
+        throw Object.assign(new Error('KYC request failed'), {
+            code: body?.code ?? body?.error,
+            userMessage: typeof body?.userMessage === 'string' ? body.userMessage : undefined,
+        })
+    } catch (error) {
+        if (
+            (error as { code?: string })?.code !== API_CONTRACT_ERROR &&
+            !(status !== undefined && status >= 200 && status < 500)
+        )
+            Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_session' } })
+        throw error
     }
-    if (
-        response.status === 404 &&
-        (body?.code === 'route_not_found' || !(typeof body?.error === 'string' || typeof body?.code === 'string'))
-    )
-        throw contractError('/users/kyc/attempts/{attemptId}/token', 'POST', response.status, 'route_not_found')
-    // A crash can leave the saved replacement before its remote reset. Only that explicit response resumes the authorised reset ledger.
-    // Conflicts carry a stable `code`; older bodies name it only in `error`.
-    if (response.status === 409 && [body?.code, body?.error].includes('replacement_reset_required'))
-        return validSession(await read<KycAttemptSession>('/users/identity/restart', { method: 'POST', body: '{}' }))
-    throw Object.assign(new Error('KYC request failed'), {
-        code: body?.code ?? body?.error,
-        userMessage: typeof body?.userMessage === 'string' ? body.userMessage : undefined,
-    })
 }
-
 /** Read-only fallback for a missed identity websocket event; never opens or refreshes an applicant. */
 export async function getKycDocumentStatus(): Promise<SumsubKycStatus | undefined> {
     const profile = await read<{ identity: { canonicalStatus: string } | null }>('/users/kyc/profile')
@@ -213,6 +255,7 @@ export async function refreshKycIdentityStatus(): Promise<SumsubKycStatus | unde
         if ((error as { code?: string })?.code !== API_CONTRACT_ERROR) {
             Sentry.captureMessage('KYC identity refresh failed', {
                 level: 'warning',
+                tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_refresh' },
                 extra: { route: '/users/kyc/identity/refresh', method: 'POST' },
             })
         }

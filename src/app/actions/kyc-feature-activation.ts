@@ -1,3 +1,5 @@
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import type { paths } from '@/types/api.generated'
 import { serverFetch } from '@/utils/api-fetch'
 import { kycClientHeaders } from '@/utils/kyc-client-headers'
@@ -29,6 +31,7 @@ const CONFLICTS: ReadonlySet<string> = new Set<Conflict['code']>([
 
 export async function activateKycFeature(feature: KycActivationFeature): Promise<KycFeatureActivationResult> {
     if (!FEATURES.has(feature)) return { kind: 'failed' }
+    let status: number | undefined
     try {
         const response = await serverFetch(`/users/kyc/features/${feature}/activate`, {
             method: 'POST',
@@ -36,8 +39,15 @@ export async function activateKycFeature(feature: KycActivationFeature): Promise
             cache: 'no-store',
             redactTelemetry: true,
         })
+        status = response.status
         const body = await response.json()
-        if (!body || typeof body !== 'object' || Array.isArray(body)) return { kind: 'failed' }
+        if (!body || typeof body !== 'object' || Array.isArray(body)) {
+            if (!(status >= 400 && status < 500))
+                Sentry.captureException(new Error('Invalid KYC activation response'), {
+                    tags: { ...criticalFlowTags('kyc'), kyc_step: 'feature_activation' },
+                })
+            return { kind: 'failed' }
+        }
         if (
             response.status === 200 &&
             STATES.has(body.state) &&
@@ -51,7 +61,13 @@ export async function activateKycFeature(feature: KycActivationFeature): Promise
             (body.step === undefined || typeof body.step === 'string')
         )
             return { kind: 'conflict', code: body.code, ...(body.step === undefined ? {} : { step: body.step }) }
-    } catch {
+        if (!(status >= 400 && status < 500))
+            Sentry.captureException(new Error('KYC activation failed'), {
+                tags: { ...criticalFlowTags('kyc'), kyc_step: 'feature_activation' },
+            })
+    } catch (error) {
+        if (!(status !== undefined && status >= 400 && status < 500))
+            Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'feature_activation' } })
         return { kind: 'failed' }
     }
     return { kind: 'failed' }
