@@ -11,6 +11,7 @@ export type KycDocumentPlan = Omit<
     | 'proofOfAddressReason'
     | 'proofOfAddressIdCountries'
     | 'documentRefusals'
+    | 'documentTypeRefusals'
     | 'temporaryProtection'
     | 'needs'
 > &
@@ -22,6 +23,7 @@ export type KycDocumentPlan = Omit<
             | 'proofOfAddressReason'
             | 'proofOfAddressIdCountries'
             | 'documentRefusals'
+            | 'documentTypeRefusals'
             | 'temporaryProtection'
             | 'needs'
         >

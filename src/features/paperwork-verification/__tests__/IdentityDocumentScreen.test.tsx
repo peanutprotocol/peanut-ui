@@ -11,11 +11,13 @@ const plan = (
         types = ['PASSPORT', 'ID_CARD', 'RESIDENCE_PERMIT', 'DRIVERS'],
         proofOfAddressIdCountries,
         documentRefusals,
+        documentTypeRefusals,
         features = { qr: true, local: false, card: false, bank: true },
     }: {
         types?: string[]
         proofOfAddressIdCountries?: string[]
         documentRefusals?: KycDocumentPlan['documentRefusals']
+        documentTypeRefusals?: KycDocumentPlan['documentTypeRefusals']
         features?: KycDocumentPlan['features']
     } = {}
 ) =>
@@ -27,6 +29,7 @@ const plan = (
         proofOfAddress: null,
         proofOfAddressIdCountries,
         documentRefusals,
+        documentTypeRefusals,
         features,
         routes: [
             {
@@ -317,5 +320,49 @@ describe('IdentityDocumentScreen: an ID that closes features the user asked for'
         fireEvent.click(option('PASSPORT', 'VE')!)
         expect(onContinue).toHaveBeenCalledWith({ type: 'PASSPORT', issuingCountry: 'VE' })
         expect(screen.queryByTestId('verify-id-limited-drawer')).toBeNull()
+    })
+})
+
+// The old card and Manteca levels refuse some driver's licences in Sumsub; the API keeps them refused per type.
+describe("IdentityDocumentScreen: a driver's licence the API refuses for a feature", () => {
+    const NONE = { qr: false, local: false, card: false, bank: false }
+    const german = (features: KycDocumentPlan['features']) =>
+        plan(['DE'], { documentTypeRefusals: { DE: { DRIVERS: ['card'] } }, features })
+
+    it('greys out a German licence for the card alone and keeps the German ID card', () => {
+        const onContinue = render({ documentPlan: german({ ...NONE, card: true }), residence: 'DE' })
+        fireEvent.click(screen.getByTestId('verify-id-other'))
+        const drawer = within(screen.getByTestId('verify-id-other-drawer'))
+        expect(drawer.getByTestId('verify-id-refused-DRIVERS-DE')).toHaveAttribute('aria-disabled', 'true')
+        expect(drawer.queryByTestId('verify-id-option-DRIVERS-DE')).toBeNull()
+        fireEvent.click(option('ID_CARD', 'DE')!)
+        expect(onContinue).toHaveBeenCalledWith({ type: 'ID_CARD', issuingCountry: 'DE' })
+    })
+
+    it('says a German licence closes the card when the bank is asked too', () => {
+        const onContinue = render({ documentPlan: german({ ...NONE, card: true, bank: true }), residence: 'DE' })
+        fireEvent.click(screen.getByTestId('verify-id-other'))
+        const licence = within(screen.getByTestId('verify-id-other-drawer')).getByTestId('verify-id-option-DRIVERS-DE')
+        expect(licence).toHaveTextContent('The Peanut card isn’t available with this document.')
+        fireEvent.click(licence)
+        expect(onContinue).not.toHaveBeenCalled()
+        expect(
+            within(screen.getByTestId('verify-id-limited-drawer')).getByText('Continue with this document?')
+        ).toBeInTheDocument()
+    })
+
+    it('greys out an Argentine licence for a Manteca local account alone', () => {
+        render({
+            documentPlan: plan(['AR'], {
+                documentTypeRefusals: { AR: { DRIVERS: ['local'] } },
+                features: { ...NONE, local: true },
+            }),
+            residence: 'AR',
+        })
+        fireEvent.click(screen.getByTestId('verify-id-other'))
+        expect(
+            within(screen.getByTestId('verify-id-other-drawer')).getByTestId('verify-id-refused-DRIVERS-AR')
+        ).toHaveAttribute('aria-disabled', 'true')
+        expect(option('ID_CARD', 'AR')).toBeInTheDocument()
     })
 })

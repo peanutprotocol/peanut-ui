@@ -14745,6 +14745,11 @@ export interface paths {
                             documentRefusals: {
                                 [key: string]: ("qr" | "local" | "card" | "bank")[];
                             };
+                            documentTypeRefusals: {
+                                [key: string]: {
+                                    [key: string]: ("qr" | "local" | "card" | "bank")[];
+                                };
+                            };
                             features: {
                                 bank: boolean;
                                 card: boolean;

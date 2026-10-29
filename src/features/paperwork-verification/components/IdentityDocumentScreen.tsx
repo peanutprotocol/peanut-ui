@@ -119,7 +119,13 @@ export function IdentityDocumentScreen({
 
     const otherChoices = [...other, ...(protectionInMain ? [] : protectionChoices)]
     const asked = FEATURES.filter((f) => plan?.features?.[f])
-    const closedBy = (c: Choice): Feature[] => plan?.documentRefusals?.[c.issuingCountry] ?? []
+    // What the issuer closes, plus what this type closes on top: a German licence refuses the card, a German ID card doesn't.
+    const closedBy = (c: Choice): Feature[] => [
+        ...new Set([
+            ...(plan?.documentRefusals?.[c.issuingCountry] ?? []),
+            ...(plan?.documentTypeRefusals?.[c.issuingCountry]?.[c.type] ?? []),
+        ]),
+    ]
     const closesAll = (c: Choice) => asked.length > 0 && asked.every((f) => closedBy(c).includes(f))
     const listed = [...main, ...(protectionInMain ? protectionChoices : []), ...otherChoices]
     const pickable = listed.some((c) => !closesAll(c))

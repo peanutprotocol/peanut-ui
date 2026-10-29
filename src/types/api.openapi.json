@@ -28978,6 +28978,37 @@
                                             },
                                             "type": "object"
                                         },
+                                        "documentTypeRefusals": {
+                                            "additionalProperties": {
+                                                "patternProperties": {
+                                                    "^(.*)$": {
+                                                        "items": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "const": "qr",
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "const": "local",
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "const": "card",
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "const": "bank",
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "type": "array"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            },
+                                            "type": "object"
+                                        },
                                         "features": {
                                             "additionalProperties": false,
                                             "properties": {
@@ -29239,6 +29270,7 @@
                                         "proofOfAddressReason",
                                         "proofOfAddressIdCountries",
                                         "documentRefusals",
+                                        "documentTypeRefusals",
                                         "temporaryProtection"
                                     ],
                                     "type": "object"
