@@ -30,7 +30,7 @@ export default function BaseSelectPage() {
                 ]}
                 dontUse={[
                     'A long list the user must search — use Common/CountryCombobox',
-                    'A list you browse, or rows with an icon and a sublabel — use a Drawer with ListItem rows',
+                    'A list you browse, or rows with an icon or a flag — use DrawerSelect',
                     'The error prop as the message — the text goes in a FieldError under the control',
                 ]}
             />

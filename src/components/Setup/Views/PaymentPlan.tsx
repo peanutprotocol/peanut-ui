@@ -1,14 +1,12 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
-import { ListGroup } from '@/components/0_Bruddle/ListGroup'
-import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/Global/Drawer'
+import { DrawerSelect } from '@/components/0_Bruddle/DrawerSelect'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -56,11 +54,18 @@ function ChannelPicker<C extends SetupChannel>({
     placeholder: string
     onChange: (channel: C) => void
 }) {
-    const [open, setOpen] = useState(false)
     const shown = value ? compactLabel(value) : placeholder
     return (
-        <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
-            <DrawerTrigger asChild>
+        <DrawerSelect<C>
+            title={title}
+            value={value}
+            onChange={onChange}
+            options={options.map((channel) => ({
+                value: channel,
+                label: label(channel),
+                leading: <ChannelIcon channel={channel} size="s" />,
+            }))}
+            trigger={
                 <Button
                     variant="secondary"
                     size="compact"
@@ -88,35 +93,8 @@ function ChannelPicker<C extends SetupChannel>({
                     </span>
                     <Icon name="chevron-down" size={20} className="shrink-0" />
                 </Button>
-            </DrawerTrigger>
-            <DrawerContent>
-                <div className="flex flex-col gap-4 pb-4">
-                    <DrawerTitle>{title}</DrawerTitle>
-                    <ListGroup>
-                        {options.map((channel) => (
-                            <ListItem
-                                key={channel}
-                                title={
-                                    <span className={channel === value ? 'text-foreground-primary' : undefined}>
-                                        {label(channel)}
-                                    </span>
-                                }
-                                leading={<ChannelIcon channel={channel} size="s" />}
-                                trailing={channel === value ? <Icon name="check" size={20} /> : undefined}
-                                aria-label={label(channel)}
-                                className={
-                                    channel === value ? 'bg-background-selection text-foreground-primary' : undefined
-                                }
-                                onClick={() => {
-                                    onChange(channel)
-                                    setOpen(false)
-                                }}
-                            />
-                        ))}
-                    </ListGroup>
-                </div>
-            </DrawerContent>
-        </Drawer>
+            }
+        />
     )
 }
 
