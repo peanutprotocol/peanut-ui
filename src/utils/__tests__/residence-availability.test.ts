@@ -54,7 +54,7 @@ describe('residenceAvailability', () => {
     })
 
     it('rest of world reads bank transfers where supported, never a specific rail', () => {
-        expect(residenceAvailability(sets, 'NG').available).toEqual(['bank', 'card', 'p2p'])
+        expect(residenceAvailability(sets, 'KE').available).toEqual(['bank', 'card', 'p2p'])
     })
 
     it('restriction tiers surface as unavailable instead of overstating', () => {

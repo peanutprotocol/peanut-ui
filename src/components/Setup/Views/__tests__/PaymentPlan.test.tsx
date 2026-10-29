@@ -135,7 +135,7 @@ it.each([
     ['MK', ['Bank transfer (USD, EUR, GBP)', 'Crypto', 'Another Peanut user']],
     ['DE', ['Bank transfer (USD, EUR, GBP)', 'Crypto', 'Another Peanut user']],
     ['MX', ['Bank transfer (USD, EUR, GBP, MXN)', 'Crypto', 'Another Peanut user']],
-    // the server closes banking here, though no tier list names it
+    // Bridge takes no new customers here
     ['KR', ['Crypto', 'Another Peanut user']],
 ])('names the bank currencies wherever the server opens the bank feature: %s', (country, expected) => {
     renderWithIntl(ui(country))
