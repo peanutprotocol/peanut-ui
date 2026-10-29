@@ -21916,6 +21916,24 @@
                                                 "userMessage"
                                             ],
                                             "type": "object"
+                                        },
+                                        {
+                                            "properties": {
+                                                "code": {
+                                                    "enum": [
+                                                        "SIGNUP_PREFERENCES_LOCKED"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                "error": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "error",
+                                                "code"
+                                            ],
+                                            "type": "object"
                                         }
                                     ]
                                 }

@@ -12374,6 +12374,10 @@ export interface paths {
                             code: "RESIDENCE_CHANGE_UNAVAILABLE";
                             error: string;
                             userMessage: string;
+                        } | {
+                            /** @enum {string} */
+                            code: "SIGNUP_PREFERENCES_LOCKED";
+                            error: string;
                         };
                     };
                 };
