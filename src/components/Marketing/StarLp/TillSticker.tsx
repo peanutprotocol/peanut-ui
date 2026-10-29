@@ -22,6 +22,7 @@ export function TillSticker({
     slot,
     className,
     priority = false,
+    qrContext,
 }: TillStickerProps) {
     return (
         <div
@@ -34,7 +35,7 @@ export function TillSticker({
             <p lang={lang} className="font-roboto-flex-extrabold mt-1 text-body-xs uppercase">
                 {label}
             </p>
-            <StarLpQrCode campaign={campaign} slot={slot} className="mx-auto mt-2 w-[86%]" />
+            <StarLpQrCode campaign={campaign} slot={slot} qrContext={qrContext} className="mx-auto mt-2 w-[86%]" />
         </div>
     )
 }

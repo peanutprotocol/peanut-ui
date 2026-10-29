@@ -93,8 +93,7 @@ export default function ShhhhhLandingPage() {
         }
     }
 
-    // The homepage door marquee already carries these five words, so the strip
-    // between sections here says the same thing in the same voice.
+    // The strip between sections repeats the card's five words.
     const marqueeWords = [
         t('marquee.peanutCard'),
         t('marquee.contactless'),
