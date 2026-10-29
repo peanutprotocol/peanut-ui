@@ -49,6 +49,7 @@ import {
     Link as LinkIcon,
     LogOut,
     Lock,
+    Mail,
     Menu,
     MessageCircleQuestionMark,
     MoreHorizontal,
@@ -128,6 +129,7 @@ export type IconName =
     | 'link'
     | 'link-slash'
     | 'logout'
+    | 'mail'
     | 'paperclip'
     | 'smile'
     | 'star'
@@ -290,6 +292,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     link: (props) => <LucideWrapper Icon={LinkIcon} {...props} />,
     'link-slash': (props) => <LucideWrapper Icon={Unlink} {...props} />,
     logout: (props) => <LucideWrapper Icon={LogOut} {...props} />,
+    mail: (props) => <LucideWrapper Icon={Mail} {...props} />,
     paperclip: (props) => <LucideWrapper Icon={Paperclip} {...props} />,
     smile: (props) => <LucideWrapper Icon={Smile} {...props} />,
     user: (props) => <LucideWrapper Icon={User} {...props} />,

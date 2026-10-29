@@ -708,11 +708,15 @@
         },
         "notifications": {
             "title": "Notificaciones",
-            "push": "Notificaciones push",
-            "pushBody": "Pagos, seguridad y tu cuenta.",
-            "marketing": "Novedades y ofertas",
-            "marketingBody": "Avisos sobre nuevas funciones y ofertas.",
-            "loadFailed": "No pudimos cargar tu configuración. Inténtalo de nuevo."
+            "loadFailed": "No pudimos cargar tu configuración. Inténtalo de nuevo.",
+            "important": "Alertas importantes",
+            "importantBody": "Pagos, cuenta y seguridad",
+            "offers": "Ofertas y beneficios",
+            "offersBody": "Prueba las novedades antes que nadie",
+            "email": "Novedades por correo",
+            "emailBody": "Novedades útiles en tu correo",
+            "blocked": "Las notificaciones están desactivadas en la configuración de tu dispositivo.",
+            "openSettings": "Abrir configuración"
         }
     },
     "limits": {
@@ -844,8 +848,7 @@
                 "title": "Sin spam. Promesa de meñique."
             },
             "notification-permission": {
-                "title": "Activa las notificaciones",
-                "description": "Entérate al instante cuando llega dinero, se completa un pago o tu cuenta necesita atención."
+                "title": "Activa las notificaciones para estar al tanto"
             },
             "success": {
                 "title": "¡Todo listo!",
@@ -1114,14 +1117,16 @@
             "optOutNote": "Te enviaremos correos sobre tu cuenta. Puedes desactivar novedades y ofertas cuando quieras."
         },
         "notifications": {
-            "pushLabel": "Notificaciones push",
-            "pushDescription": "Novedades directamente en tu teléfono.",
-            "emailDescription": "Novedades en tu bandeja de entrada.",
             "continue": "Continuar",
-            "pushUnavailable": "Las notificaciones push aún no están listas. Inténtalo de nuevo o desactívalas para continuar.",
             "saveFailed": "No pudimos guardar tu configuración. Inténtalo de nuevo.",
-            "marketingLabel": "Novedades y ofertas",
-            "marketingDescription": "Avisos sobre nuevas funciones y ofertas. Puedes desactivarlos cuando quieras en tu perfil."
+            "importantLabel": "Alertas importantes",
+            "importantDescription": "Pagos, cuenta y seguridad",
+            "offersLabel": "Ofertas y beneficios",
+            "offersDescription": "Prueba las novedades antes que nadie",
+            "emailLabel": "Novedades por correo",
+            "emailDescription": "Novedades útiles en tu correo",
+            "changeAnytime": "Puedes cambiar cualquiera de estas opciones cuando quieras en tu perfil.",
+            "notNow": "Ahora no"
         },
         "paymentPlan": {
             "fundingTitle": "Agregar dinero con",

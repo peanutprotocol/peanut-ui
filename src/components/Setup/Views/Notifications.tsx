@@ -2,22 +2,42 @@
 
 import { useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import SetupFooter from '../components/SetupFooter'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { type IconName } from '@/components/Global/Icons/Icon'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { notificationsApi } from '@/services/notifications'
+import { type NotificationChoices, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import {
+    notificationsApi,
+    toPushPermission,
+    type PreferenceChanges,
+    type PushPermission,
+} from '@/services/notifications'
+
+type Switch = 'push' | 'marketingPush' | 'emailUpdates'
+
+const SWITCHES: { key: Switch; icon: IconName; label: 'important' | 'offers' | 'email' }[] = [
+    { key: 'push', icon: 'bell', label: 'important' },
+    { key: 'marketingPush', icon: 'gift', label: 'offers' },
+    { key: 'emailUpdates', icon: 'mail', label: 'email' },
+]
+
+const ALL_OFF = { push: false, marketingPush: false, emailUpdates: false }
 
 /**
- * Push notifications only; the email was collected on the step before. Push
- * starts on, and Continue asks the OS for permission in the same tap. News and
- * offers is a separate opt-in that starts off.
+ * Three switches, all off at the start. The first time Important alerts turns on,
+ * Email updates turns on with it. Offers and perks never follows another switch:
+ * marketing pushes need the user's own tap (App Store 4.5.4, GDPR, LGPD).
+ * Continue asks the OS when a push switch is on and saves what its answer allows.
  */
 export default function NotificationsStep() {
     const t = useTranslations('setup.notifications')
@@ -26,65 +46,73 @@ export default function NotificationsStep() {
     const { requestPermission, afterPermissionAttempt } = useNotifications()
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string>()
-    // Only a user who turned push off opted out. An OS refusal leaves the
-    // account's server default alone.
-    const [optedOut, setOptedOut] = useState(false)
     const savingRef = useRef(false)
-    const { push, marketingPush } = notificationChoices
+    // A retry after a failed save reuses the answer instead of asking again.
+    const permissionRef = useRef<PushPermission>()
+    const { push, marketingPush, emailUpdates } = notificationChoices
+    const anyOn = push || marketingPush || emailUpdates
 
-    const onToggle = (on: boolean) => {
+    const onToggle = (key: Switch, on: boolean) => {
         setError(undefined)
-        setOptedOut(!on)
-        setNotificationChoices({ ...notificationChoices, push: on, marketingPush: on && marketingPush })
+        const cascade = key === 'push' && on && !notificationChoices.cascaded
+        setNotificationChoices({
+            ...notificationChoices,
+            [key]: on,
+            ...(cascade && { emailUpdates: true, cascaded: true }),
+        })
     }
 
-    const onMarketingToggle = (on: boolean) => {
-        setError(undefined)
-        setNotificationChoices({ ...notificationChoices, marketingPush: on })
-    }
-
-    const askPermission = async () => {
+    const askPermission = async (): Promise<PushPermission> => {
+        if (permissionRef.current) return permissionRef.current
         try {
-            const permission = await requestPermission()
+            const permission = toPushPermission(await requestPermission())
             await afterPermissionAttempt()
-            return permission === 'granted'
+            permissionRef.current = permission
+            return permission
         } catch {
-            return false
+            return 'dismissed'
         }
     }
 
-    const save = async () => {
+    const save = async (skip: boolean) => {
         if (savingRef.current) return
         savingRef.current = true
+        const asksPermission = !skip && (push || marketingPush)
         // Started before any other await, so the browser accepts the prompt from this tap.
-        const granted = push ? askPermission() : Promise.resolve(false)
+        const permission = asksPermission ? askPermission() : undefined
         setSaving(true)
         setSetupLoading(true)
         setError(undefined)
         try {
-            if (push) {
-                if (await granted) {
-                    // Subscribed is the server default, so a failure never blocks signup. The write
-                    // is still awaited: left in flight, it could land after an opt-out made by coming
-                    // back to this step, and the API keeps the last write.
-                    await notificationsApi.savePreferences({ push: true, email: true, marketingPush }).catch(() => {})
-                } else {
-                    setNotificationChoices({ ...notificationChoices, push: false, marketingPush: false })
-                }
-            } else if (optedOut) {
-                // An explicit opt-out must be acknowledged before leaving: unset
-                // preferences default to subscribed on the server.
-                const saved = await notificationsApi
-                    .savePreferences({ push: false, email: true, marketingPush: false })
-                    .then(
-                        () => true,
-                        () => false
-                    )
-                if (!saved) {
-                    setError(t('saveFailed'))
-                    return
-                }
+            const answer = (await permission) ?? permissionRef.current
+            const pushAllowed = answer === 'granted'
+            const saved: NotificationChoices = {
+                ...notificationChoices,
+                ...(skip ? ALL_OFF : { push: push && pushAllowed, marketingPush: marketingPush && pushAllowed }),
             }
+            const changes: PreferenceChanges = {
+                push: saved.push,
+                marketingPush: saved.marketingPush,
+                emailUpdates: saved.emailUpdates,
+                ...(answer && { pushPermission: answer }),
+            }
+            setNotificationChoices(saved)
+            // Unset preferences default to subscribed on the server, so every answer,
+            // the opt-outs included, must be acknowledged before leaving.
+            const ok = await notificationsApi.savePreferences(changes).then(
+                () => true,
+                () => false
+            )
+            if (!ok) {
+                setError(t('saveFailed'))
+                return
+            }
+            posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_CHOICES_SAVED, {
+                outcome: skip ? 'skipped' : (answer ?? 'not_asked'),
+                important: saved.push,
+                offers: saved.marketingPush,
+                email: saved.emailUpdates,
+            })
             await handleNext()
         } finally {
             savingRef.current = false
@@ -98,38 +126,43 @@ export default function NotificationsStep() {
             <div className="flex flex-1 flex-col justify-center gap-3">
                 {/* A toggle row sets a preference, so its bubble is blue (design.md icon bubble ruling). */}
                 <ListGroup>
-                    <ListItem
-                        className="py-3"
-                        title={t('pushLabel')}
-                        leading={<IconBubble icon="bell" size="s" color="blue" />}
-                        trailing={
-                            <Toggle aria-label={t('pushLabel')} checked={push} onChange={onToggle} disabled={saving} />
-                        }
-                    />
-                    <ListItem
-                        className="py-3"
-                        title={t('marketingLabel')}
-                        body={t('marketingDescription')}
-                        bodyWrap
-                        disabled={!push}
-                        leading={<IconBubble icon="gift" size="s" color="blue" />}
-                        trailing={
-                            <Toggle
-                                aria-label={t('marketingLabel')}
-                                checked={marketingPush}
-                                onChange={onMarketingToggle}
-                                disabled={saving || !push}
-                            />
-                        }
-                    />
+                    {SWITCHES.map(({ key, icon, label }) => (
+                        <ListItem
+                            key={key}
+                            className="py-3"
+                            title={t(`${label}Label`)}
+                            body={t(`${label}Description`)}
+                            bodyWrap
+                            leading={<IconBubble icon={icon} size="s" color="blue" />}
+                            trailing={
+                                <Toggle
+                                    aria-label={t(`${label}Label`)}
+                                    checked={notificationChoices[key]}
+                                    onChange={(on) => onToggle(key, on)}
+                                    disabled={saving}
+                                />
+                            }
+                        />
+                    ))}
                 </ListGroup>
+                <p className="text-body-xs text-foreground-secondary">{t('changeAnytime')}</p>
                 {error && <Callout priority="error">{error}</Callout>}
             </div>
             <SetupFooter
                 actions={
-                    <Button onClick={save} shadowSize="4" loading={saving} disabled={saving}>
+                    <Button
+                        onClick={() => void save(false)}
+                        shadowSize="4"
+                        loading={saving}
+                        disabled={saving || !anyOn}
+                    >
                         {t('continue')}
                     </Button>
+                }
+                secondary={
+                    <LinkButton onClick={() => void save(true)} disabled={saving}>
+                        {t('notNow')}
+                    </LinkButton>
                 }
             />
         </div>

@@ -6,9 +6,19 @@ import { type SignupEntryFlow } from '@/features/setup/signup-analytics'
 
 import type { SetupFundingChannel, SetupPaymentChannel } from './paymentChannels'
 
-type NotificationChoices = { push: boolean; email: boolean; marketingPush: boolean }
-// Service push starts on; marketing pushes need the user's own opt-in.
-const DEFAULT_NOTIFICATION_CHOICES: NotificationChoices = { push: true, email: true, marketingPush: false }
+export type NotificationChoices = {
+    push: boolean
+    marketingPush: boolean
+    emailUpdates: boolean
+    /** Important alerts has been switched on once, so Email updates no longer follows it. */
+    cascaded: boolean
+}
+const DEFAULT_NOTIFICATION_CHOICES: NotificationChoices = {
+    push: false,
+    marketingPush: false,
+    emailUpdates: false,
+    cascaded: false,
+}
 
 /**
  * Setup flow memory that cannot live in the URL: the filtered step list (a

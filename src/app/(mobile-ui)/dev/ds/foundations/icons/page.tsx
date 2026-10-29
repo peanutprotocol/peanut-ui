@@ -82,6 +82,7 @@ const ALL_ICONS: IconName[] = [
     'link-slash',
     'lock',
     'logout',
+    'mail',
     'menu',
     'meter',
     'minus-circle',

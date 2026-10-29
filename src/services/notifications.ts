@@ -1,8 +1,30 @@
 import { serverFetch } from '@/utils/api-fetch'
+import type { NotificationPermissionState } from '@/services/onesignal/types'
+
+/** The OS answer last reported to the API. */
+export type PushPermission = 'granted' | 'denied' | 'dismissed'
 
 // the in-app notifications PAGE is gone; what stays is the unread badge and
 // mark-read plumbing the support drawer and bottom nav rely on
-export type NotificationPreferences = { push: boolean; email: boolean; marketingPush: boolean }
+export type NotificationPreferences = {
+    /** Important alerts: payments, account and security pushes. */
+    push: boolean
+    /** The whole email channel; the app no longer changes it. */
+    email: boolean
+    /** Offers and perks: marketing pushes, the user's own opt-in. */
+    marketingPush: boolean
+    /** Email updates: setup tips and news by email. Account emails always go out. */
+    emailUpdates: boolean
+    pushPermission: PushPermission | null
+}
+
+export type PreferenceChanges = Partial<Omit<NotificationPreferences, 'email' | 'pushPermission'>> & {
+    pushPermission?: PushPermission
+}
+
+/** A prompt closed without an answer, or one that never opened, leaves the OS at `default`. */
+export const toPushPermission = (state: NotificationPermissionState): PushPermission =>
+    state === 'default' ? 'dismissed' : state
 
 export const notificationsApi = {
     async getPreferences(): Promise<NotificationPreferences> {
@@ -11,7 +33,7 @@ export const notificationsApi = {
         return await response.json()
     },
     /** Saves only the choices passed and answers with all of them. */
-    async savePreferences(changes: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
+    async savePreferences(changes: PreferenceChanges): Promise<NotificationPreferences> {
         const response = await serverFetch('/notifications/preferences', {
             method: 'PUT',
             body: JSON.stringify(changes),

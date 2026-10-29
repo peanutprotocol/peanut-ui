@@ -90,6 +90,8 @@ export const setupSteps: ISetupStep[] = [
         image: { animation: 'notifications' },
         component: NotificationsStep,
         showBackButton: true,
+        // The two-line title breaks after "notifications" instead of leaving the last words alone.
+        titleClassName: 'text-balance',
         contentClassName: 'flex flex-col gap-6 md:justify-center',
     },
     {

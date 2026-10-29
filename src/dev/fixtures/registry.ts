@@ -1271,8 +1271,16 @@ export const FIXTURES: Record<string, Fixture> = {
     'settings-language': { route: '/settings/language', about: 'Language picker, English selected.' },
     'settings-notifications': {
         route: '/settings/notifications',
-        about: 'Notification settings: push on, news and offers not opted in.',
-        responses: { 'GET /notifications/preferences': { push: true, email: true, marketingPush: false } },
+        about: 'Notification settings: Important alerts and Email updates on, Offers and perks not opted in.',
+        responses: {
+            'GET /notifications/preferences': {
+                push: true,
+                email: true,
+                marketingPush: false,
+                emailUpdates: true,
+                pushPermission: 'granted',
+            },
+        },
     },
     rewards: {
         route: '/rewards',

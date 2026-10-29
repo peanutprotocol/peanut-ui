@@ -10,16 +10,32 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import NavHeader from '@/components/Global/NavHeader'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { notificationsApi, type NotificationPreferences } from '@/services/notifications'
+import {
+    notificationsApi,
+    toPushPermission,
+    type NotificationPreferences,
+    type PreferenceChanges,
+    type PushPermission,
+} from '@/services/notifications'
+import { canOpenAppSettings, openAppSettings } from '@/utils/native-settings'
+
+type Switch = 'push' | 'marketingPush' | 'emailUpdates'
+
+const SWITCHES: { key: Switch; icon: IconName; label: 'important' | 'offers' | 'email' }[] = [
+    { key: 'push', icon: 'bell', label: 'important' },
+    { key: 'marketingPush', icon: 'gift', label: 'offers' },
+    { key: 'emailUpdates', icon: 'mail', label: 'email' },
+]
 
 export const NotificationsView = () => {
     const t = useTranslations('settings.notifications')
     const tCommon = useTranslations('common')
     const onBack = useSafeBack('/profile')
     const toast = useToast()
-    const { requestPermission, afterPermissionAttempt } = useNotifications()
+    const { requestPermission, afterPermissionAttempt, isPermissionDenied } = useNotifications()
     const [choices, setChoices] = useState<NotificationPreferences | null>(null)
     const [loadFailed, setLoadFailed] = useState(false)
     const [saving, setSaving] = useState(false)
@@ -31,13 +47,29 @@ export const NotificationsView = () => {
     }, [])
     useEffect(load, [load])
 
-    const save = async (changes: Partial<NotificationPreferences>) => {
+    const askPermission = async (): Promise<PushPermission> => {
+        try {
+            const permission = toPushPermission(await requestPermission())
+            await afterPermissionAttempt()
+            return permission
+        } catch {
+            return 'dismissed'
+        }
+    }
+
+    const save = async (key: Switch, on: boolean, permission?: Promise<PushPermission>) => {
         if (!choices || savingRef.current) return
         savingRef.current = true
         const before = choices
-        setChoices({ ...choices, ...changes })
+        setChoices({ ...choices, [key]: on })
         setSaving(true)
         try {
+            const answer = await permission
+            // A push switch can't work without the OS permission, so a refusal saves it off.
+            const changes: PreferenceChanges = {
+                [key]: on && (answer === undefined || answer === 'granted'),
+                ...(answer && { pushPermission: answer }),
+            }
             setChoices(await notificationsApi.savePreferences(changes))
         } catch {
             setChoices(before)
@@ -48,16 +80,12 @@ export const NotificationsView = () => {
         }
     }
 
-    const onPushToggle = (on: boolean) => {
+    const onToggle = (key: Switch, on: boolean) => {
         // Asked inside the tap, so the browser accepts the prompt as a user gesture.
-        if (on)
-            void requestPermission()
-                .then(afterPermissionAttempt)
-                .catch(() => {})
-        void save({ push: on })
+        const permission = on && key !== 'emailUpdates' ? askPermission() : undefined
+        void save(key, on, permission)
     }
 
-    const push = choices?.push ?? false
     return (
         <PageStack gap="6" className="h-full bg-background-page">
             <NavHeader title={t('title')} onPrev={onBack} />
@@ -66,38 +94,40 @@ export const NotificationsView = () => {
                     {t('loadFailed')}
                 </Callout>
             ) : (
-                // A toggle row sets a preference, so its bubble is blue (design.md icon bubble ruling).
-                <ListGroup>
-                    <ListItem
-                        title={t('push')}
-                        body={t('pushBody')}
-                        bodyWrap
-                        leading={<IconBubble icon="bell" size="s" color="blue" />}
-                        trailing={
-                            <Toggle
-                                aria-label={t('push')}
-                                checked={push}
-                                onChange={onPushToggle}
-                                disabled={!choices || saving}
+                <>
+                    {/* A toggle row sets a preference, so its bubble is blue (design.md icon bubble ruling). */}
+                    <ListGroup>
+                        {SWITCHES.map(({ key, icon, label }) => (
+                            <ListItem
+                                key={key}
+                                title={t(label)}
+                                body={t(`${label}Body`)}
+                                bodyWrap
+                                leading={<IconBubble icon={icon} size="s" color="blue" />}
+                                trailing={
+                                    <Toggle
+                                        aria-label={t(label)}
+                                        checked={choices?.[key] ?? false}
+                                        onChange={(on) => onToggle(key, on)}
+                                        disabled={!choices || saving}
+                                    />
+                                }
                             />
-                        }
-                    />
-                    <ListItem
-                        title={t('marketing')}
-                        body={t('marketingBody')}
-                        bodyWrap
-                        disabled={!push}
-                        leading={<IconBubble icon="gift" size="s" color="blue" />}
-                        trailing={
-                            <Toggle
-                                aria-label={t('marketing')}
-                                checked={push && (choices?.marketingPush ?? false)}
-                                onChange={(on) => void save({ marketingPush: on })}
-                                disabled={!push || saving}
-                            />
-                        }
-                    />
-                </ListGroup>
+                        ))}
+                    </ListGroup>
+                    {isPermissionDenied && (
+                        <Callout
+                            priority="attention"
+                            ctas={
+                                canOpenAppSettings()
+                                    ? [{ label: t('openSettings'), onClick: () => void openAppSettings() }]
+                                    : undefined
+                            }
+                        >
+                            {t('blocked')}
+                        </Callout>
+                    )}
+                </>
             )}
         </PageStack>
     )
