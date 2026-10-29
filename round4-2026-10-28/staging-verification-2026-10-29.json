@@ -1,0 +1,81 @@
+{
+  "pullRequest": "https://github.com/peanutprotocol/peanut-ui/pull/3852",
+  "environment": "staging",
+  "site": "https://staging.peanut.me/",
+  "mergeCommit": "72d43ae3908f33bc642d8cf25946edafa57af72c",
+  "reviewedHead": "f88cd5cbb3b7fc38b224e4492215466435cbc672",
+  "verifiedAt": "2026-10-29T15:11:08.949Z",
+  "deployment": {
+    "status": "READY",
+    "url": "https://vercel.com/squirrellabs/peanut-wallet/8X2ZnycrcsrUHMY7uBerTARrzxC7",
+    "versionEndpoint": "https://staging.peanut.me/api/version",
+    "version": "72d43ae"
+  },
+  "passes": [
+    {
+      "name": "HTTP and metadata",
+      "routes": 36,
+      "passed": true,
+      "checks": [
+        "HTTP success and redirects",
+        "canonical and hreflang",
+        "staging noindex",
+        "FAQ structured data",
+        "server-rendered directory",
+        "feature links and card-page restrictions"
+      ]
+    },
+    {
+      "name": "Independent browser matrix",
+      "cases": 37,
+      "passed": 37,
+      "viewportWidths": [
+        320,
+        390,
+        1440
+      ],
+      "locales": [
+        "en",
+        "es-419",
+        "es-ar",
+        "pt-br"
+      ],
+      "checks": [
+        "homepage and six feature pages",
+        "native card-to-directory navigation",
+        "corrected verification copy",
+        "account-card entrances and coin layering",
+        "Security and ZERO hand entrances",
+        "reduced motion and pause controls",
+        "overflow and JavaScript errors"
+      ]
+    },
+    {
+      "name": "Fresh-session repeat",
+      "sessions": 2,
+      "viewportWidths": [
+        390,
+        1440
+      ],
+      "passed": true,
+      "checks": [
+        "deployment version before and after",
+        "homepage and corrected copy",
+        "restricted card footer",
+        "cold directory navigation",
+        "overflow and JavaScript errors"
+      ]
+    }
+  ],
+  "observations": [
+    "Three unavailable X testimonial avatars correctly render initials; this is documented existing behavior.",
+    "Some unchanged authored FAQ, CTA and legal links are absolute production URLs; new feature/footer navigation stays on staging. Those production links were not followed.",
+    "External RPC 401 responses were recorded without public-page impact. Signed-out authentication probes also returned expected401 responses."
+  ],
+  "limits": [
+    "Desktop Chromium only; responsive width checks are not a real iOS Safari/device test.",
+    "No signup, KYC, card issuance or money movement initiated.",
+    "This is bounded public homepage and marketing-route verification, not all-app regression.",
+    "Deferred mirrored FAQ/hero content remains outside this code deployment."
+  ]
+}
