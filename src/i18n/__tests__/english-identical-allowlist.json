@@ -10,6 +10,10 @@
         }
     },
     "app": {
+        "shhhhh.hero.wordmark": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Peanut Card is the product name in every language (TASK-24037)"
+        },
         "profile.backup.changePhoneModal.iphoneToIphoneTitle": {
             "locales": ["es-419", "es-AR", "pt-BR"],
             "reason": "iPhone platform name in a short title, no words to translate"
