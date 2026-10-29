@@ -53,10 +53,14 @@
        in src/components/Avatar/avatarPicker.utils.ts (TASK-22677). */
     --breakpoint-xs: 24.375rem;
 
+    /* Renamed in code ahead of Figma (TASK-23715, 28 Oct): Figma still calls
+       these action/primary-hover, action/secondary and action/ghost-hover.
+       The two press tokens also colour the pressed state, and no button is
+       yellow, so the old names were wrong. */
     --color-action-primary: #ff90e8;
-    --color-action-primary-hover: #ffa3ec;
-    --color-action-secondary: #ffc900;
-    --color-action-ghost-hover: #bd33a1;
+    --color-action-primary-press: #ffa3ec;
+    --color-background-accent-yellow: #ffc900;
+    --color-action-ghost-press: #bd33a1;
     --color-action-focus: #2563eb;
 
     --color-background-default: #ffffff;
@@ -861,7 +865,7 @@
        press translate in Button.tsx to fall into, so a desktop click moved the
        button 4px with no shadow to replace. */
     .btn-primary {
-        @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-hover active:bg-action-primary-hover disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
+        @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-press active:bg-action-primary-press disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-secondary {
         @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] active:bg-action-primary disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];

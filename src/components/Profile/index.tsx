@@ -2,6 +2,7 @@
 
 import { useAboutHelpPreload } from '@/hooks/useAboutHelpPreload'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useAuth } from '@/context/authContext'
 import NavHeader from '../Global/NavHeader'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '../Global/NavHeader/navHeader.consts'
@@ -78,6 +79,9 @@ export const Profile = () => {
 
     const logout = async () => {
         await logoutUser()
+    }
+    const logoutAllDevices = async () => {
+        await logoutUser({ allDevices: true })
     }
 
     const username = user?.user.username || 'anonymous'
@@ -198,8 +202,8 @@ export const Profile = () => {
                         /> */}
                     </ListGroup>
 
-                    {/* Logout + Delete account */}
-                    <div className="w-full pb-2">
+                    {/* Log out (this device), then the rarer everywhere switch */}
+                    <div className="flex w-full flex-col items-center gap-6 pb-2">
                         <Button
                             loading={isLoggingOut}
                             disabled={isLoggingOut}
@@ -210,6 +214,9 @@ export const Profile = () => {
                         >
                             <span>{t('logOut')}</span>
                         </Button>
+                        <LinkButton onClick={logoutAllDevices} disabled={isLoggingOut}>
+                            {t('logOutAllDevices')}
+                        </LinkButton>
                     </div>
                 </div>
             </div>

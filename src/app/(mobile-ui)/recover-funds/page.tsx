@@ -159,7 +159,7 @@ export default function RecoverFundsPage() {
                         <div className="flex items-center gap-3">
                             <div
                                 className={
-                                    'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-green-500 font-bold'
+                                    'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-background-icon-bubble-green font-bold'
                                 }
                             >
                                 <Image
@@ -215,7 +215,7 @@ export default function RecoverFundsPage() {
                         <div className="flex items-center gap-3">
                             <div
                                 className={
-                                    'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-green-500 font-bold'
+                                    'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-background-icon-bubble-green font-bold'
                                 }
                             >
                                 <Image

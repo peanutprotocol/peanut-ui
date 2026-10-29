@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react'
 import { QrArgentinaScanFrame } from '../pages/QrArgentinaScanFrame'
 
-const scanBar = (container: HTMLElement) => container.querySelector('.bg-pink-500')
+const scanBar = (container: HTMLElement) => container.querySelector('.bg-background-brand')
 
 describe('QrArgentinaScanFrame', () => {
     it('sweeps a scan line over the sticker by default', () => {

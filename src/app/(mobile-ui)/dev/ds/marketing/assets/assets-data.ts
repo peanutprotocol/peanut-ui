@@ -38,8 +38,7 @@ export interface MascotEntry {
 
 /**
  * All 10 canonical poses. Source: mono/assets/mascot/lottie — recolour there,
- * never the export, or the next re-export reverts it. The old juggling Lottie
- * is out of brand and stays off this page.
+ * never the export, or the next re-export reverts it.
  */
 export const MASCOT_ENTRIES: MascotEntry[] = [
     { pose: 'waving-chill', usedFor: 'Landing hero; relaxed moments' },

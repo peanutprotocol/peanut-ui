@@ -105,11 +105,16 @@ test.describe('desktop entry points', () => {
             page.locator('#home-get-paid a[href="/app"]'),
             page.locator('#home-close a[href="/app"]'),
         ]
+        const placements = ['hero', 'artwork', 'app-fold']
         for (const [index, entry] of entries.entries()) {
             await entry.click()
             const dialog = page.getByRole('dialog')
             await expect(dialog).toBeVisible()
-            await expect(dialog.getByAltText('qr center logo')).toBeVisible()
+            await expect(dialog.getByRole('img', { name: 'Scan with your phone camera to download.' })).toBeVisible()
+            await expect(dialog.locator('[data-qr-url]')).toHaveAttribute(
+                'data-qr-url',
+                new RegExp(`/home\\?mqr=home-${placements[index]}-en(?:&|$)`)
+            )
             await expect(dialog.locator('a[href*="apps.apple.com"]')).toBeVisible()
             await expect(dialog.locator('a[href*="play.google.com"]')).toBeVisible()
             if (index === 0)

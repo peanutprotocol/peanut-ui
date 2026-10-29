@@ -52,7 +52,7 @@ export function UsEuAccountCapture({
         <span
             aria-hidden
             className={twMerge(
-                'font-roboto-flex-extrabold shadow-2 absolute grid size-12 place-items-center rounded-full border-2 border-border-default bg-yellow-500 text-heading-s',
+                'font-roboto-flex-extrabold shadow-2 absolute grid size-12 place-items-center rounded-full border-2 border-border-default bg-background-accent-yellow text-heading-s',
                 BADGE_CORNER_CLASS[badgeCorner],
                 PRESS
             )}
