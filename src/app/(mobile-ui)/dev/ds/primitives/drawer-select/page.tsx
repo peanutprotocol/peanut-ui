@@ -7,10 +7,12 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { SelectList } from '@/components/0_Bruddle/SelectList'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { LANGUAGE_OPTIONS } from '@/components/Global/languageOptions'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocPage } from '../../_components/DocPage'
 import { DocSection } from '../../_components/DocSection'
+import { ProductUsage } from '../../_components/ProductUsage'
 import { PropsTable } from '../../_components/PropsTable'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { WhenToUse } from '../../_components/WhenToUse'
@@ -128,15 +130,36 @@ export default function DrawerSelectPage() {
                 </DocSection.Code>
             </DocSection>
 
-            <DocSection title="In the app">
-                <DocSection.Content>
-                    <ul className="space-y-1 list-none text-body-s text-foreground-secondary">
-                        <li>Sign-up payment plan: the &quot;Choose&quot; pickers (Setup/Views/PaymentPlan.tsx)</li>
-                        <li>Sign-up language picker in the header (Setup/components/SetupLanguageSwitcher.tsx)</li>
-                        <li>Settings language page, SelectList only (Global/LanguageList.tsx)</li>
-                    </ul>
-                </DocSection.Content>
-            </DocSection>
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Sign-up payment plan — the Choose pickers"
+                    path="src/components/Setup/Views/PaymentPlan.tsx"
+                    description="A compact secondary Button inside the sentence is the trigger; each channel row leads with its concept bubble."
+                    code={`<DrawerSelect<C>
+  title={title}
+  value={value}
+  onChange={onChange}
+  options={options.map((channel) => ({ value: channel, label: label(channel), leading: <ChannelIcon channel={channel} /> }))}
+  trigger={<Button variant="secondary" size="compact" shadowSize="2" aria-haspopup="dialog">…</Button>}
+/>`}
+                >
+                    <SelectList options={METHODS} value="bank" onSelect={() => {}} />
+                </ProductUsage.Example>
+                <ProductUsage.Example
+                    title="Sign-up language picker"
+                    path="src/components/Setup/components/SetupLanguageSwitcher.tsx"
+                    description="A ghost Button in the header is the trigger. onChange is the async setLocale, so the drawer closes once the new language has loaded."
+                    code={`<DrawerSelect
+  title={t('title')}
+  options={LANGUAGE_OPTIONS}
+  value={locale}
+  onChange={setLocale}
+  trigger={<Button variant="ghost" aria-label={t('title')}>EN <Icon name="chevron-down" size={20} /></Button>}
+/>`}
+                >
+                    <SelectList options={LANGUAGE_OPTIONS} value="en" onSelect={() => {}} />
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

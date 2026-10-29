@@ -25,7 +25,9 @@ export function SelectList<T extends string>({ options, value, onSelect }: Selec
                 return (
                     <ListItem
                         key={option.value}
-                        aria-label={option.label}
+                        // a lang row takes its name from the label span, so screen
+                        // readers voice it in that language
+                        aria-label={option.lang ? undefined : option.label}
                         onClick={() => onSelect(option.value)}
                         className={selected ? 'bg-background-selection' : undefined}
                         leading={option.leading}

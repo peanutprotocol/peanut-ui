@@ -27,8 +27,13 @@ interface DrawerSelectProps<T extends string> {
 export function DrawerSelect<T extends string>({ title, trigger, options, value, onChange }: DrawerSelectProps<T>) {
     const [open, setOpen] = useState(false)
     const choose = async (next: T) => {
-        await onChange(next)
-        setOpen(false)
+        // close even if an async choice fails (a locale that will not load), so
+        // the drawer never sticks open; the rejection still reaches error tracking
+        try {
+            await onChange(next)
+        } finally {
+            setOpen(false)
+        }
     }
     return (
         <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
