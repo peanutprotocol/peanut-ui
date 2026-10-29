@@ -50,7 +50,6 @@ const setRecipient = (recipient: { identifier: string; recipientType: string; re
         isInsufficientBalance: false,
         isLoading: false,
         isLoggedIn: true,
-        isConnected: true,
         setAmount: jest.fn(),
         handlePayment: jest.fn(),
         setCurrentView: jest.fn(),

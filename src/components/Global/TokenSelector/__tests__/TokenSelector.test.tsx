@@ -46,14 +46,6 @@ const CHAINS = {
     tron: { chainId: 'tron', networkName: 'Tron', chainIconURI: '', tokens: [token(USDT_TRON, 'USDT')] },
 }
 
-const NATIVE = '0x0000000000000000000000000000000000000000'
-// the same record with native ETH on Arbitrum and Ethereum
-const CHAINS_WITH_ETH = {
-    ...CHAINS,
-    '42161': { ...CHAINS['42161'], tokens: [...CHAINS['42161'].tokens, token(NATIVE, 'ETH')] },
-    '1': { ...CHAINS['1'], tokens: [...CHAINS['1'].tokens, token(NATIVE, 'ETH')] },
-}
-
 function Harness({
     initialChainID = '42161',
     initialTokenAddress = USDC_ARB,
@@ -63,12 +55,10 @@ function Harness({
     onNetworkSelect,
     networkHelper,
     addressFamily,
-    chains = CHAINS,
 }: {
-    chains?: Record<string, unknown>
     initialChainID?: string
     initialTokenAddress?: string
-    viewType?: 'withdraw' | 'other' | 'claim' | 'add' | 'req_pay'
+    viewType?: 'withdraw' | 'claim'
     isLoadingChains?: boolean
     onAutoCorrect?: () => void
     onNetworkSelect?: () => void
@@ -82,7 +72,7 @@ function Harness({
             <tokenSelectorContext.Provider
                 value={
                     {
-                        supportedChainsAndTokens: chains,
+                        supportedChainsAndTokens: CHAINS,
                         isLoadingChains,
                         selectedChainID,
                         setSelectedChainID,
@@ -165,7 +155,7 @@ describe('TokenSelector (TASK-23392)', () => {
         expect(within(optionNamed('USDC')).queryByText(/^\+/)).toBeNull()
     })
 
-    test('the network drawer lists every network, the ones without the token last and disabled', () => {
+    test('the network drawer lists every network, the ones without the token last', () => {
         render(<Harness />)
         fireEvent.click(networkTrigger())
         expect(options().map((o) => within(o).getByText(/Arbitrum|Ethereum|Tron/).textContent)).toEqual([
@@ -175,22 +165,48 @@ describe('TokenSelector (TASK-23392)', () => {
         ])
         expect(within(optionNamed('Arbitrum')).getByText('No fee')).toBeInTheDocument()
         expect(within(optionNamed('Ethereum')).getByText('Network fee')).toBeInTheDocument()
-        // Sprint 165 smoke: with USDC selected, Tron was missing from the list
-        const tron = optionNamed('Tron')
-        expect(tron).toHaveAttribute('aria-disabled', 'true')
-        expect(within(tron).getByText('No USDC on this network')).toBeInTheDocument()
+        // Sprint 165 smoke: with USDC selected, Tron was missing from the list;
+        // TASK-24035: it then showed but was a dead end, so it names the token a tap selects
+        expect(within(optionNamed('Tron')).getByText('Only supports USDT')).toBeInTheDocument()
     })
 
-    test('tapping a network that does not carry the token changes nothing', () => {
+    test('tapping a network that does not carry the token selects the token it does carry (TASK-24035)', () => {
         const onNetworkSelect = jest.fn()
         render(<Harness onNetworkSelect={onNetworkSelect} />)
         fireEvent.click(networkTrigger())
         fireEvent.click(optionNamed('Tron'))
-        fireEvent.keyDown(optionNamed('Tron'), { key: 'Enter' })
-        expect(chain()).toBe('42161')
-        expect(tokenAddress()).toBe(USDC_ARB)
-        expect(onNetworkSelect).not.toHaveBeenCalled()
-        expect(screen.getByRole('listbox')).toBeInTheDocument()
+        expect(chain()).toBe('tron')
+        expect(tokenAddress()).toBe(USDT_TRON)
+        expect(onNetworkSelect).toHaveBeenCalledTimes(1)
+        expect(screen.queryByRole('listbox')).toBeNull()
+        expect(tokenTrigger()).toHaveAccessibleName('Token: USDT')
+    })
+
+    test('a network tap that changed the token says why, until the token is picked again', () => {
+        render(<Harness />)
+        const why = 'Tron only supports USDT, so we switched your token to USDT.'
+        expect(screen.queryByText(why)).toBeNull()
+        fireEvent.click(networkTrigger())
+        fireEvent.click(optionNamed('Tron'))
+        expect(screen.getByText(why)).toBeInTheDocument()
+        fireEvent.click(tokenTrigger())
+        fireEvent.click(optionNamed('USDT'))
+        expect(screen.queryByText(why)).toBeNull()
+    })
+
+    test('a network tap that keeps the token says nothing', () => {
+        render(<Harness />)
+        fireEvent.click(networkTrigger())
+        fireEvent.click(optionNamed('Ethereum'))
+        expect(screen.queryByText(/so we switched your token/)).toBeNull()
+    })
+
+    test('the screen helper wins over the token switch note', () => {
+        render(<Harness networkHelper="Confirm the network" />)
+        fireEvent.click(networkTrigger())
+        fireEvent.click(optionNamed('Tron'))
+        expect(screen.getByText('Confirm the network')).toBeInTheDocument()
+        expect(screen.queryByText(/so we switched your token/)).toBeNull()
     })
 
     test('USDT adds Tron to the network list', () => {
@@ -201,7 +217,7 @@ describe('TokenSelector (TASK-23392)', () => {
             'Ethereum',
             'Tron',
         ])
-        expect(optionNamed('Tron')).not.toHaveAttribute('aria-disabled')
+        expect(within(optionNamed('Tron')).queryByText('Only supports USDT')).toBeNull()
         // USDT on Arbitrum is not the free route
         expect(within(optionNamed('Arbitrum')).getByText('Network fee')).toBeInTheDocument()
     })
@@ -304,27 +320,5 @@ describe('TokenSelector (TASK-23392)', () => {
         render(<Harness initialChainID="tron" initialTokenAddress={USDT_TRON} />)
         expect(chain()).toBe('42161')
         expect(tokenTrigger()).toBeDisabled()
-    })
-
-    // TASK-23850: a request is paid in USDC or USDT only, so the request-payment
-    // selector never offers the native token. Other flows keep it.
-    describe('the native token', () => {
-        const offers = (symbol: string) =>
-            options().some((option) => !!within(option).queryByText(symbol, { exact: true }))
-
-        test('a request payment offers USDC and USDT, never ETH', () => {
-            render(<Harness viewType="req_pay" chains={CHAINS_WITH_ETH} />)
-            fireEvent.click(tokenTrigger())
-            expect(options()).toHaveLength(2)
-            expect(offers('USDC')).toBe(true)
-            expect(offers('USDT')).toBe(true)
-            expect(offers('ETH')).toBe(false)
-        })
-
-        test.each(['withdraw', 'claim'] as const)('%s still offers ETH', (viewType) => {
-            render(<Harness viewType={viewType} chains={CHAINS_WITH_ETH} />)
-            fireEvent.click(tokenTrigger())
-            expect(offers('ETH')).toBe(true)
-        })
     })
 })

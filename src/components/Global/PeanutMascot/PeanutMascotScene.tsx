@@ -22,18 +22,26 @@ const PaperPlane = () => (
 
 const GoldenCoin = () => (
     <svg viewBox="0 0 48 48" className="h-full w-full" aria-hidden="true">
-        <circle cx="24" cy="24" r="21" className="fill-yellow-500 stroke-black" strokeWidth="3" />
-        <circle cx="24" cy="24" r="15" className="fill-none stroke-yellow-900" strokeWidth="2" />
-        <path d="m24 14 2.5 7.5L34 24l-7.5 2.5L24 34l-2.5-7.5L14 24l7.5-2.5Z" className="fill-yellow-200" />
+        <circle cx="24" cy="24" r="21" className="fill-background-accent-yellow stroke-black" strokeWidth="3" />
+        <circle cx="24" cy="24" r="15" className="fill-none stroke-foreground-attention" strokeWidth="2" />
+        <path d="m24 14 2.5 7.5L34 24l-7.5 2.5L24 34l-2.5-7.5L14 24l7.5-2.5Z" className="fill-avatar-yellow" />
     </svg>
 )
 
 const SafeBox = () => (
     <svg viewBox="0 0 180 130" className="absolute bottom-0 left-1/2 h-28 w-40 -translate-x-1/2" aria-hidden="true">
-        <rect x="8" y="8" width="164" height="114" rx="10" className="fill-blue-300 stroke-black" strokeWidth="5" />
+        <rect
+            x="8"
+            y="8"
+            width="164"
+            height="114"
+            rx="10"
+            className="fill-background-marketing-sky stroke-black"
+            strokeWidth="5"
+        />
         <rect x="26" y="22" width="128" height="87" rx="5" className="fill-white stroke-black" strokeWidth="4" />
-        <circle cx="90" cy="65" r="29" className="fill-yellow-500 stroke-black" strokeWidth="4" />
-        <circle cx="90" cy="65" r="15" className="fill-yellow-200 stroke-black" strokeWidth="3" />
+        <circle cx="90" cy="65" r="29" className="fill-background-accent-yellow stroke-black" strokeWidth="4" />
+        <circle cx="90" cy="65" r="15" className="fill-avatar-yellow stroke-black" strokeWidth="3" />
         <path d="M90 39v12m0 28v12M64 65h12m28 0h12" className="stroke-black" strokeWidth="4" strokeLinecap="round" />
         <path d="M31 122v5m118-5v5" className="stroke-black" strokeWidth="6" strokeLinecap="round" />
     </svg>

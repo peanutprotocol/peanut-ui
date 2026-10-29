@@ -21,7 +21,7 @@ export function FAQs({ heading, questions, learnMoreLabel, marquee = { visible: 
                     message={marquee.message}
                     imageSrc={Eyes.src}
                     imageAnimationClass="animation-rock"
-                    backgroundColor="bg-yellow-500"
+                    backgroundColor="bg-background-accent-yellow"
                 />
             )}
         </div>

@@ -3,14 +3,15 @@
 /**
  * token and network selector
  *
- * used by: withdraw, claim, and req_pay flows
+ * used by: withdraw and claim flows
  *
  * SHAPE (TASK-23392, Hugo-approved version H): two select-look triggers,
  * "Token" then "Network", each opening a drawer. Token comes first; the
  * network drawer lists every network, the ones that do not carry the selected
- * token last and disabled (agreed in Sprint 165 QA: hiding them read as "Tron
- * is not supported"), and picking a token the current network does not carry
- * moves to its default network. The rules live in TokenSelector.utils.ts.
+ * token last (agreed in Sprint 165 QA: hiding them read as "Tron is not
+ * supported"). Those rows say which token they carry ("USDT only") and a tap
+ * selects that pair (TASK-24035). Picking a token the current network does not
+ * carry moves to its default network. The rules live in TokenSelector.utils.ts.
  */
 
 import { useTranslations } from 'next-intl'
@@ -42,6 +43,7 @@ import {
     isFeeFreeRoute,
     networkRowsForToken,
     pickDefaultNetwork,
+    type NetworkRow,
     splitNetworkBadges,
     WALLET_CHAIN_ID,
     withWalletChain,
@@ -49,15 +51,13 @@ import {
     type TokenOption,
 } from './TokenSelector.utils'
 
-// outside withdraw, the selector offers the popular tokens: USDC, USDT and the
-// native token. A request payment drops the native token: requests are paid in
-// USDC or USDT only (TASK-23850)
+// outside withdraw, the selector offers the popular tokens: USDC, USDT and the native token
 const POPULAR_SYMBOLS = ['USDC', 'USDT']
 // the network drawer gets a search field only when the list is long
 const NETWORK_SEARCH_MIN = 7
 
 interface NewTokenSelectorProps {
-    viewType?: 'withdraw' | 'other' | 'claim' | 'add' | 'req_pay'
+    viewType: 'withdraw' | 'claim'
     disabled?: boolean
     /** the selector replaced a pair it does not offer — the screen decides whether the user must confirm */
     onAutoCorrect?: () => void
@@ -72,7 +72,7 @@ interface NewTokenSelectorProps {
 type DrawerKind = 'token' | 'network'
 
 const TokenSelector: React.FC<NewTokenSelectorProps> = ({
-    viewType = 'other',
+    viewType,
     disabled,
     onAutoCorrect,
     onNetworkSelect,
@@ -83,7 +83,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
     // check if cross-chain is disabled by a kill switch
     const { disableXchainWithdraw, disableXchainSend } = useKillSwitches()
     const isXchainWithdrawDisabled = viewType === 'withdraw' && disableXchainWithdraw
-    const isXchainSendDisabled = (viewType === 'claim' || viewType === 'req_pay') && disableXchainSend
+    const isXchainSendDisabled = viewType === 'claim' && disableXchainSend
     // cross-chain off: USDC on the wallet chain (Arbitrum) is the only pair
     const isLocked = isXchainWithdrawDisabled || isXchainSendDisabled
     // withdraw destinations are what Rhino can DELIVER to, not the wagmi
@@ -118,15 +118,13 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
                 !!RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN[chainId]?.includes(token.symbol.toUpperCase()) ||
                 isFeeFreeRoute(chainId, token.address)
         } else {
-            const offersNative = viewType !== 'req_pay'
             chainIds = unique(TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS)
             isAllowed = (_chainId, token) =>
-                POPULAR_SYMBOLS.includes(token.symbol.toUpperCase()) ||
-                (offersNative && isNativeCurrency(token.address))
+                POPULAR_SYMBOLS.includes(token.symbol.toUpperCase()) || isNativeCurrency(token.address)
         }
         if (addressFamily) chainIds = chainIds.filter((chainId) => addressFamilyForChainId(chainId) === addressFamily)
         return buildTokenOptions(chains, chainIds, isAllowed)
-    }, [supportedChainsAndTokens, isLocked, restrictToRhino, addressFamily, viewType])
+    }, [supportedChainsAndTokens, isLocked, restrictToRhino, addressFamily])
 
     const current = useMemo(
         () => findSelection(options, selectedChainID, selectedTokenAddress),
@@ -169,15 +167,37 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
     }
     const close = () => setOpenDrawer(null)
 
+    // a network tap that also changed the token says why, while that pick stands
+    const [tokenSwitch, setTokenSwitch] = useState<{ chainId: string; tokenAddress: string; message: string }>()
     const handleTokenSelect = (option: TokenOption) => {
+        setTokenSwitch(undefined)
         select(pickDefaultNetwork(option, selectedChainID))
         close()
     }
-    const handleNetworkSelect = (network: NetworkOption) => {
+    const handleNetworkSelect = ({ network, otherToken, otherSymbols }: NetworkRow) => {
+        const params = { network: network.name, symbol: network.token.symbol.toUpperCase() }
+        setTokenSwitch(
+            otherToken && shown
+                ? {
+                      chainId: network.chainId,
+                      tokenAddress: network.token.address,
+                      message:
+                          otherSymbols.length === 1
+                              ? t('tokenSelector.tokenSwitchedOnly', params)
+                              : t('tokenSelector.tokenSwitched', { ...params, from: shown.option.symbol }),
+                  }
+                : undefined
+        )
         select(network)
         onNetworkSelect?.()
         close()
     }
+    const tokenSwitchHelper =
+        tokenSwitch &&
+        shown?.network.chainId === tokenSwitch.chainId &&
+        shown.network.token.address === tokenSwitch.tokenAddress
+            ? tokenSwitch.message
+            : undefined
 
     const tokenDrawer = () => {
         const visible = filterTokenOptions(options, searchValue)
@@ -236,7 +256,6 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
     const networkDrawer = () => {
         const rows = networkRowsForToken(options, shown?.option)
         const visible = filterNetworks(rows, searchValue)
-        const symbol = shown?.option.symbol ?? ''
         return (
             <>
                 {/* title and search stay pinned while the list scrolls under them */}
@@ -253,22 +272,27 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
                 </div>
                 {visible.length > 0 ? (
                     <ListGroup role="listbox" aria-label={t('tokenSelector.networkLabel')}>
-                        {visible.map(({ chainId, name, iconUrl, network }) => (
+                        {visible.map((row) => (
                             <SelectorOptionRow
-                                key={chainId}
-                                title={name}
-                                iconUrl={iconUrl}
-                                isSelected={chainId === shown?.network.chainId}
-                                disabled={!network}
-                                onClick={() => network && handleNetworkSelect(network)}
+                                key={row.network.chainId}
+                                title={row.network.name}
+                                iconUrl={row.network.iconUrl}
+                                isSelected={row.network.chainId === shown?.network.chainId}
+                                onClick={() => handleNetworkSelect(row)}
                                 body={
                                     <div className="flex pt-1">
-                                        {!network ? (
+                                        {row.otherToken ? (
+                                            // `custom`: names the tokens a tap leads to, the accent pill of the
+                                            // approved prototype (TASK-24035); "only" just when it is true
                                             <Badge
-                                                status="neutral"
-                                                customText={t('tokenSelector.tokenNotOnNetwork', { symbol })}
+                                                status="custom"
+                                                customText={
+                                                    row.otherSymbols.length === 1
+                                                        ? t('tokenSelector.tokenOnly', { symbol: row.otherSymbols[0] })
+                                                        : row.otherSymbols.join(', ')
+                                                }
                                             />
-                                        ) : network.isFree ? (
+                                        ) : row.network.isFree ? (
                                             // `custom`: "No fee" is a benefit, not a status — the
                                             // accent pill of the approved design (TASK-23392)
                                             <Badge status="custom" customText={t('tokenSelector.noFee')} />
@@ -309,7 +333,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
                 label={t('tokenSelector.networkLabel')}
                 value={shown?.network.name ?? placeholder}
                 iconUrl={shown?.network.iconUrl}
-                helper={isLocked ? t('tokenSelector.lockedHint') : networkHelper}
+                helper={isLocked ? t('tokenSelector.lockedHint') : (networkHelper ?? tokenSwitchHelper)}
                 disabled={disabled || isLocked || !shown}
                 onClick={() => open('network')}
                 data-testid="network-selector-trigger"

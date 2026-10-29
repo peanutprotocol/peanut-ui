@@ -311,6 +311,7 @@
             "updateAvailable": "Actualización disponible"
         },
         "logOut": "Cerrar sesión",
+        "logOutAllDevices": "Cerrar sesión en todos los dispositivos",
         "edit": {
             "title": "Editar perfil",
             "fields": {
@@ -813,6 +814,24 @@
             "signUp": "Regístrate",
             "recoverWallet": "¿Necesitas recuperar la cuenta de Peanut?"
         },
+        "loginRecovery": {
+            "title": "Tu passkey puede estar en el teléfono donde creaste tu cuenta",
+            "steps": {
+                "ios": {
+                    "sameAccount": "Inicia sesión en la cuenta de Apple de ese teléfono, con Contraseñas de iCloud activadas.",
+                    "thatPhone": "O inicia sesión en ese teléfono."
+                },
+                "android": {
+                    "sameAccount": "Inicia sesión en la cuenta de Google de ese teléfono.",
+                    "thatPhone": "O inicia sesión en ese teléfono."
+                },
+                "web": {
+                    "thatPhone": "Inicia sesión en ese teléfono.",
+                    "sameAccount": "O inicia sesión en su cuenta de Apple o Google en este navegador."
+                }
+            },
+            "signUp": "No tengo cuenta, crear una"
+        },
         "waitlist": {
             "loginCanceled": "El inicio de sesión fue cancelado. Inténtalo de nuevo.",
             "noPasskey": "No se encontró ninguna passkey. Primero crea una billetera.",
@@ -941,7 +960,7 @@
                     "updateBrowserOs": "Actualiza el navegador y el sistema operativo"
                 },
                 "warnings": {
-                    "lowEndAndroid": "Los dispositivos Android de gama baja pueden necesitar actualizaciones de seguridad recientes para que las passkeys funcionen bien."
+                    "androidSecurityUpdates": "Los dispositivos Android pueden necesitar actualizaciones de seguridad recientes para que las passkeys funcionen."
                 }
             },
             "info": {
@@ -2082,7 +2101,8 @@
             "placeholderEns": "Dirección o ENS",
             "placeholderAddress": "Dirección",
             "detailsMissing": "Faltan los datos del retiro",
-            "confirmNetwork": "Elige la red para esta dirección"
+            "confirmNetwork": "Elige la red para esta dirección",
+            "tronPickedByAddress": "Dirección de Tron: cambiamos a {token} en Tron"
         },
         "confirm": {
             "recipientReceives": "El destinatario recibe",
@@ -3510,7 +3530,9 @@
             "networkFee": "Comisión de red",
             "noTokensFoundTitle": "No se encontraron tokens",
             "lockedHint": "Por ahora, solo USDC en Arbitrum",
-            "tokenNotOnNetwork": "Sin {symbol} en esta red"
+            "tokenOnly": "Solo admite {symbol}",
+            "tokenSwitchedOnly": "La red {network} solo admite {symbol}, así que cambiamos tu token a {symbol}.",
+            "tokenSwitched": "La red {network} no admite {from}, así que cambiamos tu token a {symbol}."
         },
         "qrScanner": {
             "scanToPay": "Escanea para pagar",
@@ -4040,7 +4062,7 @@
             "verifyTitle": "Verifica.",
             "verifyBody": "Una verificación de identidad, más los términos del titular.",
             "spendTitle": "Paga.",
-            "spendBody": "¿Aprobada? Agrega dinero y paga."
+            "spendBody": "Ten USD 10 en tu saldo, solicítala y paga."
         },
         "marquee": {
             "peanutCard": "PEANUT CARD",
@@ -4065,11 +4087,11 @@
             },
             "q5": {
                 "question": "¿Cómo obtengo una tarjeta?",
-                "answer": "Inicia sesión, completa la verificación y acepta los términos del titular. Tu solicitud está sujeta a aprobación."
+                "answer": "Inicia sesión, completa la verificación, ten al menos USD 10 en tu saldo de Peanut y acepta los términos del titular. Tu solicitud está sujeta a aprobación."
             },
             "q6": {
-                "question": "¿Necesito depositar antes de solicitarla?",
-                "answer": "No. Puedes solicitarla antes de agregar dinero. Agrega fondos cuando tu tarjeta esté lista para pagar."
+                "question": "¿Necesito tener dinero en mi saldo para solicitarla?",
+                "answer": "Sí. Para solicitar tu primera tarjeta necesitas al menos USD 10 en tu saldo de Peanut. No es una comisión: el dinero sigue siendo tuyo para gastarlo con la tarjeta."
             },
             "q7": {
                 "question": "¿Hay comisiones?",

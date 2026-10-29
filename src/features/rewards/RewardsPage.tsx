@@ -158,7 +158,7 @@ export function RewardsPage() {
                             />
                             <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-background-disabled">
                                 <div
-                                    className="h-full rounded-full bg-gradient-to-r from-action-primary to-action-primary-hover transition-all duration-slow"
+                                    className="h-full rounded-full bg-gradient-to-r from-action-primary to-action-primary-press transition-all duration-slow"
                                     style={{
                                         width: `${getTierProgressPercent(
                                             tierInfo.data.currentTier,
@@ -193,7 +193,7 @@ export function RewardsPage() {
                         <ol className="flex flex-col gap-2">
                             {(['step1', 'step2', 'step3', 'step4'] as const).map((step, i) => (
                                 <li key={step} className="flex items-start gap-3 text-body-s">
-                                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-black bg-action-secondary text-label-m">
+                                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-black bg-background-accent-yellow text-label-m">
                                         {i + 1}
                                     </span>
                                     <span>{t(`howItWorks.${step}`)}</span>

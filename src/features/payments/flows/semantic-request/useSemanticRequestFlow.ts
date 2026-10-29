@@ -91,7 +91,6 @@ export function useSemanticRequestFlow() {
         reset: resetRoute,
     } = useCrossChainTransfer()
     const {
-        isConnected,
         address: walletAddress,
         sendMoney,
         sendTransactions,
@@ -743,7 +742,6 @@ export function useSemanticRequestFlow() {
         canProceed,
         hasSufficientBalance: hasEnoughBalance,
         isInsufficientBalance,
-        isConnected,
         isLoggedIn,
         walletAddress,
         formattedBalance: formattedSpendableBalance,

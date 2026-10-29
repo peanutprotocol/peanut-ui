@@ -54,7 +54,6 @@ const setFlow = (over: Record<string, unknown>) => {
             isInsufficientBalance: false,
             isLoading: false,
             isLoggedIn: true,
-            isConnected: true,
             setAmount: jest.fn(),
             handlePayment: jest.fn(),
             setCurrentView: jest.fn(),

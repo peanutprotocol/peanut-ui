@@ -181,7 +181,7 @@ const listBox = 'isolate flex items-stretch gap-0 overflow-x-auto overflow-y-hid
 // overflow and the token selector's trim never dropped a tab. With the floor,
 // an overflowing row really overflows and the trim sees it.
 const trigger =
-    'relative flex min-w-max shrink-0 items-center justify-center whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:z-10 data-[state=active]:text-foreground-primary disabled:cursor-not-allowed disabled:opacity-40'
+    'relative flex min-w-max shrink-0 items-center justify-center whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-press data-[state=active]:z-10 data-[state=active]:text-foreground-primary disabled:cursor-not-allowed disabled:opacity-40'
 
 /**
  * `lg` deliberately lands on BottomNav's own 52px / px-6, so a large tab row

@@ -8,7 +8,10 @@ export function YourMoney({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
     const i18n = getTranslations(locale)
 
     return (
-        <section id="global-cash" className="bg-yellow-500 px-6 py-16 text-foreground-primary md:px-4 md:py-24">
+        <section
+            id="global-cash"
+            className="bg-background-accent-yellow px-6 py-16 text-foreground-primary md:px-4 md:py-24"
+        >
             <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 md:flex-row">
                 <div className="space-y-6 mt-4 mb-12 w-full text-center md:mt-6 md:mb-20 md:w-1/2 md:text-left">
                     <h2 className="font-roboto-flex-extrabold text-headingSmall font-extraBlack xs:text-heading md:text-headingMedium">
