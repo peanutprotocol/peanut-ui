@@ -327,11 +327,11 @@ export default function ColorsPage() {
 
             <DocSection
                 title="Actions and press"
-                description="Primary is pink, secondary is white with a black border. Press the buttons: phones show the press colour, and desktop hover reuses it."
+                description="Primary is pink. Secondary is white with a black border, for a second path of equal weight; a dismiss is a tertiary link. Press the buttons: phones show the press colour, and desktop hover reuses it."
             >
                 <div className="flex gap-3">
-                    <Button variant="primary">Continue</Button>
-                    <Button variant="secondary">Cancel</Button>
+                    <Button variant="primary">Enter code</Button>
+                    <Button variant="secondary">Scan</Button>
                 </div>
                 <Card className="divide-y divide-dashed divide-border-default px-3">
                     <div className="flex flex-col gap-1 py-3">
