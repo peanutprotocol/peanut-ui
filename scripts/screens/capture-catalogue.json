@@ -673,6 +673,46 @@
         "route": "/home"
     },
     {
+        "id": "fixture-feature-activation-card-ready",
+        "flow": "Verification",
+        "route": "/card?kyc=%7B%7D"
+    },
+    {
+        "id": "fixture-feature-activation-card-on",
+        "flow": "Verification",
+        "route": "/card?kyc=%7B%7D"
+    },
+    {
+        "id": "fixture-feature-activation-card-setting-up",
+        "flow": "Verification",
+        "route": "/card?kyc=%7B%7D"
+    },
+    {
+        "id": "fixture-feature-activation-card-pending",
+        "flow": "Verification",
+        "route": "/card?kyc=%7B%7D"
+    },
+    {
+        "id": "fixture-feature-activation-card-action-required",
+        "flow": "Verification",
+        "route": "/card?kyc=%7B%7D"
+    },
+    {
+        "id": "fixture-feature-activation-card-refused",
+        "flow": "Verification",
+        "route": "/card?kyc=%7B%7D"
+    },
+    {
+        "id": "fixture-feature-activation-card-failed",
+        "flow": "Verification",
+        "route": "/card?kyc=%7B%7D"
+    },
+    {
+        "id": "fixture-feature-activation-card-questions-missing",
+        "flow": "Verification",
+        "route": "/card?kyc=%7B%7D"
+    },
+    {
         "id": "p52-kyc-success",
         "flow": "Verification",
         "route": "/kyc/success"
@@ -919,6 +959,86 @@
         "id": "fixture-get-paid-ar",
         "flow": "Add money",
         "route": "/add-money?method=bank&step=details&corridor=BANK_TRANSFER_AR"
+    },
+    {
+        "id": "fixture-feature-activation-bank-ready",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-bank-on",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-bank-setting-up",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-bank-pending",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-bank-action-required",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-bank-refused",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-bank-failed",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-bank-questions-missing",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-local-ready",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-feature-activation-local-on",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-feature-activation-local-setting-up",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-feature-activation-local-pending",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-feature-activation-local-action-required",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-feature-activation-local-refused",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-feature-activation-local-failed",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-feature-activation-local-questions-missing",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
     },
     {
         "id": "p17-add-money",

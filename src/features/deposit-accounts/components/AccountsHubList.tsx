@@ -148,6 +148,7 @@ export function AccountsHubList({
         // no verdict from the backend: nothing else about the row is known, the gate included
         if (unchecked) return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
         const withheld = accounts?.unavailable?.[corridor]
+        if (withheld?.cause === 'not_started') return <Badge status="processing" customText={t('list.badgeSetUp')} />
         const reason = withheld?.reason
         // the app's one "contact support" string, so the badge cannot drift
         // from the buttons that do the same thing

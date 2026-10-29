@@ -11,8 +11,6 @@ import {
     type FeatureIntentsResult,
 } from '@/app/actions/kyc-paperwork-verification'
 import { getKycDocumentPlan } from '@/app/actions/kyc-workflow'
-import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
-import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import type {
     PaperworkVerificationFeature,
     PaperworkVerificationStep,
@@ -26,6 +24,7 @@ import {
 } from './analytics'
 import { QuestionStepScreen } from './components/QuestionStepScreen'
 import { composeScreens, phoneJoinsAddress, RESIDENCE_CHANGE_HREF } from './paperworkVerification.utils'
+import { FeatureAction } from './FeatureAction'
 import { FeatureReadyScreen } from './components/StatusScreens'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
 
@@ -63,12 +62,14 @@ export function AddFeatureQuestions({
     requiredStep,
     onBack,
     onDone,
+    onReady = onDone,
 }: {
     feature: PaperworkVerificationFeature
     /** A step the caller was told is missing (the card application); asked even when the read says answered. */
     requiredStep?: string | null
     onBack: () => void
     onDone: () => void
+    onReady?: () => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     const tKyc = useTranslations('kyc')
@@ -89,6 +90,8 @@ export function AddFeatureQuestions({
     // Called once per finish, whatever the parent re-renders with.
     const onDoneRef = useRef(onDone)
     onDoneRef.current = onDone
+    const onReadyRef = useRef(onReady)
+    onReadyRef.current = onReady
     const routerRef = useRef(router)
     routerRef.current = router
     const loadRef = useRef<(required?: string | null) => Promise<void>>(async () => {})
@@ -104,6 +107,7 @@ export function AddFeatureQuestions({
                     ...(result.kind === 'questions-missing' && { missing_step: result.step }),
                 })
                 if (result.kind === 'saved') onDoneRef.current()
+                else if (result.kind === 'ready') onReadyRef.current()
                 else if (result.kind === 'card-application') routerRef.current.push('/card')
                 else if (result.kind === 'refused' || result.kind === 'action-required') setState(result)
                 // A step asked a second time with nothing new to answer would loop: stop on the failure screen.
@@ -232,55 +236,10 @@ export function AddFeatureQuestions({
     )
 }
 
-function FeatureAction({ action, onBack, onDone }: { action: string; onBack: () => void; onDone: () => void }) {
-    const t = useTranslations('kyc.paperworkVerification')
-    const flow = useSumsubKycFlow({ onKycSuccess: onDone })
-    const started = useRef(false)
-    useEffect(() => {
-        if (started.current) return
-        started.current = true
-        void flow.handleStartAction(action)
-    }, [action, flow])
-    return (
-        <>
-            <VerifyHeroLayout
-                pose="thinking"
-                onBack={onBack}
-                title={t('addLater.actionTitle')}
-                description={flow.error ?? t('addLater.actionDescription')}
-                footer={
-                    <VerifyFooter
-                        actions={
-                            <Button
-                                className="w-full"
-                                loading={flow.isLoading}
-                                disabled={flow.isLoading}
-                                onClick={() => void flow.handleStartAction(action)}
-                            >
-                                {t('continue')}
-                            </Button>
-                        }
-                    />
-                }
-            />
-            <SumsubKycWrapper
-                visible={flow.showWrapper}
-                accessToken={flow.accessToken}
-                onClose={flow.handleClose}
-                onComplete={() => {
-                    flow.handleSdkComplete()
-                    onDone()
-                }}
-                onRefreshToken={flow.refreshToken}
-            />
-        </>
-    )
-}
-
 /** /verify?feature=…: the add-later screen, then the "all set" screen back to where the user came from. */
 export function AddFeatureFlow({ feature, onExit }: { feature: PaperworkVerificationFeature; onExit: () => void }) {
     const [ready, setReady] = useState(false)
     const done = useCallback(() => setReady(true), [])
     if (ready) return <FeatureReadyScreen feature={feature} onDone={onExit} />
-    return <AddFeatureQuestions feature={feature} onBack={onExit} onDone={done} />
+    return <AddFeatureQuestions feature={feature} onBack={onExit} onDone={done} onReady={onExit} />
 }

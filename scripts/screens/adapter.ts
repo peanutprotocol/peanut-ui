@@ -26,6 +26,17 @@ export async function answer(fixture: string, path: string, method: string, body
     if (!state) throw new Error(`Unknown fixture ${fixture}`)
     const key = `${method} ${path.split('?')[0].replace(/\/+$/, '')}`
     if (state.fails?.includes(key)) return Response.json({ error: 'Synthetic failure' }, { status: 500 })
+    const activationFixtureRoute =
+        /^POST \/users\/kyc\/features\/(qr|bank|local|card)\/activate$/.test(key) ||
+        key === 'GET /users/kyc/questions' ||
+        key === 'GET /users/kyc/plan' ||
+        key === 'GET /users/kyc/profile' ||
+        key === 'POST /users/kyc/start-action'
+    if (activationFixtureRoute && fixture.startsWith('feature-activation-')) {
+        const rejection = state.rejects?.[key]
+        if (rejection) return Response.json(rejection.body, { status: rejection.status })
+        if (state.responses?.[key] !== undefined) return Response.json(state.responses[key])
+    }
     if (key === 'GET /notifications') return Response.json({ items: [], nextCursor: null })
     if (key === 'POST /invites/validate')
         return Response.json({ success: true, attributionResolved: true, onboardingResolved: true, username: 'demo' })

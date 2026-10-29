@@ -1,3 +1,4 @@
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'legacy-user' } } }) }))
 /**
  * MantecaAddMoney — the settled-deposit exit contract.
  *

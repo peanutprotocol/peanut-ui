@@ -5,6 +5,10 @@ import { act, renderHook } from '@testing-library/react'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rainApi } from '@/services/rain'
 import { useCardFlow } from '../useCardFlow'
+import { activateKycFeature } from '@/app/actions/kyc-feature-activation'
+import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
+
+jest.mock('@/app/actions/kyc-feature-activation', () => ({ activateKycFeature: jest.fn() }))
 
 const mockCapture = jest.fn()
 let mockFunded = true
@@ -12,7 +16,9 @@ let mockBalance: bigint | undefined = 10_000_000n
 let mockState = 'add-card'
 let mockOverview: Record<string, unknown> | undefined
 let mockOverviewLoading = false
-let mockUser: { user: { userId: string } } | null = { user: { userId: 'user-1' } }
+let mockUser: { user: { userId: string }; identityVerification?: { oneShot: boolean } } | null = {
+    user: { userId: 'user-1' },
+}
 let mockRainRails: Array<{ id: string; reason?: { code: string; userMessage: string } }> = []
 const mockInvalidateQueries = jest.fn()
 let mockUserFetching = 0
@@ -979,5 +985,87 @@ describe('useCardFlow — balance known', () => {
         mockOverview = { ...mockOverview, balance: { spendingPower: 2500 }, balanceUnavailable: false }
         rerender()
         expect(result.current.isBalanceKnown).toBe(true)
+    })
+})
+
+describe('card first-use activation', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockUser = { user: { userId: 'user-1' }, identityVerification: { oneShot: true } }
+        mockFunded = true
+        mockBalance = 10_000_000n
+        mockOverview = { status: { hasApplication: false }, cards: [] }
+        mockOverviewLoading = false
+        mockState = 'add-card'
+        mockApplyForCard.mockResolvedValue({ status: 'terms-required', isUsResident: false })
+        jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'report', report: { state: 'on' } })
+    })
+
+    it('waits for activation before asking Rain, with duplicate clicks serialized', async () => {
+        let resolve!: (value: Awaited<ReturnType<typeof activateKycFeature>>) => void
+        jest.mocked(activateKycFeature).mockReturnValue(
+            new Promise((done) => {
+                resolve = done
+            })
+        )
+        const { result } = renderHook(() => useCardFlow())
+        let first!: Promise<void>
+        let second!: Promise<void>
+        act(() => {
+            first = result.current.handleApply()
+            second = result.current.handleApply()
+        })
+        expect(activateKycFeature).toHaveBeenCalledWith('card')
+        expect(mockApplyForCard).not.toHaveBeenCalled()
+        await act(async () => {
+            resolve({ kind: 'report', report: { state: 'on' } })
+            await Promise.all([first, second])
+        })
+        expect(mockApplyForCard).toHaveBeenCalledTimes(1)
+    })
+
+    it('legacy users apply without activation', async () => {
+        mockUser = { user: { userId: 'user-1' }, identityVerification: { oneShot: false } }
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(activateKycFeature).not.toHaveBeenCalled()
+        expect(mockApplyForCard).toHaveBeenCalledTimes(1)
+    })
+
+    it.each(['setting_up', 'pending'] as const)(
+        '%s keeps Rain untouched and exposes setup to CardPage',
+        async (state) => {
+            jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'report', report: { state } })
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleApply()
+            })
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+            expect(result.current.activation.allowed).toBe(false)
+            expect(result.current.activation.result).toEqual({ kind: 'report', report: { state } })
+        }
+    )
+
+    it('questions_missing routes to feature questions without applying', async () => {
+        jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'questions_missing', step: 'tax' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(mockRouterPush).toHaveBeenCalledWith('/verify?feature=card')
+        expect(mockApplyForCard).not.toHaveBeenCalled()
+    })
+
+    it('a cold interrupted KYC resume activates before any Rain request', async () => {
+        jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'report', report: { state: 'pending' } })
+        renderHook(() => useCardFlow())
+        const resume = jest.mocked(useSumsubReloadResume).mock.calls.at(-1)![1]
+        await act(async () => {
+            await resume({})
+        })
+        expect(activateKycFeature).toHaveBeenCalledWith('card')
+        expect(mockApplyForCard).not.toHaveBeenCalled()
     })
 })

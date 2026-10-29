@@ -159,7 +159,8 @@ export function DepositAccountsFlow({
     const { t, railName, claimErrorBody } = useDepositAccountCopy()
     const rail = DEPOSIT_RAILS[corridor]
     const account = accounts[corridor]
-    const gate = gates[corridor]
+    const gate: GateState =
+        !isHeld(account) && unavailable?.[corridor]?.cause === 'not_started' ? { kind: 'ready' } : gates[corridor]
     // A read that failed says nothing about what the user holds, so a deep link
     // must not resolve past the list: the empty fallback map would read as "not
     // claimed yet" and offer to open an account the user may already have. The

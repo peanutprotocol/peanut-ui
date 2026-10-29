@@ -31,6 +31,7 @@ import { isRainBalanceKnown } from '@/utils/balance.utils'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { useKycFeatureActivation } from '@/features/paperwork-verification/useKycFeatureActivation'
 import { ApiError } from '@/services/api-error'
 /**
  * flow hook for the card page — owns every behaviour so the page stays dumb
@@ -41,6 +42,7 @@ export function useCardFlow() {
     const queryClient = useQueryClient()
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
+    const activation = useKycFeatureActivation('card', { automatic: false })
     const { balance, hasSufficientSpendableBalance } = useWallet()
     const isCardFunded = hasSufficientSpendableBalance(10)
     const [fundingRequired, setFundingRequired] = useState(false)
@@ -460,6 +462,7 @@ export function useCardFlow() {
             setApplyError(null)
             posthog.capture(ANALYTICS_EVENTS.CARD_COUNTRY_CONFIRMED, { country: countryCode })
             try {
+                if (!(await activation.activate()) || changed()) return
                 const res = await rainApi.applyForCard({ confirmedResidenceCountry: countryCode })
                 if (changed()) return
                 // Caller-specific `incomplete` branch (advanceFromApplyResponse
@@ -482,69 +485,89 @@ export function useCardFlow() {
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse, userId, connectedAddress, t]
+        [advanceFromApplyResponse, userId, connectedAddress, t, activation.activate]
     )
 
     // Returns the response only when the application went through to a state
     // that can carry the funding permission; undefined on every other outcome.
+    const submittingApplication = useRef<object | null>(null)
     const submitApplication = useCallback(
         async (termsAccepted = false, serializedApproval?: string) => {
-            // Bound to the account this callback was made for: one captured
-            // before a switch sends nothing, and a response that lands after
-            // one changes nothing.
-            const startedFor = { userId, connectedAddress }
-            const changed = () => !sameIdentity(identityRef.current, startedFor)
-            if (changed()) return undefined
-            // A cached display balance cannot unlock a new application. Existing
-            // applications and approved reissues retain their recovery paths.
-            if (needsFundingBeforeApply) {
-                setFundingRequired(true)
-                setPendingTerms(null)
-                return undefined
-            }
-            setApplyError(null)
-            posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_ATTEMPTED, {
-                terms_accepted: termsAccepted,
-                with_session_key: !!serializedApproval,
-            })
+            const attempt = {}
+            const oneShot = user?.identityVerification?.oneShot === true
+            if (oneShot && submittingApplication.current) return undefined
+            if (oneShot) submittingApplication.current = attempt
             try {
-                // Consent-ledger echo: on acceptance, send the exact documents
-                // CardTermsScreen displayed for this region (version + hash).
-                const acceptedDocuments = termsAccepted
-                    ? cardConsentDocuments(pendingTerms?.isUsResident ?? false)
-                    : undefined
-                const res = await rainApi.applyForCard({
-                    termsAccepted,
-                    acceptedDocuments,
-                    ...(serializedApproval ? { serializedApproval } : {}),
+                // Bound to the account this callback was made for: one captured
+                // before a switch sends nothing, and a response that lands after
+                // one changes nothing.
+                const startedFor = { userId, connectedAddress }
+                const changed = () => !sameIdentity(identityRef.current, startedFor)
+                if (changed()) return undefined
+                // A cached display balance cannot unlock a new application. Existing
+                // applications and approved reissues retain their recovery paths.
+                if (needsFundingBeforeApply) {
+                    setFundingRequired(true)
+                    setPendingTerms(null)
+                    return undefined
+                }
+                setApplyError(null)
+                posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_ATTEMPTED, {
+                    terms_accepted: termsAccepted,
+                    with_session_key: !!serializedApproval,
                 })
-                if (changed()) return undefined
-                if (termsAccepted && res.status === 'pending' && userId) {
-                    writeStoredValue(`card_issuance_celebration_pending_v1:${userId}`, '1')
-                }
-                posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
-                if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
-                    setSumsubToken(res.sumsubAccessToken)
-                    posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+                try {
+                    // Consent-ledger echo: on acceptance, send the exact documents
+                    // CardTermsScreen displayed for this region (version + hash).
+                    const acceptedDocuments = termsAccepted
+                        ? cardConsentDocuments(pendingTerms?.isUsResident ?? false)
+                        : undefined
+                    if (!(await activation.activate()) || changed()) return undefined
+                    const res = await rainApi.applyForCard({
+                        termsAccepted,
+                        acceptedDocuments,
+                        ...(serializedApproval ? { serializedApproval } : {}),
+                    })
+                    if (changed()) return undefined
+                    if (termsAccepted && res.status === 'pending' && userId) {
+                        writeStoredValue(`card_issuance_celebration_pending_v1:${userId}`, '1')
+                    }
+                    posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
+                    if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
+                        setSumsubToken(res.sumsubAccessToken)
+                        posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+                        return undefined
+                    }
+                    advanceFromApplyResponse(res)
+                    return res
+                } catch (e) {
+                    if (changed()) return undefined
+                    // A Smart Paperwork Verification user's identity check starts on /verify, never as a legacy applicant here.
+                    if (e instanceof ApiError && e.code === 'paperwork_verification_required') {
+                        router.push('/verify')
+                        return undefined
+                    }
+                    const message = e instanceof Error ? e.message : t('page.applyFailed')
+                    console.error('[card apply] error:', e)
+                    setApplyError(message)
+                    posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
                     return undefined
                 }
-                advanceFromApplyResponse(res)
-                return res
-            } catch (e) {
-                if (changed()) return undefined
-                // A Smart Paperwork Verification user's identity check starts on /verify, never as a legacy applicant here.
-                if (e instanceof ApiError && e.code === 'paperwork_verification_required') {
-                    router.push('/verify')
-                    return undefined
-                }
-                const message = e instanceof Error ? e.message : t('page.applyFailed')
-                console.error('[card apply] error:', e)
-                setApplyError(message)
-                posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
-                return undefined
+            } finally {
+                if (submittingApplication.current === attempt) submittingApplication.current = null
             }
         },
-        [advanceFromApplyResponse, pendingTerms, needsFundingBeforeApply, userId, connectedAddress, t, router]
+        [
+            advanceFromApplyResponse,
+            pendingTerms,
+            needsFundingBeforeApply,
+            userId,
+            connectedAddress,
+            t,
+            router,
+            activation.activate,
+            user?.identityVerification?.oneShot,
+        ]
     )
 
     const handleApply = useCallback(
@@ -669,6 +692,9 @@ export function useCardFlow() {
     }, [])
 
     const handleSumsubComplete = useCallback(async () => {
+        const startedFor = { userId, connectedAddress }
+        const changed = () => !sameIdentity(identityRef.current, startedFor)
+        if (changed()) return
         sumsubCompletedRef.current = true
         posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_COMPLETED)
         setSumsubToken(null)
@@ -680,6 +706,7 @@ export function useCardFlow() {
         pollAbortRef.current = controller
 
         try {
+            if (!(await activation.activate()) || changed() || controller.signal.aborted) return
             // Two-stage poll. First wait for the webhook-stamped readiness flag
             // (cheap, DB-only, safe at 1s cadence). Once Sumsub has reviewed
             // rain-requirements GREEN, fall through to the existing apply poll.
@@ -707,12 +734,15 @@ export function useCardFlow() {
             // for the rare case where the webhook flag landed but the
             // applicant state hasn't fully propagated (e.g. read-replica lag).
             const res = await pollUntilApplyAdvances({
-                fetchApply: () => rainApi.applyForCard({ termsAccepted: false }),
+                fetchApply: async () => {
+                    if (changed()) throw new Error('Card account changed')
+                    return rainApi.applyForCard({ termsAccepted: false })
+                },
                 intervalMs: 1000,
                 timeoutMs: 5000,
                 signal: controller.signal,
             })
-            if (controller.signal.aborted) return
+            if (controller.signal.aborted || changed()) return
             if (!res) {
                 setApplyError(t('page.verificationSlow'))
                 return
@@ -720,7 +750,7 @@ export function useCardFlow() {
             posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
             advanceFromApplyResponse(res)
         } catch (e) {
-            if (controller.signal.aborted) return
+            if (controller.signal.aborted || changed()) return
             const message = e instanceof Error ? e.message : t('page.applyFailed')
             console.error('[card apply] post-sumsub poll error:', e)
             setApplyError(message)
@@ -735,7 +765,7 @@ export function useCardFlow() {
             // successor now owns.
             if (isMountedRef.current && pollAbortRef.current === controller) setIsIssuing(false)
         }
-    }, [advanceFromApplyResponse, t])
+    }, [advanceFromApplyResponse, t, activation.activate, userId, connectedAddress])
 
     const handleSumsubClose = useCallback(() => {
         if (!sumsubCompletedRef.current) {
@@ -746,7 +776,10 @@ export function useCardFlow() {
     }, [])
 
     const handleSumsubRefreshToken = useCallback(async () => {
+        const startedFor = { userId, connectedAddress }
+        if (!(await activation.activate()) || !sameIdentity(identityRef.current, startedFor)) return ''
         const res = await rainApi.applyForCard({ termsAccepted: false })
+        if (!sameIdentity(identityRef.current, startedFor)) return ''
         if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
             return res.sumsubAccessToken
         }
@@ -755,12 +788,15 @@ export function useCardFlow() {
         setSumsubToken(null)
         advanceFromApplyResponse(res)
         return ''
-    }, [advanceFromApplyResponse])
+    }, [advanceFromApplyResponse, activation.activate, userId, connectedAddress])
 
     // Preserve an interrupted Sumsub session for installed Android PWAs that
     // remain reachable until the native migration cutoff.
     useSumsubReloadResume(sumsubToken !== null ? {} : null, async () => {
+        const startedFor = { userId, connectedAddress }
+        if (!(await activation.activate()) || !sameIdentity(identityRef.current, startedFor)) return false
         const res = await rainApi.applyForCard({ termsAccepted: false })
+        if (!sameIdentity(identityRef.current, startedFor)) return false
         if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
             setSumsubToken(res.sumsubAccessToken)
             posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { resumed: true })
@@ -777,6 +813,7 @@ export function useCardFlow() {
     }, [handleApply])
 
     return {
+        activation,
         // data
         user,
         isCardFunded,

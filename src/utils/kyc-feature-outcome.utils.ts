@@ -6,12 +6,15 @@ const REFUSAL_COPY = new Map<string | undefined, RefusalCopy>([
     ['identity_document_insufficient', 'supplement.identityDocumentInsufficient'],
 ])
 
+export const kycFeatureRefusalCopy = (reason?: string): RefusalCopy =>
+    REFUSAL_COPY.get(reason) ?? 'supplement.unavailable'
+
 /** What an approved user must do after saving features, beyond waiting for providers. */
 export function savedFeaturesOutcome(
     features: KycFeatures,
     before: KycFeatures,
     reports: KycFeatureReports | undefined
-): { action: string } | { feature: keyof KycFeatures; copy: RefusalCopy } | null {
+): { action: string } | { feature: keyof KycFeatures; copy: RefusalCopy } | { ready: keyof KycFeatures } | null {
     if (!reports) return null
     const keys = (Object.keys(features) as (keyof KycFeatures)[]).filter((key) => features[key])
     const action = keys
@@ -21,9 +24,11 @@ export function savedFeaturesOutcome(
     for (const key of keys) {
         const copy =
             features[key] !== before[key] && reports[key]?.state === 'refused'
-                ? (REFUSAL_COPY.get(reports[key].reason) ?? 'supplement.unavailable')
+                ? kycFeatureRefusalCopy(reports[key].reason)
                 : undefined
         if (copy) return { feature: key, copy }
     }
+    const ready = keys.find((key) => features[key] !== before[key] && reports[key]?.state === 'ready')
+    if (ready) return { ready }
     return null
 }

@@ -174,6 +174,25 @@ describe('useDepositCountryRouting', () => {
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
+    it('offers setup for not_started even before there is a provider rail', async () => {
+        const updates: UrlUpdateEvent[] = []
+        const { result } = renderRouting((event) => updates.push(event), {
+            unavailable: {
+                SEPA_EU: {
+                    railId: 'bridge.sepa_eu',
+                    method: 'SEPA_EU',
+                    country: 'EU',
+                    currency: 'EUR',
+                    reason: 'not-offered',
+                    cause: 'not_started',
+                },
+            } as NonNullable<RoutingArgs>['unavailable'],
+        })
+        act(() => result.current.openCountry(PORTUGAL as any))
+        await waitFor(() => expect(updates.at(-1)?.searchParams.get('corridor')).toBe('SEPA_EU'))
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
     it('keeps the standing account where the user already holds a working one', async () => {
         mockOfferedCorridors.mockReturnValue(['SEPA_EU'])
         const updates: UrlUpdateEvent[] = []

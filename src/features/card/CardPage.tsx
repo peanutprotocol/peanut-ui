@@ -18,6 +18,7 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { useCardFlow } from './useCardFlow'
+import { KycFeatureActivationStatus } from '@/features/paperwork-verification/KycFeatureActivationStatus'
 import { AddFeatureQuestions } from '@/features/paperwork-verification/AddFeatureFlow'
 
 export const CardPage: FC = () => {
@@ -25,6 +26,7 @@ export const CardPage: FC = () => {
     const tCommon = useTranslations('common')
     const {
         user,
+        activation,
         cardInfo,
         isCardFunded,
         isBalanceKnown,
@@ -123,6 +125,17 @@ export const CardPage: FC = () => {
         // `onPrev` is not optional here: this screen carries no other control,
         // so omitting it made a poll that ran long (or never resolved) read as
         // a frozen app — animations running, nothing tappable.
+        if (activation && !activation.allowed && (activation.result || activation.isLoading)) {
+            return (
+                <KycFeatureActivationStatus
+                    feature="card"
+                    result={activation.result}
+                    isLoading={activation.isLoading}
+                    onRetry={() => void activation.activate()}
+                    onBack={onBack}
+                />
+            )
+        }
         if (isIssuing) {
             return <ApplicationStatusScreen variant="pending" onPrev={onBack} />
         }

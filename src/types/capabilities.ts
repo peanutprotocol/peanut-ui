@@ -221,6 +221,7 @@ export interface UserCapabilities {
 export type IdentityVerificationStatus = 'not_started' | 'processing' | 'verified' | 'action_required' | 'failed'
 
 export interface IdentityVerification {
+    oneShot?: boolean
     status: IdentityVerificationStatus
     /** present for action_required / failed — friendly, display-ready, provider-neutral. */
     actionMessage?: string

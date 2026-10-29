@@ -1,3 +1,7 @@
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { userId: 'legacy-user' } } }),
+    useOptionalAuth: () => null,
+}))
 /**
  * A failed claim in the user's language.
  *

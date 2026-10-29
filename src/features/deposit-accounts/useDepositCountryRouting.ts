@@ -69,6 +69,7 @@ export function useDepositCountryRouting({
                 !railCorridors.includes(corridor) &&
                 (claimable?.[corridor] ||
                     unavailable?.[corridor]?.reason === 'identity-required' ||
+                    unavailable?.[corridor]?.cause === 'not_started' ||
                     residenceClosed(corridor))
         ),
     ]
@@ -89,7 +90,9 @@ export function useDepositCountryRouting({
         // own loading state and resolve to the right one by themselves.
         const standingWorks =
             !!standing &&
-            (isLoading || prefersStandingAccount(accounts?.[standing.corridor], claimable?.[standing.corridor]))
+            (isLoading ||
+                unavailable?.[standing.corridor]?.cause === 'not_started' ||
+                prefersStandingAccount(accounts?.[standing.corridor], claimable?.[standing.corridor]))
 
         // A top-up rides the same rail, so a residence that closes the account
         // closes it too: the account screen explains, the top-up would not.

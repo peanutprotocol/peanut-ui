@@ -1,3 +1,4 @@
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'legacy-user' } } }) }))
 /**
  * Manteca withdraw — submit-time balance/limits gates (Chip review round 5).
  *

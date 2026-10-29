@@ -73,6 +73,19 @@ const renderPage = () =>
 beforeEach(() => jest.clearAllMocks())
 
 describe('CardPage — a card the plan does not send to Rain', () => {
+    it.each(['pending', 'setting_up'])('activation %s uses the existing feature setup screen', (state) => {
+        mockFlow = flow({
+            activation: {
+                allowed: false,
+                isLoading: false,
+                result: { kind: 'report', report: { state } },
+                activate: jest.fn(),
+            },
+        })
+        renderPage()
+        expect(screen.getByText("We're setting things up")).toBeInTheDocument()
+        expect(screen.queryByText(/acquisition:/)).not.toBeInTheDocument()
+    })
     it('shows the identity wait after applying, with no new apply action', () => {
         mockFlow = flow({ pendingApplication: 'pending-identity' })
         renderPage()

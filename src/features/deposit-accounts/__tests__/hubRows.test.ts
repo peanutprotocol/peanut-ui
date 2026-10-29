@@ -189,7 +189,7 @@ describe('a withheld corridor with its cause', () => {
             (row) => row.corridor === 'SEPA_EU'
         )!
 
-    it.each(['review-action', 'review-pending'] as const)(
+    it.each(['review-action', 'review-pending', 'not_started'] as const)(
         'opens the claim step, whose gate drawer names the review, for %s',
         (cause) => {
             expect(rowFor(withheldFor('SEPA_EU', cause)).openable).toBe(true)

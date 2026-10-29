@@ -1,3 +1,4 @@
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'legacy-user' } } }) }))
 /**
  * MantecaAddMoney — denomination defaulting + URL round-trip.
  *

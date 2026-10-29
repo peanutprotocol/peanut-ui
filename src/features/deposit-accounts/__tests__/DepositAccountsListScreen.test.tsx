@@ -1,3 +1,7 @@
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { userId: 'legacy-user' } } }),
+    useOptionalAuth: () => null,
+}))
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
@@ -568,6 +572,19 @@ describe('a withheld account with the cause the backend names', () => {
         const row = rowOf(container, 'ACH_US') as HTMLElement
         expect(within(row).getByText(LIST.badgeSettingUp)).toBeInTheDocument()
         expect(within(row).queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
+    })
+
+    it('offers normal setup for a picked feature whose provider onboarding has not started', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            unavailable: { ACH_US: withheld('ACH_US', 'not-offered', 'not_started') },
+            onOpen,
+        })
+        const row = rowOf(container, 'ACH_US') as HTMLElement
+        expect(within(row).getByText(LIST.badgeSetUp)).toBeInTheDocument()
+        expect(within(row).queryByText(LIST.badgeSettingUp)).not.toBeInTheDocument()
+        fireEvent.click(row)
+        expect(onOpen).toHaveBeenCalledWith('ACH_US')
     })
 
     it('sends a closed review to support', () => {

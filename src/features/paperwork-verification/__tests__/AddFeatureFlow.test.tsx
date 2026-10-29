@@ -386,6 +386,14 @@ describe('AddFeatureQuestions: the API asks for a step again', () => {
 })
 
 describe('AddFeatureFlow', () => {
+    it('returns to the feature entry for ready without claiming onboarding is running', async () => {
+        mockQuestions.mockResolvedValue({ ...cardQuestions(), steps: [] })
+        mockSaveFeatures.mockResolvedValue({ kind: 'ready' })
+        const onExit = jest.fn()
+        renderWithIntl(<AddFeatureFlow feature="bank" onExit={onExit} />)
+        await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1))
+        expect(screen.queryByText("We're setting things up")).not.toBeInTheDocument()
+    })
     it('ends on the provider status for a bank account and returns where the user came from', async () => {
         mockQuestions.mockResolvedValue({ ...cardQuestions(), steps: [] })
         const onExit = jest.fn()

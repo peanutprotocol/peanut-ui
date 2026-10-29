@@ -27,6 +27,90 @@ import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
 import { PAPERWORK_VERIFICATION_FIXTURES } from './paperwork-verification'
 import { DEMO_ADDRESS } from '@/constants/demo-data'
 
+const ROUTES = {
+    bank: '/add-money/germany/bank',
+    local: '/add-money/argentina/manteca',
+    card: '/card?kyc=%7B%7D',
+} as const
+const PROVIDERS = { bank: 'bridge', local: 'manteca', card: 'rain' } as const
+const STATES = [
+    'ready',
+    'on',
+    'setting_up',
+    'pending',
+    'action_required',
+    'refused',
+    'failed',
+    'questions_missing',
+] as const
+
+const KYC_FEATURE_ACTIVATION_FIXTURES: Record<string, Fixture> = Object.fromEntries(
+    Object.entries(ROUTES).flatMap(([feature, route]) =>
+        STATES.map((state) => {
+            const key = `POST /users/kyc/features/${feature}/activate`
+            const provider = PROVIDERS[feature as keyof typeof PROVIDERS]
+            return [
+                `feature-activation-${feature}-${state.replaceAll('_', '-')}`,
+                {
+                    route,
+                    about: `First use ${feature}: ${state}; approved workflow identity, synthetic provider responses only.`,
+                    balance: '20',
+                    responses: {
+                        ...PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-verified'].responses,
+                        'GET /users/me': { identityVerification: { status: 'verified', oneShot: true } },
+                        ...(feature === 'card'
+                            ? {
+                                  'GET /rain/cards': {
+                                      status: { hasApplication: false, railStatus: null, applicationStatus: null },
+                                      cards: [],
+                                      balance: null,
+                                  },
+                              }
+                            : {}),
+                        [key]: {
+                            state,
+                            ...(state === 'action_required' ? { action: `supplement:${provider}` } : {}),
+                            ...(state === 'refused' ? { reason: 'identity_document_insufficient' } : {}),
+                        },
+                        'GET /users/kyc/questions': {
+                            available: true,
+                            attemptId: null,
+                            residence: feature === 'local' ? 'AR' : 'DE',
+                            steps: [
+                                {
+                                    id: 'purpose',
+                                    features: [feature],
+                                    answered: false,
+                                    fields: [
+                                        {
+                                            key: feature === 'card' ? 'cardPurpose' : 'bankPurpose',
+                                            kind: 'choice',
+                                            required: true,
+                                            options: ['personal_or_living_expenses', 'travel'],
+                                            value: null,
+                                        },
+                                    ],
+                                },
+                            ],
+                            firstUnanswered: 'purpose',
+                        },
+                    },
+                    ...(state === 'failed' ? { fails: [key] } : {}),
+                    rejects: {
+                        'POST /users/kyc/start-action': {
+                            status: 503,
+                            body: { error: 'Synthetic action unavailable' },
+                        },
+                        ...(state === 'questions_missing'
+                            ? { [key]: { status: 409, body: { code: 'questions_missing', step: 'purpose' } } }
+                            : {}),
+                    },
+                } satisfies Fixture,
+            ]
+        })
+    )
+)
+
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
 const LONG_USERNAME = 'bh12ui2buibui52bi'
@@ -3487,4 +3571,5 @@ export const FIXTURES: Record<string, Fixture> = {
     },
 
     ...PAPERWORK_VERIFICATION_FIXTURES,
+    ...KYC_FEATURE_ACTIVATION_FIXTURES,
 }

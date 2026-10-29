@@ -163,6 +163,13 @@ describe('startPaperworkVerificationIdentity', () => {
 describe('savePaperworkVerificationFeatures', () => {
     const features = { qr: true, bank: true, local: false, card: true }
 
+    it('reports a newly picked ready feature as available without claiming setup has started', async () => {
+        mockFetch.mockResolvedValue(reply(200, { features: { bank: { state: 'ready' } } }))
+        await expect(savePaperworkVerificationFeatures(features, { ...features, bank: false })).resolves.toEqual({
+            kind: 'ready',
+        })
+    })
+
     it('does not report an unchanged feature refusal as the outcome of the newly added bank feature', async () => {
         mockFetch.mockResolvedValue(
             reply(200, {
