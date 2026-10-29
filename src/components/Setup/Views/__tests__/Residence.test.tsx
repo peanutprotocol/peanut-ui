@@ -34,6 +34,16 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
     }),
 }))
 
+let mockUserId: string | null = 'user-1'
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: mockUserId ? { user: { userId: mockUserId } } : null }),
+}))
+// Never settles: the step must move on without waiting for the save.
+const mockUpdateUserById = jest.fn((_payload: Record<string, unknown>) => new Promise(() => undefined))
+jest.mock('@/app/actions/users', () => ({
+    updateUserById: (payload: Record<string, unknown>) => mockUpdateUserById(payload),
+}))
+
 const mockHandleNext = jest.fn()
 let mockIsLoading = false
 jest.mock('@/hooks/useSetupFlow', () => ({
@@ -95,6 +105,42 @@ describe('ResidenceStep', () => {
         mockEdgeSettled = true
         mockRestrictionSets = undefined
         mockRestrictionSetsSettled = true
+        mockUserId = 'user-1'
+    })
+
+    // Slava, 2026-10-29: the answers are saved on Next, in the background, so an abandoned sign-up keeps them.
+    it('saves the residence and nationality on Next without waiting for the save', () => {
+        mockSetupState = { residenceCountry: 'PT', nationalityCountry: '' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        expect(mockUpdateUserById).toHaveBeenCalledWith({
+            userId: 'user-1',
+            residenceCountry: 'PT',
+            nationality: 'PT',
+        })
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
+    })
+
+    it('saves the country picked on the comparison as the residence and keeps the nationality', () => {
+        mockSetupState = { residenceCountry: 'PT', nationalityCountry: 'BR' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        expect(mockUpdateUserById).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: 'Select Portugal' }))
+        expect(mockUpdateUserById).toHaveBeenCalledWith({
+            userId: 'user-1',
+            residenceCountry: 'PT',
+            nationality: 'BR',
+        })
+    })
+
+    it('saves nothing before the account exists', () => {
+        mockUserId = null
+        mockSetupState = { residenceCountry: 'PT', nationalityCountry: '' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        expect(mockUpdateUserById).not.toHaveBeenCalled()
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
     })
 
     it('disables Continue until a country is chosen', () => {

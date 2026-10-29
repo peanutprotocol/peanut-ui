@@ -12,6 +12,8 @@ import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
 import { setupCountrySignalProperties, setupCountrySuggestion } from '@/features/setup/country-signals'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { saveSignupResidence } from '@/features/setup/saveSignupResidence'
+import { useAuth } from '@/context/authContext'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import posthog from 'posthog-js'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -29,6 +31,7 @@ const ResidenceStep = () => {
     const locale = useLocale()
     const { residenceCountry, setResidenceCountry, nationalityCountry, setNationalityCountry } = useSetupFlowContext()
     const { handleNext, isLoading } = useSetupFlow()
+    const { user } = useAuth()
     const countrySignals = useSetupCountrySignals()
     // server-authoritative tier lists with the bundled mirror as fallback
     const { sets: restrictionSets, settled: restrictionsSettled } = useResidenceRestrictionSetsWithStatus()
@@ -103,6 +106,9 @@ const ResidenceStep = () => {
         } else {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN, { residence_country: primary })
         }
+        // The account exists by now: save on Next, so an abandoned sign-up keeps the answers.
+        const userId = user?.user?.userId
+        if (userId) saveSignupResidence(userId, primary, nationalityCountry || primary)
         setConfirmedPrimary(primary)
     }
 

@@ -8,7 +8,6 @@ import SetupFooter from '../components/SetupFooter'
 import SetupTitleBlock from '../components/SetupTitleBlock'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { updateUserById } from '@/app/actions/users'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useAccountSetup } from '@/hooks/useAccountSetup'
 import { useAuth } from '@/context/authContext'
@@ -21,7 +20,7 @@ import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { setupCountrySignalProperties } from '@/features/setup/country-signals'
 import { attachSignupGeo } from '@/services/signup-geo'
-import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
+import { saveSignupResidence } from '@/features/setup/saveSignupResidence'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { readInviteCode } from '@/utils/invite-stash'
 import {
@@ -200,28 +199,11 @@ const SignTestTransaction = ({
             // The nationality stays off analytics: only the API keeps it, for the ID check.
             posthog.setPersonProperties({ residence_country: residenceCountry })
             const userId = user?.user?.userId
-            if (userId) {
-                storeDeclaredResidence(userId, residenceCountry)
-                storeSecondResidence(userId, null)
-                void updateUserById({
-                    userId,
-                    residenceCountry,
-                    nationality: nationalityCountry || residenceCountry,
+            // Readers drop the device mirror once /users/me carries a residence, so fetch it once saved.
+            if (userId)
+                saveSignupResidence(userId, residenceCountry, nationalityCountry || residenceCountry, () => {
+                    void fetchUser().catch(() => undefined)
                 })
-                    .then((result) => {
-                        // updateUserById maps API failures to { error },
-                        // it doesn't throw them — inspect the result.
-                        if (result?.error) {
-                            console.error('[SignTestTransaction] Failed to persist residence:', result.error)
-                            return
-                        }
-                        // Readers drop the device mirror once /users/me carries a residence, so fetch it now.
-                        void fetchUser().catch(() => undefined)
-                    })
-                    .catch((err: unknown) => {
-                        console.error('[SignTestTransaction] Failed to persist residence:', err)
-                    })
-            }
         }
 
         // Completion is terminal for this screen. Keep both loading states
