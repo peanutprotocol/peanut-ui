@@ -209,6 +209,40 @@ export interface UserCapabilities {
     rails: RailCapability[]
     nextActions: NextAction[]
     restrictions: CapabilityRestriction[]
+    /** The one answer to "what can this user do", per feature. The app renders it and decides nothing. */
+    features?: FeatureReport
+}
+
+/**
+ * The state of one feature, or of one bank account by currency (api
+ * `kyc/feature-report.ts`):
+ *   - on              — it moves money now
+ *   - setting_up      — the provider is opening it; `action` is the wait marker while it reviews
+ *   - action_required — the user has a step: `action` is a `nextActions` key, or `verify` (identity first)
+ *   - refused         — closed; `action` names the only way out (support, a new identity check), if any
+ *   - ready           — allowed and not opened yet; `activate` when its first use opens it
+ *   - pending         — the API could not tell yet
+ */
+export type FeatureReportState = 'on' | 'setting_up' | 'action_required' | 'refused' | 'ready' | 'pending'
+
+export interface FeatureReportEntry {
+    state: FeatureReportState
+    reason?: string
+    message?: string
+    action?: string
+    since?: string
+}
+
+export interface FeatureAccountsEntry extends FeatureReportEntry {
+    /** By currency: USD EUR GBP MXN for bank, BRL ARS for local. */
+    accounts: Record<string, FeatureReportEntry>
+}
+
+export interface FeatureReport {
+    qr: FeatureReportEntry
+    local: FeatureAccountsEntry
+    bank: FeatureAccountsEntry
+    card: FeatureReportEntry
 }
 
 /**

@@ -17,14 +17,13 @@ import {
     bridgeDocumentActionKey,
     isBridgeDocumentTask,
     isCardDocumentTask,
-    isDocumentTaskProvider,
+    bridgeDocumentTaskEntry,
     selectBridgeTasks,
     selectHomeTasks,
 } from '@/utils/bridge-tasks.utils'
 import { formatEffectiveDate } from '@/utils/format.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
-import { railVerdict } from '@/utils/capability-gate'
 import { isIdRetake, kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { ADDITIONAL_VERIFICATION_ROUTE } from '@/constants/kyc.consts'
@@ -102,7 +101,7 @@ export default function PendingVerificationTasks({
     const t = useTranslations('home')
     const tKyc = useTranslations('kyc')
     const tIdentity = useTranslations('identity')
-    const { nextActions, rails } = useCapabilities()
+    const { nextActions, capabilities } = useCapabilities()
     const { user } = useAuth()
     const [activeTosTask, setActiveTosTask] = useState<NextAction | null>(null)
     const router = useRouter()
@@ -116,9 +115,10 @@ export default function PendingVerificationTasks({
     const [storedDismissals, setStoredDismissals] = useState<{ forUserId: string; keys: string[] } | null>(null)
 
     const userId = user?.user?.userId
+    const report = capabilities.features
     const homeTasks =
-        placement === 'home' ? selectHomeTasks(nextActions, rails ?? [], undefined, prioritizeIdentityRestart) : null
-    const tasks = homeTasks ? homeTasks.largeTasks : selectBridgeTasks(nextActions, rails ?? [])
+        placement === 'home' ? selectHomeTasks(nextActions, report, undefined, prioritizeIdentityRestart) : null
+    const tasks = homeTasks ? homeTasks.largeTasks : selectBridgeTasks(nextActions, report)
     useEffect(() => {
         if (!dismissible || !userId) return
         // Pre-fingerprint native builds (≤1.0.50) persisted this preference as a
@@ -173,17 +173,10 @@ export default function PendingVerificationTasks({
     const taskReason = useCallback(
         (task: NextAction) => {
             if (!isBridgeDocumentTask(task)) return undefined
-            const byKey = new Map(nextActions.map((action) => [action.key, action]))
-            const rail = rails.find(
-                (rail) =>
-                    isDocumentTaskProvider(rail.provider) &&
-                    rail.status === 'requires-info' &&
-                    railVerdict(rail, byKey).status === 'fixable' &&
-                    railVerdict(rail, byKey).nextAction?.key === bridgeDocumentActionKey(task)
-            )
-            return rail?.reason ?? rail?.resolved?.blocking
+            const entry = bridgeDocumentTaskEntry(task, nextActions, report)
+            return entry?.reason ? { code: entry.reason, userMessage: entry.message ?? '' } : undefined
         },
-        [rails, nextActions]
+        [nextActions, report]
     )
 
     const handleOpenTask = useCallback(

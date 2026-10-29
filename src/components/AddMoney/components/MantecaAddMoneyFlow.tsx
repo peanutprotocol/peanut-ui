@@ -33,9 +33,9 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
-import { useResidenceIso2s } from '@/features/deposit-accounts/useResidenceIso2s'
-import { residenceCloses } from '@/features/deposit-accounts/residenceGate'
-import { useBankChipFor } from '@/hooks/useBankRows'
+import { useBankEntryFor } from '@/hooks/useBankRows'
+import { isMantecaAccountClosed, refusalOf } from '@/features/kyc-features/report'
+import { useAuth } from '@/context/authContext'
 import { ResidenceRequiredScreen } from '@/features/deposit-accounts/components/ResidenceRequiredScreen'
 import { withReturnTo, readReturnTo } from '@/utils/return-to.utils'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
@@ -55,6 +55,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const t = useTranslations('addMoney')
     const tErrors = useTranslations('errors')
     const { openSupportWithMessage, setIsSupportModalOpen } = useModalsContext()
+    const { fetchUser } = useAuth()
     // rewinds to home past every entry the flow pushed; a replace kept the
     // earlier entries, so back from home re-entered the flow
     const leaveToHome = useReturnTo(readReturnTo(searchParams) ?? '/home')
@@ -84,7 +85,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
 
     // Other local UI state (not URL-appropriate - transient or API responses)
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
-    const [rejectedCountry, setRejectedCountry] = useState<string | null>(null)
     // flow-level failures (API/provider) — rendered in the Callout
     const [error, setError] = useState<string | null>(null)
     // client-side minimum-amount validation — rendered as the field's own error
@@ -93,7 +93,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
 
     // path params (web) or query params (native static export)
     const selectedCountryPath = (params.country as string) || searchParams.get('country') || ''
-    const accountRejected = rejectedCountry === selectedCountryPath
     const selectedCountry = useMemo(() => {
         return countryData.find((country) => country.type === 'country' && country.path === selectedCountryPath)
     }, [selectedCountryPath])
@@ -106,22 +105,16 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // otherwise to the hub itself — not the bare `/add-money/argentina` amount
     // route the user never knowingly opened.
     const onBack = useSafeBack(readReturnTo(searchParams) ?? '/add-money?method=bank')
-    const residenceIso2s = useResidenceIso2s()
-    const bankChipFor = useBankChipFor()
     // Argentina's Manteca top-up mints a CVU per deposit, and Manteca rejects a
-    // non-resident only after amount + KYC. Brazil's asks for a CPF the same
-    // way. Gate on residence first, from the corridor's own rule — the rule the
-    // Accounts rows read, so a user whose rail already moves money is not
-    // turned away here while that row says Available (audit C4).
+    // non-resident only after amount + KYC; Brazil's asks for a CPF the same
+    // way. The API's answer for this country's account comes first: a closure
+    // by Manteca, or an account the residence does not get (B5).
+    const bankEntryFor = useBankEntryFor()
     const residenceGatedCountry =
         selectedCountry?.id === 'AR' || selectedCountry?.id === 'BR' ? (selectedCountry.id as 'AR' | 'BR') : null
-    const requiresResidenceGate =
-        residenceGatedCountry !== null &&
-        residenceCloses(
-            residenceGatedCountry === 'AR' ? 'BANK_TRANSFER_AR' : 'PIX_BR',
-            residenceIso2s,
-            bankChipFor(residenceGatedCountry === 'AR' ? 'ars' : 'brl') === 'active'
-        )
+    const localAccount = residenceGatedCountry ? bankEntryFor(residenceGatedCountry === 'AR' ? 'ars' : 'brl') : null
+    const accountRejected = isMantecaAccountClosed(localAccount ?? undefined)
+    const requiresResidenceGate = !!refusalOf(localAccount ?? undefined) && !accountRejected
     // The pool→full upgrade gate asks "did the user clear ID verification?",
     // not "do they have an enabled rail elsewhere?" — read the identity
     // signal directly (Sumsub-cleared the human) instead of the old
@@ -270,7 +263,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
             if (depositData.error) {
                 if (depositData.code === API_ERROR_CODES.MANTECA_ACCOUNT_REJECTED) {
                     setShowKycModal(false)
-                    setRejectedCountry(selectedCountryPath)
+                    // The API's report now carries the closure; re-read it so this and every later visit say so.
+                    await fetchUser()
                     return
                 }
                 posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
@@ -302,7 +296,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         } catch (error) {
             if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_ACCOUNT_REJECTED) {
                 setShowKycModal(false)
-                setRejectedCountry(selectedCountryPath)
+                await fetchUser()
                 return
             }
             console.log(error)
@@ -326,6 +320,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         usdAmount,
         selectedCountryPath,
         tErrors,
+        fetchUser,
     ])
 
     // Redirect to inputAmount if depositDetails is accessed without required data (deep link / back navigation)
@@ -354,7 +349,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // the amount screen and the KYC drawer — with a back to the hub, and the
     // QR route that still works from any balance.
     if (residenceGatedCountry && requiresResidenceGate) {
-        // a working rail lifts the gate, so wait for the rails before refusing
         if (areCapabilitiesLoading) return null
         return (
             <ResidenceRequiredScreen

@@ -20,6 +20,7 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { fundingAccessQueryKey, useCardFundingAccess } from '@/hooks/useCardFundingAccess'
 import { fundingSetupPath, sameIdentity, type RainFundingConsent } from '@/utils/rain-funding.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { refusalOf } from '@/features/kyc-features/report'
 import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useModalsContext } from '@/context/ModalsContext'
 import { offerPushPrompt } from '@/hooks/useNotifications'
@@ -79,7 +80,7 @@ export function useCardFlow() {
     const { address: connectedAddress } = useZeroDev()
     const identityRef = useRef({ userId, connectedAddress })
     identityRef.current = { userId, connectedAddress }
-    const { railsForProvider, nextActionsForRail, isLoading: capabilitiesLoading } = useCapabilities()
+    const { capabilities, railsForProvider, nextActionsForRail, isLoading: capabilitiesLoading } = useCapabilities()
     const cardRail = railsForProvider('rain')[0]
     const reasonCode = cardRail?.reason?.code ?? null
     const applicationStatus = overview?.status.applicationStatus ?? null
@@ -140,9 +141,18 @@ export function useCardFlow() {
     // KYC residence is eligible and only an open residence-change request is
     // restricting issuance. The recovery screen links to that exact request.
     const [pendingResidenceBlocked, setPendingResidenceBlocked] = useState(false)
-    // The send gate's refusal of Rain for this plan (POST /rain/cards 403
-    // provider-not-in-plan), when the app has copy and a step for it.
-    const [planRefusal, setPlanRefusal] = useState<string | null>(null)
+    // The plan's refusal of the card: the API's report (`capabilities.features.card`),
+    // so it reads the same on every visit. The apply answer bridges the moment
+    // before the re-read report carries it; Back dismisses it for this visit.
+    const [appliedRefusal, setAppliedRefusal] = useState<string | null>(null)
+    const [refusalDismissed, setRefusalDismissed] = useState(false)
+    const cardRefusal = refusalOf(capabilities.features?.card)
+    const reportedRefusal = cardRefusal && reasonCodeKey(cardRefusal) ? cardRefusal : null
+    const planRefusal = refusalDismissed ? null : (reportedRefusal ?? appliedRefusal)
+    const setPlanRefusal = useCallback((reason: string | null) => {
+        setAppliedRefusal(reason)
+        setRefusalDismissed(reason === null)
+    }, [])
     // Smart Paperwork Verification: POST /rain/cards answered `questions-required` with the step to ask; the card questions come first.
     const [pendingQuestions, setPendingQuestions] = useState<string | null>(null)
     const [pendingApplication, setPendingApplication] = useState<'pending-identity' | 'pending' | null>(null)
@@ -412,8 +422,10 @@ export function useCardFlow() {
                 setPendingCountryConfirmation(null)
                 const reason = 'reason' in res ? res.reason : undefined
                 if (reason === 'requirements_missing') void startFlowAction('supplement:rain')
-                else if (reason && reasonCodeKey(reason)) setPlanRefusal(reason)
-                else setApplyError(res.message)
+                else if (reason && reasonCodeKey(reason)) {
+                    setPlanRefusal(reason)
+                    void fetchUser()
+                } else setApplyError(res.message)
                 return
             }
             // pending / already-applied → state machine routes based on overview.
@@ -428,7 +440,7 @@ export function useCardFlow() {
             if (res.status === 'pending') awaitingIssuanceRef.current = true
             invalidateOverview()
         },
-        [invalidateOverview, refetchCardInfo, startFlowAction]
+        [invalidateOverview, refetchCardInfo, startFlowAction, setPlanRefusal, fetchUser]
     )
 
     // Card-create-after-apply failure detector (see advanceFromApplyResponse).

@@ -182,7 +182,8 @@ export const CardPage: FC = () => {
                     reasonCode={planRefusal}
                     onContactSupport={() => setIsSupportModalOpen(true)}
                     onUploadIdentity={
-                        planRefusal === 'identity_document_insufficient'
+                        planRefusal === 'identity_document_insufficient' ||
+                        planRefusal === 'document_country_unsupported'
                             ? () => void kycFlow.handleRestartIdentity()
                             : undefined
                     }

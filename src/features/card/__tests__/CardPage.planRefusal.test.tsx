@@ -8,6 +8,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
 import { CardPage } from '../CardPage'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 
 const handleRestartIdentity = jest.fn()
 const setIsSupportModalOpen = jest.fn()
@@ -32,7 +33,13 @@ jest.mock('../components/CardAcquisitionScreen', () => ({
 jest.mock('@/components/Card/YourCardScreen', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/context/authContext', () => ({
     useOptionalAuth: () => null,
-    useAuth: () => ({ user: { accounts: [] }, fetchUser: jest.fn() }),
+    useAuth: () => ({
+        user: {
+            accounts: [],
+            capabilities: withFeatureReport({ rails: [], nextActions: [] }, { identity: { status: 'verified' } }),
+        },
+        fetchUser: jest.fn(),
+    }),
 }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 jest.mock('next/image', () => ({

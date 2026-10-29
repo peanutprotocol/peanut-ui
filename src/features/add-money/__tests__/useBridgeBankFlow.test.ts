@@ -1,6 +1,7 @@
 /**
  * @jest-environment jsdom
  */
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 
@@ -32,7 +33,17 @@ jest.mock('@/context/OnrampFlowContext', () => ({
 
 const mockFetchUser = jest.fn()
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'u1' } }, fetchUser: mockFetchUser }),
+    useAuth: () => ({
+        user: {
+            user: { userId: 'u1' },
+            capabilities: withFeatureReport(
+                { rails: [], nextActions: [], restrictions: [] },
+                { identity: { status: 'verified' } }
+            ),
+            identityVerification: { status: 'verified' },
+        },
+        fetchUser: mockFetchUser,
+    }),
 }))
 
 const mockSetIsSupportModalOpen = jest.fn()
@@ -84,7 +95,13 @@ jest.mock('@/hooks/useSafeBack', () => ({
 
 let mockGate: any = { kind: 'ready' }
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ gateFor: () => mockGate }),
+    useCapabilities: () => ({
+        capabilities: withFeatureReport(
+            { rails: [], nextActions: [], restrictions: [] },
+            { identity: { status: 'verified' } }
+        ),
+        gateFor: () => mockGate,
+    }),
 }))
 
 jest.mock('@/hooks/useBankRegionIntent', () => ({
@@ -532,7 +549,13 @@ describe('useBridgeBankFlow', () => {
                 },
             }
             mockGate = deriveGate(
-                { rails: [sepa], nextActions: [hosted], identityVerified: true, isLoading: false },
+                {
+                    ...withFeatureReport(
+                        { rails: [sepa], nextActions: [hosted], restrictions: [] },
+                        { identity: { status: 'verified' } }
+                    ),
+                    isLoading: false,
+                },
                 'deposit',
                 { channel: 'bank', country: 'EU' }
             ) as GateState

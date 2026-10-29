@@ -4,6 +4,8 @@
 import { act, renderHook } from '@testing-library/react'
 import { rainApi } from '@/services/rain'
 import { useCardFlow } from '../useCardFlow'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import type { RailCapability } from '@/types/capabilities'
 
 const mockCapture = jest.fn()
 let mockFunded = true
@@ -12,6 +14,25 @@ let mockOverview: Record<string, unknown> | undefined
 let mockOverviewLoading = false
 let mockUser: { user: { userId: string } } | null = { user: { userId: 'user-1' } }
 let mockRainRails: Array<{ id: string; reason?: { code: string; userMessage: string } }> = []
+const mockCapabilities = () =>
+    withFeatureReport(
+        {
+            rails: mockRainRails.map(
+                (rail) =>
+                    ({
+                        provider: 'rain',
+                        method: 'CARD_RAIN',
+                        channel: 'card',
+                        country: 'GLOBAL',
+                        currency: 'USD',
+                        status: 'requires-info',
+                        ...rail,
+                    }) as RailCapability
+            ),
+            nextActions: [],
+        },
+        { identity: { status: 'verified' } }
+    )
 const mockInvalidateQueries = jest.fn()
 let mockUserFetching = 0
 const mockQueryClient = { invalidateQueries: mockInvalidateQueries, isFetching: () => mockUserFetching }
@@ -44,7 +65,14 @@ jest.mock('@/services/consent', () => ({
 }))
 jest.mock('@/context/authContext', () => ({
     useOptionalAuth: () => null,
-    useAuth: () => ({ user: mockUser, fetchUser: jest.fn() }),
+    useAuth: () => ({
+        user: mockUser && {
+            ...mockUser,
+            identityVerification: { status: 'verified' },
+            capabilities: mockCapabilities(),
+        },
+        fetchUser: jest.fn(),
+    }),
 }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
@@ -69,6 +97,7 @@ jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
+        capabilities: mockCapabilities(),
         railsForProvider: (provider: string) => (provider === 'rain' ? mockRainRails : []),
         nextActionsForRail: () => [],
         isLoading: false,

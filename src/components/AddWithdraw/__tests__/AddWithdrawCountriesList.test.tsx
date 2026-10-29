@@ -16,6 +16,9 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * gate is NOT ready — so the fix didn't just delete the guard wholesale.
  */
 import React from 'react'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import { railVerdict } from '@/utils/capability-gate'
+import type { NextAction, RailCapability } from '@/types/capabilities'
 import { render as rtlRender, screen, fireEvent, within, act, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
@@ -136,6 +139,10 @@ function setCapabilities(
     gateByScope?: (op: string, scope: GateScopeArg) => string
 ) {
     mockUseCapabilities.mockReturnValue({
+        capabilities: withFeatureReport(
+            { rails: rails as RailCapability[], nextActions: [], restrictions: [] },
+            { identity: { status: rails.some((r) => r.status === 'enabled') ? 'verified' : 'not_started' } }
+        ),
         isKycApproved: rails.some((r) => r.status === 'enabled'),
         gateFor: (op: string, scope: GateScopeArg) => {
             mockGateForOp(op, scope)
@@ -155,17 +162,34 @@ function setCapabilities(
 const mockFetchUser = jest.fn().mockResolvedValue(undefined)
 // one stable reference, as React Query hands out: a submit tells "the context
 // has rendered a newer user" apart from "the same user" by identity
-let mockAuthUser: unknown = { accounts: [] }
+let mockAuthUser: unknown = {
+    accounts: [],
+    capabilities: withFeatureReport(
+        { rails: [], nextActions: [], restrictions: [] },
+        { identity: { status: 'verified' } }
+    ),
+    identityVerification: { status: 'verified' },
+}
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockAuthUser, fetchUser: mockFetchUser }),
     useOptionalAuth: () => ({ user: mockAuthUser }),
 }))
 // The submit resolves its gate from the profile the fetch returns, through the
 // real deriveGate — so a fetched profile says what its own bank rail allows.
-const enabledUsBankRail = { id: 'bridge.us', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }
+const enabledUsBankRail = {
+    id: 'bridge.us',
+    provider: 'bridge',
+    channel: 'bank',
+    country: 'US',
+    currency: 'USD',
+    status: 'enabled',
+}
 const fetchedProfile = (accounts: unknown[] = [], rails: unknown[] = [enabledUsBankRail]) => ({
     accounts,
-    capabilities: { rails, nextActions: [], restrictions: [] },
+    capabilities: withFeatureReport(
+        { rails: rails as RailCapability[], nextActions: [], restrictions: [] },
+        { identity: { status: rails.length > 0 ? 'verified' : 'processing' } }
+    ),
     identityVerification: { status: rails.length > 0 ? 'verified' : 'pending' },
 })
 const mockSetSelectedBankAccount = jest.fn()
@@ -593,7 +617,7 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
         mockUrlAmount = ''
         mockNuqsParams = {}
         mockSearchParams = new URLSearchParams()
-        mockAuthUser = { accounts: [] }
+        mockAuthUser = fetchedProfile([])
         ;(addBankAccount as jest.Mock).mockReset()
         mockFetchUser.mockReset()
         mockFetchUser.mockResolvedValue(undefined)
@@ -614,7 +638,7 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
         // a new routing number updates the saved account in place (TASK-23891)
         const savedAccount = { id: 'acct-saved', bridgeAccountId: 'ext-old', identifier: '123456789' }
         const corrected = { ...savedAccount, bridgeAccountId: 'ext-new', routingNumber: '026009593' }
-        mockAuthUser = { accounts: [savedAccount] }
+        mockAuthUser = fetchedProfile([savedAccount])
         ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: savedAccount.id, bridgeAccountId: 'ext-new' } })
         mockFetchUser.mockResolvedValue(fetchedProfile([corrected]))
         render(<AddWithdrawCountriesList flow="withdraw" />)
@@ -628,7 +652,7 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
     it('a refetch that still shows the old Bridge account is not trusted: the API answer is the destination', async () => {
         // a failed /users/me refresh hands back the cached profile, and a lagging one the old row
         const savedAccount = { id: 'acct-saved', bridgeAccountId: 'ext-old', identifier: '123456789' }
-        mockAuthUser = { accounts: [savedAccount] }
+        mockAuthUser = fetchedProfile([savedAccount])
         ;(addBankAccount as jest.Mock).mockResolvedValue({
             data: { id: savedAccount.id, bridgeAccountId: 'ext-new', identifier: '123456789', details: {} },
         })
@@ -1203,7 +1227,7 @@ describe('AddWithdrawCountriesList — a tap made while capabilities are still l
 
         afterEach(() => {
             mockParams.country = 'testland'
-            mockAuthUser = { accounts: [] }
+            mockAuthUser = fetchedProfile([])
         })
 
         const submit = () => {
@@ -1334,7 +1358,22 @@ describe('AddWithdrawCountriesList — a tap made while capabilities are still l
             }
             const profileWith = (rail: unknown, nextActions: unknown[] = []) => ({
                 ...fetchedProfile([], [rail]),
-                capabilities: { rails: [rail], nextActions, restrictions: [] },
+                capabilities: withFeatureReport(
+                    {
+                        rails: [
+                            {
+                                ...(rail as RailCapability),
+                                resolved: railVerdict(
+                                    rail as RailCapability,
+                                    new Map((nextActions as NextAction[]).map((action) => [action.key, action]))
+                                ),
+                            },
+                        ],
+                        nextActions: nextActions as NextAction[],
+                        restrictions: [],
+                    },
+                    { identity: { status: 'verified' } }
+                ),
             })
 
             beforeEach(() => {

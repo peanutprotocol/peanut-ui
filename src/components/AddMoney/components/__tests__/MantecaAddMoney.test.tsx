@@ -1,4 +1,13 @@
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'legacy-user' } } }) }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
+        user: {
+            user: { userId: 'legacy-user' },
+            capabilities: mockCapabilityBlock(),
+            identityVerification: { status: mockIsIdentityVerified ? 'verified' : 'not_started' },
+        },
+        fetchUser: mockFetchUser,
+    }),
+}))
 /**
  * MantecaAddMoney — denomination defaulting + URL round-trip.
  *
@@ -11,6 +20,8 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { us
  * own logic is under test.
  */
 import React from 'react'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import type { RailCapability } from '@/types/capabilities'
 import { act, render as rtlRender, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
@@ -67,20 +78,42 @@ jest.mock('@/hooks/useCurrency', () => ({
 }))
 
 let mockCapabilitiesLoading = false
+let mockResidence: string | null = null
+let mockRails: RailCapability[] = []
+let mockClosedCountries = new Set<string>()
+let mockCapabilityRevision = 0
+const mockCapabilityListeners = new Set<() => void>()
+const mockSubscribeCapabilities = (listener: () => void) => {
+    mockCapabilityListeners.add(listener)
+    return () => {
+        mockCapabilityListeners.delete(listener)
+    }
+}
+const mockCapabilityBlock = () =>
+    withFeatureReport(
+        { rails: mockRails, nextActions: [], restrictions: [] },
+        {
+            identity: { status: mockIsIdentityVerified ? 'verified' : 'not_started' },
+            residence: mockResidence,
+            mantecaClosedCountries: mockClosedCountries,
+        }
+    )
+const mockFetchUser = jest.fn(async () => {
+    mockClosedCountries = new Set([mockParams.country === 'brazil' ? 'BR' : 'AR'])
+    mockCapabilityRevision += 1
+    mockCapabilityListeners.forEach((listener) => listener())
+    return { capabilities: mockCapabilityBlock() }
+})
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ rails: [], isLoading: mockCapabilitiesLoading }),
-}))
-// Default to a resident of both countries so the amount/KYC cases render the
-// amount step whichever top-up they open; the residence-gate cases override
-// it. The real hook reads useAuth, which throws with no provider.
-let mockResidenceIso2s: string[] = ['AR', 'BR']
-jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({
-    useResidenceIso2s: () => mockResidenceIso2s,
-}))
-// The per-currency bank chip the Accounts rows read; `active` = the rail moves money today.
-let mockBankChips: Record<string, string> = {}
-jest.mock('@/hooks/useBankRows', () => ({
-    useBankChipFor: () => (key: string) => mockBankChips[key] ?? 'unlock',
+    useCapabilities: () => {
+        jest.requireActual('react').useSyncExternalStore(mockSubscribeCapabilities, () => mockCapabilityRevision)
+        return {
+            capabilities: mockCapabilityBlock(),
+            rails: mockRails,
+            nextActions: [],
+            isLoading: mockCapabilitiesLoading,
+        }
+    },
 }))
 let mockIsIdentityVerified = true
 jest.mock('@/hooks/useIdentityVerification', () => ({
@@ -169,8 +202,10 @@ beforeEach(() => {
     mockIsVerifiedForCountry = true
     mockIsIdentityVerified = true
     mockCapabilitiesLoading = false
-    mockResidenceIso2s = ['AR', 'BR']
-    mockBankChips = {}
+    mockResidence = null
+    mockRails = []
+    mockClosedCountries = new Set()
+    mockFetchUser.mockClear()
     mockRejection = { state: 'happy' }
     Object.values(mockKycFlow).forEach((v) => typeof v === 'function' && (v as jest.Mock).mockClear())
     mockDeposit.mockReset()
@@ -343,6 +378,20 @@ describe('identity gate on arrival', () => {
 })
 
 describe('Manteca account rejection during deposit', () => {
+    test('a report closing the BR local account shows the closure on first render without a deposit attempt', () => {
+        setCountry('brazil')
+        mockClosedCountries = new Set(['BR'])
+        render(<MantecaAddMoney />)
+
+        expect(screen.getByText(en.errors.mantecaAccountRejected)).toBeInTheDocument()
+        expect(screen.getByText(/You can still pay with QR/i)).toBeInTheDocument()
+        expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('pix-qr')).not.toBeInTheDocument()
+        expect(lastKycModalProps).toBeNull()
+        expect(mockDeposit).not.toHaveBeenCalled()
+        expect(mockFetchUser).not.toHaveBeenCalled()
+    })
+
     test('shows the account rejection and opens support without entering KYC or creating deposit details', async () => {
         setCountry('argentina')
         mockQueryState.amount = '100'
@@ -366,6 +415,7 @@ describe('Manteca account rejection during deposit', () => {
         expect(lastKycModalProps!.visible).toBe(false)
         expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
         expect(mockDeposit).toHaveBeenCalledTimes(1)
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
         expect(screen.queryByTestId('share-details')).not.toBeInTheDocument()
 
         const support = screen.getByRole('button', { name: /contact support/i })
@@ -388,11 +438,13 @@ describe('Manteca account rejection during deposit', () => {
         expect(lastKycModalProps!.visible).toBe(false)
         expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
         expect(mockDeposit).toHaveBeenCalledTimes(1)
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
         mockRejection = { state: 'fixable', userMessage: 'Please verify your identity.' }
         view.rerender(<MantecaAddMoney />)
         expect(lastKycModalProps!.visible).toBe(false)
         expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
         expect(mockDeposit).toHaveBeenCalledTimes(1)
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
     })
 
     test('rejection guidance is scoped to the country that returned it', async () => {
@@ -436,7 +488,7 @@ test('a verified user missing the regional uplift gets the cross-region gate', (
 describe('residence gate — Argentina', () => {
     test('a non-resident sees the residence screen, not the amount step or KYC gate', () => {
         setCountry('argentina')
-        mockResidenceIso2s = ['DE']
+        mockResidence = 'DE'
         render(<MantecaAddMoney />)
 
         expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
@@ -448,7 +500,7 @@ describe('residence gate — Argentina', () => {
 
     test('an Argentine resident reaches the amount step', () => {
         setCountry('argentina')
-        mockResidenceIso2s = ['AR']
+        mockResidence = 'AR'
         render(<MantecaAddMoney />)
 
         expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
@@ -456,15 +508,13 @@ describe('residence gate — Argentina', () => {
 })
 
 /**
- * Brazil carries the same rule (2026-09-22): the Pix top-up needs a first-party
- * Manteca account, which asks for a CPF, and a Brazilian residence is the
- * stand-in the app checks first. The rule is client-side; the backend does not
- * gate this corridor on residence.
+ * Brazil's report carries the residence refusal for its first-party Manteca
+ * account, which asks for a CPF. The screen renders that API answer.
  */
 describe('residence gate — Brazil', () => {
     test('a non-resident sees the residence screen, with the Pix QR way in', () => {
         setCountry('brazil')
-        mockResidenceIso2s = ['PT']
+        mockResidence = 'PT'
         render(<MantecaAddMoney />)
 
         expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
@@ -475,7 +525,7 @@ describe('residence gate — Brazil', () => {
 
     test('a Brazilian resident reaches the amount step', () => {
         setCountry('brazil')
-        mockResidenceIso2s = ['BR']
+        mockResidence = 'BR'
         render(<MantecaAddMoney />)
 
         expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
@@ -485,8 +535,7 @@ describe('residence gate — Brazil', () => {
 /**
  * Audit C4: the gate keeps non-residents out of a flow Manteca refuses (ui#3349),
  * but a user whose rail already moves money is not refused by Manteca. The
- * Accounts row reads Available for them, so the top-up opens too — one rule
- * (`residenceCloses`) for both.
+ * Accounts row reads Available for them, so the top-up opens too — the API report supplies the same answer to both.
  */
 describe('residence gate — a rail that already works', () => {
     test.each([
@@ -494,8 +543,18 @@ describe('residence gate — a rail that already works', () => {
         ['argentina', 'ars'],
     ])('a non-resident with a working %s rail reaches the amount step', (country, key) => {
         setCountry(country)
-        mockResidenceIso2s = ['PT']
-        mockBankChips = { [key]: 'active' }
+        mockResidence = 'PT'
+        mockRails = [
+            {
+                id: `manteca.${key}`,
+                provider: 'manteca',
+                method: key === 'brl' ? 'PIX_BR' : 'BANK_TRANSFER_AR',
+                channel: 'bank',
+                country: key === 'brl' ? 'BR' : 'AR',
+                currency: key.toUpperCase(),
+                status: 'enabled',
+            },
+        ]
         render(<MantecaAddMoney />)
 
         expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
@@ -504,8 +563,18 @@ describe('residence gate — a rail that already works', () => {
 
     test('a rail still in progress does not lift the gate', () => {
         setCountry('brazil')
-        mockResidenceIso2s = ['PT']
-        mockBankChips = { brl: 'processing' }
+        mockResidence = 'PT'
+        mockRails = [
+            {
+                id: 'manteca.pix_br',
+                provider: 'manteca',
+                method: 'PIX_BR',
+                channel: 'bank',
+                country: 'BR',
+                currency: 'BRL',
+                status: 'pending',
+            },
+        ]
         render(<MantecaAddMoney />)
 
         expect(screen.getByText(/only legal residents of brazil/i)).toBeInTheDocument()
@@ -513,7 +582,7 @@ describe('residence gate — a rail that already works', () => {
 
     test('the gate waits for the rails instead of refusing a depositor while they load', () => {
         setCountry('brazil')
-        mockResidenceIso2s = ['PT']
+        mockResidence = 'PT'
         mockCapabilitiesLoading = true
         render(<MantecaAddMoney />)
 

@@ -8,7 +8,8 @@ import {
     useDepositAccounts,
 } from '../useDepositAccounts'
 import { CLAIMABLE_USD_PREVIEW } from '../__fixtures__/railPolicy'
-import type { ClaimableCorridor, DepositAccount } from '../types'
+import type { ClaimableCorridor, DepositAccount, DepositCorridor } from '../types'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import type { RailCapability } from '@/types/capabilities'
 import type { GateScope, GateState } from '@/utils/capability-gate'
 
@@ -22,11 +23,6 @@ jest.mock('@/services/deposit-accounts', () => ({
     claimDepositAccount: (...args: unknown[]) => claimDepositAccount(...args),
 }))
 
-const fetchKycPaperwork = jest.fn()
-jest.mock('@/services/kyc-paperwork', () => ({
-    fetchKycPaperwork: (...args: unknown[]) => fetchKycPaperwork(...args),
-}))
-
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 // the capability block, expressed the way the gate is actually asked: one
@@ -34,17 +30,43 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 let gatesByRailId: Record<string, GateState> = {}
 // the rails the capability block names — what the corridor rows are built from
 let userRails: RailCapability[] = []
+let mockProductRefusals: Record<string, string> = {}
+let mockCapabilitiesLoading = false
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
+        capabilities: withFeatureReport(
+            { rails: userRails, nextActions: [] },
+            {
+                identity: { status: 'verified' },
+                productRefusals: mockProductRefusals,
+            }
+        ),
         gateFor: (_op: string, scope?: GateScope) =>
             (scope?.railId && gatesByRailId[scope.railId]) || ({ kind: 'needs-enrollment' } as GateState),
         rails: userRails,
-        isLoading: false,
+        isLoading: mockCapabilitiesLoading,
     }),
 }))
 
-const bankRail = (id: string, method: string): RailCapability =>
-    ({ id, method, channel: 'bank', status: 'enabled' }) as RailCapability
+const bankRail = (id: RailCapability['id'], method: DepositCorridor): RailCapability => ({
+    id,
+    method,
+    provider: id.startsWith('manteca.') ? 'manteca' : 'bridge',
+    channel: 'bank',
+    status: 'enabled',
+    country:
+        (
+            { SEPA_EU: 'EU', ACH_US: 'US', SPEI_MX: 'MX', BANK_TRANSFER_AR: 'AR', PIX_BR: 'BR' } as Partial<
+                Record<DepositCorridor, string>
+            >
+        )[method] ?? 'GLOBAL',
+    currency:
+        (
+            { SEPA_EU: 'EUR', ACH_US: 'USD', SPEI_MX: 'MXN', BANK_TRANSFER_AR: 'ARS', PIX_BR: 'BRL' } as Partial<
+                Record<DepositCorridor, string>
+            >
+        )[method] ?? 'USD',
+})
 
 const account = (over: Partial<DepositAccount> = {}): DepositAccount => ({
     id: 'a',
@@ -75,16 +97,17 @@ beforeEach(() => {
     mockUserId = 'user-a'
     gatesByRailId = {}
     userRails = [bankRail('bridge.sepa_eu', 'SEPA_EU'), bankRail('bridge.ach_us', 'ACH_US')]
-    fetchKycPaperwork.mockResolvedValue({ products: [], requirements: [] })
+    mockProductRefusals = {}
+    mockCapabilitiesLoading = false
 })
 
 describe('useDepositAccounts', () => {
     /**
      * Bridge refused USD to 79 of 85 Bangladesh residents. The engine
-     * (`GET /users/kyc/paperwork`) says so before the user verifies, so the
+     * sends that refusal in the feature report before verification, so the
      * USD corridor is never offered: not as a claim, not as "verify to open".
      */
-    describe('with the paperwork engine', () => {
+    describe('with the feature report', () => {
         const identityRequired = (railId: string, method: string, currency: string) => ({
             railId,
             method,
@@ -92,21 +115,10 @@ describe('useDepositAccounts', () => {
             currency,
             reason: 'identity-required',
         })
-        const bangladesh = {
-            products: [
-                {
-                    product: 'bridge.usd',
-                    provider: 'BRIDGE',
-                    available: false,
-                    reason: 'account_unavailable_in_residence',
-                    rule: 'bridge.no-usd',
-                },
-                { product: 'bridge.eur', provider: 'BRIDGE', available: true },
-            ],
-            requirements: [],
-        }
+        const bangladesh = { 'bridge.usd': 'account_unavailable_in_residence' }
 
         beforeEach(() => {
+            userRails = userRails.map((rail) => ({ ...rail, status: 'requires-info' }))
             fetchDepositAccounts.mockResolvedValue({
                 accounts: [],
                 claimable: [{ ...CLAIMABLE_USD_PREVIEW, railId: 'bridge.ach_us', method: 'ACH_US' }],
@@ -115,7 +127,7 @@ describe('useDepositAccounts', () => {
         })
 
         it('never offers a Bangladesh resident a USD account', async () => {
-            fetchKycPaperwork.mockResolvedValue(bangladesh)
+            mockProductRefusals = bangladesh
 
             const { result } = renderHook(() => useDepositAccounts(), { wrapper })
 
@@ -129,23 +141,20 @@ describe('useDepositAccounts', () => {
             expect(result.current.unavailable.SEPA_EU?.reason).toBe('identity-required')
         })
 
-        it('waits for the engine before it lists anything', async () => {
-            let answer: (value: unknown) => void = () => {}
-            fetchKycPaperwork.mockReturnValue(new Promise((resolve) => (answer = resolve)))
-
-            const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+        it('waits for capabilities before listing the reported corridor answers', async () => {
+            mockCapabilitiesLoading = true
+            mockProductRefusals = bangladesh
+            const { result, rerender } = renderHook(() => useDepositAccounts(), { wrapper })
 
             await waitFor(() => expect(fetchDepositAccounts).toHaveBeenCalled())
             expect(result.current.isLoading).toBe(true)
-            await act(async () => answer(bangladesh))
+            mockCapabilitiesLoading = false
+            rerender()
             await waitFor(() => expect(result.current.isLoading).toBe(false))
             expect(result.current.claimable.ACH_US).toBeUndefined()
         })
 
-        // the claim route still refuses on the server; the app keeps the backend's answer
-        it('keeps the backend answers when the engine cannot be read', async () => {
-            fetchKycPaperwork.mockRejectedValue(new Error('404'))
-
+        it('keeps the backend answers when the report has no refusal', async () => {
             const { result } = renderHook(() => useDepositAccounts(), { wrapper })
 
             await waitFor(() => expect(result.current.isLoading).toBe(false))

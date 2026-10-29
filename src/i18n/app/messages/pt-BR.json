@@ -4046,7 +4046,7 @@
             "residence_bank_restricted": "Transferências bancárias não estão disponíveis para residentes do seu país. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "identity_region_restricted": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado.",
             "identity_document_missing": "Precisamos de um documento de identidade e uma selfie para concluir sua verificação.",
-            "document_country_unsupported": "Precisa de um documento de identidade do país: {country}",
+            "document_country_unsupported": "Isso exige um documento de identidade emitido pelo país onde você mora. Verifique novamente com esse documento.",
             "card_unavailable_for_verification": "Indisponível com a verificação atual",
             "local_tax_id_missing": "Precisa de um número fiscal: CPF no Brasil, CUIT ou CUIL na Argentina",
             "under_minimum_age": "Somente a partir de 18 anos",

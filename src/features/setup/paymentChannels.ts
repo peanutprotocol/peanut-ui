@@ -31,9 +31,8 @@ export function setupChannelsForResidence(
         localOpen && country === 'BR' ? ['brlBank'] : localOpen && country === 'AR' ? ['arsBank'] : []
     const bank: SetupFundingChannel[] = [...local, ...(bridge ? (['bank'] as const) : [])]
     const card = known && (intents ? intents.card.available : !restrictions.card)
-    // product/countries.md: QR is available after verification in every non-sanctioned residence.
-    // Occupied territories and age are checked during verification, not this country-only preview.
-    const qr = known && (intents ? intents.qr.available : !['KP', 'IR', 'CU', 'SY', 'RU', 'BY', 'MM'].includes(country))
+    // Without the server's answer, only a residence the tiers close entirely loses QR as well.
+    const qr = known && (intents ? intents.qr.available : !(restrictions.banking && restrictions.card))
     // Spending is the Peanut Card and QR payments (Hugo, 2026-10-10). Where neither is
     // offered, paying another Peanut user keeps the plan answerable.
     const spend: SetupPaymentChannel[] = [...(card ? ['card' as const] : []), ...(qr ? ['qr' as const] : [])]

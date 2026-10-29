@@ -14,21 +14,16 @@ import {
     selectQrKycGate,
 } from './qrKycGate.utils'
 
-// MIGRATION-REVIEW: QR-pay KYC gate, formerly useQrKycGate + useKycStatus.
-// Derived inline from the backend capability model. Mapping:
-//   canDo('pay',{manteca}) → PROCEED_TO_PAY. The BE resolver expresses both
-//     paths uniformly as an enabled pay op: Sumsub-approved pool users AND
-//     Sumsub-approved US-nationality-restricted users alike (compliance
-//     ratified 2026-05-28). No FE special-case needed.
-//   manteca top-level 'blocked' → PROVIDER_REJECTION_BLOCKED (genuine block —
-//     no Sumsub, or a non-restriction final rejection).
-//   manteca top-level 'requires-info' → PROVIDER_REJECTION_FIXABLE.
-//   manteca 'pending' → IDENTITY_VERIFICATION_IN_PROGRESS.
-//   otherwise → REQUIRES_IDENTITY_VERIFICATION. While loading → LOADING.
-// userMessage ← the rejecting rail's reason.userMessage (was useProviderRejectionStatus).
+// The QR-pay KYC gate: the API's QR answer (`capabilities.features.qr`), via selectQrKycGate.
 export function useQrPayKycGate() {
-    const { canDo, railsForProvider, nextActions, isKycApproved, isLoading: isLoadingCapabilities } = useCapabilities()
-    const { isRegionRestricted, isTerminalFailure } = useIdentityVerification()
+    const {
+        capabilities,
+        railsForProvider,
+        nextActions,
+        isKycApproved,
+        isLoading: isLoadingCapabilities,
+    } = useCapabilities()
+    const { isTerminalFailure } = useIdentityVerification()
     const { user, fetchUser } = useAuth()
 
     // On public routes (qr-pay) auth still auto-fetches via React Query, but trigger a one-shot
@@ -52,22 +47,10 @@ export function useQrPayKycGate() {
                 // fetch has resolved. Otherwise we briefly map an empty capability shape onto
                 // REQUIRES_IDENTITY_VERIFICATION for users whose auth state hasn't settled yet.
                 isLoading: isLoadingCapabilities || (!user && !userFetchSettled),
-                isRegionRestricted,
-                isTerminalFailure,
-                canPayManteca: canDo('pay', { provider: 'manteca' }),
-                mantecaRails: railsForProvider('manteca'),
+                features: capabilities.features,
                 nextActions,
             }),
-        [
-            isLoadingCapabilities,
-            canDo,
-            railsForProvider,
-            nextActions,
-            user,
-            userFetchSettled,
-            isRegionRestricted,
-            isTerminalFailure,
-        ]
+        [isLoadingCapabilities, capabilities.features, nextActions, user, userFetchSettled]
     )
 
     const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY

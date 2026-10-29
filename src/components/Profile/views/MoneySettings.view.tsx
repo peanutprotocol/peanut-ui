@@ -10,6 +10,7 @@ import { ClosedRowDrawer } from '@/features/deposit-accounts/components/ClosedRo
 import type { ClosedRow } from '@/features/deposit-accounts/hubRows'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useBankRows } from '@/hooks/useBankRows'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import IconStack from '@/components/Global/IconStack'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -108,11 +109,10 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const [openView] = useQueryState('open', parseAsString)
     const [detailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
     const {
+        capabilities,
         rails,
         isKycApproved,
         nextActionsForRail,
-        canDo,
-        railsForProvider,
         nextActions,
         isLoading: isLoadingCapabilities,
     } = useCapabilities()
@@ -133,10 +133,9 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
 
     // ── list model ──────────────────────────────────────────────────────────
 
-    const {
-        rows: bankRows,
-        input: { bankChips, restrictions },
-    } = useBankRows()
+    const { rows: bankRows, accountChip } = useBankRows()
+    // Copy only: which sentence a closed row's notes use. Whether a row is closed is the report's.
+    const restrictions = useResidenceRestrictions()
     const hasActiveCard = !!findActiveCard(overview)
     // Would a QR payment go through today? The gate /qr-pay itself enforces
     // and Home reads (`selectQrKycGate`), so the QR row, the Pix key send and
@@ -146,44 +145,36 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     // payment the scan then refused.
     const qrPay = selectQrKycGate({
         isLoading: isLoadingCapabilities,
-        isRegionRestricted,
-        isTerminalFailure: isIdentityFinallyRejected,
-        canPayManteca: canDo('pay', { provider: 'manteca' }),
-        mantecaRails: railsForProvider('manteca'),
+        features: capabilities.features,
         nextActions,
     }).kycGateState
     const canPayQrNow = qrPay === QrKycState.PROCEED_TO_PAY
 
+    const cardRefused = capabilities.features?.card.state === 'refused'
     const groups = useMemo(
         () =>
             buildUnlockGroups({
-                bankChips,
                 // QR is a `pay` capability, read as one: the pool-tier rails
                 // every verified user holds pay by QR even though they cannot
                 // deposit or withdraw.
                 qrPay,
-                restrictions,
-                // New applications are public; retain known residence restrictions.
-                card: hasActiveCard ? 'active' : restrictions.card || cardInfo?.geoProhibited ? 'notAvailable' : 'get',
+                card: hasActiveCard ? 'active' : cardRefused ? 'notAvailable' : 'get',
             }),
-        [bankChips, qrPay, restrictions, hasActiveCard, cardInfo?.geoProhibited]
+        [qrPay, hasActiveCard, cardRefused]
     )
 
     // The two lists beside the bank rows, named by group id rather than by position.
     const peanutGroup = groups.find((group) => group.id === 'everywhere')
     const spendGroup = groups.find((group) => group.id === 'spend')
-    const accountBankRows = useMemo(
-        () => withPixSend(bankRows, { qrPay, brlChip: bankChips.brl }),
-        [bankRows, qrPay, bankChips.brl]
-    )
+    const accountBankRows = useMemo(() => withPixSend(bankRows, { qrPay }), [bankRows, qrPay])
     const methodSections = useMemo(
         () =>
             paymentMethodSections([
-                bankAccountRow(bankRows),
+                bankAccountRow(bankRows, accountChip),
                 ...(spendGroup?.rows ?? []),
                 ...(peanutGroup?.rows ?? []),
             ]),
-        [bankRows, spendGroup, peanutGroup]
+        [bankRows, accountChip, spendGroup, peanutGroup]
     )
     // A Spend row the user cannot use explains why on tap, like the bank rows
     // (hugo, 2026-09-24: "always show the rails, tell the user why").

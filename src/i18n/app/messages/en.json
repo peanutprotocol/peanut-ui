@@ -4046,7 +4046,7 @@
             "residence_bank_restricted": "Bank transfers aren't available for residents of your country. Your funds are safe — you can withdraw them as crypto anytime.",
             "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result.",
             "identity_document_missing": "We need an identity document and a selfie to complete your verification.",
-            "document_country_unsupported": "Needs an ID issued by {country}",
+            "document_country_unsupported": "This needs an ID issued by the country you live in. Verify again with that ID.",
             "card_unavailable_for_verification": "Not available with the current verification",
             "local_tax_id_missing": "Needs a tax ID: CPF in Brazil, CUIT or CUIL in Argentina",
             "under_minimum_age": "Only from age 18",

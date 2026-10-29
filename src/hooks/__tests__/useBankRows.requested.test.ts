@@ -1,35 +1,79 @@
-import { requestedChip } from '@/hooks/useBankRows'
+import { renderHook } from '@testing-library/react'
+import { useBankChipFor, useBankEntryFor, useBankRows } from '@/hooks/useBankRows'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import type { UserCapabilities } from '@/types/capabilities'
 
-// Slava, 2026-10-27: after verification a bank method the user asked for read
-// "Unlock", and the tap only said it was being set up. It reads Pending.
+let mockCapabilities: UserCapabilities
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => ({ capabilities: mockCapabilities, nextActions: mockCapabilities.nextActions }),
+}))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { userId: 'fixture-user' }, residence: { declared: { country: 'PT' } } } }),
+}))
+jest.mock('@/utils/native-platform', () => ({ useHydrationSnapshot: () => null }))
 
-const verified = (residenceIso2: string, requested = { bank: true, local: false }) => ({
-    approved: true,
-    requested,
-    residenceIso2,
+beforeEach(() => {
+    mockCapabilities = withFeatureReport({ rails: [], nextActions: [], restrictions: [] })
 })
 
-describe('a requested bank feature after verification', () => {
-    it('reads Pending on the currencies the residence gets', () => {
-        expect(requestedChip('unlock', 'sepa', verified('PT'))).toBe('processing')
-        expect(requestedChip('unlock', 'usd', verified('PT'))).toBe('processing')
+describe('bank rows render the report account entries', () => {
+    it('reads Processing only for the accounts the report is setting up', () => {
+        mockCapabilities.features!.bank.accounts = {
+            EUR: { state: 'setting_up' },
+            USD: { state: 'setting_up' },
+            MXN: { state: 'ready' },
+        }
+        const { result } = renderHook(() => useBankRows())
+        expect(
+            result.current.rows
+                .filter((row) => ['sepa', 'usd', 'mxn'].includes(row.labelKey))
+                .map((row) => [row.labelKey, row.chip])
+        ).toEqual([
+            ['sepa', 'processing'],
+            ['usd', 'processing'],
+            ['mxn', 'unlock'],
+        ])
     })
 
-    it('keeps the offer where the residence never gets that rail, so MXN never waits forever', () => {
-        expect(requestedChip('unlock', 'mxn', verified('PT'))).toBe('unlock')
-        expect(requestedChip('unlock', 'mxn', verified('MX'))).toBe('processing')
+    it('a refused account reads Not available, never Processing, even while the bank feature is setting up', () => {
+        mockCapabilities.features!.bank = {
+            state: 'setting_up',
+            accounts: { USD: { state: 'refused', reason: 'account_unavailable_in_residence' }, EUR: { state: 'on' } },
+        }
+        const { result } = renderHook(() => useBankRows())
+        const usd = result.current.rows.find((row) => row.labelKey === 'usd')!
+        expect(usd).toMatchObject({ chip: 'notAvailable', unavailableBecause: 'account-residence' })
+        expect(usd.chip).not.toBe('processing')
+        expect(usd.regionPath).toBeUndefined()
+        expect(result.current.rows.find((row) => row.labelKey === 'sepa')?.chip).toBe('active')
     })
 
-    it('reads Pix and Argentine transfers from the local feature, not the bank one', () => {
-        expect(requestedChip('unlock', 'brl', verified('BR'))).toBe('unlock')
-        expect(requestedChip('unlock', 'brl', verified('BR', { bank: false, local: true }))).toBe('processing')
+    it('reads local accounts independently of bank accounts and exposes their exact entries', () => {
+        mockCapabilities.features!.local.accounts = { BRL: { state: 'ready' }, ARS: { state: 'setting_up' } }
+        const { result } = renderHook(() => ({
+            rows: useBankRows().rows,
+            chipFor: useBankChipFor(),
+            entryFor: useBankEntryFor(),
+        }))
+        expect(result.current.chipFor('brl')).toBe('unlock')
+        expect(result.current.chipFor('ars')).toBe('processing')
+        expect(result.current.entryFor('ars')).toBe(mockCapabilities.features!.local.accounts.ARS)
+        expect(result.current.rows.find((row) => row.labelKey === 'ars')?.chip).toBe('processing')
     })
 
-    it('leaves every other case alone', () => {
-        expect(requestedChip('unlock', 'sepa', { ...verified('PT'), approved: false })).toBe('unlock')
-        expect(requestedChip('unlock', 'sepa', { ...verified('PT'), requested: null })).toBe('unlock')
-        expect(requestedChip('unlock', 'sepa', verified('PT', { bank: false, local: false }))).toBe('unlock')
-        expect(requestedChip('active', 'sepa', verified('PT'))).toBe('active')
-        expect(requestedChip('attention', 'sepa', verified('PT'))).toBe('attention')
+    it('keeps on, attention, ready and unknown entries distinct and returns the aggregate report chip', () => {
+        mockCapabilities.nextActions = [{ key: 'restart', kind: 'restart-identity', purpose: 'country_not_supported' }]
+        mockCapabilities.features!.bank = {
+            state: 'on',
+            accounts: { EUR: { state: 'action_required', action: 'restart' }, USD: { state: 'ready' } },
+        }
+        const { result, rerender } = renderHook(() => useBankRows())
+        expect(result.current.accountChip).toBe('active')
+        expect(result.current.rows.find((row) => row.labelKey === 'sepa')?.chip).toBe('attention')
+        expect(result.current.rows.find((row) => row.labelKey === 'usd')?.chip).toBe('unlock')
+        mockCapabilities = { rails: [], nextActions: [], restrictions: [] }
+        rerender()
+        expect(result.current.accountChip).toBe('processing')
+        expect(result.current.rows.every((row) => row.chip === 'processing')).toBe(true)
     })
 })

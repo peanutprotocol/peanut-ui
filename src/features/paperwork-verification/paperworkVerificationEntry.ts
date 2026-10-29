@@ -1,9 +1,10 @@
-import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-workflow'
+import { findKycDocumentPlan, getKycDocumentStatus, getKycFeatures } from '@/app/actions/kyc-workflow'
 import type { KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import type { PaperworkVerificationFeature } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { PAPERWORK_VERIFICATION_FLOW, type KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
+import type { FeatureReport } from '@/types/capabilities'
 import { APPROVED_STATUSES } from './paperworkVerification.utils'
 
 // A FAILED check decided nothing, so /verify offers the retry; a rejection is fixed in today's flow.
@@ -38,18 +39,24 @@ export function entryFeature({
 
 /**
  * Where a Verify tap goes for a Smart Paperwork Verification user: /verify before approval,
- * the add-later screen for a feature not yet saved, or null for today's flow
- * (the server keeps the user on it, a rejection to fix, or nothing new to add).
+ * the add-later screen for a feature the API's report says is not opened yet or
+ * refused (it asks what the feature still misses, or explains the refusal), or
+ * null for today's flow (the server keeps the user on it, a rejection to fix,
+ * or a feature already underway).
  */
 export async function paperworkVerificationRoute(
     plan: KycDocumentPlan | null,
-    feature: PaperworkVerificationFeature | null
+    feature: PaperworkVerificationFeature | null,
+    report?: FeatureReport
 ): Promise<string | null> {
     if (plan?.flow !== PAPERWORK_VERIFICATION_FLOW) return null
     const status = await getKycDocumentStatus().catch(() => undefined)
     if (status && NEEDS_TODAYS_FIX.has(status)) return null
     if (!status || !APPROVED_STATUSES.has(status)) return '/verify'
-    return feature && !plan.features[feature] ? paperworkVerificationFeaturePath(feature) : null
+    if (!feature) return null
+    const state = report?.[feature].state
+    const opensAddLater = state ? state === 'ready' || state === 'refused' : !plan.features[feature]
+    return opensAddLater ? paperworkVerificationFeaturePath(feature) : null
 }
 
 /** A Verify entry point: what it unlocks, as the start it would make names it. */
@@ -66,6 +73,12 @@ export interface PaperworkVerificationEntry {
  * Verification user, and the start then opens /verify.
  */
 export async function paperworkVerificationEntryRoute(entry: PaperworkVerificationEntry): Promise<string | null> {
-    const plan = await findKycDocumentPlan('entry').catch(() => null)
-    return paperworkVerificationRoute(plan, entryFeature(entry))
+    // The report read at the tap: fresh, and a failed read falls back to the plan's saved features.
+    const [plan, report] = await Promise.all([
+        findKycDocumentPlan('entry').catch(() => null),
+        Promise.resolve()
+            .then(() => getKycFeatures())
+            .catch(() => undefined),
+    ])
+    return paperworkVerificationRoute(plan, entryFeature(entry), report)
 }

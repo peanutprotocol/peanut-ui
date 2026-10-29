@@ -1,3 +1,5 @@
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import type { RailCapability } from '@/types/capabilities'
 import { selectHomeTasks } from '@/utils/bridge-tasks.utils'
 
 const acceptanceCases = [
@@ -76,7 +78,7 @@ const acceptanceCases = [
 ] as const
 
 type Action = Parameters<typeof selectHomeTasks>[0][number]
-type Rail = NonNullable<Parameters<typeof selectHomeTasks>[1]>[number]
+type Rail = RailCapability
 type AcceptanceCase = (typeof acceptanceCases)[number]
 
 const makeAction = (requirement: string): Action => ({
@@ -112,10 +114,25 @@ const makeRail = (scenario: AcceptanceCase, method = 'ach'): Rail => {
     }
 }
 
+const capabilitiesFor = (rails: Rail[], actions: Action[] = []) => {
+    const nextActions = [
+        ...new Map(
+            [...actions, ...rails.flatMap((rail) => (rail.resolved?.nextAction ? [rail.resolved.nextAction] : []))].map(
+                (action) => [action.key, action]
+            )
+        ).values(),
+    ]
+    return withFeatureReport({ rails, nextActions, restrictions: [] })
+}
+const tasksFor = (rails: Rail[], actions: Action[] = []) => {
+    const caps = capabilitiesFor(rails, actions)
+    return selectHomeTasks(caps.nextActions, caps.features)
+}
+
 describe('Bridge follow-up task acceptance', () => {
     test.each(acceptanceCases)('$name', (scenario) => {
         const rail = makeRail(scenario)
-        const result = selectHomeTasks([], [rail])
+        const result = tasksFor([rail])
 
         expect(result.largeTasks).toHaveLength(scenario.bridgeTasks)
         expect(result.documentSlide).toBeUndefined()
@@ -133,7 +150,7 @@ describe('Bridge follow-up task acceptance', () => {
 
     test('equivalent Bridge asks produce exactly one blocking task', () => {
         const scenario = acceptanceCases[0]
-        const result = selectHomeTasks([], [makeRail(scenario, 'ach'), makeRail(scenario, 'sepa')])
+        const result = tasksFor([makeRail(scenario, 'ach'), makeRail(scenario, 'sepa')])
 
         expect(result.largeTasks).toHaveLength(1)
         expect(result.largeTasks[0]).toEqual(
@@ -160,8 +177,8 @@ describe('Bridge follow-up task acceptance', () => {
             blockingActions: [rainAction.key],
             resolved: { status: 'fixable', nextAction: rainAction },
         }
-        const rainOnly = selectHomeTasks([rainAction], [rainRail])
-        const together = selectHomeTasks([rainAction], [rainRail, makeRail(acceptanceCases[1])])
+        const rainOnly = tasksFor([rainRail], [rainAction])
+        const together = tasksFor([rainRail, makeRail(acceptanceCases[1])], [rainAction])
 
         expect(rainOnly.largeTasks).toHaveLength(1)
         expect(rainOnly.largeTasks[0].key).toBe('card-document:sumsub:proof_of_address')

@@ -3,16 +3,37 @@ import { fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 import ActivationCTAs from '../ActivationCTAs'
 import PendingVerificationTasks from '../PendingVerificationTasks'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import type { RailCapability } from '@/types/capabilities'
 import type { OnboardingState } from '@/utils/activation-step.utils'
 
 let mockRails: RailCapability[] = []
+const mockCapabilities = () => {
+    const nextActions = mockRails.flatMap((rail) => (rail.resolved?.nextAction ? [rail.resolved.nextAction] : []))
+    return withFeatureReport({ rails: mockRails, nextActions }, { identity: { status: 'verified' } })
+}
 const mockHeal = jest.fn()
 const mockRestart = jest.fn()
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ rails: mockRails, nextActions: [], channelOf: (rail: RailCapability) => rail.channel }),
+    useCapabilities: () => {
+        const capabilities = mockCapabilities()
+        return {
+            rails: mockRails,
+            nextActions: capabilities.nextActions,
+            capabilities,
+            channelOf: (rail: RailCapability) => rail.channel,
+        }
+    },
 }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'fixture-actor' } } }) }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
+        user: {
+            user: { userId: 'fixture-actor' },
+            identityVerification: { status: 'verified' },
+            capabilities: mockCapabilities(),
+        },
+    }),
+}))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ openSupportWithMessage: jest.fn() }) }))
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ identity: { status: 'verified' }, isRegionRestricted: false }),
@@ -75,6 +96,7 @@ const restartRail: RailCapability = {
     reason: { code: 'identity_document_insufficient', userMessage: 'Verify again' },
     resolved: {
         status: 'blocked',
+        nextAction: { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_insufficient' },
         blocking: {
             code: 'identity_document_insufficient',
             userMessage: 'Verify again',
@@ -135,7 +157,19 @@ describe('Home follow-up', () => {
             {
                 ...documentRail,
                 id: 'bridge.sepa_eu',
+                method: 'SEPA_EU',
+                country: 'EU',
+                currency: 'EUR',
                 status: 'enabled',
+                resolved: {
+                    status: 'enabled',
+                    nextAction: {
+                        key: 'sumsub:proof_of_address',
+                        kind: 'sumsub',
+                        purpose: 'unlock-bridge-sepa',
+                        effectiveDate: '2099-01-01',
+                    },
+                },
                 reason: { code: 'proof_of_address', userMessage: 'Advisory' },
             },
             documentRail,

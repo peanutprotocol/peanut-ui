@@ -11,6 +11,9 @@ import { normalizeResidence } from '@/utils/residence-profile'
  * read Not available. The residence lives in Profile (ResidenceMenuItem).
  */
 import React from 'react'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import { railVerdict } from '@/utils/capability-gate'
+import type { NextAction, RailCapability, IdentityVerificationStatus } from '@/types/capabilities'
 import { act, render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
@@ -79,11 +82,12 @@ let mockNextActions: unknown[] = []
 let mockIsKycApproved = false
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
-        rails: mockRails,
+        capabilities: mockCapabilityBlock(),
+        rails: mockCapabilityBlock().rails,
         isKycApproved: mockIsKycApproved,
         railsForProvider: (provider: string) =>
             (mockRails as Array<Record<string, any>>).filter((rail) => rail.provider === provider),
-        nextActions: mockNextActions,
+        nextActions: mockCapabilityBlock().nextActions,
         nextActionsForRail: () => [],
         // the real per-operation read: `operations?.[op] ?? status`, so a rail
         // that is enabled for `pay` alone can never answer yes for `deposit`
@@ -101,7 +105,7 @@ jest.mock('@/hooks/useCapabilities', () => ({
             jest
                 .requireActual('@/utils/capability-gate')
                 .deriveGate(
-                    { rails: mockRails, nextActions: [], identityVerified: mockIsKycApproved, isLoading: false },
+                    { ...mockCapabilityBlock(), identityVerified: mockIsKycApproved, isLoading: false },
                     op,
                     scope
                 ),
@@ -112,7 +116,9 @@ let mockRestrictions = { banking: false, card: false }
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockRestrictions,
 }))
-let mockIdentity: { status: string; submittedAt?: string; reviewPending?: boolean } = { status: 'not_started' }
+let mockIdentity: { status: string; submittedAt?: string; reviewPending?: boolean; reason?: { code: string } } = {
+    status: 'not_started',
+}
 let mockRegionRestricted = false
 let mockTerminalFailure = false
 jest.mock('@/hooks/useIdentityVerification', () => ({
@@ -135,7 +141,46 @@ let mockUser: {
     residence?: import('@/interfaces/interfaces').ResidenceProfile
     user?: { userId: string }
 } | null = null
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
+const mockCapabilityBlock = () => {
+    const nextActions = [...mockNextActions] as NextAction[]
+    // The API includes descriptors for every resolved action it names.
+    for (const rail of mockRails as RailCapability[]) {
+        const action = rail.resolved?.nextAction
+        if (action && !nextActions.some((candidate) => candidate.key === action.key)) nextActions.push(action)
+    }
+    const currencies: Record<string, string> = { US: 'USD', EU: 'EUR', GB: 'GBP', MX: 'MXN', BR: 'BRL', AR: 'ARS' }
+    const byKey = new Map(nextActions.map((action) => [action.key, action]))
+    const rails = (mockRails as RailCapability[]).map((rail) => ({
+        ...rail,
+        currency: rail.currency ?? currencies[rail.country],
+        resolved: railVerdict(rail, byKey),
+    }))
+    const residence = mockUser?.residence?.verified?.country ?? mockUser?.residence?.declared?.country ?? null
+    return withFeatureReport(
+        { rails, nextActions, restrictions: [] },
+        {
+            identity: { ...mockIdentity, status: mockIdentity.status as IdentityVerificationStatus },
+            residence,
+            productRefusals: !residence ? { 'manteca.local': 'local_residence_unsupported' } : {},
+            restrictions: {
+                banking: mockRestrictions.banking
+                    ? {
+                          code: 'residence_bank_restricted',
+                          userMessage: 'Bank transfers are unavailable in your country.',
+                      }
+                    : null,
+                card: mockRestrictions.card,
+            },
+        }
+    )
+}
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
+        user: mockUser
+            ? { ...mockUser, capabilities: mockCapabilityBlock(), identityVerification: mockIdentity }
+            : null,
+    }),
+}))
 
 jest.mock('@/hooks/useCardInfo', () => ({
     useCardInfo: () => ({ isEligible: true, hasCardAccess: true }),
@@ -239,33 +284,33 @@ jest.mock('@/components/Profile/views/ResidenceChangeDrawer', () => ({
         ) : null,
 }))
 
+beforeEach(() => {
+    mockDepositEnabled = false
+    mockDepositAccounts = {}
+    mockDepositCorridors = []
+    mockDepositClaimable = {}
+    mockMantecaLimits = null
+    mockBridgeLimits = null
+    jest.clearAllMocks()
+    mockRails = []
+    mockNextActions = []
+    mockIsKycApproved = false
+    mockRestrictions = { banking: false, card: false }
+    mockUser = null
+    mockIdentity = { status: 'not_started' }
+    mockRegionRestricted = false
+    mockTerminalFailure = false
+    mockKycDegraded = false
+    mockFlowError = null
+    mockFlowCooldown = null
+    mockOpenView = null
+})
+
 describe('MoneySettings', () => {
     it('sends a residence deep link from an older build to Profile', () => {
         mockOpenView = 'residence'
         render()
         expect(mockReplace).toHaveBeenCalledWith('/profile?open=residence')
-    })
-
-    beforeEach(() => {
-        mockDepositEnabled = false
-        mockDepositAccounts = {}
-        mockDepositCorridors = []
-        mockDepositClaimable = {}
-        mockMantecaLimits = null
-        mockBridgeLimits = null
-        jest.clearAllMocks()
-        mockRails = []
-        mockNextActions = []
-        mockIsKycApproved = false
-        mockRestrictions = { banking: false, card: false }
-        mockUser = null
-        mockIdentity = { status: 'not_started' }
-        mockRegionRestricted = false
-        mockTerminalFailure = false
-        mockKycDegraded = false
-        mockFlowError = null
-        mockFlowCooldown = null
-        mockOpenView = null
     })
 
     it('shows the in-review line with the submitted date while identity is processing', () => {
@@ -393,6 +438,7 @@ describe('MoneySettings', () => {
 
     it('a region-restricted user gets the region screen instead of an unlock offer', () => {
         mockRegionRestricted = true
+        mockIdentity = { status: 'failed', reason: { code: 'identity_region_restricted' } }
         render()
         fireEvent.click(screen.getByText('EUR'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
@@ -508,6 +554,7 @@ describe('MoneySettings', () => {
     // never reads Available here.
     it('QR payments read the /qr-pay answer: a refused identity is not Available', () => {
         mockRegionRestricted = true
+        mockIdentity = { status: 'failed', reason: { code: 'identity_region_restricted' } }
         mockRails = [{ id: 'manteca.pix_br', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' }]
         render('payments')
         const qrRow = within(screen.getByText('QR payments').closest('.border') as HTMLElement)
@@ -518,6 +565,7 @@ describe('MoneySettings', () => {
     // offered an Unlock that could only end in the region refusal
     it('a refused identity reads Attention on QR and the Pix send, and the tap explains the refusal', () => {
         mockRegionRestricted = true
+        mockIdentity = { status: 'failed', reason: { code: 'identity_region_restricted' } }
         mockUser = {
             residence: normalizeResidence({ declared: 'PT', verified: 'PT', declaredSecond: null }),
             user: { userId: 'u1' },
@@ -895,6 +943,7 @@ describe('MoneySettings', () => {
     it('a residence park opens the address step, not the resubmit that 404s for it', () => {
         mockRails = [residenceParkedRail]
         mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
         render()
         fireEvent.click(screen.getByText('EUR'))
         fireEvent.click(screen.getByText('Upload document'))
@@ -925,6 +974,7 @@ describe('MoneySettings', () => {
             },
         ]
         mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
         render()
         fireEvent.click(screen.getByText('BRL'))
         fireEvent.click(screen.getByText('Upload document'))
@@ -959,6 +1009,7 @@ describe('MoneySettings', () => {
                 }),
             ]
             mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
             render()
             fireEvent.click(screen.getByText('EUR'))
             expect(
@@ -988,6 +1039,7 @@ describe('MoneySettings', () => {
                 },
             ]
             mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
             render()
             fireEvent.click(screen.getByText('EUR'))
 
@@ -1016,6 +1068,7 @@ describe('MoneySettings', () => {
                 }),
             ]
             mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
             render()
             fireEvent.click(screen.getByText('EUR'))
 
@@ -1048,6 +1101,7 @@ describe('MoneySettings', () => {
                 }),
             ]
             mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
             render()
             fireEvent.click(screen.getByText('EUR'))
 
@@ -1089,6 +1143,7 @@ describe('MoneySettings', () => {
             }
             mockRails = [qrPoolRail]
             mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
             const { unmount } = render()
 
             // the row leads with the Pix send they hold today (hugo, 2026-09-26)…
@@ -1123,6 +1178,7 @@ describe('MoneySettings', () => {
                 { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_missing' },
             ]
             mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
             render()
 
             fireEvent.click(screen.getByText('BRL'))
@@ -1169,6 +1225,7 @@ describe('MoneySettings', () => {
             }
             mockRails = [{ ...qrPoolRail, operations: { pay: 'enabled', deposit: 'enabled', withdraw: 'enabled' } }]
             mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
             const { unmount } = render()
 
             const bankRow = screen.getByText('BRL')
@@ -1196,6 +1253,7 @@ describe('MoneySettings', () => {
                 },
             ]
             mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
             render()
 
             const row = screen.getByText('USD').closest('.border') as HTMLElement
@@ -1376,6 +1434,7 @@ describe('MoneySettings', () => {
         beforeEach(() => {
             mockUser = { residence: normalizeResidence({ declared: 'BR', verified: 'BR' }), user: { userId: 'u1' } }
             mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
         })
 
         it('with the pay capability, the drawer links to Pix key sending and the row keeps its bank status', () => {
@@ -1482,6 +1541,7 @@ describe("a row's modal reads the rails of its own country", () => {
             user: { userId: 'u1' },
         }
         mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
         mockRails = [argentineGhost]
     }
 
@@ -1534,7 +1594,7 @@ describe("a row's modal reads the rails of its own country", () => {
 /**
  * The Manteca corridors are for legal residents of Brazil and Argentina: the
  * Argentine account opens to residents alone, and the Brazilian one needs a CPF,
- * checked here through a Brazilian residence (a client-side pre-check). A
+ * reflected in the API's report for a Brazilian residence. A
  * Portuguese resident was offered "BRL · Pix",
  * tapped it, and met the Argentine ghost's drawer; now the ARS row is not
  * offered, and says why. Sending to a Pix key is open to every verified user
@@ -1549,9 +1609,9 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
             user: { userId: 'u1' },
         }
         mockIsKycApproved = true
-        mockRails = [
-            { id: 'manteca.bank_transfer_ar', provider: 'manteca', channel: 'bank', country: 'AR', status: 'pending' },
-        ]
+        mockIdentity = { status: 'verified' }
+        // The report refuses the unopened local account for this residence;
+        // QR remains ready to set up. Rail arbitration belongs to the API.
         render()
 
         expect(badgeFor('BRL').getByText('Set up')).toBeInTheDocument()
@@ -1591,6 +1651,7 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
             user: { userId: 'u1' },
         }
         mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
         render('payments')
         expect(badgeFor('QR payments').getByText('Set up')).toBeInTheDocument()
     })
@@ -1601,6 +1662,7 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
             user: { userId: 'u1' },
         }
         mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
         // pool tier: paying is open, adding and own-account withdraw are not
         mockRails = [
             {
@@ -1629,6 +1691,7 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
             user: { userId: 'u1' },
         }
         mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
         mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
         render()
 
@@ -1646,6 +1709,7 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
             user: { userId: 'u1' },
         }
         mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
         mockRails = [
             {
                 id: 'manteca.pix_br',

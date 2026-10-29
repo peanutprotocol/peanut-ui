@@ -1,103 +1,60 @@
 'use client'
 
 import { useAuth } from '@/context/authContext'
-import { usePaperworkClosures } from '@/features/deposit-accounts/usePaperworkClosures'
+import { accountEntry, bestChip, entryChip, UNKNOWN_REPORT } from '@/features/kyc-features/report'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+import type { FeatureReportEntry } from '@/types/capabilities'
 import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { useHydrationSnapshot } from '@/utils/native-platform'
 import { isBridgeSupportedCountry } from '@/utils/regions.utils'
 import {
-    BANK_ROW_COUNTRIES,
     buildBankRows,
     type BankRegionChip,
     type BankRowKey,
     type BankRowsInput,
+    type UnlockChip,
+    type UnlockRow,
 } from '@/utils/unlock-payments.utils'
-import { useRequestedKycFeatures } from '@/features/paperwork-verification/useRequestedKycFeatures'
-import { bankRailsFor, type AvailabilityItemKey } from '@/utils/residence-availability'
 import { useCallback, useEffect, useMemo } from 'react'
-
-/** Gate states that mean "a rail is here, it just cannot move money yet". */
-const MID_FLIGHT_GATES: ReadonlySet<string> = new Set([
-    'pending',
-    'waiting-on-provider',
-    'accept-tos',
-    'fixable-rejection',
-    'provide-email',
-])
 
 const isEuropeIso2 = (iso2: string | null): boolean =>
     !!iso2 && iso2 !== 'US' && iso2 !== 'MX' && isBridgeSupportedCountry(iso2)
 
-/**
- * The chip for one currency's bank corridor, before residence restrictions:
- * `active` when the user can deposit or withdraw on it today. The bank rows
- * read it, and so does the Manteca top-up's residence gate (`residenceCloses`).
- */
-export function useBankChipFor(): (key: BankRowKey) => BankRegionChip {
-    const { gateFor } = useCapabilities()
+/** The account behind each bank row, as the feature report names it. */
+const ROW_ACCOUNTS: Readonly<Record<BankRowKey, { feature: 'bank' | 'local'; currency: string }>> = {
+    brl: { feature: 'local', currency: 'BRL' },
+    ars: { feature: 'local', currency: 'ARS' },
+    usd: { feature: 'bank', currency: 'USD' },
+    mxn: { feature: 'bank', currency: 'MXN' },
+    sepa: { feature: 'bank', currency: 'EUR' },
+}
 
-    /**
-     * The chip for one currency's bank corridor, read from the rails of that
-     * corridor's own COUNTRY.
-     *
-     * Two separate truths are folded in here. Holding a rail is not being
-     * allowed to use it: every Sumsub-approved user is enrolled on the QR-tier
-     * Manteca rails whatever their residence, so the rail is `enabled` because
-     * `pay` is while `deposit` and `withdraw` stay `requires-info`. A bank row
-     * says Available only when the user can move money on one of those two
-     * operations. And a provider is not a currency: scoping by provider gave
-     * the US and Mexico — both Bridge — one shared verdict, so a user with a
-     * working US rail read "Available" on a row that also named MXN. The gate
-     * is the hook's own country-scoped primitive; nothing here walks rails.
-     */
-    const bankChipFor = useCallback(
-        (key: BankRowKey): BankRegionChip => {
-            const scope = { channel: 'bank' as const, country: BANK_ROW_COUNTRIES[key] }
-            const kinds = [gateFor('deposit', scope).kind, gateFor('withdraw', scope).kind]
-            if (kinds.includes('ready')) return 'active'
-            // Only support can lift a blocked rail, so that one row says so.
-            if (kinds.includes('blocked-rejection') || kinds.includes('restart-identity')) return 'attention'
-            // A rail that exists but cannot move money yet is mid-flight,
-            // whatever it is waiting on — provisioning, a document, a ToS.
-            // Unlock is reserved for a corridor with no rail behind it at all,
-            // because that is the only case where the tap starts something.
-            if (kinds.some((kind) => MID_FLIGHT_GATES.has(kind))) return 'processing'
-            return 'unlock'
-        },
-        [gateFor]
+/** Which sentence explains a closed row: the residence's rule, the account's own, or the country's. */
+function closedBecause(reason: string | undefined): NonNullable<UnlockRow['unavailableBecause']> {
+    if (reason === 'account_unavailable_in_residence') return 'account-residence'
+    if (reason === 'local_residence_unsupported') return 'residence'
+    return 'restricted-country'
+}
+
+/** The report entry behind one bank row: its currency's account. */
+export function useBankEntryFor(): (key: BankRowKey) => FeatureReportEntry {
+    const { capabilities } = useCapabilities()
+    const report = capabilities.features ?? UNKNOWN_REPORT
+    return useCallback(
+        (key: BankRowKey) => accountEntry(report, ROW_ACCOUNTS[key].feature, ROW_ACCOUNTS[key].currency),
+        [report]
     )
-    return bankChipFor
-}
-
-/** The rail each bank row is, as the residence availability names them. */
-const ROW_RAIL: Readonly<Record<BankRowKey, AvailabilityItemKey>> = {
-    brl: 'pix',
-    ars: 'arQr',
-    usd: 'usdAch',
-    mxn: 'spei',
-    sepa: 'eurSepa',
 }
 
 /**
- * A verified user who asked for a currency's feature, in a residence that gets
- * that rail, is waiting on the provider: Pending, not an offer to set it up
- * again (Slava, 2026-10-27). Pix and Argentine transfers are the local feature;
- * the rest are the bank one.
+ * The chip for one currency's bank row: the API's answer for that account
+ * (`capabilities.features`), so the row, the flow behind it and every other
+ * screen say the same thing about it.
  */
-export function requestedChip(
-    chip: BankRegionChip,
-    key: BankRowKey,
-    {
-        approved,
-        requested,
-        residenceIso2,
-    }: { approved: boolean; requested: { bank: boolean; local: boolean } | null; residenceIso2: string | null }
-): BankRegionChip {
-    if (chip !== 'unlock' || !approved || !requested || !residenceIso2) return chip
-    const asked = key === 'brl' || key === 'ars' ? requested.local : requested.bank
-    return asked && bankRailsFor(residenceIso2).includes(ROW_RAIL[key]) ? 'processing' : chip
+export function useBankChipFor(): (key: BankRowKey) => UnlockChip {
+    const { nextActions } = useCapabilities()
+    const entryFor = useBankEntryFor()
+    return useCallback((key: BankRowKey) => entryChip(entryFor(key), nextActions), [entryFor, nextActions])
 }
 
 /**
@@ -108,11 +65,8 @@ export function requestedChip(
  */
 export function useBankRows() {
     const { user } = useAuth()
-    const bankChipFor = useBankChipFor()
-    const { isKycApproved } = useCapabilities()
-    const requested = useRequestedKycFeatures()
-    const restrictions = useResidenceRestrictions()
-    const { closed: paperworkClosed } = usePaperworkClosures()
+    const { capabilities, nextActions } = useCapabilities()
+    const entryFor = useBankEntryFor()
 
     // Server copy first; the localStorage mirror of the signup answer covers
     // reloads before /users/me returns it (or an API without the fields yet).
@@ -145,24 +99,22 @@ export function useBankRows() {
         : (localDeclared ?? null)
 
     const input: BankRowsInput = useMemo(() => {
-        const asked = { approved: isKycApproved, requested, residenceIso2 }
-        const chip = (key: BankRowKey) => requestedChip(bankChipFor(key), key, asked)
+        const keys = Object.keys(ROW_ACCOUNTS) as BankRowKey[]
+        const entries = keys.map((key) => [key, entryFor(key)] as const)
         return {
-            bankChips: {
-                brl: chip('brl'),
-                ars: chip('ars'),
-                usd: chip('usd'),
-                mxn: chip('mxn'),
-                sepa: chip('sepa'),
-            },
-            restrictions,
+            bankChips: Object.fromEntries(
+                entries.map(([key, entry]) => [key, entryChip(entry, nextActions)])
+            ) as Record<BankRowKey, BankRegionChip>,
+            closedBecause: Object.fromEntries(entries.map(([key, entry]) => [key, closedBecause(entry.reason)])),
             residenceIso2,
             secondResidenceIso2,
             isEuropeResidence: isEuropeIso2(residenceIso2) || isEuropeIso2(secondResidenceIso2),
-            paperworkClosed,
         }
-    }, [bankChipFor, isKycApproved, requested, restrictions, residenceIso2, secondResidenceIso2, paperworkClosed])
+    }, [entryFor, nextActions, residenceIso2, secondResidenceIso2])
     const rows = useMemo(() => buildBankRows(input), [input])
+    // The one bank account row: the bank and local features, each as the API states it.
+    const report = capabilities.features ?? UNKNOWN_REPORT
+    const accountChip = bestChip([entryChip(report.bank, nextActions), entryChip(report.local, nextActions)])
 
-    return { rows, input, residence, residenceIso2, secondResidenceIso2 }
+    return { rows, input, accountChip, residence, residenceIso2, secondResidenceIso2 }
 }

@@ -49,10 +49,10 @@ export function HomePage() {
         toggleBalanceVisibility,
     } = useHomeFlow()
     useHomeViewAnalytics(isPageLoading)
-    const { nextActions, rails } = useCapabilities()
+    const { nextActions, capabilities } = useCapabilities()
     const { blockedCard } = useProviderRejection(onboarding)
     const prioritizeIdentityRestart = blockedCard?.kind === 'restart-identity' && !hiddenHomeCtas.has(blockedCard.ctaId)
-    const { documentSlide } = selectHomeTasks(nextActions, rails ?? [], undefined, prioritizeIdentityRestart)
+    const { documentSlide } = selectHomeTasks(nextActions, capabilities.features, undefined, prioritizeIdentityRestart)
     // a blocked card (region refused, provider rejection) owns the slot until
     // the user hides it, even when every checklist row is done; hiding hands over
     // to the carousel, and Profile → Accounts keeps the fix or support route.

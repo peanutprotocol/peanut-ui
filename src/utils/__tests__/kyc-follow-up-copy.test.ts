@@ -1,3 +1,4 @@
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import { kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
 import { isBridgeProcessingSlow } from '@/utils/kyc-processing.utils'
 import { KYC_PROCESSING_STALE_AFTER_MS } from '@/constants/kyc.consts'
@@ -87,8 +88,12 @@ describe('Bridge review age', () => {
             reason: { code: 'bridge_processing', userMessage: 'Reviewing' },
             resolved: { status: 'pending', nextAction: { key: 'wait:bridge', kind: 'wait', purpose: 'review' } },
         }
-        const capabilities = { rails: [rail], nextActions: [], restrictions: [] }
-        expect(deriveGate({ ...capabilities, isLoading: false, identityVerified: true }, 'deposit')).toEqual(
+        const capabilities = withFeatureReport({
+            rails: [rail],
+            nextActions: [rail.resolved!.nextAction!],
+            restrictions: [],
+        })
+        expect(deriveGate({ ...capabilities, isLoading: false }, 'deposit')).toEqual(
             expect.objectContaining({ kind: 'waiting-on-provider', pendingSince, railId: rail.id })
         )
     })

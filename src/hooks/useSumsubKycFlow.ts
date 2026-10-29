@@ -485,7 +485,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                             intent: overrideIntent ?? regionIntent,
                             corridor,
                             targetCountry: normalizedTargetCountry,
-                        })
+                        }),
+                        user?.capabilities?.features
                     )
                     if (paperworkVerificationPath) {
                         userInitiatedRef.current = false
@@ -697,6 +698,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             acceptDocumentSession,
             router,
             handleDocumentConflict,
+            user?.capabilities?.features,
         ]
     )
 

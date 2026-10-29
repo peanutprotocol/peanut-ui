@@ -84,6 +84,7 @@ export const REASON_CODE_KEYS = {
     requirements_in_review: 'reasons.requirements_in_review',
     // Parked for a need the approved identity cannot meet: another document (restart-identity) or one only support can collect.
     identity_document_insufficient: 'reasons.identity_document_insufficient',
+    document_country_unsupported: 'reasons.document_country_unsupported',
     requirements_uncollectable: 'reasons.requirements_uncollectable',
     uk_resident_blocked: 'reasons.uk_resident_blocked',
     // Any other residence the bank rails are closed to (api#1738). Country-

@@ -5,6 +5,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { kycClientHeaders } from '@/utils/kyc-client-headers'
 import { restartIdentityVerification, type SumsubActionErrorCode } from './sumsub'
 import * as Sentry from '@/utils/sentry-lazy'
+import type { FeatureReport } from '@/types/capabilities'
 import { isTestApiBuild, reportApiContractError } from '@/utils/api-contracts'
 import {
     PAPERWORK_VERIFICATION_FLOW,
@@ -66,6 +67,15 @@ export async function getKycDocumentPlan(restart = false): Promise<KycDocumentPl
     if (typeof plan.available !== 'boolean' || !Array.isArray(plan.routes))
         throw contractError('/users/kyc/plan', 'GET', 200, 'invalid_plan')
     return plan
+}
+
+/** The API's feature report (`GET /users/kyc/features`); undefined when it cannot be read. */
+export async function getKycFeatures(): Promise<FeatureReport | undefined> {
+    try {
+        return (await read<{ features?: FeatureReport }>('/users/kyc/features')).features
+    } catch {
+        return undefined
+    }
 }
 
 /** Waits before the 2nd and 3rd tries: Android WebView GETs fail intermittently (POSTs do not). */

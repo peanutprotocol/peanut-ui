@@ -1706,6 +1706,7 @@
             "bridge_answers_rejected": "Nuestro socio de pagos no pudo aceptar una de tus respuestas. Respondé las preguntas de nuevo.",
             "requirements_missing": "Para abrir tus cuentas bancarias, nuestro socio de pagos necesita un comprobante de domicilio, como un estado de cuenta bancario o una factura de servicios reciente. Agregalo y terminaremos de configurarlas automáticamente.",
             "identity_document_insufficient": "El documento con el que te verificaste no se puede usar para esta cuenta. Verificate de nuevo con otro documento de identidad.",
+            "document_country_unsupported": "Esto requiere un documento de identidad emitido por el país donde vivís. Verificate de nuevo con ese documento.",
             "requirements_uncollectable": "Nuestro socio de pagos necesita algo que no podemos recopilar en la app. Escribile a soporte y terminaremos la configuración con vos.",
             "email_required": "Necesitamos un correo electrónico para terminar de configurar esta cuenta. Agregá uno a tu perfil y lo reintentaremos automáticamente.",
             "submission_failed": "Tuvimos un problema al finalizar tu verificación de nuestro lado. Lo vamos a resolver: tocá abajo para escribirle a soporte.",

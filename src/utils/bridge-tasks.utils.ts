@@ -1,5 +1,4 @@
-import type { NextAction, RailCapability } from '@/types/capabilities'
-import { railVerdict } from '@/utils/capability-gate'
+import type { FeatureReport, FeatureReportEntry, NextAction } from '@/types/capabilities'
 
 /**
  * How many days before its due date a future-dated document request shows up.
@@ -43,6 +42,46 @@ export function isInFinalWeek(effectiveDate: string | undefined, now: Date = new
 const isDocumentRequest = (action: NextAction): boolean => action.kind === 'sumsub' && !!action.effectiveDate
 
 /**
+ * The steps the API's feature report names, each once, with the feature it
+ * names them for: an entry waiting on the user (`action_required`), or a
+ * working one carrying a future-dated request. The report decides what is a
+ * task; this only lists it (B5).
+ */
+export function reportTasks(
+    report: FeatureReport | undefined,
+    nextActions: readonly NextAction[]
+): { action: NextAction; feature: keyof FeatureReport; entry: FeatureReportEntry }[] {
+    if (!report) return []
+    const byKey = new Map(nextActions.map((action) => [action.key, action]))
+    const entries: [keyof FeatureReport, FeatureReportEntry][] = [
+        ['bank', report.bank],
+        ...Object.values(report.bank.accounts).map((entry): [keyof FeatureReport, FeatureReportEntry] => [
+            'bank',
+            entry,
+        ]),
+        ['local', report.local],
+        ...Object.values(report.local.accounts).map((entry): [keyof FeatureReport, FeatureReportEntry] => [
+            'local',
+            entry,
+        ]),
+        ['card', report.card],
+        ['qr', report.qr],
+    ]
+    const seen = new Set<string>()
+    const tasks: { action: NextAction; feature: keyof FeatureReport; entry: FeatureReportEntry }[] = []
+    for (const [feature, entry] of entries) {
+        const action = entry.action ? byKey.get(entry.action) : undefined
+        // Per feature: Bridge and Rain name the same `sumsub:proof_of_address` key for different asks.
+        const once = `${feature}:${action?.key}`
+        if (!action || seen.has(once)) continue
+        if (entry.state !== 'action_required' && !(entry.state === 'on' && action.effectiveDate)) continue
+        seen.add(once)
+        tasks.push({ action, feature, entry })
+    }
+    return tasks
+}
+
+/**
  * The Home split of the verification tasks. Home shows one CTA surface at a
  * time: the large task card or the carousel, never both.
  *
@@ -53,13 +92,13 @@ const isDocumentRequest = (action: NextAction): boolean => action.kind === 'sums
  */
 export function selectHomeTasks(
     nextActions: NextAction[],
-    rails: RailCapability[] = [],
+    report: FeatureReport | undefined,
     now: Date = new Date(),
     prioritizeIdentityRestart = false
 ): { largeTasks: NextAction[]; documentSlide: NextAction | undefined } {
-    const tasks = selectBridgeTasks(nextActions, rails, now)
-    const cardTask = selectCardDocumentTask(nextActions, rails)
-    const bridgeTasks = selectBridgeDocumentTasks(nextActions, rails)
+    const tasks = selectBridgeTasks(nextActions, report, now)
+    const cardTask = selectCardDocumentTask(nextActions, report)
+    const bridgeTasks = selectBridgeDocumentTasks(nextActions, report)
     const blockingKeys = new Set(bridgeTasks.map((task) => bridgeDocumentActionKey(task)))
     return {
         largeTasks: [
@@ -81,24 +120,27 @@ const BRIDGE_DOCUMENT_TASK_PREFIX = 'bridge-document:'
 export const isBridgeDocumentTask = (task: NextAction): boolean => task.key.startsWith(BRIDGE_DOCUMENT_TASK_PREFIX)
 export const bridgeDocumentActionKey = (task: NextAction): string => task.key.slice(BRIDGE_DOCUMENT_TASK_PREFIX.length)
 
-// Bank-transfer providers whose document request is a Home task: Bridge's, and Manteca's PEP or UIF ask.
-const DOCUMENT_TASK_PROVIDERS = new Set(['bridge', 'manteca'])
-export const isDocumentTaskProvider = (provider: string): boolean => DOCUMENT_TASK_PROVIDERS.has(provider)
+/** The bank features' document requests the report names as the user's step: Bridge's, and Manteca's PEP or UIF ask. */
+export function selectBridgeDocumentTasks(nextActions: NextAction[], report: FeatureReport | undefined): NextAction[] {
+    return reportTasks(report, nextActions)
+        .filter(
+            ({ action, feature, entry }) =>
+                (feature === 'bank' || feature === 'local') &&
+                entry.state === 'action_required' &&
+                action.kind === 'sumsub' &&
+                !action.effectiveDate
+        )
+        .map(({ action }) => ({ ...action, key: `${BRIDGE_DOCUMENT_TASK_PREFIX}${action.key}` }))
+}
 
-export function selectBridgeDocumentTasks(nextActions: NextAction[], rails: RailCapability[]): NextAction[] {
-    const byKey = new Map(nextActions.map((action) => [action.key, action]))
-    const tasks = new Map<string, NextAction>()
-    for (const rail of rails) {
-        if (!isDocumentTaskProvider(rail.provider) || rail.status !== 'requires-info') continue
-        const { status, nextAction } = railVerdict(rail, byKey)
-        if (status !== 'fixable' || nextAction?.kind !== 'sumsub') continue
-        tasks.set(nextAction.key, {
-            ...nextAction,
-            key: `${BRIDGE_DOCUMENT_TASK_PREFIX}${nextAction.key}`,
-            effectiveDate: undefined,
-        })
-    }
-    return [...tasks.values()]
+/** The report entry that names a bank document task, for the reason the task explains. */
+export function bridgeDocumentTaskEntry(
+    task: NextAction,
+    nextActions: NextAction[],
+    report: FeatureReport | undefined
+): FeatureReportEntry | undefined {
+    const key = bridgeDocumentActionKey(task)
+    return reportTasks(report, nextActions).find(({ action }) => action.key === key)?.entry
 }
 
 const CARD_DOCUMENT_TASK_PREFIX = 'card-document:'
@@ -107,71 +149,57 @@ const CARD_DOCUMENT_TASK_PREFIX = 'card-document:'
  * The card application's document request as a Home task: Rain asks for a
  * proof of address, or for the identity document again in its own portal
  * (`rain-hosted`). The card screen holds the button, so the task opens it.
- * Only a requires-info rail: a denial is a verdict, and a collected document
- * waiting for review is a `wait`. Keyed apart from the action, because Bridge
- * emits the same `sumsub:proof_of_address` key and only the rail says whose
- * ask it is.
+ * Keyed apart from the action, because Bridge emits the same
+ * `sumsub:proof_of_address` key and only the feature says whose ask it is.
  */
-export function selectCardDocumentTask(nextActions: NextAction[], rails: RailCapability[]): NextAction | undefined {
-    const byKey = new Map(nextActions.map((action) => [action.key, action]))
-    for (const rail of rails) {
-        if (rail.provider !== 'rain' || rail.status !== 'requires-info') continue
-        const { status, nextAction } = railVerdict(rail, byKey)
-        if (status !== 'fixable' || !nextAction) continue
-        if (
-            nextAction.kind === 'rain-hosted' ||
-            (nextAction.kind === 'sumsub' &&
-                (nextAction.levelKey === 'proof_of_address' || nextAction.levelKey === 'rain_identity_verification'))
-        ) {
-            return { ...nextAction, key: `${CARD_DOCUMENT_TASK_PREFIX}${nextAction.key}` }
-        }
-    }
-    return undefined
+export function selectCardDocumentTask(
+    nextActions: NextAction[],
+    report: FeatureReport | undefined
+): NextAction | undefined {
+    const card = reportTasks(report, nextActions).find(
+        ({ action, feature, entry }) =>
+            feature === 'card' &&
+            entry.state === 'action_required' &&
+            (action.kind === 'rain-hosted' ||
+                (action.kind === 'sumsub' &&
+                    (action.levelKey === 'proof_of_address' || action.levelKey === 'rain_identity_verification')))
+    )
+    return card ? { ...card.action, key: `${CARD_DOCUMENT_TASK_PREFIX}${card.action.key}` } : undefined
 }
 
 export const isCardDocumentTask = (task: NextAction): boolean => task.key.startsWith(CARD_DOCUMENT_TASK_PREFIX)
 
 /**
- * The nextActions renderable as pending Bridge verification tasks:
- * `accept-tos` (blocking, rail-attached — or advisory orphan) and
- * `bridge-hosted` (the hosted-flow catch-all), plus a future-dated `sumsub`
- * document request inside the heads-up window (only Bridge advisories carry
- * `effectiveDate`; a blocking sumsub step is gated on its own rail). One filter catches both the
- * blocking and the advisory (future-dated, `effectiveDate`-carrying)
- * populations — advisory actions arrive as orphans no rail references, so
- * reading top-level `nextActions` is the only way to see them.
- *
- * A BLOCKING hosted task stands down while a Bridge rail carries a native
- * `sumsub` step. Bridge lists its unmapped keys (`kyc_approval`, the
- * `kyc_with_proof_of_address` tier marker) beside the specific document it
- * wants, and the hosted flow (Persona identity) cannot collect that document,
- * so offering both put users in a loop (TASK-22818). The resolver no longer
- * emits the pair; this keeps older API responses honest too. Advisory hosted
- * tasks are about keeping access on a working rail and stay.
+ * The bank tasks the report names: Bridge's terms (`accept-tos`), its hosted
+ * check (`bridge-hosted`), and a future-dated document request inside the
+ * heads-up window. A blocking hosted check stands down while a bank feature's
+ * step is a Sumsub document the app collects itself: the hosted flow cannot
+ * collect that document, so offering both put users in a loop (TASK-22818).
+ * Advisory hosted tasks are about keeping access on a working rail and stay.
  */
 export function selectBridgeTasks(
     nextActions: NextAction[],
-    rails: RailCapability[] = [],
+    report: FeatureReport | undefined,
     now: Date = new Date()
 ): NextAction[] {
-    const tasks = nextActions.filter(
-        (action) =>
-            action.kind === 'accept-tos' ||
-            action.kind === 'bridge-hosted' ||
-            (action.kind === 'sumsub' && !!headsUpDeadline(action.effectiveDate, now))
-    )
-    if (!hasNativeBridgeStep(nextActions, rails)) return tasks
+    const tasks = reportTasks(report, nextActions)
+        .filter(({ feature }) => feature === 'bank' || feature === 'local')
+        .map(({ action }) => action)
+        .filter(
+            (action) =>
+                action.kind === 'accept-tos' ||
+                action.kind === 'bridge-hosted' ||
+                (action.kind === 'sumsub' && !!headsUpDeadline(action.effectiveDate, now))
+        )
+    if (!hasNativeBridgeStep(nextActions, report)) return tasks
     return tasks.filter((action) => action.kind !== 'bridge-hosted' || !!action.effectiveDate)
 }
 
-/** A requires-info Bridge rail whose blocking actions include a Sumsub step the app runs itself. */
-export function hasNativeBridgeStep(nextActions: NextAction[], rails: RailCapability[]): boolean {
-    const kindByKey = new Map(nextActions.map((action) => [action.key, action.kind]))
-    return rails.some(
-        (rail) =>
-            rail.provider === 'bridge' &&
-            rail.status === 'requires-info' &&
-            (rail.blockingActions ?? []).some((key) => kindByKey.get(key) === 'sumsub')
+/** The bank feature's step is a Sumsub document the app runs itself. */
+export function hasNativeBridgeStep(nextActions: NextAction[], report: FeatureReport | undefined): boolean {
+    return reportTasks(report, nextActions).some(
+        ({ action, feature, entry }) =>
+            feature === 'bank' && entry.state === 'action_required' && action.kind === 'sumsub' && !action.effectiveDate
     )
 }
 

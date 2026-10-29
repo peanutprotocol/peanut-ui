@@ -1,3 +1,5 @@
+import { featureReport } from '@/test-utils/featureReport.fixture'
+import { accountEntry, entryChip } from '@/features/kyc-features/report'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { LOCAL_RESIDENCE_RESTRICTION_SETS } from '@/hooks/useResidenceRestrictionSets'
 import {
@@ -127,9 +129,28 @@ describe('residenceAvailability vs buildBankRows', () => {
 
     const unlockRowsFor = (iso2: string) => {
         const restrictions = deriveResidenceRestrictionsFrom(sets, iso2)
+        const report = featureReport({
+            rails: [],
+            nextActions: [],
+            identity: { status: 'verified' },
+            residence: iso2,
+            restrictions: {
+                banking: restrictions.banking
+                    ? { code: 'residence_bank_restricted', userMessage: 'Unavailable' }
+                    : null,
+                card: restrictions.card,
+            },
+            productRefusals: restrictions.banking ? { 'manteca.local': 'residence_bank_restricted' } : {},
+        })
         return buildBankRows({
-            bankChips: { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' },
-            restrictions,
+            bankChips: {
+                brl: entryChip(accountEntry(report, 'local', 'BRL'), []),
+                ars: entryChip(accountEntry(report, 'local', 'ARS'), []),
+                usd: entryChip(accountEntry(report, 'bank', 'USD'), []),
+                mxn: entryChip(accountEntry(report, 'bank', 'MXN'), []),
+                sepa: entryChip(accountEntry(report, 'bank', 'EUR'), []),
+            },
+            closedBecause: { brl: 'residence', ars: 'residence' },
             residenceIso2: iso2,
             isEuropeResidence: iso2 !== 'US' && iso2 !== 'MX' && isBridgeSupportedCountry(iso2),
         })

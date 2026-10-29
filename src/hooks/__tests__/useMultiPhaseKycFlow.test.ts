@@ -1,3 +1,4 @@
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
 jest.mock('@/app/actions/kyc-workflow', () => ({
@@ -52,7 +53,14 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), repla
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, isAndroidNative: () => false }))
 // the transitive useSumsubKycFlow reads user.user.username off the same useAuth
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ fetchUser: mockFetchUser, user: { user: { username: 'test' } } }),
+    useAuth: () => ({
+        fetchUser: mockFetchUser,
+        user: {
+            user: { username: 'test' },
+            capabilities: mockCapabilities,
+            identityVerification: { status: 'verified' },
+        },
+    }),
 }))
 let mockCapabilities: unknown = undefined
 jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ capabilities: mockCapabilities }) }))
@@ -322,20 +330,23 @@ describe('deposit session regression contracts', () => {
         expect(markSubmitted).toHaveBeenCalled()
         expect(mockFetchUser).toHaveBeenCalled()
         const refreshed = {
-            capabilities: {
-                rails: [
-                    {
-                        provider: 'manteca',
-                        channel: 'bank',
-                        country: 'AR',
-                        currency: 'ARS',
-                        status: 'enabled',
-                        operations: { deposit: 'enabled' },
-                    },
-                ],
-                nextActions: [],
-                restrictions: [],
-            },
+            capabilities: withFeatureReport(
+                {
+                    rails: [
+                        {
+                            provider: 'manteca',
+                            channel: 'bank',
+                            country: 'AR',
+                            currency: 'ARS',
+                            status: 'enabled',
+                            operations: { deposit: 'enabled' },
+                        },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                } as never,
+                { identity: { status: 'verified' } }
+            ),
         }
         mockFetchUser.mockResolvedValue(refreshed)
         await act(async () => {
@@ -412,14 +423,17 @@ describe('deposit session regression contracts', () => {
     it.each(['blocked', 'requires-info', 'unavailable', 'pending'])(
         'a %s deposit rail cannot be success even when QR is enabled',
         (status) => {
-            const capabilities = {
-                rails: [
-                    { provider: 'bridge', channel: 'bank', country: 'EU', currency: 'EUR', status },
-                    { provider: 'manteca', channel: 'qr-only', country: 'AR', currency: 'ARS', status: 'enabled' },
-                ],
-                nextActions: [],
-                restrictions: [],
-            }
+            const capabilities = withFeatureReport(
+                {
+                    rails: [
+                        { provider: 'bridge', channel: 'bank', country: 'EU', currency: 'EUR', status },
+                        { provider: 'manteca', channel: 'qr-only', country: 'AR', currency: 'ARS', status: 'enabled' },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                } as never,
+                { identity: { status: 'verified' } }
+            )
             expect(deriveCapabilityPhaseSignals(capabilities as never, 'EU').allSettled).toBe(false)
         }
     )
@@ -427,39 +441,48 @@ describe('deposit session regression contracts', () => {
         ['GB', 'GBP', 'EU'],
         ['MX', 'MXN', 'NA'],
     ] as const)('uses the requested %s bank jurisdiction', (country, currency, intent) => {
-        const capabilities = {
-            rails: [{ provider: 'bridge', channel: 'bank', country, currency, status: 'enabled' }],
-            nextActions: [],
-            restrictions: [],
-        }
+        const capabilities = withFeatureReport(
+            {
+                rails: [{ provider: 'bridge', channel: 'bank', country, currency, status: 'enabled' }],
+                nextActions: [],
+                restrictions: [],
+            } as never,
+            { identity: { status: 'verified' } }
+        )
         expect(deriveCapabilityPhaseSignals(capabilities as never, intent, country).allSettled).toBe(true)
-        const other = {
-            ...capabilities,
-            rails: [
-                {
-                    ...capabilities.rails[0],
-                    country: intent === 'EU' ? 'EU' : 'US',
-                    currency: intent === 'EU' ? 'EUR' : 'USD',
-                },
-            ],
-        }
+        const other = withFeatureReport(
+            {
+                ...capabilities,
+                rails: [
+                    {
+                        ...capabilities.rails[0],
+                        country: intent === 'EU' ? 'EU' : 'US',
+                        currency: intent === 'EU' ? 'EUR' : 'USD',
+                    },
+                ],
+            } as never,
+            { identity: { status: 'verified' } }
+        )
         expect(deriveCapabilityPhaseSignals(other as never, intent, country).allSettled).toBe(false)
     })
     it('an enabled account in another country cannot complete an AR deposit flow', () => {
-        const capabilities = {
-            rails: [
-                {
-                    provider: 'manteca',
-                    channel: 'bank',
-                    country: 'BR',
-                    currency: 'BRL',
-                    status: 'enabled',
-                    operations: { deposit: 'enabled' },
-                },
-            ],
-            nextActions: [],
-            restrictions: [],
-        }
+        const capabilities = withFeatureReport(
+            {
+                rails: [
+                    {
+                        provider: 'manteca',
+                        channel: 'bank',
+                        country: 'BR',
+                        currency: 'BRL',
+                        status: 'enabled',
+                        operations: { deposit: 'enabled' },
+                    },
+                ],
+                nextActions: [],
+                restrictions: [],
+            } as never,
+            { identity: { status: 'verified' } }
+        )
         expect(deriveCapabilityPhaseSignals(capabilities as never, 'LATAM', 'AR').allSettled).toBe(false)
     })
 })
@@ -666,39 +689,50 @@ describe('useMultiPhaseKycFlow — submission analytics per attempt', () => {
 // proof of address arrives on its supplement action (supplement:bridge).
 describe('useMultiPhaseKycFlow — the proof of address after the identity', () => {
     const parked = {
-        capabilities: {
-            rails: [
-                {
-                    id: 'bridge.sepa_eu',
-                    provider: 'bridge',
-                    channel: 'bank',
-                    country: 'EU',
-                    currency: 'EUR',
-                    status: 'blocked',
-                    reason: { code: 'requirements_missing', userMessage: 'x' },
-                    blockingActions: ['supplement:bridge'],
-                },
-            ],
-            nextActions: [{ key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' }],
-            restrictions: [],
-        },
+        capabilities: withFeatureReport(
+            {
+                rails: [
+                    {
+                        id: 'bridge.sepa_eu',
+                        provider: 'bridge',
+                        channel: 'bank',
+                        country: 'EU',
+                        currency: 'EUR',
+                        status: 'blocked',
+                        reason: { code: 'requirements_missing', userMessage: 'x' },
+                        blockingActions: ['supplement:bridge'],
+                        resolved: {
+                            status: 'fixable',
+                            nextAction: { key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' },
+                        },
+                    },
+                ],
+                nextActions: [{ key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' }],
+                restrictions: [],
+            } as never,
+            { identity: { status: 'verified' } }
+        ),
     }
     const reviewing = {
-        capabilities: {
-            ...parked.capabilities,
-            rails: [
-                {
-                    ...parked.capabilities.rails[0],
-                    status: 'pending',
-                    reason: {
-                        code: 'requirements_in_review',
-                        userMessage: "We're checking your proof of address. Bank accounts open once it's approved.",
+        capabilities: withFeatureReport(
+            {
+                ...parked.capabilities,
+                rails: [
+                    {
+                        ...parked.capabilities.rails[0],
+                        status: 'pending',
+                        reason: {
+                            code: 'requirements_in_review',
+                            userMessage: "We're checking your proof of address. Bank accounts open once it's approved.",
+                        },
+                        blockingActions: [],
+                        resolved: { status: 'pending' },
                     },
-                    blockingActions: [],
-                },
-            ],
-            nextActions: [],
-        },
+                ],
+                nextActions: [],
+            } as never,
+            { identity: { status: 'verified' } }
+        ),
     }
     const mockStartAction = jest.requireMock('@/app/actions/sumsub').startKycAction as jest.Mock
 
@@ -723,7 +757,12 @@ describe('useMultiPhaseKycFlow — the proof of address after the identity', () 
     it('reads the supplement a parked rail carries', () => {
         expect(deriveCapabilityPhaseSignals(parked.capabilities as never).supplementKey).toBe('supplement:bridge')
         expect(
-            deriveCapabilityPhaseSignals({ ...parked.capabilities, rails: [], nextActions: [] } as never).supplementKey
+            deriveCapabilityPhaseSignals(
+                withFeatureReport(
+                    { ...parked.capabilities, rails: [], nextActions: [] },
+                    { identity: { status: 'verified' } }
+                )
+            ).supplementKey
         ).toBeUndefined()
     })
 
@@ -776,11 +815,21 @@ describe('useMultiPhaseKycFlow — the proof of address after the identity', () 
 
     it('a rail that parks while the account is prepared asks for the proof of address, not support', async () => {
         const provisioning = {
-            capabilities: {
-                ...parked.capabilities,
-                rails: [{ ...parked.capabilities.rails[0], status: 'pending', blockingActions: [] }],
-                nextActions: [],
-            },
+            capabilities: withFeatureReport(
+                {
+                    ...parked.capabilities,
+                    rails: [
+                        {
+                            ...parked.capabilities.rails[0],
+                            status: 'pending',
+                            blockingActions: [],
+                            resolved: { status: 'pending' },
+                        },
+                    ],
+                    nextActions: [],
+                } as never,
+                { identity: { status: 'verified' } }
+            ),
         }
         mockFetchUser.mockResolvedValue(provisioning)
         const onKycSuccess = jest.fn()
@@ -817,20 +866,23 @@ describe('useMultiPhaseKycFlow — Bridge ToS page close', () => {
     const mockGetTosLink = getBridgeTosLink as jest.MockedFunction<typeof getBridgeTosLink>
     const mockConfirm = confirmBridgeTos as jest.MockedFunction<typeof confirmBridgeTos>
     const enabledBridgeRail = {
-        capabilities: {
-            rails: [
-                {
-                    provider: 'bridge',
-                    channel: 'bank',
-                    country: 'EU',
-                    currency: 'EUR',
-                    status: 'enabled',
-                    operations: { deposit: 'enabled' },
-                },
-            ],
-            nextActions: [],
-            restrictions: [],
-        },
+        capabilities: withFeatureReport(
+            {
+                rails: [
+                    {
+                        provider: 'bridge',
+                        channel: 'bank',
+                        country: 'EU',
+                        currency: 'EUR',
+                        status: 'enabled',
+                        operations: { deposit: 'enabled' },
+                    },
+                ],
+                nextActions: [],
+                restrictions: [],
+            } as never,
+            { identity: { status: 'verified' } }
+        ),
     }
 
     beforeEach(() => {

@@ -10,105 +10,105 @@ import {
     selectCardDocumentTask,
     selectHomeTasks,
 } from '../bridge-tasks.utils'
-import type { NextAction, RailCapability } from '@/types/capabilities'
+import type { FeatureReport, FeatureReportEntry, NextAction } from '@/types/capabilities'
+import { featureReport } from '@/test-utils/featureReport.fixture'
 
-const action = (overrides: Partial<NextAction>): NextAction => ({
+const action = (overrides: Partial<NextAction> = {}): NextAction => ({
     key: 'accept-tos',
     kind: 'accept-tos',
     purpose: 'accept-bridge-tos',
     ...overrides,
 })
-
-const rail = (overrides: Partial<RailCapability>): RailCapability => ({
-    id: 'bridge.sepa_eu',
-    provider: 'bridge',
-    method: 'SEPA_EU',
-    channel: 'bank',
-    country: 'EU',
-    currency: 'EUR',
-    status: 'requires-info',
-    ...overrides,
-})
-
 const hosted = action({ key: 'bridge-hosted', kind: 'bridge-hosted', purpose: 'bridge-additional-verification' })
 const poaUpload = action({ key: 'sumsub:proof_of_address', kind: 'sumsub', purpose: 'unlock-bridge' })
+const emptyReport = (): FeatureReport =>
+    featureReport({ rails: [], nextActions: [], identity: { status: 'verified' }, residence: null })
+// Each supplied entry explicitly names a task; nextActions alone never makes one.
+const bankReport = (...entries: FeatureReportEntry[]): FeatureReport => ({
+    ...emptyReport(),
+    bank: { state: 'ready', accounts: Object.fromEntries(entries.map((entry, i) => [String(i), entry])) },
+})
+const step = (task: NextAction): FeatureReportEntry => ({
+    state: task.effectiveDate ? 'on' : 'action_required',
+    action: task.key,
+})
+const naming = (...tasks: NextAction[]) => bankReport(...tasks.map(step))
 
 describe('selectBridgeTasks', () => {
-    it('keeps accept-tos and bridge-hosted, drops everything else', () => {
-        const tasks = selectBridgeTasks([
-            action({ key: 'accept-tos', kind: 'accept-tos' }),
-            action({ key: 'bridge-hosted', kind: 'bridge-hosted', purpose: 'bridge-additional-verification' }),
-            action({ key: 'sumsub:proof_of_address', kind: 'sumsub' }),
-            action({ key: 'wait:bridge', kind: 'wait' }),
-            action({ key: 'contact-support', kind: 'contact-support' }),
-        ])
-        expect(tasks.map((t) => t.key)).toEqual(['accept-tos', 'bridge-hosted'])
+    it('keeps named accept-tos and bridge-hosted, drops everything else', () => {
+        const tos = action()
+        const wait = action({ key: 'wait', kind: 'wait' })
+        const support = action({ key: 'support', kind: 'contact-support' })
+        const tasks = [tos, hosted, poaUpload, wait, support]
+        const report = bankReport(
+            step(tos),
+            step(hosted),
+            { state: 'setting_up', action: wait.key },
+            { state: 'refused', action: support.key }
+        )
+        expect(selectBridgeTasks(tasks, report)).toEqual([tos, hosted])
     })
-
-    it('returns [] when nothing is pending', () => {
-        expect(selectBridgeTasks([])).toEqual([])
-        expect(selectBridgeTasks([action({ key: 'sumsub:eea_uplift', kind: 'sumsub' })])).toEqual([])
+    it('returns [] when nothing is pending or the report names no task', () => {
+        expect(selectBridgeTasks([], emptyReport())).toEqual([])
+        expect(selectBridgeTasks([poaUpload], emptyReport())).toEqual([])
+        expect(selectBridgeTasks([hosted], undefined)).toEqual([])
     })
-
-    it('a BLOCKING hosted task stands down while a requires-info Bridge rail carries a native sumsub step (TASK-22818)', () => {
-        // Bridge lists `kyc_approval` / its proof-of-address tier marker beside
-        // the document it wants; the hosted flow cannot collect the document.
-        const rails = [rail({ blockingActions: ['sumsub:proof_of_address'] })]
-        expect(selectBridgeTasks([action({}), hosted, poaUpload], rails).map((t) => t.key)).toEqual(['accept-tos'])
+    it('a BLOCKING hosted task stands down while the bank report names a native Sumsub step (TASK-22818)', () => {
+        const tos = action()
+        expect(selectBridgeTasks([tos, hosted, poaUpload], naming(tos, hosted, poaUpload))).toEqual([tos])
     })
-
-    it('the stand-down needs a Bridge rail in requires-info with a sumsub step — nothing else triggers it', () => {
-        // enabled rail (advisory arm), a wait marker, a Manteca rail: hosted stays
-        expect(selectBridgeTasks([hosted, poaUpload], [rail({ status: 'enabled', blockingActions: [] })])).toEqual([
-            hosted,
-        ])
+    it('the stand-down needs an action_required bank entry — other states and features do not trigger it', () => {
+        const wait = action({ key: 'wait', kind: 'wait' })
+        const on = bankReport(step(hosted), { state: 'on', action: poaUpload.key })
+        expect(selectBridgeTasks([hosted, poaUpload], on)).toEqual([hosted])
         expect(
-            selectBridgeTasks(
-                [hosted, action({ key: 'wait:bridge', kind: 'wait' })],
-                [rail({ blockingActions: ['wait:bridge'] })]
-            )
+            selectBridgeTasks([hosted, wait], bankReport(step(hosted), { state: 'setting_up', action: wait.key }))
         ).toEqual([hosted])
-        expect(
-            selectBridgeTasks(
-                [hosted, poaUpload],
-                [rail({ id: 'manteca.pix_br', provider: 'manteca', blockingActions: ['sumsub:proof_of_address'] })]
-            )
-        ).toEqual([hosted])
+        const local = naming(hosted)
+        local.local = { state: 'action_required', action: poaUpload.key, accounts: {} }
+        expect(selectBridgeTasks([hosted, poaUpload], local)).toEqual([hosted])
     })
-
     it('hasNativeBridgeStep is the predicate the prep screen branches on', () => {
-        expect(hasNativeBridgeStep([poaUpload], [rail({ blockingActions: ['sumsub:proof_of_address'] })])).toBe(true)
-        expect(hasNativeBridgeStep([poaUpload], [])).toBe(false)
+        expect(hasNativeBridgeStep([poaUpload], naming(poaUpload))).toBe(true)
+        expect(hasNativeBridgeStep([poaUpload], emptyReport())).toBe(false)
     })
-
-    it('an ADVISORY hosted task (future-dated, rail still working) stays beside a native step', () => {
+    it('an ADVISORY hosted task stays beside a native step', () => {
         const advisory = { ...hosted, effectiveDate: '2099-09-01' }
-        const rails = [rail({ blockingActions: ['sumsub:proof_of_address'] })]
-        expect(selectBridgeTasks([advisory, poaUpload], rails)).toEqual([advisory])
+        expect(selectBridgeTasks([advisory, poaUpload], naming(advisory, poaUpload))).toEqual([advisory])
     })
-
-    it('keeps a sumsub document request due inside the heads-up window, never a blocking one', () => {
+    it('keeps a named Sumsub document request due inside the heads-up window, never a blocking one', () => {
         const now = new Date('2026-09-25T12:00:00Z')
-        const eeaUplift = action({
-            key: 'sumsub:eea_uplift',
+        const eea = action({
+            key: 'eea',
             kind: 'sumsub',
             effectiveDate: '2026-10-01',
             requirementKey: 'place_of_birth_missing',
         })
-        const expiringId = action({
-            key: 'sumsub:government_id',
+        const id = action({
+            key: 'id',
             kind: 'sumsub',
             effectiveDate: '2027-07-31',
             requirementKey: 'government_id_expired',
         })
-        expect(selectBridgeTasks([eeaUplift, expiringId, poaUpload], [], now)).toEqual([eeaUplift])
+        expect(selectBridgeTasks([eea, id, poaUpload], naming(eea, id, poaUpload), now)).toEqual([eea])
     })
-
     it('passes advisory metadata (effectiveDate) through untouched', () => {
-        const [task] = selectBridgeTasks([
-            action({ key: 'bridge-hosted', kind: 'bridge-hosted', effectiveDate: '2099-09-01' }),
-        ])
-        expect(task.effectiveDate).toBe('2099-09-01')
+        const advisory = { ...hosted, effectiveDate: '2099-09-01' }
+        expect(selectBridgeTasks([advisory], naming(advisory))[0]).toEqual(advisory)
+    })
+    it.each(['ready', 'setting_up', 'pending', 'refused'] as const)(
+        'does not list an action from a %s entry',
+        (state) => {
+            const report = bankReport({ state, action: hosted.key })
+            expect(selectBridgeTasks([hosted], report)).toEqual([])
+        }
+    )
+    it('deduplicates a named action across aggregate and account entries and ignores unknown keys', () => {
+        const report = naming(hosted, hosted)
+        report.bank.action = hosted.key
+        report.bank.state = 'action_required'
+        report.bank.accounts.unknown = { state: 'action_required', action: 'unknown' }
+        expect(selectBridgeTasks([hosted], report)).toEqual([hosted])
     })
 })
 
@@ -137,46 +137,42 @@ describe('headsUpDeadline', () => {
 
 describe('selectHomeTasks — one CTA surface on Home', () => {
     const now = new Date('2026-09-25T12:00:00Z')
-    const due = (days: number) => new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString()
+    const due = (days: number) => new Date(now.getTime() + days * 86400000).toISOString()
     const documentRequest = (days: number) =>
         action({ key: 'sumsub:eea_uplift', kind: 'sumsub', effectiveDate: due(days), requirementKey: 'nationalities' })
-
     it(`more than ${ADVISORY_HEADS_UP_WINDOW_DAYS} days out: nothing on Home`, () => {
-        expect(selectHomeTasks([documentRequest(40)], [], now)).toEqual({ largeTasks: [], documentSlide: undefined })
+        const request = documentRequest(40)
+        expect(selectHomeTasks([request], naming(request), now)).toEqual({ largeTasks: [], documentSlide: undefined })
     })
-
     it(`${ADVISORY_HEADS_UP_WINDOW_DAYS} to ${ADVISORY_FINAL_WEEK_DAYS + 1} days out: one small carousel slide, no large card`, () => {
         const request = documentRequest(20)
-        expect(selectHomeTasks([request], [], now)).toEqual({ largeTasks: [], documentSlide: request })
-        expect(selectHomeTasks([documentRequest(8)], [], now).largeTasks).toEqual([])
+        expect(selectHomeTasks([request], naming(request), now)).toEqual({ largeTasks: [], documentSlide: request })
+        const edge = documentRequest(8)
+        expect(selectHomeTasks([edge], naming(edge), now).largeTasks).toEqual([])
     })
-
     it(`last ${ADVISORY_FINAL_WEEK_DAYS} days, or past due: the large card, no slide`, () => {
         for (const days of [7, 3, -2]) {
             const request = documentRequest(days)
-            expect(selectHomeTasks([request], [], now)).toEqual({ largeTasks: [request], documentSlide: undefined })
+            expect(selectHomeTasks([request], naming(request), now)).toEqual({
+                largeTasks: [request],
+                documentSlide: undefined,
+            })
         }
     })
-
     it('ToS and hosted tasks stay large cards whatever their date', () => {
-        const tos = action({ key: 'accept-tos:sepa', effectiveDate: due(60) })
-        expect(selectHomeTasks([tos, documentRequest(20)], [], now).largeTasks).toEqual([tos])
+        for (const task of [action({ effectiveDate: due(60) }), { ...hosted, effectiveDate: due(60) }]) {
+            const document = documentRequest(20)
+            expect(selectHomeTasks([task, document], naming(task, document), now).largeTasks).toEqual([task])
+        }
     })
-
     it('a Manteca document request is a large Home task, as Bridge’s is', () => {
         const pep = action({ key: 'sumsub:pep_documentation', kind: 'sumsub', purpose: 'manteca-documents' })
-        const arBank = rail({
-            id: 'manteca.bank_transfer_ar',
-            provider: 'manteca',
-            method: 'BANK_TRANSFER_AR',
-            country: 'AR',
-            currency: 'ARS',
-            blockingActions: ['sumsub:pep_documentation'],
-        })
-        const { largeTasks } = selectHomeTasks([pep], [arBank], now)
-        expect(largeTasks.map((task) => task.key)).toEqual(['bridge-document:sumsub:pep_documentation'])
+        const report = emptyReport()
+        report.local.accounts.ARS = step(pep)
+        expect(selectHomeTasks([pep], report, now).largeTasks).toEqual([
+            { ...pep, key: 'bridge-document:sumsub:pep_documentation' },
+        ])
     })
-
     it('isInFinalWeek: the edge is exactly the final-week constant', () => {
         expect(isInFinalWeek(due(ADVISORY_FINAL_WEEK_DAYS), now)).toBe(true)
         expect(isInFinalWeek(due(ADVISORY_FINAL_WEEK_DAYS + 1), now)).toBe(false)
@@ -212,18 +208,6 @@ describe('bridgeTaskDismissalKey', () => {
 })
 
 describe('selectCardDocumentTask — a card application waiting on the user', () => {
-    const cardRail = (overrides: Partial<RailCapability> = {}) =>
-        rail({
-            id: 'rain.card_rain',
-            provider: 'rain',
-            method: 'CARD_RAIN',
-            channel: 'card',
-            country: 'GLOBAL',
-            currency: 'USD',
-            status: 'requires-info',
-            blockingActions: ['sumsub:proof_of_address'],
-            ...overrides,
-        })
     const rainPoa = action({
         key: 'sumsub:proof_of_address',
         kind: 'sumsub',
@@ -231,84 +215,66 @@ describe('selectCardDocumentTask — a card application waiting on the user', ()
         levelKey: 'proof_of_address',
     })
     const rainHosted = action({ key: 'rain-hosted', kind: 'rain-hosted', purpose: 'rain-card' })
-
+    const cardReport = (entry: FeatureReportEntry): FeatureReport => ({ ...emptyReport(), card: entry })
     it('a Rain proof-of-address ask becomes a card task, keyed apart from the shared action key', () => {
-        const task = selectCardDocumentTask([rainPoa], [cardRail()])
-        expect(task).toMatchObject({ kind: 'sumsub', levelKey: 'proof_of_address' })
-        expect(task?.key).not.toBe(rainPoa.key)
+        const task = selectCardDocumentTask([rainPoa], cardReport(step(rainPoa)))
+        expect(task).toEqual({ ...rainPoa, key: 'card-document:sumsub:proof_of_address' })
         expect(isCardDocumentTask(task!)).toBe(true)
         expect(isCardDocumentTask(rainPoa)).toBe(false)
     })
-
     it('a Rain selfie-and-ID ask (needsVerification) becomes a card task', () => {
-        const rainIdentity = action({
+        const identity = action({
             key: 'sumsub:rain_identity_verification',
             kind: 'sumsub',
             purpose: 'rain-card',
             levelKey: 'rain_identity_verification',
         })
-        const task = selectCardDocumentTask(
-            [rainIdentity],
-            [cardRail({ blockingActions: ['sumsub:rain_identity_verification'] })]
-        )
+        const task = selectCardDocumentTask([identity], cardReport(step(identity)))
         expect(task).toMatchObject({ kind: 'sumsub', levelKey: 'rain_identity_verification' })
         expect(isCardDocumentTask(task!)).toBe(true)
     })
-
     it('an identity re-upload in Rain’s portal becomes a card task', () => {
-        expect(selectCardDocumentTask([rainHosted], [cardRail({ blockingActions: ['rain-hosted'] })])).toMatchObject({
-            kind: 'rain-hosted',
+        expect(selectCardDocumentTask([rainHosted], cardReport(step(rainHosted)))).toEqual({
+            ...rainHosted,
+            key: 'card-document:rain-hosted',
         })
     })
-
-    it('the same proof-of-address key on a Bridge rail is not a card task', () => {
-        expect(
-            selectCardDocumentTask([poaUpload], [rail({ blockingActions: ['sumsub:proof_of_address'] })])
-        ).toBeUndefined()
+    it('the same proof-of-address key on a bank entry is not a card task', () => {
+        expect(selectCardDocumentTask([rainPoa], naming(rainPoa))).toBeUndefined()
     })
-
     it('a collected proof of address waiting for review is not a task', () => {
         const wait = action({ key: 'wait:rain-poa-review', kind: 'wait', purpose: 'rain-poa-review' })
+        expect(selectCardDocumentTask([wait], cardReport({ state: 'setting_up', action: wait.key }))).toBeUndefined()
+    })
+    it('a denied application reported as refused is not a task, even with an upload in nextActions', () => {
         expect(
-            selectCardDocumentTask([wait], [cardRail({ blockingActions: ['wait:rain-poa-review'] })])
+            selectCardDocumentTask(
+                [rainPoa],
+                cardReport({ state: 'refused', reason: 'proof_of_address', action: rainPoa.key })
+            )
         ).toBeUndefined()
     })
-
-    it('a denied application is not a task, even when the API still resolves its upload as fixable', () => {
-        // a Rain denial with an address reason: status blocked, verdict fixable with the upload
-        const denied = cardRail({
-            status: 'blocked',
-            resolved: {
-                status: 'fixable',
-                blocking: {
-                    code: 'proof_of_address',
-                    userMessage: '',
-                    selfHealable: true,
-                    selfHealKind: 'document-resubmit',
-                },
-                nextAction: rainPoa,
-            },
-        })
-        expect(selectCardDocumentTask([rainPoa], [denied])).toBeUndefined()
-    })
-
     it('asks the card screen has no button for yet (tax ID) are not tasks', () => {
-        const taxId = action({
+        const tax = action({
             key: 'sumsub:tax_identification_number',
             kind: 'sumsub',
             purpose: 'rain-card',
             levelKey: 'tax_identification_number',
         })
-        expect(selectCardDocumentTask([taxId], [cardRail({ blockingActions: [taxId.key] })])).toBeUndefined()
+        expect(selectCardDocumentTask([tax], cardReport(step(tax)))).toBeUndefined()
     })
-
     it('on Home it joins the large task card, so the carousel and checklist give way', () => {
-        const { largeTasks } = selectHomeTasks([tosAction(), rainPoa], [cardRail()])
+        const tos = action()
+        const report = { ...naming(tos), card: step(rainPoa) }
+        const { largeTasks } = selectHomeTasks([tos, rainPoa], report)
         expect(largeTasks.map((task) => task.kind)).toEqual(['accept-tos', 'sumsub'])
         expect(isCardDocumentTask(largeTasks[1])).toBe(true)
     })
+    it('a shared proof-of-address action named for bank and card produces both tasks', () => {
+        const report = { ...naming(rainPoa), card: step(rainPoa) }
+        expect(selectHomeTasks([rainPoa], report).largeTasks.map((task) => task.key)).toEqual([
+            'bridge-document:sumsub:proof_of_address',
+            'card-document:sumsub:proof_of_address',
+        ])
+    })
 })
-
-function tosAction() {
-    return action({ key: 'accept-tos', kind: 'accept-tos' })
-}

@@ -7,6 +7,8 @@ import { rainApi } from '@/services/rain'
 import { useCardFlow } from '../useCardFlow'
 import { activateKycFeature } from '@/app/actions/kyc-feature-activation'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import type { RailCapability } from '@/types/capabilities'
 
 jest.mock('@/app/actions/kyc-feature-activation', () => ({ activateKycFeature: jest.fn() }))
 
@@ -20,6 +22,27 @@ let mockUser: { user: { userId: string }; identityVerification?: { oneShot: bool
     user: { userId: 'user-1' },
 }
 let mockRainRails: Array<{ id: string; reason?: { code: string; userMessage: string } }> = []
+const mockFetchUser = jest.fn()
+let mockCardPlanReason: string | undefined
+const mockCapabilities = () =>
+    withFeatureReport(
+        {
+            rails: mockRainRails.map(
+                (rail) =>
+                    ({
+                        provider: 'rain',
+                        method: 'CARD_RAIN',
+                        channel: 'card',
+                        country: 'GLOBAL',
+                        currency: 'USD',
+                        status: 'requires-info',
+                        ...rail,
+                    }) as RailCapability
+            ),
+            nextActions: [],
+        },
+        { identity: { status: 'verified' }, planReasons: { rain: mockCardPlanReason } }
+    )
 const mockInvalidateQueries = jest.fn()
 let mockUserFetching = 0
 const mockQueryClient = {
@@ -61,7 +84,14 @@ jest.mock('@/services/consent', () => ({
     cardConsentDocuments: jest.fn(() => []),
 }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: mockUser, fetchUser: jest.fn() }),
+    useAuth: () => ({
+        user: mockUser && {
+            ...mockUser,
+            identityVerification: { status: 'verified', ...mockUser.identityVerification },
+            capabilities: mockCapabilities(),
+        },
+        fetchUser: mockFetchUser,
+    }),
 }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
@@ -91,6 +121,7 @@ jest.mock('@/hooks/useZeroDev', () => ({
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
+        capabilities: mockCapabilities(),
         railsForProvider: (provider: string) => (provider === 'rain' ? mockRainRails : []),
         nextActionsForRail: () => [],
         isLoading: false,
@@ -118,6 +149,7 @@ const mockGetFundingAccess = rainApi.getFundingAccess as jest.Mock
 
 beforeEach(() => {
     mockAddress = '0xA'
+    mockCardPlanReason = undefined
 })
 
 describe('useCardFlow', () => {
@@ -134,6 +166,28 @@ describe('useCardFlow', () => {
         mockRainRails = []
         window.localStorage.clear()
     })
+
+    it.each(['document_country_unsupported', 'identity_document_insufficient'])(
+        'reads reported %s without applying and Back dismisses it only for this visit',
+        (reason) => {
+            mockCardPlanReason = reason
+            expect(mockCapabilities().features?.card).toMatchObject({ state: 'refused', reason })
+            const { result, rerender, unmount } = renderHook(() => useCardFlow())
+
+            expect(result.current.planRefusal).toBe(reason)
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+            act(() => result.current.setPlanRefusal(null))
+            expect(result.current.planRefusal).toBeNull()
+            rerender()
+            expect(result.current.planRefusal).toBeNull()
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+
+            unmount()
+            const nextVisit = renderHook(() => useCardFlow())
+            expect(nextVisit.result.current.planRefusal).toBe(reason)
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+        }
+    )
 
     // the API refuses a legacy applicant to a Smart Paperwork Verification user
     it('an application the API sends to /verify goes there, never to an error or the legacy check', async () => {
@@ -297,6 +351,7 @@ describe('useCardFlow', () => {
                     await result.current.handleApply()
                 })
                 expect(result.current.planRefusal).toBe(reason)
+                expect(mockFetchUser).toHaveBeenCalledTimes(1)
                 expect(result.current.applyError).toBeNull()
                 expect(mockStartAction).not.toHaveBeenCalled()
             }

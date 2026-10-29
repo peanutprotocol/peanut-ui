@@ -1,6 +1,8 @@
+import { withFeatureReport, type FeatureReportInput } from '@/test-utils/featureReport.fixture'
 import {
     capabilityStateForProfile,
     deriveGate,
+    railVerdict,
     gateRemedy,
     gateSupportCase,
     getGateAdvisory,
@@ -12,16 +14,10 @@ import {
     type CapabilityState,
     type GateState,
 } from './capability-gate'
-import type { NextAction, RailCapability } from '@/types/capabilities'
+import type { FeatureReportEntry, NextAction, RailCapability } from '@/types/capabilities'
 
-/**
- * Capability-gate tests focused on the priority order, in particular the new
- * `waiting-on-provider` branch (from the BE adding `kind: 'wait'` NextActions
- * for `wait:bridge` — Bridge internal review / post-processing / generic
- * Stripe lookups). Without this branch, a rail in `requires-info` with only a
- * `wait` action falls through to `needs-enrollment` and the user sees a
- * misleading "verify your identity" CTA when there's nothing for them to do.
- */
+/** Rail scenarios carry the API report through the fixture. The gate maps
+ * the supplied report; it never reconstructs the rail ranking. */
 
 function bankRail(overrides: Partial<RailCapability> = {}): RailCapability {
     return {
@@ -36,8 +32,40 @@ function bankRail(overrides: Partial<RailCapability> = {}): RailCapability {
     }
 }
 
-function state(rails: RailCapability[], nextActions: NextAction[] = [], identityVerified = true): CapabilityState {
-    return { rails, nextActions, identityVerified, isLoading: false }
+function state(
+    rails: RailCapability[],
+    nextActions: NextAction[] = [],
+    identity: FeatureReportInput['identity'] = { status: 'verified' }
+): CapabilityState {
+    const byKey = new Map(nextActions.map((action) => [action.key, action]))
+    const resolvedRails = rails.map((rail) => ({ ...rail, resolved: railVerdict(rail, byKey) }))
+    const actions = [
+        ...new Map(
+            [
+                ...nextActions,
+                ...resolvedRails.flatMap((rail) => (rail.resolved.nextAction ? [rail.resolved.nextAction] : [])),
+            ].map((action) => [action.key, action])
+        ).values(),
+    ]
+    return {
+        ...withFeatureReport({ rails: resolvedRails, nextActions: actions, restrictions: [] }, { identity }),
+        isLoading: false,
+    }
+}
+
+function withBankEntry(input: CapabilityState, entry: FeatureReportEntry): CapabilityState {
+    return {
+        ...input,
+        features: {
+            ...input.features!,
+            bank: {
+                ...entry,
+                accounts: Object.fromEntries(
+                    Object.keys(input.features!.bank.accounts).map((currency) => [currency, entry])
+                ),
+            },
+        },
+    }
 }
 
 describe('deriveGate — waiting-on-provider (kind: wait)', () => {
@@ -86,7 +114,7 @@ describe('deriveGate — waiting-on-provider (kind: wait)', () => {
         }
     })
 
-    test('priority: accept-tos beats waiting-on-provider (ToS is user-actionable)', () => {
+    test('API report renders: accept-tos beats waiting-on-provider (ToS is user-actionable)', () => {
         const tosAction: NextAction = { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }
         // Two rails in scope: one needs ToS, one is mid-review. Bank scope.
         const rails = [
@@ -109,7 +137,7 @@ describe('deriveGate — waiting-on-provider (kind: wait)', () => {
         expect(gate.kind).toBe('accept-tos')
     })
 
-    test('priority: fixable-rejection beats waiting-on-provider (actionable wins)', () => {
+    test('API report renders: fixable-rejection beats waiting-on-provider (actionable wins)', () => {
         // If ANY in-scope rail has a sumsub action, surface that — the user
         // can act on it and unblock part of the scope. Don't gate them on
         // wait copy when they have something they can do.
@@ -143,7 +171,7 @@ describe('deriveGate — waiting-on-provider (kind: wait)', () => {
         expect(gate.kind === 'fixable-rejection' && gate.actionKey).toBe('sumsub:tax_identification_number')
     })
 
-    test("priority: ready beats waiting-on-provider (don't block the user from a usable rail)", () => {
+    test("API report renders: ready beside a waiting rail (don't block the user from a usable rail)", () => {
         // User has SEPA waiting AND ACH ready — let them use ACH instead of
         // showing wait copy that prevents the whole scope.
         const rails = [
@@ -164,7 +192,7 @@ describe('deriveGate — waiting-on-provider (kind: wait)', () => {
         expect(gate.kind).toBe('ready')
     })
 
-    test('priority: pending beats waiting-on-provider (provisioning is also a wait, but more concrete)', () => {
+    test('API report renders: pending beats waiting-on-provider (provisioning is also a wait, but more concrete)', () => {
         const rails = [
             bankRail({
                 id: 'bridge.sepa_eu',
@@ -183,7 +211,7 @@ describe('deriveGate — waiting-on-provider (kind: wait)', () => {
         expect(gate.kind).toBe('pending')
     })
 
-    test('priority: waiting-on-provider beats needs-identity / needs-enrollment', () => {
+    test('API report renders: waiting-on-provider beats needs-identity / needs-enrollment', () => {
         // ONLY a wait-only rail in scope, identity not verified → without this
         // priority the gate would land on `needs-identity` and show "verify
         // your identity" — which is wrong when a Bridge customer EXISTS and
@@ -196,7 +224,7 @@ describe('deriveGate — waiting-on-provider (kind: wait)', () => {
             status: 'requires-info',
             blockingActions: ['wait:bridge'],
         })
-        const gate = deriveGate(state([rail], [waitAction], /* identityVerified */ false), 'deposit', {
+        const gate = deriveGate(state([rail], [waitAction], { status: 'not_started' }), 'deposit', {
             channel: 'bank',
         })
         expect(gate.kind).toBe('waiting-on-provider')
@@ -358,7 +386,7 @@ describe('deriveGate — restart-identity vs contact-support split for blocked r
             },
         })
 
-        const gate = deriveGate(state([rail], [restartAction]), 'deposit', { channel: 'bank' })
+        const gate = deriveGate(state([rail], [restartAction]), 'deposit', { method: 'BANK_TRANSFER_AR' })
 
         expect(gate.kind).toBe('restart-identity')
         if (gate.kind === 'restart-identity') {
@@ -386,7 +414,7 @@ describe('deriveGate — restart-identity vs contact-support split for blocked r
     })
 })
 
-describe('deriveGate — ready-first ordering (Alexandre fix)', () => {
+describe('deriveGate — ready report presentation (Alexandre fixture)', () => {
     const tosAction: NextAction = { key: 'bridge.tos', kind: 'accept-tos', purpose: 'bridge-tos' }
     const sumsubAction: NextAction = { key: 'bridge.rfi', kind: 'sumsub', purpose: 'bridge-rfi' }
 
@@ -538,7 +566,7 @@ describe('deriveGate — country scoping (the Add Money dead-end class)', () => 
                 status: 'enabled',
             }),
         ]
-        const gate = deriveGate(state(rails, [], /* identityVerified */ true), 'deposit', {
+        const gate = deriveGate(state(rails, [], { status: 'verified' }), 'deposit', {
             channel: 'bank',
             country: 'EU',
         })
@@ -689,11 +717,9 @@ describe('deriveGate — provide-email self-serve for email-blocked rails', () =
     })
 })
 
-describe('deriveGate — resolved verdict is authoritative (BE step 3)', () => {
-    // When the BE ships `rail.resolved`, the gate renders IT — even when the
-    // legacy status/actions would derive something else. These pin the verdict
-    // as the single source of truth; the legacy paths above only cover rails
-    // without `resolved` (older BE / cached responses).
+describe('deriveGate — report from resolved API fixtures', () => {
+    // The API fixture computes the report from resolved rails. Action details
+    // are supplied in nextActions, and the gate renders the named report entry.
 
     test('resolved fixable wins over a legacy blocked status', () => {
         const gate = deriveGate(
@@ -734,7 +760,7 @@ describe('deriveGate — resolved verdict is authoritative (BE step 3)', () => {
         expect(gate.kind).toBe('blocked-rejection')
     })
 
-    test('resolved provide-email verdict → provide-email gate without action lookups', () => {
+    test('report names the provide-email action and the gate resolves its descriptor', () => {
         const gate = deriveGate(
             state([
                 bankRail({
@@ -747,6 +773,7 @@ describe('deriveGate — resolved verdict is authoritative (BE step 3)', () => {
                             selfHealable: true,
                             selfHealKind: 'provide-email',
                         },
+                        nextAction: { key: 'provide-email', kind: 'provide-email', purpose: 'email_required' },
                     },
                 }),
             ]),
@@ -823,7 +850,7 @@ describe('deriveGate — resolved verdict is authoritative (BE step 3)', () => {
         })
     })
 
-    test('resolved restart-identity selfHealKind → restart-identity gate', () => {
+    test('report names the restart-identity descriptor → restart-identity gate', () => {
         const gate = deriveGate(
             state([
                 bankRail({
@@ -836,6 +863,11 @@ describe('deriveGate — resolved verdict is authoritative (BE step 3)', () => {
                             selfHealable: true,
                             selfHealKind: 'restart-identity',
                         },
+                        nextAction: {
+                            key: 'restart-identity',
+                            kind: 'restart-identity',
+                            purpose: 'country_not_supported',
+                        },
                     },
                 }),
             ]),
@@ -845,9 +877,8 @@ describe('deriveGate — resolved verdict is authoritative (BE step 3)', () => {
     })
 })
 
-describe('deriveGate — legacy fallback fidelity (code-review regression pins)', () => {
-    // Shapes the pre-verdict ladder handled that the 32 legacy tests above
-    // never mixed. Each of these was a CONFIRMED review finding: the fallback
+describe('deriveGate — reports for legacy fixture scenarios (code-review regression pins)', () => {
+    // API reports for mixed legacy-fixture scenarios. Each of these was a CONFIRMED review finding: the fallback
     // must key on STATUS first — action kinds only refine within a status.
 
     const sumsubAction: NextAction = { key: 'sumsub:poa', kind: 'sumsub', purpose: 'rfi', levelKey: 'poa' }
@@ -1203,7 +1234,7 @@ describe('deriveGate — a verified identity with a Bridge requires-info rail ne
         expect(gateRemedy(native)).toBe('provider-fix')
     })
 
-    test('a hosted check attached to the rail stays fixable even when the API reads it as blocked', () => {
+    test('an action_required hosted report stays fixable even when the rail verdict is blocked', () => {
         const rail = bankRail({
             ...punt,
             blockingActions: ['bridge-hosted'],
@@ -1213,7 +1244,9 @@ describe('deriveGate — a verified identity with a Bridge requires-info rail ne
                 nextAction: hosted,
             },
         })
-        const gate = deriveGate(state([rail], [hosted]), 'deposit', { channel: 'bank', country: 'EU' })
+        const input = withBankEntry(state([rail], [hosted]), { state: 'action_required', action: hosted.key })
+        expect(railVerdict(rail, new Map([[hosted.key, hosted]]))).toBe(rail.resolved)
+        const gate = deriveGate(input, 'deposit', { channel: 'bank', country: 'EU' })
 
         expect(gate.kind).toBe('fixable-rejection')
         expect(gateRemedy(gate)).toBe('hosted-check')
@@ -1263,7 +1296,10 @@ describe('deriveGate — duplicate account', () => {
     test('an identity held on DUPLICATE_EMAIL is a duplicate account, not needs-identity', () => {
         const profile = {
             identityVerification: { status: 'action_required', rejectLabels: ['DUPLICATE_EMAIL'] },
-            capabilities: { rails: [], nextActions: [], restrictions: [] },
+            capabilities: withFeatureReport(
+                { rails: [], nextActions: [], restrictions: [] },
+                { identity: { status: 'action_required', rejectLabels: ['DUPLICATE_EMAIL'] } }
+            ),
         } as never
         const gate = deriveGate(capabilityStateForProfile(profile, false), 'deposit', { channel: 'bank' })
 
@@ -1272,7 +1308,18 @@ describe('deriveGate — duplicate account', () => {
         // a working rail still wins
         expect(
             deriveGate(
-                { ...state([bankRail()]), identityHold: { code: 'duplicate_account', userMessage: '' } },
+                {
+                    ...withFeatureReport(
+                        { rails: [bankRail()], nextActions: [], restrictions: [] },
+                        {
+                            identity: {
+                                status: 'action_required',
+                                reason: { code: 'duplicate_account', userMessage: '' },
+                            },
+                        }
+                    ),
+                    isLoading: false,
+                },
                 'deposit',
                 { channel: 'bank' }
             ).kind
@@ -1285,7 +1332,15 @@ describe('deriveGate — duplicate account', () => {
                 status: 'action_required',
                 reason: { code: 'duplicate_account', userMessage: 'Your email is already on another account.' },
             },
-            capabilities: { rails: [], nextActions: [], restrictions: [] },
+            capabilities: withFeatureReport(
+                { rails: [], nextActions: [], restrictions: [] },
+                {
+                    identity: {
+                        status: 'action_required',
+                        reason: { code: 'duplicate_account', userMessage: 'Your email is already on another account.' },
+                    },
+                }
+            ),
         } as never
         const gate = deriveGate(capabilityStateForProfile(profile, false), 'deposit', { channel: 'bank' })
 
@@ -1307,7 +1362,13 @@ describe('deriveGate — duplicate account', () => {
             status: 'requires-info',
             blockingActions: [source.key],
         })
-        const held = { ...state([pix], [source], false), identityHold: { code: 'duplicate_account', userMessage: '' } }
+        const held = {
+            ...withFeatureReport(
+                { rails: state([pix], [source]).rails, nextActions: [source], restrictions: [] },
+                { identity: { status: 'action_required', reason: { code: 'duplicate_account', userMessage: '' } } }
+            ),
+            isLoading: false,
+        }
         expect(deriveGate(held, 'deposit', { channel: 'bank', country: 'BR' }).kind).toBe('fixable-rejection')
     })
 })
@@ -1348,9 +1409,13 @@ describe('deriveGate — rejected imported identity', () => {
             purpose: 'country_not_supported',
         }
         const restartRail = bankRail({ status: 'blocked', blockingActions: [restart.key] })
-        const gate = deriveGate(state([restartRail, importedRail], [restart, support], false), 'deposit', {
-            channel: 'bank',
-        })
+        const gate = deriveGate(
+            state([restartRail, importedRail], [restart, support], { status: 'not_started' }),
+            'deposit',
+            {
+                channel: 'bank',
+            }
+        )
 
         expect(gate).toMatchObject({ kind: 'blocked-rejection', reason: { code: 'imported_identity_rejected' } })
         expect(gateSupportCase(gate)).toBe('imported-identity')
@@ -1360,7 +1425,10 @@ describe('deriveGate — rejected imported identity', () => {
     test('with no rail in scope, the failed identity is support too, never verify again', () => {
         const profile = {
             identityVerification: { status: 'failed', canRetry: false, reason },
-            capabilities: { rails: [importedRail], nextActions: [support], restrictions: [] },
+            capabilities: withFeatureReport(
+                { rails: [importedRail], nextActions: [support], restrictions: [] },
+                { identity: { status: 'failed', reason } }
+            ),
         } as never
         const gate = deriveGate(capabilityStateForProfile(profile, false), 'deposit', {
             channel: 'bank',
@@ -1396,7 +1464,14 @@ describe('a rail waiting on an answer (the `questions` action)', () => {
         ['on an API without the resolved verdict', {}],
     ])('opens the questions of its feature %s', (_, extra) => {
         const rail = bankRail({ status: 'requires-info', reason, blockingActions: [questions.key], ...extra })
-        const gate = deriveGate(state([rail], [questions]), 'deposit', { channel: 'bank' })
+        const input = withBankEntry(state([rail], [questions]), {
+            state: 'action_required',
+            action: questions.key,
+            reason: reason.code,
+            message: reason.userMessage,
+        })
+        if (rail.resolved) expect(railVerdict(rail, new Map([[questions.key, questions]]))).toBe(rail.resolved)
+        const gate = deriveGate(input, 'deposit', { channel: 'bank' })
         expect(gate).toMatchObject({ kind: 'fixable-rejection', nextAction: questions })
         expect(gateRemedy(gate)).toBe('questions')
         expect(isTerminalRailRejection(rail, new Map([[questions.key, questions]]))).toBe(false)
@@ -1409,5 +1484,59 @@ describe('a rail waiting on an answer (the `questions` action)', () => {
             nextAction: { ...questions, feature: undefined },
         }
         expect(gateRemedy(gate)).toBe('provider-fix')
+    })
+})
+
+describe('deriveGate — supplied report overrides rail ranking', () => {
+    test.each([
+        [{ state: 'on' }, 'ready'],
+        [{ state: 'setting_up' }, 'pending'],
+        [{ state: 'pending' }, 'pending'],
+        [{ state: 'ready', action: 'activate' }, 'needs-enrollment'],
+        [{ state: 'action_required', action: 'verify' }, 'needs-identity'],
+        [{ state: 'action_required', reason: 'document_rejected', message: 'Report message' }, 'fixable-rejection'],
+        [{ state: 'refused', reason: 'uk_resident_blocked', message: 'Unavailable' }, 'blocked-rejection'],
+    ] as const)('maps %j to %s regardless of enabled or blocked siblings', (entry, kind) => {
+        const input = withBankEntry(state([bankRail(), bankRail({ id: 'bridge.sepa_eu', status: 'blocked' })]), entry)
+        expect(deriveGate(input, 'deposit').kind).toBe(kind)
+        expect(deriveGate({ ...input, rails: [...input.rails].reverse() }, 'withdraw').kind).toBe(kind)
+        expect(deriveGate({ ...input, rails: [] }, 'deposit').kind).toBe(kind)
+    })
+    test('missing report is pending even with a working rail; loading remains loading', () => {
+        const input = { rails: [bankRail()], nextActions: [], isLoading: false }
+        expect(deriveGate(input, 'deposit')).toEqual({ kind: 'pending' })
+        expect(deriveGate({ ...input, isLoading: true }, 'deposit')).toEqual({ kind: 'loading' })
+    })
+    test('an unreferenced restart does not change a refused account or an on feature', () => {
+        const restart: NextAction = { key: 'restart', kind: 'restart-identity', purpose: 'identity_missing' }
+        const input = withBankEntry(state([bankRail()], [restart]), {
+            state: 'refused',
+            reason: 'account_unavailable_in_residence',
+        })
+        expect(deriveGate(input, 'deposit', { method: 'ACH_US' }).kind).toBe('blocked-rejection')
+        expect(deriveGate(withBankEntry(input, { state: 'on' }), 'deposit')).toEqual({ kind: 'ready' })
+    })
+    test('each scope reads its report account, even when the rails say enabled', () => {
+        const input = state([bankRail()])
+        input.features!.bank = {
+            state: 'on',
+            accounts: {
+                USD: { state: 'refused', reason: 'account_unavailable_in_residence' },
+                EUR: { state: 'setting_up' },
+            },
+        }
+        input.features!.local = {
+            state: 'ready',
+            accounts: { BRL: { state: 'action_required', action: 'verify' }, ARS: { state: 'on' } },
+        }
+        input.features!.card = { state: 'pending' }
+        input.features!.qr = { state: 'on' }
+        expect(deriveGate(input, 'deposit', { railId: 'bridge.ach_us' }).kind).toBe('blocked-rejection')
+        expect(deriveGate(input, 'deposit', { country: 'US' }).kind).toBe('blocked-rejection')
+        expect(deriveGate(input, 'deposit', { method: 'SEPA_EU' }).kind).toBe('pending')
+        expect(deriveGate(input, 'deposit', { country: 'BR' }).kind).toBe('needs-identity')
+        expect(deriveGate(input, 'withdraw', { country: 'AR' }).kind).toBe('ready')
+        expect(deriveGate(input, 'pay', { channel: 'card' }).kind).toBe('pending')
+        expect(deriveGate(input, 'pay', { channel: 'qr-only' }).kind).toBe('ready')
     })
 })

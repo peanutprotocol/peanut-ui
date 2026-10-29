@@ -4,9 +4,8 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * PendingVerificationTasks — the Home card mirroring Bridge's "additional
  * verification needed" dashboard state.
  *
- * Reads top-level capability nextActions (not rail gates) so it catches both
- * blocking tasks and advisory orphans (future-dated tasks on fully-enabled
- * users, which no rail references). accept-tos routes into the existing
+ * Reads the feature report's named nextActions, including blocking tasks and
+ * future-dated requests on fully enabled accounts. accept-tos routes into the existing
  * BridgeTosStep (its compliance.bridge.xyz link frames fine); bridge-hosted
  * routes to the additional-verification screen, which owns the prep copy and
  * the handoff to Persona (see AdditionalVerificationView). The ToS modal is
@@ -20,19 +19,58 @@ import type { NextAction, RailCapability } from '@/types/capabilities'
 import PendingVerificationTasks from '../PendingVerificationTasks'
 import { formatEffectiveDate } from '@/utils/format.utils'
 import en from '@/i18n/app/messages/en.json'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 
 let mockNextActions: NextAction[] = []
 let mockRails: RailCapability[] = []
+// A task-only fixture states the API's account answers explicitly. Rail-based
+// fixtures use the report helper, with the resolver's named action attached.
+const mockCapabilities = () => {
+    const rails = mockRails.map((rail) => ({
+        ...rail,
+        ...(rail.status === 'requires-info' && !rail.resolved
+            ? {
+                  resolved: {
+                      status: 'fixable' as const,
+                      nextAction: mockNextActions.find((action) => rail.blockingActions?.includes(action.key)),
+                  },
+              }
+            : {}),
+    }))
+    const capabilities = withFeatureReport(
+        { rails, nextActions: mockNextActions },
+        { identity: { status: 'verified' } }
+    )
+    if (!mockRails.some((rail) => rail.provider === 'bridge')) {
+        const bankActions = mockNextActions.filter(
+            (action) => action.kind === 'accept-tos' || action.kind === 'bridge-hosted' || !!action.effectiveDate
+        )
+        capabilities.features!.bank.accounts = Object.fromEntries(
+            bankActions.map((action, index) => [
+                ['USD', 'EUR', 'GBP', 'MXN'][index],
+                { state: action.effectiveDate ? 'on' : 'action_required', action: action.key },
+            ])
+        )
+    }
+    return capabilities
+}
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
 let mockStoredDismissal: string[] | undefined
 const mockUpdatePreferences = jest.fn()
 
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ nextActions: mockNextActions, rails: mockRails }),
+    useCapabilities: () => ({ nextActions: mockNextActions, rails: mockRails, capabilities: mockCapabilities() }),
 }))
 let mockUserId = 'user-1'
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: mockUserId } }, fetchUser: mockFetchUser }),
+    useAuth: () => ({
+        user: {
+            user: { userId: mockUserId },
+            identityVerification: { status: 'verified' },
+            capabilities: mockCapabilities(),
+        },
+        fetchUser: mockFetchUser,
+    }),
 }))
 jest.mock('@/utils/general.utils', () => ({
     getUserPreferences: () => ({ pendingVerificationTasksDismissed: mockStoredDismissal }),

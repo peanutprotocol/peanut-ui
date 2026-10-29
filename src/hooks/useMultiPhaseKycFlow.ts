@@ -6,7 +6,7 @@ import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { useSumsubReloadResume, type KycResumeState } from '@/hooks/useSumsubReloadResume'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
-import { deriveGate } from '@/utils/capability-gate'
+import { entryAction, reportEntry, UNKNOWN_REPORT } from '@/features/kyc-features/report'
 import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
 import { type IframeCloseSource } from '@/components/Global/IframeWrapper'
 import type { SumsubSubmissionSource } from '@/components/Kyc/sumsubSdk.types'
@@ -19,64 +19,44 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const PREPARING_TIMEOUT_MS = 30000
 
-const EMPTY_CAPABILITIES: UserCapabilities = { rails: [], nextActions: [], restrictions: [] }
-
 /**
- * Phase-transition signals derived from the backend capability block — drives
- * the preparing → tos → complete orchestrator state machine.
+ * Phase-transition signals for the preparing → tos → complete orchestrator,
+ * read from the API's feature report entry for the account the flow opens:
+ * the target country's, else the intent's (LATAM the local account, EU the
+ * euro one, NA the dollar one), else the bank feature.
  *
- *   - needsTos ← bank-channel rail in `requires-info` with a `bridge-tos`
- *     action (today, the ONLY ToS-acceptance flow on the platform — sources
- *     from the gate state's `accept-tos` kind, scoped to the bank channel).
- *   - anyPending ← any rail provisioning, no user action needed.
- *   - allSettled ← at least one usable deposit rail for the requested destination.
+ *   - needsTos ← the entry's step is accepting Bridge's terms
+ *   - anyPending ← the provider is setting it up, nothing for the user to do
+ *   - notOpened ← nothing set up yet (the realtime flow reads it as still provisioning)
+ *   - allSettled ← it moves money
+ *   - allBlocked ← it is refused
+ *   - supplementKey / supplementInReview ← a provider waits on a supplement, in
+ *     this entry or any feature's
  */
 export function deriveCapabilityPhaseSignals(
     capabilities: UserCapabilities | undefined,
     intent?: KYCRegionIntent,
     targetCountry?: string
 ) {
-    const { rails: allRails, nextActions } = capabilities ?? EMPTY_CAPABILITIES
-    const actionKeys = new Set(nextActions.map((action) => action.key))
-    const jurisdiction = railJurisdictionForBank(targetCountry)
-    const rails = allRails.filter(
-        (rail) =>
-            rail.channel === 'bank' &&
-            (intent === 'LATAM'
-                ? rail.provider === 'manteca'
-                : intent === 'EU' || intent === 'NA'
-                  ? rail.provider === 'bridge'
-                  : true) &&
-            (jurisdiction
-                ? rail.country === jurisdiction
-                : intent === 'EU'
-                  ? rail.currency === 'EUR'
-                  : intent === 'NA'
-                    ? rail.currency === 'USD'
-                    : true)
-    )
-    const anyPending = rails.some((rail) => (rail.operations?.deposit ?? rail.status) === 'pending')
-    // The accept-tos branch sits above the identity check in deriveGate's
-    // priority order; identityVerified doesn't affect it. Passing `false` here
-    // is safe + avoids reading identityVerification.status to find a ToS state.
-    const gate = deriveGate({ rails, nextActions, identityVerified: false, isLoading: false }, 'deposit', {
-        channel: 'bank',
-    })
+    const report = capabilities?.features ?? UNKNOWN_REPORT
+    const nextActions = capabilities?.nextActions ?? []
+    const country =
+        railJurisdictionForBank(targetCountry) ?? (intent === 'EU' ? 'EU' : intent === 'NA' ? 'US' : undefined)
+    const entry = country
+        ? reportEntry(report, 'deposit', { channel: 'bank', country })
+        : intent === 'LATAM'
+          ? report.local
+          : reportEntry(report, 'deposit', { channel: 'bank' })
+    const entries = [entry, report.bank, report.local, report.card]
     return {
-        needsTos: gate.kind === 'accept-tos',
-        anyPending,
-        allBlocked: rails.length > 0 && rails.every((rail) => (rail.operations?.deposit ?? rail.status) === 'blocked'),
-        // mirrors old allSettled: empty rails are NOT settled (still provisioning)
-        allSettled: rails.some((rail) => (rail.operations?.deposit ?? rail.status) === 'enabled'),
-        railCount: rails.length,
-        supplementInReview: allRails.some((rail) => rail.reason?.code === 'requirements_in_review'),
-        // A rail parked until a supplement collects what its provider needs (today Bridge's proof of address).
-        supplementKey: allRails
-            .flatMap((rail) => [
-                rail.resolved?.nextAction?.key,
-                ...(rail.blockingActions ?? []).filter((key) => actionKeys.has(key)),
-            ])
-            .find((key): key is string => !!key?.startsWith('supplement:')),
+        needsTos: entryAction(entry, nextActions)?.kind === 'accept-tos',
+        anyPending: entry.state === 'setting_up' || entry.state === 'pending',
+        allBlocked: entry.state === 'refused',
+        allSettled: entry.state === 'on',
+        notOpened: entry.state === 'ready',
+        supplementInReview: entries.some((candidate) => candidate.reason === 'requirements_in_review'),
+        // A provider parked until a supplement collects what it needs (today Bridge's proof of address).
+        supplementKey: entries.map((candidate) => candidate.action).find((key) => !!key?.startsWith('supplement:')),
     }
 }
 
@@ -285,7 +265,7 @@ export const useMultiPhaseKycFlow = ({
         const {
             needsTos,
             anyPending,
-            railCount,
+            notOpened,
             allSettled,
             supplementKey: freshSupplementKey,
             supplementInReview: freshSupplementInReview,
@@ -316,7 +296,7 @@ export const useMultiPhaseKycFlow = ({
             return
         }
 
-        if (anyPending || (railCount === 0 && isRealtimeFlowRef.current)) {
+        if (anyPending || (notOpened && isRealtimeFlowRef.current)) {
             // rails still being set up — show preparing and start tracking
             setModalPhase('preparing')
             setForceShowModal(true)

@@ -1,5 +1,10 @@
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'legacy-user' } } }),
+    useAuth: () => ({
+        user: {
+            user: { userId: 'legacy-user' },
+            capabilities: withFeatureReport({ rails: [], nextActions: [] }, { identity: { status: 'verified' } }),
+        },
+    }),
     useOptionalAuth: () => null,
 }))
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
@@ -15,6 +20,10 @@ import { holdsSlot } from '../resolveScreen'
 import type { ClaimableCorridor, DepositAccount, DepositCorridor, UnavailableCorridor } from '../types'
 import type { GateState } from '@/utils/capability-gate'
 import type { BankRowsInput } from '@/utils/unlock-payments.utils'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import { accountEntry, entryChip } from '@/features/kyc-features/report'
+import type { BankRowKey } from '@/utils/unlock-payments.utils'
+import type { RailCapability } from '@/types/capabilities'
 import { withReturnTo } from '@/utils/return-to.utils'
 
 /** the hub the top-ups return to — the origin every top-up push carries */
@@ -72,11 +81,59 @@ jest.mock('../useDepositAccountsEnabled', () => ({
 
 /** the bank rows Accounts and payments shows too, from the real builder */
 const UNLOCK_ALL = { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' } as const
-let mockBankInput: BankRowsInput
+let mockBankInput: BankRowsInput & { restrictions: { banking: boolean; card: boolean } }
 jest.mock('@/hooks/useBankRows', () => ({
-    useBankRows: () => ({
-        rows: jest.requireActual('@/utils/unlock-payments.utils').buildBankRows(mockBankInput),
-    }),
+    useBankRows: () => {
+        const specs = [
+            ['brl', 'manteca', 'PIX_BR', 'BR', 'BRL'],
+            ['ars', 'manteca', 'BANK_TRANSFER_AR', 'AR', 'ARS'],
+            ['usd', 'bridge', 'ACH_US', 'US', 'USD'],
+            ['mxn', 'bridge', 'SPEI_MX', 'MX', 'MXN'],
+            ['sepa', 'bridge', 'SEPA_EU', 'EU', 'EUR'],
+        ] as const
+        const rails: RailCapability[] = specs
+            .filter(([key]) => mockBankInput.bankChips[key] === 'active')
+            .map(([, provider, method, country, currency]) => ({
+                id: `${provider}.${method.toLowerCase()}`,
+                provider,
+                method,
+                channel: 'bank',
+                country,
+                currency,
+                status: 'enabled',
+            }))
+        const capabilities = withFeatureReport(
+            { rails, nextActions: [] },
+            {
+                identity: { status: 'verified' },
+                residence: mockBankInput.residenceIso2,
+                restrictions: {
+                    banking: mockBankInput.restrictions.banking
+                        ? { code: 'residence_bank_restricted', userMessage: '' }
+                        : null,
+                    card: mockBankInput.restrictions.card,
+                },
+                planReasons: mockBankInput.restrictions.banking ? { manteca: 'residence_bank_restricted' } : {},
+            }
+        )
+        const entries = specs.map(
+            ([key, provider, , , currency]) =>
+                [key, accountEntry(capabilities.features!, provider === 'bridge' ? 'bank' : 'local', currency)] as const
+        )
+        const input: BankRowsInput = {
+            ...mockBankInput,
+            bankChips: Object.fromEntries(
+                entries.map(([key, entry]) => [key, entryChip(entry, [])])
+            ) as BankRowsInput['bankChips'],
+            closedBecause: Object.fromEntries(
+                entries.map(([key, entry]) => [
+                    key,
+                    entry.reason === 'local_residence_unsupported' ? 'residence' : 'restricted-country',
+                ])
+            ) as Partial<Record<BankRowKey, 'residence' | 'restricted-country'>>,
+        }
+        return { rows: jest.requireActual('@/utils/unlock-payments.utils').buildBankRows(input) }
+    },
 }))
 
 // the drawer names card issuing from the same restrictions the rows read
@@ -89,6 +146,7 @@ beforeEach(() => {
     mockIsCountrySupported.mockReturnValue(true)
     mockBankInput = {
         bankChips: UNLOCK_ALL,
+        closedBecause: {},
         restrictions: { banking: false, card: false },
         residenceIso2: 'BR',
         isEuropeResidence: false,

@@ -23,7 +23,7 @@ import {
     isClaimable,
     railIdFor,
 } from './rails'
-import { withPaperworkRefusals } from './paperwork'
+import { closeRefusedCorridors } from './reportClosures'
 import { holdsSlot } from './resolveScreen'
 import type {
     ClaimableCorridor,
@@ -32,7 +32,6 @@ import type {
     DepositAccountView,
     DepositCorridor,
 } from './types'
-import { usePaperworkClosures } from './usePaperworkClosures'
 
 export const DEPOSIT_ACCOUNTS_QUERY_KEY = ['deposit-accounts'] as const
 
@@ -134,8 +133,7 @@ export function useDepositAccounts({
 } = {}): UseDepositAccountsResult {
     const { userId } = useAuth()
     const queryClient = useQueryClient()
-    const { gateFor, rails, isLoading: capabilitiesLoading } = useCapabilities()
-    const paperwork = usePaperworkClosures({ enabled })
+    const { gateFor, rails, capabilities, isLoading: capabilitiesLoading } = useCapabilities()
     const [claimingCorridor, setClaimingCorridor] = useState<DepositCorridor | undefined>()
     const [claimError, setClaimError] = useState<DepositClaimError | undefined>()
 
@@ -297,16 +295,14 @@ export function useDepositAccounts({
         return out
     }, [gateFor])
 
-    // The engine's per-account refusals win over an offer: a residence the
-    // provider will not serve must not be offered the account, or a
-    // verification that can never open it.
     const { claimable, unavailable } = useMemo(
         () =>
-            withPaperworkRefusals(
-                { accounts, claimable: offeredClaimable, unavailable: withheldUnavailable, gates },
-                paperwork.closed
-            ),
-        [accounts, offeredClaimable, withheldUnavailable, gates, paperwork.closed]
+            closeRefusedCorridors(capabilities.features, rails, {
+                accounts,
+                claimable: offeredClaimable,
+                unavailable: withheldUnavailable,
+            }),
+        [capabilities.features, rails, accounts, offeredClaimable, withheldUnavailable]
     )
 
     /**
@@ -373,7 +369,7 @@ export function useDepositAccounts({
         accountLimit: query.data?.accountLimit,
         gates,
         // a flow that is not asking for accounts is never waiting for them
-        isLoading: enabled && (!userId || query.isLoading || capabilitiesLoading || paperwork.isLoading),
+        isLoading: enabled && (!userId || query.isLoading || capabilitiesLoading),
         isError: query.isError,
         claimingCorridor,
         claimError,
