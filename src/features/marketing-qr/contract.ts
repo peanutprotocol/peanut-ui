@@ -2,7 +2,7 @@ import { UTM_MEDIUMS, UTM_SOURCES } from '@/utils/utm.utils'
 
 const LOCALES = ['en', 'es-419', 'es-ar', 'pt-br'] as const
 const PAGE_SLOTS = {
-    home: ['hero', 'app-fold', 'rates', 'countries'],
+    home: ['hero', 'app-fold', 'rates', 'countries', 'artwork', 'pay-local-ar', 'pay-local-br'],
     'us-europe-accounts': ['hero', 'request-fold', 'close', 'artwork'],
     'qr-argentina': ['hero', 'close', 'artwork', 'hero-sticker', 'close-sticker'],
     'qr-brazil': ['hero', 'close', 'artwork', 'hero-sticker', 'close-sticker', 'ways-in'],

@@ -28,7 +28,7 @@
             "addMoney": "Agregar dinero",
             "firstPaymentCardNote": "Pedí la tarjeta o pagá un QR",
             "firstPaymentQrNote": "Pagá un código QR",
-            "firstPaymentCardOnlyNote": "Pedí la tarjeta Peanut",
+            "firstPaymentCardOnlyNote": "Pedí la Peanut Card",
             "firstPaymentHeldCardNote": "Pagá con la tarjeta",
             "firstPaymentHeldCardQrNote": "Pagá con la tarjeta o un QR"
         },
@@ -244,7 +244,7 @@
             },
             "details": {
                 "p2p": "Mandá y recibí plata de otros usuarios de Peanut.",
-                "card": "Pagá con la tarjeta Peanut.",
+                "card": "Pagá con la Peanut Card.",
                 "crypto": "Agregá o retirá cripto desde cualquier billetera o exchange, sin verificación.",
                 "brl": "Agregá o retirá reales brasileños con Pix.",
                 "ars": "Agregá o retirá pesos argentinos desde tu banco.",
@@ -509,7 +509,7 @@
             },
             "partial": {
                 "title": "Atención",
-                "cardDescription": "La tarjeta Peanut no está disponible en tu país. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato.",
+                "cardDescription": "La Peanut Card no está disponible en tu país. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato.",
                 "bankingDescription": "Las transferencias bancarias no están disponibles en tu país. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato.",
                 "continue": "Continuar"
             },
@@ -517,7 +517,7 @@
                 "title": "Esto es lo que obtenés con Peanut",
                 "description": "No hay restricciones donde vivís. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato, y una verificación rápida de identidad desbloquea {rail}.",
                 "descriptionNoRail": "No hay restricciones donde vivís. Los dólares digitales y los envíos a cualquier @usuario funcionan de inmediato.",
-                "cardClause": "También podés solicitar una tarjeta Peanut después de verificar tu identidad.",
+                "cardClause": "También podés solicitar una Peanut Card después de verificar tu identidad.",
                 "checklist": {
                     "dollars": "Cuenta en dólares digitales",
                     "ready": "Listo para usar. Sin verificar tu identidad.",
@@ -660,7 +660,7 @@
             "with": "con",
             "unavailable": {
                 "banking": "Las transferencias bancarias no están disponibles en tu país.",
-                "card": "La tarjeta Peanut no está disponible en tu país.",
+                "card": "La Peanut Card no está disponible en tu país.",
                 "both": "Las transferencias bancarias y la emisión de tarjetas no están disponibles en tu país."
             },
             "fundingLead": "Primero vas a agregar dinero",
@@ -1024,7 +1024,7 @@
             "moveBalanceUnavailable": "No pudimos leer el saldo de tu tarjeta. Intentá de nuevo.",
             "moveBusy": "Hay otra acción de la tarjeta en curso. Intentá de nuevo en un momento.",
             "payAsCreditTitle": "Pagá como crédito",
-            "payAsCreditBody": "Cuando la terminal pregunte débito o crédito, elegí crédito — tu tarjeta Peanut corre en la red de crédito."
+            "payAsCreditBody": "Cuando la terminal pregunte débito o crédito, elegí crédito — tu Peanut Card corre en la red de crédito."
         },
         "funding": {
             "body": "Peanut gestiona cuánto puede tomar de tu billetera nuestro proveedor externo para los pagos con tarjeta. Se renueva automáticamente, incluso para el dinero que agregues después.",
@@ -1057,7 +1057,7 @@
             "fundingBody": "Necesitás al menos USD 10 en tu saldo de Peanut para obtener tu tarjeta. La tarjeta es gratis y el dinero sigue siendo tuyo para gastarlo con ella.",
             "fundedBody": "Tu saldo ya alcanza. Continuá para pedir tu tarjeta.",
             "addFunds": "Agregar dinero",
-            "issuedTitle": "Conocé tu tarjeta Peanut.",
+            "issuedTitle": "Conocé tu Peanut Card.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
             "viewCard": "Ver tarjeta"
         }

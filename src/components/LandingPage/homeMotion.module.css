@@ -1,0 +1,47 @@
+.folds :global(section),
+.folds :global(.star-lp-marquee) {
+    --home-motion-play: paused;
+}
+
+.folds :global(.cloud-ltr),
+.folds :global(.cloud-rtl),
+.folds :global(.star-lp-wobble),
+.folds :global(.star-lp-bounce),
+.folds :global(.animation-thumbsUp),
+.folds :global(.rfm-marquee) {
+    animation-play-state: var(--home-motion-play, paused) !important;
+}
+
+/* One farewell is enough beside the signup action. */
+.folds :global(#home-close .star-lp-wobble) {
+    --home-motion-play: paused;
+    animation-name: farewell;
+    animation-duration: var(--transition-duration-slow);
+    animation-timing-function: var(--ease-spring);
+    animation-iteration-count: 1;
+    animation-direction: normal;
+    animation-fill-mode: both;
+}
+
+@keyframes farewell {
+    0%,
+    100% {
+        transform: rotate(0);
+    }
+    35% {
+        transform: rotate(-12deg);
+    }
+    70% {
+        transform: rotate(8deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .folds :global(#home-close .star-lp-wobble) {
+        animation: none;
+    }
+
+    .folds :global(#faq summary svg) {
+        transition: none;
+    }
+}

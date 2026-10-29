@@ -3,9 +3,17 @@
         "statusServiceMantecaAr": {
             "locales": ["es-419", "es-ar", "pt-br"],
             "reason": "country name and currency code (Argentina (ARS)), spelled the same in Spanish and Portuguese"
+        },
+        "landingCardLockup": {
+            "locales": ["es-419", "es-ar", "pt-br"],
+            "reason": "brand name (Peanut Card), the same in every language"
         }
     },
     "app": {
+        "shhhhh.hero.wordmark": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Peanut Card is the product name in every language (TASK-24037)"
+        },
         "profile.backup.changePhoneModal.iphoneToIphoneTitle": {
             "locales": ["es-419", "es-AR", "pt-BR"],
             "reason": "iPhone platform name in a short title, no words to translate"

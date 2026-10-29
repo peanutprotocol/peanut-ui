@@ -10,18 +10,12 @@ import { EN_LANDING_CONTENT_HREFS } from '../landingContentHrefs'
 
 const heroProps: Record<string, unknown>[] = []
 
-jest.mock('next/dynamic', () => ({
-    __esModule: true,
-    default: () => () => null,
-}))
-
 jest.mock('@/context/footerVisibility', () => ({
     useFooterVisibility: () => ({ isFooterVisible: false }),
 }))
 
 jest.mock('next-intl', () => ({
     useLocale: () => 'en',
-    useTranslations: (namespace: string) => (key: string) => `${namespace}.${key}`,
 }))
 
 jest.mock('@/hooks/useMigrationFlag', () => ({
@@ -53,8 +47,6 @@ jest.mock('../hero', () => ({
 }))
 
 jest.mock('../marquee', () => ({ Marquee: () => <div data-testid="marquee" /> }))
-jest.mock('../noFees', () => ({ NoFees: () => <div data-testid="no-fees" /> }))
-jest.mock('../ShhhhhFold', () => ({ ShhhhhFold: () => <div data-testid="door" /> }))
 jest.mock('../StickyMobileCTA', () => ({ StickyMobileCTA: () => <div data-testid="sticky" /> }))
 
 // imported after the mocks so the component picks them up
@@ -81,21 +73,15 @@ const legacyTarget = () => (
     </section>
 )
 
-const renderLanding = (sendInSecondsSlot: ReactNode = <section id="send-in-seconds" />) =>
+const renderLanding = (foldsSlot: ReactNode = <section id="home-folds" />) =>
     render(
         <LandingPageClient
             heroConfig={{ primaryCta: { label: 'Sign up', href: '/setup' } }}
-            marqueeMessages={[{ id: 'GLOBAL', label: 'GLOBAL' }]}
+            marqueeMessages={[{ id: 'USD', label: 'USD' }]}
             strings={{} as LandingStrings}
             contentHrefs={EN_LANDING_CONTENT_HREFS}
-            problemSlot={<div />}
-            mantecaSlot={<div />}
-            regulatedRailsSlot={<div />}
-            yourMoneySlot={<div />}
-            securitySlot={<div />}
-            sendInSecondsSlot={sendInSecondsSlot}
+            foldsSlot={foldsSlot}
             footerSlot={<div />}
-            faqSlot={<div />}
         />
     )
 
@@ -151,13 +137,12 @@ describe('LandingPageClient — no scroll-jack', () => {
         }
     })
 
-    it('renders the send-in-seconds slot with no wrapper element around it', () => {
-        const { container } = renderLanding(<section id="send-in-seconds" data-testid="send-in-seconds" />)
+    it('renders the folds slot with no wrapper element around it', () => {
+        const { container } = renderLanding(<section id="home-folds" data-testid="home-folds" />)
 
-        // The deleted wrapper was `<div ref={sendInSecondsRef}>{sendInSecondsSlot}</div>`, which
-        // carried no id or class — the only thing that catches it coming back is the slot's
-        // parent. LandingPageClient returns a fragment, so the slot must be a direct child of
-        // the render container; pre-deletion it was a child of that anonymous div.
-        expect(screen.getByTestId('send-in-seconds').parentElement).toBe(container)
+        // The deleted scroll-jack wrapped the send-in-seconds fold in an anonymous
+        // `<div ref={sendInSecondsRef}>`. The folds now arrive as one slot; LandingPageClient
+        // returns a fragment, so the slot must stay a direct child of the render container.
+        expect(screen.getByTestId('home-folds').parentElement).toBe(container)
     })
 })
