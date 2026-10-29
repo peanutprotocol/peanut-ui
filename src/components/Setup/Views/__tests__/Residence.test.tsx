@@ -22,9 +22,11 @@ const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper:
 const mockSetResidenceCountry = jest.fn()
 const mockSetNationalityCountry = jest.fn()
 let mockSetupState: { residenceCountry: string; nationalityCountry: string }
+let mockOnFinish: (() => Promise<void>) | undefined
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({
         ...mockSetupState,
+        onFinish: mockOnFinish,
         fundingChannel: 'crypto',
         paymentChannel: 'peanut',
         setFundingChannel: jest.fn(),
@@ -106,6 +108,16 @@ describe('ResidenceStep', () => {
         mockRestrictionSets = undefined
         mockRestrictionSetsSettled = true
         mockUserId = 'user-1'
+        mockOnFinish = undefined
+    })
+
+    it('leaves the save to a host that finishes the flow itself, the verify prelude', () => {
+        mockOnFinish = async () => undefined
+        mockSetupState = { residenceCountry: 'PT', nationalityCountry: '' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        expect(mockUpdateUserById).not.toHaveBeenCalled()
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
     })
 
     // Slava, 2026-10-29: the answers are saved on Next, in the background, so an abandoned sign-up keeps them.

@@ -12,7 +12,7 @@ import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
 import { setupCountrySignalProperties, setupCountrySuggestion } from '@/features/setup/country-signals'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { saveSignupResidence } from '@/features/setup/saveSignupResidence'
+import { saveSignupResidence } from '@/features/setup/saveSignupAnswers'
 import { useAuth } from '@/context/authContext'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import posthog from 'posthog-js'
@@ -29,7 +29,8 @@ type PartialRestriction = 'card' | 'banking'
 const ResidenceStep = () => {
     const t = useTranslations('setup.residenceStep')
     const locale = useLocale()
-    const { residenceCountry, setResidenceCountry, nationalityCountry, setNationalityCountry } = useSetupFlowContext()
+    const { residenceCountry, setResidenceCountry, nationalityCountry, setNationalityCountry, onFinish } =
+        useSetupFlowContext()
     const { handleNext, isLoading } = useSetupFlow()
     const { user } = useAuth()
     const countrySignals = useSetupCountrySignals()
@@ -107,8 +108,9 @@ const ResidenceStep = () => {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN, { residence_country: primary })
         }
         // The account exists by now: save on Next, so an abandoned sign-up keeps the answers.
+        // A host with onFinish (the verify prelude) saves them itself and waits for the result.
         const userId = user?.user?.userId
-        if (userId) saveSignupResidence(userId, primary, nationalityCountry || primary)
+        if (userId && !onFinish) saveSignupResidence(userId, primary, nationalityCountry || primary)
         setConfirmedPrimary(primary)
     }
 

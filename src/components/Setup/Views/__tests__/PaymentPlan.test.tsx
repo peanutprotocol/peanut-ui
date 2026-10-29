@@ -29,6 +29,15 @@ jest.mock('@/hooks/useSetupFlow', () => ({
     useSetupFlow: () => ({ handleNext: mockNext, isLoading: mockIsLoading }),
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+let mockUserId: string | null = 'user-1'
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: mockUserId ? { user: { userId: mockUserId } } : null }),
+}))
+// Never settles: the step must move on without waiting for the save.
+const mockUpdateUserById = jest.fn((_payload: Record<string, unknown>) => new Promise(() => undefined))
+jest.mock('@/app/actions/users', () => ({
+    updateUserById: (payload: Record<string, unknown>) => mockUpdateUserById(payload),
+}))
 
 function Fixture({ country }: { country: string }) {
     const c = useSetupFlowContext()
@@ -44,8 +53,8 @@ function Fixture({ country }: { country: string }) {
         </>
     )
 }
-const ui = (country: string) => (
-    <SetupFlowProvider masterScreenIds={['payment-plan']}>
+const ui = (country: string, onFinish?: () => Promise<void>) => (
+    <SetupFlowProvider masterScreenIds={['payment-plan']} onFinish={onFinish}>
         <Fixture country={country} />
     </SetupFlowProvider>
 )
@@ -67,7 +76,30 @@ beforeEach(() => {
     mockSettled = true
     mockIntentsSettled = true
     mockIsLoading = false
+    mockUserId = 'user-1'
     jest.clearAllMocks()
+})
+
+// Slava, 2026-10-29: sign-up saves its answers on each step's Next, in the background.
+it('saves the plan on the account on Continue without waiting for the save', async () => {
+    renderWithIntl(ui('PT'))
+    await choose('Add money with', 'Choose', 'Crypto')
+    await choose('Make a payment with', 'Choose', 'QR payments')
+    fireEvent.click(continueButton())
+    expect(mockUpdateUserById).toHaveBeenCalledWith({
+        userId: 'user-1',
+        signupPreferences: { fundingChannel: 'crypto', paymentChannel: 'qr' },
+    })
+    expect(mockNext).toHaveBeenCalledTimes(1)
+})
+
+it('leaves the save to a host that finishes the flow itself, the verify prelude', async () => {
+    renderWithIntl(ui('PT', async () => undefined))
+    await choose('Add money with', 'Choose', 'Crypto')
+    await choose('Make a payment with', 'Choose', 'QR payments')
+    fireEvent.click(continueButton())
+    expect(mockUpdateUserById).not.toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalledTimes(1)
 })
 
 it('starts both pickers on Choose and keeps Continue disabled until both are set', async () => {

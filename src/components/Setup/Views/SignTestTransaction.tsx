@@ -20,7 +20,7 @@ import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { setupCountrySignalProperties } from '@/features/setup/country-signals'
 import { attachSignupGeo } from '@/services/signup-geo'
-import { saveSignupResidence } from '@/features/setup/saveSignupResidence'
+import { saveSignupResidence } from '@/features/setup/saveSignupAnswers'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { readInviteCode } from '@/utils/invite-stash'
 import {

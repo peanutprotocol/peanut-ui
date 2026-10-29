@@ -10,6 +10,8 @@ import { DrawerSelect } from '@/components/0_Bruddle/DrawerSelect'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { saveSignupPaymentPlan } from '@/features/setup/saveSignupAnswers'
+import { useAuth } from '@/context/authContext'
 import {
     bankCurrenciesFor,
     setupChannelsForResidence,
@@ -106,9 +108,10 @@ function ChannelPicker<C extends SetupChannel>({
  */
 export default function PaymentPlanStep() {
     const t = useTranslations('setup.paymentPlan')
-    const { residenceCountry, fundingChannel, setFundingChannel, paymentChannel, setPaymentChannel } =
+    const { residenceCountry, fundingChannel, setFundingChannel, paymentChannel, setPaymentChannel, onFinish } =
         useSetupFlowContext()
     const { handleNext, isLoading } = useSetupFlow()
+    const { user } = useAuth()
     const { sets, settled: setsSettled } = useResidenceRestrictionSetsWithStatus()
     const { intents, settled: intentsSettled } = useKycIntents(residenceCountry)
     // The server's answer for the residence, or the tiers when it could not be read.
@@ -134,6 +137,9 @@ export default function PaymentPlanStep() {
                 residence_country: residenceCountry,
             })
         }
+        // Saved on Next like the residence; the verify prelude (onFinish) saves its own pick.
+        const userId = user?.user?.userId
+        if (userId && !onFinish) saveSignupPaymentPlan(userId, funding, payment)
         void handleNext()
     }
 
