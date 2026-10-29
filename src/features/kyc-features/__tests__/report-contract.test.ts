@@ -32,9 +32,18 @@ const ACCOUNTS: { currency: string; feature: 'bank' | 'local'; row: BankRowKey |
 
 const tos: NextAction = { key: 'bridge-tos', kind: 'accept-tos', purpose: 'unlock-bridge', tosUrl: 'https://tos' }
 const wait: NextAction = { key: 'bridge-wait', kind: 'wait', purpose: 'bridge-review' }
-const restart: NextAction = { key: 'restart-identity', kind: 'restart-identity', purpose: 'document_country_unsupported' }
+const restart: NextAction = {
+    key: 'restart-identity',
+    kind: 'restart-identity',
+    purpose: 'document_country_unsupported',
+}
 const support: NextAction = { key: 'contact-support', kind: 'contact-support', purpose: 'kyc-support' }
-const poa: NextAction = { key: 'sumsub:proof_of_address', kind: 'sumsub', purpose: 'unlock-bridge', levelKey: 'proof_of_address' }
+const poa: NextAction = {
+    key: 'sumsub:proof_of_address',
+    kind: 'sumsub',
+    purpose: 'unlock-bridge',
+    levelKey: 'proof_of_address',
+}
 
 const ON: FeatureReportEntry = { state: 'on' }
 const READY: FeatureReportEntry = { state: 'ready', action: 'activate' }
@@ -170,7 +179,10 @@ describe('every screen shows the feature report', () => {
             const entry = accountEntry(fixture.features, account.feature, account.currency)
             const expected = fromReport(entry)
 
-            const gate = deriveGate(state, 'deposit', { channel: 'bank', country: account.country === 'DE' ? 'EU' : account.country })
+            const gate = deriveGate(state, 'deposit', {
+                channel: 'bank',
+                country: account.country === 'DE' ? 'EU' : account.country,
+            })
             expect(fromGate(gate, entry)).toBe(expected)
 
             const intent = account.feature === 'local' ? 'LATAM' : account.currency === 'EUR' ? 'EU' : 'NA'
@@ -220,7 +232,11 @@ describe('every screen shows the feature report', () => {
         })
 
         it('QR pay, Home and Money settings read the same QR answer', () => {
-            const qr = selectQrKycGate({ isLoading: false, features: fixture.features, nextActions: capabilities.nextActions })
+            const qr = selectQrKycGate({
+                isLoading: false,
+                features: fixture.features,
+                nextActions: capabilities.nextActions,
+            })
             expect(qr.kycGateState === QrKycState.PROCEED_TO_PAY).toBe(fixture.features.qr.state === 'on')
         })
 
@@ -254,7 +270,12 @@ describe('every screen shows the feature report', () => {
         const fixture = FIXTURES[0]
         const caps = capabilitiesOf(fixture)
         expect(entryChip(accountEntry(fixture.features, 'bank', 'EUR'), [])).toBe('active')
-        expect(deriveGate({ rails: [], nextActions: [], features: fixture.features, isLoading: false }, 'deposit', { channel: 'bank', country: 'GB' }).kind).toBe('pending')
+        expect(
+            deriveGate({ rails: [], nextActions: [], features: fixture.features, isLoading: false }, 'deposit', {
+                channel: 'bank',
+                country: 'GB',
+            }).kind
+        ).toBe('pending')
         expect(deriveCapabilityPhaseSignals(caps, 'EU', 'DE').allSettled).toBe(true)
         expect(deriveCapabilityPhaseSignals(caps, 'NA', 'GB').anyPending).toBe(true)
     })
