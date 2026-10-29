@@ -1,8 +1,6 @@
 export type MascotPose =
     /** Both fists up, celebrating — big money wins (claim / payment success, confetti moments). */
     | 'cheering'
-    /** Juggles three star coins — points and rewards. */
-    | 'juggling'
     /** Grinning, pointing off-screen. */
     | 'pointing'
     /** Both hands pointing down — marketing CTA. */

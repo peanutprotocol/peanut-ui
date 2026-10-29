@@ -43,6 +43,7 @@ import {
     MoveHorizontal,
     Palette,
     PanelBottom,
+    PanelBottomOpen,
     PanelsTopLeft,
     PanelTop,
     PartyPopper,
@@ -254,6 +255,13 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             icon: ChevronsUpDown,
             href: '/dev/ds/primitives/base-select',
             description: 'Radix-based dropdown select with error and disabled states',
+            status: 'production',
+        },
+        {
+            label: 'DrawerSelect',
+            icon: PanelBottomOpen,
+            href: '/dev/ds/primitives/drawer-select',
+            description: 'A select whose options open in a bottom drawer, with SelectList rows',
             status: 'production',
         },
         {

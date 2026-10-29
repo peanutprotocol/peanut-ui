@@ -83,7 +83,7 @@ export default function ListGroupPage() {
   {items.map((item) => (
     <ListItem
       key={item.id}
-      leading={<IconBubble icon={item.icon} size="xs" color="yellow" />}
+      leading={<IconBubble icon={item.icon} size="s" color="yellow" />}
       title={item.label}
       body={showSub ? item.sub : undefined}
       trailing={item.done ? <Badge status="completed" /> : undefined}
@@ -98,7 +98,7 @@ export default function ListGroupPage() {
                 >
                     <ListGroup className="bg-background-default">
                         <ListItem
-                            leading={<IconBubble icon="user-plus" size="xs" color="yellow" />}
+                            leading={<IconBubble icon="user-plus" size="s" color="yellow" />}
                             title="Create your account"
                             body="Done. Your money has a username now"
                             trailing={<Badge status="completed" />}
@@ -107,7 +107,7 @@ export default function ListGroupPage() {
                             className="border-border-default bg-background-default"
                         />
                         <ListItem
-                            leading={<IconBubble icon="arrow-down" size="xs" color="yellow" />}
+                            leading={<IconBubble icon="arrow-down" size="s" color="yellow" />}
                             title="Add money"
                             body="Bank transfer or crypto"
                             bodyWrap

@@ -288,7 +288,7 @@ const GettingStartedChecklist = ({
                         <ListItem
                             key={item.id}
                             data-testid={`checklist-${item.id}`}
-                            leading={<IconBubble {...item.bubble} size="xs" />}
+                            leading={<IconBubble {...item.bubble} size="s" />}
                             title={item.label}
                             truncate
                             // one line in every state: done, open, in review and pending

@@ -71,7 +71,7 @@ export function GraphTopBar({
                                     </span>
                                 )}
                         </span>
-                        <span className="rounded-full bg-blue-200 px-2 py-1 text-blue-600">
+                        <span className="rounded-full bg-background-badge-info px-2 py-1 text-avatar-blue-foreground">
                             {/* In payment mode, show P2P edges; in other modes, show invite edges */}
                             {t('invitesGraph.edges', {
                                 count:
@@ -134,7 +134,9 @@ export function GraphTopBar({
                                         handleClearSearch()
                                     }}
                                     className={`flex w-full items-center justify-between px-3 py-2 text-body-s transition-colors ${
-                                        node.isExternal ? 'hover:bg-orange-200/40' : 'hover:bg-purple-200/40'
+                                        node.isExternal
+                                            ? 'hover:bg-avatar-orange/40'
+                                            : 'hover:bg-background-badge-accent/40'
                                     }`}
                                 >
                                     <div className="flex items-center gap-2">
@@ -168,9 +170,15 @@ export function GraphTopBar({
             {/* Selected User/Node Banner */}
             {selectedUserId && (
                 <div
-                    className={`border-t px-4 py-2 text-body-s ${selectedUserId.startsWith('ext_') ? 'border-orange-200 bg-orange-200/40' : 'border-purple-200 bg-purple-200/40'}`}
+                    className={`border-t px-4 py-2 text-body-s ${selectedUserId.startsWith('ext_') ? 'border-avatar-orange bg-avatar-orange/40' : 'border-background-badge-accent bg-background-badge-accent/40'}`}
                 >
-                    <span className={selectedUserId.startsWith('ext_') ? 'text-orange-800' : 'text-purple-600'}>
+                    <span
+                        className={
+                            selectedUserId.startsWith('ext_')
+                                ? 'text-avatar-orange-foreground'
+                                : 'text-avatar-purple-foreground'
+                        }
+                    >
                         {t('invitesGraph.focusedOn')}{' '}
                         <span className="font-bold">
                             {selectedUserId.startsWith('ext_')

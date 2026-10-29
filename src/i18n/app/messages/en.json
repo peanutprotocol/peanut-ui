@@ -2201,7 +2201,8 @@
             "placeholderEns": "Address or ENS",
             "placeholderAddress": "Address",
             "detailsMissing": "Withdrawal details are missing",
-            "confirmNetwork": "Pick the network for this address"
+            "confirmNetwork": "Pick the network for this address",
+            "tronPickedByAddress": "Tron address: switched to {token} on Tron"
         },
         "confirm": {
             "recipientReceives": "Recipient receives",
@@ -4098,7 +4099,9 @@
             "networkFee": "Network fee",
             "noTokensFoundTitle": "No tokens found",
             "lockedHint": "Only USDC on Arbitrum for now",
-            "tokenNotOnNetwork": "No {symbol} on this network"
+            "tokenOnly": "Only supports {symbol}",
+            "tokenSwitchedOnly": "{network} only supports {symbol}, so we switched your token to {symbol}.",
+            "tokenSwitched": "{network} doesn't support {from}, so we switched your token to {symbol}."
         },
         "qrScanner": {
             "scanToPay": "Scan to pay",

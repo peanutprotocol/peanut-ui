@@ -99,7 +99,6 @@ const mockSendMoney = jest.fn()
 const mockSendTransactions = jest.fn()
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({
-        isConnected: true,
         address: '0x2222222222222222222222222222222222222222',
         sendMoney: mockSendMoney,
         sendTransactions: (...args: unknown[]) => mockSendTransactions(...args),
