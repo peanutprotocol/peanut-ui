@@ -6,7 +6,7 @@ it.each([
     ['AR', ['arsBank', 'bank', 'crypto', 'peanut'], ['card', 'qr']],
     ['PT', ['bank', 'crypto', 'peanut'], ['card', 'qr']],
     ['US', ['bank', 'crypto', 'peanut'], ['card', 'qr']],
-    ['NG', ['bank', 'crypto', 'peanut'], ['card', 'qr']],
+    ['NG', ['bank', 'crypto', 'peanut'], ['qr']],
     ['HK', ['bank', 'crypto', 'peanut'], ['card', 'qr']],
     ['UA', ['bank', 'crypto', 'peanut'], ['qr']],
     ['IN', ['bank', 'crypto', 'peanut'], ['qr']],

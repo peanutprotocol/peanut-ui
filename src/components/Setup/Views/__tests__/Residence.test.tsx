@@ -250,7 +250,7 @@ describe('ResidenceStep', () => {
     })
 
     // mirrors peanut-api-ts FULL_RESTRICTED_RESIDENCE (api#1738)
-    it.each(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'MM', 'VE', 'IQ'])(
+    it.each(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'MM', 'VE', 'IQ', 'PS', 'YE', 'SS', 'CD'])(
         'reports %s as restricted and still advances to the plan',
         (iso2) => {
             mockSetupState.residenceCountry = iso2
@@ -276,6 +276,11 @@ describe('ResidenceStep', () => {
         ['IL', 'card'],
         ['NP', 'card'],
         ['NI', 'card'],
+        // Rain's Platform Standards list, and Nigeria until Rain approves Peanut there
+        ['TZ', 'card'],
+        ['ID', 'card'],
+        ['NG', 'card'],
+        ['ZA', 'card'],
         ['DZ', 'banking'],
         ['BI', 'banking'],
         ['GW', 'banking'],
@@ -285,12 +290,8 @@ describe('ResidenceStep', () => {
         ['AF', 'banking'],
         ['SD', 'banking'],
         ['LY', 'banking'],
-        ['PS', 'banking'],
         ['LB', 'banking'],
-        ['YE', 'banking'],
         ['SO', 'banking'],
-        ['SS', 'banking'],
-        ['CD', 'banking'],
     ])('reports %s as a partial (%s) restriction and advances', (iso2, kind) => {
         mockSetupState.residenceCountry = iso2
         render(<ResidenceStep />)

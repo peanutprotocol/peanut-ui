@@ -42,7 +42,10 @@ describe('deriveResidenceRestrictions', () => {
         ['HK', { banking: false, card: false }],
         // Bridge-prohibited; the card still works
         ['AF', { banking: true, card: false }],
-        ['CD', { banking: true, card: false }],
+        // Bridge-prohibited and on Rain's Platform Standards list
+        ['CD', { banking: true, card: true }],
+        // Rain approves Peanut here first; banking still works
+        ['NG', { banking: false, card: true }],
         ['KP', { banking: true, card: true }],
         ['IN', { banking: false, card: true }],
         ['JP', { banking: true, card: false }],
