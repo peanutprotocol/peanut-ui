@@ -15,10 +15,12 @@
  *     the wrong place to accumulate third parties' payment histories.
  */
 
-import { formatUnits } from 'viem'
-import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { computeDisplaySpendable, isRainBalanceKnown, rainCentsToUsdcUnits } from '@/utils/balance.utils'
-import { formatCurrency } from '@/utils/general.utils'
+import {
+    computeAvailableSpendable,
+    formatUsdcBalance,
+    isRainBalanceKnown,
+    rainCentsToUsdcUnits,
+} from '@/utils/balance.utils'
 import {
     ARBISCAN_ADDRESS_BASE_URL,
     BRIDGE_DASHBOARD_BASE_URL,
@@ -28,7 +30,7 @@ import {
 import { type Account, AccountType, type IUserProfile } from '@/interfaces/interfaces'
 import type { RainCardOverview } from '@/services/rain'
 
-const usd = (units: bigint): string => `$${formatCurrency(formatUnits(units, PEANUT_WALLET_TOKEN_DECIMALS))}`
+const usd = (units: bigint): string => `$${formatUsdcBalance(units)}`
 
 const usdFromCents = (cents: number | null | undefined): string => usd(rainCentsToUsdcUnits(cents))
 
@@ -70,11 +72,7 @@ export function buildBalanceSummary(
 
     if (!walletKnown || !cardKnown) return `${halves} — total unknown`
 
-    const total = computeDisplaySpendable(
-        smartBalance,
-        spendingPower,
-        rainOverview?.balance?.inTransitToCollateralCents
-    )
+    const total = computeAvailableSpendable(smartBalance, spendingPower)
     return `${usd(total)} spendable (${halves})`
 }
 

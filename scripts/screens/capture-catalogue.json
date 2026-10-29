@@ -156,6 +156,18 @@
         "route": "/dev/surfaces?s=03-a-residence-select"
     },
     {
+        "id": "08-b-loginrecoverydrawer",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=08-b-loginrecoverydrawer",
+        "source": "Setup/Views/LoginRecoveryDrawer.tsx"
+    },
+    {
+        "id": "08-c-loginrecoverydrawer-web",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=08-c-loginrecoverydrawer-web",
+        "source": "Setup/Views/LoginRecoveryDrawer.tsx"
+    },
+    {
         "id": "45-c-residencechangemodal",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=45-c-residencechangemodal",
@@ -869,6 +881,101 @@
         "route": "/card"
     },
     {
+        "id": "fixture-card-holder-collateral",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-holder-collateral-legacy",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-reissue",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-reissue-legacy",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-funding-needed",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-card-funding-enrollment",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-card-funding-legacy",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-card-funding-migration",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-card-funding-return",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-card-funding-withdrawal-in-flight",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-card-funding-pending",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-card-funding-enabled",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-card-funding-unavailable",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-card-funding-error",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-card-funding-access-error",
+        "flow": "Card",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-card-cancel",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-cancel-stop-pending",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-lock-stop-confirmed",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-lock-stop-unavailable",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
         "id": "fixture-card-prohibited",
         "flow": "Card",
         "route": "/card"
@@ -1446,6 +1553,11 @@
     },
     {
         "id": "fixture-rewards-invites",
+        "flow": "Rewards",
+        "route": "/rewards/invites"
+    },
+    {
+        "id": "fixture-rewards-invites-unnamed",
         "flow": "Rewards",
         "route": "/rewards/invites"
     },

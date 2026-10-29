@@ -41,7 +41,7 @@ export default function CardSessionApprovePage() {
     return (
         <DevPageShell
             title="Rain card — grant session-key permission"
-            description="One passkey tap installs both auto-balancer and withdraw policies to your kernel. After this grant, card collateral spends only need a single admin EIP-712 tap per spend."
+            description="One passkey tap installs the withdraw policy to your kernel. After this grant, card collateral spends only need a single admin EIP-712 tap per spend."
             width="prose"
         >
             <Card className="divide-y divide-dashed divide-border-default px-4">

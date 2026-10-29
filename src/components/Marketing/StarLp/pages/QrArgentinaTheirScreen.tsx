@@ -68,7 +68,7 @@ export function QrArgentinaTheirScreen() {
                         data-shown={shown(0)}
                         data-story-beat={0}
                     >
-                        <span className="qr-ar-tick grid size-12 place-items-center rounded-full border-2 border-border-default bg-green-500 text-foreground-inverse">
+                        <span className="qr-ar-tick grid size-12 place-items-center rounded-full border-2 border-border-default bg-background-icon-bubble-green text-foreground-inverse">
                             <Icon name="check" size={24} />
                         </span>
                         <span className="qr-ar-paid-text text-heading-s lg:text-heading-m">Paid</span>

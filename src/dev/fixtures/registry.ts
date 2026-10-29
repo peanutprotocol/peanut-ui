@@ -10,6 +10,7 @@
 // this registry replaced it.
 
 import type { Fixture } from './types'
+import type { RainCardFunding, RainFundingAccess, RainFundingManagementStatus } from '@/services/rain'
 import {
     RESTRICTED_RESIDENCE_ISO2,
     CARD_RESTRICTED_RESIDENCE_ISO2,
@@ -23,6 +24,7 @@ import {
 } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
+import { DEMO_ADDRESS } from '@/constants/demo-data'
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
@@ -135,10 +137,10 @@ const INVITES_ONE = {
         {
             inviteeId: 'fixture-invitee-1',
             username: 'testfriend1',
+            // A friend who shows their name: the API sends it in fullName.
             fullName: 'Test Friend',
             kycVerified: true,
             contributedPoints: 50,
-            showFullName: false,
             lifetimeEarnedUsd: 0.5,
         },
     ],
@@ -152,6 +154,23 @@ const INVITES_ONE = {
         totalLifetimeEarnedUsd: 0.5,
         totalPendingUsd: 0,
     },
+}
+
+// A friend who never finished signup: no username and no name (TASK-24036).
+const INVITES_WITH_UNNAMED = {
+    invitees: [
+        ...INVITES_ONE.invitees,
+        {
+            inviteeId: 'fixture-invitee-unnamed',
+            username: null,
+            fullName: null,
+            kycVerified: false,
+            contributedPoints: 0,
+            showFullName: false,
+            lifetimeEarnedUsd: 0,
+        },
+    ],
+    summary: { ...INVITES_ONE.summary, pendingInvites: 1, totalInvites: 2 },
 }
 
 const HUGE_HISTORY_ENTRY = {
@@ -951,6 +970,89 @@ const REQUEST_PAY_EUR = {
     rate: { from: 'USD', to: 'EUR', rate: '0.92', source: 'fixture', asOf: null },
 }
 
+const CARD_HOLDER_OVERVIEW = {
+    status: { hasApplication: true, railStatus: 'ENABLED' },
+    balance: null,
+    cards: [
+        {
+            id: 'fixture-card',
+            rainCardId: 'fixture-rain',
+            status: 'ACTIVE',
+            last4: '0420',
+            expiryMonth: 6,
+            expiryYear: 2069,
+            network: 'visa',
+            issuedAt: '2026-01-01T00:00:00Z',
+            hasWithdrawApproval: false,
+        },
+    ],
+}
+
+/** $25.00 the provider can release; holds already excluded. */
+const CARD_HOLDER_COLLATERAL = {
+    creditLimit: 0,
+    spendingPower: 2500,
+    pendingCharges: 0,
+    postedCharges: 0,
+    balanceDue: 0,
+}
+
+// `GET /rain/cards/funding` for managed card funding. Fake spender, wallet and
+// session signer — a fixture never signs. `allowance` is informational only:
+// every fixture gives a large one on purpose, because readiness is the
+// backend's `management.status` and never the allowance.
+// Typed from the API schema, so a change to the funding response breaks this
+// file at typecheck instead of drifting.
+const cardFunding = (
+    status: RainFundingManagementStatus,
+    migration: RainCardFunding['management']['migration'] = null
+): RainCardFunding => ({
+    chainId: '42161',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    spenderAddress: '0x0000000000000000000000000000000000000001',
+    walletAddress: DEMO_ADDRESS,
+    allowance: '150000000',
+    sessionKeyAddress: '0x4300F803a281e257F3C1de001512e68972f8d022',
+    permission: {
+        scopeVersion: 2,
+        ceiling: '300000000',
+        termsVersion: 'rtf-2026-09-29',
+        authorizationText: 'I authorize transfers according to the Real-Time Funding Terms.',
+    },
+    management: { status, reason: null, migration, stop: null },
+})
+
+// `GET /rain/cards/funding/access`: the server's funding decision, which picks
+// the card surfaces. `managed` with `enrollmentAllowed: false` is an accepted
+// account whose cohort was closed since: it must still finish. Typed from the
+// service, so a change to the response breaks this file at typecheck.
+const cardAccess = (fundingMode: RainFundingAccess['fundingMode'], enrollmentAllowed: boolean): RainFundingAccess => ({
+    fundingMode,
+    enrollmentAllowed,
+})
+
+// An account on the existing card permission: collateral contracts on file and
+// no stored withdrawal approval, so Home asks for the existing permission.
+const LEGACY_CARD_OVERVIEW = {
+    ...CARD_HOLDER_OVERVIEW,
+    status: {
+        ...CARD_HOLDER_OVERVIEW.status,
+        contractAddress: '0x2222222222222222222222222222222222222222',
+        coordinatorAddress: '0x3333333333333333333333333333333333333333',
+    },
+}
+
+// The funding wallet matches the demo wallet (see `cardFunding`), so the modals
+// can verify the funding response's scope.
+const cardStopFunding = (cause: 'card_locked' | 'card_canceled', state: 'pending' | 'confirmed' | 'unavailable') => {
+    const base = cardFunding('temporarily_unavailable')
+    return {
+        ...base,
+        walletAddress: DEMO_ADDRESS,
+        management: { ...base.management, reason: cause, stop: { cause, state } },
+    }
+}
+
 export const FIXTURES: Record<string, Fixture> = {
     'setup-payment-plan': {
         route: '/dev/surfaces?s=03-c-residence-congrats',
@@ -1037,6 +1139,11 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/rewards/invites',
         about: 'Invite list with one verified friend.',
         responses: { 'GET /points/invites': INVITES_ONE },
+    },
+    'rewards-invites-unnamed': {
+        route: '/rewards/invites',
+        about: 'Invite list with a friend who never finished signup: no name, no profile link.',
+        responses: { 'GET /points/invites': INVITES_WITH_UNNAMED },
     },
     badges: {
         route: '/badges',
@@ -1436,22 +1543,246 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Existing holder keeps card management even when new issuance is prohibited for their residence.',
         responses: {
             'GET /card': { isEligible: false, geoProhibited: true },
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    'card-holder-collateral': {
+        route: '/card',
+        about: 'Managed holder with the permission ready and card balance left from before: the collateral note offers Move card balance to wallet.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { ...CARD_HOLDER_OVERVIEW, balance: CARD_HOLDER_COLLATERAL },
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    // Card balance on the existing card permission is what card payments use:
+    // no note and no move, however much there is.
+    'card-holder-collateral-legacy': {
+        route: '/card',
+        about: 'Holder on the existing card permission with card balance: the screen offers no note and no Move card balance to wallet.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { ...LEGACY_CARD_OVERVIEW, balance: CARD_HOLDER_COLLATERAL },
+            'GET /rain/cards/funding/access': cardAccess('legacy', false),
+        },
+    },
+    // The funding authorization sits on the terms step, one tap in ("Get your
+    // card") — e2e/flows/card-public.spec.ts takes that tap and shoots it.
+    'card-reissue': {
+        route: '/card',
+        about: 'Approved holder with no card: the card terms end with one funding authorization.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
             'GET /rain/cards': {
-                status: { hasApplication: true, railStatus: 'ENABLED' },
+                status: {
+                    hasApplication: true,
+                    railStatus: 'ENABLED',
+                    contractAddress: '0x2222222222222222222222222222222222222222',
+                    coordinatorAddress: '0x3333333333333333333333333333333333333333',
+                },
                 balance: null,
-                cards: [
-                    {
-                        id: 'fixture-card',
-                        rainCardId: 'fixture-rain',
-                        status: 'ACTIVE',
-                        last4: '0420',
-                        expiryMonth: 6,
-                        expiryYear: 2069,
-                        network: 'visa',
-                        issuedAt: '2026-01-01T00:00:00Z',
-                        hasWithdrawApproval: false,
-                    },
-                ],
+                cards: [],
+            },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+            // eligible for managed funding, not accepted yet: the managed terms
+            'GET /rain/cards/funding/access': cardAccess('legacy', true),
+        },
+    },
+    'card-reissue-legacy': {
+        route: '/card',
+        about: 'Approved holder with no card on the existing card permission: the production card terms, with no funding authorization.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': {
+                status: {
+                    hasApplication: true,
+                    railStatus: 'ENABLED',
+                    contractAddress: '0x2222222222222222222222222222222222222222',
+                    coordinatorAddress: '0x3333333333333333333333333333333333333333',
+                },
+                balance: null,
+                cards: [],
+            },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+            'GET /rain/cards/funding/access': cardAccess('legacy', false),
+        },
+    },
+    // The Home prompt is today's centered modal for an existing cardholder.
+    // Nothing can be signed in a fixture, so Continue's outcome is not shot.
+    'card-funding-needed': {
+        route: '/home',
+        about: 'Managed cardholder whose funding permission is missing: the centered Home prompt with one unchecked authorization.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('required'),
+        },
+        waitFor: '[data-testid="card-funding-consent"]',
+    },
+    // Before acceptance the funding read is withheld (`enrollment_required`)
+    // and carries no retirement payload.
+    'card-funding-enrollment': {
+        route: '/home',
+        about: 'Cardholder eligible for managed funding who has not accepted yet: the same prompt with one unchecked authorization, nothing retired.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('legacy', true),
+            'GET /rain/cards/funding': {
+                ...cardFunding('temporarily_unavailable'),
+                management: { status: 'temporarily_unavailable', reason: 'enrollment_required', migration: null },
+            },
+        },
+        waitFor: '[data-testid="card-funding-consent"]',
+    },
+    'card-funding-legacy': {
+        route: '/home',
+        about: 'Cardholder on the existing card permission that managed funding is not open to: the production permission prompt, no funding authorization.',
+        responses: {
+            'GET /rain/cards': LEGACY_CARD_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('legacy', false),
+        },
+    },
+    'card-funding-migration': {
+        route: '/home',
+        about: 'Managed cardholder with a legacy grant to retire: the same prompt, saying there are two confirmations.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('migration_required', {
+                uninstall: [{ validationId: `0x02${'ab'.repeat(20)}`, deinitData: '0x1234' }],
+                invalidateNonceFloor: 3,
+            }),
+        },
+        waitFor: '[data-testid="card-funding-consent"]',
+    },
+    // Card balance from before goes back to the wallet before the old grant is
+    // retired: the same prompt names the amount and every confirmation.
+    'card-funding-return': {
+        route: '/home',
+        about: 'Existing cardholder with card balance and a legacy grant: the same prompt names the amount and more than one confirmation.',
+        responses: {
+            'GET /rain/cards': {
+                ...CARD_HOLDER_OVERVIEW,
+                balance: CARD_HOLDER_COLLATERAL,
+                cards: [{ ...CARD_HOLDER_OVERVIEW.cards[0], hasWithdrawApproval: true }],
+            },
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('migration_required', {
+                uninstall: [{ validationId: `0x02${'ab'.repeat(20)}`, deinitData: '0x1234' }],
+                invalidateNonceFloor: 3,
+            }),
+        },
+        waitFor: '[data-testid="card-funding-consent"]',
+    },
+    'card-funding-withdrawal-in-flight': {
+        route: '/home',
+        about: 'Existing cardholder with a legacy grant while a card withdrawal still confirms: the same prompt waits, then offers Check status and Skip.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': {
+                ...cardFunding('temporarily_unavailable'),
+                management: { status: 'temporarily_unavailable', reason: 'withdrawal_in_flight', migration: null },
+            },
+        },
+        waitFor: '[data-testid="modal-head"]',
+    },
+    'card-funding-pending': {
+        route: '/home',
+        about: 'Existing cardholder whose grant is accepted but not confirmed: a disabled Working… button, then Check status and Skip once the wait window passes.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': cardFunding('pending'),
+        },
+        waitFor: '[data-testid="modal-head"]',
+    },
+    'card-funding-enabled': {
+        route: '/home',
+        about: 'Existing cardholder with the permission ready: Home shows no prompt, whatever the allowance is.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    'card-funding-unavailable': {
+        route: '/home',
+        about: 'Existing cardholder whose permission stands but refills are paused: Home never asks for a grant.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('temporarily_unavailable'),
+        },
+    },
+    'card-funding-error': {
+        route: '/home',
+        about: 'Managed cardholder whose funding state cannot be read: fails closed, Home shows no prompt.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+        },
+        fails: ['GET /rain/cards/funding'],
+    },
+    'card-funding-access-error': {
+        route: '/home',
+        about: 'Existing cardholder whose funding decision cannot be read: fails closed, Home shows neither permission prompt.',
+        responses: {
+            'GET /rain/cards': LEGACY_CARD_OVERVIEW,
+            'GET /rain/cards/funding': cardFunding('required'),
+        },
+        fails: ['GET /rain/cards/funding/access'],
+    },
+    'card-cancel': {
+        route: '/card',
+        about: 'Existing cardholder on Card settings, to check that cancelling offers no permission-removal step.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    // A card lock or cancel is a wallet-wide stop of managed payments. The card is done at once; whether
+    // the wallet stop is confirmed comes from the funding read. One fixture per visible state, static data.
+    'card-cancel-stop-pending': {
+        route: '/card',
+        about: 'Cardholder whose cancel answers "stop in progress": Card canceled, then payments stopping, and the card page banner.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardStopFunding('card_canceled', 'pending'),
+            'POST /rain/cards/fixture-card/cancel': {
+                status: 'CANCELED',
+                fundingStop: { state: 'pending', reason: 'card_canceled' },
+            },
+        },
+    },
+    'card-lock-stop-confirmed': {
+        route: '/card',
+        about: 'Cardholder whose lock is followed by a funding read confirming the wallet stop: "payments stopped".',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': cardStopFunding('card_locked', 'confirmed'),
+            'POST /rain/cards/fixture-card/lock': {
+                status: 'LOCKED',
+                fundingStop: { state: 'pending', reason: 'card_locked' },
+            },
+        },
+    },
+    'card-lock-stop-unavailable': {
+        route: '/card',
+        about: 'Cardholder whose lock cannot stop wallet payments (permission unusable): asks for support, never says stopped.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': cardStopFunding('card_locked', 'unavailable'),
+            'POST /rain/cards/fixture-card/lock': {
+                status: 'LOCKED',
+                fundingStop: { state: 'unavailable', reason: 'scope_retired' },
             },
         },
     },

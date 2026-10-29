@@ -1,9 +1,4 @@
-import {
-    MARKETING_QR_EVENT,
-    getMarketingQrRegistration,
-    marketingQrTrackingEnabled,
-    parseMarketingQrQuery,
-} from './contract'
+import { MARKETING_QR_EVENT, getMarketingQrRegistration, parseMarketingQrQuery } from './contract'
 
 export const MARKETING_QR_HEADERS = {
     'Cache-Control': 'private, no-store, max-age=0',
@@ -22,6 +17,24 @@ const BODY_KEYS = new Set([
     'attribution_adjustment',
 ])
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+// The installed apps' webview origins (iOS, Android). A QR that opens the app sends its
+// opening from there, because no web page loads (sendMarketingQrAppOpening).
+const APP_ORIGINS = new Set(['capacitor://localhost', 'https://localhost'])
+
+export function isMarketingQrAppOrigin(origin: string | null): origin is string {
+    return origin !== null && APP_ORIGINS.has(origin)
+}
+
+export function marketingQrAppCorsHeaders(origin: string): Record<string, string> {
+    return {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Methods': 'POST',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Max-Age': '86400',
+        Vary: 'Origin',
+    }
+}
 
 export function isAutomatedMarketingQrRequest(headers: Headers): boolean {
     return (
@@ -79,15 +92,13 @@ export function parseMarketingQrOpening(value: unknown, now = Date.now()) {
 export type MarketingQrOpening = NonNullable<ReturnType<typeof parseMarketingQrOpening>>
 
 /** Called only from Next's after(): browser navigation never waits for this request. */
-export async function captureMarketingQrOpening(opening: MarketingQrOpening, requestOrigin: string): Promise<void> {
+export async function captureMarketingQrOpening(
+    opening: MarketingQrOpening,
+    requestOrigin: string,
+    openedIn: 'web' | 'app'
+): Promise<void> {
     const key = process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim()
-    if (
-        !marketingQrTrackingEnabled() ||
-        process.env.VERCEL_ENV !== 'production' ||
-        requestOrigin !== 'https://peanut.me' ||
-        !key
-    )
-        return
+    if (process.env.VERCEL_ENV !== 'production' || requestOrigin !== 'https://peanut.me' || !key) return
     const { registration, campaign } = opening
     try {
         await fetch('https://eu.i.posthog.com/i/v0/e/', {
@@ -114,6 +125,7 @@ export async function captureMarketingQrOpening(opening: MarketingQrOpening, req
                     ...(campaign.content ? { utm_content: campaign.content } : {}),
                     attribution_origin: opening.attributionOrigin,
                     attribution_adjustment: opening.attributionAdjustment,
+                    opened_in: openedIn,
                     $process_person_profile: false,
                     $geoip_disable: true,
                 },

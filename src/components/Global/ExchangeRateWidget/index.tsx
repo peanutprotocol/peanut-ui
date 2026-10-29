@@ -272,7 +272,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4 outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-5 w-40 animate-pulse rounded-full bg-foreground-primary/10" />
+                            <div className="h-5 w-40 animate-pulse rounded-full bg-background-skeleton" />
                         </div>
                     ) : (
                         <input
@@ -330,7 +330,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4 outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-5 w-40 animate-pulse rounded-full bg-foreground-primary/10" />
+                            <div className="h-5 w-40 animate-pulse rounded-full bg-background-skeleton" />
                         </div>
                     ) : (
                         <input
@@ -382,7 +382,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
 
             {showLoading ? (
                 // one skeleton pill sized like the loaded pill — no tint-on-tint
-                <div className="h-5 w-32 animate-pulse rounded-full bg-foreground-primary/10" />
+                <div className="h-5 w-32 animate-pulse rounded-full bg-background-skeleton" />
             ) : (
                 <div className="rounded-full bg-background-disabled px-2 py-[2px] text-label-m text-foreground-secondary">
                     {isError ? (

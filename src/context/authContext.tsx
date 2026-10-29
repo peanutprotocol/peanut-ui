@@ -32,6 +32,7 @@ import {
     reconcileNotificationIdentity,
     resumeNotificationIdentity,
 } from '@/services/onesignal/identity'
+import { reportPushIdentityFailure } from '@/services/onesignal/identity-report'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react'
@@ -79,7 +80,7 @@ interface AuthContextType {
     }) => Promise<AccountSetupOutcome>
     isFetchingUser: boolean
     userFetchError: Error | null
-    logoutUser: (options?: { skipBackendCall?: boolean }) => Promise<void>
+    logoutUser: (options?: { skipBackendCall?: boolean; allDevices?: boolean }) => Promise<void>
     isLoggingOut: boolean
     invitedUsernamesSet: Set<string>
 }
@@ -243,8 +244,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return result.data ?? null
         }, cancel)
         if (generation === logoutGeneration.current && pushLogoutVersion === getNotificationLogoutVersion()) {
-            void resumeNotificationIdentity(profile.user.userId).catch(() => {
-                captureException(new Error('Push identity login failed'), { tags: { source: 'push_identity_login' } })
+            void resumeNotificationIdentity(profile.user.userId).catch((error) => {
+                reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
             })
         }
         return profile
@@ -272,10 +273,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 if (!active || loggingOut.current || isDemoMode()) return null
                 if (result.error) throw result.error
                 return result.data?.user?.userId ?? null
-            }).catch(() => {
-                captureException(new Error('Push identity reconciliation failed'), {
-                    tags: { source: 'push_identity_reconcile' },
-                })
+            }).catch((error) => {
+                reportPushIdentityFailure('Push identity reconciliation failed', 'push_identity_reconcile', error)
             })
         }
         const unsubscribe = onNotificationIdentityLoginAvailable(reconcile)
@@ -341,8 +340,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }),
         })
         if (generation === logoutGeneration.current && pushLogoutVersion === getNotificationLogoutVersion()) {
-            void resumeNotificationIdentity(userId).catch(() => {
-                captureException(new Error('Push identity login failed'), { tags: { source: 'push_identity_login' } })
+            void resumeNotificationIdentity(userId).catch((error) => {
+                reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
             })
         }
         return outcome
@@ -433,11 +432,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, [queryClient, user?.user.userId])
 
     /**
-     * Logs out the user
-     * @param options.skipBackendCall - If true, skips the backend logout call (useful when backend is down)
+     * Logs out the user on this device. The account stays signed in elsewhere.
+     * @param options.skipBackendCall - If true, skips the backend logout call, leaving this
+     * device's session valid server-side (backend down, or a forced re-auth about this device's key)
+     * @param options.allDevices - If true, also signs the account out on every other device
      */
     const logoutUser = useCallback(
-        async (options?: { skipBackendCall?: boolean }) => {
+        async (options?: { skipBackendCall?: boolean; allDevices?: boolean }) => {
             if (loggingOut.current) return
 
             loggingOut.current = true
@@ -447,22 +448,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // that by storing the current path as the post-auth destination.
             beginIntentionalLogout()
             // Start before any auth await; SDK events cannot relink the old user.
-            const pushLogout = logoutNotificationIdentity().catch(() => {
-                captureException(new Error('Push identity logout failed or timed out'), {
-                    tags: { source: 'push_identity_logout' },
-                })
+            const pushLogout = logoutNotificationIdentity().catch((error) => {
+                reportPushIdentityFailure('Push identity logout failed or timed out', 'push_identity_logout', error)
             })
             try {
                 /*
                  * Revoke server-side FIRST (needs the still-valid JWT): POST
-                 * /users/logout bumps the account's tokenVersion so every
-                 * outstanding JWT — this device and any other — stops
-                 * verifying. Best-effort: a dead backend must never trap the
-                 * user in a session, so failures fall through to local logout.
+                 * /users/logout revokes this device's session, /users/logout/all
+                 * bumps the account's tokenVersion so every outstanding JWT
+                 * stops verifying. Best-effort: a dead backend must never trap
+                 * the user in a session, so failures fall through to local logout.
                  */
                 if (!options?.skipBackendCall) {
                     try {
-                        await apiFetch('/users/logout', { method: 'POST' })
+                        const response = await apiFetch(options?.allDevices ? '/users/logout/all' : '/users/logout', {
+                            method: 'POST',
+                        })
+                        // an API without /all still revokes every session on /users/logout
+                        if (options?.allDevices && response?.status === 404) {
+                            await apiFetch('/users/logout', { method: 'POST' })
+                        }
                     } catch (e) {
                         console.warn('server-side session revocation failed, continuing local logout:', e)
                     }

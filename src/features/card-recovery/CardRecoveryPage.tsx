@@ -75,10 +75,6 @@ export function CardRecoveryPage() {
                                 {BigInt(preview.dustWei) > 0n && (
                                     <Row label={t('dust')} value={`${preview.dustWei} wei (< $0.01)`} />
                                 )}
-                                <Row
-                                    label={t('autoBalance')}
-                                    value={preview.autoBalanceEnabled ? t('autoBalanceOn') : t('autoBalanceOff')}
-                                />
                             </Card>
 
                             <Button

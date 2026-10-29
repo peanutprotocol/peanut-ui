@@ -814,12 +814,14 @@ function main() {
         console.log(`\n⚠ ${warnings.length} warning(s) (non-blocking)`)
     }
 
+    // Set the exit code and let Node exit on its own. process.exit() drops stdout writes still
+    // queued on a pipe, which cut this report short on Linux CI (indexable-urls.test.ts, 2026-10-26).
     if (errors.length === 0) {
         console.log('\n✓ All checks passed!')
-        process.exit(0)
+        process.exitCode = 0
     } else {
         console.log(`\nResult: ${errors.length} errors, ${warnings.length} warnings`)
-        process.exit(1)
+        process.exitCode = 1
     }
 }
 

@@ -4,6 +4,7 @@ import { toInviteCode } from '@/utils/invite-code.utils'
 import { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
+import { formatAmountNumber } from '@/utils/currency'
 import { UTM_MEDIUMS, UTM_SOURCES, withUtm } from '@/utils/utm.utils'
 import { type ReferralSource } from '@/constants/analytics.consts'
 import { isCapacitor } from '@/utils/capacitor'
@@ -199,10 +200,14 @@ export const syncLocalStorageToCookie = (key: string) => {
  * that uses specific locales (e.g., 'es-AR' for '1.234,56').
  * This function standardizes on en-US for parsable input display.
  *
+ * Rounds half-up through `formatAmountNumber`, the one place a display amount
+ * is rounded. The input's own trailing zeros do not set the decimals: "1.5"
+ * and "1.50" format the same way.
+ *
  * @param {string | undefined} valueStr - The numeric string value to format.
  * @param {object} [options] - Optional formatting options.
  * @param {number} [options.maxDecimals] - The maximum number of decimals to display.
- * @param {number} [options.minDecimals] - The minimum number of decimals to display.
+ * @param {number} [options.minDecimals] - The minimum number of decimals to display when there is a fraction.
  * @returns {string} The formatted string for display with thousands separators (en-US).
  */
 export const formatNumberForDisplay = (
@@ -233,28 +238,22 @@ export const formatNumberForDisplay = (
     const num = Number(valueStr)
     if (isNaN(num)) return ''
 
-    const maxDecimals = options?.maxDecimals ?? 0 // Default to 0 if not specified, to avoid .00 for whole numbers
-    let minDecimals = options?.minDecimals ?? 0
-    const parts = valueStr.split('.')
-
-    if (parts.length === 2 && parts[1].length > 0) {
-        // If there's an actual decimal part in the input string (e.g., "1.2", "1.20"),
-        // set minDecimals to its length to preserve trailing zeros.
-        minDecimals = parts[1].length
-    }
-    // For whole numbers (e.g. "123"), minDecimals remains 0.
-
-    minDecimals = Math.min(minDecimals, maxDecimals) // Cap by maxDecimals
-
-    return num.toLocaleString('en-US', {
-        minimumFractionDigits: minDecimals,
-        maximumFractionDigits: maxDecimals,
-        roundingMode: 'trunc',
-    })
+    return formatAmountNumber(num, options?.maxDecimals ?? 0, options?.minDecimals ?? 0)
 }
 
-export function formatCurrency(valueStr: string | undefined, maxDecimals: number = 2, minDecimals: number = 2): string {
-    return formatNumberForDisplay(valueStr, { maxDecimals, minDecimals })
+/**
+ * A USD amount for display, without the "$": "1,234.56", "0.50", "1,234".
+ * Rounds half-up to the cent and drops ".00" on a round amount (design.md,
+ * copy → amounts). A spendable balance uses `formatUsdcBalance`, which rounds
+ * down instead.
+ */
+export function formatCurrency(
+    value: string | number | undefined,
+    maxDecimals: number = 2,
+    minDecimals: number = 2
+): string {
+    if (value === undefined || value === '') return ''
+    return formatAmountNumber(value, maxDecimals, minDecimals)
 }
 
 /**
@@ -262,6 +261,9 @@ export function formatCurrency(valueStr: string | undefined, maxDecimals: number
  * - displaying 2 significant digits for small numbers (<0.01)
  * - removing unnecessary trailing zeros after decimal point
  * - if all decimal places are zeros, returns the whole number
+ *
+ * For token amounts and URL segments only. It drops a trailing zero ("0.5"),
+ * so a money amount on screen uses `formatCurrency` or `formatBankAmount`.
  * @param amount - number or string to format
  * @returns formatted string representation of the number
  */
@@ -644,7 +646,8 @@ export function getChainName(chainId: string): string | undefined {
  */
 /**
  * Formats a number to use K, M, B, T suffixes if it exceeds 6 digits in length.
- * Uses the formatAmount function to format the number before adding a suffix.
+ * Below that it shows the full amount like any money amount ("1,234.50");
+ * a suffixed amount is compact ("12.5K").
  *
  * @param amount - The number or string to format.
  * @returns A formatted string with appropriate suffix.
@@ -662,9 +665,9 @@ export const formatExtendedNumber = (amount: string | number, minDigitsForFomatt
     // Count total digits by removing decimal point and negative sign
     const totalDigits = amount.toString().replace(/[.-]/g, '').length
 
-    // If 6 or fewer digits, just use formatAmount
+    // If 6 or fewer digits, show the amount in full, with its cents: "257.50", not "257.5"
     if (totalDigits <= minDigitsForFomatting) {
-        return formatAmount(num)
+        return formatAmountNumber(num)
     }
 
     // Get absolute value for comparison
@@ -696,7 +699,7 @@ export const formatExtendedNumber = (amount: string | number, minDigitsForFomatt
         }
     }
 
-    return formatAmount(num)
+    return formatAmountNumber(num)
 }
 
 export function getRequestLink(
@@ -783,6 +786,8 @@ export const beginIntentionalLogout = () => {
 export const endIntentionalLogout = () => {
     intentionalLogout = false
 }
+
+export const isIntentionalLogout = () => intentionalLogout
 
 /**
  * Why a post-auth destination was stored. `deep-link` is an intent of the
@@ -1196,8 +1201,10 @@ export const clearRedirectUrl = (expected?: StoredRedirect | null) => {
     }
 }
 
-export const getInitialsFromName = (name: string): string => {
-    const nameParts = name.trim().split(/\s+/)
+// A user who never finished signup has no username and no name; one such row
+// must not take down the screen that lists it.
+export const getInitialsFromName = (name: string | null | undefined): string => {
+    const nameParts = (name ?? '').trim().split(/\s+/)
     if (nameParts.length === 1) {
         return nameParts[0].substring(0, 2).toUpperCase()
     } else {

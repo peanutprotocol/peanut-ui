@@ -40,14 +40,8 @@ jest.mock('react-qr-code', () => ({
     ),
 }))
 
-const originalGate = process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
 beforeEach(() => {
     mockMigrationOn = true
-    process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = 'true'
-})
-afterAll(() => {
-    if (originalGate === undefined) delete process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
-    else process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = originalGate
 })
 
 it.each(['us-europe-accounts', 'qr-argentina', 'qr-brazil', 'request-links', 'self-custody'] as const)(
@@ -64,7 +58,7 @@ it.each(['us-europe-accounts', 'qr-argentina', 'qr-brazil', 'request-links', 'se
         expect(await screen.findByRole('dialog')).toBeInTheDocument()
         expect(await screen.findByTestId('qr')).toHaveAttribute(
             'data-value',
-            `${window.location.origin}/q/${page}-hero-en`
+            `${window.location.origin}/home?mqr=${page}-hero-en`
         )
         expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'M')
     }
@@ -78,23 +72,16 @@ it.each([
     ['qr-brazil', 'ways-in'],
 ] as const)('registers inline %s/%s only when both rollout and app migration are enabled', (campaign, slot) => {
     const { rerender } = render(<StarLpQrCode campaign={campaign} slot={slot} />)
-    expect(screen.getByTestId('qr')).toHaveAttribute('data-value', `${window.location.origin}/q/${campaign}-${slot}-en`)
+    expect(screen.getByTestId('qr')).toHaveAttribute(
+        'data-value',
+        `${window.location.origin}/home?mqr=${campaign}-${slot}-en`
+    )
     expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'M')
     mockMigrationOn = false
     rerender(<StarLpQrCode campaign={campaign} slot={slot} />)
     expect(screen.getByTestId('qr')).toHaveAttribute(
         'data-value',
         starLpQrUrl({ origin: window.location.origin, campaign, slot, migrationOn: false })
-    )
-    expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'L')
-})
-
-it('leaves inline legacy URLs intact while the new rollout is disabled', () => {
-    process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = 'false'
-    render(<StarLpQrCode campaign="qr-brazil" slot="ways-in" />)
-    expect(screen.getByTestId('qr')).toHaveAttribute(
-        'data-value',
-        starLpQrUrl({ origin: window.location.origin, campaign: 'qr-brazil', slot: 'ways-in', migrationOn: true })
     )
     expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'L')
 })

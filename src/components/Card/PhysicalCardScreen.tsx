@@ -76,10 +76,10 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                 <div className="flex flex-col items-center gap-6 text-center" role="status">
                     <span className="sr-only">{tCommon('loading')}</span>
                     <div className="flex w-full flex-col items-center gap-1">
-                        <div className="h-8 w-40 animate-pulse rounded bg-foreground-primary/10" />
-                        <div className="h-5 w-64 animate-pulse rounded bg-foreground-primary/10" />
+                        <div className="h-8 w-40 animate-pulse rounded bg-background-skeleton" />
+                        <div className="h-5 w-64 animate-pulse rounded bg-background-skeleton" />
                     </div>
-                    <div className="h-11 w-full animate-pulse rounded-full bg-foreground-primary/10" />
+                    <div className="h-11 w-full animate-pulse rounded-full bg-background-skeleton" />
                 </div>
             ) : data?.joinedAt ? (
                 <div className="flex flex-col items-center gap-3 text-center">

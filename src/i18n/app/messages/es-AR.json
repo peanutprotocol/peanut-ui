@@ -32,9 +32,17 @@
             "firstPaymentHeldCardNote": "Pagá con la tarjeta",
             "firstPaymentHeldCardQrNote": "Pagá con la tarjeta o un QR"
         },
-        "autoBalance": {
+        "fundingSetup": {
             "title": "Terminá de configurar la tarjeta",
-            "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intentá de nuevo u omitilo por ahora: te lo volveremos a pedir en tu primer pago con tarjeta."
+            "descriptionMigration": "Primero hay que actualizar el permiso de tu tarjeta. Confirmá dos veces con tu passkey: una para actualizar y otra para el nuevo permiso.",
+            "descriptionPending": "Autorización enviada, aún sin confirmar. Revisá el estado en un momento. No autorices dos veces.",
+            "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intentá de nuevo u omitilo por ahora. Te lo volveremos a pedir la próxima vez que abras Inicio.",
+            "descriptionReturn": "Cuando se confirme la configuración, {amount} del saldo de la tarjeta vuelve a tu billetera. Puede requerir más de una confirmación con tu passkey.",
+            "descriptionWithdrawalInFlight": "Un retiro de la tarjeta todavía se está confirmando. Revisá de nuevo en un momento u omitilo por ahora.",
+            "descriptionReturnPending": "El movimiento del saldo de tu tarjeta a tu billetera aún no está confirmado. Revisá de nuevo en un momento u omitilo por ahora.",
+            "descriptionReturnWait": "El saldo de tu tarjeta no se puede mover ahora. Intentá más tarde u omitilo por ahora.",
+            "descriptionBalanceUnavailable": "No pudimos leer el saldo de tu tarjeta. Intentá de nuevo u omitilo por ahora.",
+            "confirmUpdate": "Confirmá la actualización del permiso de la tarjeta"
         },
         "history": {
             "networkErrorDescription": "Revisá tu conexión e intentá de nuevo.",
@@ -463,6 +471,22 @@
             "signUp": "Registrate",
             "recoverWallet": "¿Necesitás recuperar la cuenta de Peanut?"
         },
+        "loginRecovery": {
+            "steps": {
+                "ios": {
+                    "sameAccount": "Iniciá sesión en la cuenta de Apple de ese teléfono, con Contraseñas de iCloud activadas.",
+                    "thatPhone": "O iniciá sesión en ese teléfono."
+                },
+                "android": {
+                    "sameAccount": "Iniciá sesión en la cuenta de Google de ese teléfono.",
+                    "thatPhone": "O iniciá sesión en ese teléfono."
+                },
+                "web": {
+                    "thatPhone": "Iniciá sesión en ese teléfono.",
+                    "sameAccount": "O iniciá sesión en su cuenta de Apple o Google en este navegador."
+                }
+            }
+        },
         "waitlist": {
             "loginCanceled": "El inicio de sesión fue cancelado. Intentalo de nuevo.",
             "noPasskey": "No se encontró ninguna passkey. Primero creá una billetera."
@@ -813,7 +837,8 @@
             "restartTitle": "Verificate con otro documento",
             "fixableDescription": "Necesitamos un documento actualizado para habilitar los pagos con QR. Subí una foto más clara de tu identificación.",
             "restartDescription": "Los pagos con QR necesitan un documento de un país compatible. Podés verificarte con otra identificación.",
-            "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contactá a soporte para recibir ayuda."
+            "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contactá a soporte para recibir ayuda.",
+            "verifyAgainDescription": "Nos faltan algunos datos. Completá la verificación adicional."
         },
         "success": {
             "earnedHoldToClaim": "¡Ganaste ${amount}! Mantené presionado para reclamar tu recompensa.",
@@ -901,6 +926,7 @@
         "entry": {
             "title": "Gastá donde acepten Visa",
             "description": "Usá tu saldo en más de 150M de comercios. En línea, sin contacto, tuya.",
+            "featureBalance": "Administrá tu tarjeta en Peanut",
             "cta": "Pedir tarjeta"
         },
         "addToWallet": {
@@ -937,6 +963,12 @@
             "lockSuccessBody": "Volvé cuando quieras para desbloquearla.",
             "slideToLock": "Deslizá y bloqueá"
         },
+        "stop": {
+            "pending": "Todavía se están deteniendo los pagos desde tu billetera. Puede tardar unos minutos.",
+            "unavailable": "No pudimos confirmar que los pagos desde tu billetera se hayan detenido. Contactá a soporte.",
+            "unlockKept": "Tu tarjeta está activa, pero los pagos desde tu billetera siguen detenidos por ahora. Contactá a soporte si no se resuelve.",
+            "unlockUnknown": "Tu tarjeta está activa, pero no pudimos confirmar que los pagos desde tu billetera se reanudaron. Intentá desbloquear de nuevo."
+        },
         "errors": {
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Intentalo de nuevo o contactá a soporte.",
             "authorizationFailed": "Falló la autorización de la tarjeta. Intentalo de nuevo o contactá a soporte.",
@@ -972,8 +1004,19 @@
             "comingSoonBody": "Unite a nuestra lista de espera y sé de los primeros en tenerla."
         },
         "yourCard": {
+            "balanceDueBody": "Un pago reciente con la tarjeta terminó siendo mayor que el monto retenido al momento de pagar. Esto pasa con propinas o totales actualizados. La diferencia sigue pendiente. Contactá a soporte para saldarla.",
+            "moveFailed": "No pudimos terminar de mover el saldo de tu tarjeta. Revisá tu saldo y después intentá de nuevo.",
+            "movePending": "El movimiento del saldo de tu tarjeta aún no está confirmado. Revisá de nuevo en un momento.",
+            "moveWait": "El saldo de tu tarjeta no se puede mover ahora. Intentá más tarde.",
+            "moveBalanceUnavailable": "No pudimos leer el saldo de tu tarjeta. Intentá de nuevo.",
+            "moveBusy": "Hay otra acción de la tarjeta en curso. Intentá de nuevo en un momento.",
             "payAsCreditTitle": "Pagá como crédito",
             "payAsCreditBody": "Cuando la terminal pregunte débito o crédito, elegí crédito — tu tarjeta Peanut corre en la red de crédito."
+        },
+        "funding": {
+            "body": "Peanut gestiona cuánto puede tomar de tu billetera nuestro proveedor externo para los pagos con tarjeta. Se renueva automáticamente, incluso para el dinero que agregues después.",
+            "termsChanged": "Los términos cambiaron. Leelos de nuevo y confirmá.",
+            "walletMismatch": "Esta tarjeta está vinculada a otra billetera. Contactá a soporte."
         },
         "page": {
             "loadFailed": "No se pudo cargar la información de la tarjeta. Intentalo de nuevo.",
@@ -1046,7 +1089,8 @@
             "scanWithBankApp": "Escaneá con la app de tu banco o copiá el código Pix."
         },
         "confirmationModal": {
-            "youMust": "Debés:"
+            "title": "Copiá la referencia tal cual",
+            "body": "La siguiente pantalla muestra los datos bancarios y una referencia de depósito. Pegala en el campo de referencia del banco."
         },
         "bankDetails": {
             "sendExactAmount": "¡Enviá exactamente este monto!",
@@ -1212,7 +1256,7 @@
         "noPendingRewards": "No tenés recompensas pendientes por ahora.",
         "lifetimeRewards": "Recompensas totales: {amount}. Para ganar más, invitá a tus amigos.",
         "earnWhenFriendsUse": "¡Ganás recompensas cada vez que tus amigos usan Peanut!",
-        "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más recompensas",
+        "shareInviteLinkPrompt": "Enviá tu enlace de invitación para empezar a ganar más recompensas",
         "contactSupport": "Por favor contactá a Soporte.",
         "howItWorks": {
             "step1": "Invitá a tus amigos a Peanut.",
@@ -1220,7 +1264,7 @@
         },
         "iosCopy": {
             "earnWhenFriendsUse": "¡Ganás puntos cada vez que tus amigos pagan con Peanut!",
-            "shareInviteLinkPrompt": "Enviá tu link de invitación para empezar a ganar más puntos",
+            "shareInviteLinkPrompt": "Enviá tu enlace de invitación para empezar a ganar más puntos",
             "howItWorks": {
                 "step4": "Hacé cualquier pago para reclamarlas."
             }
@@ -1611,7 +1655,6 @@
         "qrScannerOverlay": {
             "notSupportedGetNotified": "¡Enterate cuando esté disponible!",
             "getNotifiedCta": "¡Avisame!",
-            "directSendConfirm": "Confirmá los datos del pago antes de enviarlo",
             "externalUrlIntro": "Peanut no admite este QR, pero podés abrirlo con tu navegador.",
             "externalUrlTrust": "¡Asegurate de confiar en este sitio web!",
             "pixRecurringBody": "Peanut no admite pagos PIX recurrentes: pedí un código QR de PIX normal.",
@@ -1676,8 +1719,7 @@
             "troubleTitle": "¿Necesitás ayuda?",
             "troubleDescriptionLine1": "Si la verificación de identidad no carga aquí, completala en tu navegador.",
             "troubleDescriptionLine2": "Solo copiá este enlace y abrilo allí.",
-            "exitDescription": "Podés volver y terminar esto en cualquier momento.",
-            "havingTrouble": "¿Tenés problemas?"
+            "exitDescription": "Podés volver y terminar esto en cualquier momento."
         },
         "supportDrawer": {
             "chatLoadFailedDescription": "Hubo un problema al cargar el chat de soporte. Escribinos por correo y te ayudamos:"
@@ -1827,7 +1869,7 @@
             "signInBody": "O creá tu cuenta. Toma un minuto.",
             "verifyTitle": "Verificá.",
             "spendTitle": "Pagá.",
-            "spendBody": "¿Aprobada? Agregá plata y pagá."
+            "spendBody": "Tené USD 10 en tu saldo, pedila y pagá."
         },
         "marquee": {
             "available": "OBTENÉ TU TARJETA"
@@ -1837,10 +1879,10 @@
                 "answer": "Los pagos con tarjeta usan USDC en un contrato inteligente dedicado. Podés agregar fondos de tu billetera Peanut al saldo de tu tarjeta."
             },
             "q5": {
-                "answer": "Iniciá sesión, completá la verificación y aceptá los términos del titular. Tu solicitud está sujeta a aprobación."
+                "answer": "Iniciá sesión, completá la verificación, tené al menos USD 10 en tu saldo de Peanut y aceptá los términos del titular. Tu solicitud está sujeta a aprobación."
             },
             "q6": {
-                "answer": "No. Podés solicitarla antes de agregar dinero. Agregá fondos cuando tu tarjeta esté lista para pagar."
+                "answer": "Sí. Para solicitar tu primera tarjeta necesitás al menos USD 10 en tu saldo de Peanut. No es una comisión: la plata sigue siendo tuya para gastarla con la tarjeta."
             },
             "q8": {
                 "answer": "Peanut Card es virtual. Podés registrar tu interés en una tarjeta física desde la app."

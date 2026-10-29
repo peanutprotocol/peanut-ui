@@ -94,7 +94,7 @@ export default function ProgressBarPage() {
                         fillClassName="bg-green-500"
                         markers={[
                             { position: 80, className: 'bg-green-500' },
-                            { position: 'end', className: 'bg-action-secondary' },
+                            { position: 'end', className: 'bg-background-accent-yellow' },
                         ]}
                     />
                 </ProductUsage.Example>

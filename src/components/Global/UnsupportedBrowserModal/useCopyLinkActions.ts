@@ -51,7 +51,7 @@ export const useCopyLinkActions = (searchParams: SearchParamsReader): ActionModa
             icon: 'copy' as IconName,
             iconPosition: 'left',
             onClick: copyLink,
-            className: 'bg-action-primary hover:bg-action-primary-hover text-black sm:py-3',
+            className: 'bg-action-primary hover:bg-action-primary-press text-black sm:py-3',
             shadowSize: '4',
         },
     ]

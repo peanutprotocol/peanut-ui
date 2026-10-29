@@ -41,6 +41,8 @@ import {
 import { claimAndSettlePendingBadgeCampaigns } from '@/services/badge-campaigns'
 import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration } from '@/utils/deep-link-state'
 import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
+import { isDemoMode } from '@/utils/demo'
+import { unfinishedSignupRoute } from '@/features/setup/unfinished-signup'
 
 // The steps after registration; reaching any of them arms the no-back lock.
 const POST_REGISTRATION_SCREENS: readonly ScreenId[] = [
@@ -109,6 +111,15 @@ function SetupPageContent() {
     useLayoutEffect(() => {
         setScreenIdRef.current = setScreenId
     }, [setScreenId])
+    const resolvedEntry = useRef<string | null>(null)
+    const resumeSignup = useRef(false)
+    // A live flow, not a reloaded ?screen=: this mount has rendered a step after registration.
+    const shownPostRegistration = useRef(false)
+    // Async exits (a native badge claim settling) must read the latest list and cursor.
+    const stepsRef = useRef(steps)
+    stepsRef.current = steps
+    const currentScreenRef = useRef(step?.screenId)
+    currentScreenRef.current = step?.screenId
     const [isLoading, setIsLoading] = useState(true)
     const [initializationError, setInitializationError] = useState<string | null>(null)
     const initializationExpired = useRef(false)
@@ -218,6 +229,7 @@ function SetupPageContent() {
     // is fixed here too, so they do not change under the person.
     useEffect(() => {
         if (stepRendered && !signupCompleted && step && POST_REGISTRATION_SCREENS.includes(step.screenId)) {
+            shownPostRegistration.current = true
             setNoBackLockScreenId(postRegistrationScreen(steps.map((entry) => entry.screenId)))
             if (sellScreensCountry === undefined) {
                 setSellScreensCountry(setupCountrySuggestion(countrySignals)?.country ?? null)
@@ -286,6 +298,27 @@ function SetupPageContent() {
             const explicitRedirect = new URLSearchParams(searchParamsString).get('redirect_uri')
             const safeRedirect = explicitRedirect ? getValidRedirectUrl(explicitRedirect, '/home') : '/home'
             const signedInExit = safeRedirect.startsWith('/setup') ? '/home' : safeRedirect
+            /*
+             * A reload mid-signup (a deploy's service worker, chunk recovery,
+             * pull to refresh) or an app restart lands here signed in without
+             * the wallet the last step creates. Leaving for /home skipped the
+             * email and every other step after registration, so every exit
+             * below resumes instead. Entry never trusts a reloaded ?screen=:
+             * restart at the first step after registration, unless the flow
+             * is already past it.
+             */
+            const resume = !isDemoMode() && unfinishedSignupRoute(user) === '/setup'
+            if (resume) resumeSignup.current = true
+            const exitSignedIn = () => {
+                if (!resume) {
+                    router.replace(signedInExit)
+                    return
+                }
+                if (resolvedEntry.current === null || shownPostRegistration.current) return
+                setScreenIdRef.current(postRegistrationScreen(stepsRef.current.map((entry) => entry.screenId)), {
+                    history: 'replace',
+                })
+            }
             const nativeClaimDeepLinkGeneration = getDeepLinkGeneration()
             const nativeClaimCampaignsKey = pendingBadgeCampaigns.join('\u0000')
             const shouldSettleNativeBadgeCampaigns =
@@ -329,7 +362,7 @@ function SetupPageContent() {
                     .finally(() => {
                         if (isCurrentNativeClaim()) {
                             setIsSettlingNativeBadgeCampaigns(false)
-                            router.replace(signedInExit)
+                            exitSignedIn()
                         } else if (isSetupMountedRef.current && nativeClaimRunIdRef.current === nativeClaimRunId) {
                             // A newer native link may keep this setup instance
                             // mounted while Next transitions to its new URL.
@@ -342,10 +375,14 @@ function SetupPageContent() {
             }
             if (isNewSetupDeepLink) {
                 setIsSettlingNativeBadgeCampaigns(false)
-                router.replace(signedInExit)
+                exitSignedIn()
                 return
             }
             if (!isInitialSessionCheck) return
+            if (resume) {
+                exitSignedIn()
+                return
+            }
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
             setIsLeavingForHome(true)
             router.replace(signedInExit)
@@ -362,7 +399,6 @@ function SetupPageContent() {
         searchParamsString,
     ])
 
-    const resolvedEntry = useRef<string | null>(null)
     useEffect(() => {
         let cancelled = false
         const isObsolete = () => cancelled || initializationExpired.current
@@ -379,6 +415,12 @@ function SetupPageContent() {
             setIsLoading(true)
             await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
             if (isObsolete()) return
+            const entryScreen = (target: ScreenId): ScreenId => {
+                if (!resumeSignup.current) return target
+                const current = currentScreenRef.current
+                if (shownPostRegistration.current && current) return current
+                return postRegistrationScreen(steps.map((entry) => entry.screenId))
+            }
 
             // The entry-step rules (invite code / ?step=signup opening the form
             // directly, ?step=login, a known device going to Log In) live in
@@ -419,7 +461,7 @@ function SetupPageContent() {
             // webview gates so every browser can reach Landing's Log In and
             // native-store actions, including devices that cannot onboard.
             if (webSignupClosed) {
-                const targetStep = resolveSetupEntryStep(entryInput)
+                const targetStep = entryScreen(resolveSetupEntryStep(entryInput))
                 if (!steps.some((s) => s.screenId === targetStep)) throw new Error('Setup entry step is missing')
                 resolvedEntry.current = entryKey
                 setScreenIdRef.current(targetStep, { history: 'replace' })
@@ -429,7 +471,7 @@ function SetupPageContent() {
 
             // In Capacitor, passkeys are handled natively. Skip browser, webview, and OS checks.
             if (isCapacitor()) {
-                const targetStep = resolveSetupEntryStep(entryInput)
+                const targetStep = entryScreen(resolveSetupEntryStep(entryInput))
                 // replace, not push: the entry step overwrites any stale
                 // ?screen= from a reload or shared link — the URL is only the
                 // source of truth for IN-FLOW navigation (TASK-21460)
@@ -500,7 +542,7 @@ function SetupPageContent() {
             }
 
             // if no modal was triggered, proceed to determine actual setup step
-            determinedSetupInitialStepId = resolveSetupEntryStep(entryInput)
+            determinedSetupInitialStepId = entryScreen(resolveSetupEntryStep(entryInput))
 
             // Entry always REPLACES — a stale ?screen= must never survive a
             // fresh load into a step whose prerequisite state is gone.

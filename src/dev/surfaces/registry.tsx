@@ -24,6 +24,7 @@ import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
+import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
@@ -75,7 +76,7 @@ import ConfirmWithdrawView from '@/features/withdraw/views/ConfirmWithdrawView'
 import { WithdrawAmountView } from '@/features/withdraw/views/WithdrawAmountView'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
 import NotFoundScreen from '@/components/Global/NotFoundScreen'
-import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
+import { GuestPaymentMethodActionList } from './GuestPaymentMethodActionList'
 import { RequestPotActionList } from '@/features/payments/flows/contribute-pot/components/RequestPotActionList'
 import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
@@ -302,7 +303,6 @@ import RateUnavailable from '@/components/Global/RateUnavailable'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { SURFACE_META, type SurfaceMeta } from './list'
 import { PasskeyHelpA, PasskeyHelpB, PasskeyHelpC, PasskeyHelpD } from './options/PasskeyHelpOptions'
-import { OnrampA, OnrampB, OnrampC, OnrampD } from './options/OnrampOptions'
 import { KycChecklistA, KycChecklistB } from './options/KycChecklistOptions'
 
 export type Surface = SurfaceMeta & {
@@ -392,6 +392,23 @@ export const SURFACES: Record<string, Surface> = {
                 platform="android"
             />
         ),
+    },
+    '08-b-loginrecoverydrawer': {
+        ...SURFACE_META['08-b-loginrecoverydrawer'],
+        render: () => (
+            <LoginRecoveryDrawer
+                visible
+                onClose={noop}
+                onRetry={noop}
+                onSignUp={noop}
+                onSupport={noop}
+                platform="ios"
+            />
+        ),
+    },
+    '08-c-loginrecoverydrawer-web': {
+        ...SURFACE_META['08-c-loginrecoverydrawer-web'],
+        render: () => <LoginRecoveryDrawer visible onClose={noop} onRetry={noop} onSupport={noop} platform="web" />,
     },
     '09-a-passkeyinfomodal': {
         name: 'PasskeyInfoDrawer',
@@ -863,7 +880,7 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['79-f-choice-direct-send'],
         render: () => (
             <div className="flex min-h-dvh w-full flex-col justify-center p-4">
-                <PaymentMethodActionList isAmountEntered />
+                <GuestPaymentMethodActionList isAmountEntered />
             </div>
         ),
     },
@@ -871,7 +888,7 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['80-f-choice-semantic-request'],
         render: () => (
             <div className="flex min-h-dvh w-full flex-col justify-center p-4">
-                <PaymentMethodActionList isAmountEntered onPayWithExternalWallet={noop} />
+                <GuestPaymentMethodActionList isAmountEntered onPayWithExternalWallet={noop} />
             </div>
         ),
     },
@@ -1057,10 +1074,6 @@ export const OPTION_SURFACES: Record<string, { name: string; render: () => React
     'opt-passkey-b': { name: 'PasskeySetupHelpDrawer — B', render: () => <PasskeyHelpB /> },
     'opt-passkey-c': { name: 'PasskeySetupHelpDrawer — C', render: () => <PasskeyHelpC /> },
     'opt-passkey-d': { name: 'PasskeySetupHelpDrawer — D', render: () => <PasskeyHelpD /> },
-    'opt-onramp-a': { name: 'OnrampConfirmationModal — A', render: () => <OnrampA /> },
-    'opt-onramp-b': { name: 'OnrampConfirmationModal — B', render: () => <OnrampB /> },
-    'opt-onramp-c': { name: 'OnrampConfirmationModal — C', render: () => <OnrampC /> },
-    'opt-onramp-d': { name: 'OnrampConfirmationModal — D', render: () => <OnrampD /> },
     'opt-kyc-a': { name: 'KycPrepChecklist — A (bullets)', render: () => <KycChecklistA /> },
     'opt-kyc-b': { name: 'KycPrepChecklist — B (DataRow)', render: () => <KycChecklistB /> },
 }
