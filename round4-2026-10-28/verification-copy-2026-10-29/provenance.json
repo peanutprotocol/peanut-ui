@@ -1,0 +1,123 @@
+{
+  "capturedAt": "2026-10-29T13:40:18.736Z",
+  "head": "f88cd5cbb3b7fc38b224e4492215466435cbc672",
+  "contentPin": "160000 commit 3ebad658212d5bb51ec2b1fc85ec8c37f9aa09ae\tsrc/content",
+  "runtime": "Next.js webpack development server at localhost:8777, actual release worktree",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "reducedMotion": true,
+  "sourceEdits": false,
+  "screenshotScope": "FAQ seam only; excludes deferred mirrored FAQ content",
+  "results": [
+    {
+      "locale": "en",
+      "route": "/",
+      "expected": "Verify your identity",
+      "file": "faq-seam-en-390.png",
+      "status": 200,
+      "viewportWidth": 390,
+      "documentWidth": 390,
+      "phraseBounds": {
+        "x": 12,
+        "y": 409.75,
+        "width": 197.1875,
+        "height": 24
+      },
+      "stripBounds": {
+        "x": 0,
+        "y": 391.875,
+        "width": 390,
+        "height": 60
+      },
+      "obsoleteAbsent": true,
+      "pageErrors": [],
+      "imagePixels": {
+        "width": 390,
+        "height": 61
+      }
+    },
+    {
+      "locale": "es-419",
+      "route": "/es-419",
+      "expected": "Verifica tu identidad",
+      "file": "faq-seam-es-419-390.png",
+      "status": 200,
+      "viewportWidth": 390,
+      "documentWidth": 390,
+      "phraseBounds": {
+        "x": 12,
+        "y": 409.40625,
+        "width": 205.96875,
+        "height": 24
+      },
+      "stripBounds": {
+        "x": 0,
+        "y": 391.53125,
+        "width": 390,
+        "height": 60
+      },
+      "obsoleteAbsent": true,
+      "pageErrors": [],
+      "imagePixels": {
+        "width": 390,
+        "height": 61
+      }
+    },
+    {
+      "locale": "es-ar",
+      "route": "/es-ar",
+      "expected": "Verific\u00e1 tu identidad",
+      "file": "faq-seam-es-ar-390.png",
+      "status": 200,
+      "viewportWidth": 390,
+      "documentWidth": 390,
+      "phraseBounds": {
+        "x": 12,
+        "y": 409.40625,
+        "width": 205.96875,
+        "height": 24
+      },
+      "stripBounds": {
+        "x": 0,
+        "y": 391.53125,
+        "width": 390,
+        "height": 60
+      },
+      "obsoleteAbsent": true,
+      "pageErrors": [],
+      "imagePixels": {
+        "width": 390,
+        "height": 61
+      }
+    },
+    {
+      "locale": "pt-br",
+      "route": "/pt-br",
+      "expected": "Verifique sua identidade",
+      "file": "faq-seam-pt-br-390.png",
+      "status": 200,
+      "viewportWidth": 390,
+      "documentWidth": 390,
+      "phraseBounds": {
+        "x": 12,
+        "y": 409.40625,
+        "width": 241.4375,
+        "height": 24
+      },
+      "stripBounds": {
+        "x": 0,
+        "y": 391.53125,
+        "width": 390,
+        "height": 60
+      },
+      "obsoleteAbsent": true,
+      "pageErrors": [],
+      "imagePixels": {
+        "width": 390,
+        "height": 61
+      }
+    }
+  ]
+}

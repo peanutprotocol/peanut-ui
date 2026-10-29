@@ -263,7 +263,12 @@
       "height": 974
     }
   ],
-  "finalReleaseCandidate": "2591bbd63cc752670c9d5d1bd403f51070f22fa5",
+  "finalReleaseCandidate": "f88cd5cbb3b7fc38b224e4492215466435cbc672",
   "finalRuntimeSource": "cbd200ed0426eeea7535b4f8de03bc88040195c6",
-  "legacyCardCaptureSource": "2591bbd63cc752670c9d5d1bd403f51070f22fa5"
+  "legacyCardCaptureSource": "2591bbd63cc752670c9d5d1bd403f51070f22fa5",
+  "verificationCopyCapture": {
+    "head": "f88cd5cbb3b7fc38b224e4492215466435cbc672",
+    "directory": "verification-copy-2026-10-29",
+    "scope": "Four corrected FAQ seam labels at390px in actual webpack development runtime; images390x61pixels. Full report in directory."
+  }
 }
