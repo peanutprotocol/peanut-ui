@@ -35,7 +35,6 @@ import { getRegionIntent, providerForRegionIntent, type Region } from '@/utils/r
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
 import { IDENTITY_DOCUMENT_MISSING_CODE, QrKycState } from '@/constants/kyc.consts'
-import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useLimits } from '@/hooks/useLimits'
 import { limitSummariesForRows, MethodLimits } from './MethodLimits'
@@ -123,7 +122,6 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         isTerminalFailure: isIdentityFinallyRejected,
     } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
-    const { cardInfo } = useCardInfo()
     const { overview } = useRainCardOverview()
     const { mantecaLimits, bridgeLimits } = useLimits()
     const { openSupportWithMessage, setIsSupportModalOpen } = useModalsContext()

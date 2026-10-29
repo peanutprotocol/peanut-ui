@@ -131,11 +131,6 @@ export function filterRailsByScope(rails: RailCapability[], scope: GateScope = {
     })
 }
 
-/** Read operation status with rail-level fallback (per the contract's `operations?.[op] ?? status` semantics). */
-function operationStatus(rail: RailCapability, op: RailOperation): RailCapability['status'] {
-    return rail.operations?.[op] ?? rail.status
-}
-
 /** Resolve a rail's blocking actions to NextAction descriptors. */
 function railActions(rail: RailCapability, byKey: Map<string, NextAction>): NextAction[] {
     return (rail.blockingActions ?? [])

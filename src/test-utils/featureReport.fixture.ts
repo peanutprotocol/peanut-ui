@@ -18,7 +18,6 @@ import type {
 } from '@/types/capabilities'
 
 type KycIntent = keyof FeatureReport
-type AccountsEntry = FeatureReport['bank']
 const IDENTITY_REGION_RESTRICTED_CODE = 'identity_region_restricted'
 
 /** A capability block with the report the API would send for its rails. */
