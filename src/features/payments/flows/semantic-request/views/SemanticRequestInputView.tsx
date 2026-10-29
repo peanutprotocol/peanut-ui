@@ -22,12 +22,10 @@ import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
 import SupportCTA from '@/components/Global/SupportCTA'
-import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
-import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { useTranslations } from 'next-intl'
@@ -52,20 +50,13 @@ export function SemanticRequestInputView() {
         isInsufficientBalance,
         isLoading,
         isLoggedIn,
-        isConnected,
         setAmount,
         handlePayment,
         setCurrentView,
     } = useSemanticRequestFlow()
 
     // token selector context for setting initial values from url
-    const {
-        setSelectedChainID,
-        setSelectedTokenAddress,
-        selectedChainID,
-        selectedTokenAddress,
-        supportedChainsAndTokens,
-    } = useContext(tokenSelectorContext)
+    const { setSelectedChainID, setSelectedTokenAddress, supportedChainsAndTokens } = useContext(tokenSelectorContext)
 
     // initialize token/chain from parsed url
     useEffect(() => {
@@ -119,20 +110,6 @@ export function SemanticRequestInputView() {
     // determine button state
     const isButtonDisabled = !canProceed || isLoading
     const isAmountEntered = !!amount && parseFloat(amount) > 0
-
-    // check if using peanut wallet default (usdc on arb)
-    const isUsingPeanutDefault =
-        selectedChainID === PEANUT_WALLET_CHAIN.id.toString() &&
-        areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)
-
-    // determine if we should show token selector
-    // only show when chain is NOT specified in url AND recipient is ADDRESS or ENS
-    // An open-amount request is paid in the token its charge names, like any request.
-    const showTokenSelector =
-        !parsedUrl?.chain?.chainId &&
-        !charge?.openAmount &&
-        (recipient?.recipientType === 'ADDRESS' || recipient?.recipientType === 'ENS') &&
-        isConnected
 
     // determine denomination for amount input
     // if url specifies a non-stablecoin token (e.g., eth), use that token as primary denomination
@@ -217,16 +194,6 @@ export function SemanticRequestInputView() {
                     />
                     {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
                 </div>
-
-                {/* token selector for chain/token selection (not for USERNAME) */}
-                {showTokenSelector && <TokenSelector viewType="req_pay" />}
-
-                {/* hint for free transactions */}
-                {showTokenSelector && selectedTokenAddress && selectedChainID && !isUsingPeanutDefault && (
-                    <div className="pt-1 text-center text-body-xs text-foreground-secondary">
-                        <span>{t('input.freeTransactionsHint')}</span>
-                    </div>
-                )}
 
                 {/* button and error */}
                 <div className="space-y-4">
