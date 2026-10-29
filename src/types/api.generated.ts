@@ -12706,6 +12706,54 @@ export interface paths {
                     content: {
                         "application/json": {
                             capabilities: {
+                                features: {
+                                    bank: {
+                                        accounts: {
+                                            [key: string]: {
+                                                action?: string;
+                                                message?: string;
+                                                reason?: string;
+                                                since?: string;
+                                                state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                            };
+                                        };
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                    card: {
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                    local: {
+                                        accounts: {
+                                            [key: string]: {
+                                                action?: string;
+                                                message?: string;
+                                                reason?: string;
+                                                since?: string;
+                                                state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                            };
+                                        };
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                    qr: {
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                };
                                 nextActions: {
                                     currency?: string;
                                     effectiveDate?: string;
@@ -14374,6 +14422,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/kyc/features": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            features: {
+                                bank: {
+                                    accounts: {
+                                        [key: string]: {
+                                            action?: string;
+                                            message?: string;
+                                            reason?: string;
+                                            since?: string;
+                                            state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                        };
+                                    };
+                                    action?: string;
+                                    message?: string;
+                                    reason?: string;
+                                    since?: string;
+                                    state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                };
+                                card: {
+                                    action?: string;
+                                    message?: string;
+                                    reason?: string;
+                                    since?: string;
+                                    state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                };
+                                local: {
+                                    accounts: {
+                                        [key: string]: {
+                                            action?: string;
+                                            message?: string;
+                                            reason?: string;
+                                            since?: string;
+                                            state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                        };
+                                    };
+                                    action?: string;
+                                    message?: string;
+                                    reason?: string;
+                                    since?: string;
+                                    state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                };
+                                qr: {
+                                    action?: string;
+                                    message?: string;
+                                    reason?: string;
+                                    since?: string;
+                                    state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                };
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/kyc/features/{feature}/activate": {
         parameters: {
             query?: never;
@@ -15173,6 +15305,54 @@ export interface paths {
                     content: {
                         "application/json": {
                             capabilities: {
+                                features: {
+                                    bank: {
+                                        accounts: {
+                                            [key: string]: {
+                                                action?: string;
+                                                message?: string;
+                                                reason?: string;
+                                                since?: string;
+                                                state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                            };
+                                        };
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                    card: {
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                    local: {
+                                        accounts: {
+                                            [key: string]: {
+                                                action?: string;
+                                                message?: string;
+                                                reason?: string;
+                                                since?: string;
+                                                state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                            };
+                                        };
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                    qr: {
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                };
                                 nextActions: {
                                     currency?: string;
                                     effectiveDate?: string;
@@ -16527,7 +16707,7 @@ export interface paths {
                             commit: string | null;
                             contracts: {
                                 /** @enum {number} */
-                                kyc: 3;
+                                kyc: 4;
                             };
                             migrationsHead: string | null;
                         };

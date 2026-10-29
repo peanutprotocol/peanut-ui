@@ -22457,6 +22457,368 @@
                                     "properties": {
                                         "capabilities": {
                                             "properties": {
+                                                "features": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "bank": {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "accounts": {
+                                                                    "additionalProperties": {
+                                                                        "additionalProperties": false,
+                                                                        "properties": {
+                                                                            "action": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "message": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "reason": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "since": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "state": {
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "const": "on",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "setting_up",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "action_required",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "refused",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "ready",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "pending",
+                                                                                        "type": "string"
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "state"
+                                                                        ],
+                                                                        "type": "object"
+                                                                    },
+                                                                    "type": "object"
+                                                                },
+                                                                "action": {
+                                                                    "type": "string"
+                                                                },
+                                                                "message": {
+                                                                    "type": "string"
+                                                                },
+                                                                "reason": {
+                                                                    "type": "string"
+                                                                },
+                                                                "since": {
+                                                                    "type": "string"
+                                                                },
+                                                                "state": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "enum": [
+                                                                                "on"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "setting_up"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "action_required"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "refused"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "ready"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "pending"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "state",
+                                                                "accounts"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "card": {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "action": {
+                                                                    "type": "string"
+                                                                },
+                                                                "message": {
+                                                                    "type": "string"
+                                                                },
+                                                                "reason": {
+                                                                    "type": "string"
+                                                                },
+                                                                "since": {
+                                                                    "type": "string"
+                                                                },
+                                                                "state": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "enum": [
+                                                                                "on"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "setting_up"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "action_required"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "refused"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "ready"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "pending"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "state"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "local": {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "accounts": {
+                                                                    "additionalProperties": {
+                                                                        "additionalProperties": false,
+                                                                        "properties": {
+                                                                            "action": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "message": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "reason": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "since": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "state": {
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "const": "on",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "setting_up",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "action_required",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "refused",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "ready",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "pending",
+                                                                                        "type": "string"
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "state"
+                                                                        ],
+                                                                        "type": "object"
+                                                                    },
+                                                                    "type": "object"
+                                                                },
+                                                                "action": {
+                                                                    "type": "string"
+                                                                },
+                                                                "message": {
+                                                                    "type": "string"
+                                                                },
+                                                                "reason": {
+                                                                    "type": "string"
+                                                                },
+                                                                "since": {
+                                                                    "type": "string"
+                                                                },
+                                                                "state": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "enum": [
+                                                                                "on"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "setting_up"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "action_required"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "refused"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "ready"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "pending"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "state",
+                                                                "accounts"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "qr": {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "action": {
+                                                                    "type": "string"
+                                                                },
+                                                                "message": {
+                                                                    "type": "string"
+                                                                },
+                                                                "reason": {
+                                                                    "type": "string"
+                                                                },
+                                                                "since": {
+                                                                    "type": "string"
+                                                                },
+                                                                "state": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "enum": [
+                                                                                "on"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "setting_up"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "action_required"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "refused"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "ready"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "pending"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "state"
+                                                            ],
+                                                            "type": "object"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "qr",
+                                                        "local",
+                                                        "bank",
+                                                        "card"
+                                                    ],
+                                                    "type": "object"
+                                                },
                                                 "nextActions": {
                                                     "items": {
                                                         "properties": {
@@ -23096,7 +23458,8 @@
                                             "required": [
                                                 "rails",
                                                 "nextActions",
-                                                "restrictions"
+                                                "restrictions",
+                                                "features"
                                             ],
                                             "type": "object"
                                         }
@@ -27309,6 +27672,389 @@
                 }
             }
         },
+        "/users/kyc/features": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "features": {
+                                            "additionalProperties": false,
+                                            "properties": {
+                                                "bank": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "accounts": {
+                                                            "additionalProperties": {
+                                                                "additionalProperties": false,
+                                                                "properties": {
+                                                                    "action": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "message": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "reason": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "since": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "state": {
+                                                                        "anyOf": [
+                                                                            {
+                                                                                "const": "on",
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "const": "setting_up",
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "const": "action_required",
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "const": "refused",
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "const": "ready",
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "const": "pending",
+                                                                                "type": "string"
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "state"
+                                                                ],
+                                                                "type": "object"
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        "action": {
+                                                            "type": "string"
+                                                        },
+                                                        "message": {
+                                                            "type": "string"
+                                                        },
+                                                        "reason": {
+                                                            "type": "string"
+                                                        },
+                                                        "since": {
+                                                            "type": "string"
+                                                        },
+                                                        "state": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "on"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "setting_up"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "action_required"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "refused"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "ready"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "pending"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "state",
+                                                        "accounts"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "card": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "action": {
+                                                            "type": "string"
+                                                        },
+                                                        "message": {
+                                                            "type": "string"
+                                                        },
+                                                        "reason": {
+                                                            "type": "string"
+                                                        },
+                                                        "since": {
+                                                            "type": "string"
+                                                        },
+                                                        "state": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "on"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "setting_up"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "action_required"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "refused"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "ready"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "pending"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "state"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "local": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "accounts": {
+                                                            "additionalProperties": {
+                                                                "additionalProperties": false,
+                                                                "properties": {
+                                                                    "action": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "message": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "reason": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "since": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "state": {
+                                                                        "anyOf": [
+                                                                            {
+                                                                                "const": "on",
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "const": "setting_up",
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "const": "action_required",
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "const": "refused",
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "const": "ready",
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "const": "pending",
+                                                                                "type": "string"
+                                                                            }
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "state"
+                                                                ],
+                                                                "type": "object"
+                                                            },
+                                                            "type": "object"
+                                                        },
+                                                        "action": {
+                                                            "type": "string"
+                                                        },
+                                                        "message": {
+                                                            "type": "string"
+                                                        },
+                                                        "reason": {
+                                                            "type": "string"
+                                                        },
+                                                        "since": {
+                                                            "type": "string"
+                                                        },
+                                                        "state": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "on"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "setting_up"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "action_required"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "refused"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "ready"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "pending"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "state",
+                                                        "accounts"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "qr": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "action": {
+                                                            "type": "string"
+                                                        },
+                                                        "message": {
+                                                            "type": "string"
+                                                        },
+                                                        "reason": {
+                                                            "type": "string"
+                                                        },
+                                                        "since": {
+                                                            "type": "string"
+                                                        },
+                                                        "state": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "enum": [
+                                                                        "on"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "setting_up"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "action_required"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "refused"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "ready"
+                                                                    ],
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "enum": [
+                                                                        "pending"
+                                                                    ],
+                                                                    "type": "string"
+                                                                }
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "state"
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "required": [
+                                                "qr",
+                                                "local",
+                                                "bank",
+                                                "card"
+                                            ],
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": [
+                                        "features"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/users/kyc/features/{feature}/activate": {
             "post": {
                 "parameters": [
@@ -30329,6 +31075,368 @@
                                     "properties": {
                                         "capabilities": {
                                             "properties": {
+                                                "features": {
+                                                    "additionalProperties": false,
+                                                    "properties": {
+                                                        "bank": {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "accounts": {
+                                                                    "additionalProperties": {
+                                                                        "additionalProperties": false,
+                                                                        "properties": {
+                                                                            "action": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "message": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "reason": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "since": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "state": {
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "const": "on",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "setting_up",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "action_required",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "refused",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "ready",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "pending",
+                                                                                        "type": "string"
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "state"
+                                                                        ],
+                                                                        "type": "object"
+                                                                    },
+                                                                    "type": "object"
+                                                                },
+                                                                "action": {
+                                                                    "type": "string"
+                                                                },
+                                                                "message": {
+                                                                    "type": "string"
+                                                                },
+                                                                "reason": {
+                                                                    "type": "string"
+                                                                },
+                                                                "since": {
+                                                                    "type": "string"
+                                                                },
+                                                                "state": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "enum": [
+                                                                                "on"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "setting_up"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "action_required"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "refused"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "ready"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "pending"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "state",
+                                                                "accounts"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "card": {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "action": {
+                                                                    "type": "string"
+                                                                },
+                                                                "message": {
+                                                                    "type": "string"
+                                                                },
+                                                                "reason": {
+                                                                    "type": "string"
+                                                                },
+                                                                "since": {
+                                                                    "type": "string"
+                                                                },
+                                                                "state": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "enum": [
+                                                                                "on"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "setting_up"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "action_required"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "refused"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "ready"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "pending"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "state"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "local": {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "accounts": {
+                                                                    "additionalProperties": {
+                                                                        "additionalProperties": false,
+                                                                        "properties": {
+                                                                            "action": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "message": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "reason": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "since": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "state": {
+                                                                                "anyOf": [
+                                                                                    {
+                                                                                        "const": "on",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "setting_up",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "action_required",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "refused",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "ready",
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "const": "pending",
+                                                                                        "type": "string"
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "state"
+                                                                        ],
+                                                                        "type": "object"
+                                                                    },
+                                                                    "type": "object"
+                                                                },
+                                                                "action": {
+                                                                    "type": "string"
+                                                                },
+                                                                "message": {
+                                                                    "type": "string"
+                                                                },
+                                                                "reason": {
+                                                                    "type": "string"
+                                                                },
+                                                                "since": {
+                                                                    "type": "string"
+                                                                },
+                                                                "state": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "enum": [
+                                                                                "on"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "setting_up"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "action_required"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "refused"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "ready"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "pending"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "state",
+                                                                "accounts"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "qr": {
+                                                            "additionalProperties": false,
+                                                            "properties": {
+                                                                "action": {
+                                                                    "type": "string"
+                                                                },
+                                                                "message": {
+                                                                    "type": "string"
+                                                                },
+                                                                "reason": {
+                                                                    "type": "string"
+                                                                },
+                                                                "since": {
+                                                                    "type": "string"
+                                                                },
+                                                                "state": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "enum": [
+                                                                                "on"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "setting_up"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "action_required"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "refused"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "ready"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "enum": [
+                                                                                "pending"
+                                                                            ],
+                                                                            "type": "string"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "state"
+                                                            ],
+                                                            "type": "object"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "qr",
+                                                        "local",
+                                                        "bank",
+                                                        "card"
+                                                    ],
+                                                    "type": "object"
+                                                },
                                                 "nextActions": {
                                                     "items": {
                                                         "properties": {
@@ -30968,7 +32076,8 @@
                                             "required": [
                                                 "rails",
                                                 "nextActions",
-                                                "restrictions"
+                                                "restrictions",
+                                                "features"
                                             ],
                                             "type": "object"
                                         },
@@ -33534,7 +34643,7 @@
                                             "properties": {
                                                 "kyc": {
                                                     "enum": [
-                                                        3
+                                                        4
                                                     ],
                                                     "type": "number"
                                                 }

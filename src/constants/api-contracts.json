@@ -1,3 +1,3 @@
 {
-    "REQUIRED_API_CONTRACTS": { "kyc": 3 }
+    "REQUIRED_API_CONTRACTS": { "kyc": 4 }
 }
