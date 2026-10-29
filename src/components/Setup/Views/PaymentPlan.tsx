@@ -23,14 +23,15 @@ import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestr
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import SetupFooter from '../components/SetupFooter'
 
-function ChannelIcon({ channel }: { channel: SetupChannel | null }) {
+// xs fits the picker button's 24px icon slot; s is the list-row bubble in the drawer
+function ChannelIcon({ channel, size }: { channel: SetupChannel | null; size: 'xs' | 's' }) {
     // Nothing chosen yet: an empty gray bubble (design.md: gray = nothing selected).
-    if (!channel) return <IconBubble icon={<span />} size="xs" color="gray" />
+    if (!channel) return <IconBubble icon={<span />} size={size} color="gray" />
     const concept = SETUP_CHANNEL_CONCEPTS[channel]
     return (
         <IconBubble
             {...CONCEPT_ICONS[concept]}
-            size="xs"
+            size={size}
             color={concept === 'bank' ? 'green' : CONCEPT_ICONS[concept].color}
         />
     )
@@ -68,7 +69,7 @@ function ChannelPicker<C extends SetupChannel>({
                     aria-haspopup="dialog"
                     data-testid={`setup-${kind}-channel`}
                     className="inline-flex w-fit max-w-[calc(100vw_-_8.5rem)] min-w-0 align-middle"
-                    icon={<ChannelIcon channel={value} />}
+                    icon={<ChannelIcon channel={value} size="xs" />}
                     iconContainerClassName="size-6"
                 >
                     <span className="relative grid min-w-0 overflow-hidden text-left" title={shown}>
@@ -100,7 +101,7 @@ function ChannelPicker<C extends SetupChannel>({
                                         {label(channel)}
                                     </span>
                                 }
-                                leading={<ChannelIcon channel={channel} />}
+                                leading={<ChannelIcon channel={channel} size="s" />}
                                 trailing={channel === value ? <Icon name="check" size={20} /> : undefined}
                                 aria-label={label(channel)}
                                 className={
