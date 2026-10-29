@@ -61,7 +61,7 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
     return (
         <section
             id="send-in-seconds"
-            className="relative overflow-hidden bg-yellow-500 px-6 py-16 text-foreground-primary md:px-4 md:py-24"
+            className="relative overflow-hidden bg-background-accent-yellow px-6 py-16 text-foreground-primary md:px-4 md:py-24"
         >
             <CloudsCss clouds={sendInSecondsClouds} />
 
