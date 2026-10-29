@@ -216,11 +216,9 @@ export default function ColorsPage() {
               : token.name.startsWith('shadow')
                 ? 'shadow'
                 : 'bg'
-        const cls = `${utility}-${token.name}`
-        navigator.clipboard.writeText(cls)
-        setCopied(cls)
+        navigator.clipboard.writeText(`${utility}-${token.name}`)
+        setCopied(token.name)
         setTimeout(() => setCopied(null), 1500)
-        return cls
     }
 
     const tokenRow = (token: ThemeToken) => (
@@ -232,7 +230,7 @@ export default function ColorsPage() {
             }
             title={token.name}
             body={<span className="font-mono">{hex(token.name)}</span>}
-            trailing={<Icon name={copied?.endsWith(token.name) ? 'check' : 'copy'} size={16} />}
+            trailing={<Icon name={copied === token.name ? 'check' : 'copy'} size={16} />}
         />
     )
 
@@ -371,9 +369,10 @@ export default function ColorsPage() {
                         <span className="text-label-l">The chosen row: pale blue with a check</span>
                         <div className="flex items-center justify-between rounded-sm bg-background-selection px-3 py-2 text-label-l text-foreground-over-color-primary">
                             Brazil
-                            <Icon name="check" size={16} />
+                            <Icon name="check" size={20} />
                         </div>
                         <TokenName name="background-selection" />
+                        <TokenName name="foreground-over-color-primary" />
                     </Card>
                     <Card className="flex flex-col gap-2 p-3">
                         <span className="text-label-l">A row while you press it: light grey</span>
