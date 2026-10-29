@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import * as Sentry from '@sentry/nextjs'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import posthog from 'posthog-js'
 import Modal from '@/components/Global/Modal'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -107,7 +108,12 @@ export const SumsubNativeSdk = ({
                 message: detail instanceof Error ? detail.message : String(detail),
             })
             Sentry.captureException(detail instanceof Error ? detail : new Error(`[sumsub] native ${reason}`), {
-                tags: { sumsub_sdk: 'native', sumsub_failure: reason },
+                tags: {
+                    ...criticalFlowTags('kyc'),
+                    kyc_step: 'sdk_launch',
+                    sumsub_sdk: 'native',
+                    sumsub_failure: reason,
+                },
                 extra: { detail },
             })
             setFailure(kind)

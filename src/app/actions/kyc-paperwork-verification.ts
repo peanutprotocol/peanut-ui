@@ -1,3 +1,5 @@
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { savedFeaturesOutcome } from '@/utils/kyc-feature-outcome.utils'
 import { serverFetch } from '@/utils/api-fetch'
 import { kycClientHeaders } from '@/utils/kyc-client-headers'
@@ -17,8 +19,26 @@ import type {
 const featureQuery = (feature?: PaperworkVerificationFeature) => (feature ? `?feature=${feature}` : '')
 
 // Answers carry tax numbers and addresses: never in telemetry, never cached.
-const call = (path: string, init?: RequestInit) =>
-    serverFetch(path, { ...init, headers: kycClientHeaders(), cache: 'no-store', redactTelemetry: true })
+async function call(path: string, step: string, init?: RequestInit) {
+    try {
+        const response = await serverFetch(path, {
+            ...init,
+            headers: kycClientHeaders(),
+            cache: 'no-store',
+            redactTelemetry: true,
+        })
+        if (response.status >= 500) {
+            Sentry.captureException(new Error('KYC request failed'), {
+                tags: { ...criticalFlowTags('kyc'), kyc_step: step },
+                extra: { status: response.status },
+            })
+        }
+        return response
+    } catch (error) {
+        Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: step } })
+        throw error
+    }
+}
 
 const json = (response: Response) => response.json().catch(() => null)
 
@@ -34,7 +54,7 @@ const userMessageOf = (body: { userMessage?: unknown } | null): { message?: stri
 
 export async function skipProofOfAddress(): Promise<boolean> {
     try {
-        const response = await call('/users/kyc/proof-of-address/skip', { method: 'POST', body: '{}' })
+        const response = await call('/users/kyc/proof-of-address/skip', 'poa_skip', { method: 'POST', body: '{}' })
         return response.ok
     } catch {
         return false
@@ -43,7 +63,7 @@ export async function skipProofOfAddress(): Promise<boolean> {
 
 /** What sign-up and verification collected, for Profile; throws when it cannot be read. */
 export async function getKycDetails(): Promise<KycCollectedDetails> {
-    const response = await call('/users/kyc/details')
+    const response = await call('/users/kyc/details', 'details_read')
     const body = response.ok ? await json(response) : null
     if (!body || !Array.isArray(body.heldBySumsub)) throw new Error('KYC details unavailable')
     return body as KycCollectedDetails
@@ -52,7 +72,7 @@ export async function getKycDetails(): Promise<KycCollectedDetails> {
 /** Places of birth to suggest; an empty list on any failure, since the typed name is accepted as it is. */
 export async function searchKycPlaces(country: string, query: string): Promise<KycPlace[]> {
     try {
-        const response = await call('/users/kyc/places/search', {
+        const response = await call('/users/kyc/places/search', 'places_read', {
             method: 'POST',
             body: JSON.stringify({ country, query }),
         })
@@ -64,10 +84,15 @@ export async function searchKycPlaces(country: string, query: string): Promise<K
 }
 
 export async function getKycQuestions(feature?: PaperworkVerificationFeature): Promise<PaperworkVerificationQuestions> {
-    const response = await call(`/users/kyc/questions${featureQuery(feature)}`)
+    const response = await call(`/users/kyc/questions${featureQuery(feature)}`, 'questions_read')
     const body = response.ok ? await json(response) : null
-    if (!body || typeof body.available !== 'boolean' || !Array.isArray(body.steps))
+    if (!body || typeof body.available !== 'boolean' || !Array.isArray(body.steps)) {
+        if (response.ok)
+            Sentry.captureException(new Error('Invalid KYC questions response'), {
+                tags: { ...criticalFlowTags('kyc'), kyc_step: 'questions_read' },
+            })
         throw new Error('KYC questions unavailable')
+    }
     return body as PaperworkVerificationQuestions
 }
 
@@ -79,7 +104,7 @@ export async function saveKycAnswers(
 ): Promise<SaveAnswersResult> {
     let response: Response
     try {
-        response = await call(`/users/kyc/answers/${step}${featureQuery(feature)}`, {
+        response = await call(`/users/kyc/answers/${step}${featureQuery(feature)}`, 'step_save', {
             method: 'PUT',
             body: JSON.stringify({ values }),
         })
@@ -119,7 +144,7 @@ export async function startPaperworkVerificationIdentity(
 ): Promise<PaperworkVerificationTokenResult> {
     let response: Response
     try {
-        response = await call(`/users/kyc/attempts/${encodeURIComponent(attemptId)}/token`, {
+        response = await call(`/users/kyc/attempts/${encodeURIComponent(attemptId)}/token`, 'identity_session', {
             method: 'POST',
             body: JSON.stringify({ document }),
         })
@@ -138,7 +163,8 @@ export async function startPaperworkVerificationIdentity(
     if (!response.ok) return { kind: 'failed', ...message }
     try {
         return { kind: 'session', session: validSession(body, !!document) }
-    } catch {
+    } catch (error) {
+        Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_session' } })
         return { kind: 'failed' }
     }
 }
@@ -159,7 +185,10 @@ export async function savePaperworkVerificationFeatures(
 ): Promise<FeatureIntentsResult> {
     let response: Response
     try {
-        response = await call('/users/kyc-intents', { method: 'PUT', body: JSON.stringify(features) })
+        response = await call('/users/kyc-intents', 'feature_selection', {
+            method: 'PUT',
+            body: JSON.stringify(features),
+        })
     } catch {
         return { kind: 'failed' }
     }

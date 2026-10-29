@@ -1,5 +1,8 @@
 'use client'
 
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
+
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useLocale } from 'next-intl'
 import posthog from 'posthog-js'
@@ -116,6 +119,9 @@ export function useSumsubWebSdk({
 
         const handleLoaded = () => setSdkLoaded(true)
         const handleError = () => {
+            Sentry.captureException(new Error('[sumsub] failed to load websdk script'), {
+                tags: { ...criticalFlowTags('kyc'), kyc_step: 'sdk_script' },
+            })
             console.error(new Error('[sumsub] failed to load websdk script'))
             setSdkLoadError(true)
         }
@@ -278,6 +284,7 @@ export function useSumsubWebSdk({
                 .on('idCheck.onStepInitiated', handleStepInitiated)
                 .on('idCheck.onStepCompleted', handleStepCompleted)
                 .on('onError', (error: unknown) => {
+                    Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'sdk_error' } })
                     console.error('[sumsub] sdk error', error)
                     stableOnError(error)
                 })
@@ -311,6 +318,7 @@ export function useSumsubWebSdk({
                 existingIframe.allow = 'camera; microphone; fullscreen'
             }
         } catch (error) {
+            Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'sdk_init' } })
             console.error('[sumsub] failed to initialize sdk', error)
             // surface the error UI — without this the modal stays blank
             setSdkLoadError(true)
@@ -365,6 +373,9 @@ export function useSumsubWebSdk({
         if (!visible) return
         const timer = setTimeout(() => {
             if (hasLaunchedRef.current) return
+            Sentry.captureException(new Error('[sumsub] sdk launch timed out'), {
+                tags: { ...criticalFlowTags('kyc'), kyc_step: 'sdk_launch' },
+            })
             console.error('[sumsub] sdk never launched within timeout — surfacing error')
             posthog.capture(ANALYTICS_EVENTS.KYC_SDK_LAUNCH_TIMEOUT, {
                 timeoutMs: SDK_LAUNCH_TIMEOUT_MS,

@@ -1,4 +1,6 @@
 import { railJurisdictionForBank } from '@/utils/bridge.utils'
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useTranslations } from 'next-intl'
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
@@ -669,7 +671,8 @@ export const useMultiPhaseKycFlow = ({
             setTosLink(response.data.tosLink)
             setShowTosIframe(true)
             posthog.capture(ANALYTICS_EVENTS.KYC_TOS_OPENED)
-        } catch {
+        } catch (error) {
+            Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'tos_open' } })
             setTosError('Something went wrong. You can accept terms later from your activity feed.')
         } finally {
             setIsLoadingTos(false)
@@ -708,7 +711,8 @@ export const useMultiPhaseKycFlow = ({
                     setModalPhase('preparing')
                     setForceShowModal(true)
                 }
-            } catch {
+            } catch (error) {
+                Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'tos_confirm' } })
                 // Don't leave the modal frozen on 'preparing' with no feedback
                 // if the confirm POST / rails poll throws — surface the
                 // timed-out recovery state immediately instead of a ~30s dead

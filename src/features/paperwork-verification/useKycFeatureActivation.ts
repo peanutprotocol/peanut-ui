@@ -1,5 +1,7 @@
 'use client'
 
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/authContext'
@@ -61,14 +63,18 @@ export function useKycFeatureActivation(feature: KycActivationFeature, { automat
             let next: KycFeatureActivationResult
             try {
                 next = await activateKycFeature(feature)
-            } catch {
+            } catch (error) {
+                Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'feature_activation' } })
                 next = { kind: 'failed' }
             }
             if (!mounted.current || currentScope.current !== scope || inFlight.current?.token !== token) return false
             if (canContinue(feature, next) && fetchUserRef.current) {
                 try {
                     await fetchUserRef.current({ throwOnError: true })
-                } catch {
+                } catch (error) {
+                    Sentry.captureException(error, {
+                        tags: { ...criticalFlowTags('kyc'), kyc_step: 'activation_refresh' },
+                    })
                     next = { kind: 'failed' }
                 }
                 if (!mounted.current || currentScope.current !== scope || inFlight.current?.token !== token)
