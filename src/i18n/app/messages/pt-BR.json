@@ -124,7 +124,7 @@
             "inReview": "Em análise",
             "firstPaymentCardNote": "Peça o cartão ou use QR",
             "firstPaymentQrNote": "Pague com código QR",
-            "firstPaymentCardOnlyNote": "Peça o cartão Peanut",
+            "firstPaymentCardOnlyNote": "Peça o Peanut Card",
             "verifyIdentityDone": "Identidade verificada",
             "addMoneyDone": "Dinheiro recebido",
             "firstPaymentHeldCardNote": "Pague com o cartão",
@@ -402,7 +402,7 @@
             },
             "bankNotAvailableNote": "Transferências bancárias e emissão de cartão não estão disponíveis para residentes do seu país.",
             "bankOnlyNotAvailableNote": "Transferências bancárias não estão disponíveis para residentes do seu país.",
-            "cardNotAvailableNote": "O cartão Peanut não está disponível para residentes do seu país.",
+            "cardNotAvailableNote": "O Peanut Card não está disponível para residentes do seu país.",
             "unlockModal": {
                 "title": "Desbloquear {method}",
                 "titleGeneric": "Desbloqueie este método de pagamento",
@@ -445,7 +445,7 @@
             },
             "details": {
                 "p2p": "Envie e receba dinheiro de outros usuários do Peanut.",
-                "card": "Pague com o cartão Peanut.",
+                "card": "Pague com o Peanut Card.",
                 "crypto": "Adicione ou saque cripto de qualquer carteira ou corretora, na hora.",
                 "brl": "Adicione ou saque reais com Pix.",
                 "ars": "Adicione ou saque pesos argentinos pelo seu banco.",
@@ -652,7 +652,7 @@
         "cardLimits": {
             "title": "Limites do cartão",
             "manage": "Gerenciar limites do cartão",
-            "description": "Teto por transação do seu cartão Peanut."
+            "description": "Teto por transação do seu Peanut Card."
         },
         "fiatLocked": {
             "title": "Desbloqueie pagamentos fiat",
@@ -867,7 +867,7 @@
             },
             "partial": {
                 "title": "Atenção",
-                "cardDescription": "O cartão Peanut não está disponível no seu país. Dólares digitais e envios para qualquer @usuário funcionam desde já.",
+                "cardDescription": "O Peanut Card não está disponível no seu país. Dólares digitais e envios para qualquer @usuário funcionam desde já.",
                 "bankingDescription": "Transferências bancárias não estão disponíveis no seu país. Dólares digitais e envios para qualquer @usuário funcionam desde já.",
                 "continue": "Continuar"
             },
@@ -875,7 +875,7 @@
                 "title": "Veja o que você ganha com o Peanut",
                 "description": "Não há restrições onde você mora. Dólares digitais e envios para qualquer @usuário funcionam desde já, e uma verificação rápida de identidade libera {rail}.",
                 "descriptionNoRail": "Não há restrições onde você mora. Dólares digitais e envios para qualquer @usuário funcionam desde já.",
-                "cardClause": "Você também pode solicitar um cartão Peanut após verificar sua identidade.",
+                "cardClause": "Você também pode solicitar um Peanut Card após verificar sua identidade.",
                 "rails": {
                     "pix": "transferências PIX",
                     "arQr": "pagamentos QR e transferências de conta própria",
@@ -1047,7 +1047,7 @@
             "with": "com",
             "unavailable": {
                 "banking": "As transferências bancárias não estão disponíveis no seu país.",
-                "card": "O cartão Peanut não está disponível no seu país.",
+                "card": "O Peanut Card não está disponível no seu país.",
                 "both": "As transferências bancárias e a emissão de cartões não estão disponíveis no seu país."
             },
             "fundingLead": "Primeiro você vai adicionar dinheiro",
@@ -1833,7 +1833,7 @@
             "balanceDueTitle": "{amount} pendentes no seu cartão",
             "balanceDueBody": "Um pagamento recente com o cartão ficou maior que o valor reservado no momento da compra. Isso acontece com gorjetas ou totais atualizados. A diferença continua pendente. Fale com o suporte para quitá-la.",
             "payAsCreditTitle": "Pague como crédito",
-            "payAsCreditBody": "Quando a maquininha perguntar débito ou crédito, escolha crédito — seu cartão Peanut roda na rede de crédito.",
+            "payAsCreditBody": "Quando a maquininha perguntar débito ou crédito, escolha crédito — seu Peanut Card roda na rede de crédito.",
             "managementTitle": "Gerenciar cartão",
             "pin": "Pin",
             "spendingLimit": "Limite de gasto",
@@ -1921,7 +1921,7 @@
             "fundingBody": "Você precisa de pelo menos USD 10 no seu saldo do Peanut para ter seu cartão. O cartão é grátis, e o dinheiro continua sendo seu para gastar com ele.",
             "fundedBody": "Seu saldo já é suficiente. Continue para pedir seu cartão.",
             "addFunds": "Adicionar dinheiro",
-            "issuedTitle": "Conheça seu cartão Peanut.",
+            "issuedTitle": "Conheça seu Peanut Card.",
             "issuedBody": "Ele está pronto para pagamentos online e por aproximação.",
             "viewCard": "Ver cartão"
         }
@@ -2704,8 +2704,8 @@
             "invites": "Convide {target, plural, one {# amigo que entre no Peanut} other {# amigos que entrem no Peanut}}.",
             "rewards": "Ganhe US$ {targetUsd} em recompensas.",
             "identityVerification": "Conclua a verificação de identidade.",
-            "cardPurchase": "Faça sua primeira compra com o cartão Peanut.",
-            "cardSpend": "Gaste US$ {targetUsd} com o cartão Peanut.",
+            "cardPurchase": "Faça sua primeira compra com o Peanut Card.",
+            "cardSpend": "Gaste US$ {targetUsd} com o Peanut Card.",
             "ensPayment": "Envie ou receba um pagamento usando um nome ENS.",
             "campaign": "Participe de uma campanha ou evento elegível do Peanut.",
             "specialRecognition": "Conquiste este selo por um marco, contribuição ou reconhecimento especial no Peanut."
@@ -2772,7 +2772,7 @@
             },
             "CARD_PIONEER": {
                 "name": "Pioneiro do cartão",
-                "description": "Você garantiu seu lugar no cartão Peanut. As vantagens de pioneiro vêm aí!"
+                "description": "Você garantiu seu lugar no Peanut Card. As vantagens de pioneiro vêm aí!"
             },
             "FOUNDING_PIONEER": {
                 "name": "Pioneiro fundador",
@@ -3463,7 +3463,7 @@
             "terminal_rejection": "Problema na verificação: fale com o suporte para receber ajuda.",
             "bridge_terminal_rejection": "Não conseguimos verificar sua conta para transferências bancárias. Fale com o suporte se achar que isso é um engano.",
             "duplicate_customer_detected": "Nosso parceiro de pagamentos marcou sua conta como possível duplicata. Fale com o suporte para verificar e desbloquear.",
-            "region_block": "Os cartões Peanut ainda não estão disponíveis na sua região.",
+            "region_block": "O Peanut Card ainda não está disponível na sua região.",
             "compliance_block": "Não conseguimos aprovar sua solicitação de cartão após uma análise de conformidade.",
             "card_rejected": "Sua solicitação de cartão não pôde ser aprovada. Fale com o suporte se achar que isso é um engano.",
             "card_needs_review": "Nosso parceiro de cartões precisa conferir mais alguns detalhes.",
@@ -4027,7 +4027,7 @@
     },
     "shhhhh": {
         "hero": {
-            "wordmark": "Cartão Peanut",
+            "wordmark": "Peanut Card",
             "tagline": "Seu dinheiro. Pronto para pagar.",
             "cta": "Pedir cartão",
             "disclaimer": "Verificação e aprovação obrigatórias. Sem mensalidade ou anuidade. Aplicam-se as tarifas e os limites dos termos do titular.",
