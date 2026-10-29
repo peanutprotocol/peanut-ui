@@ -541,9 +541,8 @@
                 "title": "Vinculá tu perfil a un solo país"
             },
             "residenceTitle": "¿Dónde tenés residencia?",
-            "citizenshipTitle": "¿De qué país tenés ciudadanía?",
             "hint": "Tocá un país para cambiarlo.",
-            "refusedPassport": "No podemos verificar pasaportes ni documentos de identidad de {citizenship}. Usá tu tarjeta de residencia de {residence} cuando verifiques tu identidad."
+            "refusedPassport": "No podemos verificar pasaportes ni documentos de identidad de {nationality}. Usá tu tarjeta de residencia de {residence} cuando verifiques tu identidad."
         },
         "passkey": {
             "notAvailable": "Las passkeys aún no están disponibles en este dispositivo. Intentalo de nuevo.",
@@ -1595,8 +1594,7 @@
             "why": {
                 "work": "Los bancos y emisores de tarjetas tienen que saber a qué te dedicás.",
                 "address": "Tu domicilio tiene que coincidir con donde vivís y aparece en los datos de tu cuenta.",
-                "nationality": "Los bancos de la UE tienen que conocer tu nacionalidad, y tu documento no la muestra.",
-                "citizenship": "Usamos tu ciudadanía para mostrarte el pasaporte y el documento nacional de identidad con los que podés verificarte."
+                "nationality": "Usamos tu nacionalidad para mostrarte el pasaporte y el documento nacional de identidad con los que podés verificarte."
             },
             "search": {
                 "typeToSearch": "Escribí para buscar entre los {count} trabajos.",
@@ -1605,8 +1603,7 @@
             },
             "titles": {
                 "address": "¿Dónde vivís?",
-                "declarations": "¿Alguna de estas opciones aplica a vos?",
-                "nationality": "Confirmá tu nacionalidad"
+                "declarations": "¿Alguna de estas opciones aplica a vos?"
             },
             "sections": {
                 "birth": "Sobre vos"
@@ -1687,9 +1684,6 @@
                 "issuedByWithProof": "Emitido en {country}. También vas a agregar un comprobante de domicilio.",
                 "otherDescription": "También podés verificarte con uno de estos. Le vas a sacar fotos y te vas a sacar una selfie.",
                 "noneFit": "¿No tenés ninguno de estos?"
-            },
-            "descriptions": {
-                "nationality": "Completamos tu ciudadanía. Cambiala si tu nacionalidad es otra."
             }
         },
         "setup": {

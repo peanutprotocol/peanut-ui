@@ -12296,7 +12296,6 @@ export interface paths {
                         avatarKey?: string | null;
                         bridgeKycStatus?: "not_started" | "incomplete" | "under_review" | "approved" | "rejected";
                         bridge_customer_id?: string;
-                        citizenship?: string;
                         dismissActivationCelebration?: boolean;
                         email?: string;
                         emailVerificationCode?: string;
@@ -12304,6 +12303,7 @@ export interface paths {
                         hasSeenEarlyUserModal?: boolean;
                         locale?: string;
                         localeSource?: "device" | "pick" | "browser";
+                        nationality?: string;
                         pushSubscriptionId?: string;
                         residenceCountry?: string;
                         secondResidenceCountry?: string;
@@ -14133,7 +14133,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            next: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax" | "nationality") | null;
+                            next: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax") | null;
                         };
                     };
                 };
@@ -14362,7 +14362,6 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            citizenship: string | null;
                             document: {
                                 country: string;
                                 type: string;
@@ -14373,6 +14372,7 @@ export interface paths {
                                 first: string | null;
                                 last: string | null;
                             };
+                            nationality: string | null;
                             stored: {
                                 actingAsIntermediary?: string;
                                 annualSalary?: string;
@@ -14641,7 +14641,7 @@ export interface paths {
                             }[];
                             requirements: {
                                 collect: "before_identity" | "after_identity" | "when_asked";
-                                item: "residential_address" | "phone" | "tax_id" | "country_of_birth" | "city_of_birth" | "citizenship" | "nationality" | "account_purpose" | "employment_status" | "occupation" | "source_of_funds" | "expected_monthly_payments" | "acting_as_intermediary" | "card_purpose" | "annual_salary" | "expected_monthly_spend" | "sex" | "marital_status" | "pep" | "fatca" | "fep" | "proof_of_address" | "source_of_funds_document";
+                                item: "residential_address" | "phone" | "tax_id" | "country_of_birth" | "city_of_birth" | "nationality" | "account_purpose" | "employment_status" | "occupation" | "source_of_funds" | "expected_monthly_payments" | "acting_as_intermediary" | "card_purpose" | "annual_salary" | "expected_monthly_spend" | "sex" | "marital_status" | "pep" | "fatca" | "fep" | "proof_of_address" | "source_of_funds_document";
                                 kind: "question" | "document";
                                 products: ("bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "bridge.brl" | "rain.card" | "manteca.local" | "manteca.qr")[];
                                 requiredBy: ("BRIDGE" | "RAIN" | "MANTECA")[];
@@ -15034,7 +15034,7 @@ export interface paths {
                                 feature: "qr" | "local" | "card" | "bank";
                                 reason: string;
                             }[];
-                            firstUnanswered: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax" | "nationality") | null;
+                            firstUnanswered: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax") | null;
                             needs: ("residence" | "features")[];
                             progress: {
                                 done: number;
@@ -15056,7 +15056,7 @@ export interface paths {
                                     required: boolean;
                                     value: string | null;
                                 }[];
-                                id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax" | "nationality";
+                                id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax";
                             }[];
                         };
                     };

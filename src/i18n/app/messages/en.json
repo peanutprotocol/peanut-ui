@@ -655,7 +655,7 @@
                 "declaredResidence": "Declared residence",
                 "verifiedResidence": "Verified residence",
                 "secondResidence": "Second residence",
-                "citizenship": "Citizenship",
+                "nationality": "Nationality",
                 "dateOfBirth": "Date of birth",
                 "countryOfBirth": "Country of birth",
                 "cityOfBirth": "City of birth",
@@ -983,16 +983,16 @@
                 "title": "Link your profile to one country",
                 "description": "Here’s what each unlocks."
             },
-            "sentence": "I’m a resident <nw>of <residence></residence></nw> and have citizenship <nw>in <citizenship></citizenship>.</nw>",
+            "sentence": "I’m a resident <nw>of <residence></residence></nw> and a national <nw>of <nationality></nationality>.</nw>",
             "residenceTitle": "Where are you a resident?",
-            "citizenshipTitle": "Where do you have citizenship?",
+            "nationalityTitle": "What’s your nationality?",
             "sameCountry": "the same country",
             "sameCountryRow": "The same country",
             "choose": "Choose",
             "searchCountry": "Search countries",
             "noCountry": "No country matches “{query}”.",
             "hint": "Tap a country to change it.",
-            "refusedPassport": "We can’t verify passports or ID cards from {citizenship}. Use your residence card from {residence} when you verify your identity.",
+            "refusedPassport": "We can’t verify passports or ID cards from {nationality}. Use your residence card from {residence} when you verify your identity.",
             "continue": "Continue"
         },
         "passkey": {
@@ -3590,8 +3590,7 @@
                 "phone": "Our partners keep your phone number on file to protect your account.",
                 "tax": "Accounts in your country must be linked to your tax number.",
                 "declarations": "Financial rules in your country ask everyone these questions. If one applies, we may ask for a document later.",
-                "nationality": "Banks in the EU must know your nationality, and your ID doesn’t show it.",
-                "citizenship": "We use your citizenship to show the passport and national ID card you can verify with."
+                "nationality": "We use your nationality to show the passport and national ID card you can verify with."
             },
             "sentence": {
                 "cardPurpose": "I’ll use my card <nw>for <pill></pill></nw>",
@@ -3609,8 +3608,7 @@
                 "actingAsIntermediary": "I’ll send money <nw><pill></pill></nw>",
                 "nationality": "My nationality <nw>is <pill></pill></nw>",
                 "maritalStatus": "My marital status <nw>is <pill></pill></nw>",
-                "sex": "My sex on my ID <nw>is <pill></pill></nw>",
-                "citizenship": "I’m a citizen <nw>of <pill></pill></nw>"
+                "sex": "My sex on my ID <nw>is <pill></pill></nw>"
             },
             "pickerTitle": {
                 "cardPurpose": "What you’ll use the card for",
@@ -3628,8 +3626,7 @@
                 "actingAsIntermediary": "Who you send money for",
                 "nationality": "Your nationality",
                 "maritalStatus": "Marital status",
-                "sex": "Sex",
-                "citizenship": "Your citizenship"
+                "sex": "Sex"
             },
             "jobNone": {
                 "last": "None in the last 5 years",
@@ -3725,15 +3722,13 @@
             "titles": {
                 "address": "Where do you live?",
                 "phone": "What’s your phone number?",
-                "declarations": "Do any of these apply to you?",
-                "nationality": "Confirm your nationality"
+                "declarations": "Do any of these apply to you?"
             },
             "sections": {
                 "purpose": "Purpose",
                 "work": "Work",
                 "money": "Money",
-                "birth": "About you",
-                "nationality": "Nationality"
+                "birth": "About you"
             },
             "closed": {
                 "bank": {
@@ -3758,8 +3753,7 @@
                     "card": "Your card partner uses it to keep your card secure.",
                     "local": "Our local transfer partner keeps it on file with your account."
                 },
-                "declarations": "Most people leave these off. If one applies, we may ask for a document later.",
-                "nationality": "We filled in your citizenship. Change it if your nationality is different."
+                "declarations": "Most people leave these off. If one applies, we may ask for a document later."
             },
             "labels": {
                 "street": "Street",

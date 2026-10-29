@@ -715,15 +715,15 @@ describe('PaperworkVerificationFlow', () => {
         await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
     })
 
-    // An EEA bank user whose approved ID names no nationality is asked it on the add-later screen.
+    // A question opened after approval is asked on its feature's add-later screen.
     it('an approved user with a question still open goes to its feature’s add-later screen', async () => {
         mockStatus.mockResolvedValue('APPROVED')
-        const questions = build({ money: true, tax: true }, 'nationality')
+        const questions = build({ money: true, tax: true }, 'birth')
         questions.steps.push({
-            id: 'nationality',
+            id: 'birth',
             features: ['bank'],
             answered: false,
-            fields: [{ key: 'nationality', kind: 'country', required: true, value: 'DE' }],
+            fields: [{ key: 'countryOfBirth', kind: 'country', required: true, value: 'DE' }],
         })
         mockQuestions.mockResolvedValue(questions)
         renderFlow()
@@ -736,12 +736,12 @@ describe('PaperworkVerificationFlow', () => {
         mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         renderFlow()
         expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
-        const opened = build({ money: true, tax: true }, 'nationality')
+        const opened = build({ money: true, tax: true }, 'birth')
         opened.steps.push({
-            id: 'nationality',
+            id: 'birth',
             features: ['bank'],
             answered: false,
-            fields: [{ key: 'nationality', kind: 'country', required: true, value: 'DE' }],
+            fields: [{ key: 'countryOfBirth', kind: 'country', required: true, value: 'DE' }],
         })
         mockQuestions.mockResolvedValue(opened)
         const { useWebSocket } = jest.requireMock('@/hooks/useWebSocket') as { useWebSocket: jest.Mock }

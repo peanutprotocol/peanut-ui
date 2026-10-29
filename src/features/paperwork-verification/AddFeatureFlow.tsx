@@ -208,12 +208,7 @@ export function AddFeatureQuestions({
                 steps={state.screens[state.at]}
                 residence={state.residence}
                 feature={feature}
-                // The nationality asked after the ID check carries its own heading.
-                title={
-                    state.screens[state.at].every((s) => s.id === 'nationality')
-                        ? undefined
-                        : t(`addLater.title.${feature}`)
-                }
+                title={t(`addLater.title.${feature}`)}
                 onBack={() => (state.at ? setState({ ...state, at: state.at - 1 }) : onBack())}
                 onSaved={(_next, values) => {
                     if (state.at < state.screens.length - 1) {

@@ -48,7 +48,7 @@ type Choice = PaperworkVerificationDocument
 /**
  * The midpoint: the questions are done and the user picks the ID they hold.
  * Each row is a document and the country that issued it (the residence for a
- * permit or a licence, the citizenship for a passport or a national ID), and a
+ * permit or a licence, the nationality for a passport or a national ID), and a
  * tap opens Sumsub on it. Anything else is in "Other document"; a document
  * from a country not on these lists cannot be picked (Slava, 2026-10-26).
  * An ID whose issuer would make a provider refuse every feature the user
@@ -59,7 +59,7 @@ type Choice = PaperworkVerificationDocument
 export function IdentityDocumentScreen({
     plan,
     residence,
-    citizenship = null,
+    nationality = null,
     restart = false,
     documentsLoading = false,
     busy,
@@ -70,8 +70,8 @@ export function IdentityDocumentScreen({
 }: {
     plan: KycDocumentPlan | null
     residence: string | null
-    /** The citizenship the questions asked, when they did. */
-    citizenship?: string | null
+    /** The nationality the questions asked, when they did. */
+    nationality?: string | null
     restart?: boolean
     /** the plan is being read again for the documents */
     documentsLoading?: boolean
@@ -92,17 +92,17 @@ export function IdentityDocumentScreen({
     const types = document?.types ?? []
     const allowed = (type: string, country: string | null): country is string =>
         !!country && types.includes(type as never) && countries.includes(country)
-    const away = citizenship && citizenship !== residence ? citizenship : null
+    const away = nationality && nationality !== residence ? nationality : null
     const issuerOf = (type: string) =>
         type === 'RESIDENCE_PERMIT' || type === 'DRIVERS' ? residence : (away ?? residence)
     const keep = (candidates: { type: string; issuingCountry: string | null }[]) =>
         candidates.filter((c): c is Choice => allowed(c.type, c.issuingCountry))
-    // The citizenship may only have defaulted to the residence, so the residence permit always shows.
+    // The nationality may only have defaulted to the residence, so the residence permit always shows.
     const main = keep(MAIN_TYPES.map((type) => ({ type, issuingCountry: issuerOf(type) })))
     const other = keep([
         { type: 'DRIVERS', issuingCountry: residence },
         { type: 'DRIVERS', issuingCountry: away },
-        // A dual resident's documents from the residence, when the main list shows the citizenship's.
+        // A dual resident's documents from the residence, when the main list shows the nationality's.
         ...(away ? ['PASSPORT', 'ID_CARD'].map((type) => ({ type, issuingCountry: residence })) : []),
     ])
     // The server's plan decides who is offered temporary protection.
@@ -111,8 +111,8 @@ export function IdentityDocumentScreen({
         issuingCountry,
     }))
     // What a Ukrainian displaced by the war holds where they live, so it leads for them.
-    const protectionInMain = citizenship === 'UA'
-    // The citizenship's own passport and ID the route refuses: shown greyed, so nobody takes them to Sumsub.
+    const protectionInMain = nationality === 'UA'
+    // The nationality's own passport and ID the route refuses: shown greyed, so nobody takes them to Sumsub.
     const refused: Choice[] = away
         ? ['PASSPORT', 'ID_CARD'].filter((type) => !allowed(type, away)).map((type) => ({ type, issuingCountry: away }))
         : []
@@ -124,7 +124,7 @@ export function IdentityDocumentScreen({
     const listed = [...main, ...(protectionInMain ? protectionChoices : []), ...otherChoices]
     const pickable = listed.some((c) => !closesAll(c))
     const featureRefused = listed.filter(closesAll).length
-    // Neither the residence's documents nor the citizenship's: name both, so the user knows what failed.
+    // Neither the residence's documents nor the nationality's: name both, so the user knows what failed.
     const unpickableCountries = new Intl.ListFormat(locale, { type: 'disjunction' }).format(
         [...new Set([away ?? residence, residence].filter((c): c is string => !!c))].map(countryName)
     )
@@ -144,7 +144,7 @@ export function IdentityDocumentScreen({
             refused_options: refused.length,
             feature_refused_options: featureRefused,
             feature_limited_options: listed.filter((c) => !closesAll(c) && closedBy(c).length > 0).length,
-            citizenship_known: !!citizenship,
+            nationality_known: !!nationality,
             temporary_protection_offered: protectionChoices.length > 0,
             temporary_protection_in_main: protectionInMain && protectionChoices.length > 0,
         })

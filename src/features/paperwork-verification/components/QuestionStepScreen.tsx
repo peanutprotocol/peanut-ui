@@ -49,8 +49,6 @@ export const phonePartner = (steps: PaperworkVerificationStep[]): 'card' | 'loca
 
 function useStepHeading(step: PaperworkVerificationStep) {
     const t = useTranslations('kyc.paperworkVerification')
-    // Asked on its own after the ID check, it says why the answer came filled in.
-    if (step.id === 'nationality') return { title: t('titles.nationality'), description: t('descriptions.nationality') }
     if (step.fields.some(isSentenceField)) return null
     if (step.id === 'phone')
         return { title: t('titles.phone'), description: t(`descriptions.phone.${phonePartner([step])}`) }
@@ -102,7 +100,7 @@ export function trackSaveOutcome(
 }
 
 /** "Why do we ask?": what each answer is for, and that it only reaches the partner that needs it. */
-export function WhyWeAsk({ steps }: { steps: Array<PaperworkVerificationStepId | 'citizenship'> }) {
+export function WhyWeAsk({ steps }: { steps: Array<PaperworkVerificationStepId | 'nationality'> }) {
     const t = useTranslations('kyc.paperworkVerification')
     const track = usePaperworkVerificationTrack()
     const [open, setOpen] = useState(false)

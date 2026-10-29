@@ -54,7 +54,6 @@ import {
 import { usePaperworkVerificationIdentity } from './usePaperworkVerificationIdentity'
 import {
     APPROVED_STATUSES,
-    citizenshipOf,
     DOCUMENT_KEYS,
     entryStep,
     featureOpenAfterApproval,
@@ -62,6 +61,7 @@ import {
     IN_REVIEW_STATUSES,
     RETRYABLE_STATUSES,
     markSaved,
+    nationalityOf,
     composeScreens,
     PAYMENT_METHODS_HREF,
     phoneJoinsAddress,
@@ -643,7 +643,7 @@ function PaperworkVerificationSteps({
             <IdentityDocumentScreen
                 plan={plan}
                 residence={questions.residence}
-                citizenship={citizenshipOf(questions)}
+                nationality={nationalityOf(questions)}
                 documentsLoading={documentsLoading}
                 busy={identity.busy}
                 error={idError}

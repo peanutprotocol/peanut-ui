@@ -14,12 +14,12 @@ import { residenceAvailability } from '@/utils/residence-availability'
 import SetupFooter from './SetupFooter'
 
 /**
- * Residence and citizenship differ: which of the two Peanut is set up for,
+ * Residence and nationality differ: which of the two Peanut is set up for,
  * with what each unlocks. One tap picks the country and continues.
  */
 export function ResidenceCompare({
     residence,
-    citizenship,
+    nationality,
     labelOf,
     restrictionSets,
     restrictionsSettled,
@@ -27,7 +27,7 @@ export function ResidenceCompare({
     onChoose,
 }: {
     residence: string
-    citizenship: string
+    nationality: string
     labelOf: (country: string) => string
     restrictionSets: ResidenceRestrictionSets
     /** false while the server's tier lists load: the bundled mirror is not enough to name an offer */
@@ -37,7 +37,7 @@ export function ResidenceCompare({
 }) {
     const t = useTranslations('setup.residenceStep.compare')
     // Each country's offers come from the rules the verification applies.
-    const intentsOf = { [residence]: useKycIntents(residence), [citizenship]: useKycIntents(citizenship) }
+    const intentsOf = { [residence]: useKycIntents(residence), [nationality]: useKycIntents(nationality) }
     return (
         <div className="flex w-full flex-1 flex-col gap-6">
             <div className="flex flex-col gap-1">
@@ -47,7 +47,7 @@ export function ResidenceCompare({
             {/* The server's answer per country (GET /config/kyc-intents); the tiers only if it failed. */}
             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-4">
                 <Divider orientation="vertical" className="col-start-2 row-span-3 row-start-1" />
-                {[residence, citizenship].map((iso2) => {
+                {[residence, nationality].map((iso2) => {
                     const { intents, settled } = intentsOf[iso2]
                     const summary =
                         settled && (intents || restrictionsSettled)
@@ -96,7 +96,7 @@ export function ResidenceCompare({
             <SetupFooter
                 actions={
                     <div className="flex w-full flex-col gap-3">
-                        {[residence, citizenship].map((iso2) => (
+                        {[residence, nationality].map((iso2) => (
                             <Button
                                 key={iso2}
                                 shadowSize="4"

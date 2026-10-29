@@ -405,9 +405,9 @@ describe('AddFeatureFlow', () => {
     })
 })
 
-// Slava, 2026-10-27: after approval, an EEA bank user whose ID names no nationality confirms it.
-describe('AddFeatureQuestions: the nationality asked after the ID check', () => {
-    const afterApproval = (): PaperworkVerificationQuestions => ({
+// Slava, 2026-10-29: the nationality is a birth-step question like any other, asked under the feature's heading.
+describe('AddFeatureQuestions: the nationality on the birth step', () => {
+    const withNationality = (): PaperworkVerificationQuestions => ({
         available: true,
         attemptId: null,
         residence: 'DE',
@@ -415,31 +415,24 @@ describe('AddFeatureQuestions: the nationality asked after the ID check', () => 
             {
                 id: 'birth',
                 features: ['base'],
-                answered: true,
-                fields: [{ key: 'citizenship', kind: 'country', required: true, value: 'DE' }],
-            },
-            {
-                id: 'nationality',
-                features: ['bank'],
                 answered: false,
                 fields: [{ key: 'nationality', kind: 'country', required: true, value: 'DE' }],
             },
         ],
-        firstUnanswered: 'nationality',
-        progress: { done: 2, total: 3 },
+        firstUnanswered: 'birth',
+        progress: { done: 1, total: 2 },
     })
 
-    it('arrives filled with the citizenship under its own heading, and Continue saves it', async () => {
-        mockQuestions.mockResolvedValue(afterApproval())
+    it('arrives filled under the feature heading, and Continue saves it', async () => {
+        mockQuestions.mockResolvedValue(withNationality())
         mockSave.mockResolvedValue({ kind: 'saved', next: null })
         const onDone = jest.fn()
         renderWithIntl(<AddFeatureQuestions feature="bank" onBack={jest.fn()} onDone={onDone} />)
-        expect(await screen.findByText('Confirm your nationality')).toBeInTheDocument()
-        expect(screen.queryByText('For your bank account')).not.toBeInTheDocument()
+        expect(await screen.findByText('For your bank account')).toBeInTheDocument()
         expect(screen.getByTestId('verify-pick-nationality')).toHaveTextContent('Germany')
         fireEvent.click(screen.getByTestId('verify-continue'))
         await waitFor(() => expect(onDone).toHaveBeenCalled())
-        expect(mockSave).toHaveBeenCalledWith('nationality', { nationality: 'DE' }, 'bank')
+        expect(mockSave).toHaveBeenCalledWith('birth', { nationality: 'DE' }, 'bank')
     })
 })
 

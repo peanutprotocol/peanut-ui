@@ -150,11 +150,11 @@ export default function DividerPage() {
                 </ProductUsage.Example>
 
                 <ProductUsage.Example
-                    title="Setup — residence and citizenship compared"
+                    title="Setup — residence and nationality compared"
                     path="src/components/Setup/components/ResidenceCompare.tsx"
                     description="The vertical rule. Two countries side by side, each a flag, a name and what it unlocks; the dashed rule is the only line between them, and neither column has a box. The columns share subgrid rows, so both lists start on one line when a country name wraps."
                     code={`<Divider orientation="vertical" className="col-start-2 row-span-3 row-start-1" />
-{[residence, citizenship].map((iso2) => (
+{[residence, nationality].map((iso2) => (
     <section key={iso2} className="row-span-3 grid grid-rows-subgrid">
         <h2 className="mb-3 flex flex-col items-start gap-2 text-heading-card">…</h2>
         <BulletList size="xs" items={items} />

@@ -80,12 +80,12 @@ function PreludeScreens({
     const save = useCallback(async (): Promise<void> => {
         const failed = () => void toast.error(tCommon('genericError'))
         const userId = user?.user?.userId
-        const { citizenshipCountry, fundingChannel, paymentChannel } = context
+        const { nationalityCountry, fundingChannel, paymentChannel } = context
         if (needs.includes('residence')) {
             const result = await updateUserById({
                 userId,
                 residenceCountry,
-                citizenship: citizenshipCountry || residenceCountry,
+                nationality: nationalityCountry || residenceCountry,
             }).catch(() => ({ error: 'failed' }))
             if (!userId || result?.error) return failed()
             storeDeclaredResidence(userId, residenceCountry)

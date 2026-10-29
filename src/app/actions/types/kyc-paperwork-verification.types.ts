@@ -7,7 +7,6 @@ export type PaperworkVerificationStepId =
     | 'phone'
     | 'declarations'
     | 'tax'
-    | 'nationality'
 export type PaperworkVerificationFeature = 'bank' | 'card' | 'local'
 export type PaperworkVerificationFieldKind =
     | 'choice'
@@ -85,8 +84,8 @@ export interface PaperworkVerificationDocument {
 export interface KycCollectedDetails {
     /** The name on the account: the verified one once KYC set it. */
     name: { first: string | null; last: string | null }
-    /** The citizenship the user gave. */
-    citizenship: string | null
+    /** The nationality the user declared. */
+    nationality: string | null
     /** The nationality the approved ID shows. */
     idNationality: string | null
     /** The ID the check verified, as Peanut records it. */
@@ -97,7 +96,7 @@ export interface KycCollectedDetails {
     heldBySumsub: string[]
 }
 
-/** Every answer Peanut keeps beside citizenship; never the address or the tax number (Slava, 2026-10-26). */
+/** Every answer Peanut keeps beside the nationality; never the address or the tax number (Slava, 2026-10-26). */
 export type KycStoredDetail =
     | 'dateOfBirth'
     | 'countryOfBirth'

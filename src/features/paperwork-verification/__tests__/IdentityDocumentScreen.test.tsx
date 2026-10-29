@@ -39,13 +39,13 @@ const plan = (
 function render({
     documentPlan,
     residence,
-    citizenship = null,
+    nationality = null,
     onContinue = jest.fn(),
     onChangeResidence,
 }: {
     documentPlan: KycDocumentPlan
     residence: string
-    citizenship?: string | null
+    nationality?: string | null
     onContinue?: jest.Mock
     onChangeResidence?: jest.Mock
 }) {
@@ -53,7 +53,7 @@ function render({
         <IdentityDocumentScreen
             plan={documentPlan}
             residence={residence}
-            citizenship={citizenship}
+            nationality={nationality}
             busy={false}
             error={null}
             onBack={jest.fn()}
@@ -67,8 +67,8 @@ function render({
 const option = (type: string, country: string) => screen.queryByTestId(`verify-id-option-${type}-${country}`)
 
 describe('IdentityDocumentScreen: the list', () => {
-    it('lists the permit from the residence and the passport and ID from the citizenship; a tap opens that document', () => {
-        const onContinue = render({ documentPlan: plan(['DE', 'ES']), residence: 'ES', citizenship: 'DE' })
+    it('lists the permit from the residence and the passport and ID from the nationality; a tap opens that document', () => {
+        const onContinue = render({ documentPlan: plan(['DE', 'ES']), residence: 'ES', nationality: 'DE' })
         expect(screen.getByText(/Which document/)).toBeInTheDocument()
         expect(option('RESIDENCE_PERMIT', 'ES')).toHaveTextContent('Issued by Spain')
         expect(option('PASSPORT', 'DE')).toHaveTextContent('Issued by Germany')
@@ -77,14 +77,14 @@ describe('IdentityDocumentScreen: the list', () => {
         expect(onContinue).toHaveBeenCalledWith({ type: 'PASSPORT', issuingCountry: 'DE' })
     })
 
-    // A citizenship that only defaulted to the residence must not hide the permit the user holds.
-    it('a citizenship equal to the residence still lists its residence permit', () => {
-        render({ documentPlan: plan(['ES']), residence: 'ES', citizenship: 'ES' })
+    // A nationality that only defaulted to the residence must not hide the permit the user holds.
+    it('a nationality equal to the residence still lists its residence permit', () => {
+        render({ documentPlan: plan(['ES']), residence: 'ES', nationality: 'ES' })
         expect(option('RESIDENCE_PERMIT', 'ES')).toBeInTheDocument()
         expect(option('PASSPORT', 'ES')).toBeInTheDocument()
     })
 
-    it('without a citizenship answer, every document is issued by the residence', () => {
+    it('without a nationality answer, every document is issued by the residence', () => {
         render({ documentPlan: plan(['US']), residence: 'US' })
         expect(option('RESIDENCE_PERMIT', 'US')).toBeInTheDocument()
         expect(option('PASSPORT', 'US')).toBeInTheDocument()
@@ -92,7 +92,7 @@ describe('IdentityDocumentScreen: the list', () => {
     })
 
     it('leaves out a document or a country the plan does not accept', () => {
-        render({ documentPlan: plan(['ES'], { types: ['PASSPORT'] }), residence: 'ES', citizenship: 'DE' })
+        render({ documentPlan: plan(['ES'], { types: ['PASSPORT'] }), residence: 'ES', nationality: 'DE' })
         expect(option('PASSPORT', 'DE')).toBeNull()
         expect(option('ID_CARD', 'DE')).toBeNull()
         expect(option('RESIDENCE_PERMIT', 'ES')).toBeNull()
@@ -102,14 +102,14 @@ describe('IdentityDocumentScreen: the list', () => {
         render({
             documentPlan: plan(['KZ', 'RU'], { proofOfAddressIdCountries: ['RU'] }),
             residence: 'KZ',
-            citizenship: 'RU',
+            nationality: 'RU',
         })
         expect(option('PASSPORT', 'RU')).toHaveTextContent('Issued by Russia. You’ll also add a proof of address.')
         expect(option('RESIDENCE_PERMIT', 'KZ')).not.toHaveTextContent('proof of address')
     })
 
     it('names both countries when the plan takes no document from either, instead of an empty list', () => {
-        render({ documentPlan: plan(['US']), residence: 'BO', citizenship: 'GB' })
+        render({ documentPlan: plan(['US']), residence: 'BO', nationality: 'GB' })
         expect(screen.getByTestId('verify-id-none-accepted')).toHaveTextContent(
             'We can’t verify documents issued by United Kingdom or Bolivia yet.'
         )
@@ -117,7 +117,7 @@ describe('IdentityDocumentScreen: the list', () => {
     })
 
     it('hides Other document when it holds nothing', () => {
-        render({ documentPlan: plan(['GB'], { types: ['PASSPORT'] }), residence: 'BO', citizenship: 'GB' })
+        render({ documentPlan: plan(['GB'], { types: ['PASSPORT'] }), residence: 'BO', nationality: 'GB' })
         expect(option('PASSPORT', 'GB')).toBeInTheDocument()
         expect(screen.queryByTestId('verify-id-other')).toBeNull()
         expect(screen.queryByTestId('verify-id-none-accepted')).toBeNull()
@@ -133,7 +133,7 @@ describe('IdentityDocumentScreen: the list', () => {
 
 describe('IdentityDocumentScreen: other documents', () => {
     it('lists the licences and a dual resident’s documents from the residence', () => {
-        const onContinue = render({ documentPlan: plan(['DE', 'ES']), residence: 'ES', citizenship: 'DE' })
+        const onContinue = render({ documentPlan: plan(['DE', 'ES']), residence: 'ES', nationality: 'DE' })
         fireEvent.click(screen.getByTestId('verify-id-other'))
         const drawer = within(screen.getByTestId('verify-id-other-drawer'))
         expect(drawer.getByTestId('verify-id-option-DRIVERS-ES')).toBeInTheDocument()
@@ -146,7 +146,7 @@ describe('IdentityDocumentScreen: other documents', () => {
 
     // Slava, 2026-10-26: no picking a document from a country of the user's choice.
     it('offers no document from another country', () => {
-        render({ documentPlan: plan(['DE', 'ES', 'PL']), residence: 'ES', citizenship: 'DE' })
+        render({ documentPlan: plan(['DE', 'ES', 'PL']), residence: 'ES', nationality: 'DE' })
         fireEvent.click(screen.getByTestId('verify-id-other'))
         expect(screen.queryByText('A document from another country')).toBeNull()
         expect(screen.queryByTestId('verify-id-another-country')).toBeNull()
@@ -166,7 +166,7 @@ describe('IdentityDocumentScreen: temporary protection', () => {
         const onContinue = render({
             documentPlan: withProtection(['PL']),
             residence: 'PL',
-            citizenship: 'UA',
+            nationality: 'UA',
         })
         const row = screen.getByTestId('verify-id-option-TEMPORARY_PROTECTION-PL')
         expect(screen.getAllByTestId(/^verify-id-option-/)[0]).toBe(row)
@@ -188,13 +188,13 @@ describe('IdentityDocumentScreen: temporary protection', () => {
         render({
             documentPlan: withProtection(['PL'], true),
             residence: 'PL',
-            citizenship: 'UA',
+            nationality: 'UA',
         })
         expect(screen.getByTestId('verify-id-option-TEMPORARY_PROTECTION-PL')).toHaveTextContent('proof of address')
     })
 
     it('stays under Other documents for anyone but a Ukrainian', () => {
-        render({ documentPlan: withProtection(['PL']), residence: 'PL', citizenship: 'DE' })
+        render({ documentPlan: withProtection(['PL']), residence: 'PL', nationality: 'DE' })
         expect(option('TEMPORARY_PROTECTION', 'PL')).toBeNull()
         fireEvent.click(screen.getByTestId('verify-id-other'))
         expect(
@@ -204,7 +204,7 @@ describe('IdentityDocumentScreen: temporary protection', () => {
 
     // The server's plan decides who is offered it; the app keeps no rule of its own.
     it('is offered whenever the server plan carries it, with no tie to Ukraine on the device', () => {
-        render({ documentPlan: withProtection(['PL']), residence: 'PL', citizenship: null })
+        render({ documentPlan: withProtection(['PL']), residence: 'PL', nationality: null })
         fireEvent.click(screen.getByTestId('verify-id-other'))
         expect(
             within(screen.getByTestId('verify-id-other-drawer')).getByTestId('verify-id-option-TEMPORARY_PROTECTION-PL')
@@ -218,10 +218,10 @@ describe('IdentityDocumentScreen: temporary protection', () => {
     })
 })
 
-// Slava, 2026-10-26: the citizenship's own passport and ID stay in view, greyed, when the route refuses them.
-describe('IdentityDocumentScreen: a citizenship whose IDs the route refuses', () => {
+// Slava, 2026-10-26: the nationality's own passport and ID stay in view, greyed, when the route refuses them.
+describe('IdentityDocumentScreen: a nationality whose IDs the route refuses', () => {
     it('shows its passport and ID card greyed, not tappable, as not accepted', () => {
-        const onContinue = render({ documentPlan: plan(['PT']), residence: 'PT', citizenship: 'UA' })
+        const onContinue = render({ documentPlan: plan(['PT']), residence: 'PT', nationality: 'UA' })
         for (const type of ['PASSPORT', 'ID_CARD']) {
             const row = screen.getByTestId(`verify-id-refused-${type}-UA`)
             expect(row).toHaveTextContent('Issued by Ukraine. Can’t be used. Not accepted.')
@@ -232,8 +232,8 @@ describe('IdentityDocumentScreen: a citizenship whose IDs the route refuses', ()
         expect(option('RESIDENCE_PERMIT', 'PT')).toBeInTheDocument()
     })
 
-    it('shows none when the route takes the citizenship’s IDs', () => {
-        render({ documentPlan: plan(['PT', 'UA']), residence: 'PT', citizenship: 'UA' })
+    it('shows none when the route takes the nationality’s IDs', () => {
+        render({ documentPlan: plan(['PT', 'UA']), residence: 'PT', nationality: 'UA' })
         expect(screen.queryByTestId('verify-id-refused-PASSPORT-UA')).toBeNull()
         expect(option('PASSPORT', 'UA')).toBeInTheDocument()
     })
@@ -249,7 +249,7 @@ describe('IdentityDocumentScreen: an ID that closes features the user asked for'
         const onContinue = render({
             documentPlan: venezuelan({ ...NONE, qr: true, card: true }),
             residence: 'AR',
-            citizenship: 'VE',
+            nationality: 'VE',
         })
         const passport = option('PASSPORT', 'VE')!
         expect(passport).toHaveTextContent('Issued by Venezuela. The Peanut card isn’t available with this document.')
@@ -268,7 +268,7 @@ describe('IdentityDocumentScreen: an ID that closes features the user asked for'
         const onContinue = render({
             documentPlan: venezuelan({ ...NONE, qr: true, card: true }),
             residence: 'AR',
-            citizenship: 'VE',
+            nationality: 'VE',
         })
         fireEvent.click(option('ID_CARD', 'VE')!)
         fireEvent.click(screen.getByTestId('verify-id-limited-back'))
@@ -281,7 +281,7 @@ describe('IdentityDocumentScreen: an ID that closes features the user asked for'
         const onContinue = render({
             documentPlan: venezuelan({ ...NONE, card: true }),
             residence: 'AR',
-            citizenship: 'VE',
+            nationality: 'VE',
         })
         for (const type of ['PASSPORT', 'ID_CARD']) {
             const row = screen.getByTestId(`verify-id-refused-${type}-VE`)
@@ -312,7 +312,7 @@ describe('IdentityDocumentScreen: an ID that closes features the user asked for'
         const onContinue = render({
             documentPlan: plan(['AR', 'VE'], { features: { ...NONE, qr: true, card: true } }),
             residence: 'AR',
-            citizenship: 'VE',
+            nationality: 'VE',
         })
         fireEvent.click(option('PASSPORT', 'VE')!)
         expect(onContinue).toHaveBeenCalledWith({ type: 'PASSPORT', issuingCountry: 'VE' })

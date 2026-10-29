@@ -23,7 +23,7 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) 
 
 const details = (overrides: Partial<KycCollectedDetails> = {}): KycCollectedDetails => ({
     name: { first: null, last: null },
-    citizenship: 'UA',
+    nationality: 'UA',
     idNationality: null,
     document: { type: 'RESIDENCE_PERMIT', country: 'PT' },
     stored: {
@@ -60,7 +60,7 @@ beforeEach(() => {
 describe('ProfileDetailsView', () => {
     it("shows Peanut's records and marks what only Sumsub holds", async () => {
         render()
-        expect(await screen.findByText('Citizenship')).toBeInTheDocument()
+        expect(await screen.findByText('Nationality')).toBeInTheDocument()
         expect(rowValue('Name')).toBe('Ivan')
         expect(rowValue('Surname')).toBe('Petrenko')
         expect(rowValue('Email')).toBe('ivan@example.com')
@@ -72,7 +72,7 @@ describe('ProfileDetailsView', () => {
     it('shows the answers Peanut keeps in words', async () => {
         render()
         expect(await screen.findByText('Airline pilot, copilot, and flight engineer')).toBeInTheDocument()
-        expect(rowValue('Citizenship')).toBe('Ukraine')
+        expect(rowValue('Nationality')).toBe('Ukraine')
         expect(rowValue('Date of birth')).toBe('April 2, 1990')
         expect(rowValue('City of birth')).toBe('Odesa')
         expect(rowValue('Phone number')).toBe('+351912345678')
@@ -84,30 +84,30 @@ describe('ProfileDetailsView', () => {
 
     it('an answer Peanut could not copy yet still reads as held by Sumsub', async () => {
         jest.mocked(getKycDetails).mockResolvedValue(
-            details({ citizenship: null, stored: {}, heldBySumsub: ['dateOfBirth', 'taxId'] })
+            details({ nationality: null, stored: {}, heldBySumsub: ['dateOfBirth', 'taxId'] })
         )
         render()
         expect(await screen.findByText('Date of birth')).toBeInTheDocument()
         expect(rowValue('Date of birth')).toBe('Not stored at Peanut')
-        expect(screen.queryByText('Citizenship')).toBeNull()
+        expect(screen.queryByText('Nationality')).toBeNull()
     })
 
     // Slava, 2026-10-26: what the database holds shows as a value, never as "Not stored".
-    it("shows the verified name and the ID's citizenship that Peanut stores", async () => {
+    it('shows the verified name and the nationality that Peanut stores', async () => {
         jest.mocked(getKycDetails).mockResolvedValue(
-            details({ name: { first: 'Іван', last: 'Петренко' }, citizenship: 'UA', heldBySumsub: ['taxId'] })
+            details({ name: { first: 'Іван', last: 'Петренко' }, nationality: 'UA', heldBySumsub: ['taxId'] })
         )
         render()
-        expect(await screen.findByText('Citizenship')).toBeInTheDocument()
+        expect(await screen.findByText('Nationality')).toBeInTheDocument()
         expect(rowValue('Name')).toBe('Іван')
         expect(rowValue('Surname')).toBe('Петренко')
-        expect(rowValue('Citizenship')).toBe('Ukraine')
+        expect(rowValue('Nationality')).toBe('Ukraine')
         expect(rowValue('Tax number')).toBe('Not stored at Peanut')
     })
 
     it('hides what was never collected, the funding and spending methods, and location', async () => {
         render()
-        await screen.findByText('Citizenship')
+        await screen.findByText('Nationality')
         for (const label of ['Card use', 'Second residence', 'Employment', 'Sex', 'Marital status'])
             expect(screen.queryByText(label)).toBeNull()
         expect(screen.queryByText(/location/i)).toBeNull()
@@ -123,18 +123,35 @@ describe('ProfileDetailsView', () => {
         expect(screen.queryByText('Verified residence')).toBeNull()
     })
 
-    // Slava, 2026-10-27: the citizenship given and the nationality the ID shows are two facts.
-    it('shows the citizenship given and the nationality on the ID as separate rows', async () => {
-        jest.mocked(getKycDetails).mockResolvedValue(details({ citizenship: 'UA', idNationality: 'PL' }))
+    // Slava, 2026-10-27: the nationality given and the nationality the ID shows are two facts.
+    it('shows the nationality given and the nationality on the ID as separate rows when they differ', async () => {
+        jest.mocked(getKycDetails).mockResolvedValue(details({ nationality: 'UA', idNationality: 'PL' }))
         render()
         expect(await screen.findByText('Nationality on your ID')).toBeInTheDocument()
-        expect(rowValue('Citizenship')).toBe('Ukraine')
+        expect(rowValue('Nationality')).toBe('Ukraine')
         expect(rowValue('Nationality on your ID')).toBe('Poland')
+    })
+
+    it('shows the nationality once when the ID names the one given', async () => {
+        jest.mocked(getKycDetails).mockResolvedValue(details({ nationality: 'UA', idNationality: 'UA' }))
+        render()
+        expect(await screen.findByText('Nationality')).toBeInTheDocument()
+        expect(rowValue('Nationality')).toBe('Ukraine')
+        expect(screen.queryByText('Nationality on your ID')).toBeNull()
+        expect(screen.getAllByText('Ukraine')).toHaveLength(1)
+    })
+
+    it("shows the ID's nationality when none was given", async () => {
+        jest.mocked(getKycDetails).mockResolvedValue(details({ nationality: null, idNationality: 'PL' }))
+        render()
+        expect(await screen.findByText('Nationality on your ID')).toBeInTheDocument()
+        expect(rowValue('Nationality on your ID')).toBe('Poland')
+        expect(screen.queryByText('Nationality')).toBeNull()
     })
 
     it('leaves out the ID nationality row when the ID names none', async () => {
         render()
-        await screen.findByText('Citizenship')
+        await screen.findByText('Nationality')
         expect(screen.queryByText('Nationality on your ID')).toBeNull()
     })
 

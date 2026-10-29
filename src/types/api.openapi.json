@@ -21629,10 +21629,6 @@
                                     "bridge_customer_id": {
                                         "type": "string"
                                     },
-                                    "citizenship": {
-                                        "pattern": "^[A-Za-z]{2}$",
-                                        "type": "string"
-                                    },
                                     "dismissActivationCelebration": {
                                         "type": "boolean"
                                     },
@@ -21676,6 +21672,10 @@
                                                 "type": "string"
                                             }
                                         ]
+                                    },
+                                    "nationality": {
+                                        "pattern": "^[A-Za-z]{2}$",
+                                        "type": "string"
                                     },
                                     "pushSubscriptionId": {
                                         "type": "string"
@@ -27061,12 +27061,6 @@
                                                                 "tax"
                                                             ],
                                                             "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "nationality"
-                                                            ],
-                                                            "type": "string"
                                                         }
                                                     ]
                                                 },
@@ -27484,16 +27478,6 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "citizenship": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "string"
-                                                },
-                                                {
-                                                    "type": "null"
-                                                }
-                                            ]
-                                        },
                                         "document": {
                                             "anyOf": [
                                                 {
@@ -27561,6 +27545,16 @@
                                             ],
                                             "type": "object"
                                         },
+                                        "nationality": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
                                         "stored": {
                                             "properties": {
                                                 "actingAsIntermediary": {
@@ -27623,7 +27617,7 @@
                                     },
                                     "required": [
                                         "name",
-                                        "citizenship",
+                                        "nationality",
                                         "idNationality",
                                         "document",
                                         "stored",
@@ -28522,12 +28516,6 @@
                                                             {
                                                                 "enum": [
                                                                     "city_of_birth"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
-                                                                    "citizenship"
                                                                 ],
                                                                 "type": "string"
                                                             },
@@ -30587,12 +30575,6 @@
                                                                 "tax"
                                                             ],
                                                             "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "nationality"
-                                                            ],
-                                                            "type": "string"
                                                         }
                                                     ]
                                                 },
@@ -30768,12 +30750,6 @@
                                                             {
                                                                 "enum": [
                                                                     "tax"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
-                                                                    "nationality"
                                                                 ],
                                                                 "type": "string"
                                                             }

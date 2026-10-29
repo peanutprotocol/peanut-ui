@@ -20,14 +20,14 @@ import { useLocale, useTranslations } from 'next-intl'
 type PartialRestriction = 'card' | 'banking'
 
 /**
- * "I'm a resident of [country] and have citizenship in [the same country]."
- * A different citizenship opens a second view that compares the two countries
+ * "I'm a resident of [country] and a national of [the same country]."
+ * A different nationality opens a second view that compares the two countries
  * and sets Peanut up for the one picked (prototype 01, Slava 2026-10-27).
  */
 const ResidenceStep = () => {
     const t = useTranslations('setup.residenceStep')
     const locale = useLocale()
-    const { residenceCountry, setResidenceCountry, citizenshipCountry, setCitizenshipCountry } = useSetupFlowContext()
+    const { residenceCountry, setResidenceCountry, nationalityCountry, setNationalityCountry } = useSetupFlowContext()
     const { handleNext, isLoading } = useSetupFlow()
     const countrySignals = useSetupCountrySignals()
     // server-authoritative tier lists with the bundled mirror as fallback
@@ -36,7 +36,7 @@ const ResidenceStep = () => {
 
     /*
      * The confirmed residence. The payment plan right after this step reads it
-     * from the flow context, and picking the citizenship country on the
+     * from the flow context, and picking the nationality country on the
      * comparison sets it in the same click, so the effect below advances once
      * the context holds it.
      */
@@ -68,9 +68,9 @@ const ResidenceStep = () => {
 
     // Falls back to the suggestion for the one frame before the effect above commits it.
     const residence = residenceCountry || geoSuggestion?.country || ''
-    const citizenship = citizenshipCountry && citizenshipCountry !== residence ? citizenshipCountry : ''
+    const nationality = nationalityCountry && nationalityCountry !== residence ? nationalityCountry : ''
     const refusedPassport =
-        !!citizenship && REFUSED_ID_ISSUER_ISO2.has(citizenship) && !REFUSED_ID_ISSUER_ISO2.has(residence)
+        !!nationality && REFUSED_ID_ISSUER_ISO2.has(nationality) && !REFUSED_ID_ISSUER_ISO2.has(residence)
 
     useBackHandler(() => {
         setView('question')
@@ -80,7 +80,7 @@ const ResidenceStep = () => {
     const continueWith = (primary: string) => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED, {
             residence_country: primary,
-            citizenship_differs: !!citizenship,
+            nationality_differs: !!nationality,
             compared: view === 'compare',
             was_prefilled: wasPrefilledRef.current,
             geo_country: countrySignals.ipCountry || undefined,
@@ -114,11 +114,11 @@ const ResidenceStep = () => {
 
     const onContinue = () => {
         if (!residence) return
-        if (citizenship) setView('compare')
+        if (nationality) setView('compare')
         else continueWith(residence)
     }
 
-    // Picking the citizenship country sets Peanut up there; the citizenship answer stays.
+    // Picking the nationality country sets Peanut up there; the nationality answer stays.
     const onChoose = (country: string) => {
         if (country !== residenceCountry) {
             wasPrefilledRef.current = false
@@ -127,11 +127,11 @@ const ResidenceStep = () => {
         continueWith(country)
     }
 
-    if (view === 'compare' && citizenship)
+    if (view === 'compare' && nationality)
         return (
             <ResidenceCompare
                 residence={residence}
-                citizenship={citizenship}
+                nationality={nationality}
                 labelOf={labelOf}
                 restrictionSets={restrictionSets}
                 restrictionsSettled={restrictionsSettled}
@@ -157,21 +157,21 @@ const ResidenceStep = () => {
                             }}
                         />
                     ),
-                    citizenship: () => (
+                    nationality: () => (
                         <SetupCountryPicker
-                            title={t('citizenshipTitle')}
-                            value={citizenship}
+                            title={t('nationalityTitle')}
+                            value={nationality}
                             same={residence}
                             options={countryOptions}
-                            testId="setup-citizenship-country"
-                            onChange={setCitizenshipCountry}
+                            testId="setup-nationality-country"
+                            onChange={setNationalityCountry}
                         />
                     ),
                 })}
             </h1>
             {refusedPassport ? (
                 <Callout priority="attention">
-                    {t('refusedPassport', { citizenship: labelOf(citizenship), residence: labelOf(residence) })}
+                    {t('refusedPassport', { nationality: labelOf(nationality), residence: labelOf(residence) })}
                 </Callout>
             ) : (
                 <p className="flex items-start gap-2 text-body-s leading-5 text-foreground-secondary">

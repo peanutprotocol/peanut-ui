@@ -97,14 +97,14 @@ function SetupScreen({
     showProgress = true,
     forceFullScreen = false,
     residenceCountry,
-    citizenshipCountry,
+    nationalityCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     showProgress?: boolean
     forceFullScreen?: boolean
     residenceCountry?: string
-    citizenshipCountry?: string
+    nationalityCountry?: string
 }) {
     return (
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
@@ -113,7 +113,7 @@ function SetupScreen({
                 showProgress={showProgress}
                 forceFullScreen={forceFullScreen}
                 residenceCountry={residenceCountry}
-                citizenshipCountry={citizenshipCountry}
+                nationalityCountry={nationalityCountry}
             >
                 {children}
             </SetupScreenBody>
@@ -126,21 +126,21 @@ function SetupScreenBody({
     showProgress = true,
     forceFullScreen = false,
     residenceCountry,
-    citizenshipCountry,
+    nationalityCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     showProgress?: boolean
     forceFullScreen?: boolean
     residenceCountry?: string
-    citizenshipCountry?: string
+    nationalityCountry?: string
 }) {
-    const { setSteps, setResidenceCountry, setCitizenshipCountry } = useSetupFlowContext()
+    const { setSteps, setResidenceCountry, setNationalityCountry } = useSetupFlowContext()
     React.useLayoutEffect(() => setSteps(setupSteps), [setSteps])
     React.useLayoutEffect(() => {
         if (residenceCountry) setResidenceCountry(residenceCountry)
-        if (citizenshipCountry) setCitizenshipCountry(citizenshipCountry)
-    }, [residenceCountry, setResidenceCountry, citizenshipCountry, setCitizenshipCountry])
+        if (nationalityCountry) setNationalityCountry(nationalityCountry)
+    }, [residenceCountry, setResidenceCountry, nationalityCountry, setNationalityCountry])
     const step = setupSteps.find((entry) => entry.screenId === screenId)
     const stepCopy = useSetupStepCopy(step)
     if (!step) return null
@@ -368,7 +368,7 @@ export const SURFACES: Record<string, Surface> = {
     },
     '03-b-residence-compare': {
         ...SURFACE_META['03-b-residence-compare'],
-        render: () => <SetupScreen screenId="residence" residenceCountry="PT" citizenshipCountry="BR" />,
+        render: () => <SetupScreen screenId="residence" residenceCountry="PT" nationalityCountry="BR" />,
     },
 
     '05-a-signtesttransaction': {

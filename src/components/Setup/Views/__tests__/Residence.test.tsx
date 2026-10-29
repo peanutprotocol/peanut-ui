@@ -3,7 +3,7 @@
  * Residence step — legal-residence question after the sell screens.
  *
  * Contract under test: geo only prefills (never advances, never restricts),
- * one sentence asks residence and citizenship, a different citizenship
+ * one sentence asks residence and nationality, a different nationality
  * compares the two countries first, and Continue advances to the payment
  * plan step, reporting the residence outcome (restricted, partial or
  * congrats) for the country Peanut is set up for.
@@ -20,8 +20,8 @@ import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handl
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const mockSetResidenceCountry = jest.fn()
-const mockSetCitizenshipCountry = jest.fn()
-let mockSetupState: { residenceCountry: string; citizenshipCountry: string }
+const mockSetNationalityCountry = jest.fn()
+let mockSetupState: { residenceCountry: string; nationalityCountry: string }
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({
         ...mockSetupState,
@@ -30,7 +30,7 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
         setFundingChannel: jest.fn(),
         setPaymentChannel: jest.fn(),
         setResidenceCountry: mockSetResidenceCountry,
-        setCitizenshipCountry: mockSetCitizenshipCountry,
+        setNationalityCountry: mockSetNationalityCountry,
     }),
 }))
 
@@ -89,7 +89,7 @@ describe('ResidenceStep', () => {
         jest.clearAllMocks()
         resetBackHandlersForTests()
         mockIsLoading = false
-        mockSetupState = { residenceCountry: '', citizenshipCountry: '' }
+        mockSetupState = { residenceCountry: '', nationalityCountry: '' }
         mockGeoCountry = null
         mockEdgeCountry = null
         mockEdgeSettled = true
@@ -147,20 +147,20 @@ describe('ResidenceStep', () => {
         expect(mockSetResidenceCountry).not.toHaveBeenCalled()
     })
 
-    it('asks residence and citizenship in one sentence, the citizenship starting as the same country', () => {
+    it('asks residence and nationality in one sentence, the nationality starting as the same country', () => {
         mockSetupState.residenceCountry = 'PT'
         render(<ResidenceStep />)
         expect(screen.getByRole('heading')).toHaveTextContent(
-            /I’m a resident of\s*Portugal\s*and have citizenship in\s*the same country/
+            /I’m a resident of\s*Portugal\s*and a national of\s*the same country/
         )
-        expect(screen.getByTestId('setup-citizenship-country')).toHaveAccessibleName(
-            'Where do you have citizenship?: the same country, Portugal'
+        expect(screen.getByTestId('setup-nationality-country')).toHaveAccessibleName(
+            'What’s your nationality?: the same country, Portugal'
         )
         expect(screen.getByText(en.setup.residenceStep.hint)).toBeInTheDocument()
     })
 
-    it('compares the two countries before going on when the citizenship differs', () => {
-        mockSetupState = { residenceCountry: 'PT', citizenshipCountry: 'BR' }
+    it('compares the two countries before going on when the nationality differs', () => {
+        mockSetupState = { residenceCountry: 'PT', nationalityCountry: 'BR' }
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockHandleNext).not.toHaveBeenCalled()
@@ -179,42 +179,42 @@ describe('ResidenceStep', () => {
         expect(screen.getByText(en.setup.residenceStep.compare.guideTitle)).toBeInTheDocument()
         // Back returns to the sentence instead of leaving the step.
         act(() => expect(dispatchBackPress()).toBe(true))
-        expect(screen.getByTestId('setup-citizenship-country')).toBeInTheDocument()
+        expect(screen.getByTestId('setup-nationality-country')).toBeInTheDocument()
     })
 
     it('sets Peanut up for the residence when it is picked on the comparison', () => {
-        mockSetupState = { residenceCountry: 'PT', citizenshipCountry: 'BR' }
+        mockSetupState = { residenceCountry: 'PT', nationalityCountry: 'BR' }
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         fireEvent.click(screen.getByRole('button', { name: 'Select Portugal' }))
         expect(mockSetResidenceCountry).not.toHaveBeenCalled()
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
-            expect.objectContaining({ residence_country: 'PT', citizenship_differs: true, compared: true })
+            expect.objectContaining({ residence_country: 'PT', nationality_differs: true, compared: true })
         )
         expect(mockHandleNext).toHaveBeenCalledTimes(1)
     })
 
-    it('advances only once the citizenship country picked on the comparison has landed', () => {
-        mockSetupState = { residenceCountry: 'PT', citizenshipCountry: 'JP' }
+    it('advances only once the nationality country picked on the comparison has landed', () => {
+        mockSetupState = { residenceCountry: 'PT', nationalityCountry: 'JP' }
         const view = render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         fireEvent.click(screen.getByRole('button', { name: 'Select Japan' }))
         expect(mockSetResidenceCountry).toHaveBeenCalledWith('JP')
-        expect(mockSetCitizenshipCountry).not.toHaveBeenCalled()
+        expect(mockSetNationalityCountry).not.toHaveBeenCalled()
         // the plan reads the residence from the flow, so the step waits for it to land
         expect(mockHandleNext).not.toHaveBeenCalled()
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN,
             expect.objectContaining({ residence_country: 'JP', restriction_type: 'banking' })
         )
-        mockSetupState = { residenceCountry: 'JP', citizenshipCountry: 'JP' }
+        mockSetupState = { residenceCountry: 'JP', nationalityCountry: 'JP' }
         view.rerender(<ResidenceStep />)
         expect(mockHandleNext).toHaveBeenCalledTimes(1)
     })
 
-    it('says to verify with the residence card when the citizenship’s passports are refused', () => {
-        mockSetupState = { residenceCountry: 'DE', citizenshipCountry: 'RU' }
+    it('says to verify with the residence card when the nationality’s passports are refused', () => {
+        mockSetupState = { residenceCountry: 'DE', nationalityCountry: 'RU' }
         render(<ResidenceStep />)
         expect(screen.getByText(/We can’t verify passports or ID cards from Russia/)).toHaveTextContent(
             'Use your residence card from Germany'

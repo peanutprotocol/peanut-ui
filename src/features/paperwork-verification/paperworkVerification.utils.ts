@@ -40,13 +40,13 @@ export function phoneJoinsAddress(questions: PaperworkVerificationQuestions): bo
     return !!address && !!phone && address.answered === phone.answered
 }
 
-/** A birth step that asks only the citizenship serves the ID picker, not a provider, so it says so. */
+/** A birth step that asks only the nationality serves the ID picker, not a provider, so it says so. */
 export const whyKeyOf = (step: { id: PaperworkVerificationStepId; features: string[] }) =>
-    step.id === 'birth' && step.features.every((f) => f === 'base') ? ('citizenship' as const) : step.id
+    step.id === 'birth' && step.features.every((f) => f === 'base') ? ('nationality' as const) : step.id
 
-/** The citizenship the questions asked, saved or not; null when they did not ask. */
-export const citizenshipOf = (questions: PaperworkVerificationQuestions): string | null =>
-    questions.steps.flatMap((s) => s.fields).find((f) => f.key === 'citizenship')?.value ?? null
+/** The nationality the questions asked, saved or not; null when they did not ask. */
+export const nationalityOf = (questions: PaperworkVerificationQuestions): string | null =>
+    questions.steps.flatMap((s) => s.fields).find((f) => f.key === 'nationality')?.value ?? null
 
 // Fields answered from a picker. They read as one sentence, so several steps of them share a screen.
 const PICKER_KINDS = new Set<PaperworkVerificationFieldKind>(['choice', 'occupation', 'country', 'place'])
@@ -281,10 +281,7 @@ export const FAILED_STATUSES = new Set<string>(['ACTION_REQUIRED', 'REJECTED', '
 // FAILED is our check erroring with nothing decided; only REJECTED is final.
 export const RETRYABLE_STATUSES = new Set<string>(['ACTION_REQUIRED', 'FAILED'])
 
-/**
- * A question still open after approval (the nationality an EEA bank account needs when the ID
- * names none) is that feature's add-later question: the feature to ask it for, if any.
- */
+/** A question still open after approval is that feature's add-later question: the feature to ask it for, if any. */
 export function featureOpenAfterApproval(
     questions: PaperworkVerificationQuestions,
     status: SumsubKycStatus | undefined

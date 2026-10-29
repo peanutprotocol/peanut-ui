@@ -180,7 +180,7 @@ const PH_STEPS = [
 const toggle = (key: string, value: string | null = null) => ({ key, kind: 'toggle', required: true, value })
 const MARITAL = ['single', 'married', 'divorced', 'widowed']
 
-/** A German resident with bank + card: Bridge's EEA citizenship on top of the card's answers. */
+/** A German resident with bank + card: the nationality and Bridge's EEA birth place on top of the card's answers. */
 const DE_STEPS = [
     {
         id: 'purpose',
@@ -207,7 +207,7 @@ const DE_STEPS = [
         fields: [
             { key: 'countryOfBirth', kind: 'country', required: true, value: 'DE' },
             { key: 'cityOfBirth', kind: 'place', required: true, countryField: 'countryOfBirth', value: null },
-            { key: 'citizenship', kind: 'country', required: true, value: null },
+            { key: 'nationality', kind: 'country', required: true, value: null },
         ],
     },
     address('DE', true),
@@ -342,7 +342,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
     },
     'paperwork-verification-de': {
         route: '/verify',
-        about: 'Smart Paperwork Verification questions for a German resident with bank + card: Bridge’s EEA citizenship beside the country of birth.',
+        about: 'Smart Paperwork Verification questions for a German resident with bank + card: the nationality beside Bridge’s EEA country of birth.',
         responses: {
             ...asking('DE', DE_STEPS),
             'POST /users/kyc/places/search': {

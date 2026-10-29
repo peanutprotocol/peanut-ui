@@ -98,7 +98,7 @@ it('asks the residence, then the payment plan, saves both and reloads /verify', 
         fireEvent.click(screen.getByRole('button', { name: 'Continue', hidden: true }))
     })
 
-    expect(updateUserById).toHaveBeenCalledWith({ userId: 'user-1', residenceCountry: 'PT', citizenship: 'PT' })
+    expect(updateUserById).toHaveBeenCalledWith({ userId: 'user-1', residenceCountry: 'PT', nationality: 'PT' })
     expect(savePaperworkVerificationFeatures).toHaveBeenCalledWith({ qr: true, bank: true, local: false, card: false })
     expect(onDone).toHaveBeenCalled()
 })
@@ -107,7 +107,7 @@ it('back from the two-country comparison returns to the residence sentence, not 
     const { onExit } = render(['residence', 'features'])
 
     await screen.findByRole('heading', { name: /I’m a resident of/ })
-    fireEvent.click(screen.getByTestId('setup-citizenship-country'))
+    fireEvent.click(screen.getByTestId('setup-nationality-country'))
     fireEvent.click(await screen.findByRole('button', { name: 'Brazil' }))
     fireEvent.click(screen.getByTestId('setup-residence-continue'))
     expect(await screen.findByRole('heading', { name: en.setup.residenceStep.compare.title })).toBeInTheDocument()

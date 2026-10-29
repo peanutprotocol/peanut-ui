@@ -20,7 +20,7 @@ import { localizedCountryName } from '@/utils/country-name.utils'
 export const PROFILE_DETAILS_QUERY_KEY = ['kyc-details'] as const
 
 // What verification collected, in the page's order, by theme.
-const IDENTITY_ROWS = ['citizenship', 'dateOfBirth', 'countryOfBirth', 'cityOfBirth'] as const
+const IDENTITY_ROWS = ['nationality', 'dateOfBirth', 'countryOfBirth', 'cityOfBirth'] as const
 const MONEY_ROWS = [
     'occupation',
     'employmentStatus',
@@ -131,7 +131,7 @@ export const ProfileDetailsView = () => {
     const detailRows = (keys: readonly DetailRow[]) =>
         keys.map(
             (key) =>
-                (key !== 'citizenship' && key !== 'address' && key !== 'taxId' && storedRow(key)) ||
+                (key !== 'nationality' && key !== 'address' && key !== 'taxId' && storedRow(key)) ||
                 (held.has(key) ? row(key, t(`rows.${key}`), notStored) : null)
         )
 
@@ -157,8 +157,9 @@ export const ProfileDetailsView = () => {
                         )}
                     {residence?.secondaryDeclaredCountry &&
                         row('secondResidence', t('rows.secondResidence'), country(residence.secondaryDeclaredCountry))}
-                    {details?.citizenship && row('citizenship', t('rows.citizenship'), country(details.citizenship))}
+                    {details?.nationality && row('nationality', t('rows.nationality'), country(details.nationality))}
                     {details?.idNationality &&
+                        details.idNationality !== details.nationality &&
                         row('idNationality', t('rows.idNationality'), country(details.idNationality))}
                     {detailRows(IDENTITY_ROWS)}
                     {documentName && row('document', t('rows.document'), documentName)}

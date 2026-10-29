@@ -119,7 +119,7 @@ const SignTestTransaction = ({
     const { user, isFetchingUser, fetchUser, logoutUser, isLoggingOut } = useAuth()
     const {
         residenceCountry,
-        citizenshipCountry,
+        nationalityCountry,
         setIsLoading: setSetupLoading,
         signupEntryFlow,
         fundingChannel,
@@ -197,7 +197,7 @@ const SignTestTransaction = ({
         // the account exists. Fire-and-forget: prequalification data,
         // never a reason to fail or delay the redirect.
         if (residenceCountry) {
-            // The citizenship stays off analytics: only the API keeps it, for the ID check.
+            // The nationality stays off analytics: only the API keeps it, for the ID check.
             posthog.setPersonProperties({ residence_country: residenceCountry })
             const userId = user?.user?.userId
             if (userId) {
@@ -206,7 +206,7 @@ const SignTestTransaction = ({
                 void updateUserById({
                     userId,
                     residenceCountry,
-                    citizenship: citizenshipCountry || residenceCountry,
+                    nationality: nationalityCountry || residenceCountry,
                 })
                     .then((result) => {
                         // updateUserById maps API failures to { error },

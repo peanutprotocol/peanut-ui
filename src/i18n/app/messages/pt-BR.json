@@ -655,7 +655,7 @@
                 "declaredResidence": "Residência declarada",
                 "verifiedResidence": "Residência verificada",
                 "secondResidence": "Segunda residência",
-                "citizenship": "Cidadania",
+                "nationality": "Nacionalidade",
                 "dateOfBirth": "Data de nascimento",
                 "countryOfBirth": "País de nascimento",
                 "cityOfBirth": "Cidade de nascimento",
@@ -983,16 +983,16 @@
                 "title": "Vincule seu perfil a um único país",
                 "description": "Veja o que cada um libera."
             },
-            "sentence": "Meu país de residência <nw>é <residence></residence></nw> e o de cidadania <nw>é <citizenship></citizenship>.</nw>",
+            "sentence": "Meu país de residência <nw>é <residence></residence></nw> e o de nacionalidade <nw>é <nationality></nationality>.</nw>",
             "residenceTitle": "Onde você tem residência?",
-            "citizenshipTitle": "De qual país você tem cidadania?",
+            "nationalityTitle": "Qual é a sua nacionalidade?",
             "sameCountry": "o mesmo",
             "sameCountryRow": "O mesmo país",
             "choose": "Escolher",
             "searchCountry": "Buscar países",
             "noCountry": "Nenhum país corresponde a “{query}”.",
             "hint": "Toque em um país para mudá-lo.",
-            "refusedPassport": "Não conseguimos verificar passaportes nem documentos de identidade deste país: {citizenship}. Para verificar sua identidade, use seu cartão de residência ({residence}).",
+            "refusedPassport": "Não conseguimos verificar passaportes nem documentos de identidade deste país: {nationality}. Para verificar sua identidade, use seu cartão de residência ({residence}).",
             "continue": "Continuar"
         },
         "passkey": {
@@ -3590,8 +3590,7 @@
                 "phone": "Nossos parceiros guardam seu número de telefone para proteger sua conta.",
                 "tax": "As contas no seu país precisam estar vinculadas ao seu número fiscal.",
                 "declarations": "As regras financeiras do seu país fazem estas perguntas a todos. Se alguma se aplicar, podemos pedir um documento depois.",
-                "nationality": "Bancos na UE precisam saber sua nacionalidade, e seu documento não a mostra.",
-                "citizenship": "Usamos sua cidadania para mostrar o passaporte e o documento nacional de identidade com os quais você pode se verificar."
+                "nationality": "Usamos sua nacionalidade para mostrar o passaporte e o documento nacional de identidade com os quais você pode se verificar."
             },
             "sentence": {
                 "cardPurpose": "Vou usar meu cartão <nw>para <pill></pill></nw>",
@@ -3609,8 +3608,7 @@
                 "actingAsIntermediary": "Vou enviar dinheiro <nw><pill></pill></nw>",
                 "nationality": "Minha nacionalidade <nw>é <pill></pill></nw>",
                 "maritalStatus": "Meu estado civil <nw>é <pill></pill></nw>",
-                "sex": "Meu sexo no documento <nw>é <pill></pill></nw>",
-                "citizenship": "Tenho cidadania <nw>de <pill></pill></nw>"
+                "sex": "Meu sexo no documento <nw>é <pill></pill></nw>"
             },
             "pickerTitle": {
                 "cardPurpose": "Para que você vai usar o cartão",
@@ -3628,8 +3626,7 @@
                 "actingAsIntermediary": "Em nome de quem você envia dinheiro",
                 "nationality": "Sua nacionalidade",
                 "maritalStatus": "Estado civil",
-                "sex": "Sexo",
-                "citizenship": "Sua cidadania"
+                "sex": "Sexo"
             },
             "jobNone": {
                 "last": "Nenhum nos últimos 5 anos",
@@ -3725,15 +3722,13 @@
             "titles": {
                 "address": "Onde você mora?",
                 "phone": "Qual é o seu número de telefone?",
-                "declarations": "Alguma destas opções se aplica a você?",
-                "nationality": "Confirme sua nacionalidade"
+                "declarations": "Alguma destas opções se aplica a você?"
             },
             "sections": {
                 "purpose": "Finalidade",
                 "work": "Trabalho",
                 "money": "Dinheiro",
-                "birth": "Sobre você",
-                "nationality": "Nacionalidade"
+                "birth": "Sobre você"
             },
             "closed": {
                 "bank": {
@@ -3758,8 +3753,7 @@
                     "card": "O parceiro do seu cartão usa esse número para manter seu cartão seguro.",
                     "local": "Nosso parceiro de transferências locais guarda esse número na sua conta."
                 },
-                "declarations": "A maioria das pessoas deixa todas desligadas. Se alguma se aplicar, podemos pedir um documento depois.",
-                "nationality": "Preenchemos sua cidadania. Mude se sua nacionalidade for outra."
+                "declarations": "A maioria das pessoas deixa todas desligadas. Se alguma se aplicar, podemos pedir um documento depois."
             },
             "labels": {
                 "street": "Rua",

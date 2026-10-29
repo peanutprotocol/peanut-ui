@@ -2546,8 +2546,8 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /users/me': PROFILE_ACCOUNTS_MIX['GET /users/me'],
             'GET /users/kyc/details': {
                 name: { first: 'Ana', last: 'Teste' },
-                citizenship: 'PT',
-                idNationality: 'PRT',
+                nationality: 'PT',
+                idNationality: 'PT',
                 document: { country: 'PRT', type: 'PASSPORT' },
                 heldBySumsub: ['address', 'taxId'],
                 stored: {
