@@ -17,7 +17,12 @@ import { COLOR_TOKENS, type ThemeToken } from '../tokens.generated'
 // globals.css. The role sections name tokens by hand; any token they leave out
 // falls into the colour library below, so a new token is never invisible.
 const TOKENS = new Map(COLOR_TOKENS.map((t) => [t.name, t]))
-const hex = (name: string) => TOKENS.get(name)?.value ?? '—'
+// a token that points at another (`var(--color-blue-200)`) shows the hex it lands on
+const hex = (name: string): string => {
+    const value = TOKENS.get(name)?.value ?? '—'
+    const ref = /^var\(--color-([\w-]+)\)$/.exec(value)
+    return ref ? hex(ref[1]) : value
+}
 const PRIMITIVE = /^(gray|pink|yellow|purple|blue|green|red|orange)-\d+$/
 
 const SURFACES = [
@@ -226,7 +231,7 @@ export default function ColorsPage() {
                 <div className={`size-8 shrink-0 rounded-sm border border-border-default ${token.previewClass}`} />
             }
             title={token.name}
-            body={<span className="font-mono">{token.value}</span>}
+            body={<span className="font-mono">{hex(token.name)}</span>}
             trailing={<Icon name={copied?.endsWith(token.name) ? 'check' : 'copy'} size={16} />}
         />
     )
