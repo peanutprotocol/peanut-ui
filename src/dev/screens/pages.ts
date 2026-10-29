@@ -218,5 +218,11 @@ PAGE_CAPTURES.push(
         ],
         expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
     },
-    { id: 'p78-statements', name: 'Statements', route: '/profile/statements' }
+    { id: 'p78-statements', name: 'Statements', route: '/profile/statements' },
+    {
+        id: 'p79-notifications',
+        name: 'Notifications settings',
+        route: '/settings/notifications',
+        fixture: 'settings-notifications',
+    }
 )

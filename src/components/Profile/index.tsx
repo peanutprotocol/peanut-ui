@@ -174,6 +174,7 @@ export const Profile = () => {
                             endText={LOCALE_LABELS[locale]}
                             href="/settings/language"
                         />
+                        <ProfileMenuItem icon="bell" label={t('menu.notifications')} href="/settings/notifications" />
                         <ProfileMenuItem
                             icon="upload-cloud"
                             label={t('menu.backup')}

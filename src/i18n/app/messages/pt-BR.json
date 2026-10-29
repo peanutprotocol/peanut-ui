@@ -314,7 +314,8 @@
             "about": "Sobre o Peanut",
             "updateAvailable": "Atualização disponível",
             "profile": "Perfil",
-            "paymentMethods": "Formas de pagamento"
+            "paymentMethods": "Formas de pagamento",
+            "notifications": "Notificações"
         },
         "logOut": "Sair",
         "logOutAllDevices": "Sair de todos os dispositivos",
@@ -704,6 +705,14 @@
             "cryingPeanutAlt": "Peanut chorando",
             "depositInFlight": "Há um depósito a caminho. Espere ele chegar e saque seu saldo antes de excluir sua conta.",
             "depositAccountsUnavailable": "Não conseguimos encerrar suas contas bancárias. Sua conta Peanut continua ativa. Tente novamente mais tarde."
+        },
+        "notifications": {
+            "title": "Notificações",
+            "push": "Notificações push",
+            "pushBody": "Pagamentos, segurança e sua conta.",
+            "marketing": "Novidades e ofertas",
+            "marketingBody": "Notificações sobre novos recursos e ofertas.",
+            "loadFailed": "Não foi possível carregar suas configurações. Tente novamente."
         }
     },
     "limits": {
@@ -1110,7 +1119,9 @@
             "emailDescription": "Novidades na sua caixa de entrada.",
             "continue": "Continuar",
             "pushUnavailable": "As notificações push ainda não estão prontas. Tente novamente ou desative o push para continuar.",
-            "saveFailed": "Não foi possível salvar suas configurações. Tente novamente."
+            "saveFailed": "Não foi possível salvar suas configurações. Tente novamente.",
+            "marketingLabel": "Novidades e ofertas",
+            "marketingDescription": "Notificações sobre novos recursos e ofertas. Você pode desativá-las quando quiser no seu perfil."
         },
         "paymentPlan": {
             "fundingTitle": "Adicionar dinheiro com",

@@ -314,7 +314,8 @@
             "about": "About Peanut",
             "updateAvailable": "Update available",
             "profile": "Profile",
-            "paymentMethods": "Payment methods"
+            "paymentMethods": "Payment methods",
+            "notifications": "Notifications"
         },
         "logOut": "Log out",
         "logOutAllDevices": "Log out on all devices",
@@ -704,6 +705,14 @@
             "cryingPeanutAlt": "Crying peanut",
             "depositInFlight": "A deposit is still arriving. Wait for it to arrive, then withdraw your balance before deleting your account.",
             "depositAccountsUnavailable": "We couldn’t close your bank accounts. Your Peanut account is still active. Please try again later."
+        },
+        "notifications": {
+            "title": "Notifications",
+            "push": "Push notifications",
+            "pushBody": "Payments, security and your account.",
+            "marketing": "News and offers",
+            "marketingBody": "Pushes about new features and offers.",
+            "loadFailed": "We couldn’t load your settings. Please try again."
         }
     },
     "limits": {
@@ -1110,7 +1119,9 @@
             "emailDescription": "Updates delivered to your inbox.",
             "continue": "Continue",
             "pushUnavailable": "Push notifications aren’t ready yet. Try again, or turn push off to continue.",
-            "saveFailed": "We couldn’t save your settings. Please try again."
+            "saveFailed": "We couldn’t save your settings. Please try again.",
+            "marketingLabel": "News and offers",
+            "marketingDescription": "Pushes about new features and offers. You can turn them off anytime in your profile."
         },
         "paymentPlan": {
             "fundingTitle": "Add money with",

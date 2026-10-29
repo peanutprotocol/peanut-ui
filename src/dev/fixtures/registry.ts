@@ -1269,6 +1269,11 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Accounts page for a user whose ID check passed.',
     },
     'settings-language': { route: '/settings/language', about: 'Language picker, English selected.' },
+    'settings-notifications': {
+        route: '/settings/notifications',
+        about: 'Notification settings: push on, news and offers not opted in.',
+        responses: { 'GET /notifications/preferences': { push: true, email: true, marketingPush: false } },
+    },
     rewards: {
         route: '/rewards',
         about: 'Points total, tier badge and invite list.',

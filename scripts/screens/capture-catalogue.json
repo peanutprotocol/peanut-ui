@@ -218,6 +218,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-settings-notifications",
+        "flow": "Home and shared states",
+        "route": "/settings/notifications"
+    },
+    {
         "id": "fixture-history",
         "flow": "Home and shared states",
         "route": "/history"
@@ -512,6 +517,11 @@
         "flow": "Home and shared states",
         "route": "/dev/surfaces?s=api-ribbon-contract-error",
         "source": "Global/TestBuildRibbon.tsx"
+    },
+    {
+        "id": "p79-notifications",
+        "flow": "Home and shared states",
+        "route": "/settings/notifications"
     },
     {
         "id": "11-a-earlyusermodal",
