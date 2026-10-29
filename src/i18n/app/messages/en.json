@@ -3477,7 +3477,9 @@
             "networkFee": "Network fee",
             "noTokensFoundTitle": "No tokens found",
             "lockedHint": "Only USDC on Arbitrum for now",
-            "tokenOnly": "{symbol} only"
+            "tokenOnly": "Only supports {symbol}",
+            "tokenSwitchedOnly": "{network} only supports {symbol}, so we switched your token to {symbol}.",
+            "tokenSwitched": "{network} doesn't support {from}, so we switched your token to {symbol}."
         },
         "qrScanner": {
             "scanToPay": "Scan to pay",

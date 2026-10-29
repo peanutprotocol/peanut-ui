@@ -167,7 +167,7 @@ describe('TokenSelector (TASK-23392)', () => {
         expect(within(optionNamed('Ethereum')).getByText('Network fee')).toBeInTheDocument()
         // Sprint 165 smoke: with USDC selected, Tron was missing from the list;
         // TASK-24035: it then showed but was a dead end, so it names the token a tap selects
-        expect(within(optionNamed('Tron')).getByText('USDT only')).toBeInTheDocument()
+        expect(within(optionNamed('Tron')).getByText('Only supports USDT')).toBeInTheDocument()
     })
 
     test('tapping a network that does not carry the token selects the token it does carry (TASK-24035)', () => {
@@ -182,6 +182,33 @@ describe('TokenSelector (TASK-23392)', () => {
         expect(tokenTrigger()).toHaveAccessibleName('Token: USDT')
     })
 
+    test('a network tap that changed the token says why, until the token is picked again', () => {
+        render(<Harness />)
+        const why = 'Tron only supports USDT, so we switched your token to USDT.'
+        expect(screen.queryByText(why)).toBeNull()
+        fireEvent.click(networkTrigger())
+        fireEvent.click(optionNamed('Tron'))
+        expect(screen.getByText(why)).toBeInTheDocument()
+        fireEvent.click(tokenTrigger())
+        fireEvent.click(optionNamed('USDT'))
+        expect(screen.queryByText(why)).toBeNull()
+    })
+
+    test('a network tap that keeps the token says nothing', () => {
+        render(<Harness />)
+        fireEvent.click(networkTrigger())
+        fireEvent.click(optionNamed('Ethereum'))
+        expect(screen.queryByText(/so we switched your token/)).toBeNull()
+    })
+
+    test('the screen helper wins over the token switch note', () => {
+        render(<Harness networkHelper="Confirm the network" />)
+        fireEvent.click(networkTrigger())
+        fireEvent.click(optionNamed('Tron'))
+        expect(screen.getByText('Confirm the network')).toBeInTheDocument()
+        expect(screen.queryByText(/so we switched your token/)).toBeNull()
+    })
+
     test('USDT adds Tron to the network list', () => {
         render(<Harness initialChainID="1" initialTokenAddress={USDT_ETH} />)
         fireEvent.click(networkTrigger())
@@ -190,7 +217,7 @@ describe('TokenSelector (TASK-23392)', () => {
             'Ethereum',
             'Tron',
         ])
-        expect(within(optionNamed('Tron')).queryByText('USDT only')).toBeNull()
+        expect(within(optionNamed('Tron')).queryByText('Only supports USDT')).toBeNull()
         // USDT on Arbitrum is not the free route
         expect(within(optionNamed('Arbitrum')).getByText('Network fee')).toBeInTheDocument()
     })

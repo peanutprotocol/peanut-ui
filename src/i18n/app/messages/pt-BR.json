@@ -3477,7 +3477,9 @@
             "networkFee": "Taxa de rede",
             "noTokensFoundTitle": "Nenhum token encontrado",
             "lockedHint": "Por enquanto, só USDC na Arbitrum",
-            "tokenOnly": "Só {symbol}"
+            "tokenOnly": "Só aceita {symbol}",
+            "tokenSwitchedOnly": "A rede {network} só aceita {symbol}, então trocamos seu token para {symbol}.",
+            "tokenSwitched": "A rede {network} não aceita {from}, então trocamos seu token para {symbol}."
         },
         "qrScanner": {
             "scanToPay": "Escaneie para pagar",

@@ -43,6 +43,7 @@ import {
     isFeeFreeRoute,
     networkRowsForToken,
     pickDefaultNetwork,
+    type NetworkRow,
     splitNetworkBadges,
     WALLET_CHAIN_ID,
     withWalletChain,
@@ -166,15 +167,37 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
     }
     const close = () => setOpenDrawer(null)
 
+    // a network tap that also changed the token says why, while that pick stands
+    const [tokenSwitch, setTokenSwitch] = useState<{ chainId: string; tokenAddress: string; message: string }>()
     const handleTokenSelect = (option: TokenOption) => {
+        setTokenSwitch(undefined)
         select(pickDefaultNetwork(option, selectedChainID))
         close()
     }
-    const handleNetworkSelect = (network: NetworkOption) => {
+    const handleNetworkSelect = ({ network, otherToken, otherSymbols }: NetworkRow) => {
+        const params = { network: network.name, symbol: network.token.symbol.toUpperCase() }
+        setTokenSwitch(
+            otherToken && shown
+                ? {
+                      chainId: network.chainId,
+                      tokenAddress: network.token.address,
+                      message:
+                          otherSymbols.length === 1
+                              ? t('tokenSelector.tokenSwitchedOnly', params)
+                              : t('tokenSelector.tokenSwitched', { ...params, from: shown.option.symbol }),
+                  }
+                : undefined
+        )
         select(network)
         onNetworkSelect?.()
         close()
     }
+    const tokenSwitchHelper =
+        tokenSwitch &&
+        shown?.network.chainId === tokenSwitch.chainId &&
+        shown.network.token.address === tokenSwitch.tokenAddress
+            ? tokenSwitch.message
+            : undefined
 
     const tokenDrawer = () => {
         const visible = filterTokenOptions(options, searchValue)
@@ -249,27 +272,27 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
                 </div>
                 {visible.length > 0 ? (
                     <ListGroup role="listbox" aria-label={t('tokenSelector.networkLabel')}>
-                        {visible.map(({ network, otherToken, otherSymbols }) => (
+                        {visible.map((row) => (
                             <SelectorOptionRow
-                                key={network.chainId}
-                                title={network.name}
-                                iconUrl={network.iconUrl}
-                                isSelected={network.chainId === shown?.network.chainId}
-                                onClick={() => handleNetworkSelect(network)}
+                                key={row.network.chainId}
+                                title={row.network.name}
+                                iconUrl={row.network.iconUrl}
+                                isSelected={row.network.chainId === shown?.network.chainId}
+                                onClick={() => handleNetworkSelect(row)}
                                 body={
                                     <div className="flex pt-1">
-                                        {otherToken ? (
+                                        {row.otherToken ? (
                                             // `custom`: names the tokens a tap leads to, the accent pill of the
                                             // approved prototype (TASK-24035); "only" just when it is true
                                             <Badge
                                                 status="custom"
                                                 customText={
-                                                    otherSymbols.length === 1
-                                                        ? t('tokenSelector.tokenOnly', { symbol: otherSymbols[0] })
-                                                        : otherSymbols.join(', ')
+                                                    row.otherSymbols.length === 1
+                                                        ? t('tokenSelector.tokenOnly', { symbol: row.otherSymbols[0] })
+                                                        : row.otherSymbols.join(', ')
                                                 }
                                             />
-                                        ) : network.isFree ? (
+                                        ) : row.network.isFree ? (
                                             // `custom`: "No fee" is a benefit, not a status — the
                                             // accent pill of the approved design (TASK-23392)
                                             <Badge status="custom" customText={t('tokenSelector.noFee')} />
@@ -310,7 +333,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({
                 label={t('tokenSelector.networkLabel')}
                 value={shown?.network.name ?? placeholder}
                 iconUrl={shown?.network.iconUrl}
-                helper={isLocked ? t('tokenSelector.lockedHint') : networkHelper}
+                helper={isLocked ? t('tokenSelector.lockedHint') : (networkHelper ?? tokenSwitchHelper)}
                 disabled={disabled || isLocked || !shown}
                 onClick={() => open('network')}
                 data-testid="network-selector-trigger"

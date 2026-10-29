@@ -7,7 +7,6 @@ import { useSupportedChainsAndTokens } from '@/hooks/useSupportedChainsAndTokens
 import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/chainRegistry.consts'
 import { useTokenPrice } from '@/hooks/useTokenPrice'
 import { type ITokenPriceData } from '@/interfaces/interfaces'
-import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 
 export const tokenSelectorContext = createContext({
@@ -21,7 +20,6 @@ export const tokenSelectorContext = createContext({
     setDevconnectRecipientAddress: (_address: string) => {},
     setSelectedTokenAddress: (_address: string) => {},
     setSelectedChainID: (_chainID: string) => {},
-    updateSelectedChainID: (_chainID: string) => {},
     refetchXchainRoute: false as boolean,
     setRefetchXchainRoute: (_value: boolean) => {},
     resetTokenContextProvider: () => {},
@@ -33,8 +31,6 @@ export const tokenSelectorContext = createContext({
     supportedChainsAndTokens: {} as Record<string, ChainWithTokens>,
     /** true until the chain/token record loads — a selection must not be "corrected" against a partial record */
     isLoadingChains: false as boolean,
-    selectedTokenBalance: undefined as string | undefined,
-    setSelectedTokenBalance: (_balance: string | undefined) => {},
 })
 
 /**
@@ -54,7 +50,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [selectedChainID, setSelectedChainID] = useState(PEANUT_WALLET_CHAIN.id.toString())
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
     const [isXChain, setIsXChain] = useState<boolean>(false)
-    const [selectedTokenBalance, setSelectedTokenBalance] = useState<string | undefined>(undefined)
     const [devconnectTokenAddress, setDevconnectTokenAddress] = useState<string>('')
     const [devconnectChainId, setDevconnectChainId] = useState<string>('')
     const [devconnectRecipientAddress, setDevconnectRecipientAddress] = useState<string>('')
@@ -99,11 +94,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         }
     }, [isFetching])
 
-    const updateSelectedChainID = (chainID: string) => {
-        setSelectedTokenAddress(NATIVE_TOKEN_ADDRESS)
-        setSelectedChainID(chainID)
-    }
-
     const resetTokenContextProvider = useCallback(() => {
         const tokenData = isPeanutWallet
             ? {
@@ -124,7 +114,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 setSelectedTokenAddress,
                 selectedChainID,
                 setSelectedChainID: setSelectedChainID,
-                updateSelectedChainID,
                 refetchXchainRoute,
                 setRefetchXchainRoute,
                 resetTokenContextProvider,
@@ -135,8 +124,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 refetchTokenData,
                 supportedChainsAndTokens,
                 isLoadingChains,
-                selectedTokenBalance,
-                setSelectedTokenBalance,
                 devconnectTokenAddress,
                 setDevconnectTokenAddress,
                 devconnectChainId,
