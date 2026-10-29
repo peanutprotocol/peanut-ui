@@ -264,11 +264,7 @@ export function QrPayFormView() {
                                 <PaymentInfoRow
                                     label={t('info.saveVsCard')}
                                     value={`~$${savingsUsd}`}
-                                    moreInfoText={
-                                        currency.code.toUpperCase() === 'BRL'
-                                            ? t('info.saveVsCardTooltipBrl')
-                                            : t('info.saveVsCardTooltipArs')
-                                    }
+                                    moreInfoText={t('info.saveVsCardTooltipArs')}
                                 />
                             )
                         })()}

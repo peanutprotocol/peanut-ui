@@ -6,19 +6,23 @@ import { extractMerchantIso2 } from '@/components/TransactionDetails/transaction
 import { LOCAL_RAIL_BY_COUNTRY } from '@/components/TransactionDetails/provider-rows/local-rail-countries'
 import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
+import { hasCardMarkupComparison } from '@/utils/qr-payment.utils'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { useLocale, useTranslations } from 'next-intl'
 
 /**
  * Informational nudge on a card-spend receipt: when the merchant is in a
- * country where Peanut has a cheaper local rail (Argentina → QR, Brazil →
- * Pix), let the user know they could pay a better way next time.
+ * country where Peanut has a local rail (Argentina → QR, Brazil → Pix), let
+ * the user know they could pay that way next time.
  *
- * Percentage comes from `useCardMarkupRate` so confirm-screen "Save vs card"
- * and this nudge are sourced identically — single number, two surfaces.
- * Static-table fallback is used until the live value resolves to avoid a
- * flash of missing nudge. Loose "around N%" copy stays — this is an
- * educational nudge on a past transaction, not a pre-pay precision moment.
+ * Only currencies with a modeled card comparison (`hasCardMarkupComparison`,
+ * currently ARS) state a percentage. That percentage comes from
+ * `useCardMarkupRate`, so the confirm-screen "Save vs card" row and this nudge
+ * share one number. The static-table fallback shows until the live value
+ * resolves, to avoid a flash of missing nudge. Loose "around N%" copy stays —
+ * this is an educational nudge on a past transaction, not a pre-pay precision
+ * moment. Brazil has no comparison: a BRL purchase costs about the same on the
+ * card and on Pix, so its nudge only says Pix is available.
  */
 export function LocalRailNudge({ transaction }: { transaction: TransactionDetails }) {
     // Card spends only. Refunds map to a 'receive' card type, so gating on
@@ -29,10 +33,29 @@ export function LocalRailNudge({ transaction }: { transaction: TransactionDetail
     const local = iso2 ? LOCAL_RAIL_BY_COUNTRY[iso2] : undefined
     if (!iso2 || !local) return null
 
-    return <LocalRailNudgeBody iso2={iso2} local={local} />
+    return hasCardMarkupComparison(local.currency) ? (
+        <LocalRailSavingsNudge iso2={iso2} local={local} />
+    ) : (
+        <LocalRailAvailableNudge iso2={iso2} local={local} />
+    )
 }
 
-function LocalRailNudgeBody({ iso2, local }: { iso2: string; local: (typeof LOCAL_RAIL_BY_COUNTRY)[string] }) {
+function LocalRailAvailableNudge({ iso2, local }: { iso2: string; local: (typeof LOCAL_RAIL_BY_COUNTRY)[string] }) {
+    const t = useTranslations('transaction')
+    const locale = useLocale()
+
+    return (
+        <Callout priority="info" title={t('nudge.localRailTitle')}>
+            {t('nudge.localRailAvailableDescription', {
+                iso2,
+                country: localizedCountryName(locale, iso2, local.countryName),
+                rail: local.rail,
+            })}
+        </Callout>
+    )
+}
+
+function LocalRailSavingsNudge({ iso2, local }: { iso2: string; local: (typeof LOCAL_RAIL_BY_COUNTRY)[string] }) {
     const t = useTranslations('transaction')
     const locale = useLocale()
     const { data: cardMarkup } = useCardMarkupRate(local.currency)
