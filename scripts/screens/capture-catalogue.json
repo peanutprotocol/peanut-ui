@@ -207,6 +207,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-settings-notifications",
+        "flow": "Home and shared states",
+        "route": "/settings/notifications"
+    },
+    {
         "id": "fixture-history",
         "flow": "Home and shared states",
         "route": "/history"
@@ -405,6 +410,11 @@
         "id": "p77-base-select-dropdown",
         "flow": "Home and shared states",
         "route": "/dev/ds/primitives/base-select"
+    },
+    {
+        "id": "p79-notifications",
+        "flow": "Home and shared states",
+        "route": "/settings/notifications"
     },
     {
         "id": "11-a-earlyusermodal",
