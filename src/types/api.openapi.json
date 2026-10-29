@@ -21699,6 +21699,84 @@
                                     },
                                     "username": {
                                         "type": "string"
+                                    },
+                                    "signupPreferences": {
+                                        "additionalProperties": false,
+                                        "properties": {
+                                            "fundingChannel": {
+                                                "anyOf": [
+                                                    {
+                                                        "enum": [
+                                                            "bank"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "brlBank"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "arsBank"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "crypto"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "peanut"
+                                                        ],
+                                                        "type": "string"
+                                                    }
+                                                ]
+                                            },
+                                            "paymentChannel": {
+                                                "anyOf": [
+                                                    {
+                                                        "enum": [
+                                                            "bank"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "card"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "qr"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "crypto"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "peanut"
+                                                        ],
+                                                        "type": "string"
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "required": [
+                                            "fundingChannel",
+                                            "paymentChannel"
+                                        ],
+                                        "type": "object"
                                     }
                                 },
                                 "required": [

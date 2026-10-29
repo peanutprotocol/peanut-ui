@@ -12311,6 +12311,10 @@ export interface paths {
                         telegramUsername?: string;
                         userId: string;
                         username?: string;
+                        signupPreferences?: {
+                            fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
+                            paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
+                        };
                     };
                 };
             };
