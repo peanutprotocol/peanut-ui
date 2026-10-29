@@ -10,6 +10,8 @@ import { isStressActive, stressResponse } from './stress'
 import { setFixtureBalanceUnits } from '@/utils/demo-balance'
 import { parseUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
+import type { IUserProfile } from '@/interfaces/interfaces'
+import { featureReport } from './featureReport'
 
 const JSON_HEADERS = { 'content-type': 'application/json' }
 
@@ -62,10 +64,29 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
     const base = await demoRespond(path, options, { offline: true })
     const override = fixture.responses?.[key]
     const stress = isStressActive() && !!base.headers.get('content-type')?.includes('json')
-    if (override === undefined && !stress) return base
+    if (override === undefined && !stress && key !== 'GET /users/me') return base
 
     const data = await base.json().catch(() => ({}))
-    const merged = override === undefined ? data : merge(data, override)
+    let merged = override === undefined ? data : merge(data, override)
+    if (key === 'GET /users/me') {
+        const fixtureUser = override as Partial<IUserProfile> | undefined
+        const user = merged as IUserProfile
+        // The baseline's report describes the demo rails, not this fixture's.
+        if (fixtureUser?.capabilities?.features === undefined && user.capabilities) {
+            merged = {
+                ...user,
+                capabilities: {
+                    ...user.capabilities,
+                    features: featureReport({
+                        rails: user.capabilities.rails,
+                        nextActions: user.capabilities.nextActions,
+                        identity: user.identityVerification ?? { status: 'not_started' },
+                        residence: user.residence?.verified?.country ?? user.residence?.declared?.country ?? null,
+                    }),
+                },
+            }
+        }
+    }
     return new Response(JSON.stringify(stress ? stressResponse(merged) : merged), {
         status: base.status,
         headers: JSON_HEADERS,
