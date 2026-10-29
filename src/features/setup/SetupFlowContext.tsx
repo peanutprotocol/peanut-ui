@@ -6,6 +6,10 @@ import { type SignupEntryFlow } from '@/features/setup/signup-analytics'
 
 import type { SetupFundingChannel, SetupPaymentChannel } from './paymentChannels'
 
+type NotificationChoices = { push: boolean; email: boolean; marketingPush: boolean }
+// Service push starts on; marketing pushes need the user's own opt-in.
+const DEFAULT_NOTIFICATION_CHOICES: NotificationChoices = { push: true, email: true, marketingPush: false }
+
 /**
  * Setup flow memory that cannot live in the URL: the filtered step list (a
  * runtime decision), the typed username and
@@ -22,8 +26,8 @@ interface SetupFlowContextType {
     setPaymentChannel: (channel: SetupPaymentChannel | null) => void
     notificationEmail: string
     setNotificationEmail: (email: string) => void
-    notificationChoices: { push: boolean; email: boolean }
-    setNotificationChoices: (choices: { push: boolean; email: boolean }) => void
+    notificationChoices: NotificationChoices
+    setNotificationChoices: (choices: NotificationChoices) => void
     signupCompleted: boolean
     setSignupCompleted: (completed: boolean) => void
     /** Unfiltered setup order, injected by the registry owner. */
@@ -75,7 +79,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
     const [notificationEmail, setNotificationEmail] = useState('')
     const [fundingChannel, setFundingChannel] = useState<SetupFundingChannel | null>(null)
     const [paymentChannel, setPaymentChannel] = useState<SetupPaymentChannel | null>(null)
-    const [notificationChoices, setNotificationChoices] = useState({ push: true, email: true })
+    const [notificationChoices, setNotificationChoices] = useState(DEFAULT_NOTIFICATION_CHOICES)
     const [signupCompleted, setSignupCompleted] = useState(false)
     const [steps, setSteps] = useState<ISetupStep[]>([])
     const [isLoading, setIsLoading] = useState(false)
@@ -95,7 +99,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
         setFundingChannel(null)
         setPaymentChannel(null)
         setNotificationEmail('')
-        setNotificationChoices({ push: true, email: true })
+        setNotificationChoices(DEFAULT_NOTIFICATION_CHOICES)
         setSignupCompleted(false)
         setDirection(0)
         setUsername('')

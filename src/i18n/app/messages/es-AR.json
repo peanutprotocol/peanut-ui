@@ -391,6 +391,9 @@
             "error": "No pudimos eliminar tu cuenta. Intentá de nuevo.",
             "depositInFlight": "Hay un depósito en camino. Esperá a que llegue y retirá tu saldo antes de eliminar tu cuenta.",
             "depositAccountsUnavailable": "No pudimos cerrar tus cuentas bancarias. Tu cuenta de Peanut sigue activa. Probá más tarde."
+        },
+        "notifications": {
+            "loadFailed": "No pudimos cargar tu configuración. Probá de nuevo."
         }
     },
     "limits": {
@@ -640,7 +643,8 @@
             "pushDescription": "Novedades directamente en tu teléfono.",
             "emailDescription": "Novedades en tu bandeja de entrada.",
             "pushUnavailable": "Las notificaciones push todavía no están listas. Probá de nuevo o desactivalas para continuar.",
-            "saveFailed": "No pudimos guardar tu configuración. Probá de nuevo."
+            "saveFailed": "No pudimos guardar tu configuración. Probá de nuevo.",
+            "marketingDescription": "Avisos sobre nuevas funciones y ofertas. Podés desactivarlos cuando quieras en tu perfil."
         },
         "paymentPlan": {
             "fundingTitle": "Agregar dinero con",
