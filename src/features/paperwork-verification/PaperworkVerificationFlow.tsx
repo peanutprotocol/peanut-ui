@@ -166,17 +166,23 @@ export function PaperworkVerificationFlow() {
     const load = useCallback(async (quiet = false) => {
         if (!quiet) setState({ kind: 'loading' })
         try {
-            const [questions, plan, status] = await Promise.all([
+            const [questionsRead, planRead, statusRead] = await Promise.allSettled([
                 // an older account the questions cannot be built for yet answers the setup screens first
                 getKycQuestions().catch((error: unknown) => (isKycFlowHandedBack(error) ? HANDED_BACK : null)),
-                // a plan that cannot be read throws: the retry screen, not Home
                 findKycDocumentPlan('verify'),
                 readIdentityStatus(),
             ])
+            const questions = questionsRead.status === 'fulfilled' ? questionsRead.value : null
+            // A hand-back is definitive, even when the plan or status read beside it failed.
             if (questions === HANDED_BACK) {
                 routerRef.current.replace('/home')
                 return
             }
+            // a plan or status that cannot be read throws: the retry screen, not Home
+            if (planRead.status === 'rejected') throw planRead.reason
+            if (statusRead.status === 'rejected') throw statusRead.reason
+            const plan = planRead.value
+            const status = statusRead.value
             if (plan?.flow === PAPERWORK_VERIFICATION_FLOW && plan.needs?.length) {
                 setState({ kind: 'setup', needs: plan.needs })
                 return
