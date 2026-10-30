@@ -174,10 +174,10 @@ describe('fetchWithSentry — expected-response suppression', () => {
         expect(warnSpy).not.toHaveBeenCalled()
     })
 
-    it('does not report a /tokens/price 404 (upstream price provider declined)', async () => {
-        // Mobula 429s surface here as a 404. The UI falls back to token
-        // denomination, so it is a degraded display and never a wrong number —
-        // and the backend already downgraded its own log for this (PEANUT-API-75).
+    it('does not report a /tokens/price 404 (no fresh price upstream)', async () => {
+        // A missing price is a missing USD label, a degraded display and never a
+        // wrong number — and the backend already downgraded its own log for
+        // this (PEANUT-API-75).
         global.fetch = jest.fn().mockResolvedValue(mockResponse(404, { error: 'Token price not available' }))
 
         const response = await fetchWithSentry('https://api.peanut.me/tokens/price?address=0xaf88&chainId=42161', {})

@@ -3,6 +3,7 @@ import {
     buildMarketingQrUrl,
     getMarketingQrRegistration,
     marketingQrContinuation,
+    marketingQrHandoffUrl,
     parseMarketingQrHandoff,
     parseMarketingQrQuery,
     validateMarketingQrCampaign,
@@ -11,6 +12,8 @@ import {
 const registration = getMarketingQrRegistration('home-hero-en')!
 const context = { page: 'home' as const, placement: 'hero', locale: 'en' }
 const campaign = { source: 'google', medium: 'cpc', campaign: 'accounts-launch', content: 'creative-a' }
+// The query /q receives after the proxy redirects a browser that opened this QR URL.
+const handoffQuery = (qrUrl: string) => marketingQrHandoffUrl(new URL(qrUrl))!.searchParams
 it('never registers payment or account surfaces', () => {
     expect(getMarketingQrRegistration('send-hero-en')).toBeNull()
     expect(getMarketingQrRegistration('peanut-card-hero-en')).toBeNull()
@@ -22,13 +25,13 @@ it('keeps every registered default within the QR URL budget and canonicalizes lo
     for (const item of MARKETING_QR_REGISTRATIONS) {
         expect(item.qr_id).toMatch(/^[a-z0-9-]{1,48}$/)
         expect(item.defaults.source).toBeDefined()
-        expect(Buffer.byteLength(`https://peanut.me/q/${item.qr_id}`)).toBeLessThanOrEqual(200)
+        expect(Buffer.byteLength(`https://peanut.me/home?mqr=${item.qr_id}&a=length_fallback`)).toBeLessThanOrEqual(200)
     }
     expect(buildMarketingQrUrl({ origin: 'https://peanut.me', context: { ...context, locale: 'es-AR' } })).toBe(
-        'https://peanut.me/q/home-hero-es-ar'
+        'https://peanut.me/home?mqr=home-hero-es-ar'
     )
     expect(buildMarketingQrUrl({ origin: 'https://peanut.me', context: { ...context, locale: 'es' } })).toBe(
-        'https://peanut.me/q/home-hero-es-419'
+        'https://peanut.me/home?mqr=home-hero-es-419'
     )
 })
 
@@ -51,7 +54,7 @@ it('preserves a complete current tuple without desktop identity, click IDs or re
         analyticsEnabled: true,
         savedCampaign: { source: 'twitter', medium: 'social', campaign: 'old-campaign' },
     })!
-    const parsed = parseMarketingQrQuery(registration, new URL(url).searchParams)
+    const parsed = parseMarketingQrQuery(registration, handoffQuery(url))
     expect(parsed).toMatchObject({
         valid: true,
         campaign,
@@ -69,11 +72,11 @@ it('uses a whole saved tuple or defaults, and does not recover campaign state af
         savedCampaign: campaign,
     }
     const saved = buildMarketingQrUrl({ ...input, analyticsEnabled: true })!
-    expect(parseMarketingQrQuery(registration, new URL(saved).searchParams)).toMatchObject({
+    expect(parseMarketingQrQuery(registration, handoffQuery(saved))).toMatchObject({
         campaign,
         attributionOrigin: 'saved_campaign',
     })
-    expect(buildMarketingQrUrl({ ...input, analyticsEnabled: false })).toBe('https://peanut.me/q/home-hero-en')
+    expect(buildMarketingQrUrl({ ...input, analyticsEnabled: false })).toBe('https://peanut.me/home?mqr=home-hero-en')
 })
 
 it.each([
@@ -99,7 +102,7 @@ it.each([
         analyticsEnabled: true,
         savedCampaign: { source, medium: 'content', campaign: 'wise', content: 'hero' },
     })!
-    expect(parseMarketingQrQuery(registration, new URL(url).searchParams)).toMatchObject({
+    expect(parseMarketingQrQuery(registration, handoffQuery(url))).toMatchObject({
         valid: true,
         campaign: { source, medium: 'content', campaign: 'wise', content: 'hero' },
         attributionOrigin: 'saved_campaign',
@@ -112,7 +115,7 @@ it.each(['&next=https://evil.test', '&wid=person', '&gclid=click', '&s=meta', '&
         const parsed = parseMarketingQrQuery(registration, new URLSearchParams(`s=google&m=cpc&c=launch${suffix}`))
         expect(parsed).toMatchObject({ valid: false, campaign: registration.defaults })
         const next = marketingQrContinuation(registration, parsed.campaign, parsed.valid)
-        expect(next).toContain('qr_analytics=deny')
+        expect(next).toBe('/app?marketing_qr=home-hero-en&qr_analytics=deny')
         expect(next).not.toContain('utm_')
     }
 )
@@ -166,11 +169,34 @@ it('trims content first, then falls back to defaults when an inherited tuple can
         analyticsEnabled: true,
     })!
     expect(fallback.length).toBeLessThanOrEqual(200)
-    expect(parseMarketingQrQuery(registration, new URL(fallback).searchParams)).toMatchObject({
+    expect(parseMarketingQrQuery(registration, handoffQuery(fallback))).toMatchObject({
         campaign: registration.defaults,
         attributionOrigin: 'placement_default',
         attributionAdjustment: 'length_fallback',
     })
+})
+
+it('registers the homepage artwork and pay-like-a-local slots in all four home locales', () => {
+    for (const locale of ['en', 'es-419', 'es-ar', 'pt-br']) {
+        for (const placement of ['artwork', 'pay-local-ar', 'pay-local-br']) {
+            const qrId = `home-${placement}-${locale}`
+            expect(getMarketingQrRegistration(qrId)).toMatchObject({
+                page_id: '/',
+                placement,
+                locale,
+                defaults: { source: 'marketing-qr', medium: 'content', campaign: 'landing', content: qrId },
+            })
+        }
+    }
+    // the existing home slots keep their ids: printed and shown codes still resolve
+    for (const placement of ['hero', 'app-fold', 'rates', 'countries'])
+        expect(getMarketingQrRegistration(`home-${placement}-pt-br`)).not.toBeNull()
+    expect(
+        buildMarketingQrUrl({
+            origin: 'https://peanut.me',
+            context: { page: 'home', placement: 'artwork', locale: 'es-AR' },
+        })
+    ).toBe('https://peanut.me/home?mqr=home-artwork-es-ar')
 })
 
 it('preserves existing inline QR campaign defaults', () => {
@@ -201,4 +227,34 @@ it('gates app parsing by registration, complete labels, duplicate fields and the
         .searchParams
     droppedContent.set('utm_content', 'user@example.com')
     expect(parseMarketingQrHandoff(droppedContent)?.analyticsAllowed).toBe(false)
+})
+
+it('sends a browser that opened a registered QR to /q with every other key, so /q can still reject them', () => {
+    const qrUrl = buildMarketingQrUrl({
+        origin: 'https://peanut.me',
+        context,
+        searchParams: new URLSearchParams('utm_source=google&utm_medium=cpc&utm_campaign=accounts-launch'),
+        analyticsEnabled: true,
+    })!
+    expect(marketingQrHandoffUrl(new URL(qrUrl))?.href).toBe(
+        'https://peanut.me/q/home-hero-en?s=google&m=cpc&c=accounts-launch&o=current_url'
+    )
+    const tampered = marketingQrHandoffUrl(new URL(`${qrUrl}&wid=person`))!
+    expect(tampered.searchParams.get('wid')).toBe('person')
+    expect(parseMarketingQrQuery(registration, tampered.searchParams).valid).toBe(false)
+})
+
+it('keeps every default QR URL within version 4 at level M, so sticker QRs stay as dense as before', () => {
+    for (const item of MARKETING_QR_REGISTRATIONS) {
+        expect(Buffer.byteLength(`https://peanut.me/home?mqr=${item.qr_id}`)).toBeLessThanOrEqual(62)
+    }
+})
+
+it.each([
+    'https://peanut.me/home?app_entry=1',
+    'https://peanut.me/home?mqr=send-hero-en',
+    'https://peanut.me/home?marketing_qr=home-hero-en',
+    'https://peanut.me/app?mqr=home-hero-en',
+])('leaves %s on its existing route', (url) => {
+    expect(marketingQrHandoffUrl(new URL(url))).toBeNull()
 })

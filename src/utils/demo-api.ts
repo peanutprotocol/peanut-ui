@@ -13,6 +13,7 @@ import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_US
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
+import type { RainCardFunding, RainFundingAccess } from '@/services/rain'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -21,8 +22,7 @@ const PASSTHROUGH_TIMEOUT_MS = 10_000
 // Public read-only rate endpoints proxied to the real backend so demo shows live
 // FX rates. Best-effort: any failure falls through to the canned handler below.
 // /tokens/price is public too — the canned {} fallback is NOT a valid shape
-// for it. /tokens/wallet-portfolio is owner-only (session required), so it
-// gets a synthetic handler instead of a passthrough that would 401.
+// for it.
 const PASSTHROUGH_GET = new Set(['/bridge/exchange-rate', '/manteca/prices', '/fx/rate', '/tokens/price'])
 
 const EMPTY_GRAPH = {
@@ -668,10 +668,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         handler: () => json({ error: 'NO_CARD_MARKUP', message: 'No card markup to compare.' }, 404),
     },
 
-    // The demo wallet holds nothing to recover; the shape is what
-    // fetchWalletBalances reads.
-    { method: 'GET', pattern: '/tokens/wallet-portfolio', handler: () => ({ balances: [], totalBalance: 0 }) },
-
     // Without a handler this landed on defaultShape ({}), and the recovery page
     // called BigInt(undefined) during render.
     {
@@ -683,7 +679,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             amountWei: '0',
             amountCents: '0',
             dustWei: '0',
-            autoBalanceEnabled: false,
             hasRecoverableCard: false,
         }),
     },
@@ -878,6 +873,37 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             demoCardApplied
                 ? { status: { hasApplication: true, railStatus: 'PENDING' }, balance: null, cards: [] }
                 : { status: { hasApplication: false }, balance: null, cards: [] },
+    },
+    // Managed card funding state, read by the Home prompt for any ACTIVE card.
+    // The demo card's permission is ready, so no consent modal covers the
+    // screens that show a card; a fixture overrides `management` (and the
+    // rest) to show the prompt. Fake spender and signer: nothing is signed here.
+    {
+        method: 'GET',
+        pattern: '/rain/cards/funding',
+        handler: (): RainCardFunding => ({
+            chainId: CHAIN_ID,
+            tokenAddress: PEANUT_WALLET_TOKEN,
+            spenderAddress: '0x0000000000000000000000000000000000000001',
+            walletAddress: DEMO_ADDRESS,
+            allowance: '150000000',
+            sessionKeyAddress: '0x0000000000000000000000000000000000000002',
+            permission: {
+                scopeVersion: 2,
+                ceiling: '300000000',
+                termsVersion: 'rtf-2026-09-29',
+                authorizationText: 'I authorize transfers according to the Real-Time Funding Terms.',
+            },
+            management: { status: 'ready', reason: null, migration: null, stop: null },
+        }),
+    },
+    // The server's funding decision. The demo card is already on managed
+    // funding (its permission above is ready); a fixture overrides it to show
+    // the existing-permission or not-yet-accepted paths.
+    {
+        method: 'GET',
+        pattern: '/rain/cards/funding/access',
+        handler: (): RainFundingAccess => ({ fundingMode: 'managed', enrollmentAllowed: true }),
     },
     // per-card limits read — without this the card-limit fixture (and any
     // demo/capture render of /card/limit) 404s into the error state.

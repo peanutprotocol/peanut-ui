@@ -7,7 +7,7 @@ export const BAND_GROUND_CLASS: Record<BandGround, string> = {
     pink: 'bg-background-brand text-foreground-primary',
     cream: 'bg-background-page text-foreground-primary',
     sky: 'bg-background-marketing-sky text-foreground-primary',
-    yellow: 'bg-yellow-500 text-foreground-primary',
+    yellow: 'bg-background-accent-yellow text-foreground-primary',
     black: 'bg-gray-950 text-foreground-inverse',
     white: 'bg-background-default text-foreground-primary',
 }
@@ -17,8 +17,8 @@ export const BAND_GROUND_KNOCKOUT_CLASS: Record<BandGround, string> = {
     pink: 'text-background-brand',
     cream: 'text-background-page',
     sky: 'text-background-marketing-sky',
-    yellow: 'text-yellow-500',
-    black: 'text-gray-950',
+    yellow: 'text-background-accent-yellow',
+    black: 'text-foreground-primary',
     white: 'text-background-default',
 }
 
@@ -41,6 +41,9 @@ export const KNERD_SIZE_CLASS: Record<KnerdSize, string> = {
     inline: 'text-heading-l',
     /** an amount beside UI in a strip: inline at 320, one step up from xs */
     amount: 'text-heading-l xs:text-headingSmall',
+    /** a one-word headline (the home's "ZERO"): with no second word to fit, it starts two
+        steps up so its thin outline still outranks the heavy Roboto lines under it on phones */
+    display: 'text-heading xs:text-headingMedium lg:text-headingLarge',
 }
 
 export const DISPLAY_LINE_CLASS: Record<DisplayLineSize, string> = {

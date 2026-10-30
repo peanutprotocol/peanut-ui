@@ -13,7 +13,7 @@
  * for cross-chain: navigates to confirm view
  */
 
-import { useEffect, useContext, useMemo } from 'react'
+import { useEffect, useContext } from 'react'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Callout } from '@/components/0_Bruddle/Callout'
@@ -22,15 +22,16 @@ import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
 import SupportCTA from '@/components/Global/SupportCTA'
-import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
-import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { useTranslations } from 'next-intl'
+
+// the amount field is in USD, to USDC precision
+const USD_DENOMINATION = { symbol: '$', price: 1, decimals: 6 }
 
 export function SemanticRequestInputView() {
     const onBack = useSafeBack('/')
@@ -42,9 +43,6 @@ export function SemanticRequestInputView() {
         charge,
         chargeIdFromUrl,
         isAmountFromUrl,
-        urlToken,
-        tokenUsdPrice,
-        isTokenDenominated,
         error,
         formattedBalance,
         balanceFillAmount,
@@ -52,20 +50,13 @@ export function SemanticRequestInputView() {
         isInsufficientBalance,
         isLoading,
         isLoggedIn,
-        isConnected,
         setAmount,
         handlePayment,
         setCurrentView,
     } = useSemanticRequestFlow()
 
     // token selector context for setting initial values from url
-    const {
-        setSelectedChainID,
-        setSelectedTokenAddress,
-        selectedChainID,
-        selectedTokenAddress,
-        supportedChainsAndTokens,
-    } = useContext(tokenSelectorContext)
+    const { setSelectedChainID, setSelectedTokenAddress, supportedChainsAndTokens } = useContext(tokenSelectorContext)
 
     // initialize token/chain from parsed url
     useEffect(() => {
@@ -120,55 +111,9 @@ export function SemanticRequestInputView() {
     const isButtonDisabled = !canProceed || isLoading
     const isAmountEntered = !!amount && parseFloat(amount) > 0
 
-    // check if using peanut wallet default (usdc on arb)
-    const isUsingPeanutDefault =
-        selectedChainID === PEANUT_WALLET_CHAIN.id.toString() &&
-        areEvmAddressesEqual(selectedTokenAddress, PEANUT_WALLET_TOKEN)
-
-    // determine if we should show token selector
-    // only show when chain is NOT specified in url AND recipient is ADDRESS or ENS
-    // An open-amount request is paid in the token its charge names, like any request.
-    const showTokenSelector =
-        !parsedUrl?.chain?.chainId &&
-        !charge?.openAmount &&
-        (recipient?.recipientType === 'ADDRESS' || recipient?.recipientType === 'ENS') &&
-        isConnected
-
-    // determine denomination for amount input
-    // if url specifies a non-stablecoin token (e.g., eth), use that token as primary denomination
-    // otherwise default to USD
-    const primaryDenomination = useMemo(() => {
-        if (isTokenDenominated && urlToken) {
-            return {
-                symbol: urlToken.symbol.toUpperCase(),
-                price: tokenUsdPrice ?? 0,
-                decimals: urlToken.decimals,
-            }
-        }
-        // default to USD
-        return {
-            symbol: '$',
-            price: 1,
-            decimals: 6, // USDC decimals
-        }
-    }, [isTokenDenominated, urlToken, tokenUsdPrice])
-
-    // The fill has to be in the SAME denomination as the field, and the balance
-    // row it fills from is always usd. That holds while the field is usd too.
-    // A url that names a token (/alice/eth) makes the field token-denominated,
-    // and then the two can never agree: AmountInput floors every fill to the 2
-    // decimals the usd label shows (its TASK-21899 rule, so the filled amount
-    // always matches the number under the user's thumb), which silently drops
-    // most of a token balance — 0.025 ETH fills as 0.02, and anything under
-    // 0.01 token formats to zero and the row goes inert with no explanation.
-    // So the token case gets no fill at all: the balance stays plain text, the
-    // way it is today, instead of an affordance that quietly short-changes the
-    // user. Making the floor denomination-aware is the real fix and it belongs
-    // in AmountInput with its own ruling, not smuggled in from a call site.
-    const balanceFill = useMemo(() => {
-        if (!isLoggedIn || isTokenDenominated) return undefined
-        return balanceFillAmount
-    }, [isLoggedIn, isTokenDenominated, balanceFillAmount])
+    // The balance row and the field are both USD: a request is paid in USDC or
+    // USDT only (TASK-23850), so a fill always matches what the user pays.
+    const balanceFill = isLoggedIn ? balanceFillAmount : undefined
 
     return (
         <PageStack>
@@ -206,7 +151,7 @@ export function SemanticRequestInputView() {
                     <AmountInput
                         initialAmount={amount}
                         setPrimaryAmount={setAmount}
-                        primaryDenomination={primaryDenomination}
+                        primaryDenomination={USD_DENOMINATION}
                         onSubmit={handleSubmit}
                         walletBalance={isLoggedIn ? formattedBalance : undefined}
                         balanceFillAmount={balanceFill}
@@ -217,16 +162,6 @@ export function SemanticRequestInputView() {
                     />
                     {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
                 </div>
-
-                {/* token selector for chain/token selection (not for USERNAME) */}
-                {showTokenSelector && <TokenSelector viewType="req_pay" />}
-
-                {/* hint for free transactions */}
-                {showTokenSelector && selectedTokenAddress && selectedChainID && !isUsingPeanutDefault && (
-                    <div className="pt-1 text-center text-body-xs text-foreground-secondary">
-                        <span>{t('input.freeTransactionsHint')}</span>
-                    </div>
-                )}
 
                 {/* button and error */}
                 <div className="space-y-4">

@@ -10,9 +10,9 @@ import type { CloseFoldProps } from './starLp.types'
  * The closing fold: knerd lockup, one line, the CTA. Two sparkles pop in
  * unless `decoration` replaces them or `circleWord` circles a word instead.
  */
-export function CloseFold({ title, line, cta, ground = 'pink', decoration, circleWord }: CloseFoldProps) {
+export function CloseFold({ title, line, cta, ground = 'pink', decoration, circleWord, id }: CloseFoldProps) {
     return (
-        <Band ground={ground} align="center">
+        <Band ground={ground} align="center" id={id}>
             {circleWord
                 ? null
                 : (decoration ?? (

@@ -70,7 +70,6 @@ const IMPACT_LABELS: Record<string, (i18n: Translations) => string> = {
     bridge: (i18n) => i18n.statusImpactBridge,
     rhino: (i18n) => i18n.statusImpactRhino,
     rpc: (i18n) => i18n.statusImpactRpc,
-    mobula: (i18n) => i18n.statusImpactMobula,
     rain: (i18n) => i18n.statusImpactRain,
 }
 
@@ -126,7 +125,6 @@ export const STATUS_GROUPS: Array<{
         services: [
             { key: 'rhino', label: (i18n) => i18n.statusServiceRhino },
             { key: 'rpc', label: (i18n) => i18n.statusServiceRpc },
-            { key: 'mobula', label: (i18n) => i18n.statusServiceMobula },
         ],
     },
     {

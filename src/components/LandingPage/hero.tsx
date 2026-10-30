@@ -50,20 +50,33 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
     const headline = strings.heroHeadline
     const { heroRef, headlineRef, copyRef } = useHeroLayout(headline)
 
+    const loginLink = !migrationOn && (
+        <Link
+            prefetch={false}
+            href="/setup?step=login"
+            className={`${styles.login} text-body-s text-foreground-primary underline`}
+        >
+            {strings.logIn}
+        </Link>
+    )
+
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => (
         <div className={getButtonContainerClasses(variant)} style={getCtaStyle(buttonVisible)}>
-            <Button
-                size="large"
-                variant="secondary"
-                icon={cta.icon}
-                href={cta.href}
-                plainAnchor
-                external={cta.isExternal}
-                onClick={cta.onClick}
-                className={`w-fit ${CTA_MOTION}`}
-            >
-                {cta.label}
-            </Button>
+            <div className={styles.ctaRow}>
+                <Button
+                    size="large"
+                    variant="secondary"
+                    icon={cta.icon}
+                    href={cta.href}
+                    plainAnchor
+                    external={cta.isExternal}
+                    onClick={cta.onClick}
+                    className={`w-fit ${CTA_MOTION}`}
+                >
+                    {cta.label}
+                </Button>
+                {variant === 'primary' && loginLink}
+            </div>
             {cta.subtext && (
                 <span className="mt-2 block text-center text-body-s text-foreground-primary italic md:text-body-m">
                     {cta.subtext}
@@ -112,19 +125,13 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     renderCTAButton(primaryCta, 'primary')
                 ) : customCta ? (
                     <div className={getButtonContainerClasses('primary')} style={getCtaStyle(buttonVisible)}>
-                        {customCta}
+                        <div className={styles.ctaRow}>
+                            {customCta}
+                            {loginLink}
+                        </div>
                     </div>
                 ) : null}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
-                {!migrationOn && (
-                    <Link
-                        prefetch={false}
-                        href="/setup?step=login"
-                        className={`${styles.login} block text-center text-body-s text-foreground-primary underline`}
-                    >
-                        {strings.logIn}
-                    </Link>
-                )}
                 <AnimateOnView className={`${styles.star} ${styles.starThree}`} y="20px" x="5px">
                     <Image src={Star} alt="" />
                 </AnimateOnView>

@@ -29,17 +29,19 @@ const row = (over: Partial<SavedAddress>): SavedAddress => ({
 })
 
 describe('SavedAddressesList', () => {
-    it('renders the nickname, then address, chain and recency on the secondary line', () => {
+    it('renders the nickname, then address and chain, then recency on its own line', () => {
         const rows = [row({}), row({ id: 'id-2', nickname: 'Cold', lastUsedAt: daysAgo(45) })]
         render(<SavedAddressesList savedAddresses={rows} onSelect={jest.fn()} onEdit={jest.fn()} />, {
             wrapper: IntlWrapper,
         })
         expect(screen.getByText('Binance')).toBeInTheDocument()
-        expect(screen.getAllByText(/0xab58\.\.\.ec9b/)).toHaveLength(2)
-        expect(screen.getByText(/0xab58\.\.\.ec9b · .* · Used yesterday$/)).toBeInTheDocument()
-        expect(screen.getByText(/0xab58\.\.\.ec9b · .* · Used 45 days ago$/)).toBeInTheDocument()
-        // badges are for status only: recency never renders as a pill
-        expect(screen.queryByText('Used yesterday')).not.toBeInTheDocument()
+        expect(screen.getAllByText(/^0xab58\.\.\.ec9b · \S/)).toHaveLength(2)
+        // every row has the same two body lines, so rows keep one height
+        for (const recency of ['Used yesterday', 'Used 45 days ago']) {
+            const line = screen.getByText(recency)
+            expect(line).toHaveClass('block', 'truncate')
+            expect(line.previousElementSibling).toHaveTextContent(/^0xab58\.\.\.ec9b · /)
+        }
     })
 
     it('tap selects; the edit button edits without selecting', () => {

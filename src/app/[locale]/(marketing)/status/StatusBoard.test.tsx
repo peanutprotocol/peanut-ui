@@ -25,7 +25,7 @@ function provider(key: string, overrides: Partial<StatusProvider> = {}): StatusP
     }
 }
 
-const KEYS = ['app', 'sumsub', 'manteca-ar', 'manteca-br', 'bridge', 'rhino', 'rpc', 'mobula', 'rain']
+const KEYS = ['app', 'sumsub', 'manteca-ar', 'manteca-br', 'bridge', 'rhino', 'rpc', 'rain']
 
 function summary(overrides: Partial<StatusSummary> = {}): StatusSummary {
     return {
@@ -184,7 +184,7 @@ describe('operationalScore', () => {
         KEYS.map((key) => provider(key, down.includes(key) ? { state: 'down' } : {}))
 
     it('is 100% when everything is up', () => {
-        expect(operationalScore(providers())).toEqual({ operationalCount: 9, percent: 100 })
+        expect(operationalScore(providers())).toEqual({ operationalCount: 8, percent: 100 })
     })
 
     // Losing the app is worth more than losing one deposit rail; a flat
@@ -194,8 +194,8 @@ describe('operationalScore', () => {
     })
 
     it('splits the other half evenly across the rails', () => {
-        // app up (50) + 7 of 8 rails (43.75) = 93.75 → 94.
-        expect(operationalScore(providers(['rain'])).percent).toBe(94)
+        // app up (50) + 6 of 7 rails (42.86) = 92.86 → 93.
+        expect(operationalScore(providers(['rain'])).percent).toBe(93)
     })
 
     it('never rounds up to 100 while something is down', () => {

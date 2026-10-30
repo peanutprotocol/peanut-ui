@@ -23,6 +23,8 @@ export const ANALYTICS_EVENTS = {
     KYC_DEGRADED_NOTIFY_REQUESTED: 'kyc_degraded_notify_requested',
     SIGNUP_CLICKED: 'signup_signup_clicked',
     SIGNUP_LOGIN_ERROR: 'signup_login_error',
+    // `action`: retry | signup | support | dismiss, from the drawer that follows a failed login.
+    LOGIN_RECOVERY_ACTION: 'login_recovery_action',
     PASSKEY_LOGIN_RETRY: 'passkey_login_retry',
     SIGNUP_CREATE_WALLET_CLICKED: 'signup_create_wallet_clicked',
     SIGNUP_USERNAME_VALIDATED: 'signup_username_validated',
@@ -317,10 +319,6 @@ export const ANALYTICS_EVENTS = {
     CARD_LIMIT_CHANGE_OPENED: 'card_limit_change_opened',
     CARD_LIMIT_CHANGED: 'card_limit_changed',
     CARD_LIMIT_CHANGE_FAILED: 'card_limit_change_failed',
-    // Excess collateral returned to the smart wallet after a limit decrease
-    // (useReturnExcessCollateral). FAILED is non-fatal — limit change stuck.
-    CARD_LIMIT_EXCESS_RETURNED: 'card_limit_excess_returned',
-    CARD_LIMIT_EXCESS_RETURN_FAILED: 'card_limit_excess_return_failed',
     CARD_LOCK_OPENED: 'card_lock_opened',
     CARD_LOCKED: 'card_locked',
     CARD_UNLOCKED: 'card_unlocked',

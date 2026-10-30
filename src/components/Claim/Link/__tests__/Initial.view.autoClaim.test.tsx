@@ -73,6 +73,7 @@ jest.mock('@/context/tokenSelector.context', () => {
             },
             refetchXchainRoute: false,
             setRefetchXchainRoute: jest.fn(),
+            readTokenPrice: () => () => {},
             isXChain: false,
             setIsXChain: jest.fn(),
             supportedChainsAndTokens: {},

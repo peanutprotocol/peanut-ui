@@ -14,7 +14,7 @@ export function Marquee({
     visible = true,
     message = ['No fees', 'Instant', '24/7', 'Dollars', 'USDT/USDC'],
     imageSrc = HandThumbsUp.src,
-    backgroundColor = 'bg-yellow-500',
+    backgroundColor = 'bg-background-accent-yellow',
 }: MarqueeProps) {
     if (!visible) return null
 

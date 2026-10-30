@@ -10,8 +10,9 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * confirmed in-app.
  */
 import React from 'react'
-import { render as rtlRender, act, fireEvent } from '@testing-library/react'
+import { render as rtlRender, act, fireEvent, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+import en from '@/i18n/app/messages/en.json'
 import IframeWrapper from '../index'
 
 const render = (ui: React.ReactElement) => rtlRender(<IntlWrapper>{ui}</IntlWrapper>)
@@ -268,5 +269,35 @@ describe('IframeWrapper on android native', () => {
 
         expect(findIframe('https://compliance.test/tos')).toBeTruthy()
         expect(mockBrowserOpen).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * The close controls match SumsubWebSdkModal: a header row with support on the
+ * left and an X on the right. Neither closes the flow directly; each opens its
+ * confirmation modal first.
+ */
+describe('IframeWrapper header controls', () => {
+    it('opens the stop-verification modal from the X without closing the flow', () => {
+        const onClose = jest.fn()
+        render(<IframeWrapper src="https://one.test/flow" visible onClose={onClose} />)
+
+        // the outer Modal keeps its own close button, hidden by class
+        const headerClose = screen
+            .getAllByRole('button', { name: en.common.close })
+            .find((button) => !button.classList.contains('hidden'))
+        fireEvent.click(headerClose!)
+        expect(screen.getByText(en.global.iframeWrapper.exitTitle)).toBeInTheDocument()
+        expect(onClose).not.toHaveBeenCalled()
+
+        fireEvent.click(screen.getByRole('button', { name: en.global.iframeWrapper.exit }))
+        expect(onClose).toHaveBeenCalledWith('manual')
+    })
+
+    it('opens the trouble modal from the support button', () => {
+        render(<IframeWrapper src="https://one.test/flow" visible onClose={jest.fn()} />)
+
+        fireEvent.click(screen.getByRole('button', { name: en.common.contactSupport }))
+        expect(screen.getByText(en.global.iframeWrapper.troubleTitle)).toBeInTheDocument()
     })
 })

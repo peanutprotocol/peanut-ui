@@ -28,6 +28,7 @@ import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 import { profileUrl } from '@/utils/native-routes'
+import { inviteeDisplayName } from '@/features/rewards/utils'
 
 const InvitesPage = () => {
     const nativePlatform = useNativePlatform()
@@ -155,17 +156,16 @@ const InvitesPage = () => {
                 <div ref={listRef}>
                     {invites?.invitees?.map((invite: PointsInvite, i: number) => {
                         const username = invite.username
-                        const fullName = invite.fullName
                         const isVerified = invite.kycVerified
                         const pointsEarned = invite.contributedPoints ?? 0
-                        // respect user's showFullName preference for avatar and display name
-                        const displayName = invite.showFullName && fullName ? fullName : username
+                        const displayName = inviteeDisplayName(invite)
                         return (
                             <Card
                                 key={invite.inviteeId}
                                 position={getCardPosition(i, invites.invitees.length)}
-                                onClick={() => router.push(profileUrl(username))}
-                                className="cursor-pointer"
+                                // An invitee who never finished signup has no profile to open.
+                                onClick={username ? () => router.push(profileUrl(username)) : undefined}
+                                className={username ? 'cursor-pointer' : undefined}
                             >
                                 <div className="flex items-center justify-between gap-4">
                                     <div className="flex items-center gap-3">
@@ -175,7 +175,7 @@ const InvitesPage = () => {
                                             // matches their profile. An invitee without one keeps
                                             // the display name — an empty name reads as "not a
                                             // user" and drops to a wallet icon.
-                                            userName={username || displayName}
+                                            userName={username || displayName || undefined}
                                             avatarKey={invite.avatarKey}
                                             isLinkTransaction={false}
                                             transactionType={'send'}
@@ -184,8 +184,8 @@ const InvitesPage = () => {
                                     </div>
                                     <div className="min-w-0 flex-1 truncate font-roboto text-body-m">
                                         <VerifiedUserLabel
-                                            name={displayName}
-                                            username={username}
+                                            name={displayName ?? ''}
+                                            username={username ?? ''}
                                             isVerified={isVerified}
                                         />
                                     </div>

@@ -79,6 +79,7 @@ jest.mock('@/components/Global/QRScanner', () => ({
 
 import QRScannerOverlay from '../index'
 import { SCAN_ID_PARAM, clearScannedDestination, takeScannedDestination } from '@/features/withdraw/destination'
+import { EParseUrlError, parsePaymentURL } from '@/lib/url-parser/parser'
 
 const mockIsCapacitor = isCapacitor as jest.MockedFunction<typeof isCapacitor>
 const mockResolveEns = resolveEns as jest.MockedFunction<typeof resolveEns>
@@ -300,5 +301,19 @@ describe('a guest scan', () => {
 
     it('of an EIP-681 request keeps the payment page', async () => {
         expect(await scanAndConfirm(EIP681_BASE_USDC)).toBe(`/${LOWERCASE}@8453/10USDC`)
+    })
+
+    // TASK-23850: a request is paid in USDC or USDT only. The scan keeps the
+    // token in the path, and the payment page's parser refuses it. A signed-in
+    // scan of the same QR still goes to the withdrawal (see above).
+    it('of a native ETH request is refused by the payment page it opens', async () => {
+        const pushed = await scanAndConfirm(`ethereum:${CHECKSUMMED}@8453?value=1e17`)
+        expect(pushed).toBe(`/${LOWERCASE}@8453/0.1ETH`)
+
+        const result = await parsePaymentURL(pushed.slice(1).split('/'))
+        expect(result.parsedUrl).toBeNull()
+        expect(result.error).toEqual(
+            expect.objectContaining({ message: EParseUrlError.REQUEST_TOKEN_NOT_ACCEPTED, token: 'ETH' })
+        )
     })
 })
