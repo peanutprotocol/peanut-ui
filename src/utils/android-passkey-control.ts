@@ -6,6 +6,7 @@ import { nativeCapability } from './native-capability'
 import { createAndroidPasskeyController } from './android-passkey-controller'
 import { sanitizePasskeyDiagnostics } from './android-passkey-diagnostics'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { assertPasskeyRegistrationCompatible } from './passkey-registration-compatibility'
 
 interface Controls {
     cancelRequest(options: { requestId: string }): Promise<{ cancelled: boolean }>
@@ -71,6 +72,11 @@ export function installAndroidPasskeyControl(plugin: CapacitorPasskeyPlugin): vo
                     if (scope) scope.cancel = () => controller.cancelRequest(requestId)
                     // The pinned plugin patch forwards this control ID outside WebAuthn JSON.
                     return invoke({ ...options, requestId } as never)
+                })
+                .then((result) => {
+                    // Reject before the shim lets the SDK submit register/verify and reserve the username.
+                    if (method === 'createCredential') assertPasskeyRegistrationCompatible(result)
+                    return result
                 })
                 .then(
                     (result) => {
