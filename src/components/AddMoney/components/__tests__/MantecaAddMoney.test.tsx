@@ -469,3 +469,68 @@ describe('provider refusal', () => {
         expect(lastInputStepProps!.error).toBe('Failed to create on-ramp transfer for guest.')
     })
 })
+
+/**
+ * A stale rail can say the country is eligible while the API still has no
+ * country-matched Manteca KYC. The typed MANTECA_KYC_REQUIRED answer opens the
+ * existing KYC gate on the amount step instead of a generic error (TASK-21388).
+ */
+describe('deposit answers MANTECA_KYC_REQUIRED', () => {
+    afterEach(() => mockDeposit.mockReset())
+
+    test('a stale eligible BR rail opens the KYC modal, stays on the amount step and shows no error', async () => {
+        setCountry('brazil')
+        mockIsVerifiedForCountry = true
+        mockQueryState.amount = '100'
+        mockDeposit.mockResolvedValue({ error: 'User needs to do manteca KYC first', code: 'MANTECA_KYC_REQUIRED' })
+        render(<MantecaAddMoney />)
+        expect(lastKycModalProps!.visible).toBe(false)
+
+        await act(() => lastInputStepProps!.onSubmit())
+
+        expect(lastKycModalProps!.visible).toBe(true)
+        expect(lastInputStepProps!.error).toBeNull()
+        expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
+        expect(screen.queryByTestId('pix-qr')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('share-details')).not.toBeInTheDocument()
+        expect(mockSetQueryState).not.toHaveBeenCalledWith({ step: 'showQR' })
+    })
+
+    test('the modal CTA starts Brazil-specific LATAM KYC', async () => {
+        setCountry('brazil')
+        mockQueryState.amount = '100'
+        mockDeposit.mockResolvedValue({ error: 'User needs to do manteca KYC first', code: 'MANTECA_KYC_REQUIRED' })
+        render(<MantecaAddMoney />)
+
+        await act(() => lastInputStepProps!.onSubmit())
+        await act(() => lastKycModalProps!.onVerify())
+
+        expect(mockKycFlow.handleInitiateKyc).toHaveBeenCalledWith('LATAM', undefined, true, 'BR')
+    })
+
+    test('an ordinary error stays visible and does not open the modal', async () => {
+        setCountry('brazil')
+        mockQueryState.amount = '100'
+        mockDeposit.mockResolvedValue({ error: 'Something else broke' })
+        render(<MantecaAddMoney />)
+
+        await act(() => lastInputStepProps!.onSubmit())
+
+        expect(lastInputStepProps!.error).toBe('Something else broke')
+        expect(lastKycModalProps!.visible).toBe(false)
+    })
+
+    test('a normal BR deposit still shows the Pix QR', async () => {
+        setCountry('brazil')
+        mockQueryState.amount = '100'
+        mockDeposit.mockResolvedValue({ data: { id: 'dep_synthetic' } })
+        const { rerender } = render(<MantecaAddMoney />)
+
+        await act(() => lastInputStepProps!.onSubmit())
+        expect(mockSetQueryState).toHaveBeenCalledWith({ step: 'showQR' })
+        rerender(<MantecaAddMoney />)
+
+        expect(screen.getByTestId('pix-qr')).toBeInTheDocument()
+        expect(lastKycModalProps!.visible).toBe(false)
+    })
+})

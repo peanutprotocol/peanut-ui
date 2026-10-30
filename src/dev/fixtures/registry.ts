@@ -2158,6 +2158,21 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    'add-money-brazil-kyc-required': {
+        route: '/add-money/brazil/manteca?step=inputAmount&amount=10000&currency=BRL',
+        about: 'Continue opens Brazilian verification when an enabled rail has no matching Manteca KYC.',
+        responses: {
+            'GET /users/me': {
+                residence: { declared: 'BR', verified: 'BR', pending: null, declaredSecond: null },
+            },
+        },
+        rejects: {
+            'POST /manteca/deposit': {
+                status: 400,
+                body: { error: 'User needs to do manteca KYC first', code: 'MANTECA_KYC_REQUIRED' },
+            },
+        },
+    },
     // TASK-20344: the provider refuses the ARS top-up for the account. Tap
     // Continue: the screen shows the refusal copy, not "Unexpected error".
     'add-money-provider-rejected': {

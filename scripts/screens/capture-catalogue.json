@@ -521,6 +521,11 @@
         "route": "/add-money/argentina/manteca"
     },
     {
+        "id": "fixture-add-money-brazil-kyc-required",
+        "flow": "Verification",
+        "route": "/add-money/brazil/manteca?step=inputAmount&amount=10000&currency=BRL"
+    },
+    {
         "id": "fixture-add-money-provider-rejected",
         "flow": "Verification",
         "route": "/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS"
