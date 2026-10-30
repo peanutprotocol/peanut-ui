@@ -102,6 +102,7 @@ export function SetupCountryPicker({
                                 trailing={isSame ? <Icon name="check" size={20} /> : undefined}
                                 className={isSame ? 'bg-background-selection' : undefined}
                                 aria-label={`${t('sameCountryRow')}, ${labelOf(same)}`}
+                                aria-current={isSame || undefined}
                                 onClick={() => choose('')}
                             />
                         </ListGroup>
@@ -127,6 +128,7 @@ export function SetupCountryPicker({
                                     trailing={option.value === value ? <Icon name="check" size={20} /> : undefined}
                                     className={option.value === value ? 'bg-background-selection' : undefined}
                                     aria-label={option.label}
+                                    aria-current={option.value === value || undefined}
                                     onClick={() => choose(option.value)}
                                 />
                             ))}

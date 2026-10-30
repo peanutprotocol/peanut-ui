@@ -720,7 +720,7 @@
     {
         "id": "fixture-feature-activation-card-questions-missing",
         "flow": "Verification",
-        "route": "/card?kyc=%7B%7D"
+        "route": "/verify?feature=card"
     },
     {
         "id": "p52-kyc-success",
@@ -1008,7 +1008,7 @@
     {
         "id": "fixture-feature-activation-bank-questions-missing",
         "flow": "Add money",
-        "route": "/add-money/germany/bank"
+        "route": "/verify?feature=bank"
     },
     {
         "id": "fixture-feature-activation-local-ready",
@@ -1048,7 +1048,7 @@
     {
         "id": "fixture-feature-activation-local-questions-missing",
         "flow": "Add money",
-        "route": "/add-money/argentina/manteca"
+        "route": "/verify?feature=local"
     },
     {
         "id": "p17-add-money",

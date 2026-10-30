@@ -16,7 +16,7 @@ import { API_CONTRACT_STATES } from './api-contract-states'
  */
 
 import React from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
@@ -84,6 +84,9 @@ import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
 import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-pot/components/BankTransferChooserDrawer'
 import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
+import { ResidenceCompare } from '@/components/Setup/components/ResidenceCompare'
+import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
+import { buildResidenceCountryOptions } from '@/utils/residence-options'
 
 /**
  * A setup step exactly as /setup renders it — SetupWrapper driven by the step's
@@ -173,6 +176,24 @@ const FUNDED_CARD_ONBOARDING: OnboardingState = {
     step: 'first_payment',
 }
 const noop = () => {}
+
+/** The residence step's comparison, as its Next opens it when the nationality differs. */
+function ResidenceCompareSurface({ residence, nationality }: { residence: string; nationality: string }) {
+    const locale = useLocale()
+    const options = React.useMemo(() => buildResidenceCountryOptions(locale), [locale])
+    const { sets, settled } = useResidenceRestrictionSetsWithStatus()
+    return (
+        <ResidenceCompare
+            residence={residence}
+            nationality={nationality}
+            labelOf={(iso2) => options.find((option) => option.value === iso2)?.label ?? iso2}
+            restrictionSets={sets}
+            restrictionsSettled={settled}
+            busy={false}
+            onChoose={noop}
+        />
+    )
+}
 const asyncNoop = async () => {}
 
 /**
@@ -368,7 +389,11 @@ export const SURFACES: Record<string, Surface> = {
     },
     '03-b-residence-compare': {
         ...SURFACE_META['03-b-residence-compare'],
-        render: () => <SetupScreen screenId="residence" residenceCountry="PT" nationalityCountry="BR" />,
+        render: () => (
+            <SetupScreen screenId="residence" residenceCountry="PT" nationalityCountry="BR">
+                <ResidenceCompareSurface residence="PT" nationality="BR" />
+            </SetupScreen>
+        ),
     },
 
     '05-a-signtesttransaction': {

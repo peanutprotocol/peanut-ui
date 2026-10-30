@@ -63,7 +63,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '03-b-residence-compare': {
         name: 'Residence — two countries compared',
         path: 'Setup/components/ResidenceCompare.tsx',
-        shotClickTestId: 'setup-residence-continue',
     },
     '05-a-signtesttransaction': {
         name: 'Final passkey confirmation',

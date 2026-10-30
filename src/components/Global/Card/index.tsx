@@ -15,6 +15,7 @@ interface CardProps {
     onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>
     'aria-disabled'?: boolean
     'aria-label'?: string
+    'aria-current'?: React.AriaAttributes['aria-current']
 }
 
 const Card: React.FC<CardProps> = ({
@@ -30,6 +31,7 @@ const Card: React.FC<CardProps> = ({
     onKeyDown,
     'aria-disabled': ariaDisabled,
     'aria-label': ariaLabel,
+    'aria-current': ariaCurrent,
 }) => {
     const getBorderRadius = () => {
         switch (position) {
@@ -89,6 +91,7 @@ const Card: React.FC<CardProps> = ({
             onKeyDown={onKeyDown ?? defaultKeyDown}
             aria-disabled={ariaDisabled}
             aria-label={ariaLabel}
+            aria-current={ariaCurrent}
         >
             {children}
         </div>

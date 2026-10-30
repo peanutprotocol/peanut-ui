@@ -16,6 +16,7 @@ import type {
     RailOperation,
     UserCapabilities,
 } from '@/types/capabilities'
+import type { IUserProfile } from '@/interfaces/interfaces'
 
 type KycIntent = keyof FeatureReport
 const IDENTITY_REGION_RESTRICTED_CODE = 'identity_region_restricted'
@@ -442,4 +443,25 @@ function regionRefused(input: FeatureReportInput): boolean {
 
 function supportCaseOf(value: string | null | undefined): string | undefined {
     return value ? SUPPORT_CASES[value.replace(/-/g, '_')] : undefined
+}
+
+/** A fixture's `/users/me` with the report the API would send for its rails, unless the fixture gives its own. */
+export function withFixtureFeatureReport(
+    user: IUserProfile | null,
+    override: Partial<IUserProfile> | null | undefined
+): IUserProfile | null {
+    // The baseline's report describes the demo rails, not this fixture's.
+    if (!user?.capabilities || override?.capabilities?.features !== undefined) return user
+    return {
+        ...user,
+        capabilities: {
+            ...user.capabilities,
+            features: featureReport({
+                rails: user.capabilities.rails,
+                nextActions: user.capabilities.nextActions,
+                identity: user.identityVerification ?? { status: 'not_started' },
+                residence: user.residence?.verified?.country ?? user.residence?.declared?.country ?? null,
+            }),
+        },
+    }
 }
