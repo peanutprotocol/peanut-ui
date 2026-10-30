@@ -445,13 +445,25 @@ describe('demoRespond — kyc-intents per residence', () => {
     })
 
     it('refuses every open feature for an ID whose issuer is refused', async () => {
-        const data = await (await strict('/config/kyc-intents?residence=DE&idCountry=RU')).json()
-        expect(data.idCountry).toBe('RU')
+        const data = await (await strict('/config/kyc-intents?residence=DE&idCountry=IR')).json()
+        expect(data.idCountry).toBe('IR')
         expect(data.intents).toEqual({
             qr: { available: false, reason: 'document_country_unsupported' },
             local: { available: false, reason: 'local_residence_unsupported' },
             card: { available: false, reason: 'document_country_unsupported' },
             bank: { available: false, reason: 'document_country_unsupported' },
+        })
+    })
+
+    it('keeps a Russian resident off Manteca and lets a Russian ID verify without the card', async () => {
+        const resident = await (await strict('/config/kyc-intents?residence=RU')).json()
+        expect(resident.intents.qr).toEqual({ available: false, reason: 'residence_sanctioned' })
+        const document = await (await strict('/config/kyc-intents?residence=DE&idCountry=RU')).json()
+        expect(document.intents).toEqual({
+            qr: { available: true },
+            local: { available: false, reason: 'local_residence_unsupported' },
+            card: { available: false, reason: 'document_country_unsupported' },
+            bank: { available: true },
         })
     })
 
