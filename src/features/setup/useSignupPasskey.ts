@@ -168,6 +168,11 @@ export function useSignupPasskey(username: string) {
                 return
             }
 
+            if (err.name === 'PasskeyProviderUnsupportedError') {
+                setInlineError(t('testTransaction.errors.passkeyProviderUnsupported'))
+                return
+            }
+
             // Ceremony-guard errors (shim race / timeout, TASK-21782) are reported
             // inside handleRegister. A timed-out register may have completed
             // server-side, so the username check routes the user to Log in
