@@ -548,18 +548,21 @@ let demoNotificationPreferences: NotificationPreferences = {
 }
 
 const MANTECA_LOCAL_RESIDENCES = new Set(['AR', 'BR'])
+// peanut-api-ts SANCTIONED_RESIDENCE: Manteca closes to these residences.
+const SANCTIONED_RESIDENCE_ISO2 = new Set(['IR', 'RU', 'BY', 'KP', 'SY', 'CU', 'MM'])
 
 /**
  * GET /config/kyc-intents for a residence (and the ID's issuing country), from
  * the restriction tiers that mirror the API's paperwork rules: sanctioned
  * residences close Manteca, the UK and Bridge's refused residences close the
- * bank, Rain's close the card, and local transfers open only in AR and BR.
+ * bank, Rain's close the card, and local transfers open only in AR and BR. A
+ * refused issuer closes everything else; a Russian ID closes the card.
  */
 function demoKycIntents(residence: string, idCountry?: string): KycIntents {
-    const sanctioned = REFUSED_ID_ISSUER_ISO2.has(residence)
+    const sanctioned = SANCTIONED_RESIDENCE_ISO2.has(residence)
     const documentRefused = !!idCountry && REFUSED_ID_ISSUER_ISO2.has(idCountry)
-    const intent = (refusal: NonNullable<KycIntents['qr']['reason']> | null) => {
-        const reason = refusal ?? (documentRefused ? 'document_country_unsupported' : null)
+    const intent = (refusal: NonNullable<KycIntents['qr']['reason']> | null, documentRefusesCard = false) => {
+        const reason = refusal ?? (documentRefused || documentRefusesCard ? 'document_country_unsupported' : null)
         return reason ? { available: false, reason } : { available: true }
     }
     return {
@@ -571,10 +574,12 @@ function demoKycIntents(residence: string, idCountry?: string): KycIntents {
                   ? null
                   : 'local_residence_unsupported'
         ),
+        // a Russian ID verifies without the card (peanut.russian-document)
         card: intent(
             RESTRICTED_RESIDENCE_ISO2.has(residence) || CARD_RESTRICTED_RESIDENCE_ISO2.has(residence)
                 ? 'geo-blocked'
-                : null
+                : null,
+            idCountry === 'RU'
         ),
         bank: intent(
             residence === 'GB'
