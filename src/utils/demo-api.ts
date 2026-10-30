@@ -17,14 +17,12 @@ import {
     REFUSED_ID_ISSUER_ISO2,
     RESTRICTED_RESIDENCE_ISO2,
 } from '@/constants/residence.consts'
+import { KYC_USER_READS } from '@/utils/demo-kyc'
 import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import type { RainCardFunding, RainFundingAccess } from '@/services/rain'
 import type { NotificationPreferences } from '@/services/notifications'
 import type { KycIntents } from '@/hooks/useKycIntents'
-import type { KycCollectedDetails } from '@/app/actions/types/kyc-paperwork-verification.types'
-import type { KycDocumentPlan, KycProfile } from '@/app/actions/types/kyc-workflow.types'
-import type { paths } from '@/types/api.generated'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -466,77 +464,6 @@ const DEMO_DEPOSIT_ACCOUNT_EUR = {
     },
 } satisfies DepositAccount
 
-type ApiJson<T> = T extends { responses: { 200: { content: { 'application/json': infer Body } } } } ? Body : never
-
-/**
- * The demo user verified before Smart Paperwork Verification, so the API keeps
- * them on today's flow: no question screens and no open attempt. The
- * paperwork-verification fixtures lay the new flow over these answers.
- */
-const DEMO_KYC_PLAN = {
-    available: false,
-    activeAttemptId: null,
-    policyVersion: 'code-2026-10-28',
-    features: { qr: true, local: true, card: true, bank: true },
-    routes: [],
-    flow: null,
-    needs: [],
-    proofOfAddress: null,
-    proofOfAddressReason: null,
-    proofOfAddressIdCountries: [],
-    documentRefusals: {},
-    documentTypeRefusals: {},
-    temporaryProtection: null,
-} satisfies Required<KycDocumentPlan>
-
-const DEMO_KYC_QUESTIONS = {
-    available: false,
-    attemptId: null,
-    residence: 'BR',
-    steps: [],
-    firstUnanswered: null,
-    progress: { done: 0, total: 0 },
-    needs: [],
-    closed: [],
-} satisfies ApiJson<paths['/users/kyc/questions']['get']>
-
-const DEMO_KYC_PROFILE = {
-    residence: {
-        verified: null,
-        declared: { country: 'BR', status: 'UNVERIFIED', updatedAt: null, secondCountry: null },
-        secondaryDeclaredCountry: null,
-    },
-    geo: null,
-    user: { email: 'demo@peanut.me', firstName: 'Demo', lastName: 'User', fullName: 'Demo User' },
-    identity: {
-        status: 'verified',
-        verificationId: '6f1c2a7e-3b4d-4e8f-9a0b-1c2d3e4f5a6b',
-        applicantId: 'demo-applicant',
-        canonicalStatus: 'APPROVED',
-    },
-    attempts: [],
-    providerAccounts: [],
-} satisfies KycProfile
-
-// Only answers every profile-details fixture also gives, so a fixture's own answers never mix with these.
-const DEMO_KYC_DETAILS = {
-    name: { first: 'Demo', last: 'User' },
-    nationality: 'BR',
-    idNationality: 'BR',
-    document: { type: 'ID_CARD', country: 'BRA' },
-    stored: {
-        dateOfBirth: '1992-03-18',
-        countryOfBirth: 'BR',
-        cityOfBirth: 'São Paulo',
-        phone: '+5511987654321',
-        occupation: 'software_developer_applications',
-        annualSalary: '25k_50k',
-        expectedMonthlyVolume: '1k_5k',
-        cardPurpose: 'personal_spending',
-    },
-    heldBySumsub: ['address', 'taxId'],
-} satisfies KycCollectedDetails
-
 // Tab-scoped like the avatar: a switch flipped in demo survives the next read.
 let demoNotificationPreferences: NotificationPreferences = {
     push: true,
@@ -632,12 +559,11 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/users/bridge-tos-link', handler: () => ({ tosLink: '' }) },
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
     { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
-    { method: 'GET', pattern: '/users/kyc/plan', handler: () => DEMO_KYC_PLAN },
-    { method: 'GET', pattern: '/users/kyc/questions', handler: () => DEMO_KYC_QUESTIONS },
-    { method: 'GET', pattern: '/users/kyc/profile', handler: () => DEMO_KYC_PROFILE },
-    { method: 'GET', pattern: '/users/kyc/details', handler: () => DEMO_KYC_DETAILS },
-    // the same report /users/me carries
-    { method: 'GET', pattern: '/users/kyc/features', handler: () => ({ features: DEMO_USER.capabilities?.features }) },
+    // The demo user verified before Smart Paperwork Verification, so the API keeps them on today's flow.
+    ...Object.entries(KYC_USER_READS).map(([key, read]) => {
+        const [method, pattern] = key.split(' ')
+        return { method, pattern, handler: () => read(DEMO_USER) }
+    }),
     // Nothing newer than the stored status, so the profile's answer stands.
     { method: 'POST', pattern: '/users/kyc/identity/refresh', handler: () => ({ status: null }) },
     // The demo user's check is over, so no identity session reopens.
