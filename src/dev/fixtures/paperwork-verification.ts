@@ -404,6 +404,8 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
     'paperwork-verification-review': {
         route: '/verify',
         about: 'ID and selfie submitted: the review is running.',
+        isLoadingState: true,
+        waitFor: '[data-testid="verify-steps"][data-phase="review"] [aria-current="step"] .animate-spin',
         responses: {
             'GET /users/kyc/questions': questions('US', answered(US_STEPS), null),
             'GET /users/kyc/plan': plan(),

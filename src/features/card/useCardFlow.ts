@@ -208,6 +208,8 @@ export function useCardFlow() {
             setPlanRefusal(null)
             invalidateOverview()
         },
+        // The card's own Sumsub resumes from `kyc`; replaying it here started a legacy identity check.
+        resumeOnReload: false,
     })
     const startFlowAction = kycFlow.handleStartAction
 

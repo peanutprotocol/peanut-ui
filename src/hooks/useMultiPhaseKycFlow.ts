@@ -130,6 +130,8 @@ interface UseMultiPhaseKycFlowOptions {
     onKycApproved?: () => void
     onManualClose?: () => void
     regionIntent?: KYCRegionIntent
+    /** False where the page resumes its own Sumsub session from the shared `kyc` param. */
+    resumeOnReload?: boolean
 }
 
 /**
@@ -145,6 +147,7 @@ export const useMultiPhaseKycFlow = ({
     onKycApproved,
     onManualClose,
     regionIntent,
+    resumeOnReload = true,
 }: UseMultiPhaseKycFlowOptions) => {
     const { fetchUser, user } = useAuth()
     const t = useTranslations('kyc')
@@ -518,18 +521,22 @@ export const useMultiPhaseKycFlow = ({
         [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
     )
 
-    useSumsubReloadResume(showWrapper ? lastInitiateArgsRef.current : null, async (state) => {
-        resumingRef.current = true
-        const opened = await handleInitiateKyc(
-            state.intent,
-            state.levelName,
-            state.crossRegion,
-            state.targetCountry,
-            state.corridor
-        )
-        resumingRef.current = false
-        return !!opened
-    })
+    useSumsubReloadResume(
+        showWrapper ? lastInitiateArgsRef.current : null,
+        async (state) => {
+            resumingRef.current = true
+            const opened = await handleInitiateKyc(
+                state.intent,
+                state.levelName,
+                state.crossRegion,
+                state.targetCountry,
+                state.corridor
+            )
+            resumingRef.current = false
+            return !!opened
+        },
+        resumeOnReload
+    )
 
     // 30s timeout for preparing phase + elapsed time counter for progressive copy
     useEffect(() => {
