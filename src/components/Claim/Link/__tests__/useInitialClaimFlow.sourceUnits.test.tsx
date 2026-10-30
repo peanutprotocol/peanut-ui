@@ -147,6 +147,7 @@ const renderFlow = ({
         selectedTokenData: { ...destination, price: 1 },
         refetchXchainRoute: autoQuote,
         setRefetchXchainRoute: jest.fn(),
+        readTokenPrice: () => () => {},
         isXChain: autoQuote,
         setIsXChain: jest.fn(),
         supportedChainsAndTokens: {},

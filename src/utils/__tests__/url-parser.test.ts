@@ -44,6 +44,8 @@ jest.mock('@/app/actions/supported-chains', () => ({
             tokens: [
                 { symbol: 'ETH', address: 'native' },
                 { symbol: 'USDC', address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' },
+                { symbol: 'USDT', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7' },
+                { symbol: 'DAI', address: '0x6B175474E89094C44Da98b954EedeAC495271d0F' },
             ],
         },
         '42161': {
@@ -201,25 +203,15 @@ describe('URL Parser Tests', () => {
             expect(result.parsedUrl?.token?.symbol).toBe(undefined)
         })
 
-        it('should default to Arbitrum chain when only token symbol is provided', async () => {
+        // TASK-23850: a request is paid in USDC or USDT only
+        it('refuses a token-only segment that asks for ETH', async () => {
             const result = await parsePaymentURL(['0x0fdaEB9903A291aB8450DFA25B3fa962E075547A', 'ETH'])
-            expect(result.error).toBeNull()
-            expect(result.parsedUrl).toEqual(
-                expect.objectContaining({
-                    recipient: {
-                        identifier: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
-                        recipientType: 'ADDRESS',
-                        resolvedAddress: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
-                    },
-                    amount: undefined,
-                    token: expect.objectContaining({
-                        symbol: 'ETH',
-                    }),
-                    chain: expect.objectContaining({
-                        chainId: 42161,
-                    }),
-                })
-            )
+            expect(result.parsedUrl).toBeNull()
+            expect(result.error).toEqual({
+                message: EParseUrlError.REQUEST_TOKEN_NOT_ACCEPTED,
+                recipient: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
+                token: 'ETH',
+            })
         })
     })
 
@@ -234,19 +226,11 @@ describe('URL Parser Tests', () => {
             })
         })
 
-        it('should parse ENS with chain and token', async () => {
+        it('refuses an ENS link with a chain that asks for ETH', async () => {
             const result = await parsePaymentURL(['vitalik.eth@ethereum', '1ETH'])
-            expect(result.parsedUrl).toEqual(
-                expect.objectContaining({
-                    recipient: expect.objectContaining({
-                        identifier: 'vitalik.eth',
-                        recipientType: 'ENS',
-                        resolvedAddress: expect.any(String),
-                    }),
-                    chain: expect.objectContaining({ chainId: 1 }),
-                    amount: '1',
-                    token: expect.objectContaining({ symbol: 'ETH' }),
-                })
+            expect(result.parsedUrl).toBeNull()
+            expect(result.error).toEqual(
+                expect.objectContaining({ message: EParseUrlError.REQUEST_TOKEN_NOT_ACCEPTED, token: 'ETH' })
             )
         })
 
@@ -348,7 +332,7 @@ describe('URL Parser Tests', () => {
         })
 
         it('should correctly resolve Ethereum chain by name', async () => {
-            const result = await parsePaymentURL(['vitalik.eth@ethereum', '5ETH'])
+            const result = await parsePaymentURL(['vitalik.eth@ethereum', '5USDC'])
             expect(result.parsedUrl).toEqual(
                 expect.objectContaining({
                     recipient: expect.objectContaining({
@@ -362,30 +346,48 @@ describe('URL Parser Tests', () => {
                     }),
                     amount: '5',
                     token: expect.objectContaining({
-                        symbol: 'ETH',
+                        symbol: 'USDC',
                     }),
                 })
             )
         })
 
-        it('should handle ETH on different chains', async () => {
-            // ETH on Ethereum
-            const ethResult = await parsePaymentURL(['vitalik.eth@ethereum', '1ETH'])
-            expect(ethResult.parsedUrl).toEqual(
-                expect.objectContaining({
-                    chain: expect.objectContaining({ chainId: 1 }),
-                    token: expect.objectContaining({ symbol: 'ETH' }),
-                })
-            )
+        it('refuses ETH on every chain, never paying it in USDC instead', async () => {
+            for (const [segment, amount] of [
+                ['vitalik.eth@ethereum', '5ETH'],
+                ['vitalik.eth@ethereum', '1ETH'],
+                ['vitalik.eth@arbitrum', '0.5ETH'],
+            ]) {
+                const result = await parsePaymentURL([segment, amount])
+                expect(result.parsedUrl).toBeNull()
+                expect(result.error).toEqual(
+                    expect.objectContaining({ message: EParseUrlError.REQUEST_TOKEN_NOT_ACCEPTED, token: 'ETH' })
+                )
+            }
+        })
 
-            // ETH on Arbitrum
-            const arbResult = await parsePaymentURL(['vitalik.eth@arbitrum', '0.5ETH'])
-            expect(arbResult.parsedUrl).toEqual(
-                expect.objectContaining({
-                    chain: expect.objectContaining({ chainId: 42161 }),
-                    token: expect.objectContaining({ symbol: 'ETH' }),
-                })
+        it('refuses DAI: stable, but requests cannot be paid in it', async () => {
+            const result = await parsePaymentURL(['vitalik.eth@ethereum', '10DAI'])
+            expect(result.parsedUrl).toBeNull()
+            expect(result.error).toEqual(
+                expect.objectContaining({ message: EParseUrlError.REQUEST_TOKEN_NOT_ACCEPTED, token: 'DAI' })
             )
+        })
+
+        it('accepts USDT', async () => {
+            const result = await parsePaymentURL(['vitalik.eth@ethereum', '10USDT'])
+            expect(result.error).toBeNull()
+            expect(result.parsedUrl?.token).toEqual(expect.objectContaining({ symbol: 'USDT' }))
+        })
+
+        it('refuses a username link that asks for ETH (/alice/10eth)', async () => {
+            const result = await parsePaymentURL(['kusharc', '10eth'])
+            expect(result.parsedUrl).toBeNull()
+            expect(result.error).toEqual({
+                message: EParseUrlError.REQUEST_TOKEN_NOT_ACCEPTED,
+                recipient: 'kusharc',
+                token: 'ETH',
+            })
         })
 
         it('should handle USDC on different chains', async () => {
@@ -417,13 +419,13 @@ describe('URL Parser Tests', () => {
         it('should handle chain name variants', async () => {
             const variants = ['ethereum', 'eth', '1', '0x1']
             for (const variant of variants) {
-                const result = await parsePaymentURL([`vitalik.eth@${variant}`, '1ETH'])
+                const result = await parsePaymentURL([`vitalik.eth@${variant}`, '1USDC'])
                 expect(result.parsedUrl?.chain).toEqual(expect.objectContaining({ chainId: 1 }))
             }
 
             const arbVariants = ['arbitrum', 'arb', '42161']
             for (const variant of arbVariants) {
-                const result = await parsePaymentURL([`vitalik.eth@${variant}`, '1ETH'])
+                const result = await parsePaymentURL([`vitalik.eth@${variant}`, '1USDC'])
                 expect(result.parsedUrl?.chain).toEqual(expect.objectContaining({ chainId: 42161 }))
             }
         })

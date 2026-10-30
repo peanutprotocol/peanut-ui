@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useAppModal } from '@/components/Migration/AppModalProvider'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { useAuth } from '@/context/authContext'
+import { useOptionalAuth } from '@/context/authContext'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { twMerge } from '@/utils/tw'
 import type { UsEuAppLinkProps } from './usEuAccounts.types'
@@ -14,8 +14,15 @@ import type { UsEuAppLinkProps } from './usEuAccounts.types'
  * sits inside art that duplicates a visible CTA, so it stays out of the tab
  * order. `group` lets the art take the DS press (`group-active:` drops its shadow).
  */
-export function UsEuAppLink({ href, signedInHref, children, className }: UsEuAppLinkProps) {
-    const { user } = useAuth()
+export function UsEuAppLink({
+    href,
+    signedInHref,
+    children,
+    className,
+    surface = MIGRATION_SURFACES.STAR_LP,
+}: UsEuAppLinkProps) {
+    // the homepage renders these with no AuthProvider above it: there every visitor gets the guest href
+    const user = useOptionalAuth()?.user
     const migrationOn = useMigrationFlag()
     const interceptAppCta = useAppModal()
     const destination = user && signedInHref ? signedInHref : href
@@ -26,7 +33,7 @@ export function UsEuAppLink({ href, signedInHref, children, className }: UsEuApp
             tabIndex={-1}
             className={twMerge('group', className)}
             onClick={(event) => {
-                if (interceptAppCta(MIGRATION_SURFACES.STAR_LP, 'artwork')) event.preventDefault()
+                if (interceptAppCta(surface, 'artwork')) event.preventDefault()
             }}
         >
             {children}

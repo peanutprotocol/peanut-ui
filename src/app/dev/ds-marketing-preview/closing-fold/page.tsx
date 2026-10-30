@@ -12,7 +12,7 @@ import { CTA_MOTION } from '@/components/Marketing/constants'
 export default function ClosingFoldPreview() {
     return (
         <main className="bg-background-page">
-            <section className="bg-action-secondary px-4 py-16 text-center">
+            <section className="bg-background-accent-yellow px-4 py-16 text-center">
                 <h2 className="flex flex-col items-center">
                     <Title
                         text={'SEND IN\nSECONDS.'}

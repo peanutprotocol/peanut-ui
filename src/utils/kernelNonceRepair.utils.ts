@@ -8,7 +8,7 @@ import { KernelV3AccountAbi } from '@zerodev/sdk'
  * above the counter — unreachable through Kernel v3.1's own `invalidateNonce`,
  * which syncs the counter up). Kernel.sol rejects every NON-root validation
  * installed below the floor with `InvalidNonce()` (0x756688fe), so any
- * enable-mode approval (the card auto-balance session key) minted for such an
+ * enable-mode approval (the card withdrawal session key) minted for such an
  * account fails on every backend replay, forever — however correctly it was
  * signed. Root-passkey ops are exempt, so the account looks healthy until a
  * card grant.

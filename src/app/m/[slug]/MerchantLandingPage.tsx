@@ -184,7 +184,7 @@ function DealCard({ merchant }: { merchant: Merchant }) {
         merchant.branding?.lockupName ?? (merchant.slug === 'badigitalnomads' ? 'ba nomads' : merchant.slug)
     return (
         <div className="relative z-30 origin-center" style={{ transform: 'rotate(-6deg)' }} aria-hidden>
-            <div className="shadow-primary-8 w-65 overflow-hidden rounded-sm border-2 border-border-default bg-yellow-500 md:w-75">
+            <div className="shadow-primary-8 w-65 overflow-hidden rounded-sm border-2 border-border-default bg-background-accent-yellow md:w-75">
                 {/* cobrand lockup */}
                 <div className="flex items-center gap-1 px-6 pt-6 pb-2 font-mono text-body-xs tracking-wider uppercase">
                     <span>peanut ×</span>
@@ -297,7 +297,7 @@ function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }>
     return (
         <section
             id="menu"
-            className="relative overflow-hidden bg-yellow-500 px-4 py-24 text-center text-foreground-primary md:py-32"
+            className="relative overflow-hidden bg-background-accent-yellow px-4 py-24 text-center text-foreground-primary md:py-32"
         >
             <div className="mx-auto max-w-5xl">
                 <h2 className="font-roboto-flex-extrabold mx-auto max-w-3xl text-heading font-extraBlack uppercase md:text-headingMedium">
@@ -500,7 +500,9 @@ function EndFold({ merchant }: { merchant: Merchant }) {
 function Ambassador({ box }: { box: NonNullable<Merchant['ambassador']> }) {
     return (
         <div className="mx-auto mt-20 max-w-xl rounded-sm border-2 border-border-brand p-8 text-left">
-            <div className="font-mono text-label-m tracking-wider text-yellow-500 uppercase">{box.kicker}</div>
+            <div className="font-mono text-label-m tracking-wider text-background-accent-yellow uppercase">
+                {box.kicker}
+            </div>
             <h3 className="mt-3 text-heading-s text-white md:text-heading-m">{box.heading}</h3>
             <p className="font-roboto-flex mt-4 text-body-s opacity-85">{box.body}</p>
             <Link

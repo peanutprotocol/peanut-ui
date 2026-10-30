@@ -77,7 +77,7 @@ export function useContributePotFlow() {
         formattedSpendableBalance,
         spendableBalanceDecimal,
         hasSufficientSpendableBalance: hasSufficientBalance,
-        isFetchingSpendableBalance,
+        isSpendableBalanceReady,
     } = useWallet()
 
     const isLoggedIn = !!user?.user?.userId
@@ -111,9 +111,8 @@ export function useContributePotFlow() {
     }, [amount, hasSufficientBalance])
 
     // check if should show insufficient balance error.
-    // gate on !isFetchingSpendableBalance so we wait for both smart-account
-    // and Rain collateral to settle. See useSemanticRequestFlow for the
-    // same fix + reasoning (TASK-19573).
+    // gate on the live balance (smart-account + Rain collateral), not the
+    // displayed one: a cached total on screen is not an answer yet (TASK-19573).
     const isInsufficientBalance = useMemo(() => {
         return (
             isLoggedIn &&
@@ -122,9 +121,9 @@ export function useContributePotFlow() {
             !isLoading &&
             !isCreatingCharge &&
             !isRecording &&
-            !isFetchingSpendableBalance
+            isSpendableBalanceReady
         )
-    }, [isLoggedIn, amount, hasEnoughBalance, isLoading, isCreatingCharge, isRecording, isFetchingSpendableBalance])
+    }, [isLoggedIn, amount, hasEnoughBalance, isLoading, isCreatingCharge, isRecording, isSpendableBalanceReady])
 
     // What is left to pay. The slider spans it and every suggestion is capped
     // by it, so the field can never prefill more than the request still needs.

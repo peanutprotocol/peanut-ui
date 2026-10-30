@@ -6,6 +6,7 @@ import { captureMessage } from '@sentry/nextjs'
 import ActionModal, { type ActionModalButtonProps, type ActionModalTertiaryCta } from '@/components/Global/ActionModal'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { useCardFundingAccess } from '@/hooks/useCardFundingAccess'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 
 /**
@@ -13,6 +14,11 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
  * the one-tap session-key grant. Without it auto-balance silently no-ops
  * after every deposit and the first card spend would force the grant
  * inline anyway — surfacing it up-front avoids both surprises.
+ *
+ * Only for an account on the existing card permission that new managed
+ * funding is not open to (the server's decision, `setupPath === 'legacy'`).
+ * An account it is open to, or one already managed, gets the managed setup
+ * prompt instead; an unknown decision shows nothing.
  *
  * Same preconditions `useGrantSessionKey().grant()` enforces (collateral
  * proxy + coordinator already provisioned by Rain) — otherwise the
@@ -39,9 +45,11 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
  * own clean setup pass.
  */
 export default function EnableAutoBalanceBanner() {
-    const t = useTranslations('home.autoBalance')
+    const t = useTranslations('home.fundingSetup')
     const tCommon = useTranslations('common')
     const { overview } = useRainCardOverview()
+    const card = findActiveCard(overview)
+    const { setupPath } = useCardFundingAccess({ enabled: card?.status === 'ACTIVE' })
     const { grant, isGranting, lastError } = useGrantSessionKey()
     // Card id the user chose "Skip for now" for — per card, so skipping a
     // stuck card A never suppresses the prompt for a different card B that
@@ -57,8 +65,8 @@ export default function EnableAutoBalanceBanner() {
     // hatch into a re-issued card B's first-ever prompt.
     const [lastAttemptFor, setLastAttemptFor] = useState<string | null>(null)
 
-    const card = findActiveCard(overview)
     const shouldShow =
+        setupPath === 'legacy' &&
         card?.status === 'ACTIVE' &&
         !card.hasWithdrawApproval &&
         !!overview?.status?.contractAddress &&

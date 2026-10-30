@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server'
 import { shouldBlockDevRoute } from '@/constants/dev-tools.consts'
 import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import { APP_ENTRY_QUERY_PARAM } from '@/constants/migration.consts'
+import { marketingQrHandoffUrl } from '@/features/marketing-qr/contract'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale, withCountry } from '@/i18n/localeBridge'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
@@ -25,6 +26,11 @@ export function proxy(request: NextRequest) {
     if (isGoneMarketingPath(pathname)) {
         return new NextResponse(null, { status: 410, headers: { 'X-Robots-Tag': 'noindex' } })
     }
+
+    // Registered landing-page QRs also enter through /home, so an installed app opens
+    // directly. A browser records the opening on /q first; /q continues to /app.
+    const marketingQrHandoff = marketingQrHandoffUrl(new URL(request.url))
+    if (marketingQrHandoff) return NextResponse.redirect(marketingQrHandoff, 307)
 
     // QR downloads enter through /home because that path is already claimed by
     // every released native shell. A browser has no App Link interception, so

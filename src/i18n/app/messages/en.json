@@ -135,11 +135,23 @@
             "progress": "{done} of {total} done",
             "welcomeTitleSpoken": "Welcome to Peanut!"
         },
-        "autoBalance": {
+        "fundingSetup": {
             "title": "Finish setting up the card",
             "description": "One passkey tap to start using your card.",
-            "descriptionError": "We couldn't finish setting up your card. Please try again, or skip for now — we'll prompt you again on your first card payment.",
-            "working": "Working…"
+            "descriptionMigration": "Your card permission needs an update first. Confirm twice with your passkey: once to update, once for the new permission.",
+            "descriptionPending": "Approval sent but not confirmed yet. Check the status shortly. Do not approve twice.",
+            "descriptionError": "We couldn't finish setting up your card. Try again, or skip for now. We'll ask again next time you open Home.",
+            "descriptionReturn": "When setup is confirmed, {amount} of card balance moves back to your wallet. This may take more than one passkey confirmation.",
+            "descriptionReadyReturn": "Your card is set up. Move {amount} of card balance to your wallet now, or later from the card screen.",
+            "descriptionReturnRetry": "Your card is set up, but moving your card balance didn't finish. Try again now, or later from the card screen.",
+            "descriptionWithdrawalInFlight": "A card withdrawal is still confirming. Check again shortly, or skip for now.",
+            "descriptionReturnPending": "Moving your card balance is not confirmed yet. Check again shortly, or skip for now.",
+            "descriptionReturnWait": "Your card balance cannot move right now. Try later, or skip for now.",
+            "descriptionBalanceUnavailable": "Couldn't read your card balance. Try again, or skip for now.",
+            "working": "Working…",
+            "returningBalance": "Moving card balance…",
+            "confirmUpdate": "Confirm the card permission update",
+            "checkStatus": "Check status"
         },
         "history": {
             "activity": "Activity",
@@ -299,6 +311,7 @@
             "updateAvailable": "Update available"
         },
         "logOut": "Log out",
+        "logOutAllDevices": "Log out on all devices",
         "edit": {
             "title": "Edit profile",
             "fields": {
@@ -801,6 +814,24 @@
             "signUp": "Sign up",
             "recoverWallet": "Need to recover a Peanut account?"
         },
+        "loginRecovery": {
+            "title": "Your passkey may be on the phone you signed up on",
+            "steps": {
+                "ios": {
+                    "sameAccount": "Sign in to that phone’s Apple Account, with iCloud Passwords on.",
+                    "thatPhone": "Or log in on that phone."
+                },
+                "android": {
+                    "sameAccount": "Sign in to that phone’s Google account.",
+                    "thatPhone": "Or log in on that phone."
+                },
+                "web": {
+                    "thatPhone": "Log in on that phone.",
+                    "sameAccount": "Or sign in to its Apple or Google account in this browser."
+                }
+            },
+            "signUp": "I’m new, create an account"
+        },
         "waitlist": {
             "loginCanceled": "Login was canceled. Please try again.",
             "noPasskey": "No passkey found. Please create a wallet first.",
@@ -929,7 +960,7 @@
                     "updateBrowserOs": "Update browser and OS"
                 },
                 "warnings": {
-                    "lowEndAndroid": "Lower end Android devices may require recent security updates for passkeys to work properly."
+                    "androidSecurityUpdates": "Android devices may need recent security updates for passkeys to work."
                 }
             },
             "info": {
@@ -1307,7 +1338,9 @@
             "requestNotFoundTitle": "Request not found",
             "requestNotFoundDescription": "This payment request doesn't exist or was removed. Ask the sender for a new link.",
             "requestClosedTitle": "This request is closed",
-            "externalPaymentNotConfirmed": "This payment could not be confirmed. If money left your wallet, contact support."
+            "externalPaymentNotConfirmed": "This payment could not be confirmed. If money left your wallet, contact support.",
+            "requestTokenNotAccepted": "This link asks for {symbol}. Requests can only be paid in USDC or USDT.",
+            "requestTokenRetired": "This request can't be paid anymore. Ask for a new one in USDC."
         },
         "bankTransfer": {
             "title": "Pay by bank transfer",
@@ -1612,7 +1645,7 @@
             "navTitle": "Peanut Card",
             "title": "Spend anywhere Visa is accepted",
             "description": "Use your balance at 150M+ merchants. Online, contactless, yours.",
-            "featureBalance": "One unified balance",
+            "featureBalance": "Manage your card in Peanut",
             "featureControl": "Full control",
             "featureOnline": "Works online & contactless",
             "cta": "Get card"
@@ -1682,6 +1715,15 @@
             "unlockCta": "Unlock",
             "lockFailed": "Failed to lock card",
             "unlockFailed": "Failed to unlock card"
+        },
+        "stop": {
+            "pending": "Stopping payments from your wallet is still in progress. This can take a few minutes.",
+            "confirmed": "Payments from your wallet to this card are stopped.",
+            "checkFailed": "We couldn't check yet whether payments from your wallet have stopped.",
+            "checkStatus": "Check status",
+            "unavailable": "We couldn't confirm that payments from your wallet have stopped. Please contact support.",
+            "unlockKept": "Your card is active, but payments from your wallet stay stopped for now. Contact support if this doesn't clear.",
+            "unlockUnknown": "Your card is active, but we couldn't confirm that payments from your wallet resumed. Try Unlock again."
         },
         "errors": {
             "balanceReturnFailed": "Could not return your card balance. Please try again or contact support.",
@@ -1782,8 +1824,16 @@
             "autoRenewTitle": "Card auto renews soon",
             "autoRenewBody": "Your card will automatically renew in {days, plural, one {# day} other {# days}}, expiration date will change.",
             "dismiss": "Dismiss",
-            "balanceDueTitle": "{amount} will be debited from the next deposit",
-            "balanceDueBody": "A recent card payment ended up higher than the amount held at checkout. This happens with tips or updated totals. We'll cover the difference automatically.",
+            "cardFundsCollateral": "You have {amount} in your card balance. You can move it to your Peanut wallet.",
+            "moveToWallet": "Move card balance to wallet",
+            "movingToWallet": "Moving…",
+            "moveFailed": "Couldn't finish moving your card balance. Check your balance, then try again.",
+            "movePending": "Moving your card balance is not confirmed yet. Check again shortly.",
+            "moveWait": "Your card balance cannot move right now. Try again later.",
+            "moveBalanceUnavailable": "We couldn't read your card balance. Try again.",
+            "moveBusy": "Another card action is running. Try again shortly.",
+            "balanceDueTitle": "{amount} outstanding on your card",
+            "balanceDueBody": "A recent card payment ended up higher than the amount held at checkout. This happens with tips or updated totals. The difference is still owed. Contact support to settle it.",
             "payAsCreditTitle": "Pay as credit",
             "payAsCreditBody": "When a terminal asks debit or credit, choose credit — your Peanut card runs on the credit network.",
             "managementTitle": "Card management",
@@ -1794,6 +1844,12 @@
             "lockCard": "Lock card",
             "unlockCard": "Unlock card",
             "cancelCard": "Cancel card"
+        },
+        "funding": {
+            "body": "Peanut manages how much our third party provider can take from your wallet for card payments. This renews automatically, including for money you add later.",
+            "distinction": "The permission stays in place. The amount it allows at any one time is limited.",
+            "termsChanged": "The terms changed. Read them again and confirm.",
+            "walletMismatch": "This card is linked to a different wallet. Contact support."
         },
         "page": {
             "loadFailed": "Failed to load card info. Please try again.",
@@ -1813,13 +1869,10 @@
             "viewTransaction": "View transaction",
             "title": "Recover card collateral",
             "noCardOnFile": "No card on file",
-            "description": "This pulls every USDC currently held in your card collateral contract back to your peanut wallet. Auto-balance is turned off as part of recovery so the rebalancer can't top up between now and the transfer.",
+            "description": "This pulls every USDC currently held in your card collateral contract back to your peanut wallet.",
             "recoverable": "Recoverable",
             "destination": "Destination",
             "dust": "Dust left in contract",
-            "autoBalance": "Auto-balance",
-            "autoBalanceOn": "on — will be turned off",
-            "autoBalanceOff": "off",
             "signWithPasskey": "Sign with passkey…",
             "submitting": "Submitting…",
             "cta": "Recover funds"
@@ -1831,7 +1884,7 @@
         "informationStartFailed": "We couldn't open the form. Please try again.",
         "fixSignature": {
             "navTitle": "Fix card signature",
-            "intro": "This tool repairs a wallet state issue that stops your card from funding itself automatically. It takes up to two quick passkey confirmations.",
+            "intro": "This tool repairs a wallet state issue that blocks your card permissions. It takes up to two quick passkey confirmations.",
             "checkingWallet": "Checking wallet…",
             "checkAgain": "Check again",
             "step1": "1. Repair wallet state",
@@ -1840,12 +1893,12 @@
             "undeployed": "Your wallet needs a one-time on-chain activation before card permissions can work.",
             "repairing": "Repairing…",
             "repairNow": "Repair now",
-            "step2": "2. Re-enable automatic funding",
-            "allSet": "All set! Automatic funding is back on and a funding run has been started — your card balance should update within a few minutes.",
-            "oneMoreConfirmation": "One more confirmation re-enables automatic card funding with a fresh permission.",
+            "step2": "2. Restore card permissions",
+            "allSet": "All set! Withdrawals from your card collateral work again.",
+            "oneMoreConfirmation": "One more confirmation renews the permission for withdrawals from your card collateral.",
             "waitingForConfirmation": "Waiting for confirmation…",
             "loadingCard": "Loading card…",
-            "reEnableFunding": "Re-enable funding",
+            "reEnablePermissions": "Restore permissions",
             "noActiveCard": "No active card found on this account — please contact support.",
             "regrantFailed": "Re-enabling did not complete — please try again or contact support.",
             "diagnostics": "Diagnostics: nonce {nonce} / floor {floor}"
@@ -2048,7 +2101,8 @@
             "placeholderEns": "Address or ENS",
             "placeholderAddress": "Address",
             "detailsMissing": "Withdrawal details are missing",
-            "confirmNetwork": "Pick the network for this address"
+            "confirmNetwork": "Pick the network for this address",
+            "tronPickedByAddress": "Tron address: switched to {token} on Tron"
         },
         "confirm": {
             "recipientReceives": "Recipient receives",
@@ -3476,7 +3530,9 @@
             "networkFee": "Network fee",
             "noTokensFoundTitle": "No tokens found",
             "lockedHint": "Only USDC on Arbitrum for now",
-            "tokenNotOnNetwork": "No {symbol} on this network"
+            "tokenOnly": "Only supports {symbol}",
+            "tokenSwitchedOnly": "{network} only supports {symbol}, so we switched your token to {symbol}.",
+            "tokenSwitched": "{network} doesn't support {from}, so we switched your token to {symbol}."
         },
         "qrScanner": {
             "scanToPay": "Scan to pay",
@@ -3684,9 +3740,7 @@
             "exitTitle": "Exit for now?",
             "exitDescription": "You can come back and finish this anytime.",
             "exit": "Exit",
-            "continueVerifying": "Continue verifying",
-            "stopVerification": "Stop verification process",
-            "havingTrouble": "Having trouble?"
+            "continueVerifying": "Continue verifying"
         },
         "supportDrawer": {
             "chatLoadFailed": "Chat couldn't load",
@@ -4008,7 +4062,7 @@
             "verifyTitle": "Verify.",
             "verifyBody": "One identity check, plus the cardholder terms.",
             "spendTitle": "Spend.",
-            "spendBody": "Approved? Add money and pay."
+            "spendBody": "Have $10 in your balance, apply, and pay."
         },
         "marquee": {
             "peanutCard": "PEANUT CARD",
@@ -4033,11 +4087,11 @@
             },
             "q5": {
                 "question": "How do I get a card?",
-                "answer": "Sign in, complete verification, and accept the cardholder terms. Your application is subject to approval."
+                "answer": "Sign in, complete verification, have at least $10 in your Peanut balance, and accept the cardholder terms. Your application is subject to approval."
             },
             "q6": {
-                "question": "Do I need to deposit before applying?",
-                "answer": "No. You can apply before adding money. Add funds once your card is ready to make payments."
+                "question": "Do I need money in my balance to apply?",
+                "answer": "Yes. To apply for your first card, you need at least $10 in your Peanut balance. It is not a fee: the money stays yours to spend with the card."
             },
             "q7": {
                 "question": "Are there fees?",

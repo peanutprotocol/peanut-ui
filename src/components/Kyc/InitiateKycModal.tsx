@@ -368,11 +368,16 @@ export const InitiateKycModal = ({
     // one deliberate way out. The drawer keeps that contract — swipe / hardware
     // back / overlay all route through the same onClose the X called; there is
     // no stray-click path because vaul only dismisses on a deliberate gesture.
+    // while verification is starting the drawer is locked, so a swipe cannot
+    // drop the user out mid-request. blocked is exempt: its cta never starts
+    // verification and stays enabled, so the lock would only take away the exit.
+    const isDismissLocked = !!isLoading && !isBlocked
     return (
         <Drawer
             open={visible}
+            dismissible={!isDismissLocked}
             onOpenChange={(isOpen) => {
-                if (!isOpen) onClose()
+                if (!isOpen && !isDismissLocked) onClose()
             }}
         >
             <DrawerContent>

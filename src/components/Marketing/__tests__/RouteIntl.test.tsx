@@ -7,7 +7,7 @@
 import { isValidElement } from 'react'
 import { render, screen } from '@testing-library/react'
 import { RouteIntl } from '../RouteIntl'
-import { ShhhhhFold } from '@/components/LandingPage/ShhhhhFold'
+import { useTranslations } from 'next-intl'
 import en from '@/i18n/app/messages/en.marketing.json'
 import es419 from '@/i18n/app/messages/es-419.marketing.json'
 import esAR from '@/i18n/app/messages/es-AR.marketing.json'
@@ -17,6 +17,11 @@ jest.mock('next/dynamic', () => () => () => null)
 
 type Messages = Record<string, Record<string, unknown>> & { shhhhh: { hero: { tagline: string } } }
 type Props = { locale: string; messages?: Messages }
+
+/** Reads one /shhhhh hero line through next-intl, as the /shhhhh page does. */
+function ShhhhhPitchProbe() {
+    return <p>{useTranslations('shhhhh.hero')('pitch')}</p>
+}
 
 async function routeIntl(locale: Parameters<typeof RouteIntl>[0]['locale'], children: React.ReactNode = null) {
     const element = await RouteIntl({ locale, children })
@@ -53,12 +58,12 @@ describe('RouteIntl', () => {
     })
 
     it.each([
-        ['pt-br', ptBR.shhhhh.hero.tagline],
-        ['en', 'Your money. Ready to spend.'],
-    ])('the card fold renders %s copy with no missing keys', async (segment, tagline) => {
+        ['pt-br', ptBR.shhhhh.hero.pitch],
+        ['en', 'One balance. 150 million places to spend it.'],
+    ])('the card page copy renders %s with no missing keys', async (segment, pitch) => {
         const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
-        render(await routeIntl(segment as 'en', <ShhhhhFold />))
-        expect(screen.getByText(tagline)).toBeInTheDocument()
+        render(await routeIntl(segment as 'en', <ShhhhhPitchProbe />))
+        expect(screen.getByText(pitch)).toBeInTheDocument()
         expect(warn).not.toHaveBeenCalled()
         warn.mockRestore()
     })
