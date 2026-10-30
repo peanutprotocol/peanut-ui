@@ -54,6 +54,7 @@ import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
+import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import {
     classifyQrInitError,
@@ -215,9 +216,11 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
 
     // Check if this payment provider is under maintenance
     const { disabledPaymentProviders } = useKillSwitches()
+    const isBrazilPaused = useBrazilServicesPaused() && qrType === EQrType.PIX
+    // the Brazil pause counts as an outage too, so no payment is started for a paused Pix code
     const isProviderDisabled = useMemo(() => {
-        return paymentProcessor ? disabledPaymentProviders.includes(paymentProcessor) : false
-    }, [paymentProcessor, disabledPaymentProviders])
+        return isBrazilPaused || (paymentProcessor ? disabledPaymentProviders.includes(paymentProcessor) : false)
+    }, [isBrazilPaused, paymentProcessor, disabledPaymentProviders])
 
     const gate = useQrPayKycGate()
     const { kycGateState, shouldBlockPay } = gate
@@ -1228,6 +1231,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const view = deriveQrPayView({
         kycGateState,
         isProviderDisabled,
+        isBrazilPaused,
         errorInitiatingPayment,
         waitingForMerchantAmount,
         showOrderNotReadyModal,

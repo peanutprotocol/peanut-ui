@@ -21,4 +21,6 @@ export interface KillSwitches {
     disableXchainSend: boolean
     /** Warn-only "Maintenance" tag on the Pix option in /add-money/brazil. */
     pixBrazilOnrampMaintenance: boolean
+    /** Brazil users get the paused drawer on every BRL deposit, withdraw and Pix entry (useBrazilServicesPaused). */
+    brazilServicesPaused: boolean
 }

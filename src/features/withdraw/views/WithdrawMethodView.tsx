@@ -17,6 +17,8 @@ import { mantecaWithdrawUrl, withdrawCountryFormUrl } from '@/features/withdraw/
 import { soleLiveRailForCountry } from '@/features/destinations/country-rails'
 import { clearScannedDestination, withdrawTokenForChain } from '@/features/withdraw/destination'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
+import { openBrazilPausedDrawer } from '@/features/brazil-pause/brazil-paused-drawer-store'
+import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
 import { useSavedAddresses } from '@/hooks/useSavedAddresses'
 import DestinationEditDrawer, { type EditableDestination } from '@/features/destinations/DestinationEditDrawer'
 import { useRenameAccount } from '@/features/destinations/useRenameAccount'
@@ -51,6 +53,7 @@ interface WithdrawMethodViewProps {
  */
 export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onExit, onMethodChosen }) => {
     const router = useRouter()
+    const brazilPaused = useBrazilServicesPaused()
     const { user } = useAuth()
     const tGlobal = useTranslations('global')
     const { setSelectedBankAccount, setSelectedMethod, setRecipient, setIsValidRecipient, setNetworkUnconfirmed } =
@@ -143,6 +146,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
     // A country resolved from the currency list (or its country fallback). The
     // one place withdraw routing lives, shared by both so they cannot disagree.
     const handleCountrySelected = (country: CountryData) => {
+        if (brazilPaused && country.path === 'brazil') return openBrazilPausedDrawer()
         // A navigation is already under way. A second tap during it either
         // queues a route the user did not mean to open or re-runs the analytics
         // capture, so the screen takes the first answer and ignores the rest.
@@ -259,6 +263,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                             title: 'To Bank',
                         })
                         if (account.type === AccountType.MANTECA) {
+                            if (brazilPaused && countryPath === 'brazil') return openBrazilPausedDrawer()
                             // Manteca saved accounts skip the shared amount step — the
                             // manteca flow collects the amount in the local currency.
                             // preserve method param if coming from send flow

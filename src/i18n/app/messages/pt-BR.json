@@ -4561,5 +4561,9 @@
         "peanutRole": "Provedor de software de carteira autocustodial; não é parte das operações do provedor",
         "cardRelationship": "Você tem uma relação direta com a Third National, nos termos do cartão.",
         "cardRelationshipProspective": "Ao aceitar os termos do cartão, sua relação passa a ser diretamente com a Third National."
+    },
+    "brazilPause": {
+        "title": "Serviços no Brasil pausados",
+        "body": "Por causa de mudanças regulatórias nos provedores dos nossos serviços no Brasil, depósitos e saques em BRL e pagamentos Pix estão indisponíveis por enquanto. Estamos integrando um novo provedor para trazê-los de volta em breve."
     }
 }

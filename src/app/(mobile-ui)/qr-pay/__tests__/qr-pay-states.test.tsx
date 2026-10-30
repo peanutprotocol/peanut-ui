@@ -359,6 +359,12 @@ jest.mock('@/utils/qr-payment.utils', () => ({
     isArgentinaMantecaQrPayment: jest.fn(() => false),
 }))
 
+// the Brazil pause, per test (its own suite covers who it covers)
+let mockBrazilPaused = false
+jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
+    useBrazilServicesPaused: () => mockBrazilPaused,
+}))
+
 jest.mock('@/features/kill-switches/kill-switches-store', () => {
     const killSwitches = { disabledPaymentProviders: [] as string[] }
     return { getKillSwitches: () => killSwitches, subscribeKillSwitches: () => () => {} }
@@ -1298,6 +1304,20 @@ describe('GROUP 2: Payment Form States', () => {
             // finally, not a trailing statement: a failed assertion above would otherwise
             // leak MANTECA into every later test through this module singleton.
             maintenanceConfig.disabledPaymentProviders = []
+        }
+    })
+
+    test('The Brazil pause shows its screen for a Pix code and never calls /init', async () => {
+        mockBrazilPaused = true
+        setupMantecaPayment()
+
+        try {
+            renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+
+            expect(await screen.findByText(en.brazilPause.title)).toBeInTheDocument()
+            expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
+        } finally {
+            mockBrazilPaused = false
         }
     })
 
