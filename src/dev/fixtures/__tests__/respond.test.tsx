@@ -167,6 +167,14 @@ describe('fixtureRespond capability report', () => {
         expect(body.capabilities.features?.bank.accounts.USD).toEqual({ state: 'action_required', action: 'verify' })
     })
 
+    it('answers a signed-out fixture with its null user instead of building a report', async () => {
+        activateFixture('guest-invite')
+
+        const response = await fixtureRespond('/users/me')
+
+        expect(await response.json()).toBeNull()
+    })
+
     it('preserves an explicit fixture report instead of synthesizing over it', async () => {
         const explicitReport = {
             qr: { state: 'pending' },

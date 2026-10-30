@@ -409,6 +409,25 @@ it('blocks on a failed save and retries without asking the OS again', async () =
         pushPermission: 'granted',
     })
 })
+it('keeps an Offers-only choice retryable when the OS says no and the save fails', async () => {
+    mockPermission.mockResolvedValueOnce('denied')
+    mockSave.mockRejectedValueOnce(new Error('network'))
+    renderStep(<NotificationsStep />)
+    fireEvent.click(offers())
+    fireEvent.click(continueButton())
+    await screen.findByText('We couldn’t save your settings. Please try again.')
+    expect(states()).toEqual(['false', 'true', 'false'])
+    expect(continueButton()).toBeEnabled()
+    fireEvent.click(continueButton())
+    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+    expect(mockPermission).toHaveBeenCalledTimes(1)
+    expect(mockSave).toHaveBeenLastCalledWith({
+        push: false,
+        marketingPush: false,
+        emailUpdates: false,
+        pushPermission: 'denied',
+    })
+})
 it('waits for the preferences write before advancing', async () => {
     let resolveSave!: () => void
     mockSave.mockReturnValueOnce(
