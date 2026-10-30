@@ -95,6 +95,8 @@ const KYC_FEATURE_ACTIVATION_FIXTURES: Record<string, Fixture> = Object.fromEntr
                             firstUnanswered: 'purpose',
                         },
                     },
+                    // the missing answers open the feature's questions on /verify
+                    ...(state === 'questions_missing' ? { landsOn: `/verify?feature=${feature}` } : {}),
                     ...(state === 'failed' ? { fails: [key] } : {}),
                     rejects: {
                         'POST /users/kyc/start-action': {

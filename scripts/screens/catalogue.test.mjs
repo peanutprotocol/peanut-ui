@@ -26,7 +26,7 @@ test('open selectors are separate checkpoints and require a visible selected opt
     ]) {
         const screen = screens.find((screen) => screen.id === id)
         assert.ok(screen?.actions.length)
-        assert.match(screen.expectSelector, /\[aria-selected="true"\]/)
+        assert.match(screen.expectSelector, /\[aria-(selected|current)="true"\]/)
     }
     for (const screen of screens.filter((screen) => /Drawer\b/.test(screen.name) || screen.route.includes('drawer=')))
         assert.match(screen.expectSelector, /\[role="dialog"\]/)

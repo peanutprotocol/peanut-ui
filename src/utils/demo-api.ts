@@ -11,9 +11,20 @@ import {
 } from '@/constants/zerodev.consts'
 import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import {
+    BANKING_RESTRICTED_RESIDENCE_ISO2,
+    CARD_RESTRICTED_RESIDENCE_ISO2,
+    REFUSED_ID_ISSUER_ISO2,
+    RESTRICTED_RESIDENCE_ISO2,
+} from '@/constants/residence.consts'
 import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import type { RainCardFunding, RainFundingAccess } from '@/services/rain'
+import type { NotificationPreferences } from '@/services/notifications'
+import type { KycIntents } from '@/hooks/useKycIntents'
+import type { KycCollectedDetails } from '@/app/actions/types/kyc-paperwork-verification.types'
+import type { KycDocumentPlan, KycProfile } from '@/app/actions/types/kyc-workflow.types'
+import type { paths } from '@/types/api.generated'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -456,6 +467,125 @@ const DEMO_DEPOSIT_ACCOUNT_EUR = {
     },
 } satisfies DepositAccount
 
+type ApiJson<T> = T extends { responses: { 200: { content: { 'application/json': infer Body } } } } ? Body : never
+
+/**
+ * The demo user verified before Smart Paperwork Verification, so the API keeps
+ * them on today's flow: no question screens and no open attempt. The
+ * paperwork-verification fixtures lay the new flow over these answers.
+ */
+const DEMO_KYC_PLAN = {
+    available: false,
+    activeAttemptId: null,
+    policyVersion: 'code-2026-10-28',
+    features: { qr: true, local: true, card: true, bank: true },
+    routes: [],
+    flow: null,
+    needs: [],
+    proofOfAddress: null,
+    proofOfAddressReason: null,
+    proofOfAddressIdCountries: [],
+    documentRefusals: {},
+    documentTypeRefusals: {},
+    temporaryProtection: null,
+} satisfies Required<KycDocumentPlan>
+
+const DEMO_KYC_QUESTIONS = {
+    available: false,
+    attemptId: null,
+    residence: 'BR',
+    steps: [],
+    firstUnanswered: null,
+    progress: { done: 0, total: 0 },
+    needs: [],
+    closed: [],
+} satisfies ApiJson<paths['/users/kyc/questions']['get']>
+
+const DEMO_KYC_PROFILE = {
+    residence: {
+        verified: null,
+        declared: { country: 'BR', status: 'UNVERIFIED', updatedAt: null, secondCountry: null },
+        secondaryDeclaredCountry: null,
+    },
+    geo: null,
+    user: { email: 'demo@peanut.me', firstName: 'Demo', lastName: 'User', fullName: 'Demo User' },
+    identity: {
+        status: 'verified',
+        verificationId: '6f1c2a7e-3b4d-4e8f-9a0b-1c2d3e4f5a6b',
+        applicantId: 'demo-applicant',
+        canonicalStatus: 'APPROVED',
+    },
+    attempts: [],
+    providerAccounts: [],
+} satisfies KycProfile
+
+// Only answers every profile-details fixture also gives, so a fixture's own answers never mix with these.
+const DEMO_KYC_DETAILS = {
+    name: { first: 'Demo', last: 'User' },
+    nationality: 'BR',
+    idNationality: 'BR',
+    document: { type: 'ID_CARD', country: 'BRA' },
+    stored: {
+        dateOfBirth: '1992-03-18',
+        countryOfBirth: 'BR',
+        cityOfBirth: 'São Paulo',
+        phone: '+5511987654321',
+        occupation: 'software_developer_applications',
+        annualSalary: '25k_50k',
+        expectedMonthlyVolume: '1k_5k',
+        cardPurpose: 'personal_spending',
+    },
+    heldBySumsub: ['address', 'taxId'],
+} satisfies KycCollectedDetails
+
+// Tab-scoped like the avatar: a switch flipped in demo survives the next read.
+let demoNotificationPreferences: NotificationPreferences = {
+    push: true,
+    email: true,
+    marketingPush: false,
+    emailUpdates: true,
+    pushPermission: 'granted',
+}
+
+const MANTECA_LOCAL_RESIDENCES = new Set(['AR', 'BR'])
+
+/**
+ * GET /config/kyc-intents for a residence (and the ID's issuing country), from
+ * the restriction tiers that mirror the API's paperwork rules: sanctioned
+ * residences close Manteca, the UK and Bridge's refused residences close the
+ * bank, Rain's close the card, and local transfers open only in AR and BR.
+ */
+function demoKycIntents(residence: string, idCountry?: string): KycIntents {
+    const sanctioned = REFUSED_ID_ISSUER_ISO2.has(residence)
+    const documentRefused = !!idCountry && REFUSED_ID_ISSUER_ISO2.has(idCountry)
+    const intent = (refusal: NonNullable<KycIntents['qr']['reason']> | null) => {
+        const reason = refusal ?? (documentRefused ? 'document_country_unsupported' : null)
+        return reason ? { available: false, reason } : { available: true }
+    }
+    return {
+        qr: intent(sanctioned ? 'residence_sanctioned' : null),
+        local: intent(
+            sanctioned
+                ? 'residence_sanctioned'
+                : MANTECA_LOCAL_RESIDENCES.has(residence)
+                  ? null
+                  : 'local_residence_unsupported'
+        ),
+        card: intent(
+            RESTRICTED_RESIDENCE_ISO2.has(residence) || CARD_RESTRICTED_RESIDENCE_ISO2.has(residence)
+                ? 'geo-blocked'
+                : null
+        ),
+        bank: intent(
+            residence === 'GB'
+                ? 'uk_resident_blocked'
+                : RESTRICTED_RESIDENCE_ISO2.has(residence) || BANKING_RESTRICTED_RESIDENCE_ISO2.has(residence)
+                  ? 'residence_bank_restricted'
+                  : null
+        ),
+    }
+}
+
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // user
     {
@@ -498,6 +628,20 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/users/bridge-tos-link', handler: () => ({ tosLink: '' }) },
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
     { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
+    { method: 'GET', pattern: '/users/kyc/plan', handler: () => DEMO_KYC_PLAN },
+    { method: 'GET', pattern: '/users/kyc/questions', handler: () => DEMO_KYC_QUESTIONS },
+    { method: 'GET', pattern: '/users/kyc/profile', handler: () => DEMO_KYC_PROFILE },
+    { method: 'GET', pattern: '/users/kyc/details', handler: () => DEMO_KYC_DETAILS },
+    // the same report /users/me carries
+    { method: 'GET', pattern: '/users/kyc/features', handler: () => ({ features: DEMO_USER.capabilities?.features }) },
+    // Nothing newer than the stored status, so the profile's answer stands.
+    { method: 'POST', pattern: '/users/kyc/identity/refresh', handler: () => ({ status: null }) },
+    // The demo user's check is over, so no identity session reopens.
+    {
+        method: 'POST',
+        pattern: '/users/kyc/attempts/:attemptId/token',
+        handler: () => json({ code: 'verification_complete' }, 409),
+    },
     { method: 'POST', pattern: '/users/interaction-status', handler: () => ({}) },
     // No arrival prompt by default: the drawer shows only in the arrival-* fixtures.
     { method: 'POST', pattern: '/users/me/arrival', handler: () => ({ prompt: null }) },
@@ -861,6 +1005,24 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // notifications (support unread badge + mark-read only; the list page is gone)
     { method: 'GET', pattern: '/notifications/unread-count', handler: () => ({ count: 0 }) },
     { method: 'POST', pattern: '/notifications/mark-read', handler: () => ({}) },
+    { method: 'GET', pattern: '/notifications/preferences', handler: () => demoNotificationPreferences },
+    {
+        method: 'PUT',
+        pattern: '/notifications/preferences',
+        handler: ({ options }) => {
+            const { push, marketingPush, emailUpdates, pushPermission } = parseBody(
+                options
+            ) as Partial<NotificationPreferences>
+            demoNotificationPreferences = {
+                ...demoNotificationPreferences,
+                ...(push !== undefined && { push }),
+                ...(marketingPush !== undefined && { marketingPush }),
+                ...(emailUpdates !== undefined && { emailUpdates }),
+                ...(pushPermission !== undefined && { pushPermission }),
+            }
+            return demoNotificationPreferences
+        },
+    },
 
     // card
     {
@@ -1006,6 +1168,21 @@ export async function demoRespond(
             rate: '1',
             updatedAt: CREATED_AT,
             ...(destinationAmount ? { destinationAmount, sourceAmount: destinationAmount } : {}),
+        })
+    }
+
+    // What a residence can unlock depends on the residence in the query.
+    if (method === 'GET' && pathname === '/config/kyc-intents') {
+        const query = new URL(path, 'http://capture.invalid').searchParams
+        const [residence, idCountry] = [query.get('residence'), query.get('idCountry')].map((code) =>
+            code?.trim().toUpperCase()
+        )
+        if (!residence || ![residence, idCountry].every((code) => code === undefined || /^[A-Z]{2}$/.test(code)))
+            return json({ error: `Unknown country code: ${residence ?? ''}` }, 400)
+        return json({
+            residence,
+            ...(idCountry ? { idCountry } : {}),
+            intents: demoKycIntents(residence, idCountry),
         })
     }
 

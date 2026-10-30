@@ -319,6 +319,9 @@ const plan = (
     ],
 })
 
+// An approved identity leaves no attempt open: the API names only a READY, COLLECTING or IN_REVIEW one.
+const approvedPlan = (...args: Parameters<typeof plan>) => ({ ...plan(...args), activeAttemptId: null })
+
 const profile = (canonicalStatus: string) => ({
     identity: { verificationId: 'vo-identity', applicantId: null, canonicalStatus, status: 'pending' },
     attempts: [],
@@ -369,7 +372,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
         about: 'Add-later: a verified Argentine resident adds local transfers; Manteca’s missing answers on one screen.',
         responses: {
             'GET /users/kyc/questions': questions('AR', [DECLARATIONS, MANTECA_BIRTH], 'declarations'),
-            'GET /users/kyc/plan': plan(null, { qr: true, bank: false, local: false, card: true }),
+            'GET /users/kyc/plan': approvedPlan(null, { qr: true, bank: false, local: false, card: true }),
             'GET /users/kyc/profile': profile('APPROVED'),
         },
     },
@@ -412,7 +415,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
         about: 'Approved: "You’re verified!", next stop Home and adding money.',
         responses: {
             'GET /users/kyc/questions': questions('US', answered(US_STEPS), null),
-            'GET /users/kyc/plan': plan(),
+            'GET /users/kyc/plan': approvedPlan(),
             'GET /users/kyc/profile': profile('APPROVED'),
         },
     },
@@ -421,7 +424,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
         about: 'Rule 1: approved with an ID from another country than the residence and a bank account picked.',
         responses: {
             'GET /users/kyc/questions': questions('MX', answered(US_STEPS), null),
-            'GET /users/kyc/plan': plan('suggested'),
+            'GET /users/kyc/plan': approvedPlan('suggested'),
             'GET /users/kyc/profile': profile('APPROVED'),
         },
     },
@@ -434,7 +437,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
                 US_STEPS.filter((step) => step.features.includes('card')),
                 'purpose'
             ),
-            'GET /users/kyc/plan': plan(null, { qr: true, bank: true, local: false, card: false }),
+            'GET /users/kyc/plan': approvedPlan(null, { qr: true, bank: true, local: false, card: false }),
             'GET /users/kyc/profile': profile('APPROVED'),
         },
     },
@@ -480,7 +483,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
                 ],
                 'purpose'
             ),
-            'GET /users/kyc/plan': plan(null, { qr: true, bank: false, local: false, card: true }),
+            'GET /users/kyc/plan': approvedPlan(null, { qr: true, bank: false, local: false, card: true }),
             'GET /users/kyc/profile': profile('APPROVED'),
         },
     },

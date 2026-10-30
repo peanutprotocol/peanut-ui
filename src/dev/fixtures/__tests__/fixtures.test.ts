@@ -65,9 +65,8 @@ describe('fixture registry', () => {
     // route quietly rots a screenshot job.
     it('points every fixture at a route that exists', () => {
         for (const [name, fixture] of Object.entries(FIXTURES)) {
-            expect(routeExists(fixture.route) ? fixture.route : `${name} → missing ${fixture.route}`).toBe(
-                fixture.route
-            )
+            for (const route of [fixture.route, fixture.landsOn].filter((r): r is string => !!r))
+                expect(routeExists(route) ? route : `${name} → missing ${route}`).toBe(route)
         }
     })
 })

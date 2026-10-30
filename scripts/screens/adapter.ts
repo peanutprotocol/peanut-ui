@@ -6,6 +6,8 @@ import {
     BANKING_RESTRICTED_RESIDENCE_ISO2,
 } from '../../src/constants/residence.consts'
 import { FIXTURES } from '../../src/dev/fixtures/registry'
+import { withFixtureFeatureReport } from '../../src/dev/fixtures/featureReport'
+import type { IUserProfile } from '../../src/interfaces/interfaces'
 export const ADAPTER_VERSION = 'synthetic-api-v1'
 export function merge(base: unknown, patch: unknown): unknown {
     if (
@@ -26,16 +28,20 @@ export async function answer(fixture: string, path: string, method: string, body
     if (!state) throw new Error(`Unknown fixture ${fixture}`)
     const key = `${method} ${path.split('?')[0].replace(/\/+$/, '')}`
     if (state.fails?.includes(key)) return Response.json({ error: 'Synthetic failure' }, { status: 500 })
+    const rejection = state.rejects?.[key]
+    if (rejection) return Response.json(rejection.body, { status: rejection.status })
     const activationFixtureRoute =
         /^POST \/users\/kyc\/features\/(qr|bank|local|card)\/activate$/.test(key) ||
         key === 'GET /users/kyc/questions' ||
         key === 'GET /users/kyc/plan' ||
         key === 'GET /users/kyc/profile' ||
         key === 'POST /users/kyc/start-action'
-    if (activationFixtureRoute && fixture.startsWith('feature-activation-')) {
-        const rejection = state.rejects?.[key]
-        if (rejection) return Response.json(rejection.body, { status: rejection.status })
-        if (state.responses?.[key] !== undefined) return Response.json(state.responses[key])
+    if (activationFixtureRoute && fixture.startsWith('feature-activation-') && state.responses?.[key] !== undefined)
+        return Response.json(state.responses[key])
+    // The API's feature report is the one /users/me carries.
+    if (key === 'GET /users/kyc/features' && state.responses?.[key] === undefined) {
+        const user = (await (await answer(fixture, '/users/me', 'GET')).json()) as IUserProfile | null
+        return Response.json({ features: user?.capabilities?.features })
     }
     if (key === 'GET /notifications') return Response.json({ items: [], nextCursor: null })
     if (key === 'POST /invites/validate')
@@ -65,7 +71,9 @@ export async function answer(fixture: string, path: string, method: string, body
     const base = await demoRespond(path, { method, body }, { offline: true, strict: true })
     let data = await base.json()
     if (key === 'GET /users/me') data = merge(data, { user: { activationCelebratedAt: '2026-01-01T00:00:00Z' } })
-    return Response.json(state.responses?.[key] === undefined ? data : merge(data, state.responses[key]), {
-        status: base.status,
-    })
+    const override = state.responses?.[key]
+    let merged = override === undefined ? data : merge(data, override)
+    if (key === 'GET /users/me')
+        merged = withFixtureFeatureReport(merged as IUserProfile | null, override as Partial<IUserProfile> | null)
+    return Response.json(merged, { status: base.status })
 }
