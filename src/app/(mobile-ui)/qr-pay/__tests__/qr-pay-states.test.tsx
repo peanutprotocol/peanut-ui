@@ -359,6 +359,24 @@ jest.mock('@/utils/qr-payment.utils', () => ({
     isArgentinaMantecaQrPayment: jest.fn(() => false),
 }))
 
+// the Brazil pause, per test (its own suite covers who it covers). A store, so a
+// test can switch it on while a payment is already on screen.
+const mockBrazilPause = { on: false, listeners: new Set<() => void>() }
+const setBrazilPaused = (on: boolean) => {
+    mockBrazilPause.on = on
+    mockBrazilPause.listeners.forEach((listener) => listener())
+}
+jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
+    useBrazilServicesPaused: () =>
+        jest.requireActual('react').useSyncExternalStore(
+            (listener: () => void) => {
+                mockBrazilPause.listeners.add(listener)
+                return () => mockBrazilPause.listeners.delete(listener)
+            },
+            () => mockBrazilPause.on
+        ),
+}))
+
 jest.mock('@/features/kill-switches/kill-switches-store', () => {
     const killSwitches = { disabledPaymentProviders: [] as string[] }
     return { getKillSwitches: () => killSwitches, subscribeKillSwitches: () => () => {} }
@@ -1298,6 +1316,46 @@ describe('GROUP 2: Payment Form States', () => {
             // finally, not a trailing statement: a failed assertion above would otherwise
             // leak MANTECA into every later test through this module singleton.
             maintenanceConfig.disabledPaymentProviders = []
+        }
+    })
+
+    test('The Brazil pause shows its screen for a Pix code and never calls /init', async () => {
+        setBrazilPaused(true)
+        setupMantecaPayment()
+
+        try {
+            renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+
+            expect(await screen.findByText(en.brazilPause.title)).toBeInTheDocument()
+            expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
+        } finally {
+            setBrazilPaused(false)
+        }
+    })
+
+    test('A Pix payment made before the Brazil pause keeps showing its status', async () => {
+        setupMantecaPayment()
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******90' })
+        mockMantecaApi.savePixKey.mockResolvedValue({})
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockResolvedValue(SETTLING_PIX_PAYMENT)
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        renderQrPay({ qrCode: pixKeyToBRCode('maria@silva.com.br'), pixKey: 'maria@silva.com.br', type: 'PIX', t: '1' })
+
+        await screen.findByText('MARIA DA SILVA')
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => expect(screen.getByText('Payment is processing')).toBeInTheDocument())
+
+        try {
+            act(() => setBrazilPaused(true))
+
+            expect(screen.getByText('Payment is processing')).toBeInTheDocument()
+            expect(screen.queryByText(en.brazilPause.title)).not.toBeInTheDocument()
+            expect(screen.queryByText('Service Temporarily Unavailable')).not.toBeInTheDocument()
+        } finally {
+            setBrazilPaused(false)
         }
     })
 

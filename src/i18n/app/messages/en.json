@@ -4561,5 +4561,9 @@
         "peanutRole": "Self-custodial wallet software provider; not a party to provider trades",
         "cardRelationship": "You have a direct relationship with Third National under the card terms.",
         "cardRelationshipProspective": "When you accept the card terms, your relationship is directly with Third National."
+    },
+    "brazilPause": {
+        "title": "Brazil services paused",
+        "body": "Because of regulatory changes at the providers behind our Brazil services, BRL deposits, withdrawals and Pix payments are unavailable for now. We're adding a new provider to bring them back soon."
     }
 }
