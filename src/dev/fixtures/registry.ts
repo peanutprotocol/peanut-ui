@@ -92,6 +92,12 @@ const NAMED_BANK_ACCOUNTS = [
 
 // A PIX key saved to favorites after a payment, with the bank the PIX directory
 // named (TASK-23738). Offered under Send → Bank, never as a withdrawal.
+/** the Brazil pause switched on for a Brazil resident (TASK-24197) */
+const BRAZIL_PAUSED_RESPONSES = {
+    'GET /config/kill-switches': { brazilServicesPaused: true },
+    'GET /users/me': { residence: { declared: 'BR', verified: 'BR', pending: null, declaredSecond: null } },
+}
+
 const PIX_FAVORITE = {
     id: 'fixture-pix-favorite-1',
     userId: 'demo-user',
@@ -1156,6 +1162,12 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
+    // TASK-24197: tap the BRL row. The Brazil pause opens its drawer instead of the transfer.
+    'add-money-brazil-paused': {
+        route: '/add-money?method=bank',
+        about: 'Add money by bank during the Brazil pause: the BRL row opens the paused drawer.',
+        responses: BRAZIL_PAUSED_RESPONSES,
+    },
     // TASK-21375: Argentina's bank transfer and Mercado Pago open the same
     // screen, so the country offers one row.
     'add-money-argentina': {
@@ -1310,6 +1322,12 @@ export const FIXTURES: Record<string, Fixture> = {
                 ],
             },
         },
+    },
+    // TASK-24197: a Pix send reached by a link while the Brazil pause is on.
+    'withdraw-brazil-paused': {
+        route: '/withdraw/manteca?country=brazil&method=pix',
+        about: 'A Brazil Pix send during the Brazil pause: the paused screen instead of the key entry.',
+        responses: BRAZIL_PAUSED_RESPONSES,
     },
     // ?step=form names the screen; the amount is collected after it now.
     'withdraw-bank-form': {
