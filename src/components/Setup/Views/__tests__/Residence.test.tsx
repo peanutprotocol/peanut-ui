@@ -272,12 +272,18 @@ describe('ResidenceStep', () => {
     })
 
     it('says to verify with the residence card when the nationality’s passports are refused', () => {
-        mockSetupState = { residenceCountry: 'DE', nationalityCountry: 'RU' }
+        mockSetupState = { residenceCountry: 'DE', nationalityCountry: 'IR' }
         render(<ResidenceStep />)
-        expect(screen.getByText(/We can’t verify passports or ID cards from Russia/)).toHaveTextContent(
+        expect(screen.getByText(/We can’t verify passports or ID cards from Iran/)).toHaveTextContent(
             'Use your residence card from Germany'
         )
         expect(screen.queryByText(en.setup.residenceStep.hint)).not.toBeInTheDocument()
+    })
+
+    it('does not refuse a Russian passport, which still verifies everything but the card', () => {
+        mockSetupState = { residenceCountry: 'DE', nationalityCountry: 'RU' }
+        render(<ResidenceStep />)
+        expect(screen.queryByText(/We can’t verify passports or ID cards from/)).not.toBeInTheDocument()
     })
 
     it('reports the congrats outcome for an unrestricted residence and advances to the plan', () => {

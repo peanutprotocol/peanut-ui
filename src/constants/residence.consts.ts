@@ -43,9 +43,10 @@ export const RESTRICTED_RESIDENCE_ISO2 = new Set([
 /**
  * Passports and IDs these countries issue are refused at verification, so their
  * citizens verify with a document from where they live. Mirrors peanut-api-ts
- * `RESTRICTED_DOCUMENT_COUNTRIES` (src/kyc/paperwork/rules.ts).
+ * `RESTRICTED_DOCUMENT_COUNTRIES` (src/kyc/paperwork/rules.ts). A Russian ID still
+ * verifies, without the card (`peanut.russian-document`).
  */
-export const REFUSED_ID_ISSUER_ISO2: ReadonlySet<string> = new Set(['IR', 'RU', 'BY', 'KP', 'SY', 'CU', 'MM'])
+export const REFUSED_ID_ISSUER_ISO2: ReadonlySet<string> = new Set(['IR', 'BY', 'KP', 'SY', 'CU', 'MM'])
 
 /**
  * Card only: Rain's Platform Standards refused consumer residences, plus NG, LK
