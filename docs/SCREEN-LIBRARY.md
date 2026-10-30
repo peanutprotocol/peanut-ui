@@ -49,6 +49,42 @@ threshold or masking the drawer. Harness changes require both revisions to be
 recaptured with the same capture code; immutable older reports retain their
 original images and comparisons.
 
+## Copy coverage
+
+Every capture build records which app copy each state shows. `prepare.mjs`
+patches `IntlCore` so the message catalogue passes through a recorder the
+harness injects; a message counts as shown in a state only when the state
+resolved it and its literal text (case- and whitespace-insensitive) is on the
+page. Messages made only of placeholders count when resolved. Each captured
+state stores its shown keys; a capture whose `IntlCore` no longer matches the
+patch records `copyRecording: "unavailable"`.
+
+Full English captures publish `copy-coverage.json` next to their report: every
+app copy key, the states that show it, and the keys no state shows. The gallery
+reads it at `/screen-library/copy.html` (latest dev capture by default,
+`?path=<report path>` for any other).
+
+The trusted publisher adds a copy check to the Screen Library check on PRs:
+
+- copy added or changed in the PR must be shown by a captured state, in every
+  captured locale whose catalogue changed;
+- on full captures, every never-shown key must be listed in
+  `scripts/screens/copy-coverage-baseline.json`, and entries that are now shown
+  or deleted must be removed from it;
+- on targeted captures, a key shown before but no longer shown by the same
+  states fails;
+- the baseline only shrinks. Adding entries, and accepting changed copy without
+  a screenshot, needs `Screen Library copy exception: <reason>` on its own line
+  in the PR description.
+
+When the check fails, the PR comment lists the missing keys. Register a state
+that opens the drawer, modal or screen showing them, under `src/dev/fixtures/`,
+`src/dev/surfaces/` or `src/dev/screens/`, and the check reruns on the push.
+
+Regenerate the baseline from a complete English capture with
+`pnpm screens:copy-baseline <capture-dir>`. It keeps existing reasons, drops
+shown or deleted keys and only adds new keys with `--add-new`.
+
 ## Capture decisions and reuse
 
 The workflow classifies the immutable changed-file list before installing capture

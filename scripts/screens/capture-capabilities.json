@@ -2,5 +2,6 @@
     "scopedCapture": 1,
     "verifiedBaselineReuse": 1,
     "galleryMaintenance": 1,
-    "localeScope": 1
+    "localeScope": 1,
+    "copyCoverage": 1
 }

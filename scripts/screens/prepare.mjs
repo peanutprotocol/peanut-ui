@@ -2,6 +2,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { hash } from './core.mjs'
+import { COPY_RECORDER_MARKER } from './copy-recorder.mjs'
 export function prepare(source) {
     const recordPath = join(source, '.screen-capture-adapter.json')
     const previous = existsSync(recordPath) ? JSON.parse(readFileSync(recordPath, 'utf8')).changed : []
@@ -49,6 +50,14 @@ export function prepare(source) {
                 `(isDemoMode() || (typeof window !== 'undefined' && (window as unknown as {__screenCapture?: boolean}).__screenCapture === true)) ${marker}`
             )
         })
+    // Without the anchor the capture records copyRecording "unavailable" and the PR copy check fails closed.
+    edit('src/i18n/app/IntlCore.tsx', (s) => {
+        if (s.includes(COPY_RECORDER_MARKER)) return s
+        return s.replace(
+            /(<NextIntlClientProvider\b[^>]*?\bmessages=\{)messages\}/,
+            `$1(globalThis as unknown as { __screenCaptureCopy?: <T>(value: T) => T }).__screenCaptureCopy?.(messages) ?? messages ${COPY_RECORDER_MARKER}}`
+        )
+    })
     const records = new Map(previous.map((entry) => [entry.path, entry]))
     for (const entry of changed) records.set(entry.path, entry)
     writeFileSync(recordPath, JSON.stringify({ version: 1, changed: [...records.values()] }, null, 2))

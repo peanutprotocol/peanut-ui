@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex,nofollow" />
+        <title>Peanut · Copy coverage</title>
+        <link rel="stylesheet" href="/screen-library/viewer.css" />
+        <link rel="stylesheet" href="/screen-library/copy.css" />
+        <script defer src="/screen-library/copy.js"></script>
+    </head>
+    <body>
+        <header>
+            <a class="brand" href="/screens/">peanut <span>Screen library</span></a>
+            <a class="copy-nav" href="/screens/">All screens</a>
+        </header>
+        <main>
+            <p class="eyebrow">COPY COVERAGE</p>
+            <h1 id="copy-title">Which copy has a screenshot</h1>
+            <p id="copy-description">
+                A message counts as shown when a captured state renders it and its text is on the page. A change to any
+                other message has no screenshot to review.
+            </p>
+            <p id="copy-provenance" class="copy-provenance"></p>
+            <p id="copy-status" role="status">Loading copy coverage…</p>
+            <section id="copy-stats" class="copy-stats" aria-label="Coverage summary" hidden></section>
+            <nav id="copy-controls" class="copy-controls" aria-label="Filter copy" hidden>
+                <div class="copy-modes" role="group" aria-label="Show">
+                    <button type="button" data-mode="never" aria-pressed="true">Never shown</button>
+                    <button type="button" data-mode="shown" aria-pressed="false">Shown</button>
+                </div>
+                <label class="copy-search">
+                    <span class="visually-hidden">Search keys and text</span>
+                    <input id="copy-search" type="search" placeholder="Search keys and text" autocomplete="off" />
+                </label>
+                <label>
+                    <span class="visually-hidden">Namespace</span>
+                    <select id="copy-namespace"></select>
+                </label>
+                <label class="copy-toggle">
+                    <input id="copy-new-only" type="checkbox" />
+                    Only outside the baseline
+                </label>
+            </nav>
+            <p id="copy-count" class="copy-count" aria-live="polite"></p>
+            <div id="copy-list"></div>
+        </main>
+    </body>
+</html>
