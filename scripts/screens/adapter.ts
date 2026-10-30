@@ -1,5 +1,6 @@
 /** Capture-only API adapter. No historical components or styles are copied. */
 import { demoRespond } from '../../src/utils/demo-api'
+import { KYC_USER_READS } from '../../src/utils/demo-kyc'
 import {
     RESTRICTED_RESIDENCE_ISO2,
     CARD_RESTRICTED_RESIDENCE_ISO2,
@@ -38,10 +39,12 @@ export async function answer(fixture: string, path: string, method: string, body
         key === 'POST /users/kyc/start-action'
     if (activationFixtureRoute && fixture.startsWith('feature-activation-') && state.responses?.[key] !== undefined)
         return Response.json(state.responses[key])
-    // The API's feature report is the one /users/me carries.
-    if (key === 'GET /users/kyc/features' && state.responses?.[key] === undefined) {
+    // The KYC reads that follow from the user, read off this fixture's own /users/me.
+    const userRead = KYC_USER_READS[key]
+    if (userRead) {
         const user = (await (await answer(fixture, '/users/me', 'GET')).json()) as IUserProfile | null
-        return Response.json({ features: user?.capabilities?.features })
+        const override = state.responses?.[key]
+        return Response.json(override === undefined ? userRead(user) : merge(userRead(user), override))
     }
     if (key === 'GET /notifications') return Response.json({ items: [], nextCursor: null })
     if (key === 'POST /invites/validate')

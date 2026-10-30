@@ -138,6 +138,25 @@ test('the feature report follows each fixture’s own user, on /users/me and /us
     assert.deepEqual(newFeatures.body, { features: newUser.body.capabilities.features })
 })
 
+test('the KYC plan, profile and questions follow each fixture’s own user', () => {
+    const [demoPlan, demoProfile, newUser, newPlan, newProfile, newQuestions] = probe([
+        ['home', '/users/kyc/plan', 'GET'],
+        ['home', '/users/kyc/profile', 'GET'],
+        ['home-new-user', '/users/me', 'GET'],
+        ['home-new-user', '/users/kyc/plan', 'GET'],
+        ['home-new-user', '/users/kyc/profile', 'GET'],
+        ['home-new-user', '/users/kyc/questions', 'GET'],
+    ])
+    assert.equal(demoProfile.body.identity.canonicalStatus, 'APPROVED')
+    assert.equal(demoPlan.body.features.qr, true)
+    assert.equal(demoPlan.body.features.card, false)
+    assert.equal(newProfile.body.identity, null)
+    assert.equal(newProfile.body.user.fullName, newUser.body.user.fullName)
+    assert.deepEqual(newProfile.body.residence.declared, newUser.body.residence?.declared ?? null)
+    assert.equal(newPlan.body.features.card, true)
+    assert.equal(newQuestions.body.residence, newUser.body.residence?.declared?.country ?? null)
+})
+
 test('a fixture refusal answers with its status on any route', () => {
     const [refused] = probe([['qr-pay-kyc-required', '/manteca/qr-payment/init', 'POST']])
     assert.equal(refused.status, 400)
