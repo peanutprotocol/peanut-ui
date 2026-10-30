@@ -69,10 +69,10 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
     const data = await base.json().catch(() => ({}))
     let merged = override === undefined ? data : merge(data, override)
     if (key === 'GET /users/me') {
-        const fixtureUser = override as Partial<IUserProfile> | undefined
-        const user = merged as IUserProfile
+        const fixtureUser = override as Partial<IUserProfile> | null | undefined
+        const user = merged as IUserProfile | null
         // The baseline's report describes the demo rails, not this fixture's.
-        if (fixtureUser?.capabilities?.features === undefined && user.capabilities) {
+        if (fixtureUser?.capabilities?.features === undefined && user?.capabilities) {
             merged = {
                 ...user,
                 capabilities: {
