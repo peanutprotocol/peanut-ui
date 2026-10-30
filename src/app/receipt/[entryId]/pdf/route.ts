@@ -4,7 +4,7 @@ import { captureException } from '@sentry/nextjs'
 import { createTranslator } from 'next-intl'
 import { getHistoryEntry } from '@/app/actions/history'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
-import { servesAnonymousReceipt } from '@/components/TransactionDetails/transaction-predicates'
+import { hasPublicReceipt } from '@/components/TransactionDetails/transaction-predicates'
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
 import { isFinalState, type HistoryEntry } from '@/utils/history.utils'
 import { serverFetch } from '@/utils/api-fetch'
@@ -87,8 +87,8 @@ const notFound = () => new NextResponse('Not Found', { status: 404, headers: { '
 
 /**
  * GET /receipt/[entryId]/pdf — a downloadable, branded receipt document.
- * Existing public page kinds remain capability URLs; every other activity kind
- * requires owner/participant authentication enforced by the API.
+ * An entry the API marks as a public receipt is a capability URL; every other
+ * entry requires owner/participant authentication enforced by the API.
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ entryId: string }> }) {
     const { entryId } = await params
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Web can authenticate with its same-origin cookie; native explicitly
     // forwards the stored bearer through CapacitorHttp. The API remains the
-    // authority for participant access to non-public receipt kinds.
+    // authority for participant access to non-public receipts.
     const bearerHeader = request.headers.get('authorization')
     const cookieToken = request.cookies.get('jwt-token')?.value
     const authorization = bearerHeader ?? (cookieToken ? `Bearer ${cookieToken}` : undefined)
@@ -118,10 +118,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     try {
         const { transactionDetails } = mapTransactionDataForDrawer(entry)
-        // An anonymous request stays on the exact public-page whitelist. A
-        // bearer/cookie request may render a private kind only after the API's
-        // participant check returned the entry above.
-        const isPublicReceipt = servesAnonymousReceipt(transactionDetails)
+        // An anonymous request renders only an entry the API marked as a
+        // public receipt. A bearer/cookie request may render a private entry
+        // only after the API's participant check returned it above.
+        const isPublicReceipt = hasPublicReceipt(transactionDetails)
         if (!isPublicReceipt && !authorization) {
             return notFound()
         }

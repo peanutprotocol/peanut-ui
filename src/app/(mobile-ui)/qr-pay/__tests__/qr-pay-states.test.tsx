@@ -338,7 +338,11 @@ jest.mock('@/hooks/usePointsConfetti', () => ({
 
 jest.mock('@/utils/history.utils', () => ({
     completeHistoryEntry: jest.fn((e: any) => Promise.resolve(e)),
+    withPublicReceipt: jest.fn((receipt: any) => receipt),
 }))
+// the receipt reads its public-receipt flag from the history entry, which
+// this suite never loads (useQrReceipt.test.ts covers that read)
+jest.mock('@/hooks/useHistoryEntry', () => ({ useHistoryEntry: () => ({ data: undefined }) }))
 
 jest.mock('@/utils/general.utils', () => ({
     isTxReverted: jest.fn(() => false),

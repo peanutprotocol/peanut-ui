@@ -205,8 +205,8 @@ export function buildReceiptPdfModel(
     }
 
     // The payer's own reference on a bank deposit is NOT printed. It is free
-    // text a third party typed (up to 300 characters), and "Share receipt" sends
-    // this document onward. The owner still reads it in the receipt drawer.
+    // text a third party typed (up to 300 characters), and "Share receipt (PDF)"
+    // sends this document onward. The owner still reads it in the receipt drawer.
     // Temporary decision TD-12.
 
     // One rule for both the screen and this document — see receiptHeadlineAmount.

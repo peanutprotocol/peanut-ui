@@ -18,6 +18,7 @@ import {
     getAvatarUrl,
     getReceiptUrl,
     getTransactionSign,
+    withPublicReceipt,
 } from '../history.utils'
 import type { HistoryEntry } from '../history.utils'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -339,27 +340,60 @@ describe('getTransactionSign', () => {
 })
 
 /**
- * getReceiptUrl decides which kinds get a shareable /receipt page URL.
- * Locks the FIAT_RAIL_KINDS + SEND_LINK set so the predicate unification
- * can't silently grow or shrink the receipt-URL surface.
+ * getReceiptUrl gives the /receipt page URL to every entry the API marks as a
+ * public receipt (TASK-24141), and to no other.
  */
 describe('getReceiptUrl', () => {
-    const tx = (kind?: string, link?: string) =>
+    const tx = (kind: string | undefined, publicReceipt?: boolean, link?: string) =>
         ({
             id: 'entry-1',
-            extraDataForDrawer: { kind, link },
+            extraDataForDrawer: { kind, link, publicReceipt },
         }) as unknown as Parameters<typeof getReceiptUrl>[0]
 
-    it.each(['QR_PAY', 'ONRAMP', 'OFFRAMP', 'SEND_LINK'])('gives kind=%s a /receipt page URL', (kind) => {
-        expect(getReceiptUrl(tx(kind))).toContain(`/receipt/entry-1?kind=${kind}`)
+    it.each(['DIRECT_TRANSFER', 'P2P_REQUEST_FULFILL', 'QR_PAY', 'CARD_SPEND_CLEAR', 'SEND_LINK', 'CRYPTO_DEPOSIT'])(
+        'gives a public %s receipt its /receipt page URL',
+        (kind) => {
+            expect(getReceiptUrl(tx(kind, true), 'https://peanut.me')).toBe(
+                `https://peanut.me/receipt/entry-1?kind=${kind}`
+            )
+        }
+    )
+
+    it('gives no URL without the flag, whatever the kind', () => {
+        expect(getReceiptUrl(tx('QR_PAY'))).toBeUndefined()
+        expect(getReceiptUrl(tx('OFFRAMP', false))).toBeUndefined()
     })
 
-    it('falls back to the stamped link for non-receipt-page kinds', () => {
-        expect(getReceiptUrl(tx('DIRECT_TRANSFER', 'https://peanut.me/x'))).toBe('https://peanut.me/x')
+    it('never offers a stamped pay link as the receipt', () => {
+        expect(getReceiptUrl(tx('DIRECT_TRANSFER', undefined, 'https://peanut.me/x'))).toBeUndefined()
     })
 
-    it('returns undefined with no kind match and no stamped link', () => {
-        expect(getReceiptUrl(tx('CRYPTO_DEPOSIT'))).toBeUndefined()
+    it('gives no URL without a kind, which the page needs to resolve the entry', () => {
+        expect(getReceiptUrl(tx(undefined, true))).toBeUndefined()
+    })
+})
+
+/**
+ * A receipt a flow builds before the history entry loads (QR payment, payment
+ * success) takes the public-receipt flag from that entry.
+ */
+describe('withPublicReceipt', () => {
+    const receipt = {
+        id: 'qp1',
+        extraDataForDrawer: { originalType: 'TRANSACTION_INTENT', kind: 'QR_PAY', link: 'kept' },
+    } as unknown as TransactionDetails
+    const entry = (publicReceipt?: boolean) => ({ ...baseEntry, extraData: { kind: 'QR_PAY', publicReceipt } })
+
+    it("copies the entry's flag and keeps the receipt's own fields", () => {
+        const merged = withPublicReceipt(receipt, entry(true))
+        expect(merged.extraDataForDrawer).toEqual({ ...receipt.extraDataForDrawer, publicReceipt: true })
+        expect(merged.id).toBe('qp1')
+    })
+
+    it('leaves the receipt as it is before the entry loads, or when the entry has no public receipt', () => {
+        expect(withPublicReceipt(receipt, undefined)).toBe(receipt)
+        expect(withPublicReceipt(receipt, entry(false))).toBe(receipt)
+        expect(withPublicReceipt(receipt, entry())).toBe(receipt)
     })
 })
 
