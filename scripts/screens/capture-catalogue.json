@@ -1216,6 +1216,16 @@
         "route": "/history?tx=fixture-bank-request"
     },
     {
+        "id": "fixture-history-receipt-public-link",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-public-receipt-send"
+    },
+    {
+        "id": "fixture-history-qr-pay-public-link",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-public-receipt-qr-pay"
+    },
+    {
         "id": "fixture-arrival-qr-ar",
         "flow": "Payments",
         "route": "/home"
