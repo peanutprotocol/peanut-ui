@@ -5,7 +5,6 @@
 import { useNativePlatform } from '@/utils/native-platform'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { notFound, useRouter } from 'next/navigation'
-import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
@@ -27,8 +26,6 @@ import { isPwaSunsetOn, storeForDevice, storeIcon, trackStoreClick } from '@/uti
 import { captureSignupAttribution } from '@/utils/signup-attribution'
 import { parseMarketingQrHandoff } from '@/features/marketing-qr/contract'
 import { marketingQrAnalyticsAllowed } from '@/features/marketing-qr/consent'
-
-const FLAG_WAIT_MS = 4000
 
 export default function SmartStoreRedirect() {
     const nativePlatform = useNativePlatform()
@@ -82,25 +79,8 @@ export default function SmartStoreRedirect() {
     }, [router])
     const inNativeApp = mounted && nativePlatform.isNativeBridge
 
-    // Wait for PostHog before returning 404. The timeout also handles blocked analytics.
-    const [flagsSettled, setFlagsSettled] = useState(false)
-    useEffect(() => {
-        if (isNativeBridge()) return
-        if (isPwaSunsetOn()) {
-            setFlagsSettled(true)
-            return
-        }
-        const unsubscribe = posthog.onFeatureFlags(() => setFlagsSettled(true))
-        const timeout = setTimeout(() => setFlagsSettled(true), FLAG_WAIT_MS)
-        return () => {
-            unsubscribe?.()
-            clearTimeout(timeout)
-        }
-    }, [])
-
     const migrationOn = mounted && isPwaSunsetOn()
-    const settled = mounted && flagsSettled
-    const storeReady = (settled && migrationOn) || (mounted && marketingEntry)
+    const storeReady = migrationOn || (mounted && marketingEntry)
 
     const targetStore: StoreKind | null = mounted ? storeForDevice(deviceType) : null
 
@@ -133,7 +113,7 @@ export default function SmartStoreRedirect() {
 
     const [redirecting, setRedirecting] = useState(false)
     useEffect(() => {
-        if (inNativeApp || !settled || !migrationOn || !targetStore) return
+        if (inNativeApp || !migrationOn || !targetStore) return
         // iOS payloads need a clipboard write on tap. Android carries its payload in the URL.
         if (payload && targetStore === 'ios') return
         if (payload && targetStore === 'android') countHandoff('android')
@@ -142,11 +122,11 @@ export default function SmartStoreRedirect() {
         // Restore clickable buttons if the store does not open.
         const fallback = setTimeout(() => setRedirecting(false), 4000)
         return () => clearTimeout(fallback)
-    }, [inNativeApp, settled, migrationOn, targetStore, payload, storeHref, countHandoff])
+    }, [inNativeApp, migrationOn, targetStore, payload, storeHref, countHandoff])
 
     if (inNativeApp) return <Loading variant="mascot" coverFullScreen />
 
-    if (settled && !migrationOn && !marketingEntry) notFound()
+    if (mounted && !migrationOn && !marketingEntry) notFound()
 
     const stores: StoreKind[] = targetStore
         ? [targetStore, targetStore === 'ios' ? 'android' : 'ios']

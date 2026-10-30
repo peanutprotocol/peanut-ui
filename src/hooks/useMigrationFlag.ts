@@ -1,17 +1,14 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
 
 /**
- * Read the migration flag after hydration and subscribe to PostHog updates.
- * Vercel preview deployments (PR previews and staging) bypass the flag so web
- * signup stays open there. To QA the migration state locally, on staging or
- * on a preview, set localStorage['pwa-sunset'] = 'true' and reload.
+ * Is web signup closed here (see isPwaSunsetOn)? Vercel preview deployments
+ * (PR previews and staging) keep it open. To QA the closed state locally, on
+ * staging or on a preview, set localStorage['pwa-sunset'] = 'true' and reload.
  */
 export function useMigrationFlag(): boolean {
-    useFeatureFlags()
-    // Cached flags can resolve before hydration; match the server's flag-off HTML first.
+    // The QA override lives in localStorage; match the server's HTML on the first render.
     const [mounted, setMounted] = useState(false)
     useEffect(() => setMounted(true), [])
     return mounted && isPwaSunsetOn()

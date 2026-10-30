@@ -9,7 +9,8 @@ import { useFeatureFlags } from '@/hooks/useFeatureFlag'
  * into a broken SDK (the invisible July outage this is built for — see the
  * KYC_SDK_LAUNCH_* analytics events).
  *
- * Fails closed (false) until flags load, so the happy path never flickers.
+ * Reads false until PostHog answers (FLAG_DEFAULTS), so the happy path never
+ * flickers and a PostHog outage never blocks KYC.
  */
 export const KYC_DEGRADED_FLAG = 'kyc-verification-down'
 
