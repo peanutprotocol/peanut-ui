@@ -9,6 +9,7 @@ import { renderHook } from '@testing-library/react'
 import { useReceiptViewModel } from '../useReceiptViewModel'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import type { TransactionDetails } from '../transactionTransformer'
+import type { ReceiptSurface } from '../transaction-types'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
@@ -52,8 +53,12 @@ const withDrawer = (overrides: Record<string, unknown>, drawerOverrides: Record<
         extraDataForDrawer: { ...(baseTx.extraDataForDrawer as Record<string, unknown>), ...drawerOverrides },
     }) as unknown as TransactionDetails
 
-const renderConfig = (tx: TransactionDetails, isPublic = false) =>
-    renderHook(() => useReceiptViewModel(tx, { isPublic })).result.current.rowVisibilityConfig
+// a public receipt is always a page; an in-app one defaults to the drawer
+const renderConfig = (
+    tx: TransactionDetails,
+    isPublic = false,
+    surface: ReceiptSurface = isPublic ? 'page' : 'drawer'
+) => renderHook(() => useReceiptViewModel(tx, { isPublic, surface })).result.current.rowVisibilityConfig
 
 const senderSendLink = (status: string): TransactionDetails =>
     withDrawer({ status }, { originalUserRole: EHistoryUserRole.SENDER, kind: 'SEND_LINK' })
@@ -386,7 +391,8 @@ describe('useReceiptViewModel — provider', () => {
         { kind: 'OFFRAMP', provider: 'BRIDGE', bridgeFlow: 'BANK_SEND_LINK_CLAIM' }
     )
     const providerOf = (tx: TransactionDetails, isPublic: boolean) =>
-        renderHook(() => useReceiptViewModel(tx, { isPublic })).result.current.providerId
+        renderHook(() => useReceiptViewModel(tx, { isPublic, surface: isPublic ? 'page' : 'drawer' })).result.current
+            .providerId
 
     afterEach(() => {
         mockResidence = undefined
@@ -409,5 +415,30 @@ describe('useReceiptViewModel — provider', () => {
 
     test('a peanut-only send names no provider', () => {
         expect(providerOf(baseTx, false)).toBeNull()
+    })
+})
+
+/**
+ * The on-chain hash leaves the drawer (TASK-24141): the drawer is the short
+ * first view, and the full receipt (the receipt pages and the PDF) carries
+ * the Transaction ID.
+ */
+describe('Transaction ID row (TASK-24141)', () => {
+    const completedSend = withDrawer({ status: 'completed' }, { kind: 'DIRECT_TRANSFER' })
+
+    test('the drawer never shows it', () => {
+        expect(renderConfig(completedSend, false, 'drawer').txId).toBe(false)
+    })
+
+    test('the in-app receipt page shows it', () => {
+        expect(renderConfig(completedSend, false, 'page').txId).toBe(true)
+    })
+
+    test('the public receipt page shows it', () => {
+        expect(renderConfig(completedSend, true, 'page').txId).toBe(true)
+    })
+
+    test('a page shows no row when there is no hash', () => {
+        expect(renderConfig(withDrawer({ status: 'completed', txHash: undefined }, {}), false, 'page').txId).toBe(false)
     })
 })

@@ -363,3 +363,25 @@ describe('PaymentSuccessView — the settled network fee on the receipt', () => 
         )
     })
 })
+
+// TASK-24141: the receipt the flow built shares the same link as the one in
+// Activity, so it takes the API's public-receipt flag from the entry
+describe('PaymentSuccessView — the public receipt flag', () => {
+    it("carries the entry's flag onto the receipt and keeps the flow's own fields", () => {
+        mockEntry = historyEntry('CRYPTO_WITHDRAW', 'COMPLETED', {
+            networkFeeStatus: 'settled',
+            networkFeeUsd: 0,
+            publicReceipt: true,
+        })
+        renderWithdraw()
+        expect(lastReceipt().extraDataForDrawer).toEqual(
+            expect.objectContaining({ kind: 'CRYPTO_WITHDRAW', publicReceipt: true })
+        )
+        expect(lastReceipt().memo).toBe('rent for october')
+    })
+
+    it('has no public receipt before the entry loads', () => {
+        renderWithdraw()
+        expect(lastReceipt().extraDataForDrawer?.publicReceipt).toBeUndefined()
+    })
+})
