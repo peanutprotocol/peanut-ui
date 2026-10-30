@@ -25,7 +25,7 @@ export interface BridgeQuoteParams {
     recipient: string
     depositor: string
     mode: 'pay' | 'receive'
-    /** The charge this quote is for; lets the API apply the per-user cross-chain cap to the bridge path too. */
+    /** The charge this quote is for; lets the API bind the bridge quote to that charge, as on the SDA path. */
     context?: 'withdraw' | 'pay-request'
     contextId?: string
 }

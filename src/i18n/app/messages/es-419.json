@@ -1338,7 +1338,9 @@
             "requestNotFoundTitle": "Solicitud no encontrada",
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió.",
             "requestClosedTitle": "Esta solicitud está cerrada",
-            "externalPaymentNotConfirmed": "No se pudo confirmar este pago. Si el dinero salió de tu billetera, contacta a soporte."
+            "externalPaymentNotConfirmed": "No se pudo confirmar este pago. Si el dinero salió de tu billetera, contacta a soporte.",
+            "requestTokenNotAccepted": "Este enlace pide {symbol}. Las solicitudes solo se pueden pagar en USDC o USDT.",
+            "requestTokenRetired": "Esta solicitud ya no se puede pagar. Pide una nueva en USDC."
         },
         "bankTransfer": {
             "title": "Pagar por transferencia bancaria",

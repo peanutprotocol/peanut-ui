@@ -11,13 +11,15 @@ import {
 import { type ITokenPriceData } from '@/interfaces/interfaces'
 import * as Sentry from '@sentry/nextjs'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
-import { STABLE_COINS, supportedMobulaChains } from '@/constants/general.consts'
+import { STABLE_COINS } from '@/constants/general.consts'
 
 interface UseTokenPriceParams {
     tokenAddress: string | undefined
     chainId: string | undefined
     supportedChainsAndTokens: Record<string, ChainWithTokens>
     isPeanutWallet: boolean
+    /** false while no mounted flow reads the price: then nothing is fetched */
+    enabled?: boolean
 }
 
 /**
@@ -32,7 +34,8 @@ interface UseTokenPriceParams {
  * Handles three cases:
  * 1. Peanut Wallet USDC → always $1 (no API call)
  * 2. Known stablecoins → always $1 (no API call)
- * 3. Other tokens → fetch from Mobula API (with caching) - @dev note: mobula is a bit unreliable
+ * 3. Other tokens on an EVM chain → the API's /tokens/price (with caching).
+ *    A null price is a missing label: no withdrawal waits on it (TASK-23850).
  *
  * @returns TanStack Query result with token price data
  */
@@ -41,6 +44,7 @@ export const useTokenPrice = ({
     chainId,
     supportedChainsAndTokens,
     isPeanutWallet,
+    enabled = true,
 }: UseTokenPriceParams) => {
     // React Query v5 rejects `undefined` returns from queryFn with
     //   "Query data cannot be undefined. Please make sure to return a value
@@ -81,8 +85,9 @@ export const useTokenPrice = ({
                     } as ITokenPriceData
                 }
 
-                // Case 3: Check if chain is supported by Mobula
-                if (!supportedMobulaChains.some((chain) => chain.chainId == chainId)) {
+                // Case 3: the price API reads EVM chains only (numeric ids); Solana
+                // and Tron carry stablecoins alone, priced above
+                if (!/^\d+$/.test(chainId!)) {
                     return null
                 }
 
@@ -105,7 +110,7 @@ export const useTokenPrice = ({
                 return null
             }
         },
-        enabled: !!tokenAddress && !!chainId, // Only run when both are defined
+        enabled: enabled && !!tokenAddress && !!chainId, // Only run when both are defined
         staleTime: 60 * 1000, // 1 minute (prices don't change that often)
         gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
         refetchOnWindowFocus: true, // Refresh when user returns to tab
