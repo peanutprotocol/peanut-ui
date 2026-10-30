@@ -216,11 +216,13 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
 
     // Check if this payment provider is under maintenance
     const { disabledPaymentProviders } = useKillSwitches()
-    const isBrazilPaused = useBrazilServicesPaused() && qrType === EQrType.PIX
-    // the Brazil pause counts as an outage too, so no payment is started for a paused Pix code
     const isProviderDisabled = useMemo(() => {
-        return isBrazilPaused || (paymentProcessor ? disabledPaymentProviders.includes(paymentProcessor) : false)
-    }, [isBrazilPaused, paymentProcessor, disabledPaymentProviders])
+        return paymentProcessor ? disabledPaymentProviders.includes(paymentProcessor) : false
+    }, [paymentProcessor, disabledPaymentProviders])
+    const isBrazilPaused = useBrazilServicesPaused() && qrType === EQrType.PIX
+    // Neither an outage nor the Brazil pause starts a payment. The view keeps them
+    // apart: a payment made before the pause still shows its status (TASK-24197).
+    const blocksNewPayment = isProviderDisabled || isBrazilPaused
 
     const gate = useQrPayKycGate()
     const { kycGateState, shouldBlockPay } = gate
@@ -255,7 +257,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         enabled:
             !!lockedSpend &&
             !shouldBlockPay &&
-            !isProviderDisabled &&
+            !blocksNewPayment &&
             !isLoading &&
             !isSuccess &&
             !qrPayment &&
@@ -443,7 +445,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             !shouldBlockPay &&
             // The maintenance kill-switch is render-only below; without this the
             // doomed /init still fires on every scan during a provider outage.
-            !isProviderDisabled,
+            !blocksNewPayment,
         retry: (failureCount, error) => {
             /*
              * One predicate over one table (`init-error-classifier`), reading

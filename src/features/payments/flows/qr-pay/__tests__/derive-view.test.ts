@@ -17,7 +17,7 @@ const READY: QrPayViewInputs = {
 
 describe('deriveQrPayView: the Brazil pause', () => {
     it('shows the paused screen for a Pix code the pause covers', () => {
-        expect(deriveQrPayView({ ...READY, isBrazilPaused: true, isProviderDisabled: true })).toBe('BRAZIL_PAUSED')
+        expect(deriveQrPayView({ ...READY, isBrazilPaused: true })).toBe('BRAZIL_PAUSED')
     })
 
     it('comes before the verification screens: a paused user has nothing to verify for', () => {
