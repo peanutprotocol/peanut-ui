@@ -74,21 +74,4 @@ describe('localized copy hygiene', () => {
         expect(staleEntries(allowlist.marketing, marketing)).toEqual([])
         expect(staleEntries(allowlist.app, app)).toEqual([])
     })
-
-    // The closing "Send in seconds. Pay zero fees. Start right now." fold was an
-    // image with English alt text, so it stayed English on every locale.
-    it.each(SUPPORTED_LOCALES)('%s has the closing CTA as translated text', (locale) => {
-        const closingKeys = ['landingClosingHeadline', 'landingClosingSubline']
-        const missing = closingKeys.filter((key) => typeof marketing[locale][key] !== 'string')
-        const untranslated =
-            locale === DEFAULT_LOCALE ? [] : closingKeys.filter((key) => marketing[locale][key] === marketing.en[key])
-        expect({ missing, untranslated }).toEqual({ missing: [], untranslated: [] })
-    })
-
-    // The closer sets its opening words as the Knerd lockup; an accent that no
-    // longer opens the headline silently drops the fold to plain display type.
-    it.each(SUPPORTED_LOCALES)('%s closing accent opens the closing headline', (locale) => {
-        const { landingClosingHeadline, landingClosingAccent } = marketing[locale]
-        expect(landingClosingHeadline.startsWith(landingClosingAccent)).toBe(true)
-    })
 })
