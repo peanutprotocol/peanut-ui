@@ -48,24 +48,21 @@ export function isSplittable(transaction: TransactionDetails): boolean {
 }
 
 /** Kinds that move money across a fiat rail: bank on/off-ramps + QR pays.
- *  The single anchor for the receipt-page whitelist (`getReceiptUrl`), the
- *  share gate (`hasShareableReceipt`), and the FX predicate
- *  (`isFxBearingFlow`) — previously three hand-kept copies of this set. */
+ *  The anchor for the FX predicate (`isFxBearingFlow`). */
 export const FIAT_RAIL_KINDS: ReadonlySet<string> = new Set(['QR_PAY', 'ONRAMP', 'OFFRAMP'])
 
-// Shareable receipts: QR payments + bank on/off-ramps. Kept as its own
-// predicate so "shareable" can diverge from "fiat rail" later without a sweep.
-export function hasShareableReceipt(transaction: TransactionDetails): boolean {
-    const k = kindOf(transaction)
-    return !!k && FIAT_RAIL_KINDS.has(k)
-}
-
-/** Kinds served by the dedicated /receipt/[entryId] page — and therefore by
- *  its /pdf twin: the fiat rails + SEND_LINK. Single anchor for
- *  `getReceiptUrl`'s whitelist and the Download-PDF gate. */
-export function hasReceiptPage(transaction: TransactionDetails): boolean {
-    const k = kindOf(transaction)
-    return k === 'SEND_LINK' || (!!k && FIAT_RAIL_KINDS.has(k))
+/**
+ * The API serves this entry on the public receipt page and its PDF to anyone
+ * with the link. The one gate for the receipt link, the link share and the
+ * anonymous PDF (TASK-24141).
+ *
+ * The API decides it per entry and sends it as `extraData.publicReceipt`. The
+ * UI keeps no kind list of its own: the list used to live in five places
+ * across the two repos, and P2P sends had no link because one copy missed
+ * them. An API that does not send the flag gets no public receipt.
+ */
+export function hasPublicReceipt(transaction: TransactionDetails): boolean {
+    return transaction.extraDataForDrawer?.publicReceipt === true
 }
 
 /** The keys `GET /history/:id` resolves a crypto deposit by. */
@@ -93,18 +90,6 @@ export function hasResolvableReceiptDocument(transaction: TransactionDetails): b
     if (kindOf(transaction) !== 'CRYPTO_DEPOSIT') return true
     const id = transaction.id ?? ''
     return RECEIPT_UUID_KEY.test(id) || RECEIPT_EVM_TX_KEY.test(id) || RECEIPT_DEPOSIT_ROW_KEY.test(id)
-}
-
-/**
- * Kinds a receipt serves to a reader with no session.
- *
- * The dedicated page already serves a crypto deposit anonymously, and the API
- * treats it as public, but the document gates read `hasReceiptPage` — which
- * does not list it. So the page rendered with no Download affordance and its
- * PDF twin answered 404: a receipt page carrying no document.
- */
-export function servesAnonymousReceipt(transaction: TransactionDetails): boolean {
-    return hasReceiptPage(transaction) || kindOf(transaction) === 'CRYPTO_DEPOSIT'
 }
 
 // Renders "Completed" label for the timestamp row instead of "Sent"/"Received".
