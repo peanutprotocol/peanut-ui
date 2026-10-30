@@ -30554,6 +30554,40 @@
                 "responses": {
                     "204": {
                         "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "errors": {
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            },
+                                            "type": "object"
+                                        },
+                                        "step": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
                     }
                 }
             }
@@ -30905,6 +30939,40 @@
                                         "needs",
                                         "closed"
                                     ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "errors": {
+                                            "additionalProperties": {
+                                                "type": "string"
+                                            },
+                                            "type": "object"
+                                        },
+                                        "step": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "userMessage": {
+                                            "type": "string"
+                                        }
+                                    },
                                     "type": "object"
                                 }
                             }

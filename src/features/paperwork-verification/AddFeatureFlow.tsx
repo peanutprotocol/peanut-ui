@@ -10,6 +10,7 @@ import {
     savePaperworkVerificationFeatures,
     type FeatureIntentsResult,
 } from '@/app/actions/kyc-paperwork-verification'
+import { isKycFlowHandedBack } from '@/app/actions/kyc-flow-hand-back'
 import { getKycDocumentPlan } from '@/app/actions/kyc-workflow'
 import type {
     PaperworkVerificationFeature,
@@ -89,6 +90,8 @@ export function AddFeatureQuestions({
     )
     // Called once per finish, whatever the parent re-renders with.
     const onDoneRef = useRef(onDone)
+    const onBackRef = useRef(onBack)
+    onBackRef.current = onBack
     onDoneRef.current = onDone
     const onReadyRef = useRef(onReady)
     onReadyRef.current = onReady
@@ -141,7 +144,8 @@ export function AddFeatureQuestions({
                     steps.filter((s) => ids.includes(s.id))
                 )
                 setState({ kind: 'asking', screens, at: 0, residence: questions.residence })
-            } catch {
+            } catch (error) {
+                if (isKycFlowHandedBack(error)) return onBackRef.current()
                 track(ANALYTICS_EVENTS.KYC_PV_LOAD_FAILED)
                 setState({ kind: 'failed' })
             }

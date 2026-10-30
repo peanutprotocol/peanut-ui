@@ -15008,6 +15008,22 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                            userMessage?: string;
+                        };
+                    };
+                };
             };
         };
         delete?: never;
@@ -15071,6 +15087,22 @@ export interface paths {
                                 }[];
                                 id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax";
                             }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                            userMessage?: string;
                         };
                     };
                 };

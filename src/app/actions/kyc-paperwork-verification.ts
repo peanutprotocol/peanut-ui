@@ -15,6 +15,7 @@ import type {
     PaperworkVerificationQuestions,
     PaperworkVerificationStepId,
 } from './types/kyc-paperwork-verification.types'
+import { KycFlowHandedBackError } from './kyc-flow-hand-back'
 
 const featureQuery = (feature?: PaperworkVerificationFeature) => (feature ? `?feature=${feature}` : '')
 
@@ -52,12 +53,16 @@ const codeOf = (body: { code?: unknown; error?: unknown } | null): string | null
 const userMessageOf = (body: { userMessage?: unknown } | null): { message?: string } =>
     typeof body?.userMessage === 'string' && body.userMessage.trim() ? { message: body.userMessage } : {}
 
-export async function skipProofOfAddress(): Promise<boolean> {
+const handedBack = (response: Response, body: { code?: unknown; error?: unknown } | null) =>
+    response.status === 409 && codeOf(body) === 'existing_verification'
+
+export async function skipProofOfAddress(): Promise<'skipped' | 'handed_back' | 'failed'> {
     try {
         const response = await call('/users/kyc/proof-of-address/skip', 'poa_skip', { method: 'POST', body: '{}' })
-        return response.ok
+        if (response.ok) return 'skipped'
+        return handedBack(response, await json(response)) ? 'handed_back' : 'failed'
     } catch {
-        return false
+        return 'failed'
     }
 }
 
@@ -85,8 +90,9 @@ export async function searchKycPlaces(country: string, query: string): Promise<K
 
 export async function getKycQuestions(feature?: PaperworkVerificationFeature): Promise<PaperworkVerificationQuestions> {
     const response = await call(`/users/kyc/questions${featureQuery(feature)}`, 'questions_read')
-    const body = response.ok ? await json(response) : null
-    if (!body || typeof body.available !== 'boolean' || !Array.isArray(body.steps)) {
+    const body = await json(response)
+    if (handedBack(response, body)) throw new KycFlowHandedBackError()
+    if (!response.ok || !body || typeof body.available !== 'boolean' || !Array.isArray(body.steps)) {
         if (response.ok)
             Sentry.captureException(new Error('Invalid KYC questions response'), {
                 tags: { ...criticalFlowTags('kyc'), kyc_step: 'questions_read' },

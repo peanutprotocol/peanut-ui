@@ -5,6 +5,7 @@ import {
     skipProofOfAddress,
     startPaperworkVerificationIdentity,
 } from '@/app/actions/kyc-paperwork-verification'
+import { isKycFlowHandedBack } from '@/app/actions/kyc-flow-hand-back'
 import { serverFetch } from '@/utils/api-fetch'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
@@ -232,7 +233,7 @@ describe('savePaperworkVerificationFeatures', () => {
 describe('skipProofOfAddress', () => {
     it('POSTs the skip request with the Smart Paperwork Verification header and private no-store fetch options', async () => {
         mockFetch.mockResolvedValue(reply(204, null))
-        await expect(skipProofOfAddress()).resolves.toBe(true)
+        await expect(skipProofOfAddress()).resolves.toBe('skipped')
         expect(mockFetch).toHaveBeenCalledWith(
             '/users/kyc/proof-of-address/skip',
             expect.objectContaining({
@@ -245,13 +246,33 @@ describe('skipProofOfAddress', () => {
         )
     })
 
-    it('returns false for an unsuccessful response', async () => {
+    it('reports a failure for an unsuccessful response', async () => {
         mockFetch.mockResolvedValue(reply(500, null))
-        await expect(skipProofOfAddress()).resolves.toBe(false)
+        await expect(skipProofOfAddress()).resolves.toBe('failed')
     })
 
-    it('returns false for a rejected request', async () => {
+    it('reports a failure for a rejected request', async () => {
         mockFetch.mockRejectedValue(new Error('offline'))
-        await expect(skipProofOfAddress()).resolves.toBe(false)
+        await expect(skipProofOfAddress()).resolves.toBe('failed')
+    })
+
+    it("reports a user the API handed back to today's flow", async () => {
+        mockFetch.mockResolvedValue(reply(409, { code: 'existing_verification' }))
+        await expect(skipProofOfAddress()).resolves.toBe('handed_back')
+    })
+})
+
+describe("a user handed back to today's flow", () => {
+    it('makes the questions read throw the hand-back error, not the generic one', async () => {
+        mockFetch.mockResolvedValue(reply(409, { code: 'existing_verification' }))
+        const error = await getKycQuestions().catch((e: unknown) => e)
+        expect(isKycFlowHandedBack(error)).toBe(true)
+    })
+
+    it('keeps the generic error for any other refusal', async () => {
+        mockFetch.mockResolvedValue(reply(409, { code: 'feature_not_selected' }))
+        const error = await getKycQuestions().catch((e: unknown) => e)
+        expect(isKycFlowHandedBack(error)).toBe(false)
+        expect(error).toEqual(new Error('KYC questions unavailable'))
     })
 })

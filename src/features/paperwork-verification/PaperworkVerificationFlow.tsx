@@ -18,6 +18,7 @@ import {
     savePaperworkVerificationFeatures,
     skipProofOfAddress,
 } from '@/app/actions/kyc-paperwork-verification'
+import { isKycFlowHandedBack } from '@/app/actions/kyc-flow-hand-back'
 import { findKycDocumentPlan, getKycDocumentStatus, refreshKycIdentityStatus } from '@/app/actions/kyc-workflow'
 import type { SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type {
@@ -97,6 +98,15 @@ function cachedLoad(queryClient: QueryClient): Loaded | null {
 }
 
 /** The screens a load opens on: a fresh read that differs from the cached one reopens the flow. */
+/** The questions, or null when they cannot be read; a user handed back to today's flow goes to Home. */
+const readQuestions = (router: { replace: (href: string) => void }) =>
+    getKycQuestions().catch((error: unknown) => {
+        if (isKycFlowHandedBack(error)) router.replace('/home')
+        return null
+    })
+
+const HANDED_BACK = 'handed_back' as const
+
 const shapeOf = ({ questions, plan, status }: Loaded) =>
     JSON.stringify([
         entryStep({ questions, plan, status }, false),
@@ -158,11 +168,15 @@ export function PaperworkVerificationFlow() {
         try {
             const [questions, plan, status] = await Promise.all([
                 // an older account the questions cannot be built for yet answers the setup screens first
-                getKycQuestions().catch(() => null),
+                getKycQuestions().catch((error: unknown) => (isKycFlowHandedBack(error) ? HANDED_BACK : null)),
                 // a plan that cannot be read throws: the retry screen, not Home
                 findKycDocumentPlan('verify'),
                 readIdentityStatus(),
             ])
+            if (questions === HANDED_BACK) {
+                routerRef.current.replace('/home')
+                return
+            }
             if (plan?.flow === PAPERWORK_VERIFICATION_FLOW && plan.needs?.length) {
                 setState({ kind: 'setup', needs: plan.needs })
                 return
@@ -374,7 +388,7 @@ function PaperworkVerificationSteps({
         settled.current = saves.current.then(async () => {
             if (submission !== submissions.current || saveRefused.current) return
             const [freshQuestions, freshPlan] = await Promise.all([
-                getKycQuestions().catch(() => null),
+                readQuestions(router),
                 findKycDocumentPlan('verify').catch(() => null),
             ])
             if (submission !== submissions.current || saveRefused.current) return
@@ -467,7 +481,7 @@ function PaperworkVerificationSteps({
         }
         let attemptId = identity.attemptIdRef.current ?? questions.attemptId ?? plan?.activeAttemptId ?? null
         if (!attemptId) {
-            const fresh = await getKycQuestions().catch(() => null)
+            const fresh = await readQuestions(router)
             if (fresh) setQuestions(fresh)
             attemptId = fresh?.attemptId ?? null
         }
@@ -497,7 +511,7 @@ function PaperworkVerificationSteps({
             setDocumentRequired(false)
             setStatus('NOT_STARTED')
             setSubmitted(false)
-            const fresh = await getKycQuestions().catch(() => null)
+            const fresh = await readQuestions(router)
             if (fresh) setQuestions(fresh)
             const target = outcome.step ?? (fresh && resumeStep(fresh))
             if (target && outcome.message) setReturned({ step: target, message: outcome.message })
@@ -550,7 +564,7 @@ function PaperworkVerificationSteps({
         if (!approved || approvedAtOpen.current || approvalHandled.current) return
         approvalHandled.current = true
         void fetchUser()
-        void Promise.all([findKycDocumentPlan().catch(() => null), getKycQuestions().catch(() => null)]).then(
+        void Promise.all([findKycDocumentPlan().catch(() => null), readQuestions(router)]).then(
             ([fresh, freshQuestions]) => {
                 const addLater = freshQuestions && featureOpenAfterApproval(freshQuestions, status)
                 if (addLater) {
@@ -764,6 +778,7 @@ function ProofOfAddressStep({
     onUploadStarted: () => void
 }) {
     const flow = useSumsubKycFlow({ onKycSuccess: () => onDone('uploaded') })
+    const router = useRouter()
     return (
         <>
             <ProofOfAddressScreen
@@ -777,7 +792,9 @@ function ProofOfAddressStep({
                 }}
                 onSkip={() => {
                     // Best effort: a failed save only means the suggestion can come back next visit.
-                    void skipProofOfAddress()
+                    void skipProofOfAddress().then((outcome) => {
+                        if (outcome === 'handed_back') router.replace('/home')
+                    })
                     onDone('skipped')
                 }}
             />
