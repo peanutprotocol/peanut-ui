@@ -168,6 +168,9 @@ function contentSecurityPolicyReportOnly(includeReporting = true) {
             'https://pbs.twimg.com',
             // Only reached in the SDK's single-embed mode; see frame-src below.
             'https://api.typeform.com',
+            // Rhino's public token list, which recover funds reads balances for
+            // (useRecoverableBalances, TASK-23850)
+            'https://api.rhino.fi',
             ...chainRpcHosts,
         ].join(' '),
         // Bridge is the terms-of-service iframe BridgeTosStep renders through

@@ -10,7 +10,7 @@
 // CALL plus any `PEANUT_API_URL` reference in the same non-test source file.
 // That also catches URLs assembled in a variable before the call, and the
 // NEXT_PUBLIC_PEANUT_API_URL env var read. fetchWithSentry/fetch against
-// non-Peanut hosts (Uniswap, Mobula, JustaName health probes) is fine and
+// non-Peanut hosts (Uniswap, Rhino, JustaName health probes) is fine and
 // does not trip this. `apiFetch(`, `serverFetch(`, `refetch(` etc. do not
 // match the bare-fetch pattern (word boundary).
 //

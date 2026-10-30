@@ -33,11 +33,12 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     // quota noise and is not: it is the only alert for the open FX-stampede P2
     // behind it. It reports until the keyed single-flight fix in no-cache.ts
     // lands.
-    // /tokens/price 404 means the upstream price provider declined the lookup —
-    // in practice a Mobula 429. The UI falls back to token denomination, so it is
-    // a degraded display, never a wrong number. The backend already downgraded
-    // its own log to warn for this exact reason (PEANUT-API-75); reporting it
-    // from the client re-created the same page-per-lookup noise as PEANUT-UI-QKY.
+    // /tokens/price 404 means the API has no fresh price for the token right
+    // now. The UI then shows no USD label, so it is a degraded display, never a
+    // wrong number: no withdrawal or request payment reads it (TASK-23850). The
+    // backend already downgraded its own log to warn for this exact reason
+    // (PEANUT-API-75); reporting it from the client re-created the same
+    // page-per-lookup noise as PEANUT-UI-QKY.
     { pattern: /\/tokens\/price\/?(?:[?#]|$)/, statuses: [404] },
     // Public FX pair misses and validation failures are expected user/input
     // outcomes, not backend incidents. 503 is included deliberately: it means a

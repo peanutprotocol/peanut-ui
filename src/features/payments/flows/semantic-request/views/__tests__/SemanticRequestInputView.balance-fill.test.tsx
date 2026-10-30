@@ -1,11 +1,7 @@
 /**
- * TASK-22452: the balance row fills the amount field from a USD balance, so it
- * is only offered while the field is USD too. A url that names a token
- * (/alice/eth) makes the field token-denominated, and then the two can never
- * agree — passing the USD total raw entered "100 ETH" for a $100 balance, and
- * converting it runs into AmountInput's 2-decimal floor, which drops 0.025 ETH
- * to 0.02 and anything under 0.01 token to nothing. Both were caught in review.
- * The token case therefore gets no fill; these lock that.
+ * TASK-22452: the balance row fills the amount field from a USD balance. The
+ * field is always USD: a request is paid in USDC or USDT only (TASK-23850), so
+ * the token-denominated field that could not take a USD fill is gone.
  */
 import React from 'react'
 import { screen } from '@testing-library/react'
@@ -51,9 +47,6 @@ const setFlow = (over: Record<string, unknown>) => {
             parsedUrl: null,
             chargeIdFromUrl: null,
             isAmountFromUrl: false,
-            urlToken: null,
-            tokenUsdPrice: undefined,
-            isTokenDenominated: false,
             error: { showError: false, errorMessage: '' },
             formattedBalance: '100.00',
             balanceFillAmount: 100,
@@ -69,8 +62,6 @@ const setFlow = (over: Record<string, unknown>) => {
     )
 }
 
-const ETH = { symbol: 'eth', decimals: 18 }
-
 describe('SemanticRequestInputView balance fill', () => {
     it('fills the usd balance as-is on a usd-denominated request', () => {
         setFlow({})
@@ -79,25 +70,6 @@ describe('SemanticRequestInputView balance fill', () => {
         const input = screen.getByTestId('amount-input')
         expect(input).toHaveAttribute('data-symbol', '$')
         expect(input).toHaveAttribute('data-balance-fill', '100')
-    })
-
-    it('never fills a usd balance into a token-denominated field', () => {
-        // the field is ETH; the balance row is usd. "100" here would read as
-        // 100 ETH, and converting it loses most of the balance to the 2-decimal
-        // floor — so the row stays plain text.
-        setFlow({ isTokenDenominated: true, urlToken: ETH, tokenUsdPrice: 2500 })
-        renderWithIntl(<SemanticRequestInputView />)
-
-        const input = screen.getByTestId('amount-input')
-        expect(input).toHaveAttribute('data-symbol', 'ETH')
-        expect(input).not.toHaveAttribute('data-balance-fill')
-    })
-
-    it('offers no fill on a token url whose price has not arrived', () => {
-        setFlow({ isTokenDenominated: true, urlToken: ETH, tokenUsdPrice: undefined })
-        renderWithIntl(<SemanticRequestInputView />)
-
-        expect(screen.getByTestId('amount-input')).not.toHaveAttribute('data-balance-fill')
     })
 
     it('offers no fill to a logged-out visitor', () => {

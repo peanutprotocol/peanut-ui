@@ -37,8 +37,6 @@ const ctx = {
     isAmountFromUrl: false,
     isTokenFromUrl: false,
     isChainFromUrl: false,
-    urlToken: null as { symbol: string; address: string; chainId: string } | null,
-    isTokenDenominated: false,
     attachment: {},
     setAttachment: jest.fn(),
     charge: originalCharge as typeof originalCharge | null,
@@ -133,6 +131,7 @@ jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_CHAIN: { id: 42161 },
     PEANUT_WALLET_TOKEN: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
     PEANUT_WALLET_TOKEN_DECIMALS: 6,
+    PEANUT_WALLET_TOKEN_SYMBOL: 'USDC',
 }))
 jest.mock('@/hooks/useFriendlyError', () => ({ useFriendlyError: () => (e: unknown) => String(e) }))
 jest.mock('@tanstack/react-query', () => ({

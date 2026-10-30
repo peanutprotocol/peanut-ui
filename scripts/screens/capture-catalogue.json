@@ -1529,6 +1529,21 @@
         "route": "/pay-request?chargeId=demo-open-charge"
     },
     {
+        "id": "fixture-pay-request-eth-link",
+        "flow": "Payments",
+        "route": "/send?recipient=0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed%40base%2F0.1eth"
+    },
+    {
+        "id": "fixture-pay-request-eth-charge",
+        "flow": "Payments",
+        "route": "/pay-request?chargeId=demo-eth-charge"
+    },
+    {
+        "id": "fixture-pay-request-address-tokens",
+        "flow": "Payments",
+        "route": "/send?recipient=0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
+    },
+    {
         "id": "fixture-pay-request-pot-partial-success",
         "flow": "Payments",
         "route": "/pay-request?id=demo-request"
@@ -1655,6 +1670,11 @@
     },
     {
         "id": "fixture-withdraw-crypto-destination",
+        "flow": "Withdraw",
+        "route": "/withdraw/crypto"
+    },
+    {
+        "id": "fixture-withdraw-crypto-eth-no-price",
         "flow": "Withdraw",
         "route": "/withdraw/crypto"
     },

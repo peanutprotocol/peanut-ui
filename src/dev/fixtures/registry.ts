@@ -1369,6 +1369,15 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Crypto withdrawal: select the token, network and address before entering an amount.',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
     },
+    // TASK-23850: every token price lookup fails, as when Mobula refused every
+    // call. Pick ETH, then Base, and enter an address: Continue still works,
+    // because a withdrawal needs the chain's withdraw list, not a price.
+    'withdraw-crypto-eth-no-price': {
+        route: '/withdraw/crypto',
+        about: 'Crypto withdrawal while every token price lookup fails: ETH on Base still continues.',
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
+        fails: ['GET /tokens/price'],
+    },
     // Crypto address book beside the saved bank accounts. The three entries hit
     // the three last-used pill tones against the shots' frozen clock
     // (2026-08-15): <7d recent, 7-30d aging, 30+d stale.
@@ -3502,6 +3511,40 @@ export const FIXTURES: Record<string, Fixture> = {
                 },
             },
         },
+    },
+    // TASK-23850: a request is paid in USDC or USDT only. A link that asks for
+    // ETH is refused and says why; it is never paid in USDC instead. Opened
+    // through /send?recipient=, the route a native app and a scan use.
+    'pay-request-eth-link': {
+        route: '/send?recipient=0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed%40base%2F0.1eth',
+        about: 'A request link that asks for ETH: refused, requests are paid in USDC or USDT only.',
+    },
+    // An ETH request made before TASK-23850, opened by its charge id, which
+    // skips the URL parser: it can't be paid anymore and never opens Confirm.
+    'pay-request-eth-charge': {
+        route: '/pay-request?chargeId=demo-eth-charge',
+        about: "An ETH request opened by its charge id: it can't be paid anymore (TASK-23850).",
+        responses: {
+            'GET /request-charges/demo-eth-charge': {
+                transactionType: 'REQUEST',
+                chainId: '8453',
+                tokenAddress: '0x0000000000000000000000000000000000000000',
+                tokenSymbol: 'ETH',
+                tokenDecimals: 18,
+                tokenType: 'native',
+                tokenAmount: '0.01',
+                currencyAmount: '25',
+                requestLink: { recipientAddress: '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed' },
+            },
+        },
+    },
+    // Tap Token: the request payment offers USDC and USDT, never ETH (TASK-23850).
+    // Cross-chain send is on here: its kill switch (on by default) locks the
+    // picker to USDC on Arbitrum.
+    'pay-request-address-tokens': {
+        route: '/send?recipient=0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
+        about: 'Paying a request to an address: the token picker offers USDC and USDT, not ETH.',
+        responses: { 'GET /config/kill-switches': { disableXchainSend: false } },
     },
     'pay-request-pot-partial-success': {
         // The pay screen of a part-paid €88 pot. Tap External wallet: about

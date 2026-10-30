@@ -42,7 +42,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS 
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { isQuoteNearExpiry } from '@/services/rhino-bridge'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
-import { isTxReverted, printableAddress, validateEnsName } from '@/utils/general.utils'
+import { isStableCoin, isTxReverted, printableAddress, validateEnsName } from '@/utils/general.utils'
 import { appBaseUrl } from '@/utils/url.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import posthog from 'posthog-js'
@@ -297,7 +297,6 @@ export default function WithdrawCryptoPage() {
             context: 'withdraw',
             contextId: chargeDetails.uuid,
             senderPeanutWalletAddress: address as Address,
-            skipGasEstimate: true, // peanut wallet handles gas
         })
     }, [chargeDetails, withdrawData, calculateRoute, address, quoteAmount])
 
@@ -372,15 +371,13 @@ export default function WithdrawCryptoPage() {
             setIsPreparingReview(true)
 
             try {
-                // AmountInput's primary denomination is USD ($), so amountToWithdraw
-                // is the USD value the user typed. Convert to destination token
-                // units before persisting the request/charge — otherwise meta
-                // ends up with `tokenAmount: "1"` + `tokenSymbol: "ETH"` and
-                // history renders "1 ETH" for what was actually a $1 withdraw.
+                // AmountInput's primary denomination is USD ($), so amountUsd is
+                // what the user spends. A stablecoin delivers it 1:1. ETH and BNB
+                // send "0": the app never prices the destination token, and the
+                // server books the amount that was delivered when the withdrawal
+                // completes (TASK-23850).
                 const usdValue = parseFloat(amountUsd)
-                const tokenPrice = data.token.price ?? 0
-                const destinationTokenAmount =
-                    tokenPrice > 0 ? (usdValue / tokenPrice).toFixed(Number(data.token.decimals)) : amountUsd
+                const destinationTokenAmount = isStableCoin(data.token.symbol) ? amountUsd : '0'
 
                 const completeWithdrawData = { ...data, amount: destinationTokenAmount }
                 setWithdrawData(completeWithdrawData)
@@ -493,11 +490,12 @@ export default function WithdrawCryptoPage() {
         const alreadySpent = executedSpendRef.current?.chargeId === chargeDetails.uuid
         if (!alreadySpent && (!transactions || transactions.length === 0)) {
             // Nothing prepared — the route never resolved, an expiry refresh
-            // failed, or a route error (cap 429, quote failure) left nothing
-            // built. Quote again instead of dead-ending on "not prepared"; a
-            // persistent failure keeps surfacing through routeError. One
-            // recalculation at a time: a double-tap must not provision twice
-            // (each provision holds a cap slot) or race the route state.
+            // failed, or a route error (a quote rate-limit 429, a quote
+            // failure) left nothing built. Quote again instead of dead-ending
+            // on "not prepared"; a persistent failure keeps surfacing through
+            // routeError. One recalculation at a time: a double-tap must not
+            // provision twice (each provision binds the charge to its quote on
+            // the API) or race the route state.
             if (isCalculating) return
             clearErrors()
             void quoteRoute()
@@ -851,13 +849,9 @@ export default function WithdrawCryptoPage() {
     // sends the quote's pay side (`payAmount`, via requiredUsdcAmount); it is
     // null until the route resolves, so the gate simply doesn't fire while
     // calculating — the CTA is disabled by isCalculating anyway. Same-chain the
-    // kernel sends the amount pinned to the charge at setup, and `payAmount`
-    // there is the CHARGE's
-    // destination amount (`usdValue / token.price`) — so a routine USDC price of
-    // 0.9999 makes it a few base units more than the balance on a full-balance
-    // withdrawal, which would disable the CTA on a send that would have
-    // succeeded. Gating on the pinned amount is also what makes the gate honest:
-    // it is the number that will actually leave the wallet.
+    // kernel sends the amount pinned to the charge at setup. Gating on that
+    // pinned amount is what makes the gate honest: it is the number that will
+    // actually leave the wallet.
     const kernelSpend = isCrossChainWithdrawal
         ? payAmount
         : chargeDetails && setupAmountRef.current?.chargeId === chargeDetails.uuid

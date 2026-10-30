@@ -130,30 +130,57 @@ const deferred = <T,>() => {
     return { promise, resolve }
 }
 
+const NATIVE = '0x0000000000000000000000000000000000000000'
+const BASE_WETH = '0x4200000000000000000000000000000000000006'
+// the chain/token record holds metadata only: no token in it carries a price
+const token = (chainId: string, symbol: string, address = NATIVE) => ({
+    chainId,
+    address,
+    symbol,
+    name: symbol,
+    decimals: 18,
+    logoURI: '',
+})
 const supportedChainsAndTokens = {
-    '1': { chainId: '1', networkName: 'Ethereum', chainIconURI: '', tokens: [] },
-    '8453': { chainId: '8453', networkName: 'Base', chainIconURI: '', tokens: [] },
+    '1': { chainId: '1', networkName: 'Ethereum', chainIconURI: '', tokens: [token('1', 'ETH')] },
+    '8453': {
+        chainId: '8453',
+        networkName: 'Base',
+        chainIconURI: '',
+        tokens: [token('8453', 'ETH'), token('8453', 'WETH', BASE_WETH)],
+    },
+    '56': { chainId: '56', networkName: 'BNB Smart Chain', chainIconURI: '', tokens: [token('56', 'BNB')] },
+    // Polygon's withdraw list has USDC and USDT only: native POL is not delivered
+    '137': { chainId: '137', networkName: 'Polygon', chainIconURI: '', tokens: [token('137', 'POL')] },
 }
 
-function TestHarness() {
-    const [selectedChainID, setSelectedChainID] = useState('1')
+function TestHarness({
+    chainId = '1',
+    tokenAddress = NATIVE,
+    onContinue = jest.fn(),
+}: {
+    chainId?: string
+    tokenAddress?: string
+    onContinue?: jest.Mock
+}) {
+    const [selectedChainID, setSelectedChainID] = useState(chainId)
     const tokenContext = useMemo(
         () =>
             ({
-                selectedTokenData: { address: '0x0000000000000000000000000000000000000000' },
+                selectedTokenAddress: tokenAddress,
                 selectedChainID,
                 supportedChainsAndTokens,
                 setSelectedChainID: jest.fn(),
                 setSelectedTokenAddress: jest.fn(),
             }) as unknown as React.ContextType<typeof tokenSelectorContext>,
-        [selectedChainID]
+        [selectedChainID, tokenAddress]
     )
 
     return (
         <WithdrawFlowProvider>
             <tokenSelectorContext.Provider value={tokenContext}>
                 <button onClick={() => setSelectedChainID('8453')}>switch network</button>
-                <InitialWithdrawView onContinue={jest.fn()} />
+                <InitialWithdrawView onContinue={onContinue} />
             </tokenSelectorContext.Provider>
         </WithdrawFlowProvider>
     )
@@ -187,7 +214,7 @@ function MountSeeder({
     const tokenContext = useMemo(
         () =>
             ({
-                selectedTokenData: { address: '0x0000000000000000000000000000000000000000' },
+                selectedTokenAddress: NATIVE,
                 selectedChainID: prefillAddress ? '8453' : '1',
                 supportedChainsAndTokens,
                 setSelectedChainID,
@@ -228,10 +255,7 @@ function TronHarness() {
     const tokenContext = useMemo(
         () =>
             ({
-                selectedTokenData: {
-                    address: selectedTokenAddress,
-                    symbol: selectedTokenAddress === USDT_TRON ? 'USDT' : 'USDC',
-                },
+                selectedTokenAddress,
                 selectedChainID,
                 supportedChainsAndTokens: {
                     ...supportedChainsAndTokens,
@@ -239,7 +263,7 @@ function TronHarness() {
                         chainId: 'tron',
                         networkName: 'Tron',
                         chainIconURI: '',
-                        tokens: [{ symbol: 'USDT', address: USDT_TRON }],
+                        tokens: [token('tron', 'USDT', USDT_TRON)],
                     },
                 },
                 setSelectedChainID,
@@ -358,5 +382,52 @@ describe('InitialWithdrawView', () => {
         })
 
         await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())
+    })
+
+    // TASK-23850: a withdrawal needs no price. Continue is gated on the token
+    // being in the destination chain's withdraw list, with the record's metadata.
+    describe('Continue needs the withdraw list, not a price', () => {
+        const enterRecipient = async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'set ENS recipient' }))
+            return screen.findByRole('button', { name: 'Continue' })
+        }
+
+        it.each([
+            ['ETH on Base', '8453', 'ETH'],
+            ['BNB on BNB Chain', '56', 'BNB'],
+        ])('is enabled with no price for %s and hands over the token record', async (_case, chainId, symbol) => {
+            const onContinue = jest.fn()
+            render(
+                <IntlWrapper>
+                    <TestHarness chainId={chainId} onContinue={onContinue} />
+                </IntlWrapper>
+            )
+            const cont = await enterRecipient()
+            await waitFor(() => expect(cont).toBeEnabled())
+
+            fireEvent.click(cont)
+            expect(onContinue).toHaveBeenCalledWith({
+                token: token(chainId, symbol),
+                chain: supportedChainsAndTokens[chainId as keyof typeof supportedChainsAndTokens],
+                address: '0x1111111111111111111111111111111111111111',
+            })
+        })
+
+        it.each([
+            ['a token the chain does not deliver (WETH on Base)', '8453', BASE_WETH],
+            ['a native token the chain does not deliver (POL on Polygon)', '137', NATIVE],
+            ['a token the record does not list', '8453', '0x3333333333333333333333333333333333333333'],
+        ])('is disabled for %s', async (_case, chainId, tokenAddress) => {
+            const onContinue = jest.fn()
+            render(
+                <IntlWrapper>
+                    <TestHarness chainId={chainId} tokenAddress={tokenAddress} onContinue={onContinue} />
+                </IntlWrapper>
+            )
+            const cont = await enterRecipient()
+            expect(cont).toBeDisabled()
+            fireEvent.click(cont)
+            expect(onContinue).not.toHaveBeenCalled()
+        })
     })
 })
