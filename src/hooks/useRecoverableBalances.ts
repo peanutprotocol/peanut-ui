@@ -10,8 +10,9 @@
  * anything else none.
  *
  * Failure semantics — the part this hook exists to make testable:
- * - Rhino's list fails → our list plus the extra list are still read. The
- *   service already reported the failure.
+ * - Rhino's list fails → our list plus the extra list are still read, and the
+ *   service reports the failure. Rhino's list holds tokens ours misses, so with
+ *   nothing found the result is error=true, retryable, as for a failed chain.
  * - a chain's read fails with NO recoverable balances on the others →
  *   error=true, retryable. Telling the user "no tokens to recover" on the
  *   strength of a failed lookup would be a false statement about their money.
@@ -167,7 +168,11 @@ export function useRecoverableBalances(peanutAddress: string | undefined) {
             setFetchingBalances(true)
             setBalancesError(false)
             try {
-                const rhinoTokens = await fetchRhinoTokenConfigs().catch(() => null)
+                let rhinoListFailed = false
+                const rhinoTokens = await fetchRhinoTokenConfigs().catch(() => {
+                    rhinoListFailed = true
+                    return null
+                })
                 if (cancelled) return
                 const chainResults = await Promise.allSettled(
                     RECOVERABLE_CHAINS.map((chain) => readChainBalances(chain, peanutAddress as Address, rhinoTokens))
@@ -176,7 +181,7 @@ export function useRecoverableBalances(peanutAddress: string | undefined) {
                 const held = chainResults.flatMap((result) => (result.status === 'fulfilled' ? result.value : []))
                 const failures = chainResults.filter((result) => result.status === 'rejected')
                 failures.forEach((failure) => captureException(failure.reason))
-                if (failures.length > 0 && held.length === 0) {
+                if ((failures.length > 0 || rhinoListFailed) && held.length === 0) {
                     setBalancesError(true)
                     return
                 }

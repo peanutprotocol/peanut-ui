@@ -140,6 +140,22 @@ describe('useRecoverableBalances', () => {
         expect(result.current.tokenBalances).toEqual([expect.objectContaining({ address: BASE_USDC })])
     })
 
+    // Chip, #3880: a wallet holding only a token Rhino's list has would read
+    // as empty, so "no tokens to recover" would be a false statement.
+    it("surfaces the error state when Rhino's list fails and nothing is found, and retry finds the token", async () => {
+        mockFetchRhinoTokenConfigs.mockRejectedValueOnce(new Error('rhino down'))
+        mockChains[BASE] = { native: 0n, tokens: { [BASE_USDT]: 1_000_000n } }
+        const { result } = await render()
+
+        expect(result.current.balancesError).toBe(true)
+        expect(result.current.tokenBalances).toHaveLength(0)
+
+        act(() => result.current.retry())
+        await waitFor(() => expect(result.current.tokenBalances).toHaveLength(1))
+        expect(result.current.balancesError).toBe(false)
+        expect(result.current.tokenBalances).toEqual([expect.objectContaining({ address: BASE_USDT })])
+    })
+
     it('never offers the Peanut wallet USDC: that is the wallet balance', async () => {
         await render()
         expect(readAddresses(WALLET_CHAIN)).not.toContain(PEANUT_WALLET_TOKEN.toLowerCase())
