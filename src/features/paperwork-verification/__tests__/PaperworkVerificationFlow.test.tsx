@@ -10,6 +10,7 @@ import {
     startPaperworkVerificationIdentity,
 } from '@/app/actions/kyc-paperwork-verification'
 import { findKycDocumentPlan, getKycDocumentStatus, refreshKycIdentityStatus } from '@/app/actions/kyc-workflow'
+import { KycFlowHandedBackError } from '@/app/actions/kyc-flow-hand-back'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { PaperworkVerificationFlow } from '../PaperworkVerificationFlow'
 import {
@@ -225,6 +226,16 @@ describe('PaperworkVerificationFlow: an account missing signup answers', () => {
 
         fireEvent.click(prelude)
         expect(await screen.findByTestId('verify-steps')).toBeInTheDocument()
+    })
+})
+
+describe("PaperworkVerificationFlow: a user handed back to today's flow", () => {
+    it('goes to Home even when the plan read fails beside the hand-back', async () => {
+        mockQuestions.mockRejectedValueOnce(new KycFlowHandedBackError())
+        mockPlan.mockRejectedValueOnce(new Error('plan unavailable'))
+        renderFlow()
+
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
     })
 })
 
