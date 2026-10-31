@@ -16,6 +16,8 @@ import { captureExitCode } from './capture-status.mjs'
 import { captureProfile } from './capture-profiles.mjs'
 import { installCaptureSafeArea } from './capture-safe-area.mjs'
 import { localizedCaptureText } from './capture-copy.mjs'
+import { COPY_RECORDER_MARKER, collectCopyEvidence, installCopyRecorder } from './copy-recorder.mjs'
+import { shownCopyKeys } from './copy-coverage.mjs'
 import { isRemoteOptimizedImage, REMOTE_IMAGE_PLACEHOLDER } from './capture-images.mjs'
 import {
     CAPTURE_STATIC_CSS,
@@ -77,6 +79,11 @@ async function main() {
     )
         throw new Error('Running server does not identify the requested build')
     const historical = arg('historical') === 'true'
+    const intlCore = join(source, 'src/i18n/app/IntlCore.tsx')
+    const copyRecording =
+        existsSync(intlCore) && readFileSync(intlCore, 'utf8').includes(COPY_RECORDER_MARKER)
+            ? 'recorded'
+            : 'unavailable'
     const assets = join(out, 'assets')
     mkdirSync(assets, { recursive: true })
     const walk = (p: string): string[] =>
@@ -155,6 +162,7 @@ async function main() {
             adapter: ADAPTER_VERSION,
             capturedAt: new Date().toISOString(),
             reconstruction: historical,
+            copyRecording,
             profile: `${captureLocale}-${profile.name}`,
             width: profile.width,
             height: profile.height,
@@ -236,6 +244,7 @@ async function main() {
             try {
                 await page.addInitScript('window.__name = (target) => target')
                 await page.addInitScript(installCaptureSafeArea, profile.device)
+                if (copyRecording === 'recorded') await page.addInitScript(installCopyRecorder)
                 await page.clock.setFixedTime(new Date('2026-09-01T12:00:00Z'))
                 await page.addInitScript((locale) => {
                     ;(window as unknown as { __screenCapture: boolean }).__screenCapture = true
@@ -585,10 +594,12 @@ async function main() {
                 if (transportFailures.size)
                     throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
                 if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)
+                const copy =
+                    copyRecording === 'recorded' ? shownCopyKeys(await page.evaluate(collectCopyEvidence)) : undefined
                 const image = storeAsset(assets, previous)
                 // Keep the exact PNG as the only CI capture source. The trusted
                 // publisher converts it to a full-resolution WebP after diffing.
-                results.push({ ...metadata, status: 'captured', image, thumbnail: image })
+                results.push({ ...metadata, status: 'captured', image, thumbnail: image, ...(copy ? { copy } : {}) })
                 console.log(`CAPTURED ${screen.id}`)
             } catch (e) {
                 mkdirSync(join(out, 'diagnostics'), { recursive: true })
