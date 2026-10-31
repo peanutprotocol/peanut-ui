@@ -41,9 +41,15 @@ import { captureException, setUser as setSentryUser } from '@/utils/sentry-lazy'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
 import { purgeCaches } from '@/utils/cache.utils'
 import { clearStepUpToken } from '@/services/step-up'
+import {
+    draftResidenceOf,
+    forgetAnswerDraft,
+    forgetAnswerDraftOnResidenceChange,
+} from '@/features/paperwork-verification/answerDraft'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { clearInvite } from '@/utils/invite-stash'
+import { resumeSignupGeo } from '@/services/signup-geo'
 import { attachSignupAttribution } from '@/services/signup-attribution'
 import { clearSignupAttribution } from '@/utils/signup-attribution'
 import { completeAccountSetup, type AccountSetupOutcome } from '@/services/account-setup'
@@ -110,6 +116,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         refetch: fetchUser,
         error: userFetchError,
     } = useUserQuery(!appLocked)
+
+    const geoUserId = user?.user?.userId
+    useEffect(() => {
+        if (!geoUserId || appLocked) return
+        return resumeSignupGeo(geoUserId)
+    }, [geoUserId, appLocked])
+
+    // Unsaved verification answers typed for one country must not outlive a move to another.
+    const declaredResidence = draftResidenceOf(user)
+    useEffect(() => {
+        forgetAnswerDraftOnResidenceChange(geoUserId, declaredResidence)
+    }, [geoUserId, declaredResidence])
 
     // Singleton auto-refresh poller — keeps the user query fresh while any
     // rail is provisioning OR a recent submission window is open. Mounted
@@ -393,6 +411,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // A cached step-up proof outliving the session would let the next user
         // of this device skip verification on card and withdrawal screens.
         clearStepUpToken()
+
+        // Unsaved verification answers belong to this account only.
+        forgetAnswerDraft(user?.user.userId)
 
         // NOTE: main also cancelled/cleared queries here. That already happens
         // above, deliberately BEFORE the token wipe — an in-flight /users/me can

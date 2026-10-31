@@ -3,6 +3,7 @@ import { twMerge } from '@/utils/tw'
 import type { LucideIcon } from 'lucide-react'
 import {
     AlertCircle,
+    FileText,
     AlertTriangle,
     ArrowDown,
     ArrowDownLeft,
@@ -48,6 +49,7 @@ import {
     Link as LinkIcon,
     LogOut,
     Lock,
+    Mail,
     Menu,
     MessageCircleQuestionMark,
     MoreHorizontal,
@@ -127,6 +129,7 @@ export type IconName =
     | 'link'
     | 'link-slash'
     | 'logout'
+    | 'mail'
     | 'paperclip'
     | 'smile'
     | 'star'
@@ -136,6 +139,7 @@ export type IconName =
     | 'qr-code'
     | 'history'
     | 'docs'
+    | 'file-text'
     | 'error'
     | 'clip'
     | 'info'
@@ -288,6 +292,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     link: (props) => <LucideWrapper Icon={LinkIcon} {...props} />,
     'link-slash': (props) => <LucideWrapper Icon={Unlink} {...props} />,
     logout: (props) => <LucideWrapper Icon={LogOut} {...props} />,
+    mail: (props) => <LucideWrapper Icon={Mail} {...props} />,
     paperclip: (props) => <LucideWrapper Icon={Paperclip} {...props} />,
     smile: (props) => <LucideWrapper Icon={Smile} {...props} />,
     user: (props) => <LucideWrapper Icon={User} {...props} />,
@@ -331,6 +336,8 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     // custom icons (unchanged)
     'txn-off': TxnOffIcon,
     docs: DocsIcon,
+    // DocsIcon is drawn heavier than the Lucide set; a menu row beside Lucide icons takes this one
+    'file-text': (props) => <LucideWrapper Icon={FileText} {...props} />,
     bulb: BulbIcon,
     'apple-logo': AppleLogoIcon,
     'google-play': GooglePlayIcon,

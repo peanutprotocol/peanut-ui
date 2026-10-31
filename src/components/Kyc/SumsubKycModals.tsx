@@ -38,10 +38,12 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
                 }}
             />
             <SumsubKycWrapper
+                documentConfig={flow.documentConfig}
                 sessionKey={
-                    flow.verificationSession
+                    flow.documentAttemptId ??
+                    (flow.verificationSession
                         ? `${flow.verificationSession.id}:${flow.verificationSession.generation}`
-                        : undefined
+                        : undefined)
                 }
                 visible={flow.showWrapper}
                 accessToken={flow.accessToken}
@@ -58,6 +60,8 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
                 phase={flow.modalPhase}
                 onAcceptTerms={flow.handleAcceptTerms}
                 onSkipTerms={flow.handleSkipTerms}
+                onStartSupplement={() => void flow.handleStartSupplement()}
+                onSkipSupplement={flow.handleSkipSupplement}
                 onContinue={flow.completeFlow}
                 tosError={flow.tosError}
                 isLoadingTos={flow.isLoadingTos}

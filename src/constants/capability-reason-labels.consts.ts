@@ -28,6 +28,10 @@ export const REASON_CODE_KEYS = {
     email_required: 'reasons.email_required',
     submission_failed: 'reasons.submission_failed',
     proof_of_address_review: 'reasons.proof_of_address_review',
+    proof_of_address_received: 'reasons.proof_of_address_received',
+    identity_verification_required: 'reasons.identity_verification_required',
+    identity_verification_review: 'reasons.identity_verification_review',
+    identity_verification_received: 'reasons.identity_verification_received',
     bridge_tos_required: 'reasons.bridge_tos_required',
     bridge_tos_v2_required: 'reasons.bridge_tos_v2_required',
     bridge_processing: 'reasons.bridge_processing',
@@ -42,6 +46,10 @@ export const REASON_CODE_KEYS = {
     terminal_rejection: 'reasons.terminal_rejection',
     bridge_terminal_rejection: 'reasons.bridge_terminal_rejection',
     duplicate_customer_detected: 'reasons.duplicate_customer_detected',
+    // this account's email belongs to another Peanut account; only support can move or merge them
+    duplicate_account: 'reasons.duplicate_account',
+    // an identity imported from Bridge that Peanut never reviewed and Bridge has rejected; support collects the new ID
+    imported_identity_rejected: 'reasons.imported_identity_rejected',
     // Rain card rejections
     region_block: 'reasons.region_block',
     compliance_block: 'reasons.compliance_block',
@@ -67,6 +75,17 @@ export const REASON_CODE_KEYS = {
     // for the user. Self-serve: the paired action opens the address RFI. Without
     // this entry the copy ships in English to every locale.
     residence_unresolved: 'reasons.residence_unresolved',
+    bridge_answers_rejected: 'reasons.bridge_answers_rejected',
+    // A provider the send gate holds until the add-later questions get an answer (the `questions` action).
+    questions_missing: 'reasons.questions_missing',
+    // A rail parked for a requirement the approved identity never collected; `supplement:<provider>` collects it.
+    // The copy names the bank proof of address: the only supplement the API can collect (Bridge's).
+    requirements_missing: 'reasons.requirements_missing',
+    requirements_in_review: 'reasons.requirements_in_review',
+    // Parked for a need the approved identity cannot meet: another document (restart-identity) or one only support can collect.
+    identity_document_insufficient: 'reasons.identity_document_insufficient',
+    document_country_unsupported: 'reasons.document_country_unsupported',
+    requirements_uncollectable: 'reasons.requirements_uncollectable',
     uk_resident_blocked: 'reasons.uk_resident_blocked',
     // Any other residence the bank rails are closed to (api#1738). Country-
     // neutral on purpose: the UK line names UK regulation, which is false for

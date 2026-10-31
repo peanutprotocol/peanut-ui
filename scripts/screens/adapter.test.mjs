@@ -87,6 +87,29 @@ test('strict synthetic transport answers shared config and legacy rates without 
     assert.equal(result.values[4].body.available, false)
 })
 
+function probe(calls) {
+    const output = execFileSync(
+        process.execPath,
+        [
+            '--import',
+            'tsx',
+            '--input-type=module',
+            '-e',
+            `
+ import adapter from './scripts/screens/adapter.ts'; const {answer}=adapter;
+ globalThis.fetch=()=>{throw new Error('Unexpected network request')};
+ const values=[];
+ for(const [fixture,path,method] of ${JSON.stringify(calls)}) {
+ const r=await answer(fixture,path,method); values.push({status:r.status,body:await r.json()});
+ }
+ console.log('RESULT:'+JSON.stringify(values));
+ `,
+        ],
+        { encoding: 'utf8', timeout: 30000 }
+    )
+    return JSON.parse(output.split('RESULT:')[1])
+}
+
 function probeWithSpec(fixture, requests, spec) {
     const output = execFileSync(
         process.execPath,
@@ -115,12 +138,65 @@ function probeWithSpec(fixture, requests, spec) {
     return JSON.parse(output.split('RESULT:')[1])
 }
 
+test('KYC fixtures lay their answers over the demo defaults instead of failing strict mode', () => {
+    const [plan, questions, profile, refresh] = probe([
+        ['paperwork-verification-needs-signup', '/users/kyc/plan', 'GET'],
+        ['paperwork-verification-needs-signup', '/users/kyc/questions', 'GET'],
+        ['paperwork-verification-needs-signup', '/users/kyc/profile', 'GET'],
+        ['paperwork-verification-needs-signup', '/users/kyc/identity/refresh', 'POST'],
+    ])
+    assert.equal(plan.body.flow, 'verify-once')
+    assert.deepEqual(plan.body.needs, ['residence', 'features'])
+    assert.equal(questions.body.available, false)
+    assert.deepEqual(questions.body.steps, [])
+    assert.equal(profile.body.identity.canonicalStatus, 'NOT_STARTED')
+    assert.deepEqual(refresh.body, { status: null })
+})
+
+test('the feature report follows each fixture’s own user, on /users/me and /users/kyc/features alike', () => {
+    const [demoUser, demoFeatures, newUser, newFeatures] = probe([
+        ['home', '/users/me', 'GET'],
+        ['home', '/users/kyc/features', 'GET'],
+        ['home-new-user', '/users/me', 'GET'],
+        ['home-new-user', '/users/kyc/features', 'GET'],
+    ])
+    assert.equal(demoUser.body.capabilities.features.qr.state, 'on')
+    assert.deepEqual(demoFeatures.body, { features: demoUser.body.capabilities.features })
+    assert.equal(newUser.body.capabilities.features.card.state, 'action_required')
+    assert.deepEqual(newFeatures.body, { features: newUser.body.capabilities.features })
+})
+
+test('the KYC plan, profile and questions follow each fixture’s own user', () => {
+    const [demoPlan, demoProfile, newUser, newPlan, newProfile, newQuestions] = probe([
+        ['home', '/users/kyc/plan', 'GET'],
+        ['home', '/users/kyc/profile', 'GET'],
+        ['home-new-user', '/users/me', 'GET'],
+        ['home-new-user', '/users/kyc/plan', 'GET'],
+        ['home-new-user', '/users/kyc/profile', 'GET'],
+        ['home-new-user', '/users/kyc/questions', 'GET'],
+    ])
+    assert.equal(demoProfile.body.identity.canonicalStatus, 'APPROVED')
+    assert.equal(demoPlan.body.features.qr, true)
+    assert.equal(demoPlan.body.features.card, false)
+    assert.equal(newProfile.body.identity, null)
+    assert.equal(newProfile.body.user.fullName, newUser.body.user.fullName)
+    assert.deepEqual(newProfile.body.residence.declared, newUser.body.residence?.declared ?? null)
+    assert.equal(newPlan.body.features.card, true)
+    assert.equal(newQuestions.body.residence, newUser.body.residence?.declared?.country ?? null)
+})
+
+test('a fixture refusal answers with its status on any route', () => {
+    const [refused] = probe([['qr-pay-kyc-required', '/manteca/qr-payment/init', 'POST']])
+    assert.equal(refused.status, 400)
+    assert.equal(refused.body.code, 'MANTECA_KYC_REQUIRED')
+})
+
 const example = (status, value) => ({
     responses: { [status]: { content: { 'application/json': { example: value } } } },
 })
 const EXAMPLE_SPEC = {
     paths: {
-        '/users/kyc/attempts/{attemptId}/token': { post: example(201, { token: 'synthetic-example-token' }) },
+        '/capture-only/examples/{exampleId}': { post: example(201, { token: 'synthetic-example-token' }) },
         '/capture-only/undocumented': { get: { responses: { 200: { description: 'No example' } } } },
         '/users/me': { get: example(200, { user: { username: 'from-example' } }) },
         '/tokens/price': { get: example(200, { price: 999 }) },
@@ -131,8 +207,8 @@ test('unmapped routes answer with their OpenAPI example and status', () => {
     const result = probeWithSpec(
         'home',
         [
-            ['POST', '/users/kyc/attempts/attempt-1/token'],
-            ['POST', '/users/kyc/attempts/attempt-1/token?retry=1'],
+            ['POST', '/capture-only/examples/example-1'],
+            ['POST', '/capture-only/examples/example-1?retry=1'],
         ],
         EXAMPLE_SPEC
     )

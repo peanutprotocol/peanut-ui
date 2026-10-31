@@ -38,7 +38,8 @@ const kycResumeParser = parseAsJson<KycResumeState>(parseKycResumeState)
  */
 export function useSumsubReloadResume(
     openState: KycResumeState | null,
-    onResume: (state: KycResumeState) => Promise<boolean>
+    onResume: (state: KycResumeState) => Promise<boolean>,
+    enabled = true
 ) {
     const [persisted, setPersisted] = useQueryState('kyc', kycResumeParser)
 
@@ -46,7 +47,7 @@ export function useSumsubReloadResume(
     useEffect(() => {
         if (didResumeRef.current) return
         didResumeRef.current = true
-        if (!persisted || openState) return
+        if (!enabled || !persisted || openState) return
         void (async () => {
             const reopened = await onResume(persisted).catch(() => false)
             if (!reopened) void setPersisted(null)
@@ -62,6 +63,7 @@ export function useSumsubReloadResume(
             syncSkipRef.current = false
             return
         }
+        if (!enabled) return
         void setPersisted(serialized ? (JSON.parse(serialized) as KycResumeState) : null)
-    }, [serialized, setPersisted])
+    }, [serialized, setPersisted, enabled])
 }

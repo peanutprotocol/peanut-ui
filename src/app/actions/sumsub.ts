@@ -1,10 +1,14 @@
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import {
     type InitiateSumsubKycResponse,
     type KYCRegionIntent,
     type VerificationActionSession,
 } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
+import { kycClientHeaders } from '@/utils/kyc-client-headers'
 import type { paths } from '@/types/api.generated'
+import type { KycDocumentConfig, KycReplacementChoices } from './types/kyc-workflow.types'
 
 /**
  * Stable discriminant for the English fallback errors below. Server actions
@@ -14,6 +18,9 @@ import type { paths } from '@/types/api.generated'
  * and stays untranslated (#2554: keep BE prose as fallback where no code exists).
  */
 export type SumsubActionErrorCode =
+    | 'feature_selection_required'
+    // the user is on Smart Paperwork Verification: /verify starts their check, never this route
+    | 'paperwork_verification_required'
     // Permanent refusals the backend names in its `error` field. A retry sends
     // the identical request and gets the identical answer, so callers must
     // suppress their retry CTA on these.
@@ -30,6 +37,8 @@ export type SumsubActionErrorCode =
     | 'residence_change_failed'
     | 'resubmit_failed'
     | 'start_action_failed'
+    // start-action refused a supplement the gate no longer asks for; `fallback` names the step instead
+    | 'supplement_not_required'
     | 'invalid_response'
     | 'unexpected'
 
@@ -113,15 +122,38 @@ export const initiateSumsubKyc = async (params?: {
         correctSession: params?.correctSession,
     }
 
+    let status: number | undefined
     try {
         const response = await serverFetch('/users/identity', {
             method: 'POST',
+            // lets the API refuse today's start to a user it put on Smart Paperwork Verification
+            headers: { 'x-residence-format': 'compact', ...kycClientHeaders() },
             body: JSON.stringify(body),
         })
 
+        status = response.status
         const responseJson = await response.json()
 
         if (!response.ok) {
+            if (response.status >= 500)
+                Sentry.captureException(new Error('KYC request failed'), {
+                    tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_session' },
+                })
+            if (
+                response.status === 409 &&
+                (responseJson.code ?? responseJson.error) === 'paperwork_verification_required'
+            ) {
+                return {
+                    code: 'paperwork_verification_required',
+                    error: responseJson.userMessage || 'Continue your verification in the app',
+                }
+            }
+            if (response.status === 409 && (responseJson.code ?? responseJson.error) === 'feature_selection_required') {
+                return {
+                    code: 'feature_selection_required',
+                    error: responseJson.userMessage || 'Choose the features to set up',
+                }
+            }
             return {
                 ...backendOrFallback(
                     responseJson,
@@ -141,9 +173,13 @@ export const initiateSumsubKyc = async (params?: {
                 actionType: responseJson.actionType,
                 session: responseJson.session,
                 workflow: responseJson.workflow,
+                attemptId: responseJson.attemptId,
+                sdkConfig: responseJson.sdkConfig,
             },
         }
     } catch (e: unknown) {
+        if (!(status !== undefined && status >= 400 && status < 500))
+            Sentry.captureException(e, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_session' } })
         return caughtError(e)
     }
 }
@@ -171,6 +207,10 @@ export interface RestartIdentityResponse {
      * Optional so a response from an older backend still parses.
      */
     regionIntent?: KYCRegionIntent
+    /** Set when the restart replaced an attempt-based identity's documents. */
+    attemptId?: string
+    status?: string
+    sdkConfig?: KycDocumentConfig
 }
 
 /**
@@ -183,22 +223,29 @@ export interface RestartIdentityResponse {
 const RESTART_REGION_INTENTS: ReadonlySet<string> = new Set(['LATAM', 'ROW', 'EU', 'NA'])
 
 export const restartIdentityVerification = async (
-    regionIntent?: KYCRegionIntent
+    regionIntent?: KYCRegionIntent,
+    replacement?: KycReplacementChoices
 ): Promise<{
     data?: RestartIdentityResponse
     error?: string
     code?: SumsubActionErrorCode
     cooldown?: { retryAt?: string }
 }> => {
+    let status: number | undefined
     try {
         const intent = regionIntent && RESTART_REGION_INTENTS.has(regionIntent) ? regionIntent : undefined
         const response = await serverFetch('/users/identity/restart', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(intent ? { regionIntent: intent } : {}),
+            headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact' },
+            body: JSON.stringify({ ...(intent && { regionIntent: intent }), ...(replacement && { replacement }) }),
         })
+        status = response.status
         const responseJson = await response.json()
         if (!response.ok) {
+            if (response.status >= 500)
+                Sentry.captureException(new Error('KYC request failed'), {
+                    tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_restart' },
+                })
             const failure = backendOrFallback(
                 responseJson,
                 'Failed to restart identity verification',
@@ -236,6 +283,8 @@ export const restartIdentityVerification = async (
             },
         }
     } catch (e: unknown) {
+        if (!(status !== undefined && status >= 400 && status < 500))
+            Sentry.captureException(e, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_restart' } })
         return caughtError(e)
     }
 }
@@ -260,6 +309,7 @@ export const startResidenceChangeVerification = async (
     code?: SumsubActionErrorCode
     cooldown?: { retryAt?: string }
 }> => {
+    let status: number | undefined
     try {
         const expectedTargetCountry = targetCountry.trim().toUpperCase()
         if (!/^[A-Z]{2}$/.test(expectedTargetCountry)) {
@@ -270,8 +320,13 @@ export const startResidenceChangeVerification = async (
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ targetCountry: expectedTargetCountry }),
         })
+        status = response.status
         const responseJson = await response.json()
         if (!response.ok) {
+            if (response.status >= 500)
+                Sentry.captureException(new Error('KYC request failed'), {
+                    tags: { ...criticalFlowTags('kyc'), kyc_step: 'residence_session' },
+                })
             const failure = backendOrFallback(
                 responseJson,
                 'Failed to start residence verification',
@@ -284,10 +339,15 @@ export const startResidenceChangeVerification = async (
             return { ...failure, cooldown: { retryAt } }
         }
         if (!responseJson.token || !responseJson.applicantId || responseJson.targetCountry !== expectedTargetCountry) {
+            Sentry.captureException(new Error('Invalid KYC session response'), {
+                tags: { ...criticalFlowTags('kyc'), kyc_step: 'residence_session' },
+            })
             return { error: 'Invalid response from server', code: 'invalid_response' }
         }
         return { data: responseJson }
     } catch (e: unknown) {
+        if (!(status !== undefined && status >= 400 && status < 500))
+            Sentry.captureException(e, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'residence_session' } })
         return caughtError(e)
     }
 }
@@ -299,15 +359,21 @@ export const initiateSelfHealResubmission = async (
     // by key. Omitted for the legacy blocking flow (current nextAction).
     requirementKey?: string
 ): Promise<{ data?: SelfHealResubmissionResponse; error?: string; code?: SumsubActionErrorCode }> => {
+    let status: number | undefined
     try {
         const response = await serverFetch('/users/identity/resubmit', {
             method: 'POST',
             body: JSON.stringify({ provider, ...(requirementKey ? { requirementKey } : {}) }),
         })
 
+        status = response.status
         const responseJson = await response.json()
 
         if (!response.ok) {
+            if (response.status >= 500)
+                Sentry.captureException(new Error('KYC request failed'), {
+                    tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_resubmit' },
+                })
             return backendOrFallback(
                 responseJson,
                 'Failed to initiate document resubmission',
@@ -317,11 +383,16 @@ export const initiateSelfHealResubmission = async (
         }
 
         if (!responseJson.token || !responseJson.applicantId) {
+            Sentry.captureException(new Error('Invalid KYC session response'), {
+                tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_resubmit' },
+            })
             return { error: 'Invalid response from server', code: 'invalid_response' }
         }
 
         return { data: responseJson }
     } catch (e: unknown) {
+        if (!(status !== undefined && status >= 400 && status < 500))
+            Sentry.captureException(e, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_resubmit' } })
         return caughtError(e)
     }
 }
@@ -336,20 +407,31 @@ export const initiateSelfHealResubmission = async (
 export const startHostedVerification = async (
     key: 'bridge-hosted' | 'rain-hosted' = 'bridge-hosted'
 ): Promise<{ url?: string; error?: string }> => {
+    let status: number | undefined
     try {
         const response = await serverFetch('/users/kyc/start-action', {
             method: 'POST',
             body: JSON.stringify({ key }),
         })
+        status = response.status
         const responseJson = await response.json()
         if (!response.ok) {
+            if (response.status >= 500)
+                Sentry.captureException(new Error('KYC request failed'), {
+                    tags: { ...criticalFlowTags('kyc'), kyc_step: 'hosted_session' },
+                })
             return { error: responseJson.userMessage || responseJson.error || 'Failed to start verification' }
         }
         if (!responseJson.verificationUrl) {
+            Sentry.captureException(new Error('Invalid KYC session response'), {
+                tags: { ...criticalFlowTags('kyc'), kyc_step: 'hosted_session' },
+            })
             return { error: 'Invalid response from server' }
         }
         return { url: responseJson.verificationUrl }
     } catch (e: unknown) {
+        if (!(status !== undefined && status >= 400 && status < 500))
+            Sentry.captureException(e, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'hosted_session' } })
         return { error: e instanceof Error ? e.message : 'An unexpected error occurred' }
     }
 }
@@ -377,11 +459,17 @@ export const refreshKycState = async (): Promise<KycRefreshResponse> => {
     }
 }
 
+/** The step start-action names when it refuses a supplement the gate no longer asks for. */
+export type SupplementFallback = 'contact-support' | 'restart-identity' | 'wait'
+const SUPPLEMENT_FALLBACKS = new Set<string>(['contact-support', 'restart-identity', 'wait'])
+
 export interface StartKycActionResponse {
     token?: string
     session?: VerificationActionSession
     levelName: string
     externalActionId?: string
+    /** Sumsub had already reviewed this action: nothing to open, the backend recorded the review. */
+    completed?: boolean
 }
 
 /**
@@ -395,22 +483,54 @@ export interface StartKycActionResponse {
  */
 export const startKycAction = async (
     key: string
-): Promise<{ data?: StartKycActionResponse; error?: string; code?: SumsubActionErrorCode }> => {
+): Promise<{
+    data?: StartKycActionResponse
+    error?: string
+    code?: SumsubActionErrorCode
+    reason?: string
+    fallback?: SupplementFallback
+}> => {
+    let status: number | undefined
     try {
         const response = await serverFetch('/users/kyc/start-action', {
             method: 'POST',
             body: JSON.stringify({ key }),
         })
+        status = response.status
         const responseJson = await response.json()
         if (!response.ok) {
-            return backendOrFallback(
+            if (response.status >= 500)
+                Sentry.captureException(new Error('KYC request failed'), {
+                    tags: { ...criticalFlowTags('kyc'), kyc_step: 'action_session' },
+                })
+            const failure = backendOrFallback(
                 responseJson,
                 'Failed to start verification',
                 'start_action_failed',
                 response.status
             )
+            if (response.status !== 409 || responseJson.error !== 'supplement_not_required') return failure
+            const { reason, fallback } = responseJson
+            return {
+                ...failure,
+                code: 'supplement_not_required',
+                ...(typeof reason === 'string' ? { reason } : {}),
+                ...(SUPPLEMENT_FALLBACKS.has(fallback) ? { fallback: fallback as SupplementFallback } : {}),
+            }
+        }
+        if (!responseJson.sumsubAccessToken && !responseJson.session && responseJson.status === 'completed') {
+            return {
+                data: {
+                    levelName: responseJson.levelName,
+                    externalActionId: responseJson.externalActionId,
+                    completed: true,
+                },
+            }
         }
         if (!responseJson.sumsubAccessToken && !responseJson.session) {
+            Sentry.captureException(new Error('Invalid KYC session response'), {
+                tags: { ...criticalFlowTags('kyc'), kyc_step: 'action_session' },
+            })
             return { error: 'Invalid response from server', code: 'invalid_response' }
         }
         return {
@@ -422,6 +542,8 @@ export const startKycAction = async (
             },
         }
     } catch (e: unknown) {
+        if (!(status !== undefined && status >= 400 && status < 500))
+            Sentry.captureException(e, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'action_session' } })
         return caughtError(e)
     }
 }
@@ -429,20 +551,40 @@ export const startKycAction = async (
 export async function refreshVerificationSession(
     session: Pick<VerificationActionSession, 'id' | 'generation'>
 ): Promise<string> {
-    const response = await serverFetch('/users/identity/session-token', {
-        method: 'POST',
-        body: JSON.stringify({ sessionId: session.id, generation: session.generation }),
-    })
-    const data = await response.json()
-    if (!response.ok || !data.token) throw new Error('Verification session changed. Please reopen verification.')
-    return data.token
+    let status: number | undefined
+    try {
+        const response = await serverFetch('/users/identity/session-token', {
+            method: 'POST',
+            body: JSON.stringify({ sessionId: session.id, generation: session.generation }),
+        })
+        status = response.status
+        const data = await response.json()
+        if (!response.ok || !data.token) throw new Error('Verification session changed. Please reopen verification.')
+        return data.token
+    } catch (error) {
+        if (!(status !== undefined && status >= 400 && status < 500))
+            Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_session' } })
+        throw error
+    }
 }
 
 export async function getVerificationSession(id: string): Promise<VerificationActionSession | null> {
-    const response = await serverFetch(`/users/identity/sessions/${encodeURIComponent(id)}`, {
-        method: 'GET',
-        cache: 'no-store',
-    })
-    if (!response.ok) return null
-    return (await response.json()).session ?? null
+    let status: number | undefined
+    try {
+        const response = await serverFetch(`/users/identity/sessions/${encodeURIComponent(id)}`, {
+            method: 'GET',
+            cache: 'no-store',
+        })
+        status = response.status
+        if (response.status >= 500)
+            Sentry.captureException(new Error('KYC session read failed'), {
+                tags: { ...criticalFlowTags('kyc'), kyc_step: 'session_read' },
+            })
+        if (!response.ok) return null
+        return (await response.json()).session ?? null
+    } catch (error) {
+        if (!(status !== undefined && status >= 400 && status < 500))
+            Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'session_read' } })
+        throw error
+    }
 }

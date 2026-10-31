@@ -7,6 +7,7 @@ import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { PeanutMascotScene } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 import { PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
+import { notificationsApi, toPushPermission } from '@/services/notifications'
 
 // each money moment promises what the push will be about (TASK-23251); the
 // Home fallback keeps the original ask
@@ -43,9 +44,14 @@ export default function SetupNotificationsModal() {
 
         try {
             // request permission - this shows the native dialog
-            await requestPermission()
+            const permission = toPushPermission(await requestPermission())
             // after user interacts with native dialog, handle the result
             await afterPermissionAttempt()
+            // The prompt asks for money alerts, so a grant turns Important alerts on even
+            // for someone who skipped them at sign-up. A failed save leaves the old choice.
+            void notificationsApi
+                .savePreferences({ pushPermission: permission, ...(permission === 'granted' && { push: true }) })
+                .catch(() => {})
         } catch (error) {
             console.error('Error requesting permission:', error)
         }

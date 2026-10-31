@@ -12,7 +12,7 @@
  * genuinely-fixable bank RFI still surfaces in the /add-money bank flow.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { act, render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
@@ -121,12 +121,13 @@ jest.mock('next/navigation', () => ({
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
+let mockShowWrapper = false
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleFixableRejection: mockHeal,
         handleRestartIdentity: mockRestartIdentity,
         handleInitiateKyc: mockInitiateKyc,
-        showWrapper: false,
+        showWrapper: mockShowWrapper,
     }),
 }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({
@@ -135,6 +136,11 @@ jest.mock('@/components/Kyc/SumsubKycModals', () => ({
 const mockStartQrCheck = jest.fn()
 jest.mock('@/features/payments/flows/qr-pay/useQrIdentityCheck', () => ({
     useQrIdentityCheck: () => ({ start: mockStartQrCheck, modals: null }),
+}))
+
+let mockPaperworkVerification: () => Promise<boolean> = () => Promise.resolve(false)
+jest.mock('@/features/paperwork-verification/usePaperworkVerificationStart', () => ({
+    usePaperworkVerificationStart: () => mockPaperworkVerification,
 }))
 
 import ActivationCTAs from '../ActivationCTAs'
@@ -169,6 +175,8 @@ beforeEach(() => {
     mockResidenceRestrictions = { banking: false, card: false }
     mockRegionRestricted = false
     mockIdentityReason = undefined
+    mockShowWrapper = false
+    mockPaperworkVerification = () => Promise.resolve(false)
 })
 
 describe('ActivationCTAs — residence restrictions', () => {
@@ -186,13 +194,44 @@ describe('ActivationCTAs — residence restrictions', () => {
 })
 
 describe('ActivationCTAs — the Verify row starts the ID check in place', () => {
-    it('opens the shared start modal, whose Verify starts the one ID check (no corridor)', () => {
+    it('opens the shared start modal, whose Verify starts the one ID check (no corridor)', async () => {
         render(<ActivationCTAs onboarding={NEW_USER} />)
         expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText('start-identity-check'))
-        fireEvent.click(screen.getByText('initiate-kyc-modal'))
+        fireEvent.click(await screen.findByText('initiate-kyc-modal'))
         expect(mockInitiateKyc).toHaveBeenCalledWith()
         expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('a Smart Paperwork Verification user goes straight to the question screens', async () => {
+        mockPaperworkVerification = () => Promise.resolve(true)
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        fireEvent.click(screen.getByText('start-identity-check'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
+    })
+
+    it('a tap before the plan loads waits for it instead of opening the start modal', async () => {
+        let answer: (value: boolean) => void = () => {}
+        mockPaperworkVerification = () => new Promise<boolean>((resolve) => (answer = resolve))
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        fireEvent.click(screen.getByText('start-identity-check'))
+        fireEvent.click(screen.getByText('start-identity-check'))
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
+        await act(async () => answer(true))
+        expect(mockPush).toHaveBeenCalledTimes(1)
+        expect(mockPush).toHaveBeenCalledWith('/verify')
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
+    })
+
+    it('closes the start modal when the SDK opens, so the SDK is the only modal in front', async () => {
+        const { rerender } = render(<ActivationCTAs onboarding={NEW_USER} />)
+        fireEvent.click(screen.getByText('start-identity-check'))
+        fireEvent.click(await screen.findByText('initiate-kyc-modal'))
+        expect(screen.getByText('initiate-kyc-modal')).toBeInTheDocument()
+        mockShowWrapper = true
+        rerender(<ActivationCTAs onboarding={NEW_USER} />)
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
     })
 
     it('the QR ID check is the shared one (useQrIdentityCheck)', () => {
@@ -219,6 +258,24 @@ describe('ActivationCTAs — an ID check that ended on a final decision', () => 
         fireEvent.click(screen.getByText('Contact support'))
         expect(mockOpenSupport).toHaveBeenCalledWith(expect.stringContaining('Your verification was not approved.'))
         expect(mockInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    // TASK-24046: the import Bridge rejected is named, and support learns which case it is
+    it('a rejected imported identity says what the payment partner needs and prefills its case', () => {
+        mockIdentityReason = {
+            code: 'imported_identity_rejected',
+            userMessage: "Our banking partner couldn't verify the ID from your earlier verification.",
+        }
+        render(<ActivationCTAs onboarding={FAILED} />)
+
+        expect(screen.getByText(/couldn't verify the ID from your earlier verification/)).toBeInTheDocument()
+        expect(screen.queryByText('Contact support for help with your verification.')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('Contact support'))
+        expect(mockOpenSupport).toHaveBeenCalledWith(
+            expect.stringMatching(/^Hi! My bank transfers are blocked[\s\S]*reason: imported_identity_rejected/)
+        )
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+        expect(mockRestartIdentity).not.toHaveBeenCalled()
     })
 
     it('can be hidden under its own key', () => {
@@ -374,7 +431,7 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
             },
         ]
         render(<ActivationCTAs onboarding={VERIFIED} />)
-        fireEvent.click(screen.getByText('Upload document'))
+        fireEvent.click(screen.getByText('Answer questions'))
         expect(mockHeal).toHaveBeenCalledWith({
             provider: 'MANTECA',
             actionKey: 'sumsub:source_of_funds',

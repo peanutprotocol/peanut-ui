@@ -1,3 +1,6 @@
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import type { IdentityVerificationStatus, RailCapability } from '@/types/capabilities'
+import { normalizeResidence } from '@/utils/residence-profile'
 /**
  * useActivationStatus gathers the onboarding inputs from data Home already
  * loads; the rules themselves are pinned in activation-step.utils.test.ts.
@@ -9,7 +12,17 @@ import { useActivationStatus } from '@/hooks/useActivationStatus'
 
 const mockUseAuth = jest.fn()
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => mockUseAuth(),
+    useAuth: () => {
+        const auth = mockUseAuth()
+        return {
+            ...auth,
+            user: auth.user && {
+                ...auth.user,
+                identityVerification: { status: mockIdentityStatus },
+                capabilities: mockCapabilities(),
+            },
+        }
+    },
 }))
 
 let mockBalance: bigint | undefined = 0n
@@ -19,9 +32,15 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 
 type MockRail = { provider: string; status: string; operations?: Record<string, string> }
 let mockRails: MockRail[] = []
+const mockCapabilities = () =>
+    withFeatureReport(
+        { rails: mockRails as RailCapability[], nextActions: [] },
+        { identity: { status: mockIdentityStatus } }
+    )
 jest.mock('@/hooks/useCapabilities', () => ({
     // canDo mirrors the real hook: per-op status, falling back to the rail status
     useCapabilities: () => ({
+        capabilities: mockCapabilities(),
         isLoading: false,
         nextActions: [],
         rails: mockRails,
@@ -55,7 +74,7 @@ jest.mock('@/hooks/useCardInfo', () => ({
     useCardInfo: () => ({ cardInfo: mockCardInfo, error: mockCardInfoError }),
 }))
 
-let mockIdentityStatus = 'not_started'
+let mockIdentityStatus: IdentityVerificationStatus = 'not_started'
 let mockTerminalFailure = false
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({
@@ -208,7 +227,10 @@ describe('useActivationStatus', () => {
         (declared) => {
             mockCanSpendViaCard = true
             mockUseAuth.mockReturnValue({
-                user: { user: { userId: 'u1', isActivated: false }, residence: { declared, verified: null } },
+                user: {
+                    user: { userId: 'u1', isActivated: false },
+                    residence: normalizeResidence({ declared, verified: null }),
+                },
             })
             const { result } = renderHook(() => useActivationStatus())
             expect(result.current.onboarding.firstPaymentRoute).toBe('card_qr')
@@ -217,7 +239,10 @@ describe('useActivationStatus', () => {
 
     it('a new user without the card sees the QR path, not three rows', () => {
         mockUseAuth.mockReturnValue({
-            user: { user: { userId: 'u1', isActivated: false }, residence: { declared: 'US', verified: null } },
+            user: {
+                user: { userId: 'u1', isActivated: false },
+                residence: normalizeResidence({ declared: 'US', verified: null }),
+            },
         })
         const { result } = renderHook(() => useActivationStatus())
         expect(result.current.onboarding.firstPaymentRoute).toBe('qr')

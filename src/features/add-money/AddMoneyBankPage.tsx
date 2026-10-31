@@ -1,6 +1,7 @@
 'use client'
 
 import Loading from '@/components/Global/Loading'
+import { KycFeatureActivationGate } from '@/features/paperwork-verification/KycFeatureActivationGate'
 import { useMantecaBankRedirect } from './useMantecaBankRedirect'
 import { BridgeBankOnrampView } from './views/BridgeBankOnrampView'
 
@@ -14,5 +15,9 @@ export function AddMoneyBankPage() {
         return <Loading variant="mascot" />
     }
 
-    return <BridgeBankOnrampView />
+    return (
+        <KycFeatureActivationGate feature="bank">
+            <BridgeBankOnrampView />
+        </KycFeatureActivationGate>
+    )
 }

@@ -1,7 +1,13 @@
-import { IDENTITY_DOCUMENT_MISSING_CODE, QR_IDENTITY_MISSING_CODE, QrKycState } from '@/constants/kyc.consts'
+import {
+    IDENTITY_DOCUMENT_MISSING_CODE,
+    IDENTITY_REGION_RESTRICTED_CODE,
+    QR_IDENTITY_MISSING_CODE,
+    QR_IDENTITY_RESTART_PENDING_CODE,
+    QrKycState,
+} from '@/constants/kyc.consts'
 import type { KYCRegionIntent } from '@/app/actions/types/sumsub.types'
-import type { NextAction, RailCapability } from '@/types/capabilities'
-import { railUserMessage, railVerdict } from '@/utils/capability-gate'
+import type { FeatureReport, NextAction, RailCapability } from '@/types/capabilities'
+import { entryAction, VERIFY_ACTION } from '@/features/kyc-features/report'
 
 /**
  * The verification QR pay starts. Any verified user gets the QR pool rails,
@@ -18,128 +24,77 @@ export interface QrKycGate {
 }
 
 /**
- * The QR-pay KYC gate, from the backend capability model. The one answer to
- * "can this user pay a QR, and if not, why": the QR pay page and the Home
- * checklist both read it, so they cannot disagree.
- *
- * `canPayManteca` is `canDo('pay', { provider: 'manteca' })`; `mantecaRails`
- * is `railsForProvider('manteca')`.
+ * The QR-pay KYC gate: the API's QR answer (`capabilities.features.qr`). The
+ * one answer to "can this user pay a QR, and if not, why": the QR pay page,
+ * Money settings and the Home checklist all read it, so they cannot disagree.
  */
 export function selectQrKycGate(input: {
     isLoading: boolean
-    isRegionRestricted: boolean
-    /** useIdentityVerification: the ID check ended on a final decision (not region) */
-    isTerminalFailure: boolean
-    canPayManteca: boolean
-    mantecaRails: RailCapability[]
-    nextActions: NextAction[]
+    features: FeatureReport | undefined
+    nextActions: readonly NextAction[]
 }): QrKycGate {
-    const noAction = null as string | null
-    if (input.isLoading) {
-        return { kycGateState: QrKycState.LOADING, qrKycUserMessage: noAction, qrKycActionKey: noAction }
-    }
-    // Above the enabled-pay return, not just the rail-derived states below.
-    // A terminal jurisdictional refusal is account-wide, but nothing revokes
-    // a pool rail granted by an earlier approval — so a residence change
-    // that re-verifies into a region rejection leaves an ENABLED rail
-    // behind, and ranking `canDo` first would keep the money path open on
-    // an identity we can no longer verify. Deliberately unlike deriveGate's
-    // ready-wins hoist, which exists to stop a STUCK SIBLING rail from
-    // blocking a working one — a refused identity is not a sibling rail.
-    if (input.isRegionRestricted) {
-        return { kycGateState: QrKycState.REGION_RESTRICTED, qrKycUserMessage: noAction, qrKycActionKey: noAction }
-    }
-    if (input.canPayManteca) {
-        return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: noAction, qrKycActionKey: noAction }
-    }
-    // Below the enabled-pay return, unlike the region refusal: a user whose
-    // pool rail was enabled before the decision can still pay, and nothing
-    // here should take that away. Without an enabled rail, "Unlock now" would
-    // start an ID check that cannot pass, so the answer is the blocked ending
-    // (contact support), the same one a provider refusal gets.
-    if (input.isTerminalFailure) {
-        return {
-            kycGateState: QrKycState.PROVIDER_REJECTION_BLOCKED,
-            qrKycUserMessage: noAction,
-            qrKycActionKey: noAction,
-        }
-    }
-    // Verdict-first via the shared railVerdict collapse (rail.resolved,
-    // BE-derived; legacy fallback for older/cached responses). The
-    // US-nationality refinement is applied in the resolver itself
-    // (Sumsub-approved + US-restricted → operations.pay enabled, caught by
-    // canDo above), so a blocked verdict is genuine.
-    const actionByKey = new Map(input.nextActions.map((action) => [action.key, action]))
-    const candidates = input.mantecaRails.map((rail) => ({
-        rail,
-        verdict: railVerdict(rail, actionByKey),
-    }))
-    // provide-email is NOT a document fix: routing it into the Sumsub
-    // upload flow dead-ends the user, and this surface has no email form —
-    // map it to the blocked modal (same rule as deriveProviderRejection).
-    const isProvideEmail = ({ verdict }: (typeof candidates)[number]) =>
-        verdict.blocking?.selfHealKind === 'provide-email'
-    const blocked = candidates.find((candidate) => candidate.verdict.status === 'blocked' || isProvideEmail(candidate))
-    if (blocked) {
-        // Country-not-supported is self-fixable: user uploaded a non-AR/BR doc
-        // and can verify again with a different one. Split out for the right CTA.
-        // (selfHealKind is the verdict home; the reason-code check covers legacy
-        // responses — the code rides on blocking.code verbatim.)
-        if (
-            !isProvideEmail(blocked) &&
-            (blocked.verdict.blocking?.selfHealKind === 'restart-identity' ||
-                blocked.verdict.blocking?.code === 'country_not_supported')
-        ) {
-            return {
-                kycGateState: QrKycState.PROVIDER_RESTART_IDENTITY,
-                qrKycUserMessage: railUserMessage(blocked.rail),
-                qrKycActionKey: noAction,
-            }
-        }
-        return {
-            kycGateState: QrKycState.PROVIDER_REJECTION_BLOCKED,
-            qrKycUserMessage: railUserMessage(blocked.rail),
-            qrKycActionKey: noAction,
-        }
-    }
-    const fixable = candidates.find((candidate) => candidate.verdict.status === 'fixable')
-    if (fixable) {
-        const action = fixable.verdict.nextAction
-        // The legacy fallback reads a requires-info rail with a restart action
-        // as fixable. Its fix is the identity restart: the document resubmit
-        // the fixable screen opens has no rejection to act on.
-        if (action?.kind === 'restart-identity') {
-            return {
-                kycGateState: QrKycState.PROVIDER_RESTART_IDENTITY,
-                qrKycUserMessage: railUserMessage(fixable.rail),
-                qrKycActionKey: noAction,
-            }
-        }
-        return {
-            kycGateState: QrKycState.PROVIDER_REJECTION_FIXABLE,
-            qrKycUserMessage: railUserMessage(fixable.rail),
-            qrKycActionKey: action?.kind === 'sumsub' ? action.key : noAction,
-        }
-    }
-    if (candidates.some(({ verdict }) => verdict.status === 'pending')) {
-        return {
-            kycGateState: QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS,
-            qrKycUserMessage: noAction,
-            qrKycActionKey: noAction,
-        }
-    }
-    return {
-        kycGateState: QrKycState.REQUIRES_IDENTITY_VERIFICATION,
-        qrKycUserMessage: noAction,
-        qrKycActionKey: noAction,
+    const gate = (
+        kycGateState: QrKycState,
+        qrKycUserMessage: string | null = null,
+        qrKycActionKey: string | null = null
+    ) => ({
+        kycGateState,
+        qrKycUserMessage,
+        qrKycActionKey,
+    })
+    if (input.isLoading) return gate(QrKycState.LOADING)
+    // No report is a visitor with no account yet: verification is their way in.
+    if (!input.features) return gate(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
+    const entry = input.features.qr
+    const action = entryAction(entry, input.nextActions)
+    const message = entry.message || null
+    switch (entry.state) {
+        case 'on':
+            return gate(QrKycState.PROCEED_TO_PAY)
+        case 'refused':
+            // A terminal decision on the ID: verification can no longer be offered, for any rail.
+            if (entry.reason === IDENTITY_REGION_RESTRICTED_CODE) return gate(QrKycState.REGION_RESTRICTED)
+            if (action?.kind === 'restart-identity') return gate(QrKycState.PROVIDER_RESTART_IDENTITY, message)
+            return gate(QrKycState.PROVIDER_REJECTION_BLOCKED, message)
+        case 'action_required':
+            if (entry.action === VERIFY_ACTION) return gate(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
+            if (action?.kind === 'restart-identity') return gate(QrKycState.PROVIDER_RESTART_IDENTITY, message)
+            // This surface has no email form; the blocked ending sends the user to support.
+            if (action?.kind === 'provide-email') return gate(QrKycState.PROVIDER_REJECTION_BLOCKED, message)
+            return gate(QrKycState.PROVIDER_REJECTION_FIXABLE, message, action?.kind === 'sumsub' ? action.key : null)
+        case 'setting_up':
+        case 'pending':
+            return gate(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
+        case 'ready':
+            return gate(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
     }
 }
 
-/** Causes whose verification step is the identity restart, not a new check. */
-const IDENTITY_RESTART_REASONS: ReadonlySet<string> = new Set([
+/**
+ * Causes whose verification step is the identity restart, not a new check,
+ * in the order the verify-again screen explains them: an imported account with
+ * no ID on file, a new ID check the user has not finished, an ID whose name or
+ * number the payment partner cannot use.
+ */
+const IDENTITY_RESTART_ORDER = [
     IDENTITY_DOCUMENT_MISSING_CODE,
+    QR_IDENTITY_RESTART_PENDING_CODE,
     QR_IDENTITY_MISSING_CODE,
-])
+] as const
+export type QrIdentityRestartReason = (typeof IDENTITY_RESTART_ORDER)[number]
+const IDENTITY_RESTART_REASONS: ReadonlySet<string> = new Set(IDENTITY_RESTART_ORDER)
+
+/** Which restart cause the QR screen explains, from the actions and the Manteca rails; null when none applies. */
+export function qrIdentityRestartReason(input: {
+    mantecaRails: RailCapability[]
+    nextActions: NextAction[]
+}): QrIdentityRestartReason | null {
+    const named = new Set([
+        ...input.nextActions.filter((action) => action.kind === 'restart-identity').map((action) => action.purpose),
+        ...input.mantecaRails.map((rail) => rail.resolved?.blocking?.code ?? rail.reason?.code ?? ''),
+    ])
+    return IDENTITY_RESTART_ORDER.find((code) => named.has(code)) ?? null
+}
 
 /**
  * Whether the QR verification step must restart the identity check. In both

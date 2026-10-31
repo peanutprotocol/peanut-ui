@@ -13,6 +13,7 @@ import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/Peanut
 import { QrKycState } from '@/constants/kyc.consts'
 import { QR_IDENTITY_CHECK_INTENT } from '../qrKycGate.utils'
 import { useQrPayFlow } from '../QrPayFlowContext'
+import { usePaperworkVerificationRedirect } from '@/features/paperwork-verification/usePaperworkVerificationRedirect'
 
 // KYC screens come before any error screens - user needs to verify first.
 // MIGRATION-REVIEW: the `crossRegion` flag passed to handleInitiateKyc was `isUserSumsubKycApproved`
@@ -29,16 +30,19 @@ export function QrPayKycGateView() {
     // SumsubKycModals below) is the one actionable surface, and dismissing it
     // leaves the flow rather than re-offering a verification that cannot start.
     const [kycPromptDismissed, setKycPromptDismissed] = useState(false)
+    const unlockOffered =
+        !kycPromptDismissed && !sumsubFlow.errorCooldown && kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION
+    // a Smart Paperwork Verification user starts on /verify, never on this offer
+    const redirecting = usePaperworkVerificationRedirect(unlockOffered, {
+        intent: QR_IDENTITY_CHECK_INTENT,
+        targetCountry: targetMantecaCountry,
+    })
 
     return (
         <PageStack>
             <NavHeader title={tNav('pay')} />
             <ActionModal
-                visible={
-                    !kycPromptDismissed &&
-                    !sumsubFlow.errorCooldown &&
-                    kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION
-                }
+                visible={unlockOffered && !redirecting}
                 onClose={onBack}
                 title={t('kyc.unlockTitle')}
                 description={t('kyc.unlockDescription')}

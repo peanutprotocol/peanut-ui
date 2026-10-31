@@ -24,7 +24,94 @@ import {
 } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
+import { PAPERWORK_VERIFICATION_FIXTURES } from './paperwork-verification'
 import { DEMO_ADDRESS } from '@/constants/demo-data'
+
+const ROUTES = {
+    bank: '/add-money/germany/bank',
+    local: '/add-money/argentina/manteca',
+    card: '/card?kyc=%7B%7D',
+} as const
+const PROVIDERS = { bank: 'bridge', local: 'manteca', card: 'rain' } as const
+const STATES = [
+    'ready',
+    'on',
+    'setting_up',
+    'pending',
+    'action_required',
+    'refused',
+    'failed',
+    'questions_missing',
+] as const
+
+const KYC_FEATURE_ACTIVATION_FIXTURES: Record<string, Fixture> = Object.fromEntries(
+    Object.entries(ROUTES).flatMap(([feature, route]) =>
+        STATES.map((state) => {
+            const key = `POST /users/kyc/features/${feature}/activate`
+            const provider = PROVIDERS[feature as keyof typeof PROVIDERS]
+            return [
+                `feature-activation-${feature}-${state.replaceAll('_', '-')}`,
+                {
+                    route,
+                    about: `First use ${feature}: ${state}; approved workflow identity, synthetic provider responses only.`,
+                    balance: '20',
+                    responses: {
+                        ...PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-verified'].responses,
+                        'GET /users/me': { identityVerification: { status: 'verified', oneShot: true } },
+                        ...(feature === 'card'
+                            ? {
+                                  'GET /rain/cards': {
+                                      status: { hasApplication: false, railStatus: null, applicationStatus: null },
+                                      cards: [],
+                                      balance: null,
+                                  },
+                              }
+                            : {}),
+                        [key]: {
+                            state,
+                            ...(state === 'action_required' ? { action: `supplement:${provider}` } : {}),
+                            ...(state === 'refused' ? { reason: 'identity_document_insufficient' } : {}),
+                        },
+                        'GET /users/kyc/questions': {
+                            available: true,
+                            attemptId: null,
+                            residence: feature === 'local' ? 'AR' : 'DE',
+                            steps: [
+                                {
+                                    id: 'purpose',
+                                    features: [feature],
+                                    answered: false,
+                                    fields: [
+                                        {
+                                            key: feature === 'card' ? 'cardPurpose' : 'bankPurpose',
+                                            kind: 'choice',
+                                            required: true,
+                                            options: ['personal_or_living_expenses', 'travel'],
+                                            value: null,
+                                        },
+                                    ],
+                                },
+                            ],
+                            firstUnanswered: 'purpose',
+                        },
+                    },
+                    // the missing answers open the feature's questions on /verify
+                    ...(state === 'questions_missing' ? { landsOn: `/verify?feature=${feature}` } : {}),
+                    ...(state === 'failed' ? { fails: [key] } : {}),
+                    rejects: {
+                        'POST /users/kyc/start-action': {
+                            status: 503,
+                            body: { error: 'Synthetic action unavailable' },
+                        },
+                        ...(state === 'questions_missing'
+                            ? { [key]: { status: 409, body: { code: 'questions_missing', step: 'purpose' } } }
+                            : {}),
+                    },
+                } satisfies Fixture,
+            ]
+        })
+    )
+)
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
@@ -807,20 +894,18 @@ const QR_PAY_BLOCKED_RAIL = {
 }
 
 /**
- * QR rails the API paused because the identity evidence behind the approval is
- * gone (`SUMSUB_IDENTITY_MISSING`): the fix is the identity restart.
+ * QR rails the API paused because the identity behind the approval is not
+ * usable (`SUMSUB_IDENTITY_MISSING`), by cause: the fix is the identity restart.
  */
-const QR_IDENTITY_MISSING_CAPABILITIES = {
-    rails: [
-        {
-            ...QR_PAY_BLOCKED_RAIL,
-            blockingActions: ['restart-identity'],
-            reason: { code: 'identity_missing', userMessage: 'Verify your identity again to restore QR payments.' },
-        },
-    ],
-    nextActions: [{ key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_missing' }],
+const qrIdentityPausedCapabilities = (code: string, userMessage: string) => ({
+    rails: [{ ...QR_PAY_BLOCKED_RAIL, blockingActions: ['restart-identity'], reason: { code, userMessage } }],
+    nextActions: [{ key: 'restart-identity', kind: 'restart-identity', purpose: code }],
     restrictions: [],
-}
+})
+const QR_IDENTITY_MISSING_CAPABILITIES = qrIdentityPausedCapabilities(
+    'identity_missing',
+    'We could not read the name and ID number on your ID. Upload it again to pay by QR.'
+)
 
 /** A static Pix QR with no amount: the scan screen's own route. */
 const PIX_QR_ROUTE =
@@ -993,6 +1078,62 @@ const PROFILE_ACCOUNTS_MIX = {
     },
 }
 
+/**
+ * An unverified Bangladesh resident who picked bank accounts. Every Bridge
+ * corridor waits on the ID, and the Smart Paperwork Engine (api#1931) refuses
+ * USD to the residence: Bridge publishes no USD rail for Bangladesh.
+ */
+const PAPERWORK_BANGLADESH_RESPONSE = {
+    'GET /users/me': {
+        capabilities: BLOCKED_BANK_CAPABILITIES,
+        depositAccounts: { enabled: true },
+        residence: { declared: 'BD', verified: null, pending: null, declaredSecond: null },
+    },
+    'GET /users/deposit-accounts': {
+        depositAccounts: [],
+        claimable: [],
+        unavailable: [
+            {
+                railId: 'bridge.sepa_eu',
+                method: 'SEPA_EU',
+                country: 'EU',
+                currency: 'EUR',
+                reason: 'identity-required',
+            },
+            {
+                railId: 'bridge.faster_payments_gb',
+                method: 'FASTER_PAYMENTS_GB',
+                country: 'GB',
+                currency: 'GBP',
+                reason: 'identity-required',
+            },
+            { railId: 'bridge.ach_us', method: 'ACH_US', country: 'US', currency: 'USD', reason: 'identity-required' },
+            {
+                railId: 'bridge.spei_mx',
+                method: 'SPEI_MX',
+                country: 'MX',
+                currency: 'MXN',
+                reason: 'identity-required',
+            },
+        ],
+    },
+    'GET /users/kyc/paperwork': {
+        products: [
+            {
+                product: 'bridge.usd',
+                provider: 'BRIDGE',
+                available: false,
+                reason: 'account_unavailable_in_residence',
+                rule: 'bridge.no-usd',
+            },
+            { product: 'bridge.eur', provider: 'BRIDGE', available: true },
+            { product: 'bridge.gbp', provider: 'BRIDGE', available: true },
+            { product: 'bridge.mxn', provider: 'BRIDGE', available: true },
+        ],
+        requirements: [],
+    },
+}
+
 /** A $250 request, as the payer settles it in dollars and by euro bank transfer. */
 const REQUEST_PAY_USD = { amount: '250.00', currency: 'USD', isEstimate: false }
 const REQUEST_PAY_EUR = {
@@ -1162,6 +1303,19 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Accounts page for a user whose ID check passed.',
     },
     'settings-language': { route: '/settings/language', about: 'Language picker, English selected.' },
+    'settings-notifications': {
+        route: '/settings/notifications',
+        about: 'Notification settings: Important alerts and Email updates on, Offers and perks not opted in.',
+        responses: {
+            'GET /notifications/preferences': {
+                push: true,
+                email: true,
+                marketingPush: false,
+                emailUpdates: true,
+                pushPermission: 'granted',
+            },
+        },
+    },
     rewards: {
         route: '/rewards',
         about: 'Points total, tier badge and invite list.',
@@ -1486,8 +1640,32 @@ export const FIXTURES: Record<string, Fixture> = {
     // TASK-22698: the restart, not the start route that answers "already approved".
     'qr-pay-identity-missing': {
         route: PIX_QR_ROUTE,
-        about: 'QR rails paused for missing identity evidence: the gate restarts the identity check.',
+        about: "QR paused: the payment partner can't read the name and ID number on the user's ID. They upload it again.",
         responses: { 'GET /users/me': { capabilities: QR_IDENTITY_MISSING_CAPABILITIES } },
+    },
+    'qr-pay-identity-restart-pending': {
+        route: PIX_QR_ROUTE,
+        about: 'QR paused: the user started a new ID check and has not finished it. They continue it.',
+        responses: {
+            'GET /users/me': {
+                capabilities: qrIdentityPausedCapabilities(
+                    'identity_restart_pending',
+                    'Finish your new ID check to pay by QR again.'
+                ),
+            },
+        },
+    },
+    'qr-pay-identity-document-missing': {
+        route: PIX_QR_ROUTE,
+        about: 'QR paused: an account imported from Manteca has no ID on file. They upload it and take a selfie.',
+        responses: {
+            'GET /users/me': {
+                capabilities: qrIdentityPausedCapabilities(
+                    'identity_document_missing',
+                    'We need an identity document and a selfie to complete your verification.'
+                ),
+            },
+        },
     },
     // Activity after a PIX-key payment: the owner's name, not the key.
     'history-pix-key-owner': {
@@ -2260,6 +2438,51 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
 
+    'bank-proof-of-address-supplement': {
+        route: '/profile/accounts',
+        about: 'Identity approved with bank accounts ticked: Bridge waits for a proof of address, collected on its supplement action after the identity.',
+        responses: {
+            'GET /users/me': {
+                // what api#1816 answers right after the approval: the rail is
+                // parked REQUIREMENTS_MISSING and names supplement:bridge
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'bridge.sepa_eu',
+                            provider: 'bridge',
+                            method: 'SEPA_EU',
+                            channel: 'bank',
+                            country: 'EU',
+                            currency: 'EUR',
+                            status: 'blocked',
+                            reason: {
+                                code: 'requirements_missing',
+                                userMessage: 'We need one more document to finish setting this up.',
+                            },
+                            blockingActions: ['supplement:bridge'],
+                            resolved: {
+                                status: 'fixable',
+                                blocking: {
+                                    code: 'requirements_missing',
+                                    userMessage: 'We need one more document to finish setting this up.',
+                                    selfHealable: true,
+                                    selfHealKind: 'document-resubmit',
+                                },
+                                nextAction: {
+                                    key: 'supplement:bridge',
+                                    kind: 'sumsub',
+                                    purpose: 'requirements_missing',
+                                },
+                            },
+                        },
+                    ],
+                    nextActions: [{ key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' }],
+                    restrictions: [],
+                },
+            },
+        },
+    },
+
     reconsent: {
         route: '/home',
         about: 'Re-consent modal over home: two updated documents as a centered link line.',
@@ -2388,6 +2611,32 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'The hub: one euro account held, the rest open to claim, every country below.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
+    'profile-details': {
+        route: '/profile/details',
+        about: 'Profile details for a verified Portuguese resident: the name and answers read live from Sumsub, the address and tax number kept only there.',
+        responses: {
+            'GET /users/me': PROFILE_ACCOUNTS_MIX['GET /users/me'],
+            'GET /users/kyc/details': {
+                name: { first: 'Ana', last: 'Teste' },
+                nationality: 'PT',
+                idNationality: 'PT',
+                document: { country: 'PRT', type: 'PASSPORT' },
+                heldBySumsub: ['address', 'taxId'],
+                stored: {
+                    dateOfBirth: '1990-05-14',
+                    countryOfBirth: 'PT',
+                    cityOfBirth: 'Lisboa',
+                    phone: '+351912345678',
+                    occupation: 'software_developer_applications',
+                    employmentStatus: 'employed',
+                    annualSalary: '25k_50k',
+                    expectedMonthlyVolume: '1k_5k',
+                    cardPurpose: 'personal_spending',
+                    sourceOfFunds: 'salary',
+                },
+            },
+        },
+    },
     'profile-accounts': {
         route: '/profile/accounts',
         about: 'Accounts page, a Portuguese resident: EUR held; in the fold USD opens, GBP is not offered where they live, MXN could not be checked (no verdict), COP needs verification.',
@@ -2489,6 +2738,16 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /users/deposit-accounts': { depositAccounts: [] },
             'GET /users/me': { capabilities: BLOCKED_BANK_CAPABILITIES },
         },
+    },
+    'get-paid-usd-closed-bangladesh': {
+        route: '/add-money?method=bank',
+        about: 'An unverified Bangladesh resident: the paperwork engine refuses USD, so USD reads Not available while EUR, GBP and MXN still ask for the ID.',
+        responses: PAPERWORK_BANGLADESH_RESPONSE,
+    },
+    'get-paid-usd-closed-bangladesh-claim': {
+        route: '/add-money?method=bank&step=claim&corridor=ACH_US',
+        about: 'A link straight to the USD claim for a Bangladesh resident: the drawer says USD is not available where they live, with no ID check offered.',
+        responses: PAPERWORK_BANGLADESH_RESPONSE,
     },
     'get-paid-claim': {
         route: '/add-money?method=bank&step=claim&corridor=ACH_US',
@@ -3416,4 +3675,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'The caps screen when GET /users/limits fails.',
         fails: ['GET /users/limits'],
     },
+
+    ...PAPERWORK_VERIFICATION_FIXTURES,
+    ...KYC_FEATURE_ACTIVATION_FIXTURES,
 }

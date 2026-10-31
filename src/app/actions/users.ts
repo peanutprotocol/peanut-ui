@@ -1,3 +1,5 @@
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { type ApiUser } from '@/services/users'
 import {
     type AddBankAccountPayload,
@@ -177,33 +179,49 @@ export async function getContacts(params: {
 
 // fetch bridge ToS acceptance link for users with pending ToS
 export const getBridgeTosLink = async (): Promise<{ data?: { tosLink: string }; error?: string }> => {
+    let status: number | undefined
     try {
         const response = await serverFetch('/users/bridge-tos-link', {
             method: 'GET',
         })
+        status = response.status
         const responseJson = await response.json()
         if (!response.ok) {
+            if (response.status >= 500)
+                Sentry.captureException(new Error('KYC terms request failed'), {
+                    tags: { ...criticalFlowTags('kyc'), kyc_step: 'tos_open' },
+                })
             return { error: responseJson.error || 'Failed to fetch Bridge ToS link' }
         }
         return { data: responseJson }
     } catch (e: unknown) {
+        if (!(status !== undefined && status >= 400 && status < 500))
+            Sentry.captureException(e, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'tos_open' } })
         return { error: e instanceof Error ? e.message : 'An unexpected error occurred' }
     }
 }
 
 // confirm bridge ToS acceptance after user closes the ToS iframe
 export const confirmBridgeTos = async (): Promise<{ data?: { accepted: boolean }; error?: string }> => {
+    let status: number | undefined
     try {
         const response = await serverFetch('/users/bridge-tos-confirm', {
             method: 'POST',
             body: JSON.stringify({}),
         })
+        status = response.status
         const responseJson = await response.json()
         if (!response.ok) {
+            if (response.status >= 500)
+                Sentry.captureException(new Error('KYC terms request failed'), {
+                    tags: { ...criticalFlowTags('kyc'), kyc_step: 'tos_confirm' },
+                })
             return { error: responseJson.error || 'Failed to confirm Bridge ToS' }
         }
         return { data: responseJson }
     } catch (e: unknown) {
+        if (!(status !== undefined && status >= 400 && status < 500))
+            Sentry.captureException(e, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'tos_confirm' } })
         return { error: e instanceof Error ? e.message : 'An unexpected error occurred' }
     }
 }

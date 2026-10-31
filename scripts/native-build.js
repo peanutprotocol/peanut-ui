@@ -12,6 +12,9 @@ const dotenv = require('dotenv')
 const fs = require('fs')
 const path = require('path')
 const { processNativeSourceMaps } = require('./native-source-maps')
+const { buildBranch, isTestBuild } = require('./build-branch.cjs')
+const { checkApiContracts } = require('./api-contract-check')
+const { calledApiOperations } = require('./api-called-operations')
 
 const APP_DIR = path.join(__dirname, '..', 'src', 'app')
 
@@ -613,6 +616,25 @@ async function main() {
         } else {
             console.warn('⚠️  .env.production.local not found — using default rpId (peanut.me)')
         }
+
+        const buildEnv = { ...bakedEnv, ...process.env }
+        const skipApiCheck = process.env.SKIP_API_CONTRACT_CHECK === '1'
+        // A pull request's export is a compile check that ships nothing, and its API half isn't deployed yet: warn only.
+        const compileCheckOnly = process.env.GITHUB_EVENT_NAME === 'pull_request'
+        await checkApiContracts({
+            apiUrl: buildEnv.NEXT_PUBLIC_PEANUT_API_URL,
+            production: compileCheckOnly || !isTestBuild(buildBranch(buildEnv)),
+            skip: skipApiCheck,
+            requiredOperations: skipApiCheck
+                ? []
+                : calledApiOperations(
+                      path.join(__dirname, '..', 'src'),
+                      require('../src/types/api.openapi.json')
+                  ).filter(
+                      // Dev-tool routes exist only on dev APIs; a deployed API never serves them.
+                      (operation) => !operation.path.startsWith('/dev/')
+                  ),
+        })
 
         // Keep deferred web attribution readable in native bundles. The sitemap
         // is disabled below, so generation must happen before any route moves.

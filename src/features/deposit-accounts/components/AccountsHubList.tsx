@@ -148,6 +148,7 @@ export function AccountsHubList({
         // no verdict from the backend: nothing else about the row is known, the gate included
         if (unchecked) return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
         const withheld = accounts?.unavailable?.[corridor]
+        if (withheld?.cause === 'not_started') return <Badge status="processing" customText={t('list.badgeSetUp')} />
         const reason = withheld?.reason
         // the app's one "contact support" string, so the badge cannot drift
         // from the buttons that do the same thing
@@ -163,6 +164,9 @@ export function AccountsHubList({
             // a reviewer acts next (design.md, "rows the user cannot act on")
             case 'review-pending':
                 return <Badge status="pending" customText={t('list.badgeUnderReview')} />
+            // the account is being opened after verification; support takes over if it doesn't finish
+            case 'setup-pending':
+                return <Badge status="pending" customText={t('list.badgeSettingUp')} />
         }
         if (!openable) return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
         switch (accounts?.claimable?.[corridor]?.blockedBy) {

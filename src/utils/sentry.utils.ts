@@ -596,16 +596,31 @@ const reportNonOkResponse = async (
     // 401 on cleared session, etc). Logging them clutters DevTools and
     // gets picked up by forward-logs-shared as Sentry breadcrumbs.
     const skipRule = findSkipRule(url, response.status)
-    // A rule with no `errorCodes` decides on URL + status alone, so nothing
-    // below needs to run.
-    if (skipRule && !skipRule.errorCodes) return
+    // Missing /users routes must reach Sentry even when domain 404s are expected.
+    const users404 = response.status === 404 && /\/users(?:[/?#]|$)/.test(url)
+    if (skipRule && !skipRule.errorCodes && !users404) return
 
     let errorContent: JSONValue
     try {
         errorContent = await response.clone().json()
     } catch {
-        errorContent = await response.clone().text()
+        errorContent = await response
+            .clone()
+            .text()
+            .catch(() => '')
     }
+
+    if (
+        users404 &&
+        skipRule &&
+        !(
+            typeof errorContent === 'object' &&
+            errorContent !== null &&
+            !Array.isArray(errorContent) &&
+            errorContent.code === 'route_not_found'
+        )
+    )
+        return
 
     // A scoped rule suppresses only its own codes. Any other failure sharing
     // the status falls through and is reported.
