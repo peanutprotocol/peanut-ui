@@ -22,6 +22,7 @@ import { DownloadReceiptPdfLink } from './DownloadReceiptPdfLink'
 import { ReceiptMoreActionsDrawer, type ReceiptMoreAction } from './ReceiptMoreActionsDrawer'
 import { openReceiptPdfUrl, receiptPdfPath, receiptPdfVersion } from './receipt-pdf-link.utils'
 import { useReceiptPdfFile } from './useReceiptPdfFile'
+import { trackReceiptAction, type ReceiptActionPlacement } from './receipt-action-analytics'
 import { useReceiptReferralAction } from './useReceiptReferralAction'
 import { type ReceiptViewModel } from './useReceiptViewModel'
 import { useReceiptActions } from './useReceiptActions'
@@ -209,7 +210,14 @@ export function ReceiptActions({
         else openExternalUrl(target.url).catch((err) => console.warn('failed to open request link:', err))
     }
 
-    const handleSplitBill = () => router.push(buildSplitBillRequestUrl(transaction.amount, transaction.userName))
+    const handleSplitBill = (placement: ReceiptActionPlacement) => {
+        trackReceiptAction('split', placement, kind)
+        router.push(buildSplitBillRequestUrl(transaction.amount, transaction.userName))
+    }
+    const handleSharePdf = (placement: ReceiptActionPlacement) => {
+        trackReceiptAction('share_pdf', placement, kind)
+        void pdfFile.share()
+    }
 
     const handleCancelSendLink = async () => {
         if (!setIsLoading || !onClose) return
@@ -245,7 +253,7 @@ export function ReceiptActions({
                 title: t('actions.splitBill'),
                 onSelect: () => {
                     setShowMoreActions(false)
-                    handleSplitBill()
+                    handleSplitBill('more_actions')
                 },
                 'data-testid': 'more-action-split',
             })
@@ -256,7 +264,7 @@ export function ReceiptActions({
                 title: t('actions.sharePdf'),
                 onSelect: () => {
                     setShowMoreActions(false)
-                    void pdfFile.share()
+                    handleSharePdf('more_actions')
                 },
                 disabled: pdfFile.unavailable || pdfFile.busy !== null,
                 'data-testid': 'more-action-share-pdf',
@@ -272,6 +280,7 @@ export function ReceiptActions({
                 title: t('actions.downloadPdf'),
                 onSelect: () => {
                     setShowMoreActions(false)
+                    trackReceiptAction('download_pdf', 'more_actions', kind)
                     if (downloadViaUrl) openReceiptPdfUrl(receiptPdfPath(transaction.id, kind!, locale, pdfVersion))
                     else void pdfFile.download()
                 },
@@ -422,13 +431,18 @@ export function ReceiptActions({
             {(primaryAction || showMoreActionsButton) && (
                 <div className="flex flex-col gap-2 print:hidden">
                     {primaryAction === 'share-link' && receiptPageUrl && (
-                        <ShareButton url={receiptPageUrl} title={t('officialReceipt.pdf.title')} className="w-full">
+                        <ShareButton
+                            url={receiptPageUrl}
+                            title={t('officialReceipt.pdf.title')}
+                            className="w-full"
+                            onClick={() => trackReceiptAction('share_link', 'primary', kind)}
+                        >
                             {t('actions.shareReceipt')}
                         </ShareButton>
                     )}
 
                     {primaryAction === 'split' && (
-                        <Button onClick={handleSplitBill} icon="users" shadowSize="4">
+                        <Button onClick={() => handleSplitBill('primary')} icon="users" shadowSize="4">
                             {t('actions.splitBill')}
                         </Button>
                     )}
@@ -439,7 +453,7 @@ export function ReceiptActions({
                             className="w-full"
                             loading={pdfFile.busy === 'share'}
                             disabled={pdfFile.unavailable || pdfFile.busy !== null}
-                            onClick={() => void pdfFile.share()}
+                            onClick={() => handleSharePdf('primary')}
                             icon={<Icon name="share" size={20} />}
                             data-testid="pdf-share"
                         >

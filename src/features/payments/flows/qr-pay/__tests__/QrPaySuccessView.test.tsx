@@ -6,6 +6,9 @@ import { fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 
 const mockPush = jest.fn()
+jest.mock('posthog-js', () => ({ capture: jest.fn() }))
+import posthog from 'posthog-js'
+const mockCapture = posthog.capture as jest.Mock
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
     usePathname: () => '/qr-pay',
@@ -67,6 +70,19 @@ test('a double tap on Split this bill navigates once', () => {
     fireEvent.click(split)
     expect(mockPush).toHaveBeenCalledTimes(1)
     expect(mockPush).toHaveBeenCalledWith('/request?amount=1&merchant=Shop')
+})
+
+test('Split this bill records one receipt action tap from the success screen (TASK-24141)', () => {
+    renderWithIntl(<QrPaySuccessView />)
+    const split = screen.getByRole('button', { name: /split this bill/i })
+    fireEvent.click(split)
+    fireEvent.click(split)
+    expect(mockCapture).toHaveBeenCalledTimes(1)
+    expect(mockCapture).toHaveBeenCalledWith('receipt_action_tapped', {
+        action: 'split',
+        placement: 'qr_success',
+        kind: 'QR_PAY',
+    })
 })
 
 test('See receipt opens the receipt built for this payment', () => {

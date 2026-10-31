@@ -11,6 +11,9 @@ type ShareButtonProps = ShareActionOptions & {
     variant?: ButtonVariant
     iconPosition?: 'left' | 'right'
     showIcon?: boolean
+    /** Runs on the tap, before the share starts: the place to record that the
+     *  user wanted to share, whatever the sheet or the clipboard do next. */
+    onClick?: () => void
 }
 
 /**
@@ -22,6 +25,7 @@ const ShareButton = ({
     variant = 'primary',
     iconPosition = 'left',
     showIcon = true,
+    onClick,
     ...shareOptions
 }: ShareButtonProps) => {
     const t = useTranslations('global')
@@ -32,7 +36,10 @@ const ShareButton = ({
         <Button
             variant={variant}
             className={`flex items-center justify-center gap-1 ${className}`}
-            onClick={handleShare}
+            onClick={() => {
+                onClick?.()
+                void handleShare()
+            }}
             shadowSize="4"
         >
             <span className="flex items-center gap-2">

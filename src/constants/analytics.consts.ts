@@ -111,6 +111,14 @@ export const ANALYTICS_EVENTS = {
     SEND_LINK_FAILED: 'send_link_failed',
     SEND_LINK_SHARED: 'send_link_shared',
 
+    // ── Receipt ──
+    // One tap on a receipt action, so the primary (Share receipt, the link) and
+    // the rows under More actions can be compared (TASK-24141). Props:
+    // `action` = share_link | share_pdf | download_pdf | split,
+    // `placement` = primary | more_actions | qr_success,
+    // `kind` = the wire kind of the entry (DIRECT_TRANSFER, QR_PAY, ...).
+    RECEIPT_ACTION_TAPPED: 'receipt_action_tapped',
+
     // ── Claim Link ──
     CLAIM_LINK_VIEWED: 'claim_link_viewed',
     CLAIM_LINK_STARTED: 'claim_link_started',
