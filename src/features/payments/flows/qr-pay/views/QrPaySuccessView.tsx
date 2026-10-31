@@ -25,6 +25,7 @@ import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-pay
 import { formatCurrency } from '@/utils/general.utils'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
+import { trackReceiptAction } from '@/components/TransactionDetails/receipt-action-analytics'
 import { useQrPayFlow } from '../QrPayFlowContext'
 import { useQrReceipt } from '../useQrReceipt'
 import { usePerkHoldToClaim } from '../usePerkHoldToClaim'
@@ -228,6 +229,7 @@ export function QrPaySuccessView() {
                                     onClick={() => {
                                         if (splitNavigatedRef.current) return
                                         splitNavigatedRef.current = true
+                                        trackReceiptAction('split', 'qr_success', 'QR_PAY')
                                         // same query-builder shape as withdraw's downstreamQuery —
                                         // /request seeds its form from these params
                                         // A person's name paid by PIX key stays out of the URL,
