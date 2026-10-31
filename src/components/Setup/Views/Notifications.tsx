@@ -16,6 +16,9 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { type NotificationChoices, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { readNotificationsVariant, trackPromptAnswer } from '@/features/setup/notificationsExperiment'
+import NotificationsControl from './NotificationsControl'
+import NotificationsStepLayout from '../components/NotificationsStepLayout'
 import {
     notificationsApi,
     toPushPermission,
@@ -39,8 +42,9 @@ const ALL_OFF = { push: false, marketingPush: false, emailUpdates: false }
  * marketing pushes need the user's own tap (App Store 4.5.4, GDPR, LGPD).
  * Continue asks the OS when a push switch is on and saves what its answer allows.
  */
-export default function NotificationsStep() {
+function NotificationSwitches() {
     const t = useTranslations('setup.notifications')
+    const tSetup = useTranslations('setup')
     const { notificationChoices, setNotificationChoices, setIsLoading: setSetupLoading } = useSetupFlowContext()
     const { handleNext } = useSetupFlow()
     const { requestPermission, afterPermissionAttempt } = useNotifications()
@@ -68,8 +72,10 @@ export default function NotificationsStep() {
             const permission = toPushPermission(await requestPermission())
             await afterPermissionAttempt()
             permissionRef.current = permission
+            trackPromptAnswer('switches', permission)
             return permission
         } catch {
+            trackPromptAnswer('switches', 'dismissed')
             return 'dismissed'
         }
     }
@@ -123,7 +129,8 @@ export default function NotificationsStep() {
     }
 
     return (
-        <div className="flex w-full flex-1 flex-col gap-6">
+        // Balanced, so the two-line title breaks after "notifications" instead of leaving the last words alone.
+        <NotificationsStepLayout title={tSetup('steps.notification-permission.title')} titleClassName="text-balance">
             <div className="flex flex-1 flex-col justify-center gap-3">
                 {/* A toggle row sets a preference, so its bubble is blue (design.md icon bubble ruling). */}
                 <ListGroup>
@@ -166,6 +173,11 @@ export default function NotificationsStep() {
                     </LinkButton>
                 }
             />
-        </div>
+        </NotificationsStepLayout>
     )
+}
+
+export default function NotificationsStep() {
+    const [variant] = useState(readNotificationsVariant)
+    return variant === 'switches' ? <NotificationSwitches /> : <NotificationsControl />
 }

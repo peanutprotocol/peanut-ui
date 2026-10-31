@@ -1161,6 +1161,11 @@
         "inviteStep": {
             "continue": "Continue",
             "skip": "Skip"
+        },
+        "notificationsControl": {
+            "title": "Turn on notifications",
+            "description": "Know instantly when money arrives, a payment goes through, or your account requires attention.",
+            "pushLabel": "Push notifications"
         }
     },
     "loadingStates": {

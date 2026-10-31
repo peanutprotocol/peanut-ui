@@ -1161,6 +1161,11 @@
         "inviteStep": {
             "continue": "Continuar",
             "skip": "Omitir"
+        },
+        "notificationsControl": {
+            "title": "Activa las notificaciones",
+            "description": "Entérate al instante cuando llega dinero, se completa un pago o tu cuenta necesita atención.",
+            "pushLabel": "Notificaciones push"
         }
     },
     "loadingStates": {

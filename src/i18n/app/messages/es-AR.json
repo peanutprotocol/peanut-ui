@@ -665,6 +665,10 @@
             },
             "fundingLead": "Primero vas a agregar dinero",
             "spendLead": "y después vas a gastar"
+        },
+        "notificationsControl": {
+            "title": "Activá las notificaciones",
+            "description": "Enterate al instante cuando llega plata, se completa un pago o tu cuenta necesita atención."
         }
     },
     "loadingStates": {

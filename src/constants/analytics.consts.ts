@@ -200,6 +200,8 @@ export const ANALYTICS_EVENTS = {
     NOTIFICATION_SUBSCRIPTION_SNAPSHOT: 'notification_subscription_snapshot',
     /** Sign-up notifications step saved: outcome = OS answer, not_asked or skipped. */
     NOTIFICATION_CHOICES_SAVED: 'notification_choices_saved',
+    /** The OS answer to the prompt the sign-up notifications step opened; the experiment's goal. */
+    SIGNUP_PUSH_PERMISSION_ANSWERED: 'signup_push_permission_answered',
 
     // ── App store review ──
     // The OS sheet was requested. There is deliberately no "shown" or "rated"
