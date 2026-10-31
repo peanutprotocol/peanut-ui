@@ -616,6 +616,38 @@ const PEER_HISTORY_ENTRY = (
     memo,
 })
 
+// Receipts the API serves to anyone with the link (TASK-24141): Share receipt
+// sends the link, and the PDF actions sit under More actions. A QR payment
+// also moves Split this bill there.
+const PUBLIC_RECEIPT_SEND_ENTRY = {
+    ...PEER_HISTORY_ENTRY('fixture-public-receipt-send', '25', 'Dinner', PEER('ana', 'Ana Ruiz', 'basic.frog'), false),
+    // a hash, so the fixture shows the drawer leaving out the Transaction ID row
+    txHash: '0x' + '5f1c'.repeat(16),
+    extraData: { kind: 'DIRECT_TRANSFER', usdAmount: '25', publicReceipt: true },
+}
+
+const PUBLIC_RECEIPT_QR_PAY_ENTRY = {
+    uuid: 'fixture-public-receipt-qr-pay',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-10-28T20:30:00.000Z'),
+    amount: '12.4',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: { identifier: 'La Parrilla de Juan', type: 'BANK_CBU', isUser: false },
+    currency: { amount: '15000', code: 'ARS' },
+    extraData: {
+        kind: 'QR_PAY',
+        provider: 'MANTECA',
+        usdAmount: '12.4',
+        publicReceipt: true,
+        receipt: { exchange_rate: '1209.68' },
+    },
+}
+
 const AVATAR_PEERS = [
     PEER('alice', 'Alice Nguyen', 'basic.frog'),
     PEER('bob', 'Bob Carter', 'basic.avocado'),
@@ -2208,6 +2240,22 @@ export const FIXTURES: Record<string, Fixture> = {
                 paymentReference: 'demo-req',
                 payerAmount: REQUEST_PAY_EUR,
             },
+        },
+    },
+    'history-receipt-public-link': {
+        route: '/history?tx=fixture-public-receipt-send',
+        about: 'A P2P send with a public receipt: Share receipt sends the link, the PDF is under More actions.',
+        responses: {
+            'GET /users/history': { entries: [PUBLIC_RECEIPT_SEND_ENTRY], hasMore: false },
+            'GET /history/fixture-public-receipt-send': PUBLIC_RECEIPT_SEND_ENTRY,
+        },
+    },
+    'history-qr-pay-public-link': {
+        route: '/history?tx=fixture-public-receipt-qr-pay',
+        about: 'A QR payment with a public receipt: Share receipt sends the link, Split this bill is under More actions.',
+        responses: {
+            'GET /users/history': { entries: [PUBLIC_RECEIPT_QR_PAY_ENTRY], hasMore: false },
+            'GET /history/fixture-public-receipt-qr-pay': PUBLIC_RECEIPT_QR_PAY_ENTRY,
         },
     },
     'empty-history': {

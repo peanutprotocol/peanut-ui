@@ -442,6 +442,11 @@ export interface TransactionDetails {
          *  entries — separates the four Bridge paths that share an intent kind
          *  (ONRAMP, OFFRAMP, BANK_SEND_LINK_CLAIM, GUEST_DIRECT_SEND). */
         bridgeFlow?: 'ONRAMP' | 'OFFRAMP' | 'BANK_SEND_LINK_CLAIM' | 'GUEST_DIRECT_SEND'
+        /** The API serves this entry's receipt page and PDF to anyone with
+         *  the link (wire `extraData.publicReceipt`). Read it through
+         *  `hasPublicReceipt`: it is the one gate for the receipt link, its
+         *  share and the anonymous PDF. */
+        publicReceipt?: boolean
         link?: string
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
@@ -827,6 +832,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             kind: intentKindOf(entry),
             provider: entry.extraData?.provider as Provider | undefined,
             bridgeFlow: entry.extraData?.bridgeFlow,
+            publicReceipt: entry.extraData?.publicReceipt || undefined,
             link: entry.extraData?.link,
             isLinkTransaction: isLinkTx,
             transactionCardType,

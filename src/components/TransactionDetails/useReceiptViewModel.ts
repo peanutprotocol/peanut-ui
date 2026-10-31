@@ -16,8 +16,8 @@ import {
     receiptExchangeRate,
 } from '@/components/TransactionDetails/receipt-conversion.utils'
 import {
+    hasPublicReceipt,
     hasResolvableReceiptDocument,
-    servesAnonymousReceipt,
     isCardPaymentEntry,
     isCardSpend as isCardSpendTransaction,
     isMantecaOnrampEntry,
@@ -26,6 +26,7 @@ import {
     isRequestEntry,
     isSendLinkEntry,
 } from '@/components/TransactionDetails/transaction-predicates'
+import { type ReceiptSurface } from '@/components/TransactionDetails/transaction-types'
 import { hasCardPaymentRowsContent } from '@/components/TransactionDetails/provider-rows/CardPaymentRows'
 import { countryData } from '@/components/AddMoney/consts'
 import { getContributorsFromCharge, formatCurrency } from '@/utils/general.utils'
@@ -68,8 +69,8 @@ export interface ReceiptViewModel {
     shouldShowShareReceipt: boolean
 
     /** Whether the Download-PDF affordance should render — the share gate's
-     *  conditions, narrowed to kinds the /receipt/[entryId]/pdf route serves,
-     *  and allowed on the public receipt (where sharing is moot). */
+     *  conditions in the app; on the public receipt, only when the API serves
+     *  the entry's PDF to anyone with the link (sharing is moot there). */
     shouldShowDownloadPdf: boolean
 
     /** Request-pot contributor list — empty array when not a request pot. */
@@ -80,13 +81,13 @@ export interface ReceiptViewModel {
 }
 
 /**
- * Derived state for the receipt drawer in one place — keeps the component
- * focused on JSX + callbacks. Pure: no IO, no effects. Memoized on
- * `transaction` + `isPublic`.
+ * Derived state for the receipt in one place — keeps the component focused on
+ * JSX + callbacks. Pure: no IO, no effects. Memoized on `transaction`,
+ * `isPublic` and `surface`.
  */
 export function useReceiptViewModel(
     transaction: TransactionDetails | null,
-    { isPublic }: { isPublic: boolean }
+    { isPublic, surface }: { isPublic: boolean; surface: ReceiptSurface }
 ): ReceiptViewModel {
     const isGuestBankClaim = useMemo(
         () => transaction?.extraDataForDrawer?.bridgeFlow === 'BANK_SEND_LINK_CLAIM',
@@ -233,7 +234,10 @@ export function useReceiptViewModel(
                 ) &&
                 transaction.status !== 'refunded'
             ),
-            txId: !!transaction.txHash,
+            // The on-chain hash belongs to the full receipt: receipt pages and
+            // the PDF print it. The drawer leaves it out to keep the first
+            // view short (TASK-24141).
+            txId: surface === 'page' && !!transaction.txHash,
             fee: transaction.fee !== undefined && transaction.status !== 'cancelled' && !feeRepeatsNetworkFee,
             // only while the payout can still arrive: a returned or failed wire paid the bank nothing
             bankReceives:
@@ -295,11 +299,19 @@ export function useReceiptViewModel(
             // visible-but-empty (a stray divider in the details card).
             cardPayment: isCardPaymentEntry(transaction) && hasCardPaymentRowsContent(transaction),
         }
-    }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled, providerId])
+    }, [
+        transaction,
+        isPublic,
+        surface,
+        isPendingBankRequest,
+        isPeanutWalletToken,
+        isSendLinkSenderCancelled,
+        providerId,
+    ])
 
     // Every activity kind gets a receipt once it is no longer waiting for an
-    // interactive send/request action. Existing public receipt kinds share a
-    // capability URL; all other kinds share an authenticated PDF file.
+    // interactive send/request action. An entry with a public receipt shares
+    // its link; every other entry shares an authenticated PDF file.
     const meetsShareConditions = useMemo(
         () =>
             !!transaction &&
@@ -319,7 +331,7 @@ export function useReceiptViewModel(
     const shouldShowDownloadPdf = useMemo(() => {
         if (!transaction) return false
         if (isPendingSentLink || isPendingRequester || isPendingRequestee) return false
-        return isPublic ? servesAnonymousReceipt(transaction) : meetsShareConditions
+        return isPublic ? hasPublicReceipt(transaction) : meetsShareConditions
     }, [transaction, isPublic, isPendingSentLink, isPendingRequester, isPendingRequestee, meetsShareConditions])
 
     const requestPotContributors = useMemo(() => {

@@ -9,7 +9,9 @@ import {
 import { FIXTURES } from '../../src/dev/fixtures/registry'
 import { withFixtureFeatureReport } from '../../src/dev/fixtures/featureReport'
 import type { IUserProfile } from '../../src/interfaces/interfaces'
-export const ADAPTER_VERSION = 'synthetic-api-v1'
+import openapi from '../../src/types/api.openapi.json'
+import { exampleFor } from './openapi-example'
+export const ADAPTER_VERSION = 'synthetic-api-v3'
 export function merge(base: unknown, patch: unknown): unknown {
     if (
         !base ||
@@ -24,7 +26,24 @@ export function merge(base: unknown, patch: unknown): unknown {
     for (const [key, value] of Object.entries(patch)) result[key] = merge(result[key], value)
     return result
 }
-export async function answer(fixture: string, path: string, method: string, body?: string): Promise<Response> {
+/** Demo handlers first; a route they do not map gets its documented example, or stays unmapped. */
+async function synthetic(path: string, method: string, body: string | undefined, spec: unknown): Promise<Response> {
+    try {
+        return await demoRespond(path, { method, body }, { offline: true, strict: true })
+    } catch (error) {
+        const unmapped = error instanceof Error && error.message.startsWith('Unmapped capture API:')
+        const example = unmapped ? exampleFor(spec, method, path) : undefined
+        if (!example) throw error
+        return Response.json(example.data, { status: example.status })
+    }
+}
+export async function answer(
+    fixture: string,
+    path: string,
+    method: string,
+    body?: string,
+    spec: unknown = openapi
+): Promise<Response> {
     const state = FIXTURES[fixture]
     if (!state) throw new Error(`Unknown fixture ${fixture}`)
     const key = `${method} ${path.split('?')[0].replace(/\/+$/, '')}`
@@ -71,7 +90,7 @@ export async function answer(fixture: string, path: string, method: string, body
             ...(query.has('sourceAmount') ? { netAmount: query.get('sourceAmount') } : {}),
         })
     }
-    const base = await demoRespond(path, { method, body }, { offline: true, strict: true })
+    const base = await synthetic(path, method, body, spec)
     let data = await base.json()
     if (key === 'GET /users/me') data = merge(data, { user: { activationCelebratedAt: '2026-01-01T00:00:00Z' } })
     const override = state.responses?.[key]

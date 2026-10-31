@@ -59,6 +59,7 @@ import {
     sponsoredNetworkFee,
 } from '@/features/payments/shared/utils/charge-receipt.utils'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
+import { withPublicReceipt } from '@/utils/history.utils'
 import { pendingNetworkFee } from '@/components/TransactionDetails/network-fee.utils'
 
 // minimal user info needed for display
@@ -290,11 +291,12 @@ const PaymentSuccessView = ({
     // the one transaction this view's receipt drawer shows — the drawer opens
     // when the url's `?tx=` matches its id (see useTransactionDetailsDrawer).
     // The entry's facts go over the receipt the flow built, never replace it:
-    // the flow's receipt keeps the comment and the attachment.
+    // the flow's receipt keeps the comment and the attachment. The entry also
+    // says whether the receipt has a public link to share.
     const receiptTransaction = useMemo(() => {
         if (transactionDetailsProp) return transactionDetailsProp
         if (!transactionForDrawer || !historyEntry) return transactionForDrawer
-        return { ...transactionForDrawer, ...settledReceiptFields(historyEntry) }
+        return withPublicReceipt({ ...transactionForDrawer, ...settledReceiptFields(historyEntry) }, historyEntry)
     }, [transactionDetailsProp, transactionForDrawer, historyEntry])
 
     const pointsDivRef = useRef<HTMLDivElement>(null)
