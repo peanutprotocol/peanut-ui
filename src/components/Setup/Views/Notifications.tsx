@@ -47,7 +47,7 @@ function NotificationSwitches() {
     const tSetup = useTranslations('setup')
     const { notificationChoices, setNotificationChoices, setIsLoading: setSetupLoading } = useSetupFlowContext()
     const { handleNext } = useSetupFlow()
-    const { requestPermission, afterPermissionAttempt } = useNotifications()
+    const { requestPermission, afterPermissionAttempt, permissionState } = useNotifications()
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string>()
     const savingRef = useRef(false)
@@ -106,8 +106,9 @@ function NotificationSwitches() {
                 () => true,
                 () => false
             )
-            // Keeping the switches as tapped until the save lands leaves Continue there to retry.
-            if (!ok && !skip) {
+            // Continue always needs acknowledgement. A skip only does when push could arrive.
+            const pushCouldArrive = permissionState === 'granted' || permissionRef.current === 'granted'
+            if (!ok && (!skip || pushCouldArrive)) {
                 setError(t('saveFailed'))
                 return
             }
