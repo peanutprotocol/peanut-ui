@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { activateKycFeature } from '@/app/actions/kyc-feature-activation'
 import { AddMoneyBankPage } from '@/features/add-money/AddMoneyBankPage'
 import WithdrawBankPage from '@/app/(mobile-ui)/withdraw/[country]/bank/page'
@@ -112,7 +113,7 @@ describe.each(entries)('%s activation entry', (_name, feature, Entry) => {
                 resolve = done
             })
         )
-        render(<Entry />)
+        render(<Entry />, { wrapper: NuqsTestingAdapter })
         expect(activateKycFeature).not.toHaveBeenCalled()
         fireEvent.click(screen.getByRole('button', { name: 'continue' }))
         expect(activateKycFeature).toHaveBeenCalledWith(feature)
@@ -125,7 +126,7 @@ describe.each(entries)('%s activation entry', (_name, feature, Entry) => {
     })
     it.each([false, undefined])('legacy oneShot=%s preserves the provider path', async (oneShot) => {
         mockOneShot = oneShot
-        render(<Entry />)
+        render(<Entry />, { wrapper: NuqsTestingAdapter })
         expect(mockProvider).toHaveBeenCalledTimes(1)
         expect(activateKycFeature).not.toHaveBeenCalled()
     })
@@ -133,7 +134,7 @@ describe.each(entries)('%s activation entry', (_name, feature, Entry) => {
         '%s shows existing setup and prevents provider calls',
         async (state) => {
             jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'report', report: { state } })
-            render(<Entry />)
+            render(<Entry />, { wrapper: NuqsTestingAdapter })
             expect(activateKycFeature).not.toHaveBeenCalled()
             fireEvent.click(screen.getByRole('button', { name: 'continue' }))
             await waitFor(() => expect(activateKycFeature).toHaveBeenCalledTimes(1))
@@ -143,7 +144,7 @@ describe.each(entries)('%s activation entry', (_name, feature, Entry) => {
     )
     it('routes missing questions to its feature verification path', async () => {
         jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'questions_missing', step: 'tax' })
-        render(<Entry />)
+        render(<Entry />, { wrapper: NuqsTestingAdapter })
         expect(activateKycFeature).not.toHaveBeenCalled()
         fireEvent.click(screen.getByRole('button', { name: 'continue' }))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith(`/verify?feature=${feature}`))
@@ -155,7 +156,7 @@ describe.each(entries)('%s activation entry', (_name, feature, Entry) => {
             kind: 'report',
             report: { state: 'action_required', action },
         })
-        render(<Entry />)
+        render(<Entry />, { wrapper: NuqsTestingAdapter })
         expect(activateKycFeature).not.toHaveBeenCalled()
         fireEvent.click(screen.getByRole('button', { name: 'continue' }))
         expect(await screen.findByText(action)).toBeInTheDocument()
@@ -163,7 +164,7 @@ describe.each(entries)('%s activation entry', (_name, feature, Entry) => {
     })
     it('routes unfinished identity to verification without a feature refusal', async () => {
         jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'identity_not_approved' })
-        render(<Entry />)
+        render(<Entry />, { wrapper: NuqsTestingAdapter })
         expect(activateKycFeature).not.toHaveBeenCalled()
         fireEvent.click(screen.getByRole('button', { name: 'continue' }))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
@@ -175,7 +176,7 @@ describe.each(entries)('%s activation entry', (_name, feature, Entry) => {
             kind: 'report',
             report: { state: 'refused', reason: 'identity_document_insufficient' },
         })
-        render(<Entry />)
+        render(<Entry />, { wrapper: NuqsTestingAdapter })
         expect(activateKycFeature).not.toHaveBeenCalled()
         fireEvent.click(screen.getByRole('button', { name: 'continue' }))
         expect(await screen.findByText(/supplement.identityDocumentInsufficient/)).toBeInTheDocument()
