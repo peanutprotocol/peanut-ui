@@ -1,5 +1,5 @@
 import type { ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
-import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
+import { deriveResidenceRestrictionsFrom, isQrResidenceRestricted } from '@/utils/residence-restrictions'
 import type { Concept } from '@/components/0_Bruddle/conceptIcons'
 import type { KycFeatures } from '@/app/actions/types/kyc-workflow.types'
 import type { KycIntents } from '@/hooks/useKycIntents'
@@ -31,8 +31,7 @@ export function setupChannelsForResidence(
         localOpen && country === 'BR' ? ['brlBank'] : localOpen && country === 'AR' ? ['arsBank'] : []
     const bank: SetupFundingChannel[] = [...local, ...(bridge ? (['bank'] as const) : [])]
     const card = known && (intents ? intents.card.available : !restrictions.card)
-    // Without the server's answer, only a residence the tiers close entirely loses QR as well.
-    const qr = known && (intents ? intents.qr.available : !(restrictions.banking && restrictions.card))
+    const qr = known && (intents ? intents.qr.available : !isQrResidenceRestricted(sets, country))
     // Spending is the Peanut Card and QR payments (Hugo, 2026-10-10). Where neither is
     // offered, paying another Peanut user keeps the plan answerable.
     const spend: SetupPaymentChannel[] = [...(card ? ['card' as const] : []), ...(qr ? ['qr' as const] : [])]
@@ -40,11 +39,6 @@ export function setupChannelsForResidence(
         funding: [...bank, 'crypto', 'peanut'],
         payment: spend.length > 0 ? spend : ['peanut'],
     }
-}
-
-/** The currencies the bank feature opens in a residence: Bridge's three, and the peso in Mexico. */
-export function bankCurrenciesFor(residence: string): string[] {
-    return residence.trim().toUpperCase() === 'MX' ? ['USD', 'EUR', 'GBP', 'MXN'] : ['USD', 'EUR', 'GBP']
 }
 
 /**

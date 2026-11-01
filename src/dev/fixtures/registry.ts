@@ -15,6 +15,8 @@ import {
     RESTRICTED_RESIDENCE_ISO2,
     CARD_RESTRICTED_RESIDENCE_ISO2,
     BANKING_RESTRICTED_RESIDENCE_ISO2,
+    BANKING_NEW_CUSTOMERS_ONLY_RESIDENCE_ISO2,
+    REFUSED_ID_ISSUER_ISO2,
 } from '@/constants/residence.consts'
 import {
     CLAIMABLE_COP,
@@ -1235,6 +1237,8 @@ export const FIXTURES: Record<string, Fixture> = {
                 full: [...RESTRICTED_RESIDENCE_ISO2],
                 cardOnly: [...CARD_RESTRICTED_RESIDENCE_ISO2],
                 bankingOnly: [...BANKING_RESTRICTED_RESIDENCE_ISO2],
+                refusedIdIssuers: [...REFUSED_ID_ISSUER_ISO2],
+                bankingNewCustomersOnly: [...BANKING_NEW_CUSTOMERS_ONLY_RESIDENCE_ISO2],
             },
         },
     },

@@ -16,30 +16,23 @@ import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
 const sets = LOCAL_RESIDENCE_RESTRICTION_SETS
 
 describe('residenceAvailability', () => {
-    it('a residence whose intent is Bridge lists the Bridge set, its own currency first', () => {
+    it('a Bridge residence names no currencies without served intents', () => {
         expect(regionIntentForResidence('PT')).toBe('EU')
-        expect(residenceAvailability(sets, 'PT').available).toEqual(['eurSepa', 'gbpFps', 'usdAch', 'card', 'p2p'])
-        expect(residenceAvailability(sets, 'DE').available).toEqual(['eurSepa', 'gbpFps', 'usdAch', 'card', 'p2p'])
+        expect(residenceAvailability(sets, 'PT').available).toEqual(['bank', 'card', 'p2p'])
+        expect(residenceAvailability(sets, 'DE').available).toEqual(['bank', 'card', 'p2p'])
         expect(regionIntentForResidence('US')).toBe('NA')
-        expect(residenceAvailability(sets, 'US').available).toEqual(['usdAch', 'eurSepa', 'gbpFps', 'card', 'p2p'])
+        expect(residenceAvailability(sets, 'US').available).toEqual(['bank', 'card', 'p2p'])
     })
 
-    it('Mexico adds SPEI on top of the Bridge set', () => {
-        expect(residenceAvailability(sets, 'MX').available).toEqual([
-            'spei',
-            'eurSepa',
-            'gbpFps',
-            'usdAch',
-            'card',
-            'p2p',
-        ])
+    it('Mexico names no currencies without served intents', () => {
+        expect(residenceAvailability(sets, 'MX').available).toEqual(['bank', 'card', 'p2p'])
     })
 
-    it('a LATAM residence lists its own QR rail and no Bridge rail', () => {
+    it('a LATAM residence names no rails without served intents', () => {
         expect(regionIntentForResidence('BR')).toBe('LATAM')
         expect(regionIntentForResidence('AR')).toBe('LATAM')
-        expect(residenceAvailability(sets, 'BR').available).toEqual(['pix', 'card', 'p2p'])
-        expect(residenceAvailability(sets, 'AR').available).toEqual(['arQr', 'card', 'p2p'])
+        expect(residenceAvailability(sets, 'BR').available).toEqual(['bank', 'card', 'p2p'])
+        expect(residenceAvailability(sets, 'AR').available).toEqual(['bank', 'card', 'p2p'])
     })
 
     // The promise is derived from the residence's verification intent, so a
@@ -83,7 +76,7 @@ describe('residenceAvailability', () => {
 describe('multi-currency rail sets are qualified, not promised', () => {
     it('a Bridge residence spans several currencies', () => {
         for (const iso2 of ['PT', 'DE', 'US', 'MX']) {
-            expect(residenceAvailability(sets, iso2).multiCurrency).toBe(true)
+            expect(residenceAvailability(sets, iso2, KYC_INTENTS_BY_COUNTRY[iso2]).multiCurrency).toBe(true)
         }
     })
 
@@ -195,13 +188,13 @@ describe('residenceAvailability from the server intents', () => {
         residenceAvailability(LOCAL_RESIDENCE_RESTRICTION_SETS, iso2, KYC_INTENTS_BY_COUNTRY[iso2])
 
     it('names the bank currencies wherever the bank feature is open, not "where supported"', () => {
-        expect(of('MK').available).toEqual(['usdAch', 'eurSepa', 'gbpFps', 'card', 'p2p'])
+        expect(of('MK').available).toEqual(['usdAch', 'eurSepa', 'gbpFps', 'spei', 'card', 'p2p'])
         expect(of('MK').unavailable).toEqual([])
     })
 
     it('lists Brazil and Argentina their local rail and the bank accounts both', () => {
-        expect(of('BR').available).toEqual(['pix', 'usdAch', 'eurSepa', 'gbpFps', 'card', 'p2p'])
-        expect(of('AR').available).toEqual(['arQr', 'usdAch', 'eurSepa', 'gbpFps', 'card', 'p2p'])
+        expect(of('BR').available).toEqual(['pix', 'usdAch', 'eurSepa', 'gbpFps', 'spei', 'card', 'p2p'])
+        expect(of('AR').available).toEqual(['arQr', 'usdAch', 'eurSepa', 'gbpFps', 'spei', 'card', 'p2p'])
     })
 
     it('leads with the home currency in Mexico and the US', () => {

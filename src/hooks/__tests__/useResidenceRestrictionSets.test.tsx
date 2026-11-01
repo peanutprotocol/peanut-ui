@@ -10,6 +10,11 @@ import {
 jest.mock('@/utils/sentry.utils', () => ({ fetchWithSentry: jest.fn() }))
 const mockedFetch = fetchWithSentry as jest.MockedFunction<typeof fetchWithSentry>
 
+beforeEach(() => {
+    jest.clearAllMocks()
+    __resetResidenceRestrictionSetsForTests()
+})
+
 describe('useResidenceRestrictionSets', () => {
     beforeEach(() => {
         jest.clearAllMocks()
@@ -58,4 +63,42 @@ describe('useResidenceRestrictionSets', () => {
         expect(result.current.settled).toBe(false)
         expect(result.current.sets.full.has('RU')).toBe(true)
     })
+})
+
+it('replaces bundled issuer and new-customer lists, including empty answers', async () => {
+    __resetResidenceRestrictionSetsForTests()
+    mockedFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+            full: [],
+            cardOnly: [],
+            bankingOnly: ['PT'],
+            refusedIdIssuers: ['pt'],
+            bankingNewCustomersOnly: [],
+        }),
+    } as Response)
+    const { result } = renderHook(() => useResidenceRestrictionSetsWithStatus())
+    await waitFor(() => expect(result.current.settled).toBe(true))
+    expect([...result.current.sets.refusedIdIssuers]).toEqual(['PT'])
+    expect([...result.current.sets.bankingNewCustomersOnly]).toEqual([])
+})
+
+it.each([null, 'KR', [5]])('keeps fallback on malformed new lists %j', async (bad) => {
+    __resetResidenceRestrictionSetsForTests()
+    mockedFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+            full: [],
+            cardOnly: [],
+            bankingOnly: [],
+            refusedIdIssuers: bad,
+            bankingNewCustomersOnly: [],
+        }),
+    } as Response)
+    const { result } = renderHook(() => useResidenceRestrictionSetsWithStatus())
+    await waitFor(() => expect(mockedFetch).toHaveBeenCalled())
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(result.current.settled).toBe(false)
+    expect(result.current.sets.refusedIdIssuers.has('IR')).toBe(true)
+    expect(result.current.sets.bankingNewCustomersOnly.has('KR')).toBe(true)
 })

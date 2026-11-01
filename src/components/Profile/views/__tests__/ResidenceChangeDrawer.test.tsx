@@ -14,6 +14,8 @@ jest.mock('@/hooks/useResidenceRestrictionSets', () => ({
         full: new Set(['RU']),
         cardOnly: new Set<string>(),
         bankingOnly: new Set<string>(),
+        refusedIdIssuers: new Set<string>(),
+        bankingNewCustomersOnly: new Set<string>(),
     }),
 }))
 // Off by default: the older cases pin the save mechanics, not what a move closes.

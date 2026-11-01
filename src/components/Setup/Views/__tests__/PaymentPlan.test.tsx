@@ -16,9 +16,19 @@ jest.mock('@/hooks/useResidenceRestrictionSets', () => ({
     useResidenceRestrictionSetsWithStatus: () => ({ sets: mockSets, settled: mockSettled }),
 }))
 let mockIntentsSettled = true
+let mockIntentsMissing = false
+let mockCurrencies: string[] | undefined
 jest.mock('@/hooks/useKycIntents', () => ({
     useKycIntents: (country: string) => ({
-        intents: mockIntentsSettled ? KYC_INTENTS_BY_COUNTRY[country] : undefined,
+        intents:
+            mockIntentsSettled && !mockIntentsMissing
+                ? mockCurrencies && KYC_INTENTS_BY_COUNTRY[country]
+                    ? {
+                          ...KYC_INTENTS_BY_COUNTRY[country],
+                          bank: { ...KYC_INTENTS_BY_COUNTRY[country].bank, currencies: mockCurrencies },
+                      }
+                    : KYC_INTENTS_BY_COUNTRY[country]
+                : undefined,
         settled: mockIntentsSettled,
     }),
 }))
@@ -75,6 +85,8 @@ beforeEach(() => {
     mockSets = LOCAL_RESIDENCE_RESTRICTION_SETS
     mockSettled = true
     mockIntentsSettled = true
+    mockIntentsMissing = false
+    mockCurrencies = undefined
     mockIsLoading = false
     mockUserId = 'user-1'
     jest.clearAllMocks()
@@ -111,7 +123,7 @@ it('starts both pickers on Choose and keeps Continue disabled until both are set
     expect(screen.getByLabelText('Plan')).toHaveTextContent('/')
     expect(continueButton()).toBeDisabled()
 
-    await choose('Add money with', 'Choose', 'Bank transfer (USD, EUR, GBP)')
+    await choose('Add money with', 'Choose', 'Bank transfer (USD, EUR, GBP, MXN)')
     expect(continueButton()).toBeDisabled()
     fireEvent.click(continueButton())
     expect(mockNext).not.toHaveBeenCalled()
@@ -150,7 +162,7 @@ it.each([
     renderWithIntl(ui(country))
     expect(optionsIn('Add money with')).toEqual([
         `Bank transfer (${currency})`,
-        'Bank transfer (USD, EUR, GBP)',
+        'Bank transfer (USD, EUR, GBP, MXN)',
         'Crypto',
         'Another Peanut user',
     ])
@@ -164,9 +176,9 @@ it.each([
 
 // Slava, 2026-10-27: Brazil named its bank currencies, North Macedonia did not.
 it.each([
-    ['MK', ['Bank transfer (USD, EUR, GBP)', 'Crypto', 'Another Peanut user']],
-    ['DE', ['Bank transfer (USD, EUR, GBP)', 'Crypto', 'Another Peanut user']],
-    ['MX', ['Bank transfer (USD, EUR, GBP, MXN)', 'Crypto', 'Another Peanut user']],
+    ['MK', ['Bank transfer (USD, EUR, GBP, MXN)', 'Crypto', 'Another Peanut user']],
+    ['DE', ['Bank transfer (USD, EUR, GBP, MXN)', 'Crypto', 'Another Peanut user']],
+    ['MX', ['Bank transfer (MXN, USD, EUR, GBP)', 'Crypto', 'Another Peanut user']],
     // Bridge takes no new customers here
     ['KR', ['Crypto', 'Another Peanut user']],
 ])('names the bank currencies wherever the server opens the bank feature: %s', (country, expected) => {
@@ -182,7 +194,7 @@ it('names a Peanut-to-Peanut top-up "Another Peanut user"', async () => {
 
 it('clears a choice the residence no longer offers and asks again', async () => {
     const view = renderWithIntl(ui('PT'))
-    await choose('Add money with', 'Choose', 'Bank transfer (USD, EUR, GBP)')
+    await choose('Add money with', 'Choose', 'Bank transfer (USD, EUR, GBP, MXN)')
     await choose('Make a payment with', 'Choose', 'Peanut Card')
     // Japan: the server closes the bank feature and keeps the card
     view.rerender(ui('JP'))
@@ -233,4 +245,16 @@ it.each(['GB', 'IN', 'PT'])('shows the one-line residence hint for %s', (country
     expect(
         screen.queryByText(/aren’t available in your country|isn’t available in your country/)
     ).not.toBeInTheDocument()
+})
+
+it('shows only the API currency for a USD-only residence', () => {
+    mockCurrencies = ['USD']
+    renderWithIntl(ui('CF'))
+    expect(optionsIn('Add money with')).toEqual(['Bank transfer (USD)', 'Crypto', 'Another Peanut user'])
+})
+
+it('does not name bank currencies after a failed intents read', () => {
+    mockIntentsMissing = true
+    renderWithIntl(ui('PT'))
+    expect(optionsIn('Add money with')).toEqual(['Bank transfer', 'Crypto', 'Another Peanut user'])
 })

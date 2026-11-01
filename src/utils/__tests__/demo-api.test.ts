@@ -6,6 +6,12 @@
 import { demoRespond } from '@/utils/demo-api'
 import { DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { type ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
+let mockDemoSets: ResidenceRestrictionSets | undefined
+jest.mock('@/hooks/useResidenceRestrictionSets', () => {
+    const actual = jest.requireActual('@/hooks/useResidenceRestrictionSets')
+    return { ...actual, getResidenceRestrictionSets: () => mockDemoSets ?? actual.LOCAL_RESIDENCE_RESTRICTION_SETS }
+})
 import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
 
 // The web-safe test requires @/utils/demo → general.utils → app/actions/clients, whose
@@ -425,11 +431,17 @@ describe('demoRespond — KYC reads in strict capture mode', () => {
 })
 
 describe('demoRespond — kyc-intents per residence', () => {
-    it.each(Object.entries(KYC_INTENTS_BY_COUNTRY))('answers %s as the API rules do', async (country, intents) => {
-        const res = await strict(`/config/kyc-intents?residence=${country.toLowerCase()}`)
-        expect(res.status).toBe(200)
-        expect(await res.json()).toEqual({ residence: country, intents })
-    })
+    it.each(Object.entries(KYC_INTENTS_BY_COUNTRY))(
+        'answers %s with synthetic availability and no unserved currency promises',
+        async (country, intents) => {
+            const res = await strict(`/config/kyc-intents?residence=${country.toLowerCase()}`)
+            expect(res.status).toBe(200)
+            expect(await res.json()).toEqual({
+                residence: country,
+                intents: { ...intents, bank: { ...intents.bank, currencies: [] } },
+            })
+        }
+    )
 
     it('refuses every open feature for an ID whose issuer is refused', async () => {
         const data = await (await strict('/config/kyc-intents?residence=DE&idCountry=IR')).json()
@@ -438,7 +450,7 @@ describe('demoRespond — kyc-intents per residence', () => {
             qr: { available: false, reason: 'document_country_unsupported' },
             local: { available: false, reason: 'local_residence_unsupported' },
             card: { available: false, reason: 'document_country_unsupported' },
-            bank: { available: false, reason: 'document_country_unsupported' },
+            bank: { available: false, reason: 'document_country_unsupported', currencies: [] },
         })
     })
 
@@ -450,7 +462,7 @@ describe('demoRespond — kyc-intents per residence', () => {
             qr: { available: true },
             local: { available: false, reason: 'local_residence_unsupported' },
             card: { available: false, reason: 'document_country_unsupported' },
-            bank: { available: true },
+            bank: { available: true, currencies: [] },
         })
     })
 
@@ -476,4 +488,17 @@ describe('demoRespond — notification preferences', () => {
         expect(await saved.json()).toMatchObject({ marketingPush: true, email: true })
         expect(await (await strict('/notifications/preferences')).json()).toMatchObject({ marketingPush: true })
     })
+})
+
+it('demo uses served issuer changes rather than the bundled refusal list', async () => {
+    const { LOCAL_RESIDENCE_RESTRICTION_SETS } = jest.requireActual('@/hooks/useResidenceRestrictionSets')
+    mockDemoSets = { ...LOCAL_RESIDENCE_RESTRICTION_SETS, refusedIdIssuers: new Set(['PT']) }
+    try {
+        const added = await (await strict('/config/kyc-intents?residence=DE&idCountry=PT')).json()
+        expect(added.intents.bank).toEqual({ available: false, reason: 'document_country_unsupported', currencies: [] })
+        const removed = await (await strict('/config/kyc-intents?residence=DE&idCountry=IR')).json()
+        expect(removed.intents.bank).toEqual({ available: true, currencies: [] })
+    } finally {
+        mockDemoSets = undefined
+    }
 })

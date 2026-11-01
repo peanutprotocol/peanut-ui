@@ -13,7 +13,6 @@ import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { saveSignupPaymentPlan } from '@/features/setup/saveSignupAnswers'
 import { useAuth } from '@/context/authContext'
 import {
-    bankCurrenciesFor,
     setupChannelsForResidence,
     SETUP_CHANNEL_CONCEPTS,
     type SetupChannel,
@@ -160,9 +159,9 @@ export default function PaymentPlanStep() {
                             t(`funding.${channel === 'brlBank' || channel === 'arsBank' ? 'bank' : channel}`)
                         }
                         label={(channel) =>
-                            channel === 'bank'
+                            channel === 'bank' && intents?.bank.currencies?.length
                                 ? t('funding.bankCurrencies', {
-                                      currencies: bankCurrenciesFor(residenceCountry).join(', '),
+                                      currencies: intents.bank.currencies.join(', '),
                                   })
                                 : t(`funding.${channel}`)
                         }
