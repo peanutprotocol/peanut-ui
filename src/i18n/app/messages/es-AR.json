@@ -1717,6 +1717,7 @@
             "document_country_unsupported": "Esto requiere un documento de identidad emitido por el país donde vivís. Verificate de nuevo con ese documento.",
             "id_expired": "Tu documento de identidad venció. Agregá uno válido para que tus cuentas sigan funcionando.",
             "id_verification_failed": "No pudimos verificar tu documento de identidad. Agregá uno válido para que tus cuentas sigan funcionando.",
+            "card_id_not_accepted": "El documento con el que te verificaste no sirve para la Peanut Card. Volvé a verificarte con otro documento.",
             "requirements_uncollectable": "Nuestro socio de pagos necesita algo que no podemos recopilar en la app. Escribile a soporte y terminaremos la configuración con vos.",
             "email_required": "Necesitamos un correo electrónico para terminar de configurar esta cuenta. Agregá uno a tu perfil y lo reintentaremos automáticamente.",
             "submission_failed": "Tuvimos un problema al finalizar tu verificación de nuestro lado. Lo vamos a resolver: tocá abajo para escribirle a soporte.",

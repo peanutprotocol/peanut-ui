@@ -33,6 +33,7 @@ export const REASON_CODE_KEYS = {
     // a provider asks for a new ID; the restart-identity action collects it
     id_expired: 'reasons.id_expired',
     id_verification_failed: 'reasons.id_verification_failed',
+    card_id_not_accepted: 'reasons.card_id_not_accepted',
     identity_verification_review: 'reasons.identity_verification_review',
     identity_verification_received: 'reasons.identity_verification_received',
     bridge_tos_required: 'reasons.bridge_tos_required',

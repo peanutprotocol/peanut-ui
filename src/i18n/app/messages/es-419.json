@@ -4059,6 +4059,7 @@
             "identity_verification_required": "Nuestro socio de tarjetas necesita una foto nueva de tu documento de identidad y una selfie.",
             "id_expired": "Tu documento de identidad venció. Agrega uno válido para que tus cuentas sigan funcionando.",
             "id_verification_failed": "No pudimos verificar tu documento de identidad. Agrega uno válido para que tus cuentas sigan funcionando.",
+            "card_id_not_accepted": "El documento con el que te verificaste no sirve para la Peanut Card. Vuelve a verificarte con otro documento.",
             "identity_verification_review": "Enviamos tu selfie y tu documento de identidad a nuestro socio de tarjetas; están en revisión.",
             "identity_verification_received": "Recibimos tu selfie y tu documento de identidad y los estamos enviando a nuestro socio de tarjetas.",
             "bridge_tos_required": "Acepta los términos de nuestro socio de pagos para continuar.",

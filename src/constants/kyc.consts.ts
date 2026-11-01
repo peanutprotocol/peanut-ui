@@ -40,6 +40,7 @@ export const PROVIDER_ID_REQUEST_REASONS = [
     'id_expired',
     'id_verification_failed',
     'identity_verification_required',
+    'card_id_not_accepted',
 ] as const
 export type ProviderIdRequestReason = (typeof PROVIDER_ID_REQUEST_REASONS)[number]
 export const isProviderIdRequestReason = (code: string | null | undefined): code is ProviderIdRequestReason =>

@@ -26043,6 +26043,12 @@
 														"identity_verification_required"
 													],
 													"type": "string"
+												},
+												{
+													"enum": [
+														"card_id_not_accepted"
+													],
+													"type": "string"
 												}
 											]
 										},

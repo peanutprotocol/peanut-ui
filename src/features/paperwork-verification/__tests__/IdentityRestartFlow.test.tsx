@@ -175,14 +175,19 @@ describe('IdentityRestartFlow', () => {
         ['id_expired', 'Your ID has expired. Add a valid one to keep your accounts working.'],
         ['id_verification_failed', "We couldn't verify your ID. Add a valid one to keep your accounts working."],
         ['identity_verification_required', 'Our card partner needs a new photo of your ID and a selfie.'],
+        [
+            'card_id_not_accepted',
+            "The ID you verified with can't be used for the Peanut Card. Verify again with a different ID.",
+        ],
     ])('says why at the start when a provider asked for a new ID (%s)', async (reason, copy) => {
+        const card = reason === 'identity_verification_required' || reason === 'card_id_not_accepted'
         mockCapabilities = {
             rails: [
                 {
-                    id: reason === 'identity_verification_required' ? 'rain.card' : 'bridge.sepa_eu',
-                    provider: reason === 'identity_verification_required' ? 'rain' : 'bridge',
-                    method: reason === 'identity_verification_required' ? 'CARD' : 'SEPA_EU',
-                    channel: reason === 'identity_verification_required' ? 'card' : 'bank',
+                    id: card ? 'rain.card' : 'bridge.sepa_eu',
+                    provider: card ? 'rain' : 'bridge',
+                    method: card ? 'CARD' : 'SEPA_EU',
+                    channel: card ? 'card' : 'bank',
                     country: 'EU',
                     currency: 'EUR',
                     status: 'blocked',

@@ -4059,6 +4059,7 @@
             "identity_verification_required": "Our card partner needs a new photo of your ID and a selfie.",
             "id_expired": "Your ID has expired. Add a valid one to keep your accounts working.",
             "id_verification_failed": "We couldn't verify your ID. Add a valid one to keep your accounts working.",
+            "card_id_not_accepted": "The ID you verified with can't be used for the Peanut Card. Verify again with a different ID.",
             "identity_verification_review": "We sent your selfie and ID to our card partner — they're being reviewed.",
             "identity_verification_received": "We received your selfie and ID and are passing them to our card partner.",
             "bridge_tos_required": "Accept our payment partner's terms to continue.",
