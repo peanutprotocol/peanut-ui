@@ -59,26 +59,29 @@ describe('KYC review screen captures', () => {
     it.each([
         ['bank', 'EUR'],
         ['local', 'ARS'],
-    ])('separates %s consent from every activation response', (feature, currency) => {
-        const consent = `feature-activation-${feature}-consent`
-        expect(SCREENS.find((screen) => screen.fixture === consent)?.actions).toBeUndefined()
-        for (const state of [
-            'ready',
-            'on',
-            'setting-up',
-            'pending',
-            'action-required',
-            'refused',
-            'failed',
-            'questions-missing',
-        ]) {
-            const id = `feature-activation-${feature}-${state}`
-            const report = response(id, 'GET /users/me').capabilities.features[feature]
-            expect(report.state).toBe('ready')
-            expect(report.accounts[currency].state).toBe('ready')
-            expect(SCREENS.find((screen) => screen.fixture === id)?.actions).toEqual([
-                { clickSelector: '[data-testid="kyc-activation-continue"]' },
-            ])
+    ])(
+        'shows %s consent untapped, passes an account already on, and taps for every other answer',
+        (feature, currency) => {
+            const tap = [{ clickSelector: '[data-testid="kyc-activation-continue"]' }]
+            for (const state of [
+                'ready',
+                'on',
+                'setting-up',
+                'pending',
+                'action-required',
+                'refused',
+                'failed',
+                'questions-missing',
+            ]) {
+                const id = `feature-activation-${feature}-${state}`
+                const report = response(id, 'GET /users/me').capabilities.features[feature]
+                const expected = state === 'on' ? 'on' : 'ready'
+                expect(report.state).toBe(expected)
+                expect(report.accounts[currency].state).toBe(expected)
+                expect(SCREENS.find((screen) => screen.fixture === id)?.actions).toEqual(
+                    state === 'ready' || state === 'on' ? undefined : tap
+                )
+            }
         }
-    })
+    )
 })

@@ -783,16 +783,6 @@
         "route": "/verify?feature=card"
     },
     {
-        "id": "fixture-feature-activation-bank-consent",
-        "flow": "Verification",
-        "route": "/add-money/germany/bank"
-    },
-    {
-        "id": "fixture-feature-activation-local-consent",
-        "flow": "Verification",
-        "route": "/add-money/argentina/manteca"
-    },
-    {
         "id": "p52-kyc-success",
         "flow": "Verification",
         "route": "/kyc/success"

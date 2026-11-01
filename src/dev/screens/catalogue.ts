@@ -116,7 +116,8 @@ const definitions: Screen[] = [
         fixture: id,
         clicks: [],
         actions:
-            /^feature-activation-(bank|local)-/.test(id) && !id.endsWith('-consent')
+            // ready shows the consent screen and on passes through; the other states answer the tap
+            /^feature-activation-(bank|local)-/.test(id) && !/-(ready|on)$/.test(id)
                 ? [{ clickSelector: '[data-testid="kyc-activation-continue"]' }]
                 : undefined,
         expectSelector: id.startsWith('paperwork-verification-state-')

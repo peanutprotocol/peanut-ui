@@ -64,16 +64,18 @@ const KYC_FEATURE_ACTIVATION_FIXTURES: Record<string, Fixture> = Object.fromEntr
                             ...(feature === 'card'
                                 ? {}
                                 : {
+                                      // An account already on passes the gate with no tap; any other state asks first.
                                       capabilities: {
                                           features: {
                                               [feature]: {
-                                                  state: 'ready',
-                                                  action: 'activate',
+                                                  ...(state === 'on'
+                                                      ? { state: 'on' }
+                                                      : { state: 'ready', action: 'activate' }),
                                                   accounts: {
-                                                      [feature === 'bank' ? 'EUR' : 'ARS']: {
-                                                          state: 'ready',
-                                                          action: 'activate',
-                                                      },
+                                                      [feature === 'bank' ? 'EUR' : 'ARS']:
+                                                          state === 'on'
+                                                              ? { state: 'on' }
+                                                              : { state: 'ready', action: 'activate' },
                                                   },
                                               },
                                           },
@@ -134,14 +136,6 @@ const KYC_FEATURE_ACTIVATION_FIXTURES: Record<string, Fixture> = Object.fromEntr
         })
     )
 )
-
-for (const feature of ['bank', 'local']) {
-    const fixture = KYC_FEATURE_ACTIVATION_FIXTURES[`feature-activation-${feature}-ready`]
-    KYC_FEATURE_ACTIVATION_FIXTURES[`feature-activation-${feature}-consent`] = {
-        ...fixture,
-        about: `First use ${feature}: explicit consent before activation, without any tap.`,
-    }
-}
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
