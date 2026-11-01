@@ -13676,8 +13676,7 @@ export interface paths {
                             /** Format: uuid */
                             attemptId?: string;
                             levelName: string;
-                            /** @enum {string} */
-                            reasonCode?: "document_policy_hold";
+                            reasonCode?: "document_policy_hold" | "id_expired" | "id_verification_failed" | "identity_verification_required";
                             /** @description The intent the server resolved for this restart. The caller must drive its SDK session from THIS value, not from what it asked for: the declared residence can overrule the request, and `levelName` alone cannot tell EU from NA or LATAM from ROW (each pair shares a level). */
                             regionIntent: string;
                             sdkConfig?: {
