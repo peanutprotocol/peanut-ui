@@ -1,3 +1,5 @@
+import { featureReport } from '@/test-utils/featureReport.fixture'
+import { accountEntry, entryChip } from '@/features/kyc-features/report'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { LOCAL_RESIDENCE_RESTRICTION_SETS } from '@/hooks/useResidenceRestrictionSets'
 import {
@@ -9,34 +11,28 @@ import {
 import { isBridgeSupportedCountry, regionIntentForResidence } from '@/utils/regions.utils'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { buildBankRows, type UnlockRowLabelKey } from '@/utils/unlock-payments.utils'
+import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
 
 const sets = LOCAL_RESIDENCE_RESTRICTION_SETS
 
 describe('residenceAvailability', () => {
-    it('a residence whose intent is Bridge lists the Bridge set, its own currency first', () => {
+    it('a Bridge residence names no currencies without served intents', () => {
         expect(regionIntentForResidence('PT')).toBe('EU')
-        expect(residenceAvailability(sets, 'PT').available).toEqual(['eurSepa', 'gbpFps', 'usdAch', 'card', 'p2p'])
-        expect(residenceAvailability(sets, 'DE').available).toEqual(['eurSepa', 'gbpFps', 'usdAch', 'card', 'p2p'])
+        expect(residenceAvailability(sets, 'PT').available).toEqual(['bank', 'card', 'p2p'])
+        expect(residenceAvailability(sets, 'DE').available).toEqual(['bank', 'card', 'p2p'])
         expect(regionIntentForResidence('US')).toBe('NA')
-        expect(residenceAvailability(sets, 'US').available).toEqual(['usdAch', 'eurSepa', 'gbpFps', 'card', 'p2p'])
+        expect(residenceAvailability(sets, 'US').available).toEqual(['bank', 'card', 'p2p'])
     })
 
-    it('Mexico adds SPEI on top of the Bridge set', () => {
-        expect(residenceAvailability(sets, 'MX').available).toEqual([
-            'spei',
-            'eurSepa',
-            'gbpFps',
-            'usdAch',
-            'card',
-            'p2p',
-        ])
+    it('Mexico names no currencies without served intents', () => {
+        expect(residenceAvailability(sets, 'MX').available).toEqual(['bank', 'card', 'p2p'])
     })
 
-    it('a LATAM residence lists its own QR rail and no Bridge rail', () => {
+    it('a LATAM residence names no rails without served intents', () => {
         expect(regionIntentForResidence('BR')).toBe('LATAM')
         expect(regionIntentForResidence('AR')).toBe('LATAM')
-        expect(residenceAvailability(sets, 'BR').available).toEqual(['pix', 'card', 'p2p'])
-        expect(residenceAvailability(sets, 'AR').available).toEqual(['arQr', 'card', 'p2p'])
+        expect(residenceAvailability(sets, 'BR').available).toEqual(['bank', 'card', 'p2p'])
+        expect(residenceAvailability(sets, 'AR').available).toEqual(['bank', 'card', 'p2p'])
     })
 
     // The promise is derived from the residence's verification intent, so a
@@ -51,7 +47,7 @@ describe('residenceAvailability', () => {
     })
 
     it('rest of world reads bank transfers where supported, never a specific rail', () => {
-        expect(residenceAvailability(sets, 'NG').available).toEqual(['bank', 'card', 'p2p'])
+        expect(residenceAvailability(sets, 'KE').available).toEqual(['bank', 'card', 'p2p'])
     })
 
     it('restriction tiers surface as unavailable instead of overstating', () => {
@@ -80,7 +76,7 @@ describe('residenceAvailability', () => {
 describe('multi-currency rail sets are qualified, not promised', () => {
     it('a Bridge residence spans several currencies', () => {
         for (const iso2 of ['PT', 'DE', 'US', 'MX']) {
-            expect(residenceAvailability(sets, iso2).multiCurrency).toBe(true)
+            expect(residenceAvailability(sets, iso2, KYC_INTENTS_BY_COUNTRY[iso2]).multiCurrency).toBe(true)
         }
     })
 
@@ -126,9 +122,28 @@ describe('residenceAvailability vs buildBankRows', () => {
 
     const unlockRowsFor = (iso2: string) => {
         const restrictions = deriveResidenceRestrictionsFrom(sets, iso2)
+        const report = featureReport({
+            rails: [],
+            nextActions: [],
+            identity: { status: 'verified' },
+            residence: iso2,
+            restrictions: {
+                banking: restrictions.banking
+                    ? { code: 'residence_bank_restricted', userMessage: 'Unavailable' }
+                    : null,
+                card: restrictions.card,
+            },
+            productRefusals: restrictions.banking ? { 'manteca.local': 'residence_bank_restricted' } : {},
+        })
         return buildBankRows({
-            bankChips: { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' },
-            restrictions,
+            bankChips: {
+                brl: entryChip(accountEntry(report, 'local', 'BRL'), []),
+                ars: entryChip(accountEntry(report, 'local', 'ARS'), []),
+                usd: entryChip(accountEntry(report, 'bank', 'USD'), []),
+                mxn: entryChip(accountEntry(report, 'bank', 'MXN'), []),
+                sepa: entryChip(accountEntry(report, 'bank', 'EUR'), []),
+            },
+            closedBecause: { brl: 'residence', ars: 'residence' },
             residenceIso2: iso2,
             isEuropeResidence: iso2 !== 'US' && iso2 !== 'MX' && isBridgeSupportedCountry(iso2),
         })
@@ -163,5 +178,34 @@ describe('residenceAvailability vs buildBankRows', () => {
             )
             expect(bankRows.every((row) => row.chip === 'notAvailable')).toBe(true)
         }
+    })
+})
+
+// Slava, 2026-10-27: the comparison listed the wrong things for 178 of 250
+// countries. With the server's answer it lists what the verification will open.
+describe('residenceAvailability from the server intents', () => {
+    const of = (iso2: string) =>
+        residenceAvailability(LOCAL_RESIDENCE_RESTRICTION_SETS, iso2, KYC_INTENTS_BY_COUNTRY[iso2])
+
+    it('names the bank currencies wherever the bank feature is open, not "where supported"', () => {
+        expect(of('MK').available).toEqual(['usdAch', 'eurSepa', 'gbpFps', 'spei', 'card', 'p2p'])
+        expect(of('MK').unavailable).toEqual([])
+    })
+
+    it('lists Brazil and Argentina their local rail and the bank accounts both', () => {
+        expect(of('BR').available).toEqual(['pix', 'usdAch', 'eurSepa', 'gbpFps', 'spei', 'card', 'p2p'])
+        expect(of('AR').available).toEqual(['arQr', 'usdAch', 'eurSepa', 'gbpFps', 'spei', 'card', 'p2p'])
+    })
+
+    it('leads with the home currency in Mexico and the US', () => {
+        expect(of('MX').available.slice(0, 2)).toEqual(['spei', 'usdAch'])
+        expect(of('US').available[0]).toBe('usdAch')
+    })
+
+    it('says what the server closes, even where no tier list names it', () => {
+        expect(of('KR').unavailable).toEqual(['banking'])
+        expect(of('KR').available).toEqual(['card', 'p2p'])
+        expect(of('VE').unavailable).toEqual(['banking', 'card'])
+        expect(of('VE').available).toEqual(['p2p'])
     })
 })

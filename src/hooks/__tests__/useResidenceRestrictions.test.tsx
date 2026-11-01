@@ -1,11 +1,13 @@
 /** @jest-environment jsdom */
+import { normalizeResidence } from '@/utils/residence-profile'
+
 import { renderHook } from '@testing-library/react'
 import { deriveResidenceRestrictions, useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 
 let mockUser: {
     residenceRestrictions?: { banking: boolean; card: boolean }
-    residence?: { declared?: string | null; declaredSecond?: string | null }
-    user?: { userId: string }
+    residence?: import('@/interfaces/interfaces').ResidenceProfile
+    user?: { userId: string; bridgeCustomerId?: string | null }
 } | null = null
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser }),
@@ -17,12 +19,16 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
 }))
 
 // Hermetic: the real sets hook fetches the server tier lists on first mount;
-// return the bundled mirror so renderHook never triggers a network request.
+// stand the bundled mirror in for them, loaded or not.
+let mockSettled = true
 jest.mock('@/hooks/useResidenceRestrictionSets', () => {
     const actual = jest.requireActual('@/hooks/useResidenceRestrictionSets')
     return {
         ...actual,
-        useResidenceRestrictionSets: () => actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
+        useResidenceRestrictionSetsWithStatus: () => ({
+            sets: actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
+            settled: mockSettled,
+        }),
     }
 })
 
@@ -36,7 +42,10 @@ describe('deriveResidenceRestrictions', () => {
         ['HK', { banking: false, card: false }],
         // Bridge-prohibited; the card still works
         ['AF', { banking: true, card: false }],
-        ['CD', { banking: true, card: false }],
+        // Bridge-prohibited and on Rain's Platform Standards list
+        ['CD', { banking: true, card: true }],
+        // Rain approves Peanut here first; banking still works
+        ['NG', { banking: false, card: true }],
         ['KP', { banking: true, card: true }],
         ['IN', { banking: false, card: true }],
         ['JP', { banking: true, card: false }],
@@ -53,6 +62,22 @@ describe('useResidenceRestrictions', () => {
     beforeEach(() => {
         mockUser = null
         mockSetupState = { residenceCountry: '' }
+        mockSettled = true
+        window.localStorage.clear()
+    })
+
+    it('ignores the device mirror once the server answered with no residence', () => {
+        window.localStorage.setItem('peanut:declaredResidence:u1', 'RU')
+        mockUser = { user: { userId: 'u1' }, residence: normalizeResidence({ verified: null, declared: null }) }
+        const { result } = renderHook(() => useResidenceRestrictions())
+        expect(result.current).toEqual({ banking: false, card: false })
+    })
+
+    it('uses the device mirror only before the server answers', () => {
+        window.localStorage.setItem('peanut:declaredResidence:u1', 'RU')
+        mockUser = { user: { userId: 'u1' } }
+        const { result } = renderHook(() => useResidenceRestrictions())
+        expect(result.current).toEqual(deriveResidenceRestrictions('RU'))
     })
 
     it('prefers the server value when present', () => {
@@ -62,40 +87,71 @@ describe('useResidenceRestrictions', () => {
         expect(result.current).toEqual({ banking: true, card: false })
     })
 
+    it('uses verified residence before a conflicting declaration when the server restriction summary is absent', () => {
+        mockUser = {
+            user: { userId: 'u1' },
+            residence: normalizeResidence({
+                verified: 'BR',
+                declared: 'RU',
+                pending: 'RU',
+                pendingStatus: 'COLLECTING',
+                declaredSecond: null,
+            }),
+        }
+        const { result } = renderHook(() => useResidenceRestrictions())
+        expect(result.current).toEqual({ banking: false, card: false })
+    })
+
     it('falls back to the declared setup residence pre-account', () => {
         mockSetupState = { residenceCountry: 'UA' }
         const { result } = renderHook(() => useResidenceRestrictions())
         expect(result.current).toEqual({ banking: false, card: true })
     })
 
-    // A dual resident can verify under either jurisdiction, so an unrestricted
-    // second country lifts the primary's restriction. That intersection used to
-    // read the device mirror only, so a fresh device — where there is no mirror
-    // — kept offers hidden from someone entitled to them.
-    it("intersects with the server's second residence on a device with no mirror", () => {
-        window.localStorage.clear()
+    // The API keys restrictions on one residence (get-user.ts: a second one "never narrows" them),
+    // and only it knows exceptions like an existing Bridge customer in South Korea.
+    it("uses the server's answer as is, whatever the second residence", () => {
         mockUser = {
             residenceRestrictions: { banking: true, card: true },
-            residence: { declared: 'RU', declaredSecond: 'BR' },
-            user: { userId: 'u1' },
-        }
-        const { result } = renderHook(() => useResidenceRestrictions())
-        expect(result.current).toEqual({ banking: false, card: false })
-    })
-
-    it('treats an explicit null second residence as none, ignoring a stale mirror', () => {
-        window.localStorage.setItem('peanut:secondResidence:u1', 'BR')
-        mockUser = {
-            residenceRestrictions: { banking: true, card: true },
-            residence: { declared: 'RU', declaredSecond: null },
+            residence: normalizeResidence({ declared: 'GB', declaredSecond: 'DE' }),
             user: { userId: 'u1' },
         }
         const { result } = renderHook(() => useResidenceRestrictions())
         expect(result.current).toEqual({ banking: true, card: true })
     })
 
+    it('opens nothing before the server lists load, since the bundled mirror is incomplete', () => {
+        mockSettled = false
+        mockSetupState = { residenceCountry: 'KR' }
+        const { result, rerender } = renderHook(() => useResidenceRestrictions())
+        expect(result.current).toEqual({ banking: true, card: true })
+        mockSettled = true
+        rerender()
+        expect(result.current).toEqual(expect.objectContaining({ card: false }))
+    })
+
+    it('still prefers the server value while the lists load', () => {
+        mockSettled = false
+        mockUser = { residenceRestrictions: { banking: false, card: false } }
+        const { result } = renderHook(() => useResidenceRestrictions())
+        expect(result.current).toEqual({ banking: false, card: false })
+    })
+
     it('defaults to no restriction when nothing is known', () => {
         const { result } = renderHook(() => useResidenceRestrictions())
         expect(result.current).toEqual({ banking: false, card: false })
     })
+})
+
+it('preserves existing KR banking when the server summary is absent', () => {
+    mockSettled = true
+    mockUser = {
+        user: { userId: 'u1', bridgeCustomerId: 'synthetic-bridge' },
+        residence: normalizeResidence({ declared: 'KR' }),
+    }
+    const { result, rerender } = renderHook(() => useResidenceRestrictions())
+    expect(result.current).toEqual({ banking: false, card: false })
+    mockUser = { ...mockUser, user: { userId: 'u1' } }
+    rerender()
+    expect(result.current).toEqual({ banking: true, card: false })
 })

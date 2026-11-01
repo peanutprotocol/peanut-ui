@@ -1,4 +1,8 @@
-import { deriveProviderRejection, identityDocumentRestartAction } from './provider-rejection.utils'
+import {
+    deriveProviderRejection,
+    identityDocumentRestartAction,
+    providerIdRequestReason,
+} from './provider-rejection.utils'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 
 function mantecaRail(overrides: Partial<RailCapability> = {}): RailCapability {
@@ -251,6 +255,127 @@ describe('deriveProviderRejection — actionKey (per-requirement Sumsub level)',
     })
 })
 
+describe('deriveProviderRejection — a requirement the approved identity never collected', () => {
+    const supplement: NextAction = { key: 'supplement:bridge', kind: 'sumsub', purpose: 'unlock-bridge' }
+    const bridgeRail = (overrides: Partial<RailCapability> = {}): RailCapability => ({
+        id: 'bridge.ach_us',
+        provider: 'bridge',
+        method: 'ACH',
+        channel: 'bank',
+        country: 'US',
+        currency: 'USD',
+        status: 'requires-info',
+        reason: { code: 'requirements_missing', userMessage: 'We need one more document.' },
+        blockingActions: [supplement.key],
+        ...overrides,
+    })
+
+    test('a parked Bridge rail is fixable through its supplement key', () => {
+        const info = deriveProviderRejection([bridgeRail()], 'BRIDGE', [supplement])
+        expect(info).toMatchObject({
+            state: 'fixable',
+            reasonCode: 'requirements_missing',
+            actionKey: 'supplement:bridge',
+        })
+    })
+
+    test('the verdict the API resolved carries the same key', () => {
+        const info = deriveProviderRejection(
+            [
+                bridgeRail({
+                    resolved: {
+                        status: 'fixable',
+                        blocking: {
+                            code: 'requirements_missing',
+                            userMessage: 'We need one more document.',
+                            selfHealable: true,
+                            selfHealKind: 'document-resubmit',
+                        },
+                        nextAction: supplement,
+                    },
+                }),
+            ],
+            'BRIDGE'
+        )
+        expect(info).toMatchObject({ state: 'fixable', actionKey: 'supplement:bridge' })
+    })
+})
+
+// The send gate parks a Smart Paperwork Verification user's rail for a need the approved
+// identity cannot meet. Either provider: the restart is the user's own step,
+// the uncollectable need is support's.
+describe('deriveProviderRejection — a need the approved identity cannot meet', () => {
+    const restart: NextAction = {
+        key: 'restart-identity',
+        kind: 'restart-identity',
+        purpose: 'identity_document_insufficient',
+    }
+    const support: NextAction = {
+        key: 'contact-support',
+        kind: 'contact-support',
+        purpose: 'requirements_uncollectable',
+    }
+    const bridgeRail = (overrides: Partial<RailCapability> = {}): RailCapability => ({
+        id: 'bridge.ach_us',
+        provider: 'bridge',
+        method: 'ACH',
+        channel: 'bank',
+        country: 'US',
+        currency: 'USD',
+        status: 'blocked',
+        ...overrides,
+    })
+    const insufficient = { code: 'identity_document_insufficient', userMessage: 'Verify again with another document.' }
+    const uncollectable = { code: 'requirements_uncollectable', userMessage: 'Message support.' }
+
+    test('a Bridge rail asking for another document offers the restart', () => {
+        const info = deriveProviderRejection(
+            [
+                bridgeRail({
+                    reason: insufficient,
+                    blockingActions: [restart.key],
+                    resolved: {
+                        status: 'blocked',
+                        blocking: { ...insufficient, selfHealable: true, selfHealKind: 'restart-identity' },
+                        nextAction: restart,
+                    },
+                }),
+            ],
+            'BRIDGE',
+            [restart]
+        )
+        expect(info).toMatchObject({ state: 'restart-identity', reasonCode: 'identity_document_insufficient' })
+    })
+
+    test('the legacy collapse reads the restart action the same way', () => {
+        const info = deriveProviderRejection(
+            [bridgeRail({ reason: insufficient, blockingActions: [restart.key] })],
+            'BRIDGE',
+            [restart]
+        )
+        expect(info.state).toBe('restart-identity')
+    })
+
+    test('a need no supplement can collect stays with support', () => {
+        const info = deriveProviderRejection(
+            [
+                bridgeRail({
+                    reason: uncollectable,
+                    blockingActions: [support.key],
+                    resolved: {
+                        status: 'blocked',
+                        blocking: { ...uncollectable, selfHealable: false, selfHealKind: 'contact-support' },
+                        nextAction: support,
+                    },
+                }),
+            ],
+            'BRIDGE',
+            [support]
+        )
+        expect(info).toMatchObject({ state: 'blocked', reasonCode: 'requirements_uncollectable' })
+    })
+})
+
 // api#1776: an approval with no identity document on file. The API sends one
 // top-level restart action and leaves every rail as it was, so a pool rail
 // still pays. The verify buttons must start the identity check, never Manteca
@@ -336,5 +461,58 @@ describe('identityDocumentRestartAction', () => {
             ])
         ).toBeUndefined()
         expect(identityDocumentRestartAction([])).toBeUndefined()
+    })
+})
+
+describe('a provider asking for a new ID', () => {
+    const restart = (purpose: string): NextAction => ({ key: 'restart-identity', kind: 'restart-identity', purpose })
+    const idRequestRail = (provider: 'bridge' | 'manteca' | 'rain', code: string, status: RailCapability['status']) =>
+        ({
+            id: `${provider}.rail`,
+            provider,
+            method: provider === 'rain' ? 'CARD' : 'BANK_TRANSFER_AR',
+            channel: provider === 'rain' ? 'card' : 'bank',
+            country: 'AR',
+            currency: 'ARS',
+            status,
+            blockingActions: ['restart-identity'],
+            reason: { code, userMessage: 'prose' },
+        }) as RailCapability
+
+    // Manteca's failed onboarding ID task parks the rail as a step; the API's verdict for it is the restart.
+    it.each(['id_expired', 'id_verification_failed'])(
+        'a Manteca step carrying the restart (%s) reads as restart-identity, not as a resubmit',
+        (code) => {
+            const info = deriveProviderRejection([idRequestRail('manteca', code, 'requires-info')], 'MANTECA', [
+                restart(code),
+            ])
+            expect(info).toMatchObject({ state: 'restart-identity', reasonCode: code, actionKey: null })
+        }
+    )
+
+    it.each(['id_expired', 'id_verification_failed'])(
+        'a blocked Bridge rail (%s) reads as restart-identity',
+        (code) => {
+            const info = deriveProviderRejection([idRequestRail('bridge', code, 'blocked')], 'BRIDGE', [restart(code)])
+            expect(info).toMatchObject({ state: 'restart-identity', reasonCode: code })
+        }
+    )
+
+    it('names the reason from the rail when the shared action is named after another cause', () => {
+        expect(
+            providerIdRequestReason(
+                [idRequestRail('rain', 'identity_verification_required', 'requires-info')],
+                [restart('identity_document_missing')]
+            )
+        ).toBe('identity_verification_required')
+    })
+
+    it('names the reason from the action purpose', () => {
+        expect(providerIdRequestReason([], [restart('id_expired')])).toBe('id_expired')
+    })
+
+    it('ignores a rail reason the restart does not block', () => {
+        const rail = { ...idRequestRail('bridge', 'id_expired', 'blocked'), blockingActions: ['support'] }
+        expect(providerIdRequestReason([rail], [restart('country_not_supported')])).toBeNull()
     })
 })

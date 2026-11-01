@@ -7,6 +7,8 @@
  * to force; the gallery prints the reason instead of a staged mock.
  */
 
+import { API_CONTRACT_STATES } from './api-contract-states'
+
 export type SurfaceMeta = {
     name: string
     path: string
@@ -28,6 +30,17 @@ export type SurfaceMeta = {
 }
 
 export const SURFACE_META: Record<string, SurfaceMeta> = {
+    ...Object.fromEntries(
+        Object.entries(API_CONTRACT_STATES).map(([id, state]) => [
+            id,
+            {
+                name: state.name,
+                path: 'Global/TestBuildRibbon.tsx',
+                captureState: [`API status: ${state.api.status}`, `route contract fault: ${state.api.contractError}`],
+                expectSelector: '[data-testid="test-build-ribbon"]',
+            },
+        ])
+    ),
     '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx' },
     '03-c-residence-congrats': {
         name: 'Payment plan',
@@ -47,6 +60,10 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         shotFixture: 'setup-payment-plan',
     },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
+    '03-b-residence-compare': {
+        name: 'Residence — two countries compared',
+        path: 'Setup/components/ResidenceCompare.tsx',
+    },
     '05-a-signtesttransaction': {
         name: 'Final passkey confirmation',
         path: 'Setup/Views/SignTestTransaction.tsx',
@@ -305,6 +322,18 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'features/withdraw/views/ConfirmWithdrawView.tsx',
         captureState: ['insufficientBalance=true', 'processing=false', 'alreadySpent=true'],
         expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '92-f-deposit-account-closed': {
+        name: 'Manteca deposit — account closed',
+        path: 'Common/MantecaAccountUnavailable.tsx',
+        captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=deposit', 'kyc=false'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
+    },
+    '93-f-withdraw-account-closed': {
+        name: 'Manteca withdrawal — account closed',
+        path: 'Common/MantecaAccountUnavailable.tsx',
+        captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=withdraw', 'kyc=false'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
     },
     '70-d-activationctas-outbound': {
         name: 'First-payment chooser',

@@ -575,10 +575,12 @@ jobs:
             # silent one.
             - name: Install Playwright system deps
               if: steps.pw-cache.outputs.cache-hit == 'true'
-              timeout-minutes: 9
+              timeout-minutes: 13
               run: |
                   for attempt in 1 2 3; do
-                      if timeout --kill-after=15s 150 npx playwright install-deps chromium; then
+                      # apt runs as root. The timeout must too, otherwise its
+                      # signals cannot reap apt and every retry hits the orphan's lock.
+                      if sudo timeout --kill-after=15s 150 env PATH="$PATH" node node_modules/@playwright/test/cli.js install-deps chromium; then
                           exit 0
                       fi
                       echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
@@ -988,10 +990,12 @@ jobs:
             # must retry, not block merges.
             - name: Install Playwright system deps
               if: steps.pw-cache.outputs.cache-hit == 'true'
-              timeout-minutes: 9
+              timeout-minutes: 13
               run: |
                   for attempt in 1 2 3; do
-                      if timeout --kill-after=15s 150 npx playwright install-deps chromium; then
+                      # apt runs as root. The timeout must too, otherwise its
+                      # signals cannot reap apt and every retry hits the orphan's lock.
+                      if sudo timeout --kill-after=15s 150 env PATH="$PATH" node node_modules/@playwright/test/cli.js install-deps chromium; then
                           exit 0
                       fi
                       echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"

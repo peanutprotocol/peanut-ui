@@ -9,7 +9,7 @@ import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/r
 import { isFinalState, type HistoryEntry } from '@/utils/history.utils'
 import { serverFetch } from '@/utils/api-fetch'
 import { isOwnBridgeAccountFlow } from '@/utils/provider.utils'
-import type { IUserProfile } from '@/interfaces/interfaces'
+import { normalizeUserProfile, type UserProfileWire } from '@/utils/residence-profile'
 import { APP_LOCALES, resolveLocale } from '@/i18n/app/config'
 import { loadMessages } from '@/i18n/app/messages'
 import { buildReceiptPdfModel, type PdfTranslate } from './receipt-pdf-model'
@@ -71,12 +71,15 @@ async function ownerResidenceForBridge(entry: HistoryEntry, authorization: strin
     const partyIds = [entry.senderAccount?.userId, entry.recipientAccount?.userId].filter(Boolean)
     if (partyIds.length === 0) return null
     try {
-        const response = await serverFetch('/users/me', { headers: { Authorization: authorization } })
+        const response = await serverFetch('/users/me', {
+            headers: { Authorization: authorization, 'x-residence-format': 'compact' },
+        })
         if (!response.ok) return null
-        const me: IUserProfile | null = await response.json()
+        const payload: UserProfileWire | null = await response.json()
+        const me = payload ? normalizeUserProfile(payload) : null
         const requesterId = me?.user?.userId
         if (!requesterId || !partyIds.every((id) => id === requesterId)) return null
-        return me?.residence?.verified ?? null
+        return me?.residence?.verified?.country ?? null
     } catch (error) {
         captureException(error)
         return null

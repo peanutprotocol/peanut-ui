@@ -27,7 +27,7 @@ import {
     POSTHOG_PERSON_BASE_URL,
     SENTRY_USER_ISSUES_BASE_URL,
 } from '@/constants/support'
-import { type Account, AccountType, type IUserProfile } from '@/interfaces/interfaces'
+import { type Account, AccountType, type IUserProfile, type SupportLinkedAccount } from '@/interfaces/interfaces'
 import type { RainCardOverview } from '@/services/rain'
 
 const usd = (units: bigint): string => `$${formatUsdcBalance(units)}`
@@ -136,6 +136,18 @@ export function buildLinkedAccounts(accounts: Account[] | undefined): string | u
         return account.type === AccountType.PEANUT_WALLET || !country ? account.type : `${account.type}:${country}`
     })
     return Array.from(new Set(shapes)).join(' · ')
+}
+
+/**
+ * The other Peanut accounts in an email collision with this one, so the agent
+ * opens both instead of reasoning about one (TASK-24046). Ids and usernames
+ * only: the API sends nothing more, and the sidebar needs nothing more.
+ */
+export function buildSupportLinkedAccounts(linked: SupportLinkedAccount[] | undefined): string | undefined {
+    if (!linked?.length) return undefined
+    return linked
+        .map(({ relation, username, userId }) => `${relation} ${username ? `@${username} ` : ''}${userId}`)
+        .join(' · ')
 }
 
 export interface SupportSegmentInput {

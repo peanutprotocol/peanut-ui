@@ -348,6 +348,54 @@ describe('auth-token', () => {
                 expect(mockClearWalletSession).not.toHaveBeenCalled()
             })
         })
+
+        describe('a lost session', () => {
+            const tokenFor = (claims: Record<string, unknown>) =>
+                ['header', btoa(JSON.stringify(claims)).replace(/=+$/, ''), 'signature'].join('.')
+
+            beforeEach(() => {
+                localStorage.setItem('peanut:kycAnswerDraft:user-1', JSON.stringify({ values: {}, updatedAt: 1 }))
+                localStorage.setItem('peanut:kycAnswerDraft:user-2', JSON.stringify({ values: {}, updatedAt: 1 }))
+            })
+
+            it("takes the account's unsaved KYC answers with it (web)", async () => {
+                mockIsCapacitor.mockReturnValue(false)
+                mockCookies.get.mockReturnValue(tokenFor({ userId: 'user-1', tv: 0 }))
+                await auth.clearAuthToken()
+                expect(localStorage.getItem('peanut:kycAnswerDraft:user-1')).toBeNull()
+                expect(localStorage.getItem('peanut:kycAnswerDraft:user-2')).not.toBeNull()
+            })
+
+            it("takes the account's unsaved KYC answers with it (native)", async () => {
+                mockIsCapacitor.mockReturnValue(true)
+                auth.setAuthToken(tokenFor({ userId: 'user-2' }))
+                await auth.clearAuthToken()
+                expect(localStorage.getItem('peanut:kycAnswerDraft:user-2')).toBeNull()
+                expect(localStorage.getItem('peanut:kycAnswerDraft:user-1')).not.toBeNull()
+            })
+
+            it('leaves every draft when the token names no account', async () => {
+                mockIsCapacitor.mockReturnValue(false)
+                mockCookies.get.mockReturnValue('not-a-jwt')
+                await auth.clearAuthToken()
+                expect(localStorage.getItem('peanut:kycAnswerDraft:user-1')).not.toBeNull()
+                expect(localStorage.getItem('peanut:kycAnswerDraft:user-2')).not.toBeNull()
+            })
+        })
+    })
+
+    describe('tokenUserId', () => {
+        it('reads the userId claim of a base64url payload', () => {
+            const payload = btoa(JSON.stringify({ userId: 'ab?>c', tv: 0 }))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '')
+            expect(auth.tokenUserId(`h.${payload}.s`)).toBe('ab?>c')
+        })
+
+        it.each([null, '', 'opaque', 'h.!!!.s', `h.${btoa('{"sub":"x"}')}.s`])('is null for %p', (token) => {
+            expect(auth.tokenUserId(token)).toBeNull()
+        })
     })
 
     describe('getAuthHeaders', () => {

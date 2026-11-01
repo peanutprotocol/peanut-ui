@@ -1,3 +1,12 @@
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
+        user: {
+            user: { userId: 'legacy-user' },
+            capabilities: withFeatureReport({ rails: [], nextActions: [] }, { identity: { status: 'verified' } }),
+        },
+    }),
+    useOptionalAuth: () => null,
+}))
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
@@ -11,6 +20,10 @@ import { holdsSlot } from '../resolveScreen'
 import type { ClaimableCorridor, DepositAccount, DepositCorridor, UnavailableCorridor } from '../types'
 import type { GateState } from '@/utils/capability-gate'
 import type { BankRowsInput } from '@/utils/unlock-payments.utils'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import { accountEntry, entryChip } from '@/features/kyc-features/report'
+import type { BankRowKey } from '@/utils/unlock-payments.utils'
+import type { RailCapability } from '@/types/capabilities'
 import { withReturnTo } from '@/utils/return-to.utils'
 
 /** the hub the top-ups return to — the origin every top-up push carries */
@@ -68,11 +81,59 @@ jest.mock('../useDepositAccountsEnabled', () => ({
 
 /** the bank rows Accounts and payments shows too, from the real builder */
 const UNLOCK_ALL = { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' } as const
-let mockBankInput: BankRowsInput
+let mockBankInput: BankRowsInput & { restrictions: { banking: boolean; card: boolean } }
 jest.mock('@/hooks/useBankRows', () => ({
-    useBankRows: () => ({
-        rows: jest.requireActual('@/utils/unlock-payments.utils').buildBankRows(mockBankInput),
-    }),
+    useBankRows: () => {
+        const specs = [
+            ['brl', 'manteca', 'PIX_BR', 'BR', 'BRL'],
+            ['ars', 'manteca', 'BANK_TRANSFER_AR', 'AR', 'ARS'],
+            ['usd', 'bridge', 'ACH_US', 'US', 'USD'],
+            ['mxn', 'bridge', 'SPEI_MX', 'MX', 'MXN'],
+            ['sepa', 'bridge', 'SEPA_EU', 'EU', 'EUR'],
+        ] as const
+        const rails: RailCapability[] = specs
+            .filter(([key]) => mockBankInput.bankChips[key] === 'active')
+            .map(([, provider, method, country, currency]) => ({
+                id: `${provider}.${method.toLowerCase()}`,
+                provider,
+                method,
+                channel: 'bank',
+                country,
+                currency,
+                status: 'enabled',
+            }))
+        const capabilities = withFeatureReport(
+            { rails, nextActions: [] },
+            {
+                identity: { status: 'verified' },
+                residence: mockBankInput.residenceIso2,
+                restrictions: {
+                    banking: mockBankInput.restrictions.banking
+                        ? { code: 'residence_bank_restricted', userMessage: '' }
+                        : null,
+                    card: mockBankInput.restrictions.card,
+                },
+                planReasons: mockBankInput.restrictions.banking ? { manteca: 'residence_bank_restricted' } : {},
+            }
+        )
+        const entries = specs.map(
+            ([key, provider, , , currency]) =>
+                [key, accountEntry(capabilities.features!, provider === 'bridge' ? 'bank' : 'local', currency)] as const
+        )
+        const input: BankRowsInput = {
+            ...mockBankInput,
+            bankChips: Object.fromEntries(
+                entries.map(([key, entry]) => [key, entryChip(entry, [])])
+            ) as BankRowsInput['bankChips'],
+            closedBecause: Object.fromEntries(
+                entries.map(([key, entry]) => [
+                    key,
+                    entry.reason === 'local_residence_unsupported' ? 'residence' : 'restricted-country',
+                ])
+            ) as Partial<Record<BankRowKey, 'residence' | 'restricted-country'>>,
+        }
+        return { rows: jest.requireActual('@/utils/unlock-payments.utils').buildBankRows(input) }
+    },
 }))
 
 // the drawer names card issuing from the same restrictions the rows read
@@ -85,6 +146,7 @@ beforeEach(() => {
     mockIsCountrySupported.mockReturnValue(true)
     mockBankInput = {
         bankChips: UNLOCK_ALL,
+        closedBecause: {},
         restrictions: { banking: false, card: false },
         residenceIso2: 'BR',
         isEuropeResidence: false,
@@ -494,7 +556,7 @@ describe('an account the user could open', () => {
         search('mxn')
 
         expect(inRow(container, 'SPEI_MX').getByText(LIST.badgeLimitReached)).toBeInTheDocument()
-        expect(inRow(container, 'SPEI_MX').queryByText('Available')).not.toBeInTheDocument()
+        expect(inRow(container, 'SPEI_MX').queryByText('Active')).not.toBeInTheDocument()
         fireEvent.click(rowOf(container, 'SPEI_MX') as HTMLElement)
         expect(onOpen).toHaveBeenCalledWith('SPEI_MX')
     })
@@ -558,6 +620,29 @@ describe('a withheld account with the cause the backend names', () => {
         expect(within(row).queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
         fireEvent.click(row)
         expect(onOpen).toHaveBeenCalledWith('SPEI_MX')
+    })
+
+    it('shows an account still being opened after verification as setting up, not as "not available"', () => {
+        const { container } = list(false, {
+            unavailable: { ACH_US: withheld('ACH_US', 'not-offered', 'setup-pending') },
+        })
+
+        const row = rowOf(container, 'ACH_US') as HTMLElement
+        expect(within(row).getByText(LIST.badgeSettingUp)).toBeInTheDocument()
+        expect(within(row).queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
+    })
+
+    it('offers normal setup for a picked feature whose provider onboarding has not started', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            unavailable: { ACH_US: withheld('ACH_US', 'not-offered', 'not_started') },
+            onOpen,
+        })
+        const row = rowOf(container, 'ACH_US') as HTMLElement
+        expect(within(row).getByText(LIST.badgeSetUp)).toBeInTheDocument()
+        expect(within(row).queryByText(LIST.badgeSettingUp)).not.toBeInTheDocument()
+        fireEvent.click(row)
+        expect(onOpen).toHaveBeenCalledWith('ACH_US')
     })
 
     it('sends a closed review to support', () => {
@@ -646,7 +731,7 @@ describe('a row the user cannot use', () => {
         fireEvent.click(link)
         jest.runAllTimers()
         jest.useRealTimers()
-        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile/accounts?open=residence', HUB_RETURN))
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile?open=residence', HUB_RETURN))
         expect(mockOpenSupport).not.toHaveBeenCalled()
     })
 
@@ -684,7 +769,7 @@ describe('a row the user cannot use', () => {
         fireEvent.click(drawer().getByRole('button', { name: messages.depositAccounts.details.residenceCta }))
         jest.runAllTimers()
         jest.useRealTimers()
-        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile/accounts?open=residence', HUB_RETURN))
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile?open=residence', HUB_RETURN))
     })
 
     it('says bank transfers and the card are closed where the country of residence closes both', () => {
@@ -720,7 +805,7 @@ describe('the other ways in', () => {
         const section = within(screen.getByTestId('other-ways'))
         expect(section.getByRole('heading', { name: LIST.otherWaysTitle })).toBeInTheDocument()
         expect(section.getByText(LIST.otherWaysBody)).toBeInTheDocument()
-        expect(within(bankRow('brl')).getByText('Available')).toBeInTheDocument()
+        expect(within(bankRow('brl')).getByText('Active')).toBeInTheDocument()
         // C16: USD is listed to open above, with its own status; a second USD
         // row down here could only say it again in other words
         expect(screen.queryByTestId('bank-row-usd')).not.toBeInTheDocument()

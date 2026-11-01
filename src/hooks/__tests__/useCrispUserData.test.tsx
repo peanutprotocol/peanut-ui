@@ -75,6 +75,22 @@ describe('useCrispUserData', () => {
         expect(result.current.segments).toContain('balance-unavailable')
     })
 
+    it('passes the accounts in an email collision to the sidebar, ids and usernames only', () => {
+        mockUseAuth.mockReturnValue({
+            username: 'hmontenegro',
+            userId: 'user-b',
+            user: {
+                user: { userId: 'user-b' },
+                accounts: [],
+                supportLinkedAccounts: [{ userId: 'user-a', username: 'montenegroh', relation: 'holds_email' }],
+            },
+        } as unknown as ReturnType<typeof useAuth>)
+
+        const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
+
+        expect(result.current.sameEmailAccounts).toBe('holds_email @montenegroh user-a')
+    })
+
     it('picks up a warm cache without touching the network', () => {
         client.setQueryData(['balance', WALLET], 100_000_000n)
         client.setQueryData([RAIN_CARD_OVERVIEW_QUERY_KEY, 'user-1'], {

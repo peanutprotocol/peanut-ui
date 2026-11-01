@@ -126,6 +126,7 @@ function isOpenable(
     const withheld = unavailable?.[corridor]
     // the user's own review holds the corridor: the claim step's gate drawer
     // names it and starts the action that clears it
+    if (withheld?.cause === 'not_started') return true
     if (withheld?.reason === 'not-offered') return reviewHolds(withheld.cause)
     if (withheld !== undefined) return true
     return (
@@ -267,6 +268,8 @@ export function otherWaysRows(
  */
 export function closedBankRow(row: UnlockRow, isKycDegraded: boolean): ClosedRow | null {
     if (row.chip === 'notAvailable') {
+        if (row.unavailableBecause === 'account-residence' && row.corridor)
+            return { kind: 'residence-restricted', corridor: row.corridor }
         return row.unavailableBecause === 'residence' &&
             (row.corridor === 'PIX_BR' || row.corridor === 'BANK_TRANSFER_AR')
             ? { kind: 'residence', corridor: row.corridor }

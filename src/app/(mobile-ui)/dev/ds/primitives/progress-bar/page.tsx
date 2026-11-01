@@ -59,22 +59,15 @@ export default function ProgressBarPage() {
                 <ProductUsage.Example
                     title="Home — getting started checklist"
                     path="src/components/Home/GettingStartedChecklist.tsx"
-                    description="Completion of the onboarding checklist, with the percentage spelled out above the bar."
-                    code={`<div className="flex items-center justify-between text-body-s text-foreground-secondary">
-    <span>{progressLabel}</span>
-    <span>{completionPercent}%</span>
-</div>
-<ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />`}
+                    description="Completion of the onboarding checklist, with the count spelled out above the bar, in the list's top card."
+                    code={`<div className="flex flex-col gap-2">
+    <span className="text-body-s text-foreground-secondary">{t('progress', { done, total })}</span>
+    <ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />
+</div>`}
                 >
-                    {/* the real file pairs the two with a 6px gap; the showcase
-                        uses the on-scale step so the recreation does not add a
-                        second off-scale spacing site to the ds-lint ratchet */}
                     <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between text-body-s text-foreground-secondary">
-                            <span>2 of 3 done</span>
-                            <span>67%</span>
-                        </div>
-                        <ProgressBar value={67} fillClassName="bg-background-icon-bubble-green" />
+                        <span className="text-body-s text-foreground-secondary">1 of 4 done</span>
+                        <ProgressBar value={25} fillClassName="bg-background-icon-bubble-green" />
                     </div>
                 </ProductUsage.Example>
 

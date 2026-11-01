@@ -8,7 +8,6 @@ import SetupFooter from '../components/SetupFooter'
 import SetupTitleBlock from '../components/SetupTitleBlock'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { updateUserById } from '@/app/actions/users'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useAccountSetup } from '@/hooks/useAccountSetup'
 import { useAuth } from '@/context/authContext'
@@ -20,7 +19,8 @@ import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { setupCountrySignalProperties } from '@/features/setup/country-signals'
-import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
+import { attachSignupGeo } from '@/services/signup-geo'
+import { saveSignupResidence } from '@/features/setup/saveSignupAnswers'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { readInviteCode } from '@/utils/invite-stash'
 import {
@@ -118,7 +118,7 @@ const SignTestTransaction = ({
     const { user, isFetchingUser, fetchUser, logoutUser, isLoggingOut } = useAuth()
     const {
         residenceCountry,
-        secondResidenceCountry,
+        nationalityCountry,
         setIsLoading: setSetupLoading,
         signupEntryFlow,
         fundingChannel,
@@ -149,6 +149,7 @@ const SignTestTransaction = ({
 
     const completeSignup = async () => {
         console.log('[SignTestTransaction] Account setup complete')
+        if (user?.user?.userId) await attachSignupGeo(user.user.userId)
         // The final passkey confirmation has succeeded and the account exists.
         // The finish route redirects immediately; setup celebrates on its
         // dedicated final screen after the completion callback.
@@ -184,7 +185,7 @@ const SignTestTransaction = ({
             await clearSignupAttribution()
         }
         // Keep the independently observed hints on the identified analytics
-        // profile. Only the user's declared residences go to /update-user.
+        // profile, and retain them separately in the API geo observation model.
         try {
             posthog.setPersonProperties(setupCountrySignalProperties())
         } catch {
@@ -195,30 +196,14 @@ const SignTestTransaction = ({
         // the account exists. Fire-and-forget: prequalification data,
         // never a reason to fail or delay the redirect.
         if (residenceCountry) {
-            posthog.setPersonProperties({
-                residence_country: residenceCountry,
-                second_residence_country: secondResidenceCountry || undefined,
-            })
+            // The nationality stays off analytics: only the API keeps it, for the ID check.
+            posthog.setPersonProperties({ residence_country: residenceCountry })
             const userId = user?.user?.userId
-            if (userId) {
-                storeDeclaredResidence(userId, residenceCountry)
-                storeSecondResidence(userId, secondResidenceCountry || null)
-                void updateUserById({
-                    userId,
-                    residenceCountry,
-                    ...(secondResidenceCountry ? { secondResidenceCountry } : {}),
+            // Readers drop the device mirror once /users/me carries a residence, so fetch it once saved.
+            if (userId)
+                saveSignupResidence(userId, residenceCountry, nationalityCountry || residenceCountry, () => {
+                    void fetchUser().catch(() => undefined)
                 })
-                    .then((result) => {
-                        // updateUserById maps API failures to { error },
-                        // it doesn't throw them — inspect the result.
-                        if (result?.error) {
-                            console.error('[SignTestTransaction] Failed to persist residence:', result.error)
-                        }
-                    })
-                    .catch((err: unknown) => {
-                        console.error('[SignTestTransaction] Failed to persist residence:', err)
-                    })
-            }
         }
 
         // Completion is terminal for this screen. Keep both loading states

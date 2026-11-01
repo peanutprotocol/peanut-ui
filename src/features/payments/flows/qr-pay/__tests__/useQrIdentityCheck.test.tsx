@@ -1,3 +1,5 @@
+import { featureReport } from '@/test-utils/featureReport.fixture'
+import type { NextAction } from '@/types/capabilities'
 import { act, renderHook } from '@testing-library/react'
 import { useQrIdentityCheck } from '../useQrIdentityCheck'
 
@@ -19,10 +21,20 @@ const mockToastError = jest.fn()
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
 let mockCanPay = false
-let mockNextActions: unknown[] = []
+let mockNextActions: NextAction[] = []
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
-        canDo: () => mockCanPay,
+        capabilities: {
+            features: {
+                ...featureReport({
+                    rails: [],
+                    nextActions: mockNextActions,
+                    identity: { status: 'not_started' },
+                    residence: null,
+                }),
+                qr: mockCanPay ? { state: 'on' } : { state: 'action_required', action: 'verify' },
+            },
+        },
         railsForProvider: () => [],
         nextActions: mockNextActions,
         isLoading: false,

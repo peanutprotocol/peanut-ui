@@ -38,6 +38,23 @@ describe('fixture registry', () => {
         )
     })
 
+    // api#1816: an identity approved with bank accounts ticked parks Bridge until
+    // the proof of address arrives on its own supplement action.
+    it('parks a Bridge rail on its proof-of-address supplement', () => {
+        const me = FIXTURES['bank-proof-of-address-supplement'].responses?.['GET /users/me'] as {
+            capabilities: { rails: Array<Record<string, unknown>>; nextActions: Array<Record<string, unknown>> }
+        }
+        expect(me.capabilities.rails[0]).toEqual(
+            expect.objectContaining({
+                provider: 'bridge',
+                status: 'blocked',
+                reason: expect.objectContaining({ code: 'requirements_missing' }),
+                blockingActions: ['supplement:bridge'],
+            })
+        )
+        expect(me.capabilities.nextActions).toEqual([expect.objectContaining({ key: 'supplement:bridge' })])
+    })
+
     it('has unique kebab-case names', () => {
         expect(new Set(names).size).toBe(names.length)
         for (const name of names) expect(name).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/)
@@ -48,9 +65,8 @@ describe('fixture registry', () => {
     // route quietly rots a screenshot job.
     it('points every fixture at a route that exists', () => {
         for (const [name, fixture] of Object.entries(FIXTURES)) {
-            expect(routeExists(fixture.route) ? fixture.route : `${name} → missing ${fixture.route}`).toBe(
-                fixture.route
-            )
+            for (const route of [fixture.route, fixture.landsOn].filter((r): r is string => !!r))
+                expect(routeExists(route) ? route : `${name} → missing ${route}`).toBe(route)
         }
     })
 })

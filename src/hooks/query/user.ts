@@ -7,6 +7,7 @@ import { USER } from '@/constants/query.consts'
 import { apiFetch } from '@/utils/api-fetch'
 import { clearAuthToken, getAuthToken, getClearEpoch, setAuthToken } from '@/utils/auth-token'
 import { isDemoMode } from '@/utils/demo'
+import { normalizeUserProfile, type UserProfileWire } from '@/utils/residence-profile'
 import { DEMO_USER } from '@/constants/demo-data'
 import { useHydrationSnapshot } from '@/utils/native-platform'
 
@@ -33,12 +34,16 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         if (isDemoMode()) {
             const { demoRespond } = await import('@/utils/demo-api')
             const payload: IUserProfile = await (await demoRespond('/users/me')).json()
-            return payload
+            return payload ? normalizeUserProfile(payload) : null
         }
 
         const epochAtRequest = getClearEpoch()
         const tokenAtRequest = getAuthToken()
-        const userResponse = await apiFetch('/users/me', { method: 'GET', signal })
+        const userResponse = await apiFetch('/users/me', {
+            method: 'GET',
+            signal,
+            headers: { 'x-residence-format': 'compact' },
+        })
         const assertCurrentSession = () => {
             if (signal.aborted || getClearEpoch() !== epochAtRequest || getAuthToken() !== tokenAtRequest) {
                 throw new Error('Session changed while fetching user')
@@ -46,7 +51,7 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         }
         assertCurrentSession()
         if (userResponse.ok) {
-            const payload: (IUserProfile & { token?: string }) | null = await userResponse.json()
+            const payload: (UserProfileWire & { token?: string }) | null = await userResponse.json()
 
             assertCurrentSession()
 
@@ -70,7 +75,7 @@ export const useUserQuery = (dependsOn: boolean = true) => {
                     deviceType,
                 })
             }
-            return payload
+            return payload ? normalizeUserProfile(payload) : null
         }
 
         // Temporary failures must preserve the cached session.
