@@ -3756,16 +3756,28 @@
                 "bank": {
                     "us_state_unsupported": "Bank accounts aren’t available for New York addresses.",
                     "uk_resident_blocked": "Bank accounts aren’t available for UK residents.",
-                    "default": "Bank accounts aren’t available where you live."
+                    "default": "Bank accounts aren’t available for your current details.",
+                    "residence": "Bank accounts aren’t available where you live.",
+                    "nationality": "Bank accounts aren’t available for your nationality.",
+                    "taxId": "Bank accounts need a supported tax ID."
                 },
                 "card": {
-                    "default": "The card isn’t available where you live."
+                    "default": "Peanut Card isn’t available for your current details.",
+                    "residence": "Peanut Card isn’t available where you live.",
+                    "nationality": "Peanut Card isn’t available for your nationality.",
+                    "taxId": "Peanut Card needs a supported tax ID."
                 },
                 "local": {
-                    "default": "Local bank transfers aren’t available where you live."
+                    "default": "Local bank transfers aren’t available for your current details.",
+                    "residence": "Local bank transfers aren’t available where you live.",
+                    "nationality": "Local bank transfers aren’t available for your nationality.",
+                    "taxId": "Local bank transfers need a supported tax ID."
                 },
                 "qr": {
-                    "default": "QR payments aren’t available where you live."
+                    "default": "QR payments aren’t available for your current details.",
+                    "residence": "QR payments aren’t available where you live.",
+                    "nationality": "QR payments aren’t available for your nationality.",
+                    "taxId": "QR payments need a supported tax ID."
                 },
                 "rest": "Everything else you picked stays available."
             },
@@ -3979,6 +3991,15 @@
                 "limitedTitle": "Continue with this document?",
                 "residenceUnlocks": "A document issued by {country} doesn’t have this limit.",
                 "chooseAnother": "Choose another document"
+            },
+            "activation": {
+                "title": "Set up this feature",
+                "description": "Continue to start setting up this feature with our partner.",
+                "identityRequired": "Finish your identity verification to continue setting up this feature."
+            },
+            "policyHold": {
+                "description": "This document cannot be used for verification. Please choose another document.",
+                "cta": "Choose another document"
             }
         }
     },

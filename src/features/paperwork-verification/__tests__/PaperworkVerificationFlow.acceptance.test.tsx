@@ -36,9 +36,13 @@ jest.mock('@/app/actions/kyc-workflow', () => ({
     findKycDocumentPlan: jest.fn(),
     getKycDocumentStatus: jest.fn(),
 }))
+let mockIdentityReason: string | undefined
 jest.mock('@/context/authContext', () => ({
     useOptionalAuth: () => null,
-    useAuth: () => ({ user: { user: { username: 'tester' } }, fetchUser: jest.fn() }),
+    useAuth: () => ({
+        user: { user: { username: 'tester' }, identityVerification: { reason: { code: mockIdentityReason } } },
+        fetchUser: jest.fn(),
+    }),
 }))
 jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: jest.fn() }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => mockExit }))
@@ -165,6 +169,7 @@ const continueButton = () => screen.getByTestId('verify-continue')
 const mockStartAction = jest.fn()
 
 beforeEach(() => {
+    mockIdentityReason = undefined
     jest.clearAllMocks()
     ;(useSumsubKycFlow as jest.Mock).mockReturnValue({
         isLoading: false,
@@ -202,6 +207,27 @@ describe('canonical identity recovery acceptance', () => {
         expect(mockToken).not.toHaveBeenCalled()
     })
 
+    it.each(['APPROVED', 'ACTION_REQUIRED', 'REJECTED'] as const)(
+        'a replacement handoff observes %s even before the submission webhook arrives',
+        async (next) => {
+            jest.useFakeTimers()
+            mockStatus.mockResolvedValue('NOT_STARTED')
+            mockQuestions.mockResolvedValue(build({ purpose: true, money: true, tax: true }, null))
+            renderFlow('?step=review')
+            expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
+            mockStatus.mockResolvedValue(next)
+            await act(async () => {
+                await jest.advanceTimersByTimeAsync(15_000)
+            })
+            if (next === 'APPROVED') expect(await screen.findByTestId('verify-verified-payments')).toBeInTheDocument()
+            else {
+                expect(await screen.findByText('We need another look at your ID')).toBeInTheDocument()
+                expect(screen.queryByRole('button', { name: 'Try again' }) !== null).toBe(next === 'ACTION_REQUIRED')
+            }
+            expect(mockToken).not.toHaveBeenCalled()
+        }
+    )
+
     it('ACTION_REQUIRED offers retry and opens the canonical attempt without another document', async () => {
         mockStatus.mockResolvedValue('ACTION_REQUIRED')
         mockToken.mockResolvedValue(session())
@@ -211,6 +237,18 @@ describe('canonical identity recovery acceptance', () => {
         expect(mockToken).toHaveBeenCalledTimes(1)
         expect(mockToken.mock.calls[0][0]).toBe('attempt-1')
         expect(mockToken.mock.calls[0][1]).toBeUndefined()
+    })
+
+    it('a document-policy hold explains the document replacement and never resubmits the held ID', async () => {
+        mockIdentityReason = 'document_policy_hold'
+        mockStatus.mockResolvedValue('ACTION_REQUIRED')
+        renderFlow()
+        fireEvent.click(await screen.findByRole('button', { name: 'Choose another document' }))
+        expect(
+            screen.getByText('This document cannot be used for verification. Please choose another document.')
+        ).toBeInTheDocument()
+        expect(mockPush).toHaveBeenCalledWith('/verify?step=id&restart=1')
+        expect(mockToken).not.toHaveBeenCalled()
     })
 
     // FAILED is our check erroring with nothing decided, so it is retried like ACTION_REQUIRED.

@@ -67,7 +67,8 @@ export function composeScreens(
     let pickers: { ids: PaperworkVerificationStepId[]; count: number } | null = null
     for (const step of questions.steps) {
         if (phoneJoined && step.id === 'phone') continue
-        const pickerOnly = step.fields.length > 0 && step.fields.every((f) => PICKER_KINDS.has(f.kind))
+        const pickerOnly =
+            step.fields.length > 0 && step.fields.every((f) => f.key !== 'state' && PICKER_KINDS.has(f.kind))
         if (!pickerOnly) {
             screens.push(phoneJoined && step.id === 'address' ? ['address', 'phone'] : [step.id])
             continue
@@ -215,6 +216,8 @@ export const stepComplete = (
     fields.every((f) => {
         const value = values[f.key]?.trim() ?? ''
         if (refused.has(f.key)) return false
+        if (f.key === 'state' && (f.kind === 'select' || f.kind === 'choice') && (f.required || value))
+            return !!f.options?.includes(value)
         if (f.kind === 'phone' && value && !isE164(value)) return false
         if (f.kind === 'taxId' && looksLikeItin(f.format, value)) return false
         return !f.required || f.locked || !!value

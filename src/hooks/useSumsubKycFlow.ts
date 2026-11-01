@@ -528,7 +528,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     if (crossRegion) prevStatusRef.current = savedPrevStatus
                     const latest = await findKycDocumentPlan().catch(() => null)
                     if (latest?.flow === PAPERWORK_VERIFICATION_FLOW)
-                        router.push(paperworkVerificationFeaturePath('bank'))
+                        router.push(paperworkVerificationFeaturePath(response.feature ?? 'bank'))
                     else setError(actionErrorMessage(response) || t('errorInitiateFailed'))
                     return false
                 }
@@ -859,7 +859,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 userInitiatedRef.current = false
                 setShowWrapper(false)
                 if ((await findKycDocumentPlan().catch(() => null))?.flow === PAPERWORK_VERIFICATION_FLOW)
-                    router.push(paperworkVerificationFeaturePath('bank'))
+                    router.push(paperworkVerificationFeaturePath(response.feature ?? 'bank'))
             }
             throw new Error(response.error || 'Failed to refresh token')
         }

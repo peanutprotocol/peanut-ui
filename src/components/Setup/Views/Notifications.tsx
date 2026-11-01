@@ -102,24 +102,23 @@ function NotificationSwitches() {
                 emailUpdates: saved.emailUpdates,
                 ...(answer && { pushPermission: answer }),
             }
-            // Unset preferences default to subscribed on the server, so every answer,
-            // the opt-outs included, must be acknowledged before leaving.
             const ok = await notificationsApi.savePreferences(changes).then(
                 () => true,
                 () => false
             )
             // Keeping the switches as tapped until the save lands leaves Continue there to retry.
-            if (!ok) {
+            if (!ok && !skip) {
                 setError(t('saveFailed'))
                 return
             }
             setNotificationChoices(saved)
-            posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_CHOICES_SAVED, {
-                outcome: skip ? 'skipped' : (answer ?? 'not_asked'),
-                important: saved.push,
-                offers: saved.marketingPush,
-                email: saved.emailUpdates,
-            })
+            if (ok)
+                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_CHOICES_SAVED, {
+                    outcome: skip ? 'skipped' : (answer ?? 'not_asked'),
+                    important: saved.push,
+                    offers: saved.marketingPush,
+                    email: saved.emailUpdates,
+                })
             await handleNext()
         } finally {
             savingRef.current = false

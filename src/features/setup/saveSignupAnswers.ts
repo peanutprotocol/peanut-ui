@@ -2,23 +2,25 @@ import { updateUserById } from '@/app/actions/users'
 import type { SetupFundingChannel, SetupPaymentChannel } from '@/features/setup/paymentChannels'
 import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 
-/**
- * Sign-up saves each step's answers on the account when its Next is tapped, in
- * the background: the caller moves on without waiting, so a slow write never
- * holds up the next screen. A failed write is logged, not retried; the last
- * sign-up screen sends the same answers again.
- */
+const pendingSaves = new Map<string, Promise<void>>()
+
 function saveInBackground(userId: string, fields: Record<string, unknown>, onSaved?: () => void): void {
-    void updateUserById({ userId, ...fields })
+    const previous = pendingSaves.get(userId) ?? Promise.resolve()
+    // Serialize all signup writes per account so an older answer cannot land after a newer one.
+    const save = previous
+        .then(() => updateUserById({ userId, ...fields }))
         .then((result) => {
-            // updateUserById maps API failures to { error } instead of throwing.
             if (result?.error) {
-                console.error('[saveSignupAnswers] Failed to save:', Object.keys(fields), result.error)
+                console.error('[saveSignupAnswers] Failed to save:', Object.keys(fields))
                 return
             }
             onSaved?.()
         })
-        .catch((err: unknown) => console.error('[saveSignupAnswers] Failed to save:', Object.keys(fields), err))
+        .catch(() => console.error('[saveSignupAnswers] Failed to save:', Object.keys(fields)))
+        .finally(() => {
+            if (pendingSaves.get(userId) === save) pendingSaves.delete(userId)
+        })
+    pendingSaves.set(userId, save)
 }
 
 export function saveSignupResidence(

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { activateKycFeature } from '@/app/actions/kyc-feature-activation'
 import { AddMoneyBankPage } from '@/features/add-money/AddMoneyBankPage'
 import WithdrawBankPage from '@/app/(mobile-ui)/withdraw/[country]/bank/page'
@@ -20,6 +20,7 @@ jest.mock('@/context/authContext', () => ({
 }))
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush }),
+    useParams: () => ({ country: 'us' }),
     useSearchParams: () => new URLSearchParams('country=argentina'),
 }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
@@ -38,12 +39,20 @@ jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true,
 jest.mock('../FeatureAction', () => ({ FeatureAction: ({ action }: { action: string }) => <div>{action}</div> }))
 jest.mock('../components/StatusScreens', () => ({ FeatureReadyScreen: () => <div>existing setting up screen</div> }))
 jest.mock('../components/VerifyLayout', () => ({
-    VerifyHeroLayout: ({ title, description }: { title: string; description: string }) => (
+    VerifyHeroLayout: ({
+        title,
+        description,
+        footer,
+    }: {
+        title: string
+        description: string
+        footer: React.ReactNode
+    }) => (
         <div>
-            {title} {description}
+            {title} {description} {footer}
         </div>
     ),
-    VerifyFooter: () => null,
+    VerifyFooter: ({ actions }: { actions: React.ReactNode }) => <>{actions}</>,
 }))
 
 function MockProvider() {
@@ -96,7 +105,7 @@ beforeEach(() => {
 })
 
 describe.each(entries)('%s activation entry', (_name, feature, Entry) => {
-    it('activates before mounting any provider flow', async () => {
+    it('waits for a tap, then activates before mounting any provider flow', async () => {
         let resolve!: (reply: Awaited<ReturnType<typeof activateKycFeature>>) => void
         jest.mocked(activateKycFeature).mockReturnValue(
             new Promise((done) => {
@@ -104,6 +113,8 @@ describe.each(entries)('%s activation entry', (_name, feature, Entry) => {
             })
         )
         render(<Entry />)
+        expect(activateKycFeature).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: 'continue' }))
         expect(activateKycFeature).toHaveBeenCalledWith(feature)
         expect(mockProvider).not.toHaveBeenCalled()
         await act(async () => {
@@ -123,6 +134,8 @@ describe.each(entries)('%s activation entry', (_name, feature, Entry) => {
         async (state) => {
             jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'report', report: { state } })
             render(<Entry />)
+            expect(activateKycFeature).not.toHaveBeenCalled()
+            fireEvent.click(screen.getByRole('button', { name: 'continue' }))
             await waitFor(() => expect(activateKycFeature).toHaveBeenCalledTimes(1))
             expect(screen.getByText('existing setting up screen')).toBeInTheDocument()
             expect(mockProvider).not.toHaveBeenCalled()
@@ -131,6 +144,8 @@ describe.each(entries)('%s activation entry', (_name, feature, Entry) => {
     it('routes missing questions to its feature verification path', async () => {
         jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'questions_missing', step: 'tax' })
         render(<Entry />)
+        expect(activateKycFeature).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: 'continue' }))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith(`/verify?feature=${feature}`))
         expect(mockProvider).not.toHaveBeenCalled()
     })
@@ -141,7 +156,18 @@ describe.each(entries)('%s activation entry', (_name, feature, Entry) => {
             report: { state: 'action_required', action },
         })
         render(<Entry />)
+        expect(activateKycFeature).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: 'continue' }))
         expect(await screen.findByText(action)).toBeInTheDocument()
+        expect(mockProvider).not.toHaveBeenCalled()
+    })
+    it('routes unfinished identity to verification without a feature refusal', async () => {
+        jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'identity_not_approved' })
+        render(<Entry />)
+        expect(activateKycFeature).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: 'continue' }))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
+        expect(screen.queryByText(/supplement.unavailable/)).not.toBeInTheDocument()
         expect(mockProvider).not.toHaveBeenCalled()
     })
     it('shows the existing refusal copy and never starts the provider', async () => {
@@ -150,6 +176,8 @@ describe.each(entries)('%s activation entry', (_name, feature, Entry) => {
             report: { state: 'refused', reason: 'identity_document_insufficient' },
         })
         render(<Entry />)
+        expect(activateKycFeature).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: 'continue' }))
         expect(await screen.findByText(/supplement.identityDocumentInsufficient/)).toBeInTheDocument()
         expect(mockProvider).not.toHaveBeenCalled()
     })

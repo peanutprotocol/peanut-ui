@@ -30,6 +30,10 @@ const OCCUPATIONS = [
 ]
 const MONTHLY_PAYMENTS = ['0_4999', '5000_9999', '10000_49999', '50000_plus']
 const YES_NO = ['yes', 'no']
+const USPS_CODES =
+    'AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC PR GU VI AS MP'.split(
+        ' '
+    )
 
 const choice = (key: string, options: string[], value: string | null = null) => ({
     key,
@@ -78,7 +82,9 @@ const address = (residence: string, cardFeature: boolean) => ({
         { key: 'street', kind: 'text', required: true, value: null },
         { key: 'buildingNumber', kind: 'text', required: false, value: null },
         { key: 'town', kind: 'text', required: true, value: null },
-        { key: 'state', kind: 'text', required: cardFeature, value: null },
+        residence === 'US'
+            ? { key: 'state', kind: 'select', required: true, options: USPS_CODES, value: null }
+            : { key: 'state', kind: 'text', required: cardFeature, value: null },
         { key: 'postCode', kind: 'text', required: true, value: null },
         { key: 'country', kind: 'country', required: true, locked: true, value: residence },
     ],
@@ -334,6 +340,114 @@ const asking = (residence: string, steps: unknown[]) => ({
 })
 
 export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
+    ...Object.fromEntries(
+        ['choice', 'select'].flatMap((kind) =>
+            ['missing', 'selected'].map((state) => [
+                `paperwork-verification-state-${kind}-${state}`,
+                {
+                    route: '/verify?step=address',
+                    about: `US state ${kind} picker: ${state}, with every USPS state and territory code.`,
+                    responses: asking('US', [
+                        {
+                            ...address('US', false),
+                            fields: [
+                                {
+                                    key: 'state',
+                                    kind,
+                                    required: true,
+                                    options: USPS_CODES,
+                                    value: state === 'missing' ? null : 'CA',
+                                },
+                            ],
+                        },
+                    ]),
+                } satisfies Fixture,
+            ])
+        )
+    ),
+    ...Object.fromEntries(
+        [
+            ['residence', 'residence_bank_restricted'],
+            ['nationality', 'manteca_us_nationality_restricted'],
+            ['tax', 'tax_id_required'],
+            ['unknown', 'fixture_unknown_reason'],
+        ].map(([category, reason]) => [
+            `paperwork-verification-closed-${category}`,
+            {
+                route: '/verify?step=saved',
+                about: `Answers saved: the closed local-transfer feature explains its ${category} reason.`,
+                responses: {
+                    ...asking('US', answered(US_STEPS)),
+                    'GET /users/kyc/questions': {
+                        ...questions('US', answered(US_STEPS), null),
+                        closed: [{ feature: 'local', reason }],
+                    },
+                },
+            } satisfies Fixture,
+        ])
+    ),
+    'paperwork-verification-policy-hold': {
+        route: '/verify',
+        about: 'New-flow policy hold asks for another document and offers the replacement entry.',
+        responses: {
+            ...asking('US', answered(US_STEPS)),
+            'GET /users/me': {
+                identityVerification: {
+                    oneShot: true,
+                    status: 'action_required',
+                    reason: { code: 'document_policy_hold' },
+                    rejectLabels: ['DOCUMENT_POLICY_HOLD'],
+                },
+            },
+            'GET /users/kyc/profile': profile('ACTION_REQUIRED'),
+        },
+    },
+    'paperwork-verification-rejected': {
+        route: '/verify',
+        about: 'A rejected new-flow identity remains on the ordinary verification rejection screen.',
+        responses: {
+            ...asking('US', answered(US_STEPS)),
+            'GET /users/me': { identityVerification: { oneShot: true, status: 'failed' } },
+            'GET /users/kyc/profile': profile('REJECTED'),
+        },
+    },
+    'paperwork-verification-outage': {
+        route: '/verify',
+        about: 'Verification outage: the shared API kill switch stops entry before any SDK opens.',
+        responses: {
+            ...asking('US', US_STEPS),
+            'GET /config/kill-switches': { kycVerificationDown: true },
+        },
+    },
+    'paperwork-verification-restart-foreign': {
+        route: '/verify?step=id&restart=1',
+        about: 'A Portuguese resident replacing their ID sees their declared German nationality on the document picker.',
+        responses: {
+            'GET /users/me': {
+                identityVerification: { oneShot: true, status: 'action_required' },
+                residence: { declared: 'PT', verified: 'PT', pending: null, declaredSecond: null },
+            },
+            'GET /users/kyc/details': {
+                name: { first: null, last: null },
+                nationality: 'DE',
+                idNationality: 'DE',
+                document: null,
+                heldBySumsub: [],
+            },
+            'GET /users/kyc/plan': approvedPlan(),
+            'GET /users/kyc/profile': {
+                ...profile('ACTION_REQUIRED'),
+                attempts: [
+                    {
+                        id: 'fixture-replacement',
+                        kind: 'IDENTITY',
+                        verificationId: 'vo-identity',
+                        status: 'ACTION_REQUIRED',
+                    },
+                ],
+            },
+        },
+    },
     'paperwork-verification-needs-signup': {
         route: '/verify',
         about: 'An older account with no residence and no payment plan: signup’s residence screen, then its payment plan, before the questions.',

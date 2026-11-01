@@ -558,7 +558,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/users/history', handler: () => ({ entries: DEMO_HISTORY_ENTRIES, hasMore: false }) },
     { method: 'GET', pattern: '/users/bridge-tos-link', handler: () => ({ tosLink: '' }) },
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
-    { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
     // The demo user verified before Smart Paperwork Verification, so the API keeps them on today's flow.
     ...Object.entries(KYC_USER_READS).map(([key, read]) => {
         const [method, pattern] = key.split(' ')

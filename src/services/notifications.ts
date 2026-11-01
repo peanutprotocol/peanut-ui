@@ -34,10 +34,20 @@ export const notificationsApi = {
     },
     /** Saves only the choices passed and answers with all of them. */
     async savePreferences(changes: PreferenceChanges): Promise<NotificationPreferences> {
-        const response = await serverFetch('/notifications/preferences', {
+        let response = await serverFetch('/notifications/preferences', {
             method: 'PUT',
             body: JSON.stringify(changes),
         })
+        if (
+            response.status === 400 &&
+            typeof changes.push === 'boolean' &&
+            Object.keys(changes).some((key) => key !== 'push')
+        ) {
+            response = await serverFetch('/notifications/preferences', {
+                method: 'PUT',
+                body: JSON.stringify({ push: changes.push }),
+            })
+        }
         if (!response.ok) throw new Error('Could not save notification preferences')
         return await response.json()
     },

@@ -74,13 +74,13 @@ const session = {
     },
 }
 
-/** A rejected Smart Paperwork Verification identity resubmitting: POST /users/identity reopens its attempt. */
-const openRejectedAttempt = async (options: Parameters<typeof useMultiPhaseKycFlow>[0] = {}) => {
-    jest.mocked(getKycDocumentStatus).mockResolvedValue('REJECTED')
-    jest.mocked(initiateSumsubKyc).mockResolvedValue({ data: { ...session, status: 'REJECTED' } })
+/** A saved replacement resumes its canonical document attempt. */
+const openReplacementAttempt = async (options: Parameters<typeof useMultiPhaseKycFlow>[0] = {}) => {
+    jest.mocked(findKycReplacementPlan).mockResolvedValueOnce({ ...plan, activeAttemptId: 'attempt-1' })
+    jest.mocked(resumeKycDocumentAttempt).mockResolvedValue(session)
     const view = renderHook(() => useMultiPhaseKycFlow(options))
     await act(async () => {
-        await view.result.current.handleInitiateKyc()
+        await view.result.current.handleRestartIdentity()
     })
     expect(view.result.current.showWrapper).toBe(true)
     expect(view.result.current.documentAttemptId).toBe('attempt-1')
@@ -91,11 +91,33 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockFetchUser.mockResolvedValue(null)
     jest.mocked(findKycDocumentPlan).mockResolvedValue(plan)
+    jest.mocked(findKycReplacementPlan).mockResolvedValue(null)
+    jest.mocked(getKycDocumentStatus).mockResolvedValue('NOT_STARTED')
+})
+
+describe('useMultiPhaseKycFlow — rejected and action-required new-flow entry', () => {
+    it.each(['REJECTED', 'ACTION_REQUIRED'] as const)(
+        '%s stays in /verify without opening legacy verification',
+        async (status) => {
+            jest.mocked(getKycDocumentStatus).mockResolvedValue(status)
+            const view = renderHook(() => useMultiPhaseKycFlow({}))
+            await act(async () => {
+                await view.result.current.handleInitiateKyc()
+            })
+            expect(mockPush).toHaveBeenCalledWith('/verify')
+            expect(initiateSumsubKyc).not.toHaveBeenCalled()
+            expect(restartIdentityVerification).not.toHaveBeenCalled()
+            expect(resumeKycDocumentAttempt).not.toHaveBeenCalled()
+            expect(view.result.current.showWrapper).toBe(false)
+            expect(view.result.current.isModalOpen).toBe(false)
+            expect(view.result.current.documentAttemptId).toBeNull()
+        }
+    )
 })
 
 describe('useMultiPhaseKycFlow — a submitted verification attempt goes to /verify', () => {
-    it('a resubmission closes the SDK, opens /verify and shows no modal here', async () => {
-        const view = await openRejectedAttempt()
+    it('a resumed replacement closes the SDK, opens /verify and shows no modal here', async () => {
+        const view = await openReplacementAttempt()
 
         act(() => view.result.current.handleSdkComplete())
 
@@ -108,7 +130,7 @@ describe('useMultiPhaseKycFlow — a submitted verification attempt goes to /ver
     it('a later approval starts nothing here', async () => {
         const onKycSuccess = jest.fn()
         const onKycApproved = jest.fn()
-        const view = await openRejectedAttempt({ onKycSuccess, onKycApproved })
+        const view = await openReplacementAttempt({ onKycSuccess, onKycApproved })
         act(() => view.result.current.handleSdkComplete())
 
         await act(async () => {
@@ -123,7 +145,7 @@ describe('useMultiPhaseKycFlow — a submitted verification attempt goes to /ver
 
     it('an approval while the attempt is still open takes the same way', async () => {
         const onKycSuccess = jest.fn()
-        const view = await openRejectedAttempt({ onKycSuccess })
+        const view = await openReplacementAttempt({ onKycSuccess })
 
         await act(async () => {
             mockWs.handler?.('APPROVED')
@@ -153,7 +175,7 @@ describe('useMultiPhaseKycFlow — a submitted verification attempt goes to /ver
 
     it('closing the SDK without submitting keeps the user where they are', async () => {
         const onManualClose = jest.fn()
-        const view = await openRejectedAttempt({ onManualClose })
+        const view = await openReplacementAttempt({ onManualClose })
 
         act(() => view.result.current.handleSdkClose())
 
@@ -166,7 +188,7 @@ describe('useMultiPhaseKycFlow — a submitted verification attempt goes to /ver
     it('an approval after closing without submitting starts none of the legacy post-approval steps', async () => {
         const onKycSuccess = jest.fn()
         const onKycApproved = jest.fn()
-        const view = await openRejectedAttempt({ onKycSuccess, onKycApproved })
+        const view = await openReplacementAttempt({ onKycSuccess, onKycApproved })
         act(() => view.result.current.handleSdkClose())
 
         await act(async () => {

@@ -9,6 +9,7 @@ import {
 } from '@/app/actions/kyc-workflow'
 import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { getKycDetails } from '@/app/actions/kyc-paperwork-verification'
 import { IdentityRestartFlow } from '../IdentityRestartFlow'
 
 // A verified user whose identity came from a verification attempt restarts it
@@ -25,6 +26,7 @@ jest.mock('@/features/paperwork-verification/components/IdCardScanAnimation', ()
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, replace: mockReplace, back: jest.fn(), prefetch: jest.fn() }),
 }))
+jest.mock('@/app/actions/kyc-paperwork-verification', () => ({ getKycDetails: jest.fn() }))
 jest.mock('@/app/actions/kyc-workflow', () => ({
     refreshKycIdentityStatus: jest.fn(async () => undefined),
     getKycReplacementPlan: jest.fn(),
@@ -125,13 +127,20 @@ const renderFlow = () =>
 
 beforeEach(() => {
     jest.clearAllMocks()
+    jest.mocked(getKycDetails).mockResolvedValue({
+        name: { first: null, last: null },
+        nationality: 'PT',
+        idNationality: null,
+        document: null,
+        heldBySumsub: [],
+    })
     mockPlan.mockResolvedValue(plan)
     mockReplacement.mockResolvedValue({ kind: 'session', session })
     mockResume.mockResolvedValue({ ...session, token: 'token-2' })
 })
 
 describe('IdentityRestartFlow', () => {
-    it('restarts on the picked ID, opens Sumsub on the returned session, then shows the review', async () => {
+    it('restarts on the picked ID, opens Sumsub, then hands off to ordinary status observation', async () => {
         renderFlow()
         expect(await screen.findByText('Verify with a different document')).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-id-option-PASSPORT-PT'))
@@ -149,9 +158,29 @@ describe('IdentityRestartFlow', () => {
         expect(sdk).toHaveAttribute('data-document', JSON.stringify({ country: 'PRT', idDocType: 'PASSPORT' }))
 
         fireEvent.click(screen.getByText('sumsub-submit'))
-        expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/verify?step=review'))
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
         expect(screen.queryByTestId('sumsub')).toBeNull()
+    })
+
+    it('offers a foreign national the passport from their declared nationality', async () => {
+        jest.mocked(getKycDetails).mockResolvedValue({
+            name: { first: null, last: null },
+            nationality: 'DE',
+            idNationality: null,
+            document: null,
+            heldBySumsub: [],
+        })
+        mockPlan.mockResolvedValue({
+            ...plan,
+            routes: [{ ...plan.routes[0], documents: [{ ...plan.routes[0].documents[0], countries: ['PT', 'DE'] }] }],
+        })
+        renderFlow()
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-DE'))
+        await waitFor(() => expect(mockReplacement).toHaveBeenCalled())
+        expect(mockReplacement.mock.calls[0][0].documents).toEqual([
+            { key: 'identity', type: 'PASSPORT', issuingCountry: 'DE' },
+        ])
     })
 
     it('refreshes the token through the replaced attempt', async () => {
@@ -166,6 +195,13 @@ describe('IdentityRestartFlow', () => {
     })
 
     it('sends a temporary protection document as the visa Sumsub verifies', async () => {
+        jest.mocked(getKycDetails).mockResolvedValue({
+            name: { first: null, last: null },
+            nationality: 'UA',
+            idNationality: null,
+            document: null,
+            heldBySumsub: [],
+        })
         mockPlan.mockResolvedValue({
             ...plan,
             temporaryProtection: { countries: ['PT'], until: '2028-03-04', proofOfAddress: false },

@@ -115,6 +115,23 @@ const definitions: Screen[] = [
         entryRoute: f.landsOn ? f.route : undefined,
         fixture: id,
         clicks: [],
+        actions:
+            /^feature-activation-(bank|local)-/.test(id) && !id.endsWith('-consent')
+                ? [{ clickSelector: '[data-testid="kyc-activation-continue"]' }]
+                : undefined,
+        expectSelector: id.startsWith('paperwork-verification-state-')
+            ? '[data-testid="verify-input-state"]'
+            : id.startsWith('paperwork-verification-closed-')
+              ? '[data-testid="verify-closed-features"]'
+              : id === 'paperwork-verification-outage'
+                ? '[data-testid="verify-outage"]'
+                : id === 'paperwork-verification-policy-hold'
+                  ? '[data-testid="verify-review-retry"]'
+                  : id === 'paperwork-verification-rejected'
+                    ? '[data-testid="verify-review-home"]'
+                    : id === 'paperwork-verification-restart-foreign'
+                      ? '[data-testid="verify-id"]'
+                      : undefined,
         expectsLoading: f.isLoadingState || id === 'card-pending',
     })),
     ...PAGE_CAPTURES.map((p) => ({

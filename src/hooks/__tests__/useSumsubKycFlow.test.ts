@@ -1947,3 +1947,46 @@ describe('useSumsubKycFlow — Smart Paperwork Verification routing', () => {
         expect(result.current.accessToken).toBe('tok')
     })
 })
+
+describe('server-selected feature routing', () => {
+    beforeEach(() => {
+        mockInitiate.mockReset()
+        mockRouterPush.mockReset()
+        jest.mocked(getKycDocumentPlan).mockResolvedValue({ available: false, routes: [] } as never)
+    })
+    afterEach(() => jest.mocked(getKycDocumentPlan).mockResolvedValue({ available: false, routes: [] } as never))
+    it.each(['local', 'bank'] as const)('routes initial %s conflict to its own questions', async (feature) => {
+        jest.mocked(getKycDocumentPlan)
+            .mockResolvedValueOnce({ available: false, routes: [] } as never)
+            .mockResolvedValue({ available: true, routes: [], flow: 'verify-once' } as never)
+        mockInitiate.mockResolvedValue({
+            code: 'feature_selection_required',
+            error: 'Choose features',
+            feature,
+        } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        expect(mockRouterPush).toHaveBeenCalledWith(`/verify?feature=${feature}`)
+        expect(result.current.showWrapper).toBe(false)
+    })
+    it.each(['local', 'bank'] as const)('routes refresh %s conflict to its own questions', async (feature) => {
+        mockInitiate.mockResolvedValueOnce({ data: { token: 'legacy', status: 'PENDING' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        jest.mocked(getKycDocumentPlan).mockResolvedValue({ available: true, routes: [], flow: 'verify-once' } as never)
+        mockInitiate.mockResolvedValue({
+            code: 'feature_selection_required',
+            error: 'Choose features',
+            feature,
+        } as never)
+        await act(async () => {
+            await expect(result.current.refreshToken()).rejects.toThrow('Choose features')
+        })
+        expect(mockRouterPush).toHaveBeenCalledWith(`/verify?feature=${feature}`)
+        expect(result.current.showWrapper).toBe(false)
+    })
+})

@@ -112,7 +112,12 @@ export const initiateSumsubKyc = async (params?: {
     crossRegion?: boolean
     targetCountry?: string
     correctSession?: boolean
-}): Promise<{ data?: InitiateSumsubKycResponse; error?: string; code?: SumsubActionErrorCode }> => {
+}): Promise<{
+    data?: InitiateSumsubKycResponse
+    error?: string
+    code?: SumsubActionErrorCode
+    feature?: 'local' | 'bank'
+}> => {
     const body: Record<string, string | boolean | undefined> = {
         corridor: params?.corridor,
         regionIntent: params?.regionIntent,
@@ -151,6 +156,9 @@ export const initiateSumsubKyc = async (params?: {
             if (response.status === 409 && (responseJson.code ?? responseJson.error) === 'feature_selection_required') {
                 return {
                     code: 'feature_selection_required',
+                    ...(responseJson.feature === 'local' || responseJson.feature === 'bank'
+                        ? { feature: responseJson.feature as 'local' | 'bank' }
+                        : {}),
                     error: responseJson.userMessage || 'Choose the features to set up',
                 }
             }
@@ -236,7 +244,7 @@ export const restartIdentityVerification = async (
         const intent = regionIntent && RESTART_REGION_INTENTS.has(regionIntent) ? regionIntent : undefined
         const response = await serverFetch('/users/identity/restart', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact' },
+            headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact', ...kycClientHeaders() },
             body: JSON.stringify({ ...(intent && { regionIntent: intent }), ...(replacement && { replacement }) }),
         })
         status = response.status
@@ -317,7 +325,7 @@ export const startResidenceChangeVerification = async (
         }
         const response = await serverFetch('/users/residence-change/start', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...kycClientHeaders() },
             body: JSON.stringify({ targetCountry: expectedTargetCountry }),
         })
         status = response.status
@@ -363,6 +371,7 @@ export const initiateSelfHealResubmission = async (
     try {
         const response = await serverFetch('/users/identity/resubmit', {
             method: 'POST',
+            headers: kycClientHeaders(),
             body: JSON.stringify({ provider, ...(requirementKey ? { requirementKey } : {}) }),
         })
 
@@ -411,6 +420,7 @@ export const startHostedVerification = async (
     try {
         const response = await serverFetch('/users/kyc/start-action', {
             method: 'POST',
+            headers: kycClientHeaders(),
             body: JSON.stringify({ key }),
         })
         status = response.status
@@ -450,7 +460,7 @@ type KycRefreshResponse = paths['/users/kyc/refresh']['post']['responses'][200][
 
 export const refreshKycState = async (): Promise<KycRefreshResponse> => {
     try {
-        const response = await serverFetch('/users/kyc/refresh', { method: 'POST' })
+        const response = await serverFetch('/users/kyc/refresh', { method: 'POST', headers: kycClientHeaders() })
         if (!response.ok) return { expedited: false }
         const responseJson = await response.json()
         return { expedited: responseJson?.expedited === true }
@@ -494,6 +504,7 @@ export const startKycAction = async (
     try {
         const response = await serverFetch('/users/kyc/start-action', {
             method: 'POST',
+            headers: kycClientHeaders(),
             body: JSON.stringify({ key }),
         })
         status = response.status
@@ -555,6 +566,7 @@ export async function refreshVerificationSession(
     try {
         const response = await serverFetch('/users/identity/session-token', {
             method: 'POST',
+            headers: kycClientHeaders(),
             body: JSON.stringify({ sessionId: session.id, generation: session.generation }),
         })
         status = response.status
@@ -573,6 +585,7 @@ export async function getVerificationSession(id: string): Promise<VerificationAc
     try {
         const response = await serverFetch(`/users/identity/sessions/${encodeURIComponent(id)}`, {
             method: 'GET',
+            headers: kycClientHeaders(),
             cache: 'no-store',
         })
         status = response.status

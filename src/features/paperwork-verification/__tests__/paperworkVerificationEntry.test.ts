@@ -59,14 +59,14 @@ describe('paperworkVerificationRoute', () => {
         await expect(paperworkVerificationRoute(plan(), null)).resolves.toBe('/verify')
     })
 
-    it('routes a retry to Smart Paperwork Verification and leaves final rejection to today’s fixes', async () => {
+    it('keeps retry and final rejection in Smart Paperwork Verification', async () => {
         mockStatus.mockResolvedValue('ACTION_REQUIRED')
         await expect(paperworkVerificationRoute(plan(), null)).resolves.toBe('/verify')
         // a check that errored decided nothing: /verify offers the retry
         mockStatus.mockResolvedValue('FAILED' as never)
         await expect(paperworkVerificationRoute(plan(), null)).resolves.toBe('/verify')
         mockStatus.mockResolvedValue('REJECTED')
-        await expect(paperworkVerificationRoute(plan(), 'bank')).resolves.toBeNull()
+        await expect(paperworkVerificationRoute(plan(), 'bank')).resolves.toBe('/verify')
     })
 
     it('treats REVERIFYING as verified, as the API does', async () => {

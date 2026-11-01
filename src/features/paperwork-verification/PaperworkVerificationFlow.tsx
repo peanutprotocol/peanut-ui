@@ -74,7 +74,7 @@ import {
     type VerifyStep,
 } from './paperworkVerification.utils'
 import { saveSteps, type AnswerFormError, type SaveOutcome } from './useAnswerForm'
-import { paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
+import { paperworkVerificationRestartPath, paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
 
 const STATUS_POLL_MS = 15_000
 const REFRESH_EVERY_POLLS = 4
@@ -261,7 +261,9 @@ function PaperworkVerificationSteps({
     const [questions, setQuestions] = useState(initial.questions)
     const [plan, setPlan] = useState(initial.plan)
     const [status, setStatus] = useState(initial.status)
-    const [submitted, setSubmitted] = useState(false)
+    const [stepParam] = useQueryState('step')
+    // A replacement hands off before its submission webhook necessarily arrives.
+    const [submitted, setSubmitted] = useState(stepParam === 'review')
     const [idError, setIdError] = useState<string | null>(null)
     const [documentRequired, setDocumentRequired] = useState(false)
     const identity = usePaperworkVerificationIdentity()
@@ -279,13 +281,21 @@ function PaperworkVerificationSteps({
     const allAnswered = questions.steps.every((s) => s.answered)
     const approved = !!status && APPROVED_STATUSES.has(status)
     const failed = !!status && FAILED_STATUSES.has(status)
+    const policyHold =
+        failed &&
+        (user?.identityVerification?.reason?.code === 'document_policy_hold' ||
+            user?.identityVerification?.rejectLabels?.includes('DOCUMENT_POLICY_HOLD') === true)
+    const fetchUserRef = useRef(fetchUser)
+    fetchUserRef.current = fetchUser
+    useEffect(() => {
+        if (failed) void Promise.resolve(fetchUserRef.current()).catch(() => {})
+    }, [failed])
     const reviewing = submitted || (!!status && IN_REVIEW_STATUSES.has(status))
     const asking = !approved && !reviewing && !failed
     const entry = screenOf(entryStep({ questions, plan, status }, submitted))
 
     // A visit that still has questions or the ID ahead opens on the steps overview, in front
     // of the open step; a deep link to a step skips it.
-    const [stepParam] = useQueryState('step')
     const [intro, setIntro] = useState(() => asking && !introShown.current && !stepParam)
     const showIntro = intro && asking
     // While asking, the clean URL keeps meaning the step this visit opened on, so moving on to
@@ -680,13 +690,16 @@ function PaperworkVerificationSteps({
         screen = failed ? (
             <ReviewScreen
                 onHome={goHome}
+                policyHold={policyHold}
                 onRetry={
-                    status && RETRYABLE_STATUSES.has(status)
-                        ? () => {
-                              track(ANALYTICS_EVENTS.KYC_PV_REVIEW_RETRY)
-                              void startIdentity()
-                          }
-                        : undefined
+                    policyHold
+                        ? () => router.push(paperworkVerificationRestartPath())
+                        : status && RETRYABLE_STATUSES.has(status)
+                          ? () => {
+                                track(ANALYTICS_EVENTS.KYC_PV_REVIEW_RETRY)
+                                void startIdentity()
+                            }
+                          : undefined
                 }
                 busy={identity.busy}
                 error={idError}

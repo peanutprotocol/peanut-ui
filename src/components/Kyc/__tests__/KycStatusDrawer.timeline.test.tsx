@@ -11,6 +11,7 @@ import { isPaperworkVerificationIdentity } from '@/app/actions/kyc-workflow'
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 let mockIdentity: Partial<UseIdentityVerificationResult>
+let mockOneShot: boolean | undefined
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => mockIdentity,
 }))
@@ -31,7 +32,10 @@ jest.mock('@/context/ModalsContext', () => ({
     useModalsContextOptional: () => undefined,
 }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ logoutUser: jest.fn(), user: { user: { userId: 'user-1' } } }),
+    useAuth: () => ({
+        logoutUser: jest.fn(),
+        user: { user: { userId: 'user-1' }, identityVerification: { oneShot: mockOneShot } },
+    }),
 }))
 jest.mock('../KYCStatusDrawerItem', () => ({
     KYCStatusDrawerItem: ({ status }: { status: string }) => <div data-testid={`status-${status}`} />,
@@ -42,7 +46,7 @@ jest.mock('@/hooks/useLongPress', () => ({
 }))
 
 const mockFind = jest.mocked(isPaperworkVerificationIdentity)
-const identity = (status: 'verified' | 'processing' | 'action_required') => {
+const identity = (status: 'verified' | 'processing' | 'action_required' | 'failed') => {
     mockIdentity = {
         status,
         identity: { status },
@@ -57,10 +61,13 @@ const open = () => {
     return { onClose }
 }
 
-beforeEach(() => jest.clearAllMocks())
+beforeEach(() => {
+    jest.clearAllMocks()
+    mockOneShot = undefined
+})
 
 describe('KycStatusDrawer — the timeline of a Smart Paperwork Verification identity', () => {
-    it.each(['verified', 'processing'] as const)(
+    it.each(['verified', 'processing', 'action_required', 'failed'] as const)(
         'a %s Smart Paperwork Verification identity opens the verification timeline, never a drawer',
         async (status) => {
             identity(status)
@@ -81,10 +88,24 @@ describe('KycStatusDrawer — the timeline of a Smart Paperwork Verification ide
         expect(onClose).not.toHaveBeenCalled()
     })
 
-    it('an identity that needs action keeps its own fix and is not checked', () => {
+    it('a known new-flow identity cannot reuse a previous legacy drawer check', async () => {
+        identity('verified')
+        mockFind.mockResolvedValue(false)
+        const onClose = jest.fn()
+        const view = render(<KycStatusDrawer isOpen onClose={onClose} />)
+        await screen.findByTestId('status-completed')
+        mockOneShot = true
+        identity('failed')
+        view.rerender(<KycStatusDrawer isOpen onClose={onClose} />)
+        expect(screen.queryByTestId('status-failed')).toBeNull()
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
+    })
+
+    it('an action-required legacy identity keeps its own fix after the timeline check', async () => {
         identity('action_required')
+        mockFind.mockResolvedValue(false)
         open()
-        expect(mockFind).not.toHaveBeenCalled()
-        expect(screen.getByRole('button', { name: /re-submit verification/i })).toBeInTheDocument()
+        await waitFor(() => expect(mockFind).toHaveBeenCalled())
+        expect(await screen.findByRole('button', { name: /re-submit verification/i })).toBeInTheDocument()
     })
 })

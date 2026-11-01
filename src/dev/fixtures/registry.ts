@@ -57,7 +57,27 @@ const KYC_FEATURE_ACTIVATION_FIXTURES: Record<string, Fixture> = Object.fromEntr
                     balance: '20',
                     responses: {
                         ...PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-verified'].responses,
-                        'GET /users/me': { identityVerification: { status: 'verified', oneShot: true } },
+                        'GET /users/me': {
+                            identityVerification: { status: 'verified', oneShot: true },
+                            ...(feature === 'card'
+                                ? {}
+                                : {
+                                      capabilities: {
+                                          features: {
+                                              [feature]: {
+                                                  state: 'ready',
+                                                  action: 'activate',
+                                                  accounts: {
+                                                      [feature === 'bank' ? 'EUR' : 'ARS']: {
+                                                          state: 'ready',
+                                                          action: 'activate',
+                                                      },
+                                                  },
+                                              },
+                                          },
+                                      },
+                                  }),
+                        },
                         ...(feature === 'card'
                             ? {
                                   'GET /rain/cards': {
@@ -112,6 +132,14 @@ const KYC_FEATURE_ACTIVATION_FIXTURES: Record<string, Fixture> = Object.fromEntr
         })
     )
 )
+
+for (const feature of ['bank', 'local']) {
+    const fixture = KYC_FEATURE_ACTIVATION_FIXTURES[`feature-activation-${feature}-ready`]
+    KYC_FEATURE_ACTIVATION_FIXTURES[`feature-activation-${feature}-consent`] = {
+        ...fixture,
+        about: `First use ${feature}: explicit consent before activation, without any tap.`,
+    }
+}
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.

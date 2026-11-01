@@ -204,10 +204,7 @@ export async function resumeKycDocumentAttempt(attemptId: string) {
                 throw error
             }
         }
-        if (
-            response.status === 404 &&
-            (body?.code === 'route_not_found' || !(typeof body?.error === 'string' || typeof body?.code === 'string'))
-        )
+        if (response.status === 404 && body?.code === 'route_not_found')
             throw contractError('/users/kyc/attempts/{attemptId}/token', 'POST', response.status, 'route_not_found')
         // A crash can leave the saved replacement before its remote reset. Only that explicit response resumes the authorised reset ledger.
         // Conflicts carry a stable `code`; older bodies name it only in `error`.
@@ -217,6 +214,7 @@ export async function resumeKycDocumentAttempt(attemptId: string) {
             )
         throw Object.assign(new Error('KYC request failed'), {
             code: body?.code ?? body?.error,
+            status: response.status,
             userMessage: typeof body?.userMessage === 'string' ? body.userMessage : undefined,
         })
     } catch (error) {

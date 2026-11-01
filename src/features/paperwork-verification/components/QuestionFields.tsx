@@ -21,13 +21,15 @@ import type {
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { countryForPhone } from '../callingCodes'
+import { useOptionLabel } from '../useOptionLabel'
 import { fieldErrorKey, formatTaxId, jobModeOf, looksLikeItin, maskedUntouched } from '../paperworkVerification.utils'
 import { AnswerPicker } from './AnswerPicker'
 import { PlacePicker } from './PlaceField'
 
 const SENTENCE_KINDS = new Set(['choice', 'occupation', 'country', 'place'])
 // A conditional field belongs with the form control it depends on, not in the heading sentences.
-export const isSentenceField = (field: PaperworkVerificationField) => SENTENCE_KINDS.has(field.kind) && !field.locked
+export const isSentenceField = (field: PaperworkVerificationField) =>
+    field.key !== 'state' && SENTENCE_KINDS.has(field.kind) && !field.locked
 
 const ADDRESS_AUTOCOMPLETE: Record<string, string> = {
     street: 'address-line1',
@@ -219,7 +221,34 @@ function TypedFields({
     phonePartner: 'card' | 'local'
 }) {
     const t = useTranslations('kyc.paperworkVerification')
+    const optionLabel = useOptionLabel()
     const byKey = useMemo(() => new Map(fields.map((f) => [f.key, f])), [fields])
+    const select = (field: PaperworkVerificationField) => {
+        const inputId = `${idPrefix}-${field.key}`
+        const error = errorText(field.key)
+        return (
+            <select
+                id={inputId}
+                name={field.key}
+                className="input h-12 w-full px-4"
+                value={values[field.key] ?? ''}
+                onChange={(event) => onChange(field.key, event.target.value)}
+                onBlur={() => onFieldBlur?.(field.key)}
+                required={field.required}
+                disabled={field.locked}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? `${inputId}-error` : undefined}
+                data-testid={`verify-input-${field.key}`}
+            >
+                <option value="">{t('choose')}</option>
+                {(field.options ?? []).map((option) => (
+                    <option key={option} value={option}>
+                        {optionLabel(field.key, option)}
+                    </option>
+                ))}
+            </select>
+        )
+    }
     const input = (field: PaperworkVerificationField, extra?: Partial<React.ComponentProps<typeof BaseInput>>) => {
         const inputId = `${idPrefix}-${field.key}`
         const error = errorText(field.key)
@@ -289,7 +318,11 @@ function TypedFields({
                     </div>
                     {fieldFor(byKey.get('town'), (f) => input(f, { autoComplete: ADDRESS_AUTOCOMPLETE.town }))}
                     <div className="grid grid-cols-2 gap-3">
-                        {fieldFor(byKey.get('state'), (f) => input(f, { autoComplete: ADDRESS_AUTOCOMPLETE.state }))}
+                        {fieldFor(byKey.get('state'), (f) =>
+                            f.kind === 'select' || f.kind === 'choice'
+                                ? select(f)
+                                : input(f, { autoComplete: ADDRESS_AUTOCOMPLETE.state })
+                        )}
                         {fieldFor(byKey.get('postCode'), (f) =>
                             input(f, { autoComplete: ADDRESS_AUTOCOMPLETE.postCode, autoCapitalize: 'characters' })
                         )}
@@ -415,6 +448,8 @@ function TypedFields({
                             ) : null
                         )}
                     </div>
+                ) : group.kind === 'select' ? (
+                    fieldFor(group, select)
                 ) : group.kind === 'country' ? (
                     fieldFor(group, (f) => (
                         <AnswerPicker

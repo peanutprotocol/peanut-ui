@@ -64,24 +64,31 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
     const router = useRouter()
     const handoffRef = useRef({ onClose, router })
     handoffRef.current = { onClose, router }
-    const checksTimeline = isOpen && !!user?.user?.userId && (status === 'processing' || status === 'verified')
+    const checksTimeline = isOpen && !!user?.user?.userId && status !== 'not_started'
     const [timelineChecked, setTimelineChecked] = useState(false)
     useEffect(() => {
         if (!checksTimeline) {
             setTimelineChecked(false)
             return
         }
-        let cancelled = false
-        void isPaperworkVerificationIdentity().then((onTimeline) => {
-            if (cancelled) return
-            if (!onTimeline) return setTimelineChecked(true)
+        if (user?.identityVerification?.oneShot) {
             handoffRef.current.onClose()
             handoffRef.current.router.push('/verify')
-        })
+            return
+        }
+        let cancelled = false
+        void isPaperworkVerificationIdentity()
+            .catch(() => false)
+            .then((onTimeline) => {
+                if (cancelled) return
+                if (!onTimeline) return setTimelineChecked(true)
+                handoffRef.current.onClose()
+                handoffRef.current.router.push('/verify')
+            })
         return () => {
             cancelled = true
         }
-    }, [checksTimeline])
+    }, [checksTimeline, user?.user?.userId, user?.identityVerification?.oneShot, status])
 
     // close drawer but keep mounted so SumsubKycModals persists, then start kyc
     const resumeKyc = useCallback(async () => {
@@ -157,13 +164,16 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
     }
 
     // don't render the drawer if identity verification hasn't started.
-    if (status === 'not_started') {
+    if (status === 'not_started' || user?.identityVerification?.oneShot) {
         return null
     }
 
     return (
         <>
-            <Drawer open={isOpen && (!checksTimeline || timelineChecked)} onOpenChange={onClose}>
+            <Drawer
+                open={isOpen && !user?.identityVerification?.oneShot && (!checksTimeline || timelineChecked)}
+                onOpenChange={onClose}
+            >
                 <DrawerContent accessibleTitle={t('statusDrawerTitle')} className="pt-4" scrollAreaClassName="pb-12">
                     {renderContent()}
                     {sumsubFlow.error && (

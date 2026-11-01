@@ -280,3 +280,25 @@ describe('startKycDocumentReplacement', () => {
         })
     })
 })
+
+describe('attempt token domain 404', () => {
+    it.each([null, {}])('keeps an empty %p domain response out of contract telemetry', async (body) => {
+        mockFetch.mockResolvedValue({ ok: false, status: 404, json: async () => body } as Response)
+        await expect(resumeKycDocumentAttempt('attempt-1')).rejects.toMatchObject({ status: 404 })
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+    it('keeps an empty HTTP body out of contract telemetry', async () => {
+        mockFetch.mockResolvedValue(notJson(404))
+        await expect(resumeKycDocumentAttempt('attempt-1')).rejects.toMatchObject({ status: 404 })
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+    it('reports an explicit missing route', async () => {
+        mockFetch.mockResolvedValue({
+            ok: false,
+            status: 404,
+            json: async () => ({ code: 'route_not_found' }),
+        } as Response)
+        await expect(resumeKycDocumentAttempt('attempt-1')).rejects.toMatchObject({ code: 'api_contract_error' })
+        expect(Sentry.captureMessage).toHaveBeenCalled()
+    })
+})

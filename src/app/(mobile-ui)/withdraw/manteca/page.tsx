@@ -29,7 +29,10 @@ export default function MantecaWithdrawFlow() {
         return <MantecaTransfersMaintenanceView action="withdrawals" />
     }
     return (
-        <KycFeatureActivationGate feature="local">
+        <KycFeatureActivationGate
+            feature="local"
+            scope={{ channel: 'bank', country: countryData.find((c) => c.path === searchParams.get('country'))?.id }}
+        >
             <MantecaBankWithdrawFlow searchParams={searchParams} />
         </KycFeatureActivationGate>
     )

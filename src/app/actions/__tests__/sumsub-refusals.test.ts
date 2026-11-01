@@ -19,6 +19,10 @@ import {
     isTerminalActionCode,
     restartIdentityVerification,
     startResidenceChangeVerification,
+    startHostedVerification,
+    refreshKycState,
+    refreshVerificationSession,
+    getVerificationSession,
 } from '@/app/actions/sumsub'
 import { serverFetch } from '@/utils/api-fetch'
 
@@ -142,7 +146,7 @@ describe('restartIdentityVerification — wire shape', () => {
             '/users/identity/restart',
             expect.objectContaining({
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact' },
+                headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact', 'x-kyc-client': '2' },
                 body: JSON.stringify({ regionIntent: 'LATAM' }),
             })
         )
@@ -240,7 +244,7 @@ describe('startResidenceChangeVerification — wire shape', () => {
 
         expect(mockFetch).toHaveBeenCalledWith('/users/residence-change/start', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-kyc-client': '2' },
             body: JSON.stringify({ targetCountry: 'PT' }),
         })
         expect(result.data?.targetCountry).toBe('PT')
@@ -405,4 +409,32 @@ describe('workflow feature-selection conflict', () => {
             error: 'Choose the features to set up.',
         })
     })
+})
+
+describe('KYC client version on every request', () => {
+    it.each([
+        ['restart', () => restartIdentityVerification()],
+        ['resubmit', () => initiateSelfHealResubmission('BRIDGE')],
+        ['residence change', () => startResidenceChangeVerification('PT')],
+        ['hosted action', () => startHostedVerification()],
+        ['Sumsub action', () => startKycAction('supplement:bridge')],
+        ['state refresh', () => refreshKycState()],
+        ['session token', () => refreshVerificationSession({ id: 'session-1', generation: 1 })],
+        ['session read', () => getVerificationSession('session-1')],
+    ])('%s identifies this app as client v2', async (_name, call) => {
+        respondWith(200, { token: 'token', applicantId: 'app', targetCountry: 'PT' })
+        await call()
+        expect(mockFetch).toHaveBeenCalledTimes(1)
+        expect(mockFetch.mock.calls[0][1]?.headers).toMatchObject({ 'x-kyc-client': '2' })
+    })
+})
+
+it.each(['local', 'bank'])('preserves the server-selected %s feature on a 409', async (feature) => {
+    respondWith(409, { code: 'feature_selection_required', feature })
+    expect(await initiateSumsubKyc()).toMatchObject({ code: 'feature_selection_required', feature })
+})
+
+it.each([undefined, 'card', {}, 2])('does not trust an unknown selection feature %p', async (feature) => {
+    respondWith(409, { code: 'feature_selection_required', feature })
+    expect(await initiateSumsubKyc()).not.toHaveProperty('feature')
 })

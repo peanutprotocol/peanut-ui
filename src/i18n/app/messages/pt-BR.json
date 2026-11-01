@@ -3756,16 +3756,28 @@
                 "bank": {
                     "us_state_unsupported": "Contas bancárias não estão disponíveis para endereços em Nova York.",
                     "uk_resident_blocked": "Contas bancárias não estão disponíveis para residentes do Reino Unido.",
-                    "default": "Contas bancárias não estão disponíveis onde você mora."
+                    "default": "Contas bancárias não estão disponíveis com os seus dados atuais.",
+                    "residence": "Contas bancárias não estão disponíveis onde você mora.",
+                    "nationality": "Contas bancárias não estão disponíveis para a sua nacionalidade.",
+                    "taxId": "Contas bancárias precisam de um número de identificação fiscal válido."
                 },
                 "card": {
-                    "default": "O cartão não está disponível onde você mora."
+                    "default": "Peanut Card não está disponível com os seus dados atuais.",
+                    "residence": "Peanut Card não está disponível onde você mora.",
+                    "nationality": "Peanut Card não está disponível para a sua nacionalidade.",
+                    "taxId": "Peanut Card precisa de um número de identificação fiscal válido."
                 },
                 "local": {
-                    "default": "Transferências bancárias locais não estão disponíveis onde você mora."
+                    "default": "Transferências bancárias locais não estão disponíveis com os seus dados atuais.",
+                    "residence": "Transferências bancárias locais não estão disponíveis onde você mora.",
+                    "nationality": "Transferências bancárias locais não estão disponíveis para a sua nacionalidade.",
+                    "taxId": "Transferências bancárias locais precisam de um número de identificação fiscal válido."
                 },
                 "qr": {
-                    "default": "Pagamentos com QR não estão disponíveis onde você mora."
+                    "default": "Pagamentos com QR não estão disponíveis com os seus dados atuais.",
+                    "residence": "Pagamentos com QR não estão disponíveis onde você mora.",
+                    "nationality": "Pagamentos com QR não estão disponíveis para a sua nacionalidade.",
+                    "taxId": "Pagamentos com QR precisam de um número de identificação fiscal válido."
                 },
                 "rest": "Todo o resto que você escolheu continua disponível."
             },
@@ -3979,6 +3991,15 @@
                 "limitedTitle": "Continuar com este documento?",
                 "residenceUnlocks": "Um documento emitido por {country} não tem essa limitação.",
                 "chooseAnother": "Escolher outro documento"
+            },
+            "activation": {
+                "title": "Configure este recurso",
+                "description": "Continue para começar a configurar este recurso com nosso parceiro.",
+                "identityRequired": "Conclua a verificação da sua identidade para continuar configurando este recurso."
+            },
+            "policyHold": {
+                "description": "Este documento não pode ser usado para verificar sua identidade. Escolha outro documento.",
+                "cta": "Escolher outro documento"
             }
         }
     },

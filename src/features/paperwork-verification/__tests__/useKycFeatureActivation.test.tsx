@@ -39,6 +39,14 @@ const advance = async (ms: number) => {
     })
 }
 
+function renderActivation<T extends ReturnType<typeof useKycFeatureActivation>>(callback: () => T) {
+    const view = renderHook(callback)
+    act(() => {
+        void view.result.current.activate()
+    })
+    return view
+}
+
 beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
@@ -50,7 +58,7 @@ afterEach(() => jest.useRealTimers())
 
 it.each([false, undefined])('legacy oneShot=%s allows access without activating', async (oneShot) => {
     auth('a', oneShot)
-    const { result } = renderHook(() => useKycFeatureActivation('bank'))
+    const { result } = renderActivation(() => useKycFeatureActivation('bank'))
     expect(result.current.allowed).toBe(true)
     await flush()
     expect(activateKycFeature).not.toHaveBeenCalled()
@@ -58,7 +66,7 @@ it.each([false, undefined])('legacy oneShot=%s allows access without activating'
 
 it('blocks unauthenticated users without activating', async () => {
     auth(null)
-    const { result } = renderHook(() => useKycFeatureActivation('bank'))
+    const { result } = renderActivation(() => useKycFeatureActivation('bank'))
     expect(result.current.allowed).toBe(false)
     await flush()
     expect(activateKycFeature).not.toHaveBeenCalled()
@@ -67,7 +75,7 @@ it('blocks unauthenticated users without activating', async () => {
 it.each(['on', 'ready'])('starts blocked and allows a confirmed %s report', async (state) => {
     const request = deferred()
     jest.mocked(activateKycFeature).mockReturnValue(request.promise)
-    const { result } = renderHook(() => useKycFeatureActivation('bank'))
+    const { result } = renderActivation(() => useKycFeatureActivation('bank'))
     expect(result.current.allowed).toBe(false)
     expect(result.current.isLoading).toBe(true)
     expect(activateKycFeature).toHaveBeenCalledTimes(1)
@@ -112,7 +120,7 @@ it.each([
     ['local', 'supplement:manteca'],
 ] as const)('%s remains blocked for action_required action=%s', async (feature, action) => {
     jest.mocked(activateKycFeature).mockResolvedValue(report('action_required', action))
-    const { result } = renderHook(() => useKycFeatureActivation(feature))
+    const { result } = renderActivation(() => useKycFeatureActivation(feature))
     await flush()
     expect(result.current.allowed).toBe(false)
 })
@@ -120,7 +128,7 @@ it.each([
 it.each(['pending', 'setting_up'])('polls %s at 15 seconds and on focus without overlap', async (state) => {
     const next = deferred()
     jest.mocked(activateKycFeature).mockResolvedValueOnce(report(state)).mockReturnValueOnce(next.promise)
-    const { result } = renderHook(() => useKycFeatureActivation('local'))
+    const { result } = renderActivation(() => useKycFeatureActivation('local'))
     await flush()
     expect(result.current.allowed).toBe(false)
     await advance(14999)
@@ -150,7 +158,7 @@ it('failure stops polling and focus retries until an explicit retry', async () =
     jest.mocked(activateKycFeature)
         .mockResolvedValueOnce(report('pending'))
         .mockResolvedValueOnce({ kind: 'failed' } as Reply)
-    const { result } = renderHook(() => useKycFeatureActivation('qr'))
+    const { result } = renderActivation(() => useKycFeatureActivation('qr'))
     await flush()
     await advance(15000)
     expect(result.current.allowed).toBe(false)
@@ -170,27 +178,30 @@ it('failure stops polling and focus retries until an explicit retry', async () =
 
 it('questions_missing navigates to the matching verification feature', async () => {
     jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'questions_missing' } as Reply)
-    const { result } = renderHook(() => useKycFeatureActivation('local'))
+    const { result } = renderActivation(() => useKycFeatureActivation('local'))
     await flush()
     expect(result.current.allowed).toBe(false)
     expect(mockPush).toHaveBeenCalledWith('/verify?feature=local')
 })
 
-it('other conflicts remain blocked without navigation', async () => {
+it('identity conflicts remain blocked and navigate to verification', async () => {
     jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'identity_not_approved' } as Reply)
-    const { result } = renderHook(() => useKycFeatureActivation('bank'))
+    const { result } = renderActivation(() => useKycFeatureActivation('bank'))
     await flush()
     expect(result.current.allowed).toBe(false)
-    expect(mockPush).not.toHaveBeenCalled()
+    expect(mockPush).toHaveBeenCalledWith('/verify')
 })
 
 it('identity change ignores a prior user response', async () => {
     const old = deferred()
     const current = deferred()
     jest.mocked(activateKycFeature).mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise)
-    const { result, rerender } = renderHook(() => useKycFeatureActivation('bank'))
+    const { result, rerender } = renderActivation(() => useKycFeatureActivation('bank'))
     auth('b', true)
     rerender()
+    act(() => {
+        void result.current.activate()
+    })
     await flush()
     expect(activateKycFeature).toHaveBeenCalledTimes(2)
     await act(async () => {
@@ -206,7 +217,7 @@ it('identity change ignores a prior user response', async () => {
 
 it('a background auth refresh preserves confirmed access and avoids duplicate activation', async () => {
     jest.mocked(activateKycFeature).mockResolvedValue(report('on'))
-    const { result, rerender } = renderHook(() => useKycFeatureActivation('bank'))
+    const { result, rerender } = renderActivation(() => useKycFeatureActivation('bank'))
     await flush()
     auth('a', true, true)
     rerender()
@@ -218,7 +229,7 @@ it('a background auth refresh preserves confirmed access and avoids duplicate ac
 it('unmount ignores late conflict navigation and leaves no polling', async () => {
     const request = deferred()
     jest.mocked(activateKycFeature).mockReturnValue(request.promise)
-    const { unmount } = renderHook(() => useKycFeatureActivation('bank'))
+    const { unmount } = renderActivation(() => useKycFeatureActivation('bank'))
     unmount()
     await act(async () => {
         request.resolve({ kind: 'conflict', code: 'questions_missing' } as Reply)

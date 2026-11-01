@@ -1617,16 +1617,16 @@
             },
             "closed": {
                 "bank": {
-                    "default": "Las cuentas bancarias no están disponibles donde vivís."
+                    "residence": "Las cuentas bancarias no están disponibles donde vivís."
                 },
                 "card": {
-                    "default": "La tarjeta no está disponible donde vivís."
+                    "residence": "Peanut Card no está disponible donde vivís."
                 },
                 "local": {
-                    "default": "Las transferencias bancarias locales no están disponibles donde vivís."
+                    "residence": "Las transferencias bancarias locales no están disponibles donde vivís."
                 },
                 "qr": {
-                    "default": "Los pagos con QR no están disponibles donde vivís."
+                    "residence": "Los pagos con QR no están disponibles donde vivís."
                 }
             },
             "labels": {
@@ -1691,6 +1691,14 @@
                 "issuedByWithProof": "Emitido en {country}. También vas a agregar un comprobante de domicilio.",
                 "otherDescription": "También podés verificarte con uno de estos. Le vas a sacar fotos y te vas a sacar una selfie.",
                 "noneFit": "¿No tenés ninguno de estos?"
+            },
+            "activation": {
+                "title": "Configurá esta función",
+                "description": "Continuá para empezar a configurar esta función con nuestro socio.",
+                "identityRequired": "Completá la verificación de tu identidad para seguir configurando esta función."
+            },
+            "policyHold": {
+                "description": "Este documento no se puede usar para verificar tu identidad. Elegí otro documento."
             }
         },
         "setup": {

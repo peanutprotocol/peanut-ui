@@ -10,6 +10,7 @@ import {
     type KycActivationFeature,
     type KycFeatureActivationResult,
 } from '@/app/actions/kyc-feature-activation'
+import { reportEntry, type ReportScope } from '@/features/kyc-features/report'
 import { paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
 
 export const KYC_ACTIVATION_POLL_MS = 15_000
@@ -23,7 +24,10 @@ function canContinue(feature: KycActivationFeature, result: KycFeatureActivation
     )
 }
 
-export function useKycFeatureActivation(feature: KycActivationFeature, { automatic = true } = {}) {
+export function useKycFeatureActivation(
+    feature: KycActivationFeature,
+    { scope: reportScope, enabled = true }: { automatic?: boolean; scope?: ReportScope; enabled?: boolean } = {}
+) {
     const { user, fetchUser } = useAuth()
     const fetchUserRef = useRef(fetchUser)
     fetchUserRef.current = fetchUser
@@ -32,7 +36,26 @@ export function useKycFeatureActivation(feature: KycActivationFeature, { automat
     routerRef.current = router
     const userId = user?.user?.userId
     const oneShot = user?.identityVerification?.oneShot === true
-    const scopeKey = `${userId ?? ''}:${oneShot}:${feature}`
+    const identityStatus = user?.identityVerification?.status
+    const features = user?.capabilities?.features
+    const existing = features
+        ? reportScope
+            ? reportEntry(features, 'deposit', reportScope, user?.capabilities?.rails)
+            : features[feature]
+        : undefined
+    const alreadyOn = existing?.state === 'on'
+    const consentKey = JSON.stringify([
+        userId,
+        oneShot,
+        feature,
+        reportScope?.channel,
+        reportScope?.country,
+        reportScope?.method,
+        reportScope?.railId,
+    ])
+    const recovery = useRef({ key: consentKey, waiting: false })
+    if (recovery.current.key !== consentKey) recovery.current = { key: consentKey, waiting: false }
+    const scopeKey = `${consentKey}:${identityStatus ?? ''}:${enabled}`
     const generation = useRef({ key: scopeKey, value: 0 })
     if (generation.current.key !== scopeKey) generation.current = { key: scopeKey, value: generation.current.value + 1 }
     const scope = `${scopeKey}:${generation.current.value}`
@@ -43,7 +66,7 @@ export function useKycFeatureActivation(feature: KycActivationFeature, { automat
     const [saved, setSaved] = useState<{ scope: string; result: KycFeatureActivationResult } | null>(null)
     const [loadingScope, setLoadingScope] = useState<string | null>(null)
     const result = saved?.scope === scope ? saved.result : null
-    const allowed = !!userId && (!oneShot || canContinue(feature, result))
+    const allowed = !!userId && (!oneShot || alreadyOn || canContinue(feature, result))
 
     useEffect(() => {
         mounted.current = true
@@ -54,8 +77,8 @@ export function useKycFeatureActivation(feature: KycActivationFeature, { automat
     }, [])
 
     const activate = useCallback((): Promise<boolean> => {
-        if (!mounted.current || currentScope.current !== scope || !userId) return Promise.resolve(false)
-        if (!oneShot) return Promise.resolve(true)
+        if (!mounted.current || currentScope.current !== scope || !userId || !enabled) return Promise.resolve(false)
+        if (!oneShot || alreadyOn) return Promise.resolve(true)
         if (inFlight.current?.scope === scope) return inFlight.current.promise
         setLoadingScope(scope)
         const token = {}
@@ -81,6 +104,12 @@ export function useKycFeatureActivation(feature: KycActivationFeature, { automat
                     return false
             }
             setSaved({ scope, result: next })
+            if (next.kind === 'conflict' && next.code === 'identity_not_approved') {
+                recovery.current.waiting = true
+                routerRef.current.push('/verify')
+            } else {
+                recovery.current.waiting = false
+            }
             if (next.kind === 'conflict' && next.code === 'questions_missing' && feature !== 'qr') {
                 routerRef.current.push(paperworkVerificationFeaturePath(feature))
             }
@@ -93,15 +122,18 @@ export function useKycFeatureActivation(feature: KycActivationFeature, { automat
         })
         inFlight.current = { scope, token, promise }
         return promise
-    }, [scope, userId, oneShot, feature])
+    }, [scope, userId, oneShot, feature, alreadyOn, enabled])
 
     useEffect(() => {
-        if (automatic && userId && oneShot) void activate()
-    }, [automatic, userId, oneShot, activate])
+        if (enabled && identityStatus === 'verified' && recovery.current.waiting) {
+            recovery.current.waiting = false
+            void activate()
+        }
+    }, [enabled, identityStatus, activate])
 
     const waiting = result?.kind === 'report' && ['setting_up', 'pending'].includes(result.report.state)
     useEffect(() => {
-        if (!waiting) return
+        if (!waiting || alreadyOn || !enabled) return
         const poll = () => void activate()
         const timer = setInterval(poll, KYC_ACTIVATION_POLL_MS)
         window.addEventListener('focus', poll)
@@ -109,7 +141,7 @@ export function useKycFeatureActivation(feature: KycActivationFeature, { automat
             clearInterval(timer)
             window.removeEventListener('focus', poll)
         }
-    }, [waiting, activate])
+    }, [waiting, alreadyOn, enabled, activate])
 
     return { allowed, result, isLoading: loadingScope === scope, activate }
 }

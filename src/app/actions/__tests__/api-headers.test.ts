@@ -115,6 +115,11 @@ describe('action functions Content-Type headers', () => {
         expect(getLastCallHeaders()['Authorization']).toBe('Bearer test-token')
     })
 
+    it.each(['getBridgeTosLink', 'confirmBridgeTos'])('marks %s as KYC client v2', async (action) => {
+        await require('@/app/actions/users')[action]()
+        expect(getLastCallHeaders()['x-kyc-client']).toBe('2')
+    })
+
     it('should include Content-Type in updateUserById', async () => {
         const { updateUserById } = require('@/app/actions/users')
         await updateUserById({ name: 'Test' })
@@ -133,12 +138,8 @@ describe('action functions Content-Type headers', () => {
         expect(getLastCallHeaders()['x-step-up-token']).toBe('fresh-proof')
     })
 
-    it('should include Content-Type in getKycDetails', async () => {
-        const { getKycDetails } = require('@/app/actions/users')
-        await getKycDetails({ endorsements: ['base'] })
-
-        const headers = getLastCallHeaders()
-        expect(headers['Content-Type']).toBe('application/json')
+    it('does not expose the removed legacy initiate-kyc action', () => {
+        expect(require('@/app/actions/users').getKycDetails).toBeUndefined()
     })
 
     it('should include Content-Type in addBankAccount', async () => {

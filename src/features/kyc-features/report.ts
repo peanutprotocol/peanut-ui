@@ -61,9 +61,15 @@ export interface ReportScope {
     railId?: string
 }
 
-/** One bank account's entry; the feature's own when the report has no entry for that currency. */
+/** Unmapped currencies cannot inherit access from the overall feature. */
 export function accountEntry(report: FeatureReport, feature: 'bank' | 'local', currency: string): FeatureReportEntry {
-    return report[feature].accounts[currency] ?? report[feature]
+    const known = Object.values(METHOD_ACCOUNTS).some(
+        (account) => account.feature === feature && account.currency === currency
+    )
+    return (
+        report[feature].accounts[currency] ??
+        (known ? report[feature] : { state: 'action_required', action: VERIFY_ACTION })
+    )
 }
 
 /**
@@ -97,6 +103,7 @@ export function reportEntry(
             : undefined) ??
         (country ? COUNTRY_ACCOUNTS[country] : undefined)
     if (account) return accountEntry(report, account.feature as 'bank' | 'local', account.currency)
+    if (scope.railId || scope.method || scope.country) return { state: 'action_required', action: VERIFY_ACTION }
     if (provider === 'manteca') return report.local
     if (provider === 'bridge') return report.bank
     if (op === 'pay' && !scope.channel) return report.qr

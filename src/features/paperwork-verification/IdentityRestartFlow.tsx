@@ -17,6 +17,7 @@ import {
 import type { KycAttemptSession, KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import type { PaperworkVerificationDocument } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
+import { getKycDetails } from '@/app/actions/kyc-paperwork-verification'
 import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
 import { DOCUMENT_KEYS } from './paperworkVerification.utils'
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
@@ -47,7 +48,7 @@ type Failure = Extract<KycReplacementResult, { kind: 'failed' }>
 export function IdentityRestartFlow({ onExit }: { onExit: () => void }) {
     const router = useRouter()
     const [state, setState] = useState<
-        { kind: 'loading' } | { kind: 'failed' } | { kind: 'ready'; plan: KycDocumentPlan }
+        { kind: 'loading' } | { kind: 'failed' } | { kind: 'ready'; plan: KycDocumentPlan; nationality: string | null }
     >({ kind: 'loading' })
     // A load must not re-run because the router object changed identity.
     const routerRef = useRef(router)
@@ -56,13 +57,13 @@ export function IdentityRestartFlow({ onExit }: { onExit: () => void }) {
     const load = useCallback(async () => {
         setState({ kind: 'loading' })
         try {
-            const plan = await getKycReplacementPlan()
+            const [plan, details] = await Promise.all([getKycReplacementPlan(), getKycDetails()])
             // Every other identity restarts through today's flow, which starts from Home.
             if (!plan) {
                 routerRef.current.replace('/home')
                 return
             }
-            setState({ kind: 'ready', plan })
+            setState({ kind: 'ready', plan, nationality: details.nationality })
         } catch {
             trackPaperworkVerification(
                 { flow: 'paperwork_verification', residence: null, restart: true },
@@ -78,10 +79,18 @@ export function IdentityRestartFlow({ onExit }: { onExit: () => void }) {
 
     if (state.kind === 'loading') return <VerifyLoading onBack={onExit} />
     if (state.kind === 'failed') return <LoadFailed onRetry={() => void load()} onHome={() => router.push('/home')} />
-    return <RestartSteps plan={state.plan} onExit={onExit} />
+    return <RestartSteps plan={state.plan} nationality={state.nationality} onExit={onExit} />
 }
 
-function RestartSteps({ plan, onExit }: { plan: KycDocumentPlan; onExit: () => void }) {
+function RestartSteps({
+    plan,
+    nationality,
+    onExit,
+}: {
+    plan: KycDocumentPlan
+    nationality: string | null
+    onExit: () => void
+}) {
     const t = useTranslations('kyc')
     const tCooldown = useTranslations('profile.unlockPayments.cooldown')
     const locale = useLocale()
@@ -204,6 +213,7 @@ function RestartSteps({ plan, onExit }: { plan: KycDocumentPlan; onExit: () => v
                 <IdentityDocumentScreen
                     plan={plan}
                     residence={residence}
+                    nationality={nationality}
                     restart
                     busy={busy}
                     error={error}
@@ -226,8 +236,10 @@ function RestartSteps({ plan, onExit }: { plan: KycDocumentPlan; onExit: () => v
                     track(ANALYTICS_EVENTS.KYC_PV_IDENTITY_SUBMITTED)
                     closeSession()
                     setSubmitted(true)
-                    void stepper.goTo('review')
-                    void refreshKycIdentityStatus().then(() => fetchUser())
+                    router.replace('/verify?step=review')
+                    void refreshKycIdentityStatus()
+                        .then(() => fetchUser())
+                        .catch(() => {})
                 }}
                 onRefreshToken={refreshToken}
             />

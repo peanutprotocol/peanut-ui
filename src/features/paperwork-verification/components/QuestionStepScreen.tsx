@@ -228,7 +228,13 @@ export function QuestionStepScreen({
         tax && (taxVerdict === 'invalid' || (taxVerdict === 'incomplete' && blurred.has(tax.key)))
             ? { [tax.key]: 'invalid_tax_id' }
             : {}
-    const errors = { ...shownTaxError, ...form.errors }
+    const state = fields.find((field) => field.key === 'state' && (field.kind === 'select' || field.kind === 'choice'))
+    const stateValue = state ? (form.values[state.key]?.trim() ?? '') : ''
+    const shownStateError =
+        state && (state.required || stateValue) && !state.options?.includes(stateValue)
+            ? { [state.key]: stateValue ? 'invalid_option' : 'required' }
+            : {}
+    const errors = { ...shownTaxError, ...shownStateError, ...form.errors }
 
     useEffect(() => {
         trackPaperworkVerification(tracking, ANALYTICS_EVENTS.KYC_PV_STEP_VIEWED, {

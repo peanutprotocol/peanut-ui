@@ -27,37 +27,50 @@ export function KycFeatureActivationStatus({
     if (report?.state === 'action_required' && report.action?.startsWith('supplement:')) {
         return <FeatureAction action={report.action} onBack={onBack} onDone={onRetry} />
     }
+    const identityRequired = result?.kind === 'conflict' && result.code === 'identity_not_approved'
+    const consent = !result || identityRequired
     const failed = result?.kind === 'failed'
-    const refused = report?.state === 'refused' || report?.state === 'not_requested' || result?.kind === 'conflict'
-    if (!failed && !refused && feature !== 'qr') return <FeatureReadyScreen feature={feature} onDone={onBack} />
+    const refused =
+        report?.state === 'refused' ||
+        report?.state === 'not_requested' ||
+        (result?.kind === 'conflict' && !identityRequired)
+    if (!consent && !failed && !refused && feature !== 'qr')
+        return <FeatureReadyScreen feature={feature} onDone={onBack} />
     return (
         <VerifyHeroLayout
             pose={failed || refused ? 'sad' : 'thinking'}
             onBack={onBack}
             title={
-                failed
-                    ? t('loadFailed.title')
-                    : refused && feature !== 'qr'
-                      ? t(`addLater.title.${feature}`)
-                      : tKyc('processingTitle')
+                consent
+                    ? t('activation.title')
+                    : failed
+                      ? t('loadFailed.title')
+                      : refused && feature !== 'qr'
+                        ? t(`addLater.title.${feature}`)
+                        : tKyc('processingTitle')
             }
             description={
-                failed
-                    ? t('loadFailed.description')
-                    : refused
-                      ? tKyc(kycFeatureRefusalCopy(report?.reason), { feature: tKyc(`documents.${feature}` as never) })
-                      : tKyc('processingDescription')
+                consent
+                    ? t(identityRequired ? 'activation.identityRequired' : 'activation.description')
+                    : failed
+                      ? t('loadFailed.description')
+                      : refused
+                        ? tKyc(kycFeatureRefusalCopy(report?.reason), {
+                              feature: tKyc(`documents.${feature}` as never),
+                          })
+                        : tKyc('processingDescription')
             }
             footer={
                 <VerifyFooter
                     actions={
                         <Button
+                            data-testid={consent ? 'kyc-activation-continue' : undefined}
                             className="w-full"
                             loading={isLoading}
                             disabled={isLoading}
-                            onClick={failed ? onRetry : onBack}
+                            onClick={failed || consent ? onRetry : onBack}
                         >
-                            {failed ? t('loadFailed.retry') : t('addLater.doneCta')}
+                            {consent ? t('continue') : failed ? t('loadFailed.retry') : t('addLater.doneCta')}
                         </Button>
                     }
                 />

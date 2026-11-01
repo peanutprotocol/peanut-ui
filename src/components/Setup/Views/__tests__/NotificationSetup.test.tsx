@@ -548,3 +548,15 @@ describe('control: the single push switch', () => {
         expect(mockSave).toHaveBeenLastCalledWith({ push: false })
     })
 })
+
+it('Not now continues after an unavailable preferences API without claiming a saved preference', async () => {
+    mockSave.mockRejectedValueOnce(new Error('offline'))
+    renderStep(<NotificationsStep />)
+    fireEvent.click(notNow())
+    fireEvent.click(notNow())
+    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+    expect(mockPermission).not.toHaveBeenCalled()
+    expect(mockSave).toHaveBeenCalledTimes(1)
+    expect(mockCapture).not.toHaveBeenCalledWith('notification_choices_saved', expect.anything())
+    expect(screen.queryByText('We couldn’t save your settings. Please try again.')).not.toBeInTheDocument()
+})

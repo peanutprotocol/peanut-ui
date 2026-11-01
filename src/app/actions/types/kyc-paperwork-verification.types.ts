@@ -10,6 +10,7 @@ export type PaperworkVerificationStepId =
 export type PaperworkVerificationFeature = 'bank' | 'card' | 'local'
 export type PaperworkVerificationFieldKind =
     | 'choice'
+    | 'select'
     | 'occupation'
     | 'country'
     | 'place'

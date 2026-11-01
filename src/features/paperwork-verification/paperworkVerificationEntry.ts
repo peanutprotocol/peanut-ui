@@ -7,9 +7,6 @@ import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import type { FeatureReport } from '@/types/capabilities'
 import { APPROVED_STATUSES } from './paperworkVerification.utils'
 
-// A FAILED check decided nothing, so /verify offers the retry; a rejection is fixed in today's flow.
-const NEEDS_TODAYS_FIX = new Set(['REJECTED'])
-
 export const paperworkVerificationFeaturePath = (feature: PaperworkVerificationFeature) =>
     `/verify?${new URLSearchParams({ feature })}`
 export const paperworkVerificationDocumentPath = () => `/verify?${new URLSearchParams({ step: 'id' })}`
@@ -41,8 +38,7 @@ export function entryFeature({
  * Where a Verify tap goes for a Smart Paperwork Verification user: /verify before approval,
  * the add-later screen for a feature the API's report says is not opened yet or
  * refused (it asks what the feature still misses, or explains the refusal), or
- * null for today's flow (the server keeps the user on it, a rejection to fix,
- * or a feature already underway).
+ * null for today's flow or a feature already underway.
  */
 export async function paperworkVerificationRoute(
     plan: KycDocumentPlan | null,
@@ -51,7 +47,6 @@ export async function paperworkVerificationRoute(
 ): Promise<string | null> {
     if (plan?.flow !== PAPERWORK_VERIFICATION_FLOW) return null
     const status = await getKycDocumentStatus().catch(() => undefined)
-    if (status && NEEDS_TODAYS_FIX.has(status)) return null
     if (!status || !APPROVED_STATUSES.has(status)) return '/verify'
     if (!feature) return null
     const state = report?.[feature].state

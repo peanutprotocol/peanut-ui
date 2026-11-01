@@ -213,10 +213,21 @@ export function SavedScreen({
     onContinue: () => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
-    const line = ({ feature, reason }: PaperworkVerificationClosedFeature) =>
-        t.has(`closed.${feature}.${reason}` as never)
-            ? t(`closed.${feature}.${reason}` as never)
-            : t(`closed.${feature}.default` as never)
+    const line = ({ feature, reason }: PaperworkVerificationClosedFeature) => {
+        if (t.has(`closed.${feature}.${reason}` as never)) return t(`closed.${feature}.${reason}` as never)
+        const tokens = reason.split(/[._-]/)
+        const category =
+            tokens.includes('nationality') || reason === 'us_citizen_not_supported'
+                ? 'nationality'
+                : /(^|[._-])tax[._-](id|identification_number)([._-]|$)/.test(reason)
+                  ? 'taxId'
+                  : reason.startsWith('residence_') ||
+                      reason === 'country_not_supported' ||
+                      reason === 'us_state_unsupported'
+                    ? 'residence'
+                    : 'default'
+        return t(`closed.${feature}.${category}` as never)
+    }
     return (
         <VerifyCelebrationLayout
             pose="pointing"
@@ -245,23 +256,30 @@ export function ReviewScreen({
     onRetry,
     busy = false,
     error,
+    policyHold = false,
 }: {
     onHome: () => void
     onRetry?: () => void
     busy?: boolean
     error?: string | null
+    policyHold?: boolean
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     return (
         <VerifyCelebrationLayout
             pose="sad"
             title={t('failed.title')}
-            description={t('failed.description')}
+            description={t(policyHold ? 'policyHold.description' : 'failed.description')}
             footer={
                 <VerifyFooter
                     actions={
                         onRetry
-                            ? primary(t('failed.retry'), onRetry, 'verify-review-retry', busy)
+                            ? primary(
+                                  t(policyHold ? 'policyHold.cta' : 'failed.retry'),
+                                  onRetry,
+                                  'verify-review-retry',
+                                  busy
+                              )
                             : primary(t('failed.cta'), onHome, 'verify-review-home', false, 'secondary')
                     }
                     secondary={onRetry ? primary(t('failed.cta'), onHome, 'verify-review-home') : undefined}
