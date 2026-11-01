@@ -6,10 +6,10 @@
 import { demoRespond } from '@/utils/demo-api'
 import { DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import { type ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
+import { type ResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
 let mockDemoSets: ResidenceRestrictionSets | undefined
-jest.mock('@/hooks/useResidenceRestrictionSets', () => {
-    const actual = jest.requireActual('@/hooks/useResidenceRestrictionSets')
+jest.mock('@/utils/residence-restriction-sets', () => {
+    const actual = jest.requireActual('@/utils/residence-restriction-sets')
     return { ...actual, getResidenceRestrictionSets: () => mockDemoSets ?? actual.LOCAL_RESIDENCE_RESTRICTION_SETS }
 })
 import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
@@ -491,7 +491,7 @@ describe('demoRespond — notification preferences', () => {
 })
 
 it('demo uses served issuer changes rather than the bundled refusal list', async () => {
-    const { LOCAL_RESIDENCE_RESTRICTION_SETS } = jest.requireActual('@/hooks/useResidenceRestrictionSets')
+    const { LOCAL_RESIDENCE_RESTRICTION_SETS } = jest.requireActual('@/utils/residence-restriction-sets')
     mockDemoSets = { ...LOCAL_RESIDENCE_RESTRICTION_SETS, refusedIdIssuers: new Set(['PT']) }
     try {
         const added = await (await strict('/config/kyc-intents?residence=DE&idCountry=PT')).json()

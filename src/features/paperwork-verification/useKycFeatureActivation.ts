@@ -143,5 +143,5 @@ export function useKycFeatureActivation(
         }
     }, [waiting, alreadyOn, enabled, activate])
 
-    return { allowed, result, isLoading: loadingScope === scope, activate }
+    return { allowed, userReady: !!userId, result, isLoading: loadingScope === scope, activate }
 }

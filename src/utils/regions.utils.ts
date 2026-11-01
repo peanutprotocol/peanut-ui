@@ -4,7 +4,7 @@ import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { type RailCapability, type RailOperation } from '@/types/capabilities'
 import { BRIDGE_ALPHA3_TO_ALPHA2, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
-import { getResidenceRestrictionSets, type ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
+import { getResidenceRestrictionSets, type ResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
 import { deriveResidenceRestrictionsFrom } from '@/utils/residence-restrictions'
 import type { StaticImageData } from 'next/image'
 

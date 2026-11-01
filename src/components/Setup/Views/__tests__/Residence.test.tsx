@@ -16,6 +16,7 @@ import en from '@/i18n/app/messages/en.json'
 import ResidenceStep from '@/components/Setup/Views/Residence'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
+import { __resetSignupSavesForTests } from '@/features/setup/saveSignupAnswers'
 
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
@@ -100,6 +101,7 @@ describe('ResidenceStep', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         resetBackHandlersForTests()
+        __resetSignupSavesForTests()
         mockIsLoading = false
         mockSetupState = { residenceCountry: '', nationalityCountry: '' }
         mockGeoCountry = null

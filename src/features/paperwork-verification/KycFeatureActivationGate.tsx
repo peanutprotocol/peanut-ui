@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import type { KycActivationFeature } from '@/app/actions/kyc-feature-activation'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
+import Loading from '@/components/Global/Loading'
 import { VerificationOutage } from './components/LoadScreens'
 import type { ReportScope } from '@/features/kyc-features/report'
 import { KycFeatureActivationStatus } from './KycFeatureActivationStatus'
@@ -23,6 +24,7 @@ export function KycFeatureActivationGate({
     const onBack = useSafeBack('/home')
     if (activation.allowed) return <>{children}</>
     if (degraded) return <VerificationOutage onBack={onBack} />
+    if (!activation.userReady) return <Loading variant="mascot" />
     return (
         <KycFeatureActivationStatus
             feature={feature}
