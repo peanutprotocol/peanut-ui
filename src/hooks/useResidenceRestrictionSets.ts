@@ -1,73 +1,30 @@
-import {
-    BANKING_RESTRICTED_RESIDENCE_ISO2,
-    CARD_RESTRICTED_RESIDENCE_ISO2,
-    RESTRICTED_RESIDENCE_ISO2,
-    REFUSED_ID_ISSUER_ISO2,
-    BANKING_NEW_CUSTOMERS_ONLY_RESIDENCE_ISO2,
-} from '@/constants/residence.consts'
 import { apiFetch } from '@/utils/api-fetch'
+import {
+    LOCAL_RESIDENCE_RESTRICTION_SETS,
+    parseResidenceRestrictionSets,
+    serverResidenceRestrictionSets,
+    setServerResidenceRestrictionSets,
+    type ResidenceRestrictionSets,
+} from '@/utils/residence-restriction-sets'
 import { useEffect, useState } from 'react'
 
-export interface ResidenceRestrictionSets {
-    full: ReadonlySet<string>
-    cardOnly: ReadonlySet<string>
-    bankingOnly: ReadonlySet<string>
-    refusedIdIssuers: ReadonlySet<string>
-    bankingNewCustomersOnly: ReadonlySet<string>
-}
+export {
+    getResidenceRestrictionSets,
+    LOCAL_RESIDENCE_RESTRICTION_SETS,
+    type ResidenceRestrictionSets,
+} from '@/utils/residence-restriction-sets'
 
-/** Bundled mirror — the offline/pre-fetch fallback, never the source of truth. */
-export const LOCAL_RESIDENCE_RESTRICTION_SETS: ResidenceRestrictionSets = {
-    full: RESTRICTED_RESIDENCE_ISO2,
-    cardOnly: CARD_RESTRICTED_RESIDENCE_ISO2,
-    bankingOnly: BANKING_RESTRICTED_RESIDENCE_ISO2,
-    refusedIdIssuers: REFUSED_ID_ISSUER_ISO2,
-    bankingNewCustomersOnly: BANKING_NEW_CUSTOMERS_ONLY_RESIDENCE_ISO2,
-}
-
-// Module-level cache: the lists change with API deploys, not with users, so one
-// fetch per session is plenty and every hook instance shares it.
-let serverSets: ResidenceRestrictionSets | null = null
 let inflight: Promise<ResidenceRestrictionSets | null> | null = null
 
-export const getResidenceRestrictionSets = (): ResidenceRestrictionSets =>
-    serverSets ?? LOCAL_RESIDENCE_RESTRICTION_SETS
-
-const parseLists = (json: unknown): ResidenceRestrictionSets | null => {
-    if (!json || typeof json !== 'object') return null
-    const { full, cardOnly, bankingOnly, refusedIdIssuers, bankingNewCustomersOnly } = json as Record<string, unknown>
-    const toSet = (value: unknown): ReadonlySet<string> | null =>
-        Array.isArray(value) && value.every((v) => typeof v === 'string')
-            ? new Set(value.map((v) => v.toUpperCase()))
-            : null
-    const fullSet = toSet(full)
-    const cardSet = toSet(cardOnly)
-    const bankingSet = toSet(bankingOnly)
-    if (!fullSet || !cardSet || !bankingSet) return null
-    const refusedSet =
-        refusedIdIssuers === undefined ? LOCAL_RESIDENCE_RESTRICTION_SETS.refusedIdIssuers : toSet(refusedIdIssuers)
-    const newCustomersSet =
-        bankingNewCustomersOnly === undefined
-            ? LOCAL_RESIDENCE_RESTRICTION_SETS.bankingNewCustomersOnly
-            : toSet(bankingNewCustomersOnly)
-    if (!refusedSet || !newCustomersSet) return null
-    return {
-        full: fullSet,
-        cardOnly: cardSet,
-        bankingOnly: bankingSet,
-        refusedIdIssuers: refusedSet,
-        bankingNewCustomersOnly: newCustomersSet,
-    }
-}
-
 async function loadServerSets(): Promise<ResidenceRestrictionSets | null> {
-    if (serverSets) return serverSets
+    const cached = serverResidenceRestrictionSets()
+    if (cached) return cached
     // public config: no auth, so it must not queue behind token hydration
     inflight ??= apiFetch('/config/residence-restrictions', { includeAuth: false })
         .then(async (res) => {
             if (!res.ok) return null
-            const parsed = parseLists(await res.json())
-            if (parsed) serverSets = parsed
+            const parsed = parseResidenceRestrictionSets(await res.json())
+            if (parsed) setServerResidenceRestrictionSets(parsed)
             return parsed
         })
         .catch(() => null)
@@ -79,7 +36,7 @@ async function loadServerSets(): Promise<ResidenceRestrictionSets | null> {
 
 /** Test-only: clears the module cache so suites can exercise the fetch again. */
 export const __resetResidenceRestrictionSetsForTests = () => {
-    serverSets = null
+    setServerResidenceRestrictionSets(null)
     inflight = null
 }
 
@@ -94,11 +51,13 @@ export const __resetResidenceRestrictionSetsForTests = () => {
  * non-authoritative.
  */
 export const useResidenceRestrictionSetsWithStatus = (): { sets: ResidenceRestrictionSets; settled: boolean } => {
-    const [sets, setSets] = useState<ResidenceRestrictionSets>(serverSets ?? LOCAL_RESIDENCE_RESTRICTION_SETS)
-    const [settled, setSettled] = useState<boolean>(serverSets !== null)
+    const [sets, setSets] = useState<ResidenceRestrictionSets>(
+        serverResidenceRestrictionSets() ?? LOCAL_RESIDENCE_RESTRICTION_SETS
+    )
+    const [settled, setSettled] = useState<boolean>(serverResidenceRestrictionSets() !== null)
 
     useEffect(() => {
-        if (serverSets) return
+        if (serverResidenceRestrictionSets()) return
         let cancelled = false
         void loadServerSets().then((loaded) => {
             if (cancelled || !loaded) return

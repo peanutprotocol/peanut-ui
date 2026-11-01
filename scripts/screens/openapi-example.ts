@@ -31,6 +31,30 @@ function deref(spec: Node, value: unknown): unknown {
     return value
 }
 
+/** The values a path parameter's schema allows, when it lists them (`enum`, or `anyOf`/`oneOf` of enums). */
+function allowedValues(spec: Node, schema: unknown): Set<string> | undefined {
+    const node = deref(spec, schema)
+    if (!isNode(node)) return undefined
+    if (Array.isArray(node.enum)) return new Set(node.enum.map(String))
+    const branches = Array.isArray(node.anyOf) ? node.anyOf : Array.isArray(node.oneOf) ? node.oneOf : undefined
+    if (!branches) return undefined
+    const sets = branches.map((branch) => allowedValues(spec, branch))
+    return sets.every(Boolean) ? new Set(sets.flatMap((set) => [...set!])) : undefined
+}
+
+function pathParamsAllowed(spec: Node, item: Node, operation: Node, parts: string[], request: string[]): boolean {
+    const params = [
+        ...(Array.isArray(item.parameters) ? item.parameters : []),
+        ...(Array.isArray(operation.parameters) ? operation.parameters : []),
+    ].map((param) => deref(spec, param))
+    return parts.every((part, index) => {
+        if (!isParam(part)) return true
+        const param = params.find((p) => isNode(p) && p.in === 'path' && p.name === part.slice(1, -1))
+        const allowed = isNode(param) ? allowedValues(spec, param.schema) : undefined
+        return !allowed || allowed.has(request[index])
+    })
+}
+
 /** The method's operation on the matching template with the most literal segments. */
 function operationFor(spec: Node, method: string, path: string): Node | undefined {
     if (!isNode(spec.paths)) return undefined
@@ -40,9 +64,11 @@ function operationFor(spec: Node, method: string, path: string): Node | undefine
         const operation = isNode(item) ? item[method.toLowerCase()] : undefined
         const parts = template.split('/').filter(Boolean)
         if (
+            !isNode(item) ||
             !isNode(operation) ||
             parts.length !== request.length ||
-            parts.some((part, index) => !isParam(part) && part !== request[index])
+            parts.some((part, index) => !isParam(part) && part !== request[index]) ||
+            !pathParamsAllowed(spec, item, operation, parts, request)
         )
             continue
         const literals = parts.map((part) => (isParam(part) ? '0' : '1')).join('')

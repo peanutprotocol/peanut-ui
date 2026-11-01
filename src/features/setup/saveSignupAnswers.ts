@@ -5,10 +5,10 @@ import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-r
 const pendingSaves = new Map<string, Promise<void>>()
 
 function saveInBackground(userId: string, fields: Record<string, unknown>, onSaved?: () => void): void {
-    const previous = pendingSaves.get(userId) ?? Promise.resolve()
+    const previous = pendingSaves.get(userId)
+    const write = () => updateUserById({ userId, ...fields })
     // Serialize all signup writes per account so an older answer cannot land after a newer one.
-    const save = previous
-        .then(() => updateUserById({ userId, ...fields }))
+    const save = (previous ? previous.then(write) : write())
         .then((result) => {
             if (result?.error) {
                 console.error('[saveSignupAnswers] Failed to save:', Object.keys(fields))
@@ -22,6 +22,9 @@ function saveInBackground(userId: string, fields: Record<string, unknown>, onSav
         })
     pendingSaves.set(userId, save)
 }
+
+/** Test-only: forgets queued saves so one suite's unresolved write cannot hold the next. */
+export const __resetSignupSavesForTests = () => pendingSaves.clear()
 
 export function saveSignupResidence(
     userId: string,

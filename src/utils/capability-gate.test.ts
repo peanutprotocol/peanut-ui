@@ -1359,6 +1359,7 @@ describe('deriveGate — duplicate account', () => {
             provider: 'manteca',
             method: 'PIX_BR',
             country: 'BR',
+            currency: 'BRL',
             status: 'requires-info',
             blockingActions: [source.key],
         })

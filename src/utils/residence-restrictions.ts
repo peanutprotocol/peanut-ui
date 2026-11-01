@@ -1,4 +1,4 @@
-import type { ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
+import type { ResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
 
 export const deriveResidenceRestrictionsFrom = (
     sets: ResidenceRestrictionSets,

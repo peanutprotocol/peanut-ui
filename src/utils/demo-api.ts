@@ -11,7 +11,7 @@ import {
 } from '@/constants/zerodev.consts'
 import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
+import { getResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
 import { deriveResidenceRestrictionsFrom, isQrResidenceRestricted } from '@/utils/residence-restrictions'
 import { KYC_USER_READS } from '@/utils/demo-kyc'
 import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'

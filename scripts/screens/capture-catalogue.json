@@ -157,6 +157,11 @@
         "route": "/profile/accounts"
     },
     {
+        "id": "fixture-paperwork-verification-closed-residence",
+        "flow": "Setup and login",
+        "route": "/verify?step=saved"
+    },
+    {
         "id": "fixture-paperwork-verification-needs-signup",
         "flow": "Setup and login",
         "route": "/verify"
@@ -371,6 +376,56 @@
         "id": "fixture-error-limits",
         "flow": "Home and shared states",
         "route": "/limits/manteca"
+    },
+    {
+        "id": "fixture-paperwork-verification-state-choice-missing",
+        "flow": "Home and shared states",
+        "route": "/verify?step=address"
+    },
+    {
+        "id": "fixture-paperwork-verification-state-choice-selected",
+        "flow": "Home and shared states",
+        "route": "/verify?step=address"
+    },
+    {
+        "id": "fixture-paperwork-verification-state-select-missing",
+        "flow": "Home and shared states",
+        "route": "/verify?step=address"
+    },
+    {
+        "id": "fixture-paperwork-verification-state-select-selected",
+        "flow": "Home and shared states",
+        "route": "/verify?step=address"
+    },
+    {
+        "id": "fixture-paperwork-verification-closed-nationality",
+        "flow": "Home and shared states",
+        "route": "/verify?step=saved"
+    },
+    {
+        "id": "fixture-paperwork-verification-closed-tax",
+        "flow": "Home and shared states",
+        "route": "/verify?step=saved"
+    },
+    {
+        "id": "fixture-paperwork-verification-closed-unknown",
+        "flow": "Home and shared states",
+        "route": "/verify?step=saved"
+    },
+    {
+        "id": "fixture-paperwork-verification-policy-hold",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-paperwork-verification-outage",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-paperwork-verification-restart-foreign",
+        "flow": "Home and shared states",
+        "route": "/verify?step=id&restart=1"
     },
     {
         "id": "fixture-paperwork-verification-de",
@@ -683,6 +738,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-paperwork-verification-rejected",
+        "flow": "Verification",
+        "route": "/verify"
+    },
+    {
         "id": "fixture-feature-activation-card-ready",
         "flow": "Verification",
         "route": "/card?kyc=%7B%7D"
@@ -721,6 +781,16 @@
         "id": "fixture-feature-activation-card-questions-missing",
         "flow": "Verification",
         "route": "/verify?feature=card"
+    },
+    {
+        "id": "fixture-feature-activation-bank-consent",
+        "flow": "Verification",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-local-consent",
+        "flow": "Verification",
+        "route": "/add-money/argentina/manteca"
     },
     {
         "id": "p52-kyc-success",
