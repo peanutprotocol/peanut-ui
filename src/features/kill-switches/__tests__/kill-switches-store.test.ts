@@ -27,6 +27,23 @@ beforeEach(() => {
 })
 
 describe('kill-switches store', () => {
+    it('refreshes and persists both pause switches independently across reloads', async () => {
+        localStorage.setItem(
+            KILL_SWITCHES_STORAGE_KEY,
+            JSON.stringify({ kycVerificationDown: true, brazilServicesPaused: false })
+        )
+        const store = loadStore()
+        expect(store.getKillSwitches()).toEqual({ ...DEFAULT_KILL_SWITCHES, kycVerificationDown: true })
+
+        const server = { kycVerificationDown: false, brazilServicesPaused: true }
+        respond(200, server)
+        await store.refreshKillSwitches()
+
+        expect(store.getKillSwitches()).toEqual({ ...DEFAULT_KILL_SWITCHES, ...server })
+        expect(saved()).toEqual(server)
+        expect(loadStore().getKillSwitches()).toEqual({ ...DEFAULT_KILL_SWITCHES, ...server })
+    })
+
     it('applies the server values and saves them after a good fetch', async () => {
         respond(200, { enableMaintenanceBanner: true, disabledMantecaCurrencies: ['ARS'] })
         const store = loadStore()

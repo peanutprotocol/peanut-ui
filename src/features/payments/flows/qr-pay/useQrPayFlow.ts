@@ -54,6 +54,7 @@ import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
+import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import {
     classifyQrInitError,
@@ -218,6 +219,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const isProviderDisabled = useMemo(() => {
         return paymentProcessor ? disabledPaymentProviders.includes(paymentProcessor) : false
     }, [paymentProcessor, disabledPaymentProviders])
+    const isBrazilPaused = useBrazilServicesPaused() && qrType === EQrType.PIX
+    // Neither an outage nor the Brazil pause starts a payment. The view keeps them
+    // apart: a payment made before the pause still shows its status (TASK-24197).
+    const blocksNewPayment = isProviderDisabled || isBrazilPaused
 
     const gate = useQrPayKycGate()
     const { kycGateState, shouldBlockPay } = gate
@@ -252,7 +257,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         enabled:
             !!lockedSpend &&
             !shouldBlockPay &&
-            !isProviderDisabled &&
+            !blocksNewPayment &&
             !isLoading &&
             !isSuccess &&
             !qrPayment &&
@@ -440,7 +445,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             !shouldBlockPay &&
             // The maintenance kill-switch is render-only below; without this the
             // doomed /init still fires on every scan during a provider outage.
-            !isProviderDisabled,
+            !blocksNewPayment,
         retry: (failureCount, error) => {
             /*
              * One predicate over one table (`init-error-classifier`), reading
@@ -1228,6 +1233,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const view = deriveQrPayView({
         kycGateState,
         isProviderDisabled,
+        isBrazilPaused,
         errorInitiatingPayment,
         waitingForMerchantAmount,
         showOrderNotReadyModal,

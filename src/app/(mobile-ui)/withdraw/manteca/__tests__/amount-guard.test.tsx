@@ -65,9 +65,17 @@ jest.mock('@/components/Global/NavHeader', () => ({
     ),
 }))
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
+let mockBrazilPaused = false
+jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
+    useBrazilServicesPaused: () => mockBrazilPaused,
+}))
+jest.mock('@/features/brazil-pause/components/BrazilPausedScreen', () => ({
+    BrazilPausedScreen: () => <div data-testid="brazil-paused-screen" />,
+}))
 jest.mock('@/services/manteca', () => ({ mantecaApi: {} }))
 
 beforeEach(() => {
+    mockBrazilPaused = false
     mockBalance = parseUnits('10', 6)
     mockParams = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
 })
@@ -139,4 +147,35 @@ it('shows Send and returns to Send after a bank-origin handoff', async () => {
     expect(await screen.findByRole('heading', { name: 'Send' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Back' }))
     expect(mockPush).toHaveBeenCalledWith('/send')
+})
+
+// TASK-24197: the pause stops Brazil Pix sends and BRL withdrawals reached by a link or a back step
+describe('the Brazil pause', () => {
+    function render() {
+        renderWithIntl(
+            <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+                <NuqsTestingAdapter searchParams={mockParams}>
+                    <MantecaWithdrawFlow />
+                </NuqsTestingAdapter>
+            </QueryClientProvider>
+        )
+    }
+
+    test.each(['country=brazil&method=pix', 'country=brazil&method=bank-transfer'])(
+        'shows the paused screen for %s',
+        (params) => {
+            mockBrazilPaused = true
+            mockParams = params
+            render()
+            expect(screen.getByTestId('brazil-paused-screen')).toBeInTheDocument()
+            expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+        }
+    )
+
+    test('leaves Argentina open', () => {
+        mockBrazilPaused = true
+        render()
+        expect(screen.queryByTestId('brazil-paused-screen')).not.toBeInTheDocument()
+        expect(screen.getByRole('textbox')).toBeInTheDocument()
+    })
 })

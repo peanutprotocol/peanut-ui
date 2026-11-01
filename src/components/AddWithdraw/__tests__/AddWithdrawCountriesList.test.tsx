@@ -24,6 +24,7 @@ import { IntlWrapper } from '@/test-utils/intl'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import AddWithdrawCountriesList from '../AddWithdrawCountriesList'
 import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
+import { closeBrazilPausedDrawer, isBrazilPausedDrawerOpen } from '@/features/brazil-pause/brazil-paused-drawer-store'
 
 const killSwitches = getKillSwitches()
 import { addBankAccount } from '@/app/actions/users'
@@ -53,6 +54,11 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => mockSearchParams,
 }))
 
+let mockBrazilPaused = false
+jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
+    useBrazilServicesPaused: () => mockBrazilPaused,
+}))
+
 // ---- consts: one country ('testland', id 'US') with a bank add-method and a
 // Bridge bank withdraw-method (the withdraw path also runs checkBridgeGate). ----
 jest.mock('@/components/AddMoney/consts', () => ({
@@ -63,10 +69,23 @@ jest.mock('@/components/AddMoney/consts', () => ({
         { type: 'country', path: 'nocorridor', id: 'IND', title: 'Nocorridor', currency: 'inr' },
         { type: 'country', path: 'aland', id: 'ALA', title: 'Åland', currency: 'eur' },
         { type: 'country', path: 'argentina', id: 'AR', title: 'Argentina', currency: 'ars' },
+        { type: 'country', path: 'brazil', id: 'BR', title: 'Brazil', currency: 'brl' },
     ],
     // the corridor table reads this; the real module exports it
     BRIDGE_ALPHA3_TO_ALPHA2: { DEU: 'DE', ALA: 'AX' },
     COUNTRY_SPECIFIC_METHODS: {
+        BR: {
+            add: [
+                {
+                    id: 'pix-add',
+                    title: 'Pix',
+                    description: 'Instant transfers',
+                    icon: 'pix',
+                    path: '/add-money/brazil/manteca',
+                },
+            ],
+            withdraw: [],
+        },
         // the real Argentina row: Mercado Pago has no row of its own
         AR: {
             add: [
@@ -482,6 +501,37 @@ describe('AddWithdrawCountriesList — crypto is offered once per flow', () => {
  * maintenance" (config: pixBrazilOnrampMaintenance) — warn-only: it stays
  * visible and clickable.
  */
+// TASK-24197: with the Brazil pause on, every Brazil method opens the paused drawer
+describe('AddWithdrawCountriesList — the Brazil pause', () => {
+    afterEach(() => {
+        mockBrazilPaused = false
+        closeBrazilPausedDrawer()
+        mockParams.country = 'testland'
+    })
+
+    it('a Brazil method opens the paused drawer and goes nowhere', () => {
+        mockBrazilPaused = true
+        mockParams.country = 'brazil'
+        mockPush.mockClear()
+        render(<AddWithdrawCountriesList flow="add" />)
+
+        fireEvent.click(screen.getByTestId('method-pix'))
+        expect(isBrazilPausedDrawerOpen()).toBe(true)
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('the same Pix method listed under another country is not stopped', () => {
+        mockBrazilPaused = true
+        mockPush.mockClear()
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+        render(<AddWithdrawCountriesList flow="add" />)
+
+        fireEvent.click(screen.getByTestId('method-pix'))
+        expect(isBrazilPausedDrawerOpen()).toBe(false)
+        expect(mockPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
+    })
+})
+
 describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
     // snapshot/restore the shipped flag so each test can flip it without leaking
     // state — and without coupling the restore to the committed default

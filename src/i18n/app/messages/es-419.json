@@ -5230,5 +5230,9 @@
         "peanutRole": "Proveedor de software de billetera autocustodiada; no es parte de las operaciones del proveedor",
         "cardRelationship": "Tienes una relación directa con Third National bajo los términos de la tarjeta.",
         "cardRelationshipProspective": "Cuando aceptes los términos de la tarjeta, tu relación será directamente con Third National."
+    },
+    "brazilPause": {
+        "title": "Servicios en Brasil en pausa",
+        "body": "Debido a cambios regulatorios en los proveedores de nuestros servicios en Brasil, los depósitos y retiros en BRL y los pagos con Pix no están disponibles por ahora. Estamos sumando un nuevo proveedor para volver a ofrecerlos pronto."
     }
 }

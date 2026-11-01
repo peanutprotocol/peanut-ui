@@ -76,6 +76,26 @@ function addFixture(name: string, fixture: Fixture) {
 }
 
 describe('fixtureRespond capability report', () => {
+    it.each(['add-money-brazil-paused', 'withdraw-brazil-paused'])(
+        '%s supplies the Brazil residence used by the pause and capability report',
+        async (name) => {
+            activateFixture(name)
+            const body = await (await fixtureRespond('/users/me')).json()
+
+            expect(body.residence.verified.country).toBe('BR')
+            expect(body.residence.secondaryDeclaredCountry).toBeNull()
+            expect(body.capabilities.features).toEqual(
+                featureReport({
+                    rails: body.capabilities.rails,
+                    nextActions: body.capabilities.nextActions,
+                    identity: body.identityVerification,
+                    residence: 'BR',
+                })
+            )
+            expect(FIXTURES[name].responses?.['GET /config/kill-switches']).toEqual({ brazilServicesPaused: true })
+        }
+    )
+
     it('builds a report from merged rails, actions, identity refusal and verified residence', async () => {
         expect(DEMO_USER.capabilities!.features).toBeDefined()
         const fixture: Fixture = {

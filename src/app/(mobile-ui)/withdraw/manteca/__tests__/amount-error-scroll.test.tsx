@@ -64,6 +64,8 @@ jest.mock('@/components/Global/NavHeader', () => ({
         </>
     ),
 }))
+// the Brazil pause reads the signed-in user; it is off here (amount-guard covers it)
+jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({ useBrazilServicesPaused: () => false }))
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/services/manteca', () => ({ mantecaApi: {} }))
 

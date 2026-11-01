@@ -4,6 +4,8 @@ import { useSearchParams } from 'next/navigation'
 import { KycFeatureActivationGate } from '@/features/paperwork-verification/KycFeatureActivationGate'
 import { countryData } from '@/components/AddMoney/consts'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
+import { BrazilPausedScreen } from '@/features/brazil-pause/components/BrazilPausedScreen'
+import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
 import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/MantecaTransfersMaintenanceView'
 import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
 import MantecaBankWithdrawFlow from '@/features/withdraw/views/MantecaBankWithdrawFlow'
@@ -11,6 +13,9 @@ import MantecaBankWithdrawFlow from '@/features/withdraw/views/MantecaBankWithdr
 export default function MantecaWithdrawFlow() {
     const searchParams = useSearchParams()
     const { disabledMantecaCurrencies } = useKillSwitches()
+    const brazilPaused = useBrazilServicesPaused()
+    // Before the Pix delegation below: the pause stops Pix sends and BRL withdrawals alike.
+    if (brazilPaused && searchParams.get('country') === 'brazil') return <BrazilPausedScreen />
     // Brazil PIX sends go through the Manteca QR-payment endpoint (send to any
     // PIX key), not the offramp/withdraw endpoint. Delegate to the lightweight
     // PIX-key entry, which wraps the key and hands off to /qr-pay. The gate
