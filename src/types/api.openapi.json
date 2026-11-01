@@ -12774,13 +12774,47 @@
 										"email": {
 											"type": "boolean"
 										},
+										"emailUpdates": {
+											"type": "boolean"
+										},
+										"marketingPush": {
+											"type": "boolean"
+										},
 										"push": {
 											"type": "boolean"
+										},
+										"pushPermission": {
+											"anyOf": [
+												{
+													"enum": [
+														"granted"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"denied"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"dismissed"
+													],
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
 										}
 									},
 									"required": [
 										"push",
-										"email"
+										"email",
+										"marketingPush",
+										"emailUpdates",
+										"pushPermission"
 									],
 									"type": "object"
 								}
@@ -12817,23 +12851,47 @@
 						"application/json": {
 							"schema": {
 								"additionalProperties": false,
+								"minProperties": 1,
 								"properties": {
 									"email": {
 										"type": "boolean"
 									},
+									"emailUpdates": {
+										"type": "boolean"
+									},
+									"marketingPush": {
+										"type": "boolean"
+									},
 									"push": {
 										"type": "boolean"
+									},
+									"pushPermission": {
+										"anyOf": [
+											{
+												"enum": [
+													"granted"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"denied"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"dismissed"
+												],
+												"type": "string"
+											}
+										]
 									}
 								},
-								"required": [
-									"push",
-									"email"
-								],
 								"type": "object"
 							}
 						}
-					},
-					"required": true
+					}
 				},
 				"responses": {
 					"200": {
@@ -12845,13 +12903,47 @@
 										"email": {
 											"type": "boolean"
 										},
+										"emailUpdates": {
+											"type": "boolean"
+										},
+										"marketingPush": {
+											"type": "boolean"
+										},
 										"push": {
 											"type": "boolean"
+										},
+										"pushPermission": {
+											"anyOf": [
+												{
+													"enum": [
+														"granted"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"denied"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"dismissed"
+													],
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
 										}
 									},
 									"required": [
 										"push",
-										"email"
+										"email",
+										"marketingPush",
+										"emailUpdates",
+										"pushPermission"
 									],
 									"type": "object"
 								}
@@ -12860,6 +12952,24 @@
 						"description": "Default Response"
 					},
 					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
 						"content": {
 							"application/json": {
 								"schema": {

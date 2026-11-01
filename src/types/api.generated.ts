@@ -7151,7 +7151,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             email: boolean;
+                            emailUpdates: boolean;
+                            marketingPush: boolean;
                             push: boolean;
+                            pushPermission: "granted" | "denied" | "dismissed" | null;
                         };
                     };
                 };
@@ -7175,11 +7178,14 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody: {
+            requestBody?: {
                 content: {
                     "application/json": {
-                        email: boolean;
-                        push: boolean;
+                        email?: boolean;
+                        emailUpdates?: boolean;
+                        marketingPush?: boolean;
+                        push?: boolean;
+                        pushPermission?: "granted" | "denied" | "dismissed";
                     };
                 };
             };
@@ -7192,12 +7198,26 @@ export interface paths {
                     content: {
                         "application/json": {
                             email: boolean;
+                            emailUpdates: boolean;
+                            marketingPush: boolean;
                             push: boolean;
+                            pushPermission: "granted" | "denied" | "dismissed" | null;
                         };
                     };
                 };
                 /** @description Default Response */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
                     headers: {
                         [name: string]: unknown;
                     };
