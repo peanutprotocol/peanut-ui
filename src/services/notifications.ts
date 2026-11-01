@@ -38,9 +38,12 @@ export const notificationsApi = {
             method: 'PUT',
             body: JSON.stringify(changes),
         })
+        // An older API takes only `push`; retrying with it alone must not drop an opt-in the user chose.
+        const dropsOptIn = changes.marketingPush === true || changes.emailUpdates === true
         if (
             response.status === 400 &&
             typeof changes.push === 'boolean' &&
+            !dropsOptIn &&
             Object.keys(changes).some((key) => key !== 'push')
         ) {
             response = await serverFetch('/notifications/preferences', {
