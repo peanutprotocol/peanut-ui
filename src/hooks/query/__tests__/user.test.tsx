@@ -231,3 +231,27 @@ describe('useUserQuery transient failures', () => {
         expect(mockClearAuthToken).not.toHaveBeenCalled()
     })
 })
+
+it('requests the compact residence contract and exposes nested country/status to consumers', async () => {
+    jest.clearAllMocks()
+    mockApiFetch.mockReset().mockResolvedValueOnce(
+        mockResponse(200, {
+            user: { userId: 'u1' },
+            residence: {
+                verified: { country: 'PT', status: 'CHANGE_REQUESTED', updatedAt: null },
+                declared: { country: 'ES', status: 'COLLECTING', updatedAt: null, secondCountry: null },
+                secondaryDeclaredCountry: null,
+            },
+            geo: { signup: { vercelIp: { country: 'BR', observedAt: '2026-10-06T12:00:00Z' } } },
+        })
+    )
+    const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(mockApiFetch).toHaveBeenCalledWith(
+        '/users/me',
+        expect.objectContaining({ headers: { 'x-residence-format': 'compact' } })
+    )
+    expect(result.current.data?.residence?.verified?.country).toBe('PT')
+    expect(result.current.data?.residence?.declared?.status).toBe('COLLECTING')
+    expect(result.current.data?.geo?.signup.vercelIp?.country).toBe('BR')
+})

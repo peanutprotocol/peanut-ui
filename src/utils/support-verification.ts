@@ -8,17 +8,17 @@
  * only the support agent sees. The user's own message is never touched.
  */
 
-import { deriveGate, railVerdict } from '@/utils/capability-gate'
-import type { IdentityVerification, RailOperation, UserCapabilities } from '@/types/capabilities'
+import { railVerdict } from '@/utils/capability-gate'
+import type { FeatureReport, IdentityVerification, UserCapabilities } from '@/types/capabilities'
 
-const SUMMARY_OPERATIONS: RailOperation[] = ['pay', 'deposit', 'withdraw']
+const SUMMARY_FEATURES: (keyof FeatureReport)[] = ['qr', 'local', 'bank', 'card']
 
 export interface SupportVerificationSummary {
     /** identityVerification.status, or 'unknown' when the read-model is absent. */
     identityStatus: string
     /** whether an email is on file — provider submission can't run without one. */
     emailOnFile: boolean
-    /** per-operation gate kinds, e.g. "pay:ready deposit:provide-email withdraw:blocked-rejection". */
+    /** the API's feature report, e.g. "qr:on local:ready bank:refused(uk_resident_blocked) card:setting_up". */
     gates: string
     /** every non-enabled rail as "id:status(reasonCode)" — names which rail is stuck, even for pending/waiting gates. */
     verificationRails?: string
@@ -36,15 +36,15 @@ export function buildSupportVerificationSummary(
     const rails = capabilities?.rails ?? []
     const nextActions = capabilities?.nextActions ?? []
     const identityStatus = identityVerification?.status ?? 'unknown'
-    const identityVerified = identityStatus === 'verified'
     const emailOnFile = Boolean(email)
 
-    // An absent capability read-model is NOT a verified-identity signal: deriving
-    // over the empty state would report `needs-identity` on every op, which an
-    // agent cannot tell apart from a genuinely unverified user. Report nothing.
-    const gateState = { rails, nextActions, identityVerified, isLoading: false }
-    const gates = capabilities
-        ? SUMMARY_OPERATIONS.map((op) => `${op}:${deriveGate(gateState, op).kind}`).join(' ')
+    // What the user sees on every screen, word for word; nothing when the API sent no report.
+    const features = capabilities?.features
+    const gates = features
+        ? SUMMARY_FEATURES.map((feature) => {
+              const { state, reason } = features[feature]
+              return `${feature}:${state}${reason ? `(${reason})` : ''}`
+          }).join(' ')
         : ''
 
     // Per-rail verdicts. `gates` gives the op-level kind but not the rail; this

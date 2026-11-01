@@ -3,34 +3,48 @@
  * Residence step — legal-residence question after the sell screens.
  *
  * Contract under test: geo only prefills (never advances, never restricts),
- * the multi-doc link reveals a second selector, and Confirm advances to the
- * payment plan step, reporting the residence outcome (restricted, partial or
- * congrats) for the picked primary country.
+ * one sentence asks residence and nationality, a different nationality
+ * compares the two countries first, and Continue advances to the payment
+ * plan step, reporting the residence outcome (restricted, partial or
+ * congrats) for the country Peanut is set up for.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { act, render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import ResidenceStep from '@/components/Setup/Views/Residence'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
+import { __resetSignupSavesForTests } from '@/features/setup/saveSignupAnswers'
 
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const mockSetResidenceCountry = jest.fn()
-const mockSetSecondResidenceCountry = jest.fn()
-let mockSetupState: { residenceCountry: string; secondResidenceCountry: string }
+const mockSetNationalityCountry = jest.fn()
+let mockSetupState: { residenceCountry: string; nationalityCountry: string }
+let mockOnFinish: (() => Promise<void>) | undefined
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({
         ...mockSetupState,
+        onFinish: mockOnFinish,
         fundingChannel: 'crypto',
         paymentChannel: 'peanut',
         setFundingChannel: jest.fn(),
         setPaymentChannel: jest.fn(),
         setResidenceCountry: mockSetResidenceCountry,
-        setSecondResidenceCountry: mockSetSecondResidenceCountry,
+        setNationalityCountry: mockSetNationalityCountry,
     }),
+}))
+
+let mockUserId: string | null = 'user-1'
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: mockUserId ? { user: { userId: mockUserId } } : null }),
+}))
+// Never settles: the step must move on without waiting for the save.
+const mockUpdateUserById = jest.fn((_payload: Record<string, unknown>) => new Promise(() => undefined))
+jest.mock('@/app/actions/users', () => ({
+    updateUserById: (payload: Record<string, unknown>) => mockUpdateUserById(payload),
 }))
 
 const mockHandleNext = jest.fn()
@@ -76,17 +90,71 @@ jest.mock('@/hooks/useResidenceRestrictionSets', () => {
     }
 })
 
+jest.mock('@/hooks/useKycIntents', () => ({
+    useKycIntents: (country: string) => ({
+        intents: jest.requireActual('@/test-utils/kycIntents.fixture').KYC_INTENTS_BY_COUNTRY[country],
+        settled: true,
+    }),
+}))
+
 describe('ResidenceStep', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         resetBackHandlersForTests()
+        __resetSignupSavesForTests()
         mockIsLoading = false
-        mockSetupState = { residenceCountry: '', secondResidenceCountry: '' }
+        mockSetupState = { residenceCountry: '', nationalityCountry: '' }
         mockGeoCountry = null
         mockEdgeCountry = null
         mockEdgeSettled = true
         mockRestrictionSets = undefined
         mockRestrictionSetsSettled = true
+        mockUserId = 'user-1'
+        mockOnFinish = undefined
+    })
+
+    it('leaves the save to a host that finishes the flow itself, the verify prelude', () => {
+        mockOnFinish = async () => undefined
+        mockSetupState = { residenceCountry: 'PT', nationalityCountry: '' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        expect(mockUpdateUserById).not.toHaveBeenCalled()
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
+    })
+
+    // Slava, 2026-10-29: the answers are saved on Next, in the background, so an abandoned sign-up keeps them.
+    it('saves the residence and nationality on Next without waiting for the save', () => {
+        mockSetupState = { residenceCountry: 'PT', nationalityCountry: '' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        expect(mockUpdateUserById).toHaveBeenCalledWith({
+            userId: 'user-1',
+            residenceCountry: 'PT',
+            nationality: 'PT',
+        })
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
+    })
+
+    it('saves the country picked on the comparison as the residence and keeps the nationality', () => {
+        mockSetupState = { residenceCountry: 'PT', nationalityCountry: 'BR' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        expect(mockUpdateUserById).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: 'Select Portugal' }))
+        expect(mockUpdateUserById).toHaveBeenCalledWith({
+            userId: 'user-1',
+            residenceCountry: 'PT',
+            nationality: 'BR',
+        })
+    })
+
+    it('saves nothing before the account exists', () => {
+        mockUserId = null
+        mockSetupState = { residenceCountry: 'PT', nationalityCountry: '' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        expect(mockUpdateUserById).not.toHaveBeenCalled()
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
     })
 
     it('disables Continue until a country is chosen', () => {
@@ -95,14 +163,6 @@ describe('ResidenceStep', () => {
         expect(confirm).toBeDisabled()
         fireEvent.click(confirm!)
         expect(mockHandleNext).not.toHaveBeenCalled()
-    })
-
-    // The shared SetupWrapper title block renders the title and description,
-    // so the step itself must not add a second heading.
-    it('leaves the heading to the shared title block', () => {
-        render(<ResidenceStep />)
-        expect(screen.queryByRole('heading')).not.toBeInTheDocument()
-        expect(screen.queryByText(en.setup.steps.residence.description)).not.toBeInTheDocument()
     })
 
     it('prefills from geo as a suggestion without advancing', () => {
@@ -147,121 +207,91 @@ describe('ResidenceStep', () => {
         expect(mockSetResidenceCountry).not.toHaveBeenCalled()
     })
 
-    it('reveals the second selector via the multi-doc link', () => {
+    it('asks residence and nationality in one sentence, the nationality starting as the same country', () => {
+        mockSetupState.residenceCountry = 'PT'
         render(<ResidenceStep />)
-        expect(screen.queryByPlaceholderText('Second country')).not.toBeInTheDocument()
-        fireEvent.click(screen.getByText(en.setup.residenceStep.multiDocLink))
-        expect(screen.getByPlaceholderText('Second country')).toBeInTheDocument()
+        expect(screen.getByRole('heading')).toHaveTextContent(
+            /I’m a resident of\s*Portugal\s*and a national of\s*the same country/
+        )
+        expect(screen.getByTestId('setup-nationality-country')).toHaveAccessibleName(
+            'What’s your nationality?: the same country, Portugal'
+        )
+        expect(screen.getByText(en.setup.residenceStep.hint)).toBeInTheDocument()
     })
 
-    it('clears the stored second residence when the selector is collapsed', () => {
-        // An invisible second residence would still be sent to analytics and
-        // persisted after signup — collapsing must clear the stored pick.
-        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+    it('compares the two countries before going on when the nationality differs', () => {
+        mockSetupState = { residenceCountry: 'PT', nationalityCountry: 'BR' }
         render(<ResidenceStep />)
-        const toggle = screen.getByRole('button', { name: en.setup.residenceStep.multiDocLink })
-        expect(toggle).toHaveAttribute('aria-expanded', 'true')
-        fireEvent.click(toggle)
-        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
-        expect(toggle).toHaveAttribute('aria-expanded', 'false')
-        expect(screen.queryByPlaceholderText('Second country')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        expect(mockHandleNext).not.toHaveBeenCalled()
+        expect(screen.getByRole('heading', { name: en.setup.residenceStep.compare.title })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 2, name: 'Portugal' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { level: 2, name: 'Brazil' })).toBeInTheDocument()
+        // Slava, 2026-10-27: the server opens Brazil's bank accounts beside Pix, as Portugal's
+        const brazil = within(screen.getByRole('heading', { level: 2, name: 'Brazil' }).closest('section')!)
+        for (const item of [
+            'PIX payments & transfers',
+            'US dollar bank transfers',
+            'Euro bank transfers',
+            'Peanut card',
+        ])
+            expect(brazil.getByText(item)).toBeInTheDocument()
+        expect(screen.getByText(en.setup.residenceStep.compare.guideTitle)).toBeInTheDocument()
+        // Back returns to the sentence instead of leaving the step.
+        act(() => expect(dispatchBackPress()).toBe(true))
+        expect(screen.getByTestId('setup-nationality-country')).toBeInTheDocument()
     })
 
-    it('opening the selector clears nothing', () => {
+    it('sets Peanut up for the residence when it is picked on the comparison', () => {
+        mockSetupState = { residenceCountry: 'PT', nationalityCountry: 'BR' }
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: en.setup.residenceStep.multiDocLink }))
-        expect(mockSetSecondResidenceCountry).not.toHaveBeenCalled()
-    })
-
-    // The dual path shows two fields and no per-country comparison or guidance:
-    // the "Select <country>" buttons are the whole choice (Release 164 smoke test).
-    it('shows two fields and no comparison for two countries', () => {
-        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
-        render(<ResidenceStep />)
-        expect(screen.getAllByRole('combobox')).toHaveLength(2)
-        expect(screen.queryByText(/Available with/)).not.toBeInTheDocument()
-        expect(screen.queryByText('Peanut to Peanut')).not.toBeInTheDocument()
-        expect(screen.queryByRole('status')).not.toBeInTheDocument()
-    })
-
-    it('replaces Next with one main-residence button per declared country', () => {
-        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
-        render(<ResidenceStep />)
-        expect(screen.queryByRole('button', { name: 'Confirm' })).not.toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Select Brazil' })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Select Germany' })).toBeInTheDocument()
-    })
-
-    it('promotes the picked country to main residence before continuing', () => {
-        // The tap IS the declaration: picking the second entry swaps the pair's
-        // order, and the outcome must be evaluated against the picked country —
-        // not the store value this render closed over.
-        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
-        render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Select Germany' }))
-        expect(mockSetResidenceCountry).toHaveBeenCalledWith('DE')
-        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('BR')
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Select Portugal' }))
+        expect(mockSetResidenceCountry).not.toHaveBeenCalled()
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
-            expect.objectContaining({ residence_country: 'DE', second_residence_country: 'BR' })
+            expect.objectContaining({ residence_country: 'PT', nationality_differs: true, compared: true })
         )
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
     })
 
-    it('advances to the payment plan only once a promoted residence has landed', () => {
-        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'JP' }
+    it('advances only once the nationality country picked on the comparison has landed', () => {
+        mockSetupState = { residenceCountry: 'PT', nationalityCountry: 'JP' }
         const view = render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         fireEvent.click(screen.getByRole('button', { name: 'Select Japan' }))
         expect(mockSetResidenceCountry).toHaveBeenCalledWith('JP')
+        expect(mockSetNationalityCountry).not.toHaveBeenCalled()
         // the plan reads the residence from the flow, so the step waits for it to land
         expect(mockHandleNext).not.toHaveBeenCalled()
-        view.container.querySelectorAll('[data-setup-footer] button').forEach((button) => expect(button).toBeDisabled())
-        mockSetupState = { residenceCountry: 'JP', secondResidenceCountry: 'BR' }
+        expect(mockedCapture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN,
+            expect.objectContaining({ residence_country: 'JP', restriction_type: 'banking' })
+        )
+        mockSetupState = { residenceCountry: 'JP', nationalityCountry: 'JP' }
         view.rerender(<ResidenceStep />)
         expect(mockHandleNext).toHaveBeenCalledTimes(1)
     })
 
-    it('clearing the first country leaves the second as the only residence', () => {
-        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+    it('says to verify with the residence card when the nationality’s passports are refused', () => {
+        mockSetupState = { residenceCountry: 'DE', nationalityCountry: 'IR' }
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Remove Brazil' }))
-        expect(mockSetResidenceCountry).toHaveBeenCalledWith('DE')
-        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
-        expect(screen.queryByPlaceholderText('Second country')).not.toBeInTheDocument()
-    })
-
-    it('stops attributing a promoted country to the geo suggestion', () => {
-        // BR was suggested by geo; the user added DE and then cleared BR. DE was
-        // typed, so continuing must not report it as a prefilled geo match.
-        mockGeoCountry = 'br'
-        const view = render(<ResidenceStep />)
-        // the geo effect prefilled BR and latched the flag
-        expect(mockSetResidenceCountry).toHaveBeenCalledWith('BR')
-        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
-        view.rerender(<ResidenceStep />)
-        fireEvent.click(screen.getByText(en.setup.residenceStep.multiDocLink))
-        fireEvent.click(screen.getByRole('button', { name: 'Remove Brazil' }))
-        mockSetupState = { residenceCountry: 'DE', secondResidenceCountry: '' }
-        view.rerender(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
-        expect(mockedCapture).toHaveBeenCalledWith(
-            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
-            expect.objectContaining({ residence_country: 'DE', was_prefilled: false })
+        expect(screen.getByText(/We can’t verify passports or ID cards from Iran/)).toHaveTextContent(
+            'Use your residence card from Germany'
         )
+        expect(screen.queryByText(en.setup.residenceStep.hint)).not.toBeInTheDocument()
     })
 
-    it('clearing the second country keeps the first and collapses the pair', () => {
-        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'DE' }
+    it('does not refuse a Russian passport, which still verifies everything but the card', () => {
+        mockSetupState = { residenceCountry: 'DE', nationalityCountry: 'RU' }
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Remove Germany' }))
-        expect(mockSetResidenceCountry).not.toHaveBeenCalledWith('DE')
-        expect(mockSetSecondResidenceCountry).toHaveBeenCalledWith('')
-        expect(screen.queryByPlaceholderText('Second country')).not.toBeInTheDocument()
+        expect(screen.queryByText(/We can’t verify passports or ID cards from/)).not.toBeInTheDocument()
     })
 
     it('reports the congrats outcome for an unrestricted residence and advances to the plan', () => {
         mockSetupState.residenceCountry = 'BR'
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
             expect.objectContaining({ residence_country: 'BR' })
@@ -269,21 +299,6 @@ describe('ResidenceStep', () => {
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN,
             expect.objectContaining({ residence_country: 'BR' })
-        )
-        expect(mockHandleNext).toHaveBeenCalledTimes(1)
-    })
-
-    it('evaluates the outcome against the picked main residence, not the second one', () => {
-        mockSetupState = { residenceCountry: 'BR', secondResidenceCountry: 'GB' }
-        render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Select Brazil' }))
-        expect(mockedCapture).toHaveBeenCalledWith(
-            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN,
-            expect.objectContaining({ residence_country: 'BR' })
-        )
-        expect(mockedCapture).not.toHaveBeenCalledWith(
-            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN,
-            expect.anything()
         )
         expect(mockHandleNext).toHaveBeenCalledTimes(1)
     })
@@ -293,7 +308,7 @@ describe('ResidenceStep', () => {
     it('treats Hong Kong as unrestricted', () => {
         mockSetupState.residenceCountry = 'HK'
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN,
             expect.objectContaining({ residence_country: 'HK' })
@@ -301,12 +316,12 @@ describe('ResidenceStep', () => {
     })
 
     // mirrors peanut-api-ts FULL_RESTRICTED_RESIDENCE (api#1738)
-    it.each(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'MM', 'VE', 'IQ'])(
+    it.each(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'MM', 'VE', 'IQ', 'PS', 'YE', 'SS', 'CD'])(
         'reports %s as restricted and still advances to the plan',
         (iso2) => {
             mockSetupState.residenceCountry = iso2
             render(<ResidenceStep />)
-            fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+            fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
             expect(mockedCapture).toHaveBeenCalledWith(
                 ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN,
                 expect.objectContaining({ residence_country: iso2 })
@@ -327,6 +342,11 @@ describe('ResidenceStep', () => {
         ['IL', 'card'],
         ['NP', 'card'],
         ['NI', 'card'],
+        // Rain's Platform Standards list, and Nigeria until Rain approves Peanut there
+        ['TZ', 'card'],
+        ['ID', 'card'],
+        ['NG', 'card'],
+        ['ZA', 'card'],
         ['DZ', 'banking'],
         ['BI', 'banking'],
         ['GW', 'banking'],
@@ -336,16 +356,12 @@ describe('ResidenceStep', () => {
         ['AF', 'banking'],
         ['SD', 'banking'],
         ['LY', 'banking'],
-        ['PS', 'banking'],
         ['LB', 'banking'],
-        ['YE', 'banking'],
         ['SO', 'banking'],
-        ['SS', 'banking'],
-        ['CD', 'banking'],
     ])('reports %s as a partial (%s) restriction and advances', (iso2, kind) => {
         mockSetupState.residenceCountry = iso2
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN,
             expect.objectContaining({ residence_country: iso2, restriction_type: kind })
@@ -354,10 +370,15 @@ describe('ResidenceStep', () => {
     })
 
     it('uses updated server tiers when classifying the outcome', () => {
-        mockRestrictionSets = { full: new Set(['PT']), cardOnly: new Set(), bankingOnly: new Set() }
+        mockRestrictionSets = {
+            ...jest.requireActual('@/hooks/useResidenceRestrictionSets').LOCAL_RESIDENCE_RESTRICTION_SETS,
+            full: new Set(['PT']),
+            cardOnly: new Set(),
+            bankingOnly: new Set(),
+        }
         mockSetupState.residenceCountry = 'PT'
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(mockedCapture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN,
             expect.objectContaining({ residence_country: 'PT' })
@@ -368,7 +389,7 @@ describe('ResidenceStep', () => {
         // countryData omits them (it is the add-money destination list); the
         // supplemental options must fill the gap so residents can reach the plan.
         render(<ResidenceStep />)
-        fireEvent.click(screen.getByRole('combobox'))
+        fireEvent.click(screen.getByTestId('setup-residence-country'))
         // Substring match: the selector now renders Intl.DisplayNames names,
         // which can extend the catalog title (en shows Myanmar (Burma)).
         for (const name of ['Russia', 'Iran', 'North Korea', 'Syria', 'Cuba', 'Myanmar']) {
@@ -376,7 +397,7 @@ describe('ResidenceStep', () => {
         }
     })
 
-    it('does not intercept hardware back: the stepper owns it', () => {
+    it('does not intercept hardware back on the sentence: the stepper owns it', () => {
         mockSetupState.residenceCountry = 'BR'
         render(<ResidenceStep />)
         expect(dispatchBackPress()).toBe(false)
@@ -390,5 +411,25 @@ describe('ResidenceStep', () => {
         expect(confirm).toBeDisabled()
         fireEvent.click(confirm!)
         expect(mockHandleNext).not.toHaveBeenCalled()
+    })
+
+    it('uses served refused issuers for the nationality guidance', () => {
+        mockRestrictionSets = {
+            ...jest.requireActual('@/hooks/useResidenceRestrictionSets').LOCAL_RESIDENCE_RESTRICTION_SETS,
+            refusedIdIssuers: new Set(['PT']),
+        }
+        mockSetupState = { residenceCountry: 'DE', nationalityCountry: 'PT' }
+        render(<ResidenceStep />)
+        expect(screen.getByText(/We can’t verify passports or ID cards from Portugal/)).toBeInTheDocument()
+    })
+
+    it('does not retain a bundled issuer refusal after the server removes it', () => {
+        mockRestrictionSets = {
+            ...jest.requireActual('@/hooks/useResidenceRestrictionSets').LOCAL_RESIDENCE_RESTRICTION_SETS,
+            refusedIdIssuers: new Set(),
+        }
+        mockSetupState = { residenceCountry: 'DE', nationalityCountry: 'IR' }
+        render(<ResidenceStep />)
+        expect(screen.queryByText(/We can’t verify passports or ID cards from/)).not.toBeInTheDocument()
     })
 })

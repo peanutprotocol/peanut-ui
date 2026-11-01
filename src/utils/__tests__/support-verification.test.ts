@@ -1,8 +1,9 @@
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import { buildSupportVerificationSummary } from '../support-verification'
 import type { IdentityVerification, RailCapability, UserCapabilities } from '@/types/capabilities'
 
 function caps(rails: RailCapability[], nextActions: UserCapabilities['nextActions'] = []): UserCapabilities {
-    return { rails, nextActions, restrictions: [] }
+    return withFeatureReport({ rails, nextActions, restrictions: [] })
 }
 
 const enabledRail: RailCapability = {
@@ -42,13 +43,13 @@ const emailBlockedRail: RailCapability = {
 }
 
 describe('buildSupportVerificationSummary', () => {
-    test('reports identity status, email-on-file and per-op gates', () => {
+    test('reports identity status, email-on-file and per-feature report', () => {
         const identity: IdentityVerification = { status: 'verified' }
         const summary = buildSupportVerificationSummary(caps([enabledRail]), identity, 'a@b.com')
 
         expect(summary.identityStatus).toBe('verified')
         expect(summary.emailOnFile).toBe(true)
-        expect(summary.gates).toContain('pay:ready')
+        expect(summary.gates).toBe('qr:ready local:ready bank:on card:ready')
     })
 
     test('surfaces the stuck rail + failure reason', () => {
@@ -57,7 +58,9 @@ describe('buildSupportVerificationSummary', () => {
 
         expect(summary.emailOnFile).toBe(false)
         expect(summary.failureReason).toBe('manteca.pix_br · no_email_captured — No email captured during submission')
-        expect(summary.gates).toContain('deposit:provide-email')
+        expect(summary.gates).toBe(
+            'qr:action_required(no_email_captured) local:action_required(no_email_captured) bank:ready card:ready'
+        )
         expect(summary.verificationRails).toBe('manteca.pix_br:fixable(no_email_captured)')
     })
 
@@ -102,7 +105,7 @@ describe('buildSupportVerificationSummary', () => {
 
     test('still reports gates for a user whose read-model is present but empty', () => {
         const summary = buildSupportVerificationSummary(caps([]), undefined, undefined)
-        expect(summary.gates).toBe('pay:needs-identity deposit:needs-identity withdraw:needs-identity')
+        expect(summary.gates).toBe('qr:ready local:ready bank:ready card:ready')
     })
 
     test('reports action_required identity status', () => {
@@ -113,4 +116,27 @@ describe('buildSupportVerificationSummary', () => {
         )
         expect(summary.identityStatus).toBe('action_required')
     })
+})
+
+it('summarizes the exact feature states and reasons even when the rails disagree', () => {
+    const capabilities = caps([enabledRail])
+    capabilities.features = {
+        qr: { state: 'on' },
+        local: { state: 'ready', accounts: {} },
+        bank: { state: 'refused', reason: 'uk_resident_blocked', accounts: { USD: { state: 'on' } } },
+        card: { state: 'setting_up' },
+    }
+    expect(buildSupportVerificationSummary(capabilities, { status: 'verified' }, undefined).gates).toBe(
+        'qr:on local:ready bank:refused(uk_resident_blocked) card:setting_up'
+    )
+})
+
+it('does not invent feature gates when a legacy capability block lacks a report', () => {
+    expect(
+        buildSupportVerificationSummary(
+            { rails: [enabledRail], nextActions: [], restrictions: [] },
+            { status: 'verified' },
+            undefined
+        ).gates
+    ).toBe('')
 })

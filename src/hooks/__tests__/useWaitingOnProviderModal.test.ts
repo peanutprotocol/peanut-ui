@@ -3,6 +3,10 @@ import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
 import type { GateState } from '@/utils/capability-gate'
 
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ openSupportWithMessage: jest.fn() }),
+}))
+
 const markSubmittedMock = jest.fn()
 jest.mock('@/hooks/useSubmissionWindow', () => ({
     markSubmitted: () => markSubmittedMock(),

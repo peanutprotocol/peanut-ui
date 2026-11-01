@@ -16,6 +16,7 @@ import { getAuthToken } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
 import type { SignedRainWithdrawal } from '@/hooks/wallet/useSignSpendBundle'
 import { API_ERROR_CODES, ApiError } from './api-error'
+import { kycClientHeaders } from '@/utils/kyc-client-headers'
 import type { AcceptedLegalDocument } from '@/services/consent'
 import type { paths } from '@/types/api.generated'
 
@@ -421,9 +422,11 @@ const RAIN_COOLDOWN_PATH = '/rain/cards/withdraw/prepare'
 export type ApplyForCardResponse =
     | {
           status: 'incomplete'
-          missing: string[]
-          questionnaireComplete: boolean
+          missing?: string[]
+          questionnaireComplete?: boolean
           sumsubAccessToken: string
+          sumsubLevel?: string
+          externalActionId?: string
       }
     | {
           status: 'main-kyc-required'
@@ -449,9 +452,10 @@ export type ApplyForCardResponse =
       }
     | {
           status: 'pending'
-          rainUserId: string
-          message: string
+          rainUserId?: string
+          message?: string
       }
+    | { status: 'pending-identity' }
     | {
           // Residence country is on Rain's prohibited-issuance list —
           // terminal. Render the geo-blocked screen; no retry, no support CTA.
@@ -462,6 +466,20 @@ export type ApplyForCardResponse =
           // Approved residence is eligible, but a restricted residence change
           // is still pending. Recoverable by reviewing/cancelling that request.
           status: 'pending-residence-blocked'
+          message: string
+      }
+    | {
+          // Smart Paperwork Verification: the card answers (purpose, job, income, spend,
+          // phone) are not all in Sumsub yet, or Rain refused the job title
+          // (step 'work'). Ask them, then apply again.
+          status: 'questions-required'
+          step: string
+      }
+    | {
+          // The send gate refused Rain for this user's plan; `reason` is the
+          // plan's refusal code (e.g. identity_document_insufficient).
+          status: 'provider-not-in-plan'
+          reason?: string
           message: string
       }
     | {
@@ -489,6 +507,8 @@ interface RequestOpts {
     stepUp?: boolean
     /** Use an already-cached proof without opening a new ceremony. */
     stepUpToken?: string
+    /** Extra request headers (the Smart Paperwork Verification header on the application). */
+    headers?: Record<string, string>
     /**
      * Suppress the GLOBAL cooldown explainer for a 425 (the typed
      * `RainCooldownError` and its telemetry are unchanged). Only the internal
@@ -511,7 +531,7 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
     // JS never holds the token.
     if (!isCapacitor() && !getAuthToken()) throw new Error('Authentication required')
 
-    const headers: Record<string, string> = { 'api-key': PEANUT_API_KEY }
+    const headers: Record<string, string> = { 'api-key': PEANUT_API_KEY, ...opts.headers }
     if (opts.noStore) headers['Cache-Control'] = 'no-store'
     if (opts.stepUp) headers[STEP_UP_HEADER] = opts.stepUpToken ?? (await getStepUpToken())
 
@@ -598,6 +618,7 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
         throw new ApiError(err.error || err.message || `Request failed: ${response.status}`, {
             status: response.status,
             code: err.code,
+            reason: typeof err.reason === 'string' ? err.reason : undefined,
         })
     }
 
@@ -876,6 +897,7 @@ export const rainApi = {
                 method: 'POST',
                 path: '/rain/cards',
                 body,
+                headers: kycClientHeaders(),
                 // The first-time-application path runs 7 sequential Sumsub calls, a
                 // deliberate 2.5s readiness sleep, the Rain createApplication call,
                 // and an optional inline issueCard — routinely 7-13s. The default
@@ -891,6 +913,9 @@ export const rainApi = {
             // recoverable residence-management screen.
             if (e instanceof ApiError && (e.code === 'geo-blocked' || e.code === 'pending-residence-blocked')) {
                 return { status: e.code, message: e.message }
+            }
+            if (e instanceof ApiError && e.code === 'provider-not-in-plan') {
+                return { status: e.code, ...(e.reason ? { reason: e.reason } : {}), message: e.message }
             }
             throw e
         }

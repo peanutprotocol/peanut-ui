@@ -1,3 +1,13 @@
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
+        user: {
+            user: { userId: 'legacy-user' },
+            capabilities: mockCapabilityBlock(),
+            identityVerification: { status: 'verified' },
+        },
+        fetchUser: jest.fn(),
+    }),
+}))
 /**
  * MantecaAddMoney — the settled-deposit exit contract.
  *
@@ -8,6 +18,7 @@
  * else is stubbed to the thinnest thing that lets the settled step render.
  */
 import React from 'react'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
@@ -64,18 +75,25 @@ const mockDeposit = jest.fn()
 jest.mock('@/services/manteca', () => ({ mantecaApi: { deposit: (...a: unknown[]) => mockDeposit(...a) } }))
 
 jest.mock('@/hooks/useCurrency', () => ({ useCurrency: () => ({ symbol: 'R$', price: 5 }) }))
-jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ rails: [] }) }))
-jest.mock('@/hooks/useBankRows', () => ({ useBankChipFor: () => () => 'unlock' }))
+const mockCapabilityBlock = () =>
+    withFeatureReport(
+        { rails: [], nextActions: [], restrictions: [] },
+        { identity: { status: 'verified' }, residence: mockResidence }
+    )
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => ({ capabilities: mockCapabilityBlock(), rails: [], nextActions: [], isLoading: false }),
+}))
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ openSupportWithMessage: jest.fn() }),
+}))
 jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isVerified: true }) }))
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({ useMultiPhaseKycFlow: () => ({ isLoading: false, error: null }) }))
 jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
     useLimitsValidation: () => ({ currency: 'BRL' }),
 }))
 jest.mock('@/utils/regions.utils', () => ({ isVerifiedForCountry: () => true }))
-// the real hook reads useAuth, which throws with no provider; residence is set
-// per test so Argentina clears its residence gate.
-let mockResidence = ['BR']
-jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => mockResidence }))
+// The API report is for this residence.
+let mockResidence = 'BR'
 jest.mock('@/utils/provider-rejection.utils', () => ({ deriveProviderRejection: () => ({ state: 'none' }) }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -98,7 +116,7 @@ const submitAmount = () => fireEvent.click(screen.getByText('submit-amount'))
 beforeEach(() => {
     jest.clearAllMocks()
     mockCountry = 'brazil'
-    mockResidence = ['BR']
+    mockResidence = 'BR'
     Object.keys(queryState).forEach((k) => delete queryState[k])
     Object.assign(queryState, { amount: '250', currency: 'BRL' })
     mockDeposit.mockResolvedValue({ data: { id: 'syn-1', details: {}, stages: {} } })
@@ -133,7 +151,7 @@ describe('MantecaAddMoney — BRL/PIX exits', () => {
 describe('MantecaAddMoney — ARS/CVU exit', () => {
     it('leaves the flow on back from the deposit-details screen, not to the amount step', async () => {
         mockCountry = 'argentina'
-        mockResidence = ['AR']
+        mockResidence = 'AR'
         Object.assign(queryState, { currency: 'ARS' })
         renderFlow()
         submitAmount()

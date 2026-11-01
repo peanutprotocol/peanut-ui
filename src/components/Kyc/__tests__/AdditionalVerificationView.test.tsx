@@ -12,6 +12,8 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * restarts from step one.
  */
 import React from 'react'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import { railVerdict } from '@/utils/capability-gate'
 import { act, screen, fireEvent, waitFor } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 import type { NextAction, RailCapability } from '@/types/capabilities'
@@ -34,7 +36,15 @@ const mockAssignHref = jest.fn()
 let mockWindowOpen: jest.SpyInstance
 
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'user-1' } }, fetchUser: mockFetchUser, logoutUser: jest.fn() }),
+    useAuth: () => ({
+        user: {
+            user: { userId: 'user-1' },
+            capabilities: mockCapabilityBlock(),
+            identityVerification: { status: 'verified' },
+        },
+        fetchUser: mockFetchUser,
+        logoutUser: jest.fn(),
+    }),
 }))
 jest.mock('@/app/actions/sumsub', () => ({
     startHostedVerification: () => mockStartHosted(),
@@ -68,8 +78,36 @@ jest.mock('next/navigation', () => ({
 let mockNextActions: NextAction[] = []
 let mockRails: RailCapability[] = []
 let mockCapabilitiesLoading = false
+const mockCapabilityBlock = () => {
+    const rails: RailCapability[] = mockRails.length
+        ? mockRails
+        : mockNextActions.map((action) => ({
+              id: 'bridge.sepa_eu',
+              provider: 'bridge',
+              method: 'SEPA_EU',
+              channel: 'bank',
+              country: 'EU',
+              currency: 'EUR',
+              status: action.effectiveDate ? 'enabled' : 'requires-info',
+              resolved: { status: action.effectiveDate ? 'enabled' : 'fixable', nextAction: action },
+          }))
+    const byKey = new Map(mockNextActions.map((action) => [action.key, action]))
+    return withFeatureReport(
+        {
+            rails: rails.map((rail) => ({ ...rail, resolved: railVerdict(rail, byKey) })),
+            nextActions: mockNextActions,
+            restrictions: [],
+        },
+        { identity: { status: 'verified' } }
+    )
+}
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ nextActions: mockNextActions, rails: mockRails, isLoading: mockCapabilitiesLoading }),
+    useCapabilities: () => ({
+        capabilities: mockCapabilityBlock(),
+        nextActions: mockNextActions,
+        rails: mockRails,
+        isLoading: mockCapabilitiesLoading,
+    }),
 }))
 
 const startVerification = () => fireEvent.click(screen.getByRole('button', { name: /i have these, start/i }))

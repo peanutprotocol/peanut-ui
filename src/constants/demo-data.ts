@@ -133,6 +133,21 @@ const DEMO_CAPABILITIES: UserCapabilities = {
     ],
     nextActions: [],
     restrictions: [],
+    // The API's report for these rails, written out: the app never computes one (a test keeps them equal).
+    features: {
+        qr: { state: 'on' },
+        local: { state: 'on', accounts: { BRL: { state: 'on' }, ARS: { state: 'on' } } },
+        bank: {
+            state: 'on',
+            accounts: {
+                USD: { state: 'on' },
+                EUR: { state: 'ready' },
+                GBP: { state: 'ready' },
+                MXN: { state: 'ready' },
+            },
+        },
+        card: { state: 'ready' },
+    },
 }
 
 const DEMO_IDENTITY_VERIFICATION: IdentityVerification = {
@@ -151,7 +166,11 @@ export const DEMO_USER: IUserProfile = {
     invitesSent: [],
     showEarlyUserModal: false,
     invitedBy: null,
-    residence: { declared: 'BR', declaredSecond: null, verified: null, kycReported: null },
+    residence: {
+        verified: null,
+        declared: { country: 'BR', status: 'UNVERIFIED', updatedAt: null, secondCountry: null },
+        secondaryDeclaredCountry: null,
+    },
     capabilities: DEMO_CAPABILITIES,
     identityVerification: DEMO_IDENTITY_VERIFICATION,
     accounts: [

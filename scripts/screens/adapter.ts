@@ -1,14 +1,17 @@
 /** Capture-only API adapter. No historical components or styles are copied. */
 import { demoRespond } from '../../src/utils/demo-api'
+import { KYC_USER_READS } from '../../src/utils/demo-kyc'
 import {
     RESTRICTED_RESIDENCE_ISO2,
     CARD_RESTRICTED_RESIDENCE_ISO2,
     BANKING_RESTRICTED_RESIDENCE_ISO2,
 } from '../../src/constants/residence.consts'
 import { FIXTURES } from '../../src/dev/fixtures/registry'
+import { withFixtureFeatureReport } from '../../src/dev/fixtures/featureReport'
+import type { IUserProfile } from '../../src/interfaces/interfaces'
 import openapi from '../../src/types/api.openapi.json'
 import { exampleFor } from './openapi-example'
-export const ADAPTER_VERSION = 'synthetic-api-v2'
+export const ADAPTER_VERSION = 'synthetic-api-v3'
 export function merge(base: unknown, patch: unknown): unknown {
     if (
         !base ||
@@ -45,6 +48,23 @@ export async function answer(
     if (!state) throw new Error(`Unknown fixture ${fixture}`)
     const key = `${method} ${path.split('?')[0].replace(/\/+$/, '')}`
     if (state.fails?.includes(key)) return Response.json({ error: 'Synthetic failure' }, { status: 500 })
+    const rejection = state.rejects?.[key]
+    if (rejection) return Response.json(rejection.body, { status: rejection.status })
+    const activationFixtureRoute =
+        /^POST \/users\/kyc\/features\/(qr|bank|local|card)\/activate$/.test(key) ||
+        key === 'GET /users/kyc/questions' ||
+        key === 'GET /users/kyc/plan' ||
+        key === 'GET /users/kyc/profile' ||
+        key === 'POST /users/kyc/start-action'
+    if (activationFixtureRoute && fixture.startsWith('feature-activation-') && state.responses?.[key] !== undefined)
+        return Response.json(state.responses[key])
+    // The KYC reads that follow from the user, read off this fixture's own /users/me.
+    const userRead = KYC_USER_READS[key]
+    if (userRead) {
+        const user = (await (await answer(fixture, '/users/me', 'GET')).json()) as IUserProfile | null
+        const override = state.responses?.[key]
+        return Response.json(override === undefined ? userRead(user) : merge(userRead(user), override))
+    }
     if (key === 'GET /notifications') return Response.json({ items: [], nextCursor: null })
     if (key === 'POST /invites/validate')
         return Response.json({ success: true, attributionResolved: true, onboardingResolved: true, username: 'demo' })
@@ -73,7 +93,9 @@ export async function answer(
     const base = await synthetic(path, method, body, spec)
     let data = await base.json()
     if (key === 'GET /users/me') data = merge(data, { user: { activationCelebratedAt: '2026-01-01T00:00:00Z' } })
-    return Response.json(state.responses?.[key] === undefined ? data : merge(data, state.responses[key]), {
-        status: base.status,
-    })
+    const override = state.responses?.[key]
+    let merged = override === undefined ? data : merge(data, override)
+    if (key === 'GET /users/me')
+        merged = withFixtureFeatureReport(merged as IUserProfile | null, override as Partial<IUserProfile> | null)
+    return Response.json(merged, { status: base.status })
 }

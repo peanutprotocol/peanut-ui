@@ -58,6 +58,7 @@ jest.mock('@/context/authContext', () => ({
         fetchUser: mockFetchUser,
         isFetchingUser: false,
     }),
+    useOptionalAuth: () => ({ user: mockAuthUser }),
 }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',

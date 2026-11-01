@@ -131,7 +131,7 @@
             "firstPaymentHeldCardQrNote": "Pague com cartão ou QR",
             "hide": "Ocultar",
             "welcomeTitle": "Boas-vindas ao Peanut!",
-            "welcomeBody": "{count} passos rápidos para pagar, enviar e receber",
+            "welcomeBody": "{count, plural, one {Falta # passo} other {Faltam # passos}} para pagar, enviar e receber",
             "progress": "{done} de {total} concluídos",
             "welcomeTitleSpoken": "Boas-vindas ao Peanut!"
         },
@@ -230,6 +230,10 @@
             "documentDescription": "Necessário para manter as transferências bancárias funcionando.",
             "documentDueBy": "Prazo: {deadline}. Necessário para manter as transferências bancárias funcionando.",
             "documentCta": "Concluir agora",
+            "cardDocumentTitle": "Mais um documento para o seu cartão",
+            "cardAddressDescription": "Nosso parceiro de cartões precisa de um comprovante de residência para concluir seu pedido.",
+            "cardIdentityDescription": "Nosso parceiro de cartões precisa do seu documento de identidade de novo para concluir seu pedido.",
+            "cardDocumentCta": "Continuar",
             "completeBefore": "Conclua até {deadline}",
             "dismiss": "Dispensar {task}",
             "verifyTitle": "Verificação adicional necessária",
@@ -308,7 +312,10 @@
             "starAlt": "estrela",
             "help": "Central de Ajuda",
             "about": "Sobre o Peanut",
-            "updateAvailable": "Atualização disponível"
+            "updateAvailable": "Atualização disponível",
+            "profile": "Perfil",
+            "paymentMethods": "Formas de pagamento",
+            "notifications": "Notificações"
         },
         "logOut": "Sair",
         "logOutAllDevices": "Sair de todos os dispositivos",
@@ -362,7 +369,9 @@
         "unlockPayments": {
             "titles": {
                 "accounts": "Contas",
-                "payments": "Pagamentos"
+                "payments": "Pagamentos",
+                "methods": "Formas de pagamento",
+                "bank": "Conta bancária"
             },
             "residence": {
                 "label": "Residência",
@@ -390,14 +399,15 @@
                 "usd": "USD · Transferência bancária",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Transferência bancária",
-                "qrPay": "Pagamentos QR"
+                "qrPay": "Pagamentos QR",
+                "bankAccount": "Conta bancária"
             },
             "chips": {
-                "active": "Disponível",
-                "alwaysOn": "Sempre ativo",
-                "unlock": "Desbloquear",
-                "processing": "Processando",
-                "attention": "Atenção",
+                "active": "Ativo",
+                "alwaysOn": "Ativo",
+                "unlock": "Configurar",
+                "processing": "Pendente",
+                "attention": "Ação necessária",
                 "notAvailable": "Não disponível"
             },
             "bankNotAvailableNote": "Transferências bancárias e emissão de cartão não estão disponíveis para residentes do seu país.",
@@ -417,7 +427,16 @@
                 "cardRestrictionNote": "Atenção: o cartão não está disponível para residentes deste país.",
                 "bankingRestrictionNote": "Atenção: transferências bancárias não estão disponíveis para residentes deste país.",
                 "save": "Salvar",
-                "saveAndReverify": "Enviar documentos"
+                "saveAndReverify": "Enviar documentos",
+                "lostTitle": "Você vai perder alguns serviços",
+                "lostBody": "{country} não permite {services}. Eles são desativados quando aprovarmos sua mudança.",
+                "saveAnyway": "Mudar mesmo assim",
+                "lost": {
+                    "card": "o Peanut Card",
+                    "bank": "contas bancárias",
+                    "local": "transferências bancárias locais",
+                    "qr": "Pagamentos QR"
+                }
             },
             "degraded": {
                 "title": "A verificação está temporariamente fora do ar",
@@ -452,7 +471,8 @@
                 "usd": "Adicione ou saque dólares por transferências bancárias dos Estados Unidos.",
                 "mxn": "Adicione ou saque pesos mexicanos pela rede SPEI.",
                 "sepa": "Adicione ou saque euros por transferências SEPA.",
-                "qrPay": "Pague em lojas no Brasil e na Argentina escaneando um código QR."
+                "qrPay": "Pague em lojas no Brasil e na Argentina escaneando um código QR.",
+                "bankAccount": "Adicione e saque dinheiro por transferência bancária"
             },
             "valueProp": {
                 "p2p": "Divida contas e pague amigos com um toque.",
@@ -464,14 +484,21 @@
                 "mxn": "Movimente pesos mexicanos entre seu banco e o Peanut.",
                 "sepa": "Guarde e movimente euros sem um banco local.",
                 "qrPay": "Escaneie e pague onde você mora.",
-                "pixSend": "Envie reais para qualquer chave Pix no Brasil."
+                "pixSend": "Envie reais para qualquer chave Pix no Brasil.",
+                "bankAccount": "Adicione, guarde e saque dinheiro em outras moedas."
             },
             "detailsDrawer": {
                 "aboutTitle": "O que desbloqueia",
                 "limitsTitle": "Limites"
             },
             "qrPayNote": "Brasil e Argentina",
-            "pixSendNote": "Envie para qualquer chave Pix"
+            "pixSendNote": "Envie para qualquer chave Pix",
+            "bankPick": "Escolha uma moeda para ver a conta ou configurá-la.",
+            "sections": {
+                "active": "Prontos para usar",
+                "notActive": "Ainda não ativos",
+                "unavailable": "Indisponíveis"
+            }
         },
         "backup": {
             "title": "Backup",
@@ -616,6 +643,43 @@
                 "revealed": "O interruptor de atualizações beta está visível abaixo.",
                 "appOnly": "As atualizações beta só estão disponíveis no app do Peanut."
             }
+        },
+        "details": {
+            "title": "Perfil",
+            "notStored": "Não armazenado no Peanut",
+            "yes": "Sim",
+            "no": "Não",
+            "rows": {
+                "name": "Nome",
+                "surname": "Sobrenome",
+                "email": "E-mail",
+                "declaredResidence": "Residência declarada",
+                "verifiedResidence": "Residência verificada",
+                "secondResidence": "Segunda residência",
+                "nationality": "Nacionalidade",
+                "dateOfBirth": "Data de nascimento",
+                "countryOfBirth": "País de nascimento",
+                "cityOfBirth": "Cidade de nascimento",
+                "document": "Documento de identidade",
+                "phone": "Número de telefone",
+                "address": "Endereço",
+                "taxId": "Número fiscal",
+                "occupation": "Profissão",
+                "employmentStatus": "Situação profissional",
+                "annualSalary": "Renda anual",
+                "expectedMonthlyVolume": "Gasto mensal no cartão",
+                "bankMonthlyPayments": "Pagamentos mensais da conta",
+                "sourceOfFunds": "Origem dos recursos",
+                "bankPurpose": "Uso da conta",
+                "cardPurpose": "Uso do cartão",
+                "actingAsIntermediary": "Envios para outras pessoas",
+                "sex": "Sexo",
+                "maritalStatus": "Estado civil",
+                "isPep": "Cargo público",
+                "isFatca": "Cidadão ou residente fiscal dos EUA",
+                "isFep": "Sujeito obrigado perante a UIF",
+                "idNationality": "Nacionalidade no seu documento"
+            }
         }
     },
     "settings": {
@@ -641,6 +705,18 @@
             "cryingPeanutAlt": "Peanut chorando",
             "depositInFlight": "Há um depósito a caminho. Espere ele chegar e saque seu saldo antes de excluir sua conta.",
             "depositAccountsUnavailable": "Não conseguimos encerrar suas contas bancárias. Sua conta Peanut continua ativa. Tente novamente mais tarde."
+        },
+        "notifications": {
+            "title": "Notificações",
+            "loadFailed": "Não foi possível carregar suas configurações. Tente novamente.",
+            "important": "Alertas importantes",
+            "importantBody": "Pagamentos, conta e segurança",
+            "offers": "Ofertas e vantagens",
+            "offersBody": "Teste as novidades antes de todo mundo",
+            "email": "Novidades por e-mail",
+            "emailBody": "Novidades úteis no seu e-mail",
+            "blocked": "As notificações estão desativadas nas configurações do seu dispositivo.",
+            "openSettings": "Abrir configurações"
         }
     },
     "limits": {
@@ -745,10 +821,6 @@
                 "title": "Pague qualquer pessoa com um toque.",
                 "description": "Envie dólares para um usuário do Peanut ou compartilhe um link de pagamento."
             },
-            "residence": {
-                "title": "País de residência legal",
-                "description": "Onde você tem residência legal. Não necessariamente onde nasceu nem para onde está viajando."
-            },
             "advantage-rewards": {
                 "title": "Coisas boas são melhores em companhia.",
                 "description": "Convide amigos e desbloqueie recompensas quando eles usarem o Peanut."
@@ -776,8 +848,7 @@
                 "title": "Sem spam. Juro de dedinho."
             },
             "notification-permission": {
-                "title": "Ative as notificações",
-                "description": "Saiba na hora quando o dinheiro chega, um pagamento é concluído ou sua conta precisa de atenção."
+                "title": "Ative as notificações para ficar por dentro"
             },
             "success": {
                 "title": "Tudo pronto!",
@@ -859,9 +930,6 @@
             "termsAgreement": "Ao criar uma conta, você aceita os <terms>Termos e Condições</terms> e a <privacy>Política de Privacidade</privacy>"
         },
         "residenceStep": {
-            "countryPlaceholder": "Selecione o país",
-            "secondCountryPlaceholder": "Segundo país",
-            "multiDocLink": "Tem residência em outro país?",
             "errors": {
                 "invalidEmail": "Digite um e-mail válido"
             },
@@ -905,8 +973,39 @@
                 "changeCountry": "Escolher outro país"
             },
             "compare": {
-                "selectCountry": "Escolher {country}"
-            }
+                "selectCountry": "Escolher {country}",
+                "items": {
+                    "p2p": "Peanut para Peanut",
+                    "pix": "Pagamentos e transferências PIX",
+                    "arQr": "Pagamentos QR e transferências próprias",
+                    "spei": "Transferências bancárias em pesos mexicanos",
+                    "usdAch": "Transferências bancárias em dólares americanos",
+                    "eurSepa": "Transferências bancárias em euros",
+                    "gbpFps": "Transferências bancárias em libras esterlinas",
+                    "bank": "Transferências bancárias onde houver suporte",
+                    "card": "Cartão Peanut"
+                },
+                "missing": {
+                    "banking": "Transferências bancárias",
+                    "card": "Cartão Peanut"
+                },
+                "multiCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda.",
+                "guideTitle": "Qual país você deve selecionar?",
+                "guideDeclaration": "Se você tem uma autorização de residência de um dos dois países, escolha esse país. Caso contrário, escolha o país que emitiu seu documento de identidade, como um passaporte ou uma carteira de motorista.",
+                "title": "Vincule seu perfil a um único país",
+                "description": "Veja o que cada um libera."
+            },
+            "sentence": "Meu país de residência <nw>é <residence></residence></nw> e o de nacionalidade <nw>é <nationality></nationality>.</nw>",
+            "residenceTitle": "Onde você tem residência?",
+            "nationalityTitle": "Qual é a sua nacionalidade?",
+            "sameCountry": "o mesmo",
+            "sameCountryRow": "O mesmo país",
+            "choose": "Escolher",
+            "searchCountry": "Buscar países",
+            "noCountry": "Nenhum país corresponde a “{query}”.",
+            "hint": "Toque em um país para mudá-lo.",
+            "refusedPassport": "Não conseguimos verificar passaportes nem documentos de identidade deste país: {nationality}. Para verificar sua identidade, use seu cartão de residência ({residence}).",
+            "continue": "Continuar"
         },
         "passkey": {
             "notAvailable": "As passkeys ainda não estão disponíveis neste dispositivo. Tente de novo.",
@@ -1018,12 +1117,16 @@
             "optOutNote": "Vamos enviar e-mails sobre sua conta. Você pode desativar novidades e ofertas quando quiser."
         },
         "notifications": {
-            "pushLabel": "Notificações push",
-            "pushDescription": "Novidades direto no seu celular.",
-            "emailDescription": "Novidades na sua caixa de entrada.",
             "continue": "Continuar",
-            "pushUnavailable": "As notificações push ainda não estão prontas. Tente novamente ou desative o push para continuar.",
-            "saveFailed": "Não foi possível salvar suas configurações. Tente novamente."
+            "saveFailed": "Não foi possível salvar suas configurações. Tente novamente.",
+            "importantLabel": "Alertas importantes",
+            "importantDescription": "Pagamentos, conta e segurança",
+            "offersLabel": "Ofertas e vantagens",
+            "offersDescription": "Teste as novidades antes de todo mundo",
+            "emailLabel": "Novidades por e-mail",
+            "emailDescription": "Novidades úteis no seu e-mail",
+            "changeAnytime": "Você pode mudar qualquer uma dessas opções quando quiser no seu perfil.",
+            "notNow": "Agora não"
         },
         "paymentPlan": {
             "fundingTitle": "Adicionar dinheiro com",
@@ -1033,7 +1136,7 @@
                 "crypto": "Cripto",
                 "peanut": "Outro usuário do Peanut",
                 "bank": "Transferência bancária",
-                "bankCurrencies": "Transferência bancária (USD, EUR, GBP, MXN)",
+                "bankCurrencies": "Transferência bancária ({currencies})",
                 "brlBank": "Transferência bancária (BRL)",
                 "arsBank": "Transferência bancária (ARS)"
             },
@@ -1058,6 +1161,11 @@
         "inviteStep": {
             "continue": "Continuar",
             "skip": "Pular"
+        },
+        "notificationsControl": {
+            "title": "Ative as notificações",
+            "description": "Saiba na hora quando o dinheiro chega, um pagamento é concluído ou sua conta precisa de atenção.",
+            "pushLabel": "Notificações push"
         }
     },
     "loadingStates": {
@@ -1511,9 +1619,23 @@
             "restartDescription": "Pagamentos com QR precisam de um documento de um país compatível. Você pode verificar com outro documento.",
             "blockedDescription": "Pagamentos com QR não estão disponíveis para a sua conta. Fale com o suporte para receber ajuda.",
             "uploadDocument": "Enviar documento",
-            "verifyAgainTitle": "Precisamos de mais alguns dados",
-            "verifyAgainDescription": "Faltam alguns dados. Conclua a verificação adicional.",
-            "verifyAgainCta": "Continuar"
+            "verifyAgain": {
+                "documentMissing": {
+                    "title": "Envie seu documento mais uma vez",
+                    "description": "Mudamos de parceiro de verificação e a foto do seu documento não veio junto. A falha foi nossa. Envie seu documento e tire uma selfie rápida, e os pagamentos por QR voltam a funcionar.",
+                    "cta": "Enviar documento"
+                },
+                "restartPending": {
+                    "title": "Conclua a verificação do seu novo documento",
+                    "description": "Você começou a se verificar com um documento novo. Até a gente conferir, os pagamentos por QR ficam pausados, para nunca pagarmos com dados desatualizados. Continue de onde parou: leva poucos minutos.",
+                    "cta": "Continuar verificação"
+                },
+                "unreadable": {
+                    "title": "Não conseguimos ler o número do seu documento",
+                    "description": "Para pagar por QR, nosso parceiro de pagamentos precisa do seu nome completo e do número do seu documento, e não conseguimos lê-los no documento que você enviou. Desculpe pelo passo extra. Envie seu documento de novo e pronto.",
+                    "cta": "Enviar documento"
+                }
+            }
         },
         "info": {
             "exchangeRate": "Taxa de câmbio",
@@ -1645,9 +1767,8 @@
             "navTitle": "Cartão Peanut",
             "title": "Gaste onde a Visa é aceita",
             "description": "Use seu saldo em mais de 150M de lojas. Online, por aproximação, seu.",
-            "featureBalance": "Gerencie seu cartão no Peanut",
-            "featureControl": "Controle total",
-            "featureOnline": "Funciona online e por aproximação",
+            "visaAcceptance": "Aceito em lojas Visa do mundo todo",
+            "contactless": "Por aproximação com o {wallet}",
             "cta": "Pedir cartão"
         },
         "addToWallet": {
@@ -1675,6 +1796,7 @@
             "requiresInfoBirthDateBody": "Informe sua data de nascimento para terminar seu pedido de cartão.",
             "requiresInfoProofOfAddressBody": "Envie um comprovante de endereço para terminar seu pedido de cartão.",
             "requiresInfoIdentityBody": "Envie seus documentos de identidade para terminar seu pedido de cartão.",
+            "requiresInfoWaitBody": "Você não precisa fazer mais nada por enquanto. Seu pedido segue assim que nosso parceiro de cartões analisar seu documento.",
             "requiresSupportTitle": "Algo deu errado do nosso lado",
             "requiresSupportBody": "Tivemos um problema ao processar seu pedido de cartão. Nosso time precisa dar uma olhada — fale com o suporte que a gente resolve.",
             "rejectedTitle": "Não conseguimos emitir um cartão",
@@ -1684,7 +1806,8 @@
             "geoBlockedPolicyLink": "Veja quais regiões estão restritas",
             "pendingResidenceBlockedTitle": "Mudança de residência pendente",
             "pendingResidenceBlockedBody": "Sua residência aprovada continua ativa, mas as solicitações de cartão ficam pausadas enquanto houver uma mudança de residência pendente. Revise ou cancele essa mudança para continuar.",
-            "pendingResidenceBlockedCta": "Revisar mudança de residência"
+            "pendingResidenceBlockedCta": "Revisar mudança de residência",
+            "pendingIdentityBody": "Vamos configurar seu cartão quando a verificação de identidade terminar."
         },
         "cancel": {
             "title": "Cancelar o cartão?",
@@ -2986,7 +3109,6 @@
             "titleBlocked": "Não conseguimos desbloquear",
             "titleRestartIdentity": "Verifique com outro documento",
             "titleIdentityDocumentMissing": "Conclua sua verificação",
-            "titleProviderRejection": "Precisamos de documentos adicionais",
             "titleCrossRegion": "Desbloquear {region}",
             "titleCrossRegionGeneric": "Desbloquear esta região",
             "titleRegionUnavailable": "Indisponível para residentes do Reino Unido",
@@ -3004,7 +3126,14 @@
             "descriptionDefault": "Confirme seu documento para desbloquear os pagamentos.",
             "ctaUploadDocument": "Enviar documento",
             "ctaUnlockNow": "Verificar identidade",
-            "ctaWithdrawFunds": "Sacar fundos"
+            "ctaWithdrawFunds": "Sacar fundos",
+            "ctaAnswerQuestions": "Responder perguntas",
+            "supportMessageDuplicateAccount": "Olá! Minha verificação está bloqueada porque meu e-mail já está vinculado a outra conta Peanut. Vocês podem me ajudar a resolver qual conta manter?",
+            "supportMessageImportedIdentity": "Olá! Minhas transferências bancárias estão bloqueadas porque o parceiro de pagamentos não conseguiu verificar o documento da minha verificação anterior. Vocês podem me ajudar a enviar um documento válido?",
+            "ctaAnswerQuestion": "Responder à pergunta"
+        },
+        "documentRequest": {
+            "title": "Mais um documento necessário"
         },
         "regionRestricted": {
             "title": "Não conseguimos verificar documentos deste país",
@@ -3055,6 +3184,27 @@
             "invalidEmail": "Digite um endereço de e-mail válido.",
             "stillLoading": "Ainda estamos carregando sua conta — tente novamente em instantes.",
             "saveFailed": "Algo deu errado ao salvar seu e-mail. Tente novamente."
+        },
+        "setup": {
+            "settingUp": "Configurando",
+            "available": "Disponível",
+            "underReview": "Em análise",
+            "documentNeeded": "Falta um documento",
+            "agreementsNeeded": "Faltam os acordos",
+            "verifyId": "Verificar ID",
+            "notAvailable": "Não disponível",
+            "verifyAgain": "Verificar de novo com documento de {country}",
+            "verifyAgainPlain": "Verificar de novo",
+            "verifyAgainNote": "Inicia uma nova verificação de identidade.",
+            "uploadNow": "Enviar agora",
+            "later": "Depois",
+            "continueCard": "Continuar com o cartão",
+            "reviewTerms": "Revisar termos",
+            "termsNeeded": "Faltam os termos",
+            "documentDescription": "Nosso parceiro de pagamentos precisa de mais um documento para terminar de abrir esta conta.",
+            "proofOfAddressDescription": "Nosso parceiro de pagamentos precisa de um comprovante de endereço para terminar de abrir sua conta bancária.",
+            "termsDescription": "Aceite os termos atualizados para continuar usando transferências bancárias.",
+            "questionsNeeded": "Falta uma resposta"
         },
         "bridgeTos": {
             "description": "Aceite os termos do provedor para ativar as transferências bancárias.",
@@ -3405,6 +3555,450 @@
             "taxId": "Sua identidade foi verificada, mas não conseguimos validar seu documento fiscal para este país. Confira e corrija os dados para habilitar transferências bancárias.",
             "details": "Algumas informações precisam ser atualizadas para habilitar transferências bancárias. Sua verificação de identidade está salva.",
             "correct": "Corrigir dados"
+        },
+        "documents": {
+            "qr": "Pagamentos QR",
+            "local": "Transferências bancárias locais",
+            "bank": "Contas em USD, EUR, MXN e GBP",
+            "card": "Cartão Peanut",
+            "passport": "Passaporte",
+            "idCard": "Documento nacional de identidade",
+            "drivers": "Carteira de habilitação",
+            "residencePermit": "Permissão de residência",
+            "otherDocument": "Documento de apoio",
+            "temporaryProtection": "Proteção temporária para ucranianos"
+        },
+        "supplement": {
+            "proofOfAddressTitle": "Adicione um comprovante de endereço",
+            "proofOfAddressDescription": "Sua identidade está verificada. Para abrir suas contas bancárias, nosso parceiro de pagamentos também precisa de um comprovante de endereço, como um extrato bancário ou uma conta de consumo recente.",
+            "proofOfAddressCta": "Adicionar comprovante de endereço",
+            "later": "Fazer isso depois",
+            "uncollectable": "{feature}: não conseguimos terminar de configurar isso pelo app. Fale com o suporte e concluímos para você.",
+            "identityDocumentInsufficient": "{feature}: isso exige um documento de identidade diferente do que você usou na verificação.",
+            "unavailable": "{feature}: este recurso não está disponível com a verificação atual."
+        },
+        "paperworkVerification": {
+            "back": "Voltar",
+            "progress": "Passo {current} de {total}",
+            "continue": "Continuar",
+            "choose": "Escolher",
+            "whyAsk": "Por que perguntamos?",
+            "whyTitle": "Por que perguntamos",
+            "whyShared": "Compartilhamos cada resposta só com o parceiro que precisa dela.",
+            "gotIt": "Entendi",
+            "optional": "Opcional",
+            "phoneHelp": "Inclua o código do país, como +55.",
+            "phoneNote": {
+                "card": "Para a segurança do seu cartão. Não vamos enviar códigos.",
+                "local": "Para transferências locais. Não vamos enviar códigos."
+            },
+            "noSpam": {
+                "title": "Sem spam",
+                "body": "Não vamos enviar mensagens nem usar seu número para marketing."
+            },
+            "hints": {
+                "purpose": "Escolha a opção mais próxima.",
+                "work": "Escolha a opção mais próxima.",
+                "money": "Uma estimativa aproximada está ótima."
+            },
+            "why": {
+                "purpose": "Bancos e emissores de cartão precisam saber como você vai usar sua conta. Toda conta financeira regulada pergunta isso.",
+                "work": "Bancos e emissores de cartão precisam saber com o que você trabalha.",
+                "money": "Nossos parceiros verificam se a movimentação da sua conta combina com a sua renda. Uma faixa é suficiente.",
+                "birth": "As regras financeiras pedem estes dados pessoais, como estão no seu documento.",
+                "address": "Seu endereço precisa corresponder a onde você mora e aparece nos dados da sua conta.",
+                "phone": "Nossos parceiros guardam seu número de telefone para proteger sua conta.",
+                "tax": "As contas no seu país precisam estar vinculadas ao seu número fiscal.",
+                "declarations": "As regras financeiras do seu país fazem estas perguntas a todos. Se alguma se aplicar, podemos pedir um documento depois.",
+                "nationality": "Usamos sua nacionalidade para mostrar o passaporte e o documento nacional de identidade com os quais você pode se verificar."
+            },
+            "sentence": {
+                "cardPurpose": "Vou usar meu cartão <nw>para <pill></pill></nw>",
+                "bankPurpose": "Vou usar minha conta <nw>para <pill></pill></nw>",
+                "occupation": "Meu trabalho é mais parecido <nw>com <pill></pill></nw>",
+                "occupation_last": "Meu último trabalho foi mais parecido <nw>com <pill></pill></nw>",
+                "occupation_future": "Meu futuro trabalho é mais parecido <nw>com <pill></pill></nw>",
+                "employmentStatus": "Minha situação profissional <nw>é <pill></pill></nw>",
+                "annualSalary": "<nw>Ganho <pill></pill></nw> <nw>por ano</nw>",
+                "expectedMonthlyVolume": "<nw>Vou gastar <pill></pill></nw> <nw>por mês</nw>",
+                "sourceOfFunds": "Meu dinheiro vem <nw>de <pill></pill></nw>",
+                "countryOfBirth": "Nasci <nw>em <pill></pill></nw>",
+                "cityOfBirth": "na cidade <nw>de <pill></pill></nw>",
+                "bankMonthlyPayments": "Por mês, minha conta <nw>movimenta <pill></pill></nw>",
+                "actingAsIntermediary": "Vou enviar dinheiro <nw><pill></pill></nw>",
+                "nationality": "Minha nacionalidade <nw>é <pill></pill></nw>",
+                "maritalStatus": "Meu estado civil <nw>é <pill></pill></nw>",
+                "sex": "Meu sexo no documento <nw>é <pill></pill></nw>"
+            },
+            "pickerTitle": {
+                "cardPurpose": "Para que você vai usar o cartão",
+                "bankPurpose": "Para que você vai usar a conta",
+                "occupation": "Seu trabalho",
+                "occupation_last": "Seu último trabalho",
+                "occupation_future": "Seu futuro trabalho",
+                "employmentStatus": "Sua situação profissional",
+                "annualSalary": "Sua renda anual",
+                "expectedMonthlyVolume": "Quanto você vai gastar por mês",
+                "sourceOfFunds": "De onde vem seu dinheiro",
+                "countryOfBirth": "País de nascimento",
+                "cityOfBirth": "Cidade de nascimento",
+                "bankMonthlyPayments": "Quanto sua conta vai movimentar por mês",
+                "actingAsIntermediary": "Em nome de quem você envia dinheiro",
+                "nationality": "Sua nacionalidade",
+                "maritalStatus": "Estado civil",
+                "sex": "Sexo"
+            },
+            "jobNone": {
+                "last": "Nenhum nos últimos 5 anos",
+                "future": "Ainda não decidi"
+            },
+            "search": {
+                "occupation": "Buscar profissões",
+                "country": "Buscar países",
+                "popular": "Populares",
+                "matches": "{count, plural, one {# resultado} other {# resultados}}",
+                "typeToSearch": "Digite para buscar entre as {count} profissões.",
+                "noJob": "Nenhuma profissão corresponde a “{query}”. Tente uma palavra mais geral, como “gerente” ou “motorista”.",
+                "noCountry": "Nenhum país corresponde a “{query}”.",
+                "keepTyping": "Continue digitando para refinar a busca."
+            },
+            "options": {
+                "cardPurpose": {
+                    "personal_spending": "Gastos do dia a dia",
+                    "travel": "Viagens",
+                    "online_shopping": "Compras online",
+                    "bills": "Pagar contas",
+                    "business_expenses": "Despesas da empresa"
+                },
+                "bankPurpose": {
+                    "personal_or_living_expenses": "Gastos e contas do dia a dia",
+                    "receive_salary": "Receber meu salário",
+                    "receive_payment_for_freelancing": "Receber por trabalhos freelance",
+                    "payments_to_friends_or_family_abroad": "Enviar dinheiro para família ou amigos no exterior",
+                    "purchase_goods_and_services": "Comprar produtos e serviços",
+                    "ecommerce_retail_payments": "Vender online ou em uma loja",
+                    "protect_wealth": "Proteger minhas economias",
+                    "investment_purposes": "Investir",
+                    "operating_a_company": "Administrar uma empresa",
+                    "charitable_donations": "Fazer doações"
+                },
+                "employmentStatus": {
+                    "employed": "Empregado(a)",
+                    "self_employed": "Autônomo(a)",
+                    "student": "Estudante",
+                    "retired": "Aposentado(a)",
+                    "homemaker": "Do lar",
+                    "unemployed": "Sem trabalho"
+                },
+                "annualSalary": {
+                    "under_25k": "Menos de US$ 25.000",
+                    "25k_50k": "US$ 25.000–US$ 49.999",
+                    "50k_100k": "US$ 50.000–US$ 99.999",
+                    "100k_200k": "US$ 100.000–US$ 199.999",
+                    "over_200k": "Mais de US$ 200.000"
+                },
+                "expectedMonthlyVolume": {
+                    "under_1k": "Menos de US$ 1.000",
+                    "1k_5k": "US$ 1.000–US$ 4.999",
+                    "5k_10k": "US$ 5.000–US$ 9.999",
+                    "over_10k": "US$ 10.000 ou mais"
+                },
+                "sourceOfFunds": {
+                    "salary": "Meu salário",
+                    "savings": "Minhas economias",
+                    "company_funds": "Minha empresa",
+                    "investments_loans": "Investimentos ou empréstimos",
+                    "pension_retirement": "Minha aposentadoria",
+                    "gifts": "Presentes",
+                    "inheritance": "Uma herança",
+                    "sale_of_assets_real_estate": "Venda de imóveis ou bens",
+                    "government_benefits": "Benefícios do governo",
+                    "ecommerce_reseller": "Vendas online",
+                    "someone_elses_funds": "Dinheiro de outra pessoa",
+                    "gambling_proceeds": "Ganhos de apostas"
+                },
+                "bankMonthlyPayments": {
+                    "0_4999": "Menos de US$ 5.000",
+                    "5000_9999": "US$ 5.000–US$ 9.999",
+                    "10000_49999": "US$ 10.000–US$ 49.999",
+                    "50000_plus": "US$ 50.000 ou mais"
+                },
+                "actingAsIntermediary": {
+                    "no": "Só para mim",
+                    "yes": "Em nome de outras pessoas"
+                },
+                "maritalStatus": {
+                    "single": "Solteiro(a)",
+                    "married": "Casado(a)",
+                    "divorced": "Divorciado(a)",
+                    "widowed": "Viúvo(a)"
+                },
+                "sex": {
+                    "female": "Feminino",
+                    "male": "Masculino",
+                    "other": "Outro (X)"
+                }
+            },
+            "titles": {
+                "address": "Onde você mora?",
+                "phone": "Qual é o seu número de telefone?",
+                "declarations": "Alguma destas opções se aplica a você?"
+            },
+            "sections": {
+                "purpose": "Finalidade",
+                "work": "Trabalho",
+                "money": "Dinheiro",
+                "birth": "Sobre você"
+            },
+            "closed": {
+                "bank": {
+                    "us_state_unsupported": "Contas bancárias não estão disponíveis para endereços em Nova York.",
+                    "uk_resident_blocked": "Contas bancárias não estão disponíveis para residentes do Reino Unido.",
+                    "default": "Contas bancárias não estão disponíveis com os seus dados atuais.",
+                    "residence": "Contas bancárias não estão disponíveis onde você mora.",
+                    "nationality": "Contas bancárias não estão disponíveis para a sua nacionalidade.",
+                    "taxId": "Contas bancárias precisam de um número de identificação fiscal válido."
+                },
+                "card": {
+                    "default": "Peanut Card não está disponível com os seus dados atuais.",
+                    "residence": "Peanut Card não está disponível onde você mora.",
+                    "nationality": "Peanut Card não está disponível para a sua nacionalidade.",
+                    "taxId": "Peanut Card precisa de um número de identificação fiscal válido."
+                },
+                "local": {
+                    "default": "Transferências bancárias locais não estão disponíveis com os seus dados atuais.",
+                    "residence": "Transferências bancárias locais não estão disponíveis onde você mora.",
+                    "nationality": "Transferências bancárias locais não estão disponíveis para a sua nacionalidade.",
+                    "taxId": "Transferências bancárias locais precisam de um número de identificação fiscal válido."
+                },
+                "qr": {
+                    "default": "Pagamentos com QR não estão disponíveis com os seus dados atuais.",
+                    "residence": "Pagamentos com QR não estão disponíveis onde você mora.",
+                    "nationality": "Pagamentos com QR não estão disponíveis para a sua nacionalidade.",
+                    "taxId": "Pagamentos com QR precisam de um número de identificação fiscal válido."
+                },
+                "rest": "Todo o resto que você escolheu continua disponível."
+            },
+            "descriptions": {
+                "address": "Seu endereço residencial, como aparece em uma conta ou extrato bancário.",
+                "phone": {
+                    "card": "O parceiro do seu cartão usa esse número para manter seu cartão seguro.",
+                    "local": "Nosso parceiro de transferências locais guarda esse número na sua conta."
+                },
+                "declarations": "A maioria das pessoas deixa todas desligadas. Se alguma se aplicar, podemos pedir um documento depois."
+            },
+            "labels": {
+                "street": "Rua",
+                "buildingNumber": "Número",
+                "town": "Cidade",
+                "state": "Estado ou região",
+                "postCode": "CEP ou código postal",
+                "country": "País",
+                "countryLocked": "Seu país de residência. Você pode alterar em Perfil.",
+                "changeResidence": "Alterar seu país de residência",
+                "phone": "Número de telefone",
+                "isPep": "Ocupo um cargo público",
+                "isFatca": "Tenho cidadania ou residência fiscal nos EUA",
+                "isFep": "Sou obrigado a reportar à UIF",
+                "cityOfBirth": "Cidade de nascimento"
+            },
+            "tax": {
+                "title": {
+                    "ssn": "Qual é o seu Social Security number?",
+                    "other": "Qual é o seu número fiscal?"
+                },
+                "description": {
+                    "ssn": "Contas e cartões dos EUA precisam dele.",
+                    "other": "O número fiscal do seu país de residência."
+                },
+                "label": {
+                    "ssn": "Número do Seguro Social",
+                    "cuit": "CUIT ou CUIL",
+                    "cpf": "CPF",
+                    "rut": "RUT",
+                    "curp": "CURP",
+                    "cc": "Cédula de ciudadanía",
+                    "other": "Número fiscal"
+                },
+                "placeholder": {
+                    "ssn": "123-45-6789",
+                    "cuit": "20-12345678-6",
+                    "cpf": "123.456.789-09",
+                    "rut": "12.345.678-5",
+                    "curp": "GODE561231HDFRRN09",
+                    "cc": "1023456789",
+                    "other": "Seu número fiscal"
+                },
+                "help": {
+                    "ssn": "9 dígitos. ITIN não é aceito.",
+                    "cuit": "11 dígitos, da sua inscrição fiscal.",
+                    "cpf": "11 dígitos.",
+                    "rut": "Com o dígito verificador no final.",
+                    "curp": "18 caracteres.",
+                    "cc": "Como aparece no seu documento.",
+                    "other": "Como aparece nos seus documentos fiscais."
+                },
+                "replace": "Alterar o número"
+            },
+            "errors": {
+                "required": "Responda para continuar.",
+                "invalidOption": "Escolha uma das opções.",
+                "invalidTaxId": "Confira o número. Ele não parece correto.",
+                "itinNotAccepted": "Esse é um ITIN. Informe seu Social Security number.",
+                "invalidPhone": "Informe o número completo com o código do país, como +55.",
+                "invalidCountry": "Escolha um país da lista.",
+                "tooLong": "Está muito longo. Use menos de 100 caracteres.",
+                "invalidText": "Use só letras, números e pontuação.",
+                "invalid": "Confira esta resposta.",
+                "retry": "Não conseguimos salvar. Confira sua conexão e tente de novo.",
+                "featureNotSelected": "Sua conta mudou. Estamos carregando as perguntas certas.",
+                "identitySubmitted": "Seu documento já foi enviado, então essas respostas não podem mudar agora.",
+                "unavailable": "Esta verificação não está disponível agora.",
+                "usCitizenNotSupported": "Transferências locais não estão disponíveis para cidadãos ou residentes fiscais dos EUA. Você ainda pode receber com uma conta em USD ou pagar com QR.",
+                "tooShort": "Adicione o nome e o número da rua.",
+                "streetNumberMissing": "Adicione o número da rua.",
+                "poBoxNotAccepted": "Uma caixa postal não pode ser usada como endereço residencial.",
+                "invalidBody": "Não foi possível aceitar estas respostas. Abra a verificação novamente para continuar.",
+                "unknownStep": "Esta etapa não está mais disponível. Abra a verificação novamente para continuar.",
+                "rateLimited": "Muitas tentativas. Espere um minuto e tente de novo."
+            },
+            "midpoint": {
+                "restartTitle": "Verifique com outro documento",
+                "restartDescription": "Escolha o documento que você vai usar agora. Depois tire fotos dele e uma selfie rápida.",
+                "privacy": "A Sumsub cuida dos seus documentos com segurança.",
+                "failed": "Não conseguimos iniciar a verificação. Tente de novo.",
+                "unavailable": "Não conseguimos mostrar os documentos agora. Tente mais tarde."
+            },
+            "review": {
+                "description": "A verificação costuma levar alguns minutos. Se uma pessoa precisar revisar, leva de 1 a 3 dias úteis. Você pode sair desta tela, e avisaremos quando terminar.",
+                "cta": "Ir para o início",
+                "photos": "Fotos recebidas",
+                "reading": "Lendo seu documento e sua selfie",
+                "settingUp": "Configurando {features}",
+                "unlocking": "Desbloqueando pagamentos"
+            },
+            "failed": {
+                "title": "Precisamos ver seu documento de novo",
+                "description": "Sua verificação precisa de algo de você. O início mostra o que fazer.",
+                "cta": "Ir para o início",
+                "retry": "Tentar de novo"
+            },
+            "verified": {
+                "description": "Estamos configurando {features}. Costuma levar alguns minutos, e avisaremos quando tudo estiver pronto.",
+                "cta": "Ir para o início",
+                "descriptionQrOnly": "Você já pode começar a usar o Peanut."
+            },
+            "poa": {
+                "title": "Adicione um comprovante de endereço",
+                "description": "Seu documento não é de {country}, então nosso parceiro bancário pede um documento recente com seu nome e seu endereço lá.",
+                "descriptionTemporaryProtection": "Com proteção temporária, sua conta bancária também precisa de um documento recente com seu nome e seu endereço em {country}.",
+                "kinds": {
+                    "bankStatement": "Extrato bancário",
+                    "utilityBill": "Conta de consumo",
+                    "taxLetter": "Carta fiscal ou do governo"
+                },
+                "recent": "Dos últimos 3 meses",
+                "upload": "Enviar documento",
+                "skip": "Pular por enquanto",
+                "skipNote": "Você pode pular. Sua conta bancária abre mesmo assim, e nosso parceiro pode pedir depois."
+            },
+            "addLater": {
+                "title": {
+                    "bank": "Para sua conta bancária",
+                    "card": "Para seu cartão",
+                    "local": "Para transferências locais"
+                },
+                "doneTitle": "Estamos preparando tudo",
+                "doneDescription": {
+                    "bank": "Estamos configurando sua conta bancária. Costuma levar alguns minutos, e vamos avisar quando estiver pronta.",
+                    "card": "Estamos configurando seu cartão. Costuma levar alguns minutos, e vamos avisar quando estiver pronto.",
+                    "local": "Estamos configurando suas transferências locais. Costuma levar alguns minutos, e vamos avisar quando estiverem prontas."
+                },
+                "doneCta": "Concluído",
+                "actionTitle": "Mais um passo",
+                "actionDescription": "Conclua a verificação adicional para terminar a configuração."
+            },
+            "loadFailed": {
+                "title": "Não conseguimos carregar",
+                "description": "Confira sua conexão e tente de novo. Suas respostas até aqui estão salvas.",
+                "retry": "Tentar de novo"
+            },
+            "toggleNotes": {
+                "isPep": "Ou um parente próximo ou parceiro ocupa.",
+                "isFatca": "Mesmo que eu também tenha outra cidadania ou um green card.",
+                "isFep": "Vale para algumas profissões, como tabeliães."
+            },
+            "whenYes": {
+                "isFatca": "Transferências locais não estão disponíveis para cidadãos ou residentes fiscais dos EUA. Você ainda pode receber com uma conta em USD ou pagar com QR."
+            },
+            "place": {
+                "placeholder": "Comece a digitar a cidade",
+                "countryFirst": "Escolha o país primeiro",
+                "suggestions": "Lugares encontrados",
+                "noMatch": "Não está na lista. O nome como você digitou também vale.",
+                "inCountry": "Lugares em {country}. Um nome que não está na lista também vale.",
+                "done": "Concluído"
+            },
+            "continueWithoutLocal": "Continuar sem transferências bancárias locais",
+            "steps": {
+                "title": "Sua verificação de identidade",
+                "residence": "Defina seu país de residência",
+                "questions": "Responda algumas perguntas",
+                "photo": "Tire uma foto do seu documento",
+                "selfie": "Tire uma selfie rápida",
+                "review": "Passe por uma revisão segura",
+                "unlock": "Desbloqueie os pagamentos disponíveis",
+                "done": "Concluído",
+                "backHome": "Voltar ao início",
+                "setUpPayments": "Configurar pagamentos",
+                "verifiedNote": "Agora escolha como você quer pagar e receber."
+            },
+            "saved": {
+                "title": "Respostas salvas!",
+                "description": "Agora, uma foto do seu documento e uma selfie rápida."
+            },
+            "featureNames": {
+                "bank": "contas bancárias",
+                "card": "cartão",
+                "local": "transferências locais"
+            },
+            "documentList": {
+                "title": "Qual documento\nvocê vai usar?",
+                "description": "Escolha um para começar a verificação. Você vai tirar fotos dele e uma selfie.",
+                "issuedBy": "Emitido por {country}",
+                "issuedByWithProof": "Emitido por {country}. Você também vai enviar um comprovante de endereço.",
+                "issuedByLimited": "Emitido por {country}. {limits}",
+                "other": "Outro documento",
+                "otherHint": "Como uma carteira de habilitação",
+                "otherTitle": "Outros documentos",
+                "otherDescription": "Você também pode se verificar com um destes. Você vai tirar fotos dele e uma selfie.",
+                "otherNotAccepted": "Vistos, autorizações de trabalho e carteiras de estudante não servem para verificar sua identidade.",
+                "notAccepted": "Emitido por {country}. Não pode ser usado. Não é aceito.",
+                "backToList": "Voltar à lista",
+                "noneFit": "Não tem nenhum destes?",
+                "changeResidence": "Alterar residência",
+                "stepDots": "Verificar identidade, passo 1 de 3",
+                "noneAccepted": "Ainda não conseguimos verificar documentos emitidos por {countries}.",
+                "closesAll": "Emitido por {country}. Não serve para o que você escolheu.",
+                "closes": {
+                    "qr": "Pagamentos com QR não estão disponíveis com este documento.",
+                    "local": "Transferências bancárias locais não estão disponíveis com este documento.",
+                    "card": "O Peanut Card não está disponível com este documento.",
+                    "bank": "Contas bancárias não estão disponíveis com este documento."
+                },
+                "limitedTitle": "Continuar com este documento?",
+                "residenceUnlocks": "Um documento emitido por {country} não tem essa limitação.",
+                "chooseAnother": "Escolher outro documento"
+            },
+            "activation": {
+                "title": "Configure este recurso",
+                "description": "Continue para começar a configurar este recurso com nosso parceiro.",
+                "identityRequired": "Conclua a verificação da sua identidade para continuar configurando este recurso."
+            },
+            "policyHold": {
+                "description": "Este documento não pode ser usado para verificar sua identidade. Escolha outro documento.",
+                "cta": "Escolher outro documento"
+            }
         }
     },
     "identity": {
@@ -3444,6 +4038,11 @@
             "tax_identification_number": "Precisamos do seu número de identificação fiscal para continuar.",
             "address_of_residence": "Precisamos do seu endereço residencial para continuar.",
             "residence_unresolved": "Ainda precisamos do seu endereço residencial para terminar de configurar as transferências bancárias. Adicione e tentaremos de novo automaticamente.",
+            "bridge_answers_rejected": "Nosso parceiro de pagamentos não pôde aceitar uma das suas respostas. Responda às perguntas novamente.",
+            "requirements_missing": "Para abrir suas contas bancárias, nosso parceiro de pagamentos precisa de um comprovante de endereço, como um extrato bancário ou uma conta de consumo recente. Envie e terminaremos de configurá-las automaticamente.",
+            "requirements_in_review": "Estamos analisando seu comprovante de endereço. Suas contas bancárias serão abertas assim que ele for aprovado.",
+            "identity_document_insufficient": "O documento que você usou na verificação não pode ser usado para esta conta. Verifique novamente com outro documento de identidade.",
+            "requirements_uncollectable": "Nosso parceiro de pagamentos precisa de algo que não conseguimos coletar no app. Fale com o suporte e terminaremos a configuração com você.",
             "proof_of_address": "Precisamos de um comprovante de residência válido.",
             "source_of_funds": "Precisamos de informações sobre a origem dos seus fundos.",
             "proof_of_source_of_funds": "Precisamos de um documento que comprove a origem dos seus fundos.",
@@ -3451,18 +4050,27 @@
             "eea_uplift": "Precisamos de algumas informações adicionais para cumprir as regulamentações do EEE.",
             "eea_uplift_with_tin": "Precisamos de algumas informações adicionais para cumprir as regulamentações do EEE.",
             "eea_tin_reupload": "Reenvie seu número de identificação fiscal.",
-            "pep_documentation": "Precisamos de um documento que mostre a origem dos fundos que você vai usar no Peanut.",
+            "pep_documentation": "Como você ou alguém próximo a você ocupa um cargo público, precisamos de uma declaração juramentada dos seus bens e rendimentos, ou de um documento que mostre a origem do seu dinheiro.",
             "fep_documentation": "Devido à sua atividade profissional, precisamos de um comprovante da sua situação de reporte à UIF.",
             "email_required": "Precisamos de um e-mail para terminar de configurar esta conta. Adicione um ao seu perfil e tentaremos de novo automaticamente.",
             "submission_failed": "Tivemos um problema ao finalizar sua verificação do nosso lado. Vamos resolver: toque abaixo para falar com o suporte.",
-            "proof_of_address_review": "Recebemos seu comprovante de residência; ele está em análise.",
+            "proof_of_address_review": "Enviamos seu comprovante de residência ao nosso parceiro de cartões; ele está em análise.",
+            "proof_of_address_received": "Recebemos seu comprovante de residência e estamos encaminhando para o nosso parceiro de cartões.",
+            "identity_verification_required": "Nosso parceiro de cartões precisa de uma foto nova do seu documento de identidade e de uma selfie.",
+            "id_expired": "Seu documento de identidade venceu. Adicione um válido para suas contas continuarem funcionando.",
+            "id_verification_failed": "Não conseguimos verificar seu documento de identidade. Adicione um válido para suas contas continuarem funcionando.",
+            "card_id_not_accepted": "O documento com que você se verificou não pode ser usado no Peanut Card. Verifique de novo com outro documento.",
+            "identity_verification_review": "Enviamos sua selfie e seu documento de identidade ao nosso parceiro de cartões; eles estão em análise.",
+            "identity_verification_received": "Recebemos sua selfie e seu documento de identidade e estamos encaminhando para o nosso parceiro de cartões.",
             "bridge_tos_required": "Aceite os termos do nosso parceiro de pagamentos para continuar.",
             "bridge_tos_v2_required": "Aceite os Termos de Serviço atualizados do provedor de transferências bancárias para habilitar transferências em euros e libras esterlinas.",
             "bridge_processing": "Nosso parceiro de pagamentos está finalizando sua verificação. Isso costuma levar alguns minutos.",
             "verification_blocked": "Problema na verificação: fale com o suporte para receber ajuda.",
             "terminal_rejection": "Problema na verificação: fale com o suporte para receber ajuda.",
-            "bridge_terminal_rejection": "Não conseguimos verificar sua conta para transferências bancárias. Fale com o suporte se achar que isso é um engano.",
+            "bridge_terminal_rejection": "Nosso parceiro de pagamentos não aprovou as transferências bancárias para esta conta, e o Peanut não pode mudar essa decisão. Seus fundos no Peanut não são afetados. Se você acha que houve um engano, fale com o suporte.",
             "duplicate_customer_detected": "Nosso parceiro de pagamentos marcou sua conta como possível duplicata. Fale com o suporte para verificar e desbloquear.",
+            "duplicate_account": "Seu e-mail já está vinculado a outra conta Peanut, então não conseguimos terminar de configurar esta. Se a outra conta for sua, entre nela. Se não for, fale com o suporte e a gente resolve.",
+            "imported_identity_rejected": "Nosso parceiro de pagamentos não conseguiu verificar o documento da sua verificação anterior. Ele precisa de um documento de identidade oficial válido e pode pedir também um comprovante de endereço. Fale com o suporte e a gente cuida do resto.",
             "region_block": "O Peanut Card ainda não está disponível na sua região.",
             "compliance_block": "Não conseguimos aprovar sua solicitação de cartão após uma análise de conformidade.",
             "card_rejected": "Sua solicitação de cartão não pôde ser aprovada. Fale com o suporte se achar que isso é um engano.",
@@ -3475,7 +4083,13 @@
             "uk_resident_blocked": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "residence_bank_restricted": "Transferências bancárias não estão disponíveis para residentes do seu país. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "identity_region_restricted": "Nosso parceiro de verificação não aceita documentos emitidos no seu país. Enviar de novo não vai mudar o resultado.",
-            "identity_document_missing": "Precisamos de um documento de identidade e uma selfie para concluir sua verificação."
+            "identity_document_missing": "Precisamos de um documento de identidade e uma selfie para concluir sua verificação.",
+            "document_country_unsupported": "Isso exige um documento de identidade emitido pelo país onde você mora. Verifique novamente com esse documento.",
+            "card_unavailable_for_verification": "Indisponível com a verificação atual",
+            "local_tax_id_missing": "Precisa de um número fiscal: CPF no Brasil, CUIT ou CUIL na Argentina",
+            "under_minimum_age": "Somente a partir de 18 anos",
+            "bridge_processing_slow": "Está demorando mais que o normal. Nosso parceiro de pagamentos ainda está analisando seus dados. Fale com o suporte e a gente confere.",
+            "questions_missing": "Responda mais uma pergunta para terminar de configurar."
         }
     },
     "recoverFunds": {
@@ -3925,7 +4539,8 @@
             "clear": "Limpar busca",
             "removeCountry": "Remover {country}"
         },
-        "feedbackBanner": "Ajude a melhorar o Peanut. Compartilhe seu feedback aqui."
+        "feedbackBanner": "Ajude a melhorar o Peanut. Compartilhe seu feedback aqui.",
+        "testBuild": "Versão de teste: branch {branch}"
     },
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",
@@ -3976,6 +4591,7 @@
         "rainInsufficientCollateral": "Seu cartão não tem colateral suficiente para este saque.",
         "staleCardApproval": "Seu cartão precisa ser reativado antes de você sacar. Leva só um toque com a passkey.",
         "providerRejected": "Nosso parceiro de pagamentos não pôde aceitar esta operação na sua conta. Nenhum dinheiro foi movimentado. Fale com o suporte.",
+        "mantecaAccountRejected": "Depósitos e saques neste país não estão disponíveis para sua conta. Você pode continuar pagando com QR. O suporte pode ajudar.",
         "bankAccountNotUsable": "Esta conta bancária não pode mais ser usada. Adicione-a novamente.",
         "cardRateLimited": "Muitas solicitações com o cartão. Aguarde um momento e tente novamente.",
         "linkTransactionHashFetch": "Não conseguimos carregar a transação deste link. Atualize a página e tente novamente.",
@@ -4307,6 +4923,7 @@
             "errorBody": "Suas contas estão bem. Verifique a conexão e tente de novo.",
             "errorRetry": "Tentar de novo",
             "badgeActionNeeded": "Ação necessária",
+            "badgeSettingUp": "Configurando",
             "badgeUnderReview": "Em análise"
         },
         "claim": {

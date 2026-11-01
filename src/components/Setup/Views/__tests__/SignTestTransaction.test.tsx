@@ -1,3 +1,4 @@
+jest.mock('@/services/signup-geo', () => ({ attachSignupGeo: jest.fn() }))
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import en from '@/i18n/app/messages/en.json'

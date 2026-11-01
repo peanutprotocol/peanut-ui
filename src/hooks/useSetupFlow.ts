@@ -49,7 +49,7 @@ export const postRegistrationScreen = (screenIds: readonly ScreenId[]): ScreenId
 export const useSetupFlow = () => {
     const nativePlatform = useNativePlatform()
 
-    const { masterScreenIds, steps, isLoading, setIsLoading, direction, setDirection, noBackLockScreenId } =
+    const { masterScreenIds, steps, isLoading, setIsLoading, direction, setDirection, noBackLockScreenId, onFinish } =
         useSetupFlowContext()
 
     const screenIds = useMemo<ScreenId[]>(
@@ -125,12 +125,14 @@ export const useSetupFlow = () => {
                 if (next) {
                     setDirection(1)
                     void stepper.goTo(next)
+                } else if (onFinish) {
+                    await onFinish()
                 }
             } finally {
                 setIsLoading(false)
             }
         },
-        [screenIds, currentIndex, setScreenId, setDirection, setIsLoading, stepper]
+        [screenIds, currentIndex, setScreenId, setDirection, setIsLoading, stepper, onFinish]
     )
 
     const handleBack = useCallback(() => {

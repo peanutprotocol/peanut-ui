@@ -120,7 +120,6 @@ const API_STATIC_ROUTES = new Set([
     '/users/identity/resubmit',
     '/users/identity/session-token',
     '/users/increase-limits',
-    '/users/initiate-kyc',
     '/users/interaction-status',
     '/users/kyc/start-action',
     '/users/limits',

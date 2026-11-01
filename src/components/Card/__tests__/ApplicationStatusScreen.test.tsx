@@ -106,7 +106,7 @@ describe('ApplicationStatusScreen — pending residence block', () => {
         expect(screen.getByText('Residence change pending')).toBeInTheDocument()
         expect(screen.getByText(/approved residence is still active/i)).toBeInTheDocument()
         const link = screen.getByRole('link', { name: 'Review residence change' })
-        expect(link).toHaveAttribute('href', '/profile/payments?open=residence')
+        expect(link).toHaveAttribute('href', '/profile?open=residence')
         expect(screen.queryByText('See which regions are restricted')).not.toBeInTheDocument()
     })
 })
@@ -304,5 +304,37 @@ describe('ApplicationStatusScreen — one self-serve action at a time', () => {
         expect(screen.getByRole('button', { name: button })).toHaveClass('btn-primary')
         expect(screen.getByText(body)).toBeInTheDocument()
         expect(screen.getByText(en.common.contactSupport)).toBeInTheDocument()
+    })
+})
+
+describe('ApplicationStatusScreen — a collected proof of address', () => {
+    const SUPPORT_BODY = en.card.status.requiresInfoBody
+
+    it.each([
+        'proof_of_address_received',
+        'proof_of_address_review',
+        'identity_verification_received',
+        'identity_verification_review',
+    ])('while it waits (%s), the screen says there is nothing to do', (reasonCode) => {
+        render(<ApplicationStatusScreen variant="requires-info" reasonCode={reasonCode} onContactSupport={jest.fn()} />)
+        expect(screen.getByText(en.identity.reasons[reasonCode as 'proof_of_address_review'])).toBeInTheDocument()
+        expect(screen.getByText(en.card.status.requiresInfoWaitBody)).toBeInTheDocument()
+        expect(screen.queryByText(SUPPORT_BODY)).not.toBeInTheDocument()
+    })
+
+    it('the received state does not claim the partner is reviewing it yet', () => {
+        expect(en.identity.reasons.proof_of_address_received).not.toMatch(/review/i)
+        expect(en.identity.reasons.identity_verification_received).not.toMatch(/review/i)
+    })
+
+    it('other variants keep their own body even with an upload button', () => {
+        render(
+            <ApplicationStatusScreen
+                variant="rejected"
+                onContactSupport={jest.fn()}
+                onUploadProofOfAddress={jest.fn()}
+            />
+        )
+        expect(screen.getByText(REASSURANCE)).toBeInTheDocument()
     })
 })

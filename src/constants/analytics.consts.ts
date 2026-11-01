@@ -206,6 +206,10 @@ export const ANALYTICS_EVENTS = {
     NOTIFICATION_SUBSCRIBED: 'notification_subscribed',
     NOTIFICATION_CLICKED: 'notification_clicked',
     NOTIFICATION_SUBSCRIPTION_SNAPSHOT: 'notification_subscription_snapshot',
+    /** Sign-up notifications step saved: outcome = OS answer, not_asked or skipped. */
+    NOTIFICATION_CHOICES_SAVED: 'notification_choices_saved',
+    /** The OS answer to the prompt the sign-up notifications step opened; the experiment's goal. */
+    SIGNUP_PUSH_PERMISSION_ANSWERED: 'signup_push_permission_answered',
 
     // ── App store review ──
     // The OS sheet was requested. There is deliberately no "shown" or "rated"
@@ -256,6 +260,57 @@ export const ANALYTICS_EVENTS = {
     KYC_SDK_INIT_FAILED: 'kyc_sdk_init_failed',
     // android destroyed the native sdk screen without a close callback (TASK-22030)
     KYC_SDK_ORPHANED: 'kyc_sdk_orphaned',
+
+    // ── KYC: Smart Paperwork Verification (/verify) ──
+    // Every event carries `flow` (paperwork_verification | add_later), `residence` and the
+    // picked features; step events carry `step` and `steps` (the step ids on
+    // the screen, e.g. address+phone). Never an answer value: a field is named
+    // by its key, an error by its code. Funnel: viewed → step_viewed →
+    // step_saved → id_viewed → id_outcome(opened) → identity_submitted →
+    // review_viewed → verified_viewed.
+    KYC_PV_VIEWED: 'kyc_paperwork_viewed',
+    KYC_PV_LOAD_FAILED: 'kyc_paperwork_load_failed',
+    // The plan read failed every retry; which flow the user is on is unknown.
+    // attempts, http_status (null: no response), source: home | verify | initiate | status-sync | entry
+    KYC_PV_PLAN_FAILED: 'kyc_paperwork_plan_failed',
+    KYC_PV_STEPS_VIEWED: 'kyc_paperwork_steps_viewed',
+    KYC_PV_STEPS_CONTINUED: 'kyc_paperwork_steps_continued',
+    KYC_PV_SAVED_VIEWED: 'kyc_paperwork_saved_viewed',
+    KYC_PV_STEP_VIEWED: 'kyc_paperwork_step_viewed',
+    KYC_PV_STEP_SUBMITTED: 'kyc_paperwork_step_submitted',
+    KYC_PV_STEP_SAVED: 'kyc_paperwork_step_saved',
+    KYC_PV_STEP_REJECTED: 'kyc_paperwork_step_rejected',
+    // One per field and code. source: server (the save refused it) | typing
+    // (the screen flagged it while typed, e.g. an ITIN or a phone with no code).
+    KYC_PV_FIELD_ERROR: 'kyc_paperwork_field_error',
+    KYC_PV_FORM_ERROR: 'kyc_paperwork_form_error',
+    KYC_PV_BACK: 'kyc_paperwork_back',
+    // Confusion signals: the explainer opened, a picker left without a pick,
+    // a search that found nothing (only the query length is sent).
+    KYC_PV_WHY_OPENED: 'kyc_paperwork_why_opened',
+    KYC_PV_PICKER_OPENED: 'kyc_paperwork_picker_opened',
+    KYC_PV_PICKER_CLOSED: 'kyc_paperwork_picker_closed',
+    KYC_PV_SEARCH_EMPTY: 'kyc_paperwork_search_empty',
+    KYC_PV_RESIDENCE_CHANGE_OPENED: 'kyc_paperwork_residence_change_opened',
+    KYC_PV_LOCAL_REFUSED: 'kyc_paperwork_local_refused',
+    KYC_PV_CONTINUE_WITHOUT_LOCAL: 'kyc_paperwork_continue_without_local',
+    KYC_PV_ID_VIEWED: 'kyc_paperwork_id_viewed',
+    KYC_PV_ID_SUBMITTED: 'kyc_paperwork_id_submitted',
+    // outcome: opened | document-required | questions-missing | failed
+    KYC_PV_ID_OUTCOME: 'kyc_paperwork_id_outcome',
+    KYC_PV_IDENTITY_SUBMITTED: 'kyc_paperwork_identity_submitted',
+    KYC_PV_IDENTITY_CLOSED: 'kyc_paperwork_identity_closed',
+    KYC_PV_REVIEW_VIEWED: 'kyc_paperwork_review_viewed',
+    KYC_PV_REVIEW_RETRY: 'kyc_paperwork_review_retry',
+    KYC_PV_VERIFIED_VIEWED: 'kyc_paperwork_verified_viewed',
+    KYC_PV_POA_VIEWED: 'kyc_paperwork_poa_viewed',
+    KYC_PV_POA_UPLOAD_STARTED: 'kyc_paperwork_poa_upload_started',
+    KYC_PV_POA_UPLOADED: 'kyc_paperwork_poa_uploaded',
+    KYC_PV_POA_SKIPPED: 'kyc_paperwork_poa_skipped',
+    // Adding a feature after the ID check. outcome: saved | refused |
+    // action-required | questions-missing | failed
+    KYC_PV_ADD_FEATURE_VIEWED: 'kyc_paperwork_add_feature_viewed',
+    KYC_PV_ADD_FEATURE_OUTCOME: 'kyc_paperwork_add_feature_outcome',
 
     // ── Card: acquisition funnel (Rain virtual card) ──
     // State observed on /card mount or transition. `state` matches CardTopLevelState.

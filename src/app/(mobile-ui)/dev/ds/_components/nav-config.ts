@@ -354,7 +354,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'Divider',
             icon: Minus,
             href: '/dev/ds/primitives/divider',
-            description: 'Horizontal divider with optional text label',
+            description: 'Horizontal divider with optional text label, or a vertical dashed rule between two columns',
             status: 'production',
         },
         {

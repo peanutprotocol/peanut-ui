@@ -7,6 +7,7 @@ interface KycReverificationPendingModalProps {
     onClose: () => void
     // backend-specific review copy (gate.userMessage); falls back to generic text.
     message?: string
+    onContactSupport?: () => void
 }
 
 /**
@@ -18,7 +19,12 @@ interface KycReverificationPendingModalProps {
  * Bridge finishes (the capability poller — re-armed via markSubmitted when this
  * opens — flips the gate away from `waiting-on-provider`).
  */
-export const KycReverificationPendingModal = ({ isOpen, onClose, message }: KycReverificationPendingModalProps) => {
+export const KycReverificationPendingModal = ({
+    isOpen,
+    onClose,
+    message,
+    onContactSupport,
+}: KycReverificationPendingModalProps) => {
     const router = useRouter()
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -33,11 +39,13 @@ export const KycReverificationPendingModal = ({ isOpen, onClose, message }: KycR
             description={<p>{message ?? t('reverificationPending.description')}</p>}
             ctas={[
                 {
-                    text: tCommon('goToHome'),
-                    onClick: () => {
-                        onClose()
-                        router.push('/home')
-                    },
+                    text: tCommon(onContactSupport ? 'contactSupport' : 'goToHome'),
+                    onClick:
+                        onContactSupport ??
+                        (() => {
+                            onClose()
+                            router.push('/home')
+                        }),
                     variant: 'primary',
                     className: 'w-full',
                     shadowSize: '4',

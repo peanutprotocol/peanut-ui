@@ -11,9 +11,14 @@ import {
 } from '@/constants/zerodev.consts'
 import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { getResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
+import { deriveResidenceRestrictionsFrom, isQrResidenceRestricted } from '@/utils/residence-restrictions'
+import { KYC_USER_READS } from '@/utils/demo-kyc'
 import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import type { RainCardFunding, RainFundingAccess } from '@/services/rain'
+import type { NotificationPreferences } from '@/services/notifications'
+import type { KycIntents } from '@/hooks/useKycIntents'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -455,6 +460,51 @@ const DEMO_DEPOSIT_ACCOUNT_EUR = {
     },
 } satisfies DepositAccount
 
+// Tab-scoped like the avatar: a switch flipped in demo survives the next read.
+let demoNotificationPreferences: NotificationPreferences = {
+    push: true,
+    email: true,
+    marketingPush: false,
+    emailUpdates: true,
+    pushPermission: 'granted',
+}
+
+const MANTECA_LOCAL_RESIDENCES = new Set(['AR', 'BR'])
+
+/**
+ * GET /config/kyc-intents for a residence (and the ID's issuing country), from
+ * the restriction tiers that mirror the API's paperwork rules: sanctioned
+ * residences close Manteca, the UK and Bridge's refused residences close the
+ * bank, Rain's close the card, and local transfers open only in AR and BR. A
+ * refused issuer closes everything else; a Russian ID closes the card.
+ */
+function demoKycIntents(residence: string, idCountry?: string): KycIntents {
+    const sets = getResidenceRestrictionSets()
+    const restrictions = deriveResidenceRestrictionsFrom(sets, residence)
+    const sanctioned = isQrResidenceRestricted(sets, residence)
+    const documentRefused = !!idCountry && sets.refusedIdIssuers.has(idCountry)
+    const intent = (refusal: NonNullable<KycIntents['qr']['reason']> | null, documentRefusesCard = false) => {
+        const reason = refusal ?? (documentRefused || documentRefusesCard ? 'document_country_unsupported' : null)
+        return reason ? { available: false, reason } : { available: true }
+    }
+    const bank = intent(
+        residence === 'GB' ? 'uk_resident_blocked' : restrictions.banking ? 'residence_bank_restricted' : null
+    )
+    return {
+        qr: intent(sanctioned ? 'residence_sanctioned' : null),
+        local: intent(
+            sanctioned
+                ? 'residence_sanctioned'
+                : MANTECA_LOCAL_RESIDENCES.has(residence)
+                  ? null
+                  : 'local_residence_unsupported'
+        ),
+        // a Russian ID verifies without the card (peanut.russian-document)
+        card: intent(restrictions.card ? 'geo-blocked' : null, idCountry === 'RU'),
+        bank: { ...bank, currencies: [] },
+    }
+}
+
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // user
     {
@@ -496,7 +546,19 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/users/history', handler: () => ({ entries: DEMO_HISTORY_ENTRIES, hasMore: false }) },
     { method: 'GET', pattern: '/users/bridge-tos-link', handler: () => ({ tosLink: '' }) },
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
-    { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
+    // The demo user verified before Smart Paperwork Verification, so the API keeps them on today's flow.
+    ...Object.entries(KYC_USER_READS).map(([key, read]) => {
+        const [method, pattern] = key.split(' ')
+        return { method, pattern, handler: () => read(DEMO_USER) }
+    }),
+    // Nothing newer than the stored status, so the profile's answer stands.
+    { method: 'POST', pattern: '/users/kyc/identity/refresh', handler: () => ({ status: null }) },
+    // The demo user's check is over, so no identity session reopens.
+    {
+        method: 'POST',
+        pattern: '/users/kyc/attempts/:attemptId/token',
+        handler: () => json({ code: 'verification_complete' }, 409),
+    },
     { method: 'POST', pattern: '/users/interaction-status', handler: () => ({}) },
     // No arrival prompt by default: the drawer shows only in the arrival-* fixtures.
     { method: 'POST', pattern: '/users/me/arrival', handler: () => ({ prompt: null }) },
@@ -856,6 +918,24 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // notifications (support unread badge + mark-read only; the list page is gone)
     { method: 'GET', pattern: '/notifications/unread-count', handler: () => ({ count: 0 }) },
     { method: 'POST', pattern: '/notifications/mark-read', handler: () => ({}) },
+    { method: 'GET', pattern: '/notifications/preferences', handler: () => demoNotificationPreferences },
+    {
+        method: 'PUT',
+        pattern: '/notifications/preferences',
+        handler: ({ options }) => {
+            const { push, marketingPush, emailUpdates, pushPermission } = parseBody(
+                options
+            ) as Partial<NotificationPreferences>
+            demoNotificationPreferences = {
+                ...demoNotificationPreferences,
+                ...(push !== undefined && { push }),
+                ...(marketingPush !== undefined && { marketingPush }),
+                ...(emailUpdates !== undefined && { emailUpdates }),
+                ...(pushPermission !== undefined && { pushPermission }),
+            }
+            return demoNotificationPreferences
+        },
+    },
 
     // card
     {
@@ -981,6 +1061,16 @@ export async function demoRespond(
     const method = (options?.method ?? 'GET').toUpperCase()
     const pathname = path.split('?')[0].replace(/\/+$/, '') || '/'
 
+    if (method === 'GET' && pathname === '/version') {
+        return json({
+            commit: '0000000',
+            branch: 'synthetic',
+            builtAt: null,
+            migrationsHead: null,
+            contracts: { kyc: 3 },
+        })
+    }
+
     // The withdraw quote depends on its query, which route handlers never see:
     // answer it here at a synthetic 1:1 rate, so the USDC equals the typed amount.
     if (method === 'GET' && pathname === '/bridge/offramp/quote') {
@@ -991,6 +1081,21 @@ export async function demoRespond(
             rate: '1',
             updatedAt: CREATED_AT,
             ...(destinationAmount ? { destinationAmount, sourceAmount: destinationAmount } : {}),
+        })
+    }
+
+    // What a residence can unlock depends on the residence in the query.
+    if (method === 'GET' && pathname === '/config/kyc-intents') {
+        const query = new URL(path, 'http://capture.invalid').searchParams
+        const [residence, idCountry] = [query.get('residence'), query.get('idCountry')].map((code) =>
+            code?.trim().toUpperCase()
+        )
+        if (!residence || ![residence, idCountry].every((code) => code === undefined || /^[A-Z]{2}$/.test(code)))
+            return json({ error: `Unknown country code: ${residence ?? ''}` }, 400)
+        return json({
+            residence,
+            ...(idCountry ? { idCountry } : {}),
+            intents: demoKycIntents(residence, idCountry),
         })
     }
 

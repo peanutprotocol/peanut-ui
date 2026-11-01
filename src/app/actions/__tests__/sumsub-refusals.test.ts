@@ -19,6 +19,10 @@ import {
     isTerminalActionCode,
     restartIdentityVerification,
     startResidenceChangeVerification,
+    startHostedVerification,
+    refreshKycState,
+    refreshVerificationSession,
+    getVerificationSession,
 } from '@/app/actions/sumsub'
 import { serverFetch } from '@/utils/api-fetch'
 
@@ -35,6 +39,24 @@ const respondWith = (status: number, body: unknown) => {
 }
 
 beforeEach(() => mockFetch.mockReset())
+
+describe('initiateSumsubKyc — Smart Paperwork Verification users', () => {
+    it('asks the API to refuse today\u2019s start to a user on the new flow', async () => {
+        respondWith(200, { token: 't', applicantId: 'a', status: 'NOT_STARTED' })
+        await initiateSumsubKyc({ regionIntent: 'EU' })
+        expect(mockFetch).toHaveBeenCalledWith(
+            '/users/identity',
+            expect.objectContaining({ headers: expect.objectContaining({ 'x-kyc-client': '2' }) })
+        )
+    })
+
+    it('reads the refusal as its own code, so the app can send the user to /verify', async () => {
+        respondWith(409, { error: 'paperwork_verification_required', code: 'paperwork_verification_required' })
+        const result = await initiateSumsubKyc({ regionIntent: 'EU' })
+        expect(result.code).toBe('paperwork_verification_required')
+        expect(result.data).toBeUndefined()
+    })
+})
 
 describe('initiateSumsubKyc — backend refusals', () => {
     it('classifies a permanent Manteca nationality refusal as terminal AND keeps its message', () => {
@@ -101,6 +123,12 @@ describe('initiateSumsubKyc — backend refusals', () => {
 
         expect(result.data?.token).toBe('tok')
         expect(result.error).toBeUndefined()
+        expect(mockFetch).toHaveBeenCalledWith(
+            '/users/identity',
+            expect.objectContaining({
+                headers: { 'x-residence-format': 'compact', 'x-kyc-client': '2' },
+            })
+        )
     })
 })
 
@@ -118,7 +146,7 @@ describe('restartIdentityVerification — wire shape', () => {
             '/users/identity/restart',
             expect.objectContaining({
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact', 'x-kyc-client': '2' },
                 body: JSON.stringify({ regionIntent: 'LATAM' }),
             })
         )
@@ -216,7 +244,7 @@ describe('startResidenceChangeVerification — wire shape', () => {
 
         expect(mockFetch).toHaveBeenCalledWith('/users/residence-change/start', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-kyc-client': '2' },
             body: JSON.stringify({ targetCountry: 'PT' }),
         })
         expect(result.data?.targetCountry).toBe('PT')
@@ -310,4 +338,161 @@ describe('residence refusals (code field)', () => {
             expect(result.error).toMatch(/not available for your current or pending residence/)
         }
     )
+})
+
+describe('startKycAction — an action Sumsub already reviewed', () => {
+    it('reports it as completed instead of an invalid response', async () => {
+        mockFetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                levelName: 'provider-rfi-proof-of-address',
+                externalActionId: 'supplement-1',
+                status: 'completed',
+            }),
+        } as unknown as Response)
+        expect(await startKycAction('supplement:bridge')).toEqual({
+            data: { levelName: 'provider-rfi-proof-of-address', externalActionId: 'supplement-1', completed: true },
+        })
+    })
+
+    it('still refuses a body with neither a token, a session nor a completed status', async () => {
+        mockFetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({ levelName: 'provider-rfi-proof-of-address' }),
+        } as unknown as Response)
+        expect(await startKycAction('supplement:bridge')).toMatchObject({ code: 'invalid_response' })
+    })
+})
+
+// A supplement the gate no longer asks for: the 409 names the step to take instead.
+describe('startKycAction — a supplement that is no longer needed', () => {
+    it.each([
+        ['requirements_uncollectable', 'contact-support'],
+        ['identity_document_insufficient', 'restart-identity'],
+        ['requirements_unreadable', 'wait'],
+    ])('surfaces %s with its fallback %s', async (reason, fallback) => {
+        respondWith(409, { error: 'supplement_not_required', reason, fallback })
+        const result = await startKycAction('supplement:bridge')
+        expect(result).toMatchObject({ code: 'supplement_not_required', reason, fallback })
+        expect(result.error).not.toMatch(/supplement_not_required/)
+        expect(isTerminalActionCode(result.code)).toBe(false)
+    })
+
+    it('a refusal without a fallback still carries its code', async () => {
+        respondWith(409, { error: 'supplement_not_required' })
+        const result = await startKycAction('supplement:bridge')
+        expect(result.code).toBe('supplement_not_required')
+        expect(result.fallback).toBeUndefined()
+    })
+
+    it('drops a fallback this build cannot route', async () => {
+        respondWith(409, { error: 'supplement_not_required', reason: 'x', fallback: 'teleport' })
+        expect((await startKycAction('supplement:bridge')).fallback).toBeUndefined()
+    })
+
+    it('leaves every other refusal as it was', async () => {
+        respondWith(409, { error: 'identity_not_approved', fallback: 'contact-support' })
+        expect(await startKycAction('supplement:bridge')).toEqual({
+            error: 'Failed to start verification',
+            code: 'start_action_failed',
+        })
+    })
+})
+
+// The bodies POST /users/identity/resubmit and POST /users/kyc/start-action send when a provider asks for a new ID.
+describe('a provider asking for a new ID names the identity restart', () => {
+    const redirect = {
+        code: 'RESTART_IDENTITY',
+        requiredAction: 'RESTART_IDENTITY',
+        nextAction: { kind: 'restart-identity', url: '/verify?step=id&restart=1' },
+    }
+
+    it.each(['id_expired', 'id_verification_failed'])(
+        'resubmit for a %s Bridge ID becomes the restart fallback with its reason',
+        async (reasonCode) => {
+            respondWith(409, {
+                error: 'Restart identity verification to replace your ID',
+                ...redirect,
+                reasonCode,
+                userMessage: 'Your ID has expired. Add a valid one to keep your accounts working.',
+            })
+            const result = await initiateSelfHealResubmission('BRIDGE')
+            expect(result).toMatchObject({ fallback: 'restart-identity', reason: reasonCode, code: 'restart_identity' })
+            expect(result.data).toBeUndefined()
+        }
+    )
+
+    it("resubmit for Rain's selfie and ID becomes the restart fallback", async () => {
+        respondWith(409, {
+            error: 'Restart identity verification to verify for the card',
+            userMessage: 'Take a selfie and a photo of your ID.',
+            ...redirect,
+        })
+        expect(await initiateSelfHealResubmission('RAIN')).toMatchObject({ fallback: 'restart-identity' })
+    })
+
+    it('the retired Rain action key at start-action becomes the restart fallback', async () => {
+        respondWith(409, { error: 'Restart identity verification to verify for the card', ...redirect })
+        const result = await startKycAction('sumsub:rain_identity_verification')
+        expect(result).toMatchObject({ fallback: 'restart-identity', code: 'restart_identity' })
+        expect(result.data).toBeUndefined()
+    })
+
+    it('an ID step with no upload level left is the restart too', async () => {
+        respondWith(400, {
+            error: 'This requirement needs identity verification',
+            requiredAction: 'RESTART_IDENTITY',
+        })
+        expect((await initiateSelfHealResubmission('MANTECA')).fallback).toBe('restart-identity')
+    })
+
+    it('a Rain selfie and ID already received stays an ordinary refusal', async () => {
+        respondWith(409, {
+            error: 'Identity documents already received',
+            userMessage: 'We already received your selfie and ID.',
+        })
+        const result = await initiateSelfHealResubmission('RAIN')
+        expect(result.fallback).toBeUndefined()
+        expect(result.error).toBe('We already received your selfie and ID.')
+    })
+})
+
+describe('workflow feature-selection conflict', () => {
+    it.each(['code', 'error'])('preserves a 409 selection code from %s beside readable prose', async (field) => {
+        respondWith(409, { [field]: 'feature_selection_required', userMessage: 'Choose the features to set up.' })
+        await expect(initiateSumsubKyc({ regionIntent: 'NA', crossRegion: true })).resolves.toEqual({
+            code: 'feature_selection_required',
+            error: 'Choose the features to set up.',
+        })
+    })
+})
+
+describe('KYC client version on every request', () => {
+    it.each([
+        ['restart', () => restartIdentityVerification()],
+        ['resubmit', () => initiateSelfHealResubmission('BRIDGE')],
+        ['residence change', () => startResidenceChangeVerification('PT')],
+        ['hosted action', () => startHostedVerification()],
+        ['Sumsub action', () => startKycAction('supplement:bridge')],
+        ['state refresh', () => refreshKycState()],
+        ['session token', () => refreshVerificationSession({ id: 'session-1', generation: 1 })],
+        ['session read', () => getVerificationSession('session-1')],
+    ])('%s identifies this app as client v2', async (_name, call) => {
+        respondWith(200, { token: 'token', applicantId: 'app', targetCountry: 'PT' })
+        await call()
+        expect(mockFetch).toHaveBeenCalledTimes(1)
+        expect(mockFetch.mock.calls[0][1]?.headers).toMatchObject({ 'x-kyc-client': '2' })
+    })
+})
+
+it.each(['local', 'bank'])('preserves the server-selected %s feature on a 409', async (feature) => {
+    respondWith(409, { code: 'feature_selection_required', feature })
+    expect(await initiateSumsubKyc()).toMatchObject({ code: 'feature_selection_required', feature })
+})
+
+it.each([undefined, 'card', {}, 2])('does not trust an unknown selection feature %p', async (feature) => {
+    respondWith(409, { code: 'feature_selection_required', feature })
+    expect(await initiateSumsubKyc()).not.toHaveProperty('feature')
 })

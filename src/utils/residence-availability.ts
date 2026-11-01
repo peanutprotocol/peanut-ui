@@ -1,7 +1,6 @@
-import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
+import { deriveResidenceRestrictionsFrom } from '@/utils/residence-restrictions'
 import { type ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
-import { regionIntentForResidence } from '@/utils/regions.utils'
-import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
+import type { KycIntents } from '@/hooks/useKycIntents'
 
 /** What a residence can make available: a bank rail, bank transfers where supported, the card, P2P. */
 export type AvailabilityItemKey = 'p2p' | 'pix' | 'arQr' | 'spei' | 'usdAch' | 'eurSepa' | 'gbpFps' | 'bank' | 'card'
@@ -19,46 +18,6 @@ export interface ResidenceAvailability {
      * the extras rather than promise them all as residence benefits.
      */
     multiCurrency: boolean
-}
-
-/**
- * Which rails a residence's verification actually enrols, keyed by the intent
- * `regionIntentForResidence` routes that residence to. FE mirror of
- * peanut-api-ts `REGION_RAIL_MAP` (src/kyc/rails.consts.ts): EU and NA both
- * enrol the whole Bridge set from one verification, LATAM enrols the Manteca
- * QR pool, ROW enrols no bank rail at all.
- *
- * Deriving the signup promise from the intent — rather than from "is this
- * country in the Bridge map" — keeps it scoped to the residence by
- * construction: a UK, sanctioned or Bridge-unserved residence maps to ROW and
- * can never be told about a rail its verification would not open.
- *
- * Two deliberate narrowings of REGION_RAIL_MAP, both because the provider
- * issues the account to one residence only: SPEI_MX (Bridge mints MXN
- * accounts for Mexican residents) and the LATAM QR rails (Manteca onboards
- * BR and AR one country each). They are listed via HOME_RAIL instead.
- */
-const BRIDGE_RAILS: readonly AvailabilityRailKey[] = ['eurSepa', 'gbpFps', 'usdAch']
-
-const INTENT_RAILS: Readonly<Record<KYCRegionIntent, readonly AvailabilityRailKey[]>> = {
-    STANDARD: BRIDGE_RAILS,
-    EU: BRIDGE_RAILS,
-    NA: BRIDGE_RAILS,
-    LATAM: [],
-    ROW: [],
-}
-
-/**
- * The residence's own-currency rail, listed first — what the user pays and gets
- * paid in at home. The static intent map is the conservative floor; the
- * server-provided restriction tiers gate above it in `residenceAvailability`,
- * so a residence the server restricts lists nothing whatever this map says.
- */
-const HOME_RAIL: Readonly<Record<string, AvailabilityRailKey>> = {
-    BR: 'pix',
-    AR: 'arQr',
-    MX: 'spei',
-    US: 'usdAch',
 }
 
 const RAIL_CURRENCY: Readonly<Record<AvailabilityRailKey, string>> = {
@@ -84,33 +43,64 @@ export function spansMultipleCurrencies(rails: readonly AvailabilityItemKey[]): 
     return currencies.size > 1
 }
 
-export function bankRailsFor(iso2: string): AvailabilityItemKey[] {
-    const code = iso2.toUpperCase()
-    const home = HOME_RAIL[code]
-    const rails: AvailabilityItemKey[] = home ? [home] : []
-    for (const rail of INTENT_RAILS[regionIntentForResidence(code)]) if (rail !== home) rails.push(rail)
-    // rest of world: bank rails read as "where supported", never a specific one
-    return rails.length ? rails : ['bank']
+export function bankRailsFor(_iso2: string): AvailabilityItemKey[] {
+    return ['bank']
+}
+
+const BANK_CURRENCY_RAIL: Readonly<Record<string, AvailabilityRailKey>> = {
+    USD: 'usdAch',
+    EUR: 'eurSepa',
+    GBP: 'gbpFps',
+    MXN: 'spei',
+}
+const LOCAL_FEATURE_RAIL: Readonly<Record<string, AvailabilityRailKey>> = { BR: 'pix', AR: 'arQr' }
+
+function railsFromIntents(code: string, intents: KycIntents): AvailabilityItemKey[] {
+    const rails: AvailabilityItemKey[] = []
+    if (intents.local.available && LOCAL_FEATURE_RAIL[code]) rails.push(LOCAL_FEATURE_RAIL[code])
+    if (intents.bank.available) {
+        const initialCount = rails.length
+        for (const currency of intents.bank.currencies ?? []) {
+            const rail = Object.prototype.hasOwnProperty.call(BANK_CURRENCY_RAIL, currency)
+                ? BANK_CURRENCY_RAIL[currency]
+                : undefined
+            if (rail && !rails.includes(rail)) rails.push(rail)
+        }
+        if (rails.length === initialCount) rails.push('bank')
+    }
+    return rails
 }
 
 /**
  * Per-country availability summary for the dual-residence comparison at
- * signup. Client-side on purpose: the tiers arrive via the restriction-sets
- * hook (server lists with the bundled mirror as fallback) and the
- * country-to-rails mapping is the same static knowledge Unlock payments
- * renders, so the comparison needs no backend. Informational only.
+ * signup. With `intents` (GET /config/kyc-intents) it says exactly what the
+ * verification will offer that residence: the local rail when the local
+ * feature is open, Bridge's accounts when the bank one is, the card when Rain
+ * takes it. Without them (the read failed) it falls back to the restriction
+ * tiers without naming currencies. Informational only.
  */
-export function residenceAvailability(sets: ResidenceRestrictionSets, iso2: string): ResidenceAvailability {
+export function residenceAvailability(
+    sets: ResidenceRestrictionSets,
+    iso2: string,
+    intents?: KycIntents
+): ResidenceAvailability {
     const code = iso2.toUpperCase()
-    const restrictions = deriveResidenceRestrictionsFrom(sets, code)
     const available: AvailabilityItemKey[] = []
     const unavailable: Array<'banking' | 'card'> = []
 
-    if (restrictions.banking) unavailable.push('banking')
-    else available.push(...bankRailsFor(code))
-
-    if (restrictions.card) unavailable.push('card')
-    else available.push('card')
+    if (intents) {
+        const rails = railsFromIntents(code, intents)
+        if (rails.length) available.push(...rails)
+        else unavailable.push('banking')
+        if (intents.card.available) available.push('card')
+        else unavailable.push('card')
+    } else {
+        const restrictions = deriveResidenceRestrictionsFrom(sets, code)
+        if (restrictions.banking) unavailable.push('banking')
+        else available.push('bank')
+        if (restrictions.card) unavailable.push('card')
+        else available.push('card')
+    }
 
     available.push('p2p')
 

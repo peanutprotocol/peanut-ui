@@ -23,7 +23,7 @@ describe('retired profile routes', () => {
 
     it.each<[string, ComponentType, string, string]>([
         // the card recovery and add money residence links
-        ['/profile/accounts-and-payments', AccountsAndPaymentsAlias, '?open=residence', '/profile/accounts'],
+        ['/profile/accounts-and-payments', AccountsAndPaymentsAlias, '?open=residence', '/profile/payments'],
         [
             '/profile/accounts-and-payments/additional',
             AccountsAndPaymentsAdditionalAlias,
@@ -31,12 +31,7 @@ describe('retired profile routes', () => {
             '/profile/accounts/additional',
         ],
         // the backend's KYC push and email deep links
-        [
-            '/profile/identity-verification',
-            IdentityVerificationAlias,
-            '?step=resubmit&provider=bridge',
-            '/profile/accounts',
-        ],
+        ['/profile/identity-verification', IdentityVerificationAlias, '?step=resubmit&provider=bridge', '/home'],
         [
             '/profile/identity-verification/additional',
             IdentityVerificationAdditionalAlias,

@@ -23,7 +23,10 @@ describe('refreshKycState', () => {
     it('posts without a body and reads the expedite answer', async () => {
         respondWith(200, { expedited: true })
         await expect(refreshKycState()).resolves.toEqual({ expedited: true })
-        expect(mockFetch).toHaveBeenCalledWith('/users/kyc/refresh', { method: 'POST' })
+        expect(mockFetch).toHaveBeenCalledWith('/users/kyc/refresh', {
+            method: 'POST',
+            headers: { 'x-kyc-client': '2' },
+        })
         respondWith(200, { expedited: false })
         await expect(refreshKycState()).resolves.toEqual({ expedited: false })
     })

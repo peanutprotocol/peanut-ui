@@ -43,7 +43,7 @@ const SignupStep = () => {
         username,
         setUsername,
         setResidenceCountry,
-        setSecondResidenceCountry,
+        setNationalityCountry,
         setSignupCompleted,
         setNoBackLockScreenId,
     } = useSetupFlowContext()
@@ -85,7 +85,7 @@ const SignupStep = () => {
             await queryClient.cancelQueries({ queryKey: [USER] })
             queryClient.setQueryData([USER], DEMO_USER)
             setResidenceCountry('BR')
-            setSecondResidenceCountry('')
+            setNationalityCountry('')
             setNoBackLockScreenId('advantage-control')
             setSignupCompleted(true)
             setScreenId('advantage-control')

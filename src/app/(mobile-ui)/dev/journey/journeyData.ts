@@ -192,7 +192,7 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         id: 'modal-initiate-kyc',
         kind: 'modal',
         name: 'InitiateKycModal (variants)',
-        copy: 'default "Unlock your account"; provider_rejection "We need extra documents"; + blocked / restart_identity / cross_region variants',
+        copy: 'default "Unlock your account"; provider_rejection "One more document needed"; + blocked / restart_identity / cross_region variants',
         condition: 'Opened by KYC entry points across the app',
         sourceFile: 'src/components/Kyc/InitiateKycModal.tsx',
         states: ['no-access'],
