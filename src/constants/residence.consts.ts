@@ -1,10 +1,4 @@
-/**
- * Residence-based prequalification tiers for the signup residence step.
- * Advisory only: screens name no country, and the compliance decision stays
- * with KYC (Sumsub-verified address). Follow-up tracked in the onboarding
- * proposal: these lists should be served by the API from the same compliance
- * source that configures the providers, so changes don't need a release.
- */
+/** Bundled offline/pre-fetch mirrors of the API paperwork rules, served by /config/residence-restrictions. */
 
 /**
  * Full restriction: neither bank transfers nor card issuing. Mirrors
@@ -19,8 +13,7 @@
  *   - CN: Bridge onboards it but serves no rail, and it is on Rain's list.
  *   - GB: Peanut's own UK rule for both (TASK-20729).
  *
- * The Sumsub dashboard also rejects CN- and RU-issued documents. That is a
- * document rule, not a residence one, and decides nothing here.
+ * The API judges document issuers separately from residence.
  */
 export const RESTRICTED_RESIDENCE_ISO2 = new Set([
     'CN',
@@ -91,11 +84,7 @@ export const CARD_RESTRICTED_RESIDENCE_ISO2 = new Set([
  *     above.
  *   - KR: Bridge takes no new customers from South Korea.
  *
- * HK is in no tier. It was in the full set only because the Sumsub dashboard
- * rejects HK-issued documents — a document rule, and the document's issuing
- * country never decides eligibility (product/card.md). HK is on neither
- * Bridge's Prohibited list nor any card issuer's list, so Bridge's own
- * onboarding and Rain's application stay the checks (TASK-23054 R1).
+ * HK is in no tier; the API owns residence and document eligibility separately.
  */
 export const BANKING_RESTRICTED_RESIDENCE_ISO2 = new Set([
     'DZ',
@@ -110,6 +99,9 @@ export const BANKING_RESTRICTED_RESIDENCE_ISO2 = new Set([
     'SO',
     'KR',
 ])
+
+/** Offline mirror of the API new-customer exception; qualified residences remain in the banking tier. */
+export const BANKING_NEW_CUSTOMERS_ONLY_RESIDENCE_ISO2: ReadonlySet<string> = new Set(['KR'])
 
 /**
  * countryData is the add-money DESTINATION list and deliberately omits

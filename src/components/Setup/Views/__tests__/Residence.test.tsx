@@ -368,7 +368,12 @@ describe('ResidenceStep', () => {
     })
 
     it('uses updated server tiers when classifying the outcome', () => {
-        mockRestrictionSets = { full: new Set(['PT']), cardOnly: new Set(), bankingOnly: new Set() }
+        mockRestrictionSets = {
+            ...jest.requireActual('@/hooks/useResidenceRestrictionSets').LOCAL_RESIDENCE_RESTRICTION_SETS,
+            full: new Set(['PT']),
+            cardOnly: new Set(),
+            bankingOnly: new Set(),
+        }
         mockSetupState.residenceCountry = 'PT'
         render(<ResidenceStep />)
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
@@ -404,5 +409,25 @@ describe('ResidenceStep', () => {
         expect(confirm).toBeDisabled()
         fireEvent.click(confirm!)
         expect(mockHandleNext).not.toHaveBeenCalled()
+    })
+
+    it('uses served refused issuers for the nationality guidance', () => {
+        mockRestrictionSets = {
+            ...jest.requireActual('@/hooks/useResidenceRestrictionSets').LOCAL_RESIDENCE_RESTRICTION_SETS,
+            refusedIdIssuers: new Set(['PT']),
+        }
+        mockSetupState = { residenceCountry: 'DE', nationalityCountry: 'PT' }
+        render(<ResidenceStep />)
+        expect(screen.getByText(/We can’t verify passports or ID cards from Portugal/)).toBeInTheDocument()
+    })
+
+    it('does not retain a bundled issuer refusal after the server removes it', () => {
+        mockRestrictionSets = {
+            ...jest.requireActual('@/hooks/useResidenceRestrictionSets').LOCAL_RESIDENCE_RESTRICTION_SETS,
+            refusedIdIssuers: new Set(),
+        }
+        mockSetupState = { residenceCountry: 'DE', nationalityCountry: 'IR' }
+        render(<ResidenceStep />)
+        expect(screen.queryByText(/We can’t verify passports or ID cards from/)).not.toBeInTheDocument()
     })
 })

@@ -7,7 +7,7 @@ import { deriveResidenceRestrictions, useResidenceRestrictions } from '@/hooks/u
 let mockUser: {
     residenceRestrictions?: { banking: boolean; card: boolean }
     residence?: import('@/interfaces/interfaces').ResidenceProfile
-    user?: { userId: string }
+    user?: { userId: string; bridgeCustomerId?: string | null }
 } | null = null
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser }),
@@ -141,4 +141,17 @@ describe('useResidenceRestrictions', () => {
         const { result } = renderHook(() => useResidenceRestrictions())
         expect(result.current).toEqual({ banking: false, card: false })
     })
+})
+
+it('preserves existing KR banking when the server summary is absent', () => {
+    mockSettled = true
+    mockUser = {
+        user: { userId: 'u1', bridgeCustomerId: 'synthetic-bridge' },
+        residence: normalizeResidence({ declared: 'KR' }),
+    }
+    const { result, rerender } = renderHook(() => useResidenceRestrictions())
+    expect(result.current).toEqual({ banking: false, card: false })
+    mockUser = { ...mockUser, user: { userId: 'u1' } }
+    rerender()
+    expect(result.current).toEqual({ banking: true, card: false })
 })

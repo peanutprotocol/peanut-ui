@@ -11,7 +11,7 @@ it.each([
     ['UA', ['bank', 'crypto', 'peanut'], ['qr']],
     ['IN', ['bank', 'crypto', 'peanut'], ['qr']],
     ['JP', ['crypto', 'peanut'], ['card', 'qr']],
-    ['GB', ['crypto', 'peanut'], ['peanut']],
+    ['GB', ['crypto', 'peanut'], ['qr']],
     ['IR', ['crypto', 'peanut'], ['peanut']],
     ['', ['crypto', 'peanut'], ['peanut']],
 ])('offers residence-supported providers for %s; spending is the card and QR', (country, funding, payment) => {
@@ -26,16 +26,22 @@ it('offers only universal channels before the server lookup settles', () => {
         payment: ['peanut'],
     })
 })
-it('without server intents, a full restriction also closes QR', () => {
+it('without server intents, a full banking/card restriction leaves QR open', () => {
     const sets = { ...LOCAL_RESIDENCE_RESTRICTION_SETS, full: new Set(['BR']) }
     expect(setupChannelsForResidence(sets, ' br ', true)).toEqual({
         funding: ['crypto', 'peanut'],
-        payment: ['peanut'],
+        payment: ['qr'],
     })
 })
 
 it('has no hardcoded country exclusion beyond the supplied fallback restrictions', () => {
-    const sets = { full: new Set<string>(), bankingOnly: new Set<string>(), cardOnly: new Set<string>() }
+    const sets = {
+        ...LOCAL_RESIDENCE_RESTRICTION_SETS,
+        refusedIdIssuers: new Set<string>(),
+        full: new Set<string>(),
+        bankingOnly: new Set<string>(),
+        cardOnly: new Set<string>(),
+    }
     expect(setupChannelsForResidence(sets, 'IR', true)).toEqual({
         funding: ['bank', 'crypto', 'peanut'],
         payment: ['card', 'qr'],
@@ -46,7 +52,7 @@ it('uses server QR eligibility independently of bank and card eligibility', () =
     const intents = {
         qr: { available: true },
         local: { available: false },
-        bank: { available: false },
+        bank: { available: false, currencies: [] },
         card: { available: false },
     }
     expect(setupChannelsForResidence(LOCAL_RESIDENCE_RESTRICTION_SETS, 'GB', true, intents)).toEqual({

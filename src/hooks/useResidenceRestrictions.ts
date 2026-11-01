@@ -2,8 +2,9 @@ import { useAuth } from '@/context/authContext'
 import {
     LOCAL_RESIDENCE_RESTRICTION_SETS,
     useResidenceRestrictionSetsWithStatus,
-    type ResidenceRestrictionSets,
 } from '@/hooks/useResidenceRestrictionSets'
+import { deriveResidenceRestrictionsFrom } from '@/utils/residence-restrictions'
+export { deriveResidenceRestrictionsFrom } from '@/utils/residence-restrictions'
 import { readDeclaredResidence } from '@/utils/declared-residence.storage'
 import { useHydrationSnapshot } from '@/utils/native-platform'
 import { useMemo } from 'react'
@@ -19,20 +20,6 @@ export interface ResidenceRestrictions {
 const NONE: ResidenceRestrictions = { banking: false, card: false }
 /** A residence whose tiers are not known yet: nothing is offered until they are. */
 const UNKNOWN: ResidenceRestrictions = { banking: true, card: true }
-
-/** Derivation over an explicit tier set (server-fetched or the local mirror). */
-export const deriveResidenceRestrictionsFrom = (
-    sets: ResidenceRestrictionSets,
-    iso2: string | null | undefined
-): ResidenceRestrictions => {
-    const code = iso2?.toUpperCase().trim()
-    if (!code) return NONE
-    if (sets.full.has(code)) return { banking: true, card: true }
-    return {
-        banking: sets.bankingOnly.has(code),
-        card: sets.cardOnly.has(code),
-    }
-}
 
 /** Local-mirror derivation, kept for callers and tests that need a sync answer. */
 export const deriveResidenceRestrictions = (iso2: string | null | undefined): ResidenceRestrictions =>
@@ -71,6 +58,14 @@ export const useResidenceRestrictions = (): ResidenceRestrictions => {
             residenceCountry ||
             (user?.residence ? null : localDeclared)
         if (!country?.trim()) return NONE
-        return settled ? deriveResidenceRestrictionsFrom(sets, country) : UNKNOWN
-    }, [user?.residenceRestrictions, user?.residence, residenceCountry, sets, settled, localDeclared])
+        return settled ? deriveResidenceRestrictionsFrom(sets, country, !!user?.user?.bridgeCustomerId) : UNKNOWN
+    }, [
+        user?.residenceRestrictions,
+        user?.residence,
+        user?.user?.bridgeCustomerId,
+        residenceCountry,
+        sets,
+        settled,
+        localDeclared,
+    ])
 }

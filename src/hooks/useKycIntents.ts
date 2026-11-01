@@ -11,6 +11,8 @@ const INTENTS = ['qr', 'local', 'card', 'bank'] as const
 const parseIntents = (json: unknown): KycIntents | null => {
     const intents = (json as { intents?: Record<string, unknown> } | null)?.intents
     if (!intents) return null
+    const currencies = (intents.bank as { currencies?: unknown })?.currencies
+    if (!Array.isArray(currencies) || !currencies.every((currency) => typeof currency === 'string')) return null
     return INTENTS.every((key) => typeof (intents[key] as { available?: unknown })?.available === 'boolean')
         ? (intents as KycIntents)
         : null
@@ -30,7 +32,7 @@ async function fetchKycIntents(residence: string): Promise<KycIntents> {
  * What a residence can open, from the same rules the verification applies
  * (GET /config/kyc-intents): sign-up shows exactly what the server will
  * offer. `settled` is false while it loads; `intents` stays undefined when the
- * read failed, so callers fall back to the bundled restriction lists.
+ * read failed; callers may use restriction tiers without naming bank currencies.
  */
 export function useKycIntents(residence: string | null | undefined): {
     intents: KycIntents | undefined

@@ -2,6 +2,8 @@ import {
     BANKING_RESTRICTED_RESIDENCE_ISO2,
     CARD_RESTRICTED_RESIDENCE_ISO2,
     RESTRICTED_RESIDENCE_ISO2,
+    REFUSED_ID_ISSUER_ISO2,
+    BANKING_NEW_CUSTOMERS_ONLY_RESIDENCE_ISO2,
 } from '@/constants/residence.consts'
 import { apiFetch } from '@/utils/api-fetch'
 import { useEffect, useState } from 'react'
@@ -10,6 +12,8 @@ export interface ResidenceRestrictionSets {
     full: ReadonlySet<string>
     cardOnly: ReadonlySet<string>
     bankingOnly: ReadonlySet<string>
+    refusedIdIssuers: ReadonlySet<string>
+    bankingNewCustomersOnly: ReadonlySet<string>
 }
 
 /** Bundled mirror — the offline/pre-fetch fallback, never the source of truth. */
@@ -17,6 +21,8 @@ export const LOCAL_RESIDENCE_RESTRICTION_SETS: ResidenceRestrictionSets = {
     full: RESTRICTED_RESIDENCE_ISO2,
     cardOnly: CARD_RESTRICTED_RESIDENCE_ISO2,
     bankingOnly: BANKING_RESTRICTED_RESIDENCE_ISO2,
+    refusedIdIssuers: REFUSED_ID_ISSUER_ISO2,
+    bankingNewCustomersOnly: BANKING_NEW_CUSTOMERS_ONLY_RESIDENCE_ISO2,
 }
 
 // Module-level cache: the lists change with API deploys, not with users, so one
@@ -24,9 +30,12 @@ export const LOCAL_RESIDENCE_RESTRICTION_SETS: ResidenceRestrictionSets = {
 let serverSets: ResidenceRestrictionSets | null = null
 let inflight: Promise<ResidenceRestrictionSets | null> | null = null
 
+export const getResidenceRestrictionSets = (): ResidenceRestrictionSets =>
+    serverSets ?? LOCAL_RESIDENCE_RESTRICTION_SETS
+
 const parseLists = (json: unknown): ResidenceRestrictionSets | null => {
     if (!json || typeof json !== 'object') return null
-    const { full, cardOnly, bankingOnly } = json as Record<string, unknown>
+    const { full, cardOnly, bankingOnly, refusedIdIssuers, bankingNewCustomersOnly } = json as Record<string, unknown>
     const toSet = (value: unknown): ReadonlySet<string> | null =>
         Array.isArray(value) && value.every((v) => typeof v === 'string')
             ? new Set(value.map((v) => v.toUpperCase()))
@@ -35,7 +44,20 @@ const parseLists = (json: unknown): ResidenceRestrictionSets | null => {
     const cardSet = toSet(cardOnly)
     const bankingSet = toSet(bankingOnly)
     if (!fullSet || !cardSet || !bankingSet) return null
-    return { full: fullSet, cardOnly: cardSet, bankingOnly: bankingSet }
+    const refusedSet =
+        refusedIdIssuers === undefined ? LOCAL_RESIDENCE_RESTRICTION_SETS.refusedIdIssuers : toSet(refusedIdIssuers)
+    const newCustomersSet =
+        bankingNewCustomersOnly === undefined
+            ? LOCAL_RESIDENCE_RESTRICTION_SETS.bankingNewCustomersOnly
+            : toSet(bankingNewCustomersOnly)
+    if (!refusedSet || !newCustomersSet) return null
+    return {
+        full: fullSet,
+        cardOnly: cardSet,
+        bankingOnly: bankingSet,
+        refusedIdIssuers: refusedSet,
+        bankingNewCustomersOnly: newCustomersSet,
+    }
 }
 
 async function loadServerSets(): Promise<ResidenceRestrictionSets | null> {

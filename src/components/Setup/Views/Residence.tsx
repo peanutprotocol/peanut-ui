@@ -5,7 +5,6 @@ import SetupFooter from '../components/SetupFooter'
 import { ResidenceCompare } from '../components/ResidenceCompare'
 import { SetupCountryPicker } from '../components/SetupCountryPicker'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { REFUSED_ID_ISSUER_ISO2 } from '@/constants/residence.consts'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
 import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
@@ -74,7 +73,9 @@ const ResidenceStep = () => {
     const residence = residenceCountry || geoSuggestion?.country || ''
     const nationality = nationalityCountry && nationalityCountry !== residence ? nationalityCountry : ''
     const refusedPassport =
-        !!nationality && REFUSED_ID_ISSUER_ISO2.has(nationality) && !REFUSED_ID_ISSUER_ISO2.has(residence)
+        !!nationality &&
+        restrictionSets.refusedIdIssuers.has(nationality) &&
+        !restrictionSets.refusedIdIssuers.has(residence)
 
     useBackHandler(() => {
         setView('question')

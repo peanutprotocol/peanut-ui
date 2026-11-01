@@ -11,12 +11,8 @@ import {
 } from '@/constants/zerodev.consts'
 import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import {
-    BANKING_RESTRICTED_RESIDENCE_ISO2,
-    CARD_RESTRICTED_RESIDENCE_ISO2,
-    REFUSED_ID_ISSUER_ISO2,
-    RESTRICTED_RESIDENCE_ISO2,
-} from '@/constants/residence.consts'
+import { getResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
+import { deriveResidenceRestrictionsFrom, isQrResidenceRestricted } from '@/utils/residence-restrictions'
 import { KYC_USER_READS } from '@/utils/demo-kyc'
 import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
@@ -474,8 +470,6 @@ let demoNotificationPreferences: NotificationPreferences = {
 }
 
 const MANTECA_LOCAL_RESIDENCES = new Set(['AR', 'BR'])
-// peanut-api-ts SANCTIONED_RESIDENCE: Manteca closes to these residences.
-const SANCTIONED_RESIDENCE_ISO2 = new Set(['IR', 'RU', 'BY', 'KP', 'SY', 'CU', 'MM'])
 
 /**
  * GET /config/kyc-intents for a residence (and the ID's issuing country), from
@@ -485,12 +479,17 @@ const SANCTIONED_RESIDENCE_ISO2 = new Set(['IR', 'RU', 'BY', 'KP', 'SY', 'CU', '
  * refused issuer closes everything else; a Russian ID closes the card.
  */
 function demoKycIntents(residence: string, idCountry?: string): KycIntents {
-    const sanctioned = SANCTIONED_RESIDENCE_ISO2.has(residence)
-    const documentRefused = !!idCountry && REFUSED_ID_ISSUER_ISO2.has(idCountry)
+    const sets = getResidenceRestrictionSets()
+    const restrictions = deriveResidenceRestrictionsFrom(sets, residence)
+    const sanctioned = isQrResidenceRestricted(sets, residence)
+    const documentRefused = !!idCountry && sets.refusedIdIssuers.has(idCountry)
     const intent = (refusal: NonNullable<KycIntents['qr']['reason']> | null, documentRefusesCard = false) => {
         const reason = refusal ?? (documentRefused || documentRefusesCard ? 'document_country_unsupported' : null)
         return reason ? { available: false, reason } : { available: true }
     }
+    const bank = intent(
+        residence === 'GB' ? 'uk_resident_blocked' : restrictions.banking ? 'residence_bank_restricted' : null
+    )
     return {
         qr: intent(sanctioned ? 'residence_sanctioned' : null),
         local: intent(
@@ -501,19 +500,8 @@ function demoKycIntents(residence: string, idCountry?: string): KycIntents {
                   : 'local_residence_unsupported'
         ),
         // a Russian ID verifies without the card (peanut.russian-document)
-        card: intent(
-            RESTRICTED_RESIDENCE_ISO2.has(residence) || CARD_RESTRICTED_RESIDENCE_ISO2.has(residence)
-                ? 'geo-blocked'
-                : null,
-            idCountry === 'RU'
-        ),
-        bank: intent(
-            residence === 'GB'
-                ? 'uk_resident_blocked'
-                : RESTRICTED_RESIDENCE_ISO2.has(residence) || BANKING_RESTRICTED_RESIDENCE_ISO2.has(residence)
-                  ? 'residence_bank_restricted'
-                  : null
-        ),
+        card: intent(restrictions.card ? 'geo-blocked' : null, idCountry === 'RU'),
+        bank: { ...bank, currencies: [] },
     }
 }
 

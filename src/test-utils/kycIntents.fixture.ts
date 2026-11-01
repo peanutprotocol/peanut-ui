@@ -1,11 +1,6 @@
 import type { KycIntents } from '@/hooks/useKycIntents'
 
-/**
- * GET /config/kyc-intents answers for the countries the sign-up tests use,
- * as the API's rules gave them on 2026-10-27 (peanut-api-ts
- * `intentAvailability`). Bank closed for JP and KR, card for GB, IN, UA and
- * VE, local only in AR and BR.
- */
+/** Synthetic served offers for signup tests, including partial and closed bank offers. */
 export const KYC_INTENTS_BY_COUNTRY: Record<string, KycIntents> = {
     AR: {
         qr: {
@@ -19,6 +14,7 @@ export const KYC_INTENTS_BY_COUNTRY: Record<string, KycIntents> = {
         },
         bank: {
             available: true,
+            currencies: ['USD', 'EUR', 'GBP', 'MXN'],
         },
     },
     BR: {
@@ -33,7 +29,14 @@ export const KYC_INTENTS_BY_COUNTRY: Record<string, KycIntents> = {
         },
         bank: {
             available: true,
+            currencies: ['USD', 'EUR', 'GBP', 'MXN'],
         },
+    },
+    CF: {
+        qr: { available: true },
+        local: { available: false, reason: 'local_residence_unsupported' },
+        card: { available: true },
+        bank: { available: true, currencies: ['USD', 'MXN'] },
     },
     DE: {
         qr: {
@@ -48,6 +51,7 @@ export const KYC_INTENTS_BY_COUNTRY: Record<string, KycIntents> = {
         },
         bank: {
             available: true,
+            currencies: ['USD', 'EUR', 'GBP', 'MXN'],
         },
     },
     GB: {
@@ -64,6 +68,7 @@ export const KYC_INTENTS_BY_COUNTRY: Record<string, KycIntents> = {
         },
         bank: {
             available: false,
+            currencies: [],
             reason: 'uk_resident_blocked',
         },
     },
@@ -81,6 +86,7 @@ export const KYC_INTENTS_BY_COUNTRY: Record<string, KycIntents> = {
         },
         bank: {
             available: true,
+            currencies: ['USD', 'EUR', 'GBP', 'MXN'],
         },
     },
     IR: {
@@ -98,6 +104,7 @@ export const KYC_INTENTS_BY_COUNTRY: Record<string, KycIntents> = {
         },
         bank: {
             available: false,
+            currencies: [],
             reason: 'residence_bank_restricted',
         },
     },
@@ -114,6 +121,7 @@ export const KYC_INTENTS_BY_COUNTRY: Record<string, KycIntents> = {
         },
         bank: {
             available: false,
+            currencies: [],
             reason: 'residence_bank_restricted',
         },
     },
@@ -130,6 +138,7 @@ export const KYC_INTENTS_BY_COUNTRY: Record<string, KycIntents> = {
         },
         bank: {
             available: false,
+            currencies: [],
             reason: 'residence_bank_restricted',
         },
     },
@@ -146,6 +155,7 @@ export const KYC_INTENTS_BY_COUNTRY: Record<string, KycIntents> = {
         },
         bank: {
             available: true,
+            currencies: ['USD', 'EUR', 'GBP', 'MXN'],
         },
     },
     MX: {
@@ -161,6 +171,7 @@ export const KYC_INTENTS_BY_COUNTRY: Record<string, KycIntents> = {
         },
         bank: {
             available: true,
+            currencies: ['MXN', 'USD', 'EUR', 'GBP'],
         },
     },
     PT: {
@@ -176,6 +187,7 @@ export const KYC_INTENTS_BY_COUNTRY: Record<string, KycIntents> = {
         },
         bank: {
             available: true,
+            currencies: ['USD', 'EUR', 'GBP', 'MXN'],
         },
     },
     UA: {
@@ -192,6 +204,7 @@ export const KYC_INTENTS_BY_COUNTRY: Record<string, KycIntents> = {
         },
         bank: {
             available: true,
+            currencies: ['USD', 'EUR', 'GBP', 'MXN'],
         },
     },
     US: {
@@ -207,6 +220,7 @@ export const KYC_INTENTS_BY_COUNTRY: Record<string, KycIntents> = {
         },
         bank: {
             available: true,
+            currencies: ['USD', 'EUR', 'GBP', 'MXN'],
         },
     },
     VE: {
@@ -223,6 +237,7 @@ export const KYC_INTENTS_BY_COUNTRY: Record<string, KycIntents> = {
         },
         bank: {
             available: false,
+            currencies: [],
             reason: 'residence_bank_restricted',
         },
     },

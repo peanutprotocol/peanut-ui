@@ -5,7 +5,13 @@ import {
     setupFeatureScreensForCountry,
 } from '../filterSetupSteps'
 
-const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
+const restrictions = {
+    full: new Set(['RU']),
+    bankingOnly: new Set(['JP']),
+    cardOnly: new Set(['IN']),
+    refusedIdIssuers: new Set<string>(),
+    bankingNewCustomersOnly: new Set<string>(),
+}
 const ids = (country: string | null) =>
     filterSetupStepsForCountry(setupSteps, restrictions, country).map((step) => step.screenId)
 
