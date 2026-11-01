@@ -6,7 +6,16 @@ import { canReuseBaseline } from './baseline-reuse.mjs'
 import { verifyBaselineSource } from './baseline-source.mjs'
 
 /** Reauthenticate both provider provenance and actual source bytes in the trusted publisher. */
-export function verifyReusedBaseline({ receipt, beforeBytes, after, expectedCommit, repository, api, download }) {
+export function verifyReusedBaseline({
+    receipt,
+    beforeBytes,
+    after,
+    expectedCommit,
+    repository,
+    api,
+    download,
+    expectedFixtures,
+}) {
     if (
         receipt?.schema !== 1 ||
         !/^[1-9]\d*$/.test(receipt.runId ?? '') ||
@@ -30,7 +39,7 @@ export function verifyReusedBaseline({ receipt, beforeBytes, after, expectedComm
         const sourceBytes = readFileSync(join(directory, 'capture.json'))
         if (
             hash(sourceBytes) !== receipt.manifestDigest ||
-            !canReuseBaseline(JSON.parse(sourceBytes), after, expectedCommit)
+            !canReuseBaseline(JSON.parse(sourceBytes), after, expectedCommit, expectedFixtures)
         )
             throw new Error('Reused baseline differs from its verified external source or environment')
     } finally {

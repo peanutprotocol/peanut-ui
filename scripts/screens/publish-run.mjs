@@ -16,6 +16,7 @@ import { evaluateZeroDifferenceGate, reviewableComparison } from './zero-differe
 import { planRevisionCapture } from './capture-impact.mjs'
 import { canonicalScope } from './capture-scope.mjs'
 import { verifyReusedBaseline } from './verify-reused-baseline.mjs'
+import { captureFixtures } from './capture-fixtures.mjs'
 import { ALL_LOCALES_LABEL, missingLocales, planCaptureLocales } from './capture-locales.mjs'
 const LOCALES = {
     en: 'English',
@@ -257,6 +258,9 @@ for (const capturePair of capturePairs) {
             beforeBytes: readFileSync(join(dirs[0], 'capture.json')),
             after,
             expectedCommit: expectedBase,
+            expectedFixtures: after.fixtureSource
+                ? captureFixtures('.', { revision: expectedBase }).fixtures
+                : undefined,
             repository: repo,
             api,
             download: (sourceRun, artifact, destination) =>

@@ -416,6 +416,33 @@ test('reuse receipt verifies real external bytes and cannot certify retagged bas
     assert.throws(() => verifyReusedBaseline({ ...input, expectedCommit: after }), /Invalid reused baseline/)
 })
 
+test('trusted reused revision-owned bytes must match the independently expected base fixtures', () => {
+    const left = { ...manifest('f'.repeat(64) + '.png'), fixtureSource: before }
+    const bytes = Buffer.from(JSON.stringify(left))
+    const input = {
+        receipt: {
+            schema: 1,
+            runId: '12',
+            artifact: artifacts[0].name,
+            manifestDigest: hash(bytes),
+            commit: before,
+            locale: 'en',
+        },
+        beforeBytes: bytes,
+        after: { ...left, commit: after, fixtureSource: after, fixtures: '9'.repeat(64) },
+        expectedCommit: before,
+        expectedFixtures: left.fixtures,
+        repository,
+        api: provider,
+        download(id, name, destination) {
+            writeFileSync(join(destination, 'capture.json'), bytes)
+        },
+    }
+    assert.doesNotThrow(() => verifyReusedBaseline(input))
+    for (const expectedFixtures of [undefined, input.after.fixtures])
+        assert.throws(() => verifyReusedBaseline({ ...input, expectedFixtures }), /external source or environment/)
+})
+
 test('closed, superseded, moved-base and foreign PRs cannot start fresh fallback', () => {
     const pr = {
         state: 'open',
