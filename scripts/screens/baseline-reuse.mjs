@@ -1,7 +1,7 @@
 import { validateCapture, sameEnvironment } from './core.mjs'
 
 /** Source-run authentication and asset integrity remain external mandatory checks. */
-export function canReuseBaseline(beforeInput, afterInput, expectedBeforeCommit) {
+export function canReuseBaseline(beforeInput, afterInput, expectedBeforeCommit, expectedFixtures) {
     try {
         if (!/^[a-f0-9]{40}$/.test(expectedBeforeCommit)) return false
         const before = validateCapture(beforeInput),
@@ -19,7 +19,9 @@ export function canReuseBaseline(beforeInput, afterInput, expectedBeforeCommit) 
             before.commit !== expectedBeforeCommit ||
             before.scope ||
             !before.complete ||
-            !sameEnvironment(before, after) ||
+            (after.fixtureSource !== undefined &&
+                (!/^[a-f0-9]{64}$/.test(expectedFixtures ?? '') || before.fixtureSource !== expectedBeforeCommit)) ||
+            !sameEnvironment(before, after.fixtureSource ? { ...after, fixtures: expectedFixtures } : after) ||
             before.width !== after.width ||
             before.height !== after.height
         )

@@ -24,6 +24,8 @@ export function validateCapture(input) {
     assert(input?.schema === 1 && input.type === 'capture', 'Unsupported capture schema')
     assert(sha.test(input.commit) && sha.test(input.contentCommit), 'Invalid commit provenance')
     assert(digest.test(input.harness) && digest.test(input.fixtures), 'Missing harness/fixture identity')
+    if (input.fixtureSource !== undefined)
+        assert(input.fixtureSource === input.commit, 'Invalid fixture source revision')
     const captureLocale = input.locale ?? 'en'
     assert(supportedLocales.has(captureLocale), 'Invalid capture locale')
     const size = `${input.width}x${input.height}`
@@ -101,6 +103,7 @@ export function validateCapture(input) {
         contentCommit: input.contentCommit,
         harness: input.harness,
         fixtures: input.fixtures,
+        ...(input.fixtureSource !== undefined ? { fixtureSource: input.fixtureSource } : {}),
         environment: text(input.environment),
         adapter: text(input.adapter),
         capturedAt: text(input.capturedAt),
@@ -212,11 +215,13 @@ export function validateJourneys(input) {
             screens.every((screen) => screen.status === 'passed'),
     }
 }
-export function sameEnvironment(a, b) {
+export function sameEnvironment(a, b, { revisionFixtures = false } = {}) {
     return (
-        ['harness', 'fixtures', 'environment', 'profile', 'locale', 'adapter', 'publicBase'].every(
-            (k) => a[k] === b[k]
-        ) && JSON.stringify(a.device ?? null) === JSON.stringify(b.device ?? null)
+        ['harness', 'environment', 'profile', 'locale', 'adapter', 'publicBase'].every((k) => a[k] === b[k]) &&
+        !!a.fixtureSource === !!b.fixtureSource &&
+        (a.fixtures === b.fixtures ||
+            (revisionFixtures && a.fixtureSource === a.commit && b.fixtureSource === b.commit)) &&
+        JSON.stringify(a.device ?? null) === JSON.stringify(b.device ?? null)
     )
 }
 export function verifyAsset(dir, name, { variableDimensions = false, width = 393, height = 852 } = {}) {
@@ -260,8 +265,8 @@ export function compare(beforeInput, afterInput, assetsDir) {
         after = validateCapture(scopeCapture(after, scope))
     }
     assert(
-        sameEnvironment(before, after),
-        'Capture environments differ; recapture both with the same harness, fixtures and renderer'
+        sameEnvironment(before, after, { revisionFixtures: true }),
+        'Capture environments differ; recapture both with the same harness, fixture provenance and renderer'
     )
     const left = new Map(before.screens.map((s) => [s.id, s])),
         right = new Map(after.screens.map((s) => [s.id, s]))

@@ -1,16 +1,14 @@
 import { chromium, devices, expect, type Request } from '@playwright/test'
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { release } from 'node:os'
 import { execFileSync } from 'node:child_process'
 import sharp from 'sharp'
 import { SCREENS } from '../../src/dev/screens/catalogue'
 import { APP_LOCALES, type AppLocale } from '../../src/i18n/app/config'
-import { answer, ADAPTER_VERSION } from './adapter'
+import { revisionAdapter } from './revision-adapter'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
 import { canonicalScope, scopeCapture } from './capture-scope.mjs'
-import { fixtureIdentityFiles } from './capture-impact.mjs'
-import { knownNonvisual } from './capture-plan.mjs'
 import { harnessIdentityFiles, fileIdentity } from './capture-identity.mjs'
 import { captureExitCode } from './capture-status.mjs'
 import { captureProfile } from './capture-profiles.mjs'
@@ -79,10 +77,7 @@ async function main() {
     const historical = arg('historical') === 'true'
     const assets = join(out, 'assets')
     mkdirSync(assets, { recursive: true })
-    const walk = (p: string): string[] =>
-        readdirSync(p, { withFileTypes: true }).flatMap((e) =>
-            e.isDirectory() ? walk(join(p, e.name)) : [join(p, e.name)]
-        )
+    const api = await revisionAdapter(source)
     const identity = fileIdentity
     let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined
     let launchError: unknown
@@ -132,15 +127,6 @@ async function main() {
     if (requireFullCatalogue && selected.length) throw new Error('Full catalogue capture cannot use --only')
     const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;locale=${captureLocale};device=${profile.device.platform};browser=${profile.browserProfile};safe-area=${Object.values(profile.device.safeArea).join(',')};UTC;light;reduced-motion`
     const harness = identity(harnessIdentityFiles())
-    const fixtures = identity(
-        fixtureIdentityFiles([
-            ...walk('src/dev/fixtures').filter((path) => !knownNonvisual(path)),
-            'src/utils/demo-api.ts',
-            'src/constants/demo-data.ts',
-            'src/constants/residence.consts.ts',
-            'src/types/api.openapi.json',
-        ])
-    )
     const manifest = () => {
         const capture = {
             schema: 1,
@@ -150,9 +136,10 @@ async function main() {
             contentCommit: git('rev-parse', 'HEAD:src/content'),
             publicBase: buildIdentity.publicBase,
             harness,
-            fixtures,
+            fixtures: api.fixtures,
+            fixtureSource: commit,
             environment,
-            adapter: ADAPTER_VERSION,
+            adapter: api.adapter,
             capturedAt: new Date().toISOString(),
             reconstruction: historical,
             profile: `${captureLocale}-${profile.name}`,
@@ -224,6 +211,17 @@ async function main() {
                 })
                 continue
             }
+            const unavailableReason =
+                api.unavailableReason ??
+                (!api.hasFixture(screen.fixture)
+                    ? `Revision API inputs unavailable: fixture ${screen.fixture} does not exist in this revision`
+                    : undefined)
+            if (unavailableReason) {
+                results.push({ ...metadata, status: 'unavailable', reason: unavailableReason })
+                console.log(`UNAVAILABLE ${screen.id}: ${unavailableReason}`)
+                continue
+            }
+            const answer = api.answer!
             const context = await browser.newContext(contextOptions)
             const page = await context.newPage()
             page.setDefaultTimeout(15000)

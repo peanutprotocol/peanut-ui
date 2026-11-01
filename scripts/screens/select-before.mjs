@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { appendFileSync, copyFileSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { canReuseBaseline } from './baseline-reuse.mjs'
+import { captureFixtures } from './capture-fixtures.mjs'
 import { validateCapture, verifyAsset, hash } from './core.mjs'
 import { findBaselineSource } from './baseline-source.mjs'
 import { repositoryApiPath } from './repository-api.mjs'
@@ -43,7 +44,8 @@ if (source) {
         const bytes = readFileSync(join(directory, 'capture.json'))
         const capture = validateCapture(JSON.parse(bytes))
         const after = validateCapture(JSON.parse(readFileSync(join(afterDir, 'capture.json'), 'utf8')))
-        if (!canReuseBaseline(capture, after, before))
+        const inputs = after.fixtureSource ? captureFixtures(resolve('../target'), { revision: before }) : undefined
+        if (inputs?.unavailableReason || !canReuseBaseline(capture, after, before, inputs?.fixtures))
             throw new Error('Baseline manifest identities, completeness or selected state coverage differ')
         for (const screen of capture.screens)
             if (screen.status === 'captured')

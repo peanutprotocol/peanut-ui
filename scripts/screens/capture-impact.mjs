@@ -38,7 +38,27 @@ export function earlyCaptureMode(event, changedFiles) {
         : 'full'
 }
 
-export function localDependencies(path, source, files) {
+/** Match the fixed compiler settings used to execute revision API data modules. */
+export function compileFixtureModule(path, source) {
+    const compiled = ts.transpileModule(source, {
+        fileName: path,
+        compilerOptions: {
+            module: ts.ModuleKind.CommonJS,
+            target: ts.ScriptTarget.ES2022,
+            esModuleInterop: true,
+            jsx: ts.JsxEmit.ReactJSX,
+        },
+        reportDiagnostics: true,
+    })
+    if (compiled.diagnostics?.some((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error))
+        throw new Error(`Invalid revision API module: ${path}`)
+    return compiled.outputText
+}
+
+export function localDependencies(path, source, files, { runtimeOnly = false } = {}) {
+    // Erased type imports cannot affect responses. Following them can include
+    // unrelated app files changed by prepare(), making immutable reuse impossible.
+    if (runtimeOnly) source = compileFixtureModule(path, source)
     const parsed = ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true)
     if (parsed.parseDiagnostics.length) return null
     let unknown = false
@@ -124,7 +144,7 @@ export function fixtureIdentityFiles(roots, options = {}) {
         if (!files.has(path)) throw new Error(`Fixture identity input is not a tracked local file: ${path}`)
         visited.add(path)
         if (code.test(path)) {
-            const dependencies = localDependencies(path, read(path), files)
+            const dependencies = localDependencies(path, read(path), files, { runtimeOnly: options.runtimeOnly })
             if (!dependencies) throw new Error(`Fixture dependency identity cannot be proven: ${path}`)
             pending.push(...dependencies)
         }
