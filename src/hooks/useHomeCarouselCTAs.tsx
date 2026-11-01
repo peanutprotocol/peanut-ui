@@ -80,7 +80,7 @@ export const useHomeCarouselCTAs = ({
         useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { canDo, rails, nextActions } = useCapabilities()
+    const { capabilities, rails, nextActions } = useCapabilities()
     const { isRegionRestricted, isTerminalFailure, status: identityStatus } = useIdentityVerification()
     // Suppress the "verify your account" CTA when the user is already mid-flow
     // on ANY rail (`pending` = submitted/provisioning, `requires-info` = finish
@@ -204,10 +204,7 @@ export const useHomeCarouselCTAs = ({
         // the same gate the QR pay page reads: the slide shows only when a scan would pay
         const qrGate = selectQrKycGate({
             isLoading: false,
-            isRegionRestricted,
-            isTerminalFailure,
-            canPayManteca: canDo('pay', { provider: 'manteca' }),
-            mantecaRails: rails.filter((rail) => rail.provider === 'manteca'),
+            features: capabilities.features,
             nextActions,
         })
         if (showQrPayCTA({ canPayQrNow: qrGate.kycGateState === QrKycState.PROCEED_TO_PAY, hasMadeQrPayment })) {
@@ -310,7 +307,6 @@ export const useHomeCarouselCTAs = ({
         t,
         isPermissionGranted,
         isPushOptedIn,
-        canDo,
         isInFlight,
         router,
         requestPermission,
@@ -324,6 +320,7 @@ export const useHomeCarouselCTAs = ({
         hasCardRelationship,
         rails,
         nextActions,
+        capabilities.features,
         isRegionRestricted,
         isTerminalFailure,
         identityStatus,

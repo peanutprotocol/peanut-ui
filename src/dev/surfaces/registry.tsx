@@ -1,6 +1,8 @@
 'use client'
 
 import { SetupCelebrationView } from '@/components/Setup/Views/Success'
+import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
+import { API_CONTRACT_STATES } from './api-contract-states'
 
 /**
  * Every modal, drawer and full-screen surface in the content-taxonomy review,
@@ -14,7 +16,7 @@ import { SetupCelebrationView } from '@/components/Setup/Views/Success'
  */
 
 import React from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
@@ -81,6 +83,10 @@ import { RequestPotActionList } from '@/features/payments/flows/contribute-pot/c
 import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
 import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-pot/components/BankTransferChooserDrawer'
+import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
+import { ResidenceCompare } from '@/components/Setup/components/ResidenceCompare'
+import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
+import { buildResidenceCountryOptions } from '@/utils/residence-options'
 
 /**
  * A setup step exactly as /setup renders it — SetupWrapper driven by the step's
@@ -94,12 +100,14 @@ function SetupScreen({
     showProgress = true,
     forceFullScreen = false,
     residenceCountry,
+    nationalityCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     showProgress?: boolean
     forceFullScreen?: boolean
     residenceCountry?: string
+    nationalityCountry?: string
 }) {
     return (
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
@@ -108,6 +116,7 @@ function SetupScreen({
                 showProgress={showProgress}
                 forceFullScreen={forceFullScreen}
                 residenceCountry={residenceCountry}
+                nationalityCountry={nationalityCountry}
             >
                 {children}
             </SetupScreenBody>
@@ -120,18 +129,21 @@ function SetupScreenBody({
     showProgress = true,
     forceFullScreen = false,
     residenceCountry,
+    nationalityCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     showProgress?: boolean
     forceFullScreen?: boolean
     residenceCountry?: string
+    nationalityCountry?: string
 }) {
-    const { setSteps, setResidenceCountry } = useSetupFlowContext()
+    const { setSteps, setResidenceCountry, setNationalityCountry } = useSetupFlowContext()
     React.useLayoutEffect(() => setSteps(setupSteps), [setSteps])
     React.useLayoutEffect(() => {
         if (residenceCountry) setResidenceCountry(residenceCountry)
-    }, [residenceCountry, setResidenceCountry])
+        if (nationalityCountry) setNationalityCountry(nationalityCountry)
+    }, [residenceCountry, setResidenceCountry, nationalityCountry, setNationalityCountry])
     const step = setupSteps.find((entry) => entry.screenId === screenId)
     const stepCopy = useSetupStepCopy(step)
     if (!step) return null
@@ -164,6 +176,24 @@ const FUNDED_CARD_ONBOARDING: OnboardingState = {
     step: 'first_payment',
 }
 const noop = () => {}
+
+/** The residence step's comparison, as its Next opens it when the nationality differs. */
+function ResidenceCompareSurface({ residence, nationality }: { residence: string; nationality: string }) {
+    const locale = useLocale()
+    const options = React.useMemo(() => buildResidenceCountryOptions(locale), [locale])
+    const { sets, settled } = useResidenceRestrictionSetsWithStatus()
+    return (
+        <ResidenceCompare
+            residence={residence}
+            nationality={nationality}
+            labelOf={(iso2) => options.find((option) => option.value === iso2)?.label ?? iso2}
+            restrictionSets={sets}
+            restrictionsSettled={settled}
+            busy={false}
+            onChoose={noop}
+        />
+    )
+}
 const asyncNoop = async () => {}
 
 /**
@@ -203,6 +233,20 @@ function RequestPotPartialSurface() {
                 amount={58.51}
                 shortDeposit={{ received: '33', asked: '58.51' }}
                 onDone={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
+function MantecaAccountUnavailableSurface({ action }: { action: 'deposit' | 'withdraw' }) {
+    const tAddMoney = useTranslations('addMoney')
+    const tNav = useTranslations('navigation')
+    return (
+        <AppPageSurface>
+            <MantecaAccountUnavailable
+                title={action === 'deposit' ? tAddMoney('title') : tNav('withdraw')}
+                onBack={noop}
+                onSupport={noop}
             />
         </AppPageSurface>
     )
@@ -312,6 +356,15 @@ export type Surface = SurfaceMeta & {
 }
 
 export const SURFACES: Record<string, Surface> = {
+    ...Object.fromEntries(
+        Object.entries(API_CONTRACT_STATES).map(([id, state]) => [
+            id,
+            {
+                ...SURFACE_META[id],
+                render: () => <TestBuildRibbonView branch="test/kyc-contract" api={state.api} />,
+            },
+        ])
+    ),
     '01-a-landing': {
         ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,
@@ -332,6 +385,14 @@ export const SURFACES: Record<string, Surface> = {
     '03-a-residence-select': {
         ...SURFACE_META['03-a-residence-select'],
         render: () => <SetupScreen screenId="residence" />,
+    },
+    '03-b-residence-compare': {
+        ...SURFACE_META['03-b-residence-compare'],
+        render: () => (
+            <SetupScreen screenId="residence" residenceCountry="PT" nationalityCountry="BR">
+                <ResidenceCompareSurface residence="PT" nationality="BR" />
+            </SetupScreen>
+        ),
     },
 
     '05-a-signtesttransaction': {
@@ -1042,6 +1103,14 @@ export const SURFACES: Record<string, Surface> = {
     '91-f-withdraw-review-spent': {
         ...SURFACE_META['91-f-withdraw-review-spent'],
         render: () => <WithdrawReviewSurface alreadySpent />,
+    },
+    '92-f-deposit-account-closed': {
+        ...SURFACE_META['92-f-deposit-account-closed'],
+        render: () => <MantecaAccountUnavailableSurface action="deposit" />,
+    },
+    '93-f-withdraw-account-closed': {
+        ...SURFACE_META['93-f-withdraw-account-closed'],
+        render: () => <MantecaAccountUnavailableSurface action="withdraw" />,
     },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a

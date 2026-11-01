@@ -40,11 +40,14 @@ jest.mock('@/hooks/useUserAutoRefresh', () => ({ useUserAutoRefresh: jest.fn() }
 jest.mock('@/hooks/useAppLocked', () => ({ useAppLocked: () => false }))
 jest.mock('@/hooks/useZeroDevFlow', () => ({ zeroDevFlowActions: { reset: jest.fn() } }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
-jest.mock('@/utils/auth-token', () => ({ clearAuthToken: jest.fn().mockResolvedValue(undefined) }))
+jest.mock('@/utils/auth-token', () => ({
+    getClearEpoch: jest.fn(() => 0),
+    clearAuthToken: jest.fn().mockResolvedValue(undefined),
+}))
 jest.mock('@/utils/login-session', () => ({ recoverLoginSession: jest.fn() }))
 jest.mock('@/utils/cache.utils', () => ({ purgeCaches: jest.fn().mockResolvedValue(undefined) }))
 jest.mock('@/utils/crisp', () => ({ resetCrispProxySessions: jest.fn().mockResolvedValue(undefined) }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, isNativeBridge: () => false }))
 jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn(), setUser: jest.fn() }))
 jest.mock('@/i18n/app/locale-store', () => ({
     currentAppLocale: () => 'en',
@@ -81,6 +84,7 @@ jest.mock('posthog-js', () => ({
 import { AuthProvider, useAuth } from '../authContext'
 import { clearRedirectUrl, endIntentionalLogout, getRedirectUrl, saveRedirectUrl } from '@/utils/general.utils'
 import { clearSessionHeld, hasHeldSession, markSessionHeld } from '@/utils/session-presence'
+import { purgeCaches } from '@/utils/cache.utils'
 
 const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>
 
@@ -155,6 +159,17 @@ describe('logoutUser', () => {
         })
 
         expect(hasHeldSession()).toBe(false)
+    })
+
+    it('purges the cross-origin cache, where older workers stored API responses', async () => {
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(purgeCaches).toHaveBeenCalledWith(expect.arrayContaining(['cross-origin', 'user-api']))
     })
 
     it('forgets the analytics identity fingerprint, so the next user starts clean', async () => {

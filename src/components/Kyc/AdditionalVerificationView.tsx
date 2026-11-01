@@ -54,13 +54,15 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
     const tCommon = useTranslations('common')
     const router = useRouter()
     const onBack = useSafeBack(IDENTITY_ROUTE)
-    const { nextActions, rails, isLoading: isLoadingCapabilities } = useCapabilities()
+    const { nextActions, capabilities, isLoading: isLoadingCapabilities } = useCapabilities()
     // Same selection as the Home card: a hosted task stands down while a Bridge
     // rail carries a native step, so a deep link here reads the same truth.
-    const hostedTask = selectBridgeTasks(nextActions, rails ?? []).find((action) => action.kind === 'bridge-hosted')
+    const hostedTask = selectBridgeTasks(nextActions, capabilities.features).find(
+        (action) => action.kind === 'bridge-hosted'
+    )
     // The hosted task stood down because a Bridge rail carries a Sumsub step:
     // the document Bridge asked for is collected in the app, not at the vendor.
-    const nativeStepPending = !hostedTask && hasNativeBridgeStep(nextActions, rails ?? [])
+    const nativeStepPending = !hostedTask && hasNativeBridgeStep(nextActions, capabilities.features)
     const { start, isStarting, error, isSettling, stillPendingAfterReturn } = useHostedVerification('bridge-hosted', {
         taskPending: !!hostedTask,
     })

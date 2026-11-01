@@ -34,5 +34,5 @@ export function useMantecaBankRedirect() {
         }
     }, [isMantecaRoute, selectedCountry, router])
 
-    return { isMantecaRoute }
+    return { isMantecaRoute, selectedCountry }
 }

@@ -1,3 +1,4 @@
+import { normalizeResidence } from '@/utils/residence-profile'
 /**
  * CountryList — the send->bank supported-country gate (enforceSupportedCountries).
  *
@@ -37,8 +38,11 @@ jest.mock('@/hooks/useGeoLocation', () => ({
 }))
 
 let mockResidence: string | null = null
+let mockDeclaredResidence: string | null = null
 jest.mock('@/context/authContext', () => ({
-    useOptionalAuth: () => ({ user: { residence: { declared: null, verified: mockResidence } } }),
+    useOptionalAuth: () => ({
+        user: { residence: normalizeResidence({ declared: mockDeclaredResidence, verified: mockResidence }) },
+    }),
 }))
 
 jest.mock('@/components/Global/EasterEggDrawer', () => ({
@@ -120,6 +124,24 @@ describe('CountryList — enforceSupportedCountries (send->bank flow)', () => {
     })
 })
 
+describe('CountryList — the tapped row', () => {
+    const renderList = (onCountryClick: () => void | boolean) =>
+        render(<CountryList inputTitle="How?" viewMode="add-withdraw" flow="add" onCountryClick={onCountryClick} />)
+
+    it('waits while the tap navigates away', () => {
+        renderList(() => true)
+        fireEvent.click(row('Germany'))
+        expect(row('Germany')).toHaveAttribute('aria-disabled', 'true')
+    })
+
+    // a gate drawer over the list: nothing is coming, so the row stays usable
+    it('stays usable when the tap answered in place', () => {
+        renderList(() => false)
+        fireEvent.click(row('Germany'))
+        expect(row('Germany')).not.toHaveAttribute('aria-disabled', 'true')
+    })
+})
+
 describe('CountryList — which country comes first', () => {
     const renderList = () =>
         render(<CountryList inputTitle="How?" viewMode="add-withdraw" flow="withdraw" onCountryClick={jest.fn()} />)
@@ -130,6 +152,7 @@ describe('CountryList — which country comes first', () => {
         mockGeoCountry = null
         mockGeoLoading = false
         mockResidence = null
+        mockDeclaredResidence = null
     })
 
     /*
@@ -163,8 +186,16 @@ describe('CountryList — which country comes first', () => {
         expect(firstCountry()).toContain('Brazil')
     })
 
+    it('the declaration wins over IP when there is no verified residence', () => {
+        mockDeclaredResidence = 'BR'
+        mockGeoCountry = 'DE'
+        renderList()
+        expect(firstCountry()).toContain('Brazil')
+    })
+
     it('falls back to the IP country when no residence is verified', () => {
         mockResidence = null
+        mockDeclaredResidence = null
         mockGeoCountry = 'DE'
         renderList()
         expect(firstCountry()).toContain('Germany')

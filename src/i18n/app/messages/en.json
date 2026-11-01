@@ -131,7 +131,7 @@
             "firstPaymentHeldCardQrNote": "Pay with the card or a QR",
             "hide": "Hide",
             "welcomeTitle": "Welcome to Peanut!",
-            "welcomeBody": "{count} quick steps to pay, send and receive",
+            "welcomeBody": "{count, plural, one {# step} other {# steps}} left to pay, send and receive",
             "progress": "{done} of {total} done",
             "welcomeTitleSpoken": "Welcome to Peanut!"
         },
@@ -230,6 +230,10 @@
             "documentDescription": "Needed to keep bank transfers running.",
             "documentDueBy": "Due {deadline} to keep bank transfers running.",
             "documentCta": "Complete now",
+            "cardDocumentTitle": "One more document for your card",
+            "cardAddressDescription": "Our card partner needs a proof of address to finish your application.",
+            "cardIdentityDescription": "Our card partner needs your identity document again to finish your application.",
+            "cardDocumentCta": "Continue",
             "completeBefore": "Complete before {deadline}",
             "dismiss": "Dismiss {task}",
             "verifyTitle": "Additional verification needed",
@@ -308,7 +312,10 @@
             "starAlt": "star",
             "help": "Help center",
             "about": "About Peanut",
-            "updateAvailable": "Update available"
+            "updateAvailable": "Update available",
+            "profile": "Profile",
+            "paymentMethods": "Payment methods",
+            "notifications": "Notifications"
         },
         "logOut": "Log out",
         "logOutAllDevices": "Log out on all devices",
@@ -362,7 +369,9 @@
         "unlockPayments": {
             "titles": {
                 "accounts": "Accounts",
-                "payments": "Payments"
+                "payments": "Payments",
+                "methods": "Payment methods",
+                "bank": "Bank account"
             },
             "residence": {
                 "label": "Residence",
@@ -390,14 +399,15 @@
                 "usd": "USD · Bank transfer",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Bank transfer",
-                "qrPay": "QR payments"
+                "qrPay": "QR payments",
+                "bankAccount": "Bank account"
             },
             "chips": {
-                "active": "Available",
-                "alwaysOn": "Always on",
-                "unlock": "Unlock",
-                "processing": "Processing",
-                "attention": "Attention",
+                "active": "Active",
+                "alwaysOn": "Active",
+                "unlock": "Set up",
+                "processing": "Pending",
+                "attention": "Action needed",
                 "notAvailable": "Not available"
             },
             "bankNotAvailableNote": "Bank transfers and card issuing aren't available for residents of your country.",
@@ -417,7 +427,16 @@
                 "cardRestrictionNote": "Heads up: the card isn't available for residents of this country.",
                 "bankingRestrictionNote": "Heads up: bank transfers aren't available for residents of this country.",
                 "save": "Save",
-                "saveAndReverify": "Submit documents"
+                "saveAndReverify": "Submit documents",
+                "lostTitle": "You'll lose some services",
+                "lostBody": "{country} doesn't allow {services}. They stop once we approve your move.",
+                "saveAnyway": "Move anyway",
+                "lost": {
+                    "card": "the Peanut card",
+                    "bank": "bank accounts",
+                    "local": "local bank transfers",
+                    "qr": "QR payments"
+                }
             },
             "degraded": {
                 "title": "Verification is temporarily down",
@@ -452,7 +471,8 @@
                 "usd": "Add and withdraw dollars using US bank transfers.",
                 "mxn": "Add and withdraw Mexican pesos over the SPEI network.",
                 "sepa": "Add or withdraw euros using SEPA bank transfers.",
-                "qrPay": "Pay in shops in Brazil and Argentina by scanning a QR code."
+                "qrPay": "Pay in shops in Brazil and Argentina by scanning a QR code.",
+                "bankAccount": "Add and withdraw money by bank transfer"
             },
             "valueProp": {
                 "p2p": "Split bills and pay friends in one tap.",
@@ -464,14 +484,21 @@
                 "mxn": "Move Mexican pesos between your bank and Peanut.",
                 "sepa": "Hold and move euros without a local bank.",
                 "qrPay": "Scan and pay where you live.",
-                "pixSend": "Send reais to any Pix key in Brazil."
+                "pixSend": "Send reais to any Pix key in Brazil.",
+                "bankAccount": "Add, hold and withdraw money in other currencies."
             },
             "detailsDrawer": {
                 "aboutTitle": "What it unlocks",
                 "limitsTitle": "Limits"
             },
             "qrPayNote": "Brazil and Argentina",
-            "pixSendNote": "Send to any Pix key"
+            "pixSendNote": "Send to any Pix key",
+            "bankPick": "Pick a currency to see its account or set it up.",
+            "sections": {
+                "active": "Ready to use",
+                "notActive": "Not active yet",
+                "unavailable": "Unavailable"
+            }
         },
         "backup": {
             "title": "Backup",
@@ -616,6 +643,43 @@
                 "revealed": "Beta updates switch revealed below.",
                 "appOnly": "Beta updates are only available in the Peanut app."
             }
+        },
+        "details": {
+            "title": "Profile",
+            "notStored": "Not stored at Peanut",
+            "yes": "Yes",
+            "no": "No",
+            "rows": {
+                "name": "Name",
+                "surname": "Surname",
+                "email": "Email",
+                "declaredResidence": "Declared residence",
+                "verifiedResidence": "Verified residence",
+                "secondResidence": "Second residence",
+                "nationality": "Nationality",
+                "dateOfBirth": "Date of birth",
+                "countryOfBirth": "Country of birth",
+                "cityOfBirth": "City of birth",
+                "document": "ID document",
+                "phone": "Phone number",
+                "address": "Address",
+                "taxId": "Tax number",
+                "occupation": "Occupation",
+                "employmentStatus": "Employment",
+                "annualSalary": "Yearly income",
+                "expectedMonthlyVolume": "Monthly card spending",
+                "bankMonthlyPayments": "Monthly account payments",
+                "sourceOfFunds": "Source of funds",
+                "bankPurpose": "Account use",
+                "cardPurpose": "Card use",
+                "actingAsIntermediary": "Sending money for others",
+                "sex": "Sex",
+                "maritalStatus": "Marital status",
+                "isPep": "Public office",
+                "isFatca": "US citizen or tax resident",
+                "isFep": "UIF reporting duty",
+                "idNationality": "Nationality on your ID"
+            }
         }
     },
     "settings": {
@@ -641,6 +705,18 @@
             "cryingPeanutAlt": "Crying peanut",
             "depositInFlight": "A deposit is still arriving. Wait for it to arrive, then withdraw your balance before deleting your account.",
             "depositAccountsUnavailable": "We couldn’t close your bank accounts. Your Peanut account is still active. Please try again later."
+        },
+        "notifications": {
+            "title": "Notifications",
+            "loadFailed": "We couldn’t load your settings. Please try again.",
+            "important": "Important alerts",
+            "importantBody": "Payments, account and security",
+            "offers": "Offers and perks",
+            "offersBody": "Be first to try new features",
+            "email": "Email updates",
+            "emailBody": "Helpful updates in your inbox",
+            "blocked": "Notifications are off in your device settings.",
+            "openSettings": "Open settings"
         }
     },
     "limits": {
@@ -745,10 +821,6 @@
                 "title": "Pay anyone in a tap.",
                 "description": "Send dollars to a Peanut username or share a payment link."
             },
-            "residence": {
-                "title": "Country of legal residence",
-                "description": "Where you are a legal resident. Not necessarily where you were born or where you’re travelling to."
-            },
             "advantage-rewards": {
                 "title": "Good things are better together.",
                 "description": "Invite friends and unlock rewards as they use Peanut."
@@ -776,8 +848,7 @@
                 "title": "No spam. Pinky promise."
             },
             "notification-permission": {
-                "title": "Turn on notifications",
-                "description": "Know instantly when money arrives, a payment goes through, or your account requires attention."
+                "title": "Enable notifications to stay in the loop"
             },
             "success": {
                 "title": "All set!",
@@ -859,9 +930,6 @@
             "termsAgreement": "By creating an account, you agree to the <terms>T&C</terms> and <privacy>Privacy Policy</privacy>"
         },
         "residenceStep": {
-            "countryPlaceholder": "Select country",
-            "secondCountryPlaceholder": "Second country",
-            "multiDocLink": "Have residence in another country?",
             "errors": {
                 "invalidEmail": "Please enter a valid email address"
             },
@@ -905,8 +973,39 @@
                 "changeCountry": "Choose a different country"
             },
             "compare": {
-                "selectCountry": "Select {country}"
-            }
+                "selectCountry": "Select {country}",
+                "items": {
+                    "p2p": "Peanut to Peanut",
+                    "pix": "PIX payments & transfers",
+                    "arQr": "QR payments & own-account transfers",
+                    "spei": "Mexican peso bank transfers",
+                    "usdAch": "US dollar bank transfers",
+                    "eurSepa": "Euro bank transfers",
+                    "gbpFps": "British pound bank transfers",
+                    "bank": "Bank transfers where supported",
+                    "card": "Peanut card"
+                },
+                "missing": {
+                    "banking": "Bank transfers",
+                    "card": "Peanut card"
+                },
+                "multiCurrencyNote": "Transfers in another currency need a bank account in that currency.",
+                "guideTitle": "Which country should be selected?",
+                "guideDeclaration": "If you have a residence permit for either country, choose that one. Otherwise, choose the country that issued your ID, like a passport or driver’s license.",
+                "title": "Link your profile to one country",
+                "description": "Here’s what each unlocks."
+            },
+            "sentence": "I’m a resident <nw>of <residence></residence></nw> and a national <nw>of <nationality></nationality>.</nw>",
+            "residenceTitle": "Where are you a resident?",
+            "nationalityTitle": "What’s your nationality?",
+            "sameCountry": "the same country",
+            "sameCountryRow": "The same country",
+            "choose": "Choose",
+            "searchCountry": "Search countries",
+            "noCountry": "No country matches “{query}”.",
+            "hint": "Tap a country to change it.",
+            "refusedPassport": "We can’t verify passports or ID cards from {nationality}. Use your residence card from {residence} when you verify your identity.",
+            "continue": "Continue"
         },
         "passkey": {
             "notAvailable": "Passkeys aren't available on this device yet. Please try again.",
@@ -1018,12 +1117,16 @@
             "optOutNote": "We’ll email you about your account. You can turn off news and offers anytime."
         },
         "notifications": {
-            "pushLabel": "Push notifications",
-            "pushDescription": "Updates straight to your phone.",
-            "emailDescription": "Updates delivered to your inbox.",
             "continue": "Continue",
-            "pushUnavailable": "Push notifications aren’t ready yet. Try again, or turn push off to continue.",
-            "saveFailed": "We couldn’t save your settings. Please try again."
+            "saveFailed": "We couldn’t save your settings. Please try again.",
+            "importantLabel": "Important alerts",
+            "importantDescription": "Payments, account and security",
+            "offersLabel": "Offers and perks",
+            "offersDescription": "Be first to try new features",
+            "emailLabel": "Email updates",
+            "emailDescription": "Helpful updates in your inbox",
+            "changeAnytime": "You can change any of these anytime in your profile.",
+            "notNow": "Not now"
         },
         "paymentPlan": {
             "fundingTitle": "Add money with",
@@ -1033,7 +1136,7 @@
                 "crypto": "Crypto",
                 "peanut": "Another Peanut user",
                 "bank": "Bank transfer",
-                "bankCurrencies": "Bank transfer (USD, EUR, GBP, MXN)",
+                "bankCurrencies": "Bank transfer ({currencies})",
                 "brlBank": "Bank transfer (BRL)",
                 "arsBank": "Bank transfer (ARS)"
             },
@@ -1058,6 +1161,11 @@
         "inviteStep": {
             "continue": "Continue",
             "skip": "Skip"
+        },
+        "notificationsControl": {
+            "title": "Turn on notifications",
+            "description": "Know instantly when money arrives, a payment goes through, or your account requires attention.",
+            "pushLabel": "Push notifications"
         }
     },
     "loadingStates": {
@@ -1511,9 +1619,23 @@
             "restartDescription": "QR payments need a document from a supported country. You can verify with a different ID.",
             "blockedDescription": "QR payments are not available for your account. Contact support for help.",
             "uploadDocument": "Upload document",
-            "verifyAgainTitle": "We need a few more details",
-            "verifyAgainDescription": "We're missing a few details. Please complete the additional verification.",
-            "verifyAgainCta": "Continue"
+            "verifyAgain": {
+                "documentMissing": {
+                    "title": "Add your ID once more",
+                    "description": "We moved to a new identity partner, and your ID photo didn’t come across. That’s on us. Upload your ID and take a quick selfie, and QR payments work again.",
+                    "cta": "Upload your ID"
+                },
+                "restartPending": {
+                    "title": "Finish your new ID check",
+                    "description": "You started verifying with a new ID. Until we’ve checked it, QR payments are paused, so we never pay with details that may be out of date. Pick up where you left off. It takes a few minutes.",
+                    "cta": "Continue verification"
+                },
+                "unreadable": {
+                    "title": "We couldn’t read your ID number",
+                    "description": "To pay by QR, our payment partner needs your full name and ID number, and we couldn’t read them from the ID you sent. Sorry for the extra step. Upload your ID again and you’re set.",
+                    "cta": "Upload your ID"
+                }
+            }
         },
         "info": {
             "exchangeRate": "Exchange Rate",
@@ -1645,9 +1767,8 @@
             "navTitle": "Peanut Card",
             "title": "Spend anywhere Visa is accepted",
             "description": "Use your balance at 150M+ merchants. Online, contactless, yours.",
-            "featureBalance": "Manage your card in Peanut",
-            "featureControl": "Full control",
-            "featureOnline": "Works online & contactless",
+            "visaAcceptance": "Accepted at Visa merchants worldwide",
+            "contactless": "Contactless with {wallet}",
             "cta": "Get card"
         },
         "addToWallet": {
@@ -1675,6 +1796,7 @@
             "requiresInfoBirthDateBody": "Provide your date of birth to finish your card application.",
             "requiresInfoProofOfAddressBody": "Upload a proof of address to finish your card application.",
             "requiresInfoIdentityBody": "Upload your identity documents to finish your card application.",
+            "requiresInfoWaitBody": "There's nothing else to do for now. Your application moves on once our card partner has reviewed your document.",
             "requiresSupportTitle": "Something went wrong on our side",
             "requiresSupportBody": "We hit a snag while processing your card application. Our team needs to take a look — message support and we'll get you sorted.",
             "rejectedTitle": "We couldn't issue a card",
@@ -1684,7 +1806,8 @@
             "geoBlockedPolicyLink": "See which regions are restricted",
             "pendingResidenceBlockedTitle": "Residence change pending",
             "pendingResidenceBlockedBody": "Your approved residence is still active, but card applications are paused while a residence change is pending. Review or cancel that change to continue.",
-            "pendingResidenceBlockedCta": "Review residence change"
+            "pendingResidenceBlockedCta": "Review residence change",
+            "pendingIdentityBody": "We’ll set up your card once your ID check is done."
         },
         "cancel": {
             "title": "Cancel card?",
@@ -2986,7 +3109,6 @@
             "titleBlocked": "We couldn't unlock this",
             "titleRestartIdentity": "Verify with a different document",
             "titleIdentityDocumentMissing": "Complete your verification",
-            "titleProviderRejection": "We need extra documents",
             "titleCrossRegion": "Unlock {region}",
             "titleCrossRegionGeneric": "Unlock this region",
             "titleRegionUnavailable": "Not available for UK residents",
@@ -3004,7 +3126,14 @@
             "descriptionDefault": "Confirm your ID to unlock payments.",
             "ctaUploadDocument": "Upload document",
             "ctaUnlockNow": "Verify identity",
-            "ctaWithdrawFunds": "Withdraw funds"
+            "ctaWithdrawFunds": "Withdraw funds",
+            "ctaAnswerQuestions": "Answer questions",
+            "supportMessageDuplicateAccount": "Hi! My verification is blocked because my email is already linked to another Peanut account. Can you help me sort out which account to keep?",
+            "supportMessageImportedIdentity": "Hi! My bank transfers are blocked because the payment partner couldn't verify the ID from my earlier verification. Can you help me send them a current ID?",
+            "ctaAnswerQuestion": "Answer the question"
+        },
+        "documentRequest": {
+            "title": "One more document needed"
         },
         "regionRestricted": {
             "title": "We can't verify IDs from this country",
@@ -3055,6 +3184,27 @@
             "invalidEmail": "Please enter a valid email address.",
             "stillLoading": "Still loading your account — please try again in a moment.",
             "saveFailed": "Something went wrong saving your email. Please try again."
+        },
+        "setup": {
+            "settingUp": "Setting up",
+            "available": "Available",
+            "underReview": "Under review",
+            "documentNeeded": "Document needed",
+            "agreementsNeeded": "Agreements needed",
+            "verifyId": "Verify ID",
+            "notAvailable": "Not available",
+            "verifyAgain": "Verify again with a {country} ID",
+            "verifyAgainPlain": "Verify again",
+            "verifyAgainNote": "Starts a new identity check.",
+            "uploadNow": "Upload now",
+            "later": "Later",
+            "continueCard": "Continue card setup",
+            "reviewTerms": "Review terms",
+            "termsNeeded": "Terms needed",
+            "documentDescription": "Our payment partner needs one more document to finish opening this account.",
+            "proofOfAddressDescription": "Our payment partner needs a proof of address to finish opening your bank account.",
+            "termsDescription": "Accept the updated terms to keep using bank transfers.",
+            "questionsNeeded": "Answer needed"
         },
         "bridgeTos": {
             "title": "Accept terms",
@@ -3405,6 +3555,450 @@
             "taxId": "Your identity is verified, but we could not validate your tax ID for this country. Check and correct it to enable bank transfers.",
             "details": "Some information needs updating before bank transfers can be enabled. Your identity verification is saved.",
             "correct": "Correct details"
+        },
+        "documents": {
+            "qr": "QR payments",
+            "local": "Local bank transfers",
+            "bank": "USD, EUR, MXN and GBP accounts",
+            "card": "Peanut card",
+            "passport": "Passport",
+            "idCard": "National ID card",
+            "drivers": "Driving licence",
+            "residencePermit": "Residence permit",
+            "otherDocument": "Supporting document",
+            "temporaryProtection": "Temporary protection for Ukrainians"
+        },
+        "supplement": {
+            "proofOfAddressTitle": "Add a proof of address",
+            "proofOfAddressDescription": "Your ID is verified. To open your bank accounts, our payment partner also needs a proof of address, such as a recent bank statement or utility bill.",
+            "proofOfAddressCta": "Add proof of address",
+            "later": "Do this later",
+            "uncollectable": "{feature}: we can't finish setting this up in the app. Contact support and we'll complete it for you.",
+            "identityDocumentInsufficient": "{feature}: this needs a different ID document than the one you verified with.",
+            "unavailable": "{feature}: this feature isn’t available with the current verification."
+        },
+        "paperworkVerification": {
+            "back": "Go back",
+            "progress": "Step {current} of {total}",
+            "continue": "Continue",
+            "choose": "Choose",
+            "whyAsk": "Why do we ask?",
+            "whyTitle": "Why we ask",
+            "whyShared": "We share each answer only with the partner that needs it.",
+            "gotIt": "Got it",
+            "optional": "Optional",
+            "phoneHelp": "Include your country code, like +1.",
+            "phoneNote": {
+                "card": "For card security. We won’t send you codes.",
+                "local": "For local transfers. We won’t send you codes."
+            },
+            "noSpam": {
+                "title": "No spam",
+                "body": "We won’t text you or share it for marketing."
+            },
+            "hints": {
+                "purpose": "Pick the closest match.",
+                "work": "Pick the closest match.",
+                "money": "Rough estimates are fine."
+            },
+            "why": {
+                "purpose": "Banks and card issuers must know how you’ll use your account. Every regulated financial account asks this.",
+                "work": "Banks and card issuers must know what you do for work.",
+                "money": "Our partners check that your account activity fits your income. A range is enough.",
+                "birth": "Financial rules ask for these personal details, the same as on your ID.",
+                "address": "Your home address must match where you live, and it goes on your account details.",
+                "phone": "Our partners keep your phone number on file to protect your account.",
+                "tax": "Accounts in your country must be linked to your tax number.",
+                "declarations": "Financial rules in your country ask everyone these questions. If one applies, we may ask for a document later.",
+                "nationality": "We use your nationality to show the passport and national ID card you can verify with."
+            },
+            "sentence": {
+                "cardPurpose": "I’ll use my card <nw>for <pill></pill></nw>",
+                "bankPurpose": "I’ll use my account <nw>for <pill></pill></nw>",
+                "occupation": "My job is closest <nw>to <pill></pill></nw>",
+                "occupation_last": "My last job was closest <nw>to <pill></pill></nw>",
+                "occupation_future": "My future job is closest <nw>to <pill></pill></nw>",
+                "employmentStatus": "<nw>I’m <pill></pill></nw>",
+                "annualSalary": "<nw>I earn <pill></pill></nw> <nw>a year</nw>",
+                "expectedMonthlyVolume": "<nw>I’ll spend <pill></pill></nw> <nw>a month</nw>",
+                "sourceOfFunds": "My money comes <nw>from <pill></pill></nw>",
+                "countryOfBirth": "I was born <nw>in <pill></pill></nw>",
+                "cityOfBirth": "in the city <nw>of <pill></pill></nw>",
+                "bankMonthlyPayments": "Each month, my account <nw>moves <pill></pill></nw>",
+                "actingAsIntermediary": "I’ll send money <nw><pill></pill></nw>",
+                "nationality": "My nationality <nw>is <pill></pill></nw>",
+                "maritalStatus": "My marital status <nw>is <pill></pill></nw>",
+                "sex": "My sex on my ID <nw>is <pill></pill></nw>"
+            },
+            "pickerTitle": {
+                "cardPurpose": "What you’ll use the card for",
+                "bankPurpose": "What you’ll use the account for",
+                "occupation": "Your job",
+                "occupation_last": "Your last job",
+                "occupation_future": "Your future job",
+                "employmentStatus": "Your work",
+                "annualSalary": "Your yearly income",
+                "expectedMonthlyVolume": "What you’ll spend each month",
+                "sourceOfFunds": "Where your money comes from",
+                "countryOfBirth": "Country of birth",
+                "cityOfBirth": "City of birth",
+                "bankMonthlyPayments": "What your account moves each month",
+                "actingAsIntermediary": "Who you send money for",
+                "nationality": "Your nationality",
+                "maritalStatus": "Marital status",
+                "sex": "Sex"
+            },
+            "jobNone": {
+                "last": "None in the last 5 years",
+                "future": "Not decided yet"
+            },
+            "search": {
+                "occupation": "Search jobs",
+                "country": "Search countries",
+                "popular": "Popular",
+                "matches": "{count, plural, one {# match} other {# matches}}",
+                "typeToSearch": "Type to search all {count} jobs.",
+                "noJob": "No job matches “{query}”. Try a broader word, like “manager” or “driver”.",
+                "noCountry": "No country matches “{query}”.",
+                "keepTyping": "Keep typing to narrow it down."
+            },
+            "options": {
+                "cardPurpose": {
+                    "personal_spending": "Everyday spending",
+                    "travel": "Travel",
+                    "online_shopping": "Online shopping",
+                    "bills": "Paying bills",
+                    "business_expenses": "Business expenses"
+                },
+                "bankPurpose": {
+                    "personal_or_living_expenses": "Everyday spending and bills",
+                    "receive_salary": "Receiving my salary",
+                    "receive_payment_for_freelancing": "Getting paid for freelance work",
+                    "payments_to_friends_or_family_abroad": "Sending money to family or friends abroad",
+                    "purchase_goods_and_services": "Buying goods and services",
+                    "ecommerce_retail_payments": "Selling online or in a shop",
+                    "protect_wealth": "Protecting my savings",
+                    "investment_purposes": "Investing",
+                    "operating_a_company": "Running a company",
+                    "charitable_donations": "Giving to charity"
+                },
+                "employmentStatus": {
+                    "employed": "Employed",
+                    "self_employed": "Self-employed",
+                    "student": "A student",
+                    "retired": "Retired",
+                    "homemaker": "A homemaker",
+                    "unemployed": "Not working"
+                },
+                "annualSalary": {
+                    "under_25k": "Under $25,000",
+                    "25k_50k": "$25,000–$49,999",
+                    "50k_100k": "$50,000–$99,999",
+                    "100k_200k": "$100,000–$199,999",
+                    "over_200k": "Over $200,000"
+                },
+                "expectedMonthlyVolume": {
+                    "under_1k": "Under $1,000",
+                    "1k_5k": "$1,000–$4,999",
+                    "5k_10k": "$5,000–$9,999",
+                    "over_10k": "$10,000 or more"
+                },
+                "sourceOfFunds": {
+                    "salary": "My salary",
+                    "savings": "My savings",
+                    "company_funds": "My business",
+                    "investments_loans": "Investments or loans",
+                    "pension_retirement": "My pension",
+                    "gifts": "Gifts",
+                    "inheritance": "An inheritance",
+                    "sale_of_assets_real_estate": "Selling property or assets",
+                    "government_benefits": "Government benefits",
+                    "ecommerce_reseller": "Selling online",
+                    "someone_elses_funds": "Someone else’s money",
+                    "gambling_proceeds": "Gambling winnings"
+                },
+                "bankMonthlyPayments": {
+                    "0_4999": "Under $5,000",
+                    "5000_9999": "$5,000–$9,999",
+                    "10000_49999": "$10,000–$49,999",
+                    "50000_plus": "$50,000 or more"
+                },
+                "actingAsIntermediary": {
+                    "no": "Only for myself",
+                    "yes": "On behalf of others"
+                },
+                "maritalStatus": {
+                    "single": "Single",
+                    "married": "Married",
+                    "divorced": "Divorced",
+                    "widowed": "Widowed"
+                },
+                "sex": {
+                    "female": "Female",
+                    "male": "Male",
+                    "other": "Other (X)"
+                }
+            },
+            "titles": {
+                "address": "Where do you live?",
+                "phone": "What’s your phone number?",
+                "declarations": "Do any of these apply to you?"
+            },
+            "sections": {
+                "purpose": "Purpose",
+                "work": "Work",
+                "money": "Money",
+                "birth": "About you"
+            },
+            "closed": {
+                "bank": {
+                    "us_state_unsupported": "Bank accounts aren’t available for New York addresses.",
+                    "uk_resident_blocked": "Bank accounts aren’t available for UK residents.",
+                    "default": "Bank accounts aren’t available for your current details.",
+                    "residence": "Bank accounts aren’t available where you live.",
+                    "nationality": "Bank accounts aren’t available for your nationality.",
+                    "taxId": "Bank accounts need a supported tax ID."
+                },
+                "card": {
+                    "default": "Peanut Card isn’t available for your current details.",
+                    "residence": "Peanut Card isn’t available where you live.",
+                    "nationality": "Peanut Card isn’t available for your nationality.",
+                    "taxId": "Peanut Card needs a supported tax ID."
+                },
+                "local": {
+                    "default": "Local bank transfers aren’t available for your current details.",
+                    "residence": "Local bank transfers aren’t available where you live.",
+                    "nationality": "Local bank transfers aren’t available for your nationality.",
+                    "taxId": "Local bank transfers need a supported tax ID."
+                },
+                "qr": {
+                    "default": "QR payments aren’t available for your current details.",
+                    "residence": "QR payments aren’t available where you live.",
+                    "nationality": "QR payments aren’t available for your nationality.",
+                    "taxId": "QR payments need a supported tax ID."
+                },
+                "rest": "Everything else you picked stays available."
+            },
+            "descriptions": {
+                "address": "Your home address, as it appears on a bill or bank statement.",
+                "phone": {
+                    "card": "Your card partner uses it to keep your card secure.",
+                    "local": "Our local transfer partner keeps it on file with your account."
+                },
+                "declarations": "Most people leave these off. If one applies, we may ask for a document later."
+            },
+            "labels": {
+                "street": "Street",
+                "buildingNumber": "Number",
+                "town": "Town or city",
+                "state": "State or region",
+                "postCode": "Postcode",
+                "country": "Country",
+                "countryLocked": "Your country of residence. You can change it in Profile.",
+                "changeResidence": "Change your country of residence",
+                "phone": "Phone number",
+                "isPep": "I hold a public office",
+                "isFatca": "I’m a US citizen or tax resident",
+                "isFep": "I must report to the UIF",
+                "cityOfBirth": "City of birth"
+            },
+            "tax": {
+                "title": {
+                    "ssn": "What’s your Social Security number?",
+                    "other": "What’s your tax number?"
+                },
+                "description": {
+                    "ssn": "US accounts and cards need it.",
+                    "other": "The tax number from your country of residence."
+                },
+                "label": {
+                    "ssn": "Social Security number",
+                    "cuit": "CUIT or CUIL",
+                    "cpf": "CPF",
+                    "rut": "RUT",
+                    "curp": "CURP",
+                    "cc": "Cédula de ciudadanía",
+                    "other": "Tax number"
+                },
+                "placeholder": {
+                    "ssn": "123-45-6789",
+                    "cuit": "20-12345678-6",
+                    "cpf": "123.456.789-09",
+                    "rut": "12.345.678-5",
+                    "curp": "GODE561231HDFRRN09",
+                    "cc": "1023456789",
+                    "other": "Your tax number"
+                },
+                "help": {
+                    "ssn": "9 digits. ITINs aren’t accepted.",
+                    "cuit": "11 digits, from your tax registration.",
+                    "cpf": "11 digits.",
+                    "rut": "With the check digit at the end.",
+                    "curp": "18 characters.",
+                    "cc": "As it appears on your ID.",
+                    "other": "As it appears on your tax documents."
+                },
+                "replace": "Change the number"
+            },
+            "errors": {
+                "required": "Answer this to continue.",
+                "invalidOption": "Choose one of the options.",
+                "invalidTaxId": "Check the number. It doesn’t look right.",
+                "itinNotAccepted": "That’s an ITIN. Enter your Social Security number.",
+                "invalidPhone": "Enter the full number with your country code, like +1.",
+                "invalidCountry": "Choose a country from the list.",
+                "tooLong": "That’s too long. Keep it under 100 characters.",
+                "invalidText": "Use only letters, numbers and punctuation.",
+                "invalid": "Check this answer.",
+                "retry": "We couldn’t save that. Check your connection and try again.",
+                "featureNotSelected": "Your account changed. We’re loading the right questions.",
+                "identitySubmitted": "Your ID is already submitted, so these answers can’t change now.",
+                "unavailable": "This check isn’t available right now.",
+                "usCitizenNotSupported": "Local transfers aren’t available to US citizens or tax residents. You can still get paid with a USD account or pay by QR.",
+                "tooShort": "Add the street name and number.",
+                "streetNumberMissing": "Add the street number.",
+                "poBoxNotAccepted": "A PO box can’t be used as a home address.",
+                "invalidBody": "These answers couldn’t be accepted. Reopen this check to continue.",
+                "unknownStep": "This step is no longer available. Reopen this check to continue.",
+                "rateLimited": "Too many tries. Wait a minute and try again."
+            },
+            "midpoint": {
+                "restartTitle": "Verify with a different document",
+                "restartDescription": "Pick the ID you’ll use now. Then take photos of it and a quick selfie.",
+                "privacy": "Your documents are handled securely by Sumsub.",
+                "failed": "We couldn’t start the ID check. Try again.",
+                "unavailable": "We can’t show the documents right now. Try again later."
+            },
+            "review": {
+                "description": "Checks usually come back in a few minutes. If a reviewer needs to look, it takes 1 to 3 business days. You can leave this screen, and we’ll let you know when it’s done.",
+                "cta": "Go to Home",
+                "photos": "Photos received",
+                "reading": "Reading your ID and selfie",
+                "settingUp": "Setting up your {features}",
+                "unlocking": "Unlocking payments"
+            },
+            "failed": {
+                "title": "We need another look at your ID",
+                "description": "Your ID check needs something from you. Home shows what to do next.",
+                "cta": "Go to Home",
+                "retry": "Try again"
+            },
+            "verified": {
+                "description": "We’re setting up your {features}. It usually takes a few minutes, and we’ll let you know when everything is ready.",
+                "cta": "Go to Home",
+                "descriptionQrOnly": "You can start using Peanut."
+            },
+            "poa": {
+                "title": "Add a proof of address",
+                "description": "Your ID isn’t from {country}, so our banking partner asks for a recent document with your name and your address there.",
+                "descriptionTemporaryProtection": "With temporary protection, your bank account also needs a recent document with your name and your address in {country}.",
+                "kinds": {
+                    "bankStatement": "Bank statement",
+                    "utilityBill": "Utility bill",
+                    "taxLetter": "Tax or government letter"
+                },
+                "recent": "From the last 3 months",
+                "upload": "Upload document",
+                "skip": "Skip for now",
+                "skipNote": "You can skip this. Your bank account still opens, and our partner may ask for it later."
+            },
+            "addLater": {
+                "title": {
+                    "bank": "For your bank account",
+                    "card": "For your card",
+                    "local": "For local transfers"
+                },
+                "doneTitle": "We're setting things up",
+                "doneDescription": {
+                    "bank": "We’re setting up your bank account. It usually takes a few minutes, and we’ll let you know when it’s ready.",
+                    "card": "We’re setting up your card. It usually takes a few minutes, and we’ll let you know when it’s ready.",
+                    "local": "We’re setting up your local transfers. It usually takes a few minutes, and we’ll let you know when they’re ready."
+                },
+                "doneCta": "Done",
+                "actionTitle": "One more step",
+                "actionDescription": "Finish the extra check to set this up."
+            },
+            "loadFailed": {
+                "title": "We couldn’t load this",
+                "description": "Check your connection and try again. Your answers so far are saved.",
+                "retry": "Try again"
+            },
+            "toggleNotes": {
+                "isPep": "Or a close relative or partner does.",
+                "isFatca": "Even if I also hold another citizenship or a green card.",
+                "isFep": "Required in some jobs, like notaries."
+            },
+            "whenYes": {
+                "isFatca": "Local transfers aren’t available to US citizens or tax residents. You can still get paid with a USD account or pay by QR."
+            },
+            "place": {
+                "placeholder": "Start typing the city",
+                "countryFirst": "Choose the country first",
+                "suggestions": "Matching places",
+                "noMatch": "Not in the list. The name as typed works too.",
+                "inCountry": "Places in {country}. A name that isn’t listed works too.",
+                "done": "Done"
+            },
+            "continueWithoutLocal": "Continue without local bank transfers",
+            "steps": {
+                "title": "Your ID check",
+                "residence": "Set your country of residence",
+                "questions": "Answer a few questions",
+                "photo": "Take a photo of your ID",
+                "selfie": "Take a quick selfie",
+                "review": "Get a secure review",
+                "unlock": "Unlock eligible payments",
+                "done": "Done",
+                "backHome": "Back to Home",
+                "setUpPayments": "Set up payments",
+                "verifiedNote": "Now choose how you want to pay and get paid."
+            },
+            "saved": {
+                "title": "Answers saved!",
+                "description": "Next, a photo of your ID and a quick selfie."
+            },
+            "featureNames": {
+                "bank": "bank accounts",
+                "card": "card",
+                "local": "local transfers"
+            },
+            "documentList": {
+                "title": "Which document\nwill you use?",
+                "description": "Choose one to start verification. You’ll take photos of it and a selfie.",
+                "issuedBy": "Issued by {country}",
+                "issuedByWithProof": "Issued by {country}. You’ll also add a proof of address.",
+                "issuedByLimited": "Issued by {country}. {limits}",
+                "other": "Other document",
+                "otherHint": "Like a driver’s license",
+                "otherTitle": "Other documents",
+                "otherDescription": "You can also verify with one of these. You’ll take photos of it and a selfie.",
+                "otherNotAccepted": "Visas, work permits and student cards can’t be used to verify your ID.",
+                "notAccepted": "Issued by {country}. Can’t be used. Not accepted.",
+                "backToList": "Back to the list",
+                "noneFit": "Don’t have any of those?",
+                "changeResidence": "Change residence",
+                "stepDots": "Verify identity, step 1 of 3",
+                "noneAccepted": "We can’t verify documents issued by {countries} yet.",
+                "closesAll": "Issued by {country}. Can’t be used for what you picked.",
+                "closes": {
+                    "qr": "QR payments aren’t available with this document.",
+                    "local": "Local bank transfers aren’t available with this document.",
+                    "card": "The Peanut card isn’t available with this document.",
+                    "bank": "Bank accounts aren’t available with this document."
+                },
+                "limitedTitle": "Continue with this document?",
+                "residenceUnlocks": "A document issued by {country} doesn’t have this limit.",
+                "chooseAnother": "Choose another document"
+            },
+            "activation": {
+                "title": "Set up this feature",
+                "description": "Continue to start setting up this feature with our partner.",
+                "identityRequired": "Finish your identity verification to continue setting up this feature."
+            },
+            "policyHold": {
+                "description": "This document cannot be used for verification. Please choose another document.",
+                "cta": "Choose another document"
+            }
         }
     },
     "identity": {
@@ -3444,6 +4038,11 @@
             "tax_identification_number": "We need your tax identification number to continue.",
             "address_of_residence": "We need your residential address to continue.",
             "residence_unresolved": "We still need your home address to finish setting up bank transfers. Add it and we will retry automatically.",
+            "bridge_answers_rejected": "Our payment partner couldn't accept one of your answers. Answer the questions again.",
+            "requirements_missing": "To open your bank accounts, our payment partner needs a proof of address, such as a recent bank statement or utility bill. Add it and we'll finish setting them up automatically.",
+            "requirements_in_review": "We're checking your proof of address. Bank accounts open once it's approved.",
+            "identity_document_insufficient": "The document you verified with can't be used for this account. Verify again with a different ID document.",
+            "requirements_uncollectable": "Our payment partner needs something we can't collect in the app. Message support and we'll finish setting this up with you.",
             "proof_of_address": "We need a valid proof of address document.",
             "source_of_funds": "We need information about your source of funds.",
             "proof_of_source_of_funds": "We need a document proving your source of funds.",
@@ -3451,18 +4050,27 @@
             "eea_uplift": "We need some additional information to comply with EEA regulations.",
             "eea_uplift_with_tin": "We need some additional information to comply with EEA regulations.",
             "eea_tin_reupload": "Please re-upload your tax identification number.",
-            "pep_documentation": "We need a document showing the source of the funds you'll be using on Peanut.",
+            "pep_documentation": "Because you or someone close to you holds public office, we need a sworn declaration of your assets and income, or a document showing where your money comes from.",
             "fep_documentation": "Because of your professional activity, we need proof of your UIF reporting status.",
             "email_required": "We need an email address to finish setting up this account. Add one to your profile and we'll retry automatically.",
             "submission_failed": "We hit a snag finishing your verification on our side. We'll get you sorted — tap below to message support.",
-            "proof_of_address_review": "We received your proof of address — it's being reviewed.",
+            "proof_of_address_review": "We sent your proof of address to our card partner — it's being reviewed.",
+            "proof_of_address_received": "We received your proof of address and are passing it to our card partner.",
+            "identity_verification_required": "Our card partner needs a new photo of your ID and a selfie.",
+            "id_expired": "Your ID has expired. Add a valid one to keep your accounts working.",
+            "id_verification_failed": "We couldn't verify your ID. Add a valid one to keep your accounts working.",
+            "card_id_not_accepted": "The ID you verified with can't be used for the Peanut Card. Verify again with a different ID.",
+            "identity_verification_review": "We sent your selfie and ID to our card partner — they're being reviewed.",
+            "identity_verification_received": "We received your selfie and ID and are passing them to our card partner.",
             "bridge_tos_required": "Accept our payment partner's terms to continue.",
             "bridge_tos_v2_required": "Accept the bank transfer provider's updated Terms of Service to enable euro and British pound bank transfers.",
             "bridge_processing": "Our payment partner is finishing your verification. This usually takes a few minutes.",
             "verification_blocked": "Verification issue — contact support for help.",
             "terminal_rejection": "Verification issue — contact support for help.",
-            "bridge_terminal_rejection": "We couldn't verify your account for bank transfers. Message support if you think this is a mistake.",
+            "bridge_terminal_rejection": "Our payment partner didn't approve bank transfers for this account, and Peanut can't change that decision. Your funds on Peanut are not affected. If you think this is a mistake, message support.",
             "duplicate_customer_detected": "Our payment partner flagged your account as a possible duplicate — message support to verify and unlock.",
+            "duplicate_account": "Your email is already linked to another Peanut account, so we can't finish setting up this one. If the other account is yours, sign in to it. Otherwise, contact support and we'll sort it out.",
+            "imported_identity_rejected": "Our payment partner couldn't verify the ID from your earlier verification. They need a current government ID, and may also ask for a proof of address. Message support and we'll take it from here.",
             "region_block": "Peanut cards aren't available in your region yet.",
             "compliance_block": "We couldn't approve your card application after a compliance review.",
             "card_rejected": "Your card application couldn't be approved. Message support if you think this is a mistake.",
@@ -3475,7 +4083,13 @@
             "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "residence_bank_restricted": "Bank transfers aren't available for residents of your country. Your funds are safe — you can withdraw them as crypto anytime.",
             "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result.",
-            "identity_document_missing": "We need an identity document and a selfie to complete your verification."
+            "identity_document_missing": "We need an identity document and a selfie to complete your verification.",
+            "document_country_unsupported": "This needs an ID issued by the country you live in. Verify again with that ID.",
+            "card_unavailable_for_verification": "Not available with the current verification",
+            "local_tax_id_missing": "Needs a tax ID: CPF in Brazil, CUIT or CUIL in Argentina",
+            "under_minimum_age": "Only from age 18",
+            "bridge_processing_slow": "This is taking longer than usual. Our payment partner is still reviewing your details. Contact support and we'll check on it.",
+            "questions_missing": "Answer one more question to finish setting this up."
         }
     },
     "recoverFunds": {
@@ -3925,7 +4539,8 @@
             "clear": "Clear search",
             "removeCountry": "Remove {country}"
         },
-        "feedbackBanner": "Help us improve Peanut. Share your feedback here."
+        "feedbackBanner": "Help us improve Peanut. Share your feedback here.",
+        "testBuild": "Version for testing: branch {branch}"
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",
@@ -3976,6 +4591,7 @@
         "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
         "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
         "providerRejected": "Our payment partner couldn't accept this for your account. No money moved. Contact support.",
+        "mantecaAccountRejected": "Deposits and withdrawals in this country aren’t available for your account. You can still pay with QR. Contact support for help.",
         "bankAccountNotUsable": "This bank account can't be used anymore. Add it again.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",
         "linkTransactionHashFetch": "We couldn’t load this link’s transaction. Please refresh and try again.",
@@ -4307,6 +4923,7 @@
             "errorBody": "Your accounts are fine. Check the connection and try again.",
             "errorRetry": "Try again",
             "badgeActionNeeded": "Action needed",
+            "badgeSettingUp": "Setting up",
             "badgeUnderReview": "Under review"
         },
         "claim": {
@@ -4613,5 +5230,9 @@
         "peanutRole": "Self-custodial wallet software provider; not a party to provider trades",
         "cardRelationship": "You have a direct relationship with Third National under the card terms.",
         "cardRelationshipProspective": "When you accept the card terms, your relationship is directly with Third National."
+    },
+    "brazilPause": {
+        "title": "Brazil services paused",
+        "body": "Because of regulatory changes at the providers behind our Brazil services, BRL deposits, withdrawals and Pix payments are unavailable for now. We're adding a new provider to bring them back soon."
     }
 }

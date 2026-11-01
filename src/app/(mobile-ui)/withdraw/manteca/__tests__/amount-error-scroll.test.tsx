@@ -9,6 +9,10 @@ import MantecaWithdrawFlow from '../page'
 const mockPush = jest.fn()
 let mockParams = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
 let mockBalance: bigint | undefined = parseUnits('10', 6)
+// The first-use activation has its own tests; the amount screen behind it is what these cover.
+jest.mock('@/features/paperwork-verification/KycFeatureActivationGate', () => ({
+    KycFeatureActivationGate: ({ children }: { children: React.ReactNode }) => children,
+}))
 jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(mockParams),
     useRouter: () => ({ push: mockPush, replace: mockPush, back: jest.fn() }),
@@ -60,6 +64,8 @@ jest.mock('@/components/Global/NavHeader', () => ({
         </>
     ),
 }))
+// the Brazil pause reads the signed-in user; it is off here (amount-guard covers it)
+jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({ useBrazilServicesPaused: () => false }))
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/services/manteca', () => ({ mantecaApi: {} }))
 

@@ -32,11 +32,32 @@ export const IDENTITY_REGION_RESTRICTED_CODE = 'identity_region_restricted'
 export const IDENTITY_DOCUMENT_MISSING_CODE = 'identity_document_missing'
 
 /**
+ * A provider asking for a new ID (peanut-api-ts `src/kyc/provider-id-request.ts`):
+ * the `restart-identity` action's purpose and the rail's reason code. The fix
+ * is the identity restart, never a raw document upload.
+ */
+export const PROVIDER_ID_REQUEST_REASONS = [
+    'id_expired',
+    'id_verification_failed',
+    'identity_verification_required',
+    'card_id_not_accepted',
+] as const
+export type ProviderIdRequestReason = (typeof PROVIDER_ID_REQUEST_REASONS)[number]
+export const isProviderIdRequestReason = (code: string | null | undefined): code is ProviderIdRequestReason =>
+    (PROVIDER_ID_REQUEST_REASONS as readonly string[]).includes(code ?? '')
+
+/** The "what to expect" screen in front of Bridge's hosted check (AdditionalVerificationView). */
+export const ADDITIONAL_VERIFICATION_ROUTE = '/profile/accounts/additional'
+
+/**
  * Reason code of a QR pool rail the backend paused because the identity
  * evidence behind the approval is gone (peanut-api-ts `QR_IDENTITY_MISSING`,
  * `SUMSUB_IDENTITY_MISSING` on the rail).
  */
 export const QR_IDENTITY_MISSING_CODE = 'identity_missing'
+
+/** The same pause, because the user started a new ID check that is not done (peanut-api-ts `identityMissingCause: 'restarted'`). */
+export const QR_IDENTITY_RESTART_PENDING_CODE = 'identity_restart_pending'
 
 /**
  * QR-pay KYC gate states. Relocated here from the (now capability-derived)
@@ -113,3 +134,10 @@ export const getKycStatusCategory = (status: string): KycStatusCategory => {
     if (ACTION_REQUIRED_STATUSES.has(status)) return 'action_required'
     return 'processing'
 }
+
+/**
+ * Past this, "less than a minute" is a lie. A rail pending for a day is one the
+ * user walked away from before the provider's questionnaire (the awaiting-action
+ * ghost, 189 users in prod on 2026-09-22) or one stuck in provider review.
+ */
+export const KYC_PROCESSING_STALE_AFTER_MS = 24 * 60 * 60 * 1000

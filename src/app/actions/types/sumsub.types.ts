@@ -8,6 +8,8 @@ export type KycActionType =
     | 'rails-unavailable'
 
 export interface InitiateSumsubKycResponse {
+    attemptId?: string
+    sdkConfig?: import('./kyc-workflow.types').KycDocumentConfig
     token: string | null // null when user is already APPROVED or bridge-direct
     applicantId: string | null
     status: SumsubKycStatus

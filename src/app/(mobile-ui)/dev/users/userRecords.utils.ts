@@ -9,6 +9,13 @@ export const SORT_OPTIONS: { value: UserSort; label: string }[] = [
     { value: 'username', label: 'A–Z' },
 ]
 
+// The page shows whatever database its API reads, so staging shows staging users.
+export function databaseDescription(environment: string): string {
+    if (environment === 'production') return 'the production database'
+    if (environment === 'staging') return 'the staging database'
+    return "this environment's database"
+}
+
 export function isIsoDate(value: unknown): boolean {
     return typeof value === 'string' && ISO_DATE.test(value)
 }

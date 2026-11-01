@@ -55,9 +55,11 @@ import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
 import Loading from '@/components/Global/Loading'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
-import { useModalsContext } from '@/context/ModalsContext'
+import { useGateActions } from '@/hooks/useGateActions'
 import { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/features/kill-switches/kill-switches.consts'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
+import { openBrazilPausedDrawer } from '@/features/brazil-pause/brazil-paused-drawer-store'
+import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 
@@ -265,7 +267,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // deposit read can still say ready
     const { openTos, showBridgeTos, hideTos } = useTosGuard()
     const [showProvideEmail, setShowProvideEmail] = useState(false)
-    const { setIsSupportModalOpen } = useModalsContext()
+    const gateActions = useGateActions(sumsubFlow)
     // wait-only gates (provider review, provisioning) get the amount steps' "please wait"
     const pendingModal = useWaitingOnProviderModal(gate)
     const openPendingModal = pendingModal.open
@@ -448,9 +450,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         [withdrawFlow, currentCountry, bankRail]
     )
 
+    // every Brazil method moves BRL or pays Pix, so the pause stops them all
+    const brazilPaused = useBrazilServicesPaused() && currentCountry?.path === 'brazil'
+
     const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
         // a new tap is the new intent: a rail still held for the gate is let go
         setHeldMethod(null)
+        if (brazilPaused) return openBrazilPausedDrawer()
         if (method.path && method.path.includes('/manteca')) {
             // Manteca methods route directly (has own amount input). The path
             // already carries its own `method=<rail>` (bank-transfer/pix), so the
@@ -479,6 +485,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     const handleAddMethodClick = (method: SpecificPaymentMethod) => {
         setHeldMethod(null)
+        if (brazilPaused) return openBrazilPausedDrawer()
         if (method.path) {
             if (checkBridgeGate(method, () => handleAddMethodClick(method))) return
 
@@ -548,6 +555,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     if (view === 'form' && flow === 'withdraw' && !hasBridgeBankCorridor(currentCountry.id)) return null
     if (mantecaForwardPath) return null
 
+    const verifyEntry = { intent: bankRegionIntent(currentCountry), targetCountry: currentCountry?.id }
     // shared modals — rendered once regardless of view (form vs list)
     const sharedModals = (
         <>
@@ -555,29 +563,19 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 cooldownActive={!!sumsubFlow.errorCooldown}
                 visible={isKycModalOpen}
                 onClose={() => setIsKycModalOpen(false)}
-                onVerify={async () => {
-                    if (gate.kind === 'fixable-rejection') {
-                        // Through the shared router: it sends a residence park to the
-                        // address step and everything else to resubmit as before.
-                        await sumsubFlow.handleFixableGate('BRIDGE', gate)
-                    } else {
-                        await sumsubFlow.handleInitiateKyc(
-                            bankRegionIntent(currentCountry),
-                            undefined,
-                            gate.kind === 'needs-enrollment' || undefined,
-                            currentCountry?.id
-                        )
-                    }
-                }}
+                onVerify={() => gateActions.verify(gate, { provider: 'BRIDGE', ...verifyEntry })}
+                verifyEntry={verifyEntry}
                 onContactSupport={() => {
                     setIsKycModalOpen(false)
-                    setIsSupportModalOpen(true)
+                    gateActions.contactSupport(gate)
                 }}
                 isLoading={sumsubFlow.isLoading}
                 error={sumsubFlow.error}
                 variant={resolveKycModalVariant(gate)}
                 providerMessage={getGateUserMessage(gate)}
                 reasonCode={getGateReasonCode(gate)}
+                nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
+                pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
                 regionName={currentCountry && localizedCountryTitle(locale, currentCountry)}
                 providerId={
                     providerForRegionIntent(bankRegionIntent(currentCountry)) === 'bridge'
@@ -605,6 +603,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 isOpen={pendingModal.isOpen}
                 onClose={pendingModal.close}
                 message={pendingModal.message}
+                onContactSupport={pendingModal.onContactSupport}
             />
             <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setIsKycModalOpen(false)} />
         </>

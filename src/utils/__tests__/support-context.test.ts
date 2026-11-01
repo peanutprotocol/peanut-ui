@@ -3,6 +3,7 @@ import {
     buildBalanceSummary,
     buildCardSummary,
     buildLinkedAccounts,
+    buildSupportLinkedAccounts,
     buildSupportSegments,
     normalizeSupportRoute,
     redactSupportText,
@@ -111,6 +112,19 @@ describe('buildCardSummary', () => {
         const summary = buildCardSummary(overview({ balance: null, balanceUnavailable: true })) ?? ''
         expect(summary).toContain('balance unavailable')
         expect(summary).not.toContain('$0.00')
+    })
+})
+
+describe('buildSupportLinkedAccounts', () => {
+    it('lists each linked account by relation, username and id, and nothing else', () => {
+        expect(
+            buildSupportLinkedAccounts([
+                { userId: 'user-a', username: 'montenegroh', relation: 'holds_email' },
+                { userId: 'user-c', username: null, relation: 'blocked_on_email' },
+            ])
+        ).toBe('holds_email @montenegroh user-a · blocked_on_email user-c')
+        expect(buildSupportLinkedAccounts([])).toBeUndefined()
+        expect(buildSupportLinkedAccounts(undefined)).toBeUndefined()
     })
 })
 

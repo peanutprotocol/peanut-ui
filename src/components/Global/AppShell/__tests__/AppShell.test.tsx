@@ -79,6 +79,25 @@ describe('AppShell bottom nav slot', () => {
     })
 })
 
+// Slava, 2026-10-25: /verify's white screens ended in a cream band under the system navigation bar.
+describe('AppShell app bottom inset', () => {
+    it('paints the bottom inset only for a screen that asks for it', () => {
+        const { container, rerender } = render(
+            <AppShell variant="app">
+                <div>content</div>
+            </AppShell>
+        )
+        expect(container.querySelector('.h-safe-bottom')).toBeNull()
+
+        rerender(
+            <AppShell variant="app" bottomInsetClassName="bg-background-default">
+                <div>content</div>
+            </AppShell>
+        )
+        expect(container.querySelector('.h-safe-bottom')).toHaveClass('fixed', 'bottom-0', 'bg-background-default')
+    })
+})
+
 describe('AppShell onboarding tint', () => {
     it('reserves the bottom inset after content and covers content scrolling beneath it', () => {
         const { container } = render(

@@ -36,6 +36,12 @@
         "source": "Setup/Views/Residence.tsx"
     },
     {
+        "id": "03-b-residence-compare",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-b-residence-compare",
+        "source": "Setup/components/ResidenceCompare.tsx"
+    },
+    {
         "id": "04-b-advantage-fees",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=04-b-advantage-fees",
@@ -151,6 +157,16 @@
         "route": "/profile/accounts"
     },
     {
+        "id": "fixture-paperwork-verification-closed-residence",
+        "flow": "Setup and login",
+        "route": "/verify?step=saved"
+    },
+    {
+        "id": "fixture-paperwork-verification-needs-signup",
+        "flow": "Setup and login",
+        "route": "/verify"
+    },
+    {
         "id": "p75-residence-country-dropdown",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-a-residence-select"
@@ -205,6 +221,11 @@
         "id": "fixture-home-verification-needed",
         "flow": "Home and shared states",
         "route": "/home"
+    },
+    {
+        "id": "fixture-settings-notifications",
+        "flow": "Home and shared states",
+        "route": "/settings/notifications"
     },
     {
         "id": "fixture-history",
@@ -357,6 +378,116 @@
         "route": "/limits/manteca"
     },
     {
+        "id": "fixture-paperwork-verification-state-choice-missing",
+        "flow": "Home and shared states",
+        "route": "/verify?step=address"
+    },
+    {
+        "id": "fixture-paperwork-verification-state-choice-selected",
+        "flow": "Home and shared states",
+        "route": "/verify?step=address"
+    },
+    {
+        "id": "fixture-paperwork-verification-state-select-missing",
+        "flow": "Home and shared states",
+        "route": "/verify?step=address"
+    },
+    {
+        "id": "fixture-paperwork-verification-state-select-selected",
+        "flow": "Home and shared states",
+        "route": "/verify?step=address"
+    },
+    {
+        "id": "fixture-paperwork-verification-closed-nationality",
+        "flow": "Home and shared states",
+        "route": "/verify?step=saved"
+    },
+    {
+        "id": "fixture-paperwork-verification-closed-tax",
+        "flow": "Home and shared states",
+        "route": "/verify?step=saved"
+    },
+    {
+        "id": "fixture-paperwork-verification-closed-unknown",
+        "flow": "Home and shared states",
+        "route": "/verify?step=saved"
+    },
+    {
+        "id": "fixture-paperwork-verification-policy-hold",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-paperwork-verification-outage",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-paperwork-verification-restart-foreign",
+        "flow": "Home and shared states",
+        "route": "/verify?step=id&restart=1"
+    },
+    {
+        "id": "fixture-paperwork-verification-de",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-paperwork-verification-ar",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-paperwork-verification-br",
+        "flow": "Home and shared states",
+        "route": "/verify?step=birth"
+    },
+    {
+        "id": "fixture-paperwork-verification-add-local",
+        "flow": "Home and shared states",
+        "route": "/verify?feature=local"
+    },
+    {
+        "id": "fixture-paperwork-verification-us",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-paperwork-verification-ph",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-paperwork-verification-save-fails",
+        "flow": "Home and shared states",
+        "route": "/verify?step=tax"
+    },
+    {
+        "id": "fixture-paperwork-verification-midpoint",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-paperwork-verification-review",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-paperwork-verification-verified",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-paperwork-verification-proof-of-address",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-paperwork-verification-add-bank",
+        "flow": "Home and shared states",
+        "route": "/verify?feature=bank"
+    },
+    {
         "id": "p05-home",
         "flow": "Home and shared states",
         "route": "/home"
@@ -405,6 +536,47 @@
         "id": "p77-base-select-dropdown",
         "flow": "Home and shared states",
         "route": "/dev/ds/primitives/base-select"
+    },
+    {
+        "id": "p79-notifications",
+        "flow": "Home and shared states",
+        "route": "/settings/notifications"
+    },
+    {
+        "id": "api-ribbon-loading",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=api-ribbon-loading",
+        "source": "Global/TestBuildRibbon.tsx"
+    },
+    {
+        "id": "api-ribbon-compatible",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=api-ribbon-compatible",
+        "source": "Global/TestBuildRibbon.tsx"
+    },
+    {
+        "id": "api-ribbon-too-old",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=api-ribbon-too-old",
+        "source": "Global/TestBuildRibbon.tsx"
+    },
+    {
+        "id": "api-ribbon-missing-version",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=api-ribbon-missing-version",
+        "source": "Global/TestBuildRibbon.tsx"
+    },
+    {
+        "id": "api-ribbon-unavailable",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=api-ribbon-unavailable",
+        "source": "Global/TestBuildRibbon.tsx"
+    },
+    {
+        "id": "api-ribbon-contract-error",
+        "flow": "Home and shared states",
+        "route": "/dev/surfaces?s=api-ribbon-contract-error",
+        "source": "Global/TestBuildRibbon.tsx"
     },
     {
         "id": "11-a-earlyusermodal",
@@ -506,6 +678,16 @@
         "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
     },
     {
+        "id": "fixture-qr-pay-identity-restart-pending",
+        "flow": "Verification",
+        "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-identity-document-missing",
+        "flow": "Verification",
+        "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
+    },
+    {
         "id": "fixture-identity-awaiting-upload",
         "flow": "Verification",
         "route": "/profile/accounts"
@@ -554,6 +736,51 @@
         "id": "fixture-home-card-application-rejected",
         "flow": "Verification",
         "route": "/home"
+    },
+    {
+        "id": "fixture-paperwork-verification-rejected",
+        "flow": "Verification",
+        "route": "/verify"
+    },
+    {
+        "id": "fixture-feature-activation-card-ready",
+        "flow": "Verification",
+        "route": "/card?kyc=%7B%7D"
+    },
+    {
+        "id": "fixture-feature-activation-card-on",
+        "flow": "Verification",
+        "route": "/card?kyc=%7B%7D"
+    },
+    {
+        "id": "fixture-feature-activation-card-setting-up",
+        "flow": "Verification",
+        "route": "/card?kyc=%7B%7D"
+    },
+    {
+        "id": "fixture-feature-activation-card-pending",
+        "flow": "Verification",
+        "route": "/card?kyc=%7B%7D"
+    },
+    {
+        "id": "fixture-feature-activation-card-action-required",
+        "flow": "Verification",
+        "route": "/card?kyc=%7B%7D"
+    },
+    {
+        "id": "fixture-feature-activation-card-refused",
+        "flow": "Verification",
+        "route": "/card?kyc=%7B%7D"
+    },
+    {
+        "id": "fixture-feature-activation-card-failed",
+        "flow": "Verification",
+        "route": "/card?kyc=%7B%7D"
+    },
+    {
+        "id": "fixture-feature-activation-card-questions-missing",
+        "flow": "Verification",
+        "route": "/verify?feature=card"
     },
     {
         "id": "p52-kyc-success",
@@ -679,6 +906,11 @@
         "route": "/add-money/crypto"
     },
     {
+        "id": "fixture-add-money-brazil-paused",
+        "flow": "Add money",
+        "route": "/add-money?method=bank"
+    },
+    {
         "id": "fixture-add-money-argentina",
         "flow": "Add money",
         "route": "/add-money/argentina"
@@ -717,6 +949,16 @@
         "id": "fixture-get-paid-blocked",
         "flow": "Add money",
         "route": "/add-money?method=bank"
+    },
+    {
+        "id": "fixture-get-paid-usd-closed-bangladesh",
+        "flow": "Add money",
+        "route": "/add-money?method=bank"
+    },
+    {
+        "id": "fixture-get-paid-usd-closed-bangladesh-claim",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=claim&corridor=ACH_US"
     },
     {
         "id": "fixture-get-paid-claim",
@@ -794,6 +1036,86 @@
         "route": "/add-money?method=bank&step=details&corridor=BANK_TRANSFER_AR"
     },
     {
+        "id": "fixture-feature-activation-bank-ready",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-bank-on",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-bank-setting-up",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-bank-pending",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-bank-action-required",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-bank-refused",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-bank-failed",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank"
+    },
+    {
+        "id": "fixture-feature-activation-bank-questions-missing",
+        "flow": "Add money",
+        "route": "/verify?feature=bank"
+    },
+    {
+        "id": "fixture-feature-activation-local-ready",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-feature-activation-local-on",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-feature-activation-local-setting-up",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-feature-activation-local-pending",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-feature-activation-local-action-required",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-feature-activation-local-refused",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-feature-activation-local-failed",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "fixture-feature-activation-local-questions-missing",
+        "flow": "Add money",
+        "route": "/verify?feature=local"
+    },
+    {
         "id": "p17-add-money",
         "flow": "Add money",
         "route": "/add-money?method=bank"
@@ -849,6 +1171,12 @@
         "flow": "Add money",
         "route": "/dev/surfaces?s=39-c-onrampconfirmationmodal",
         "source": "AddMoney/components/OnrampConfirmationModal.tsx"
+    },
+    {
+        "id": "92-f-deposit-account-closed",
+        "flow": "Add money",
+        "route": "/dev/surfaces?s=92-f-deposit-account-closed",
+        "source": "Common/MantecaAccountUnavailable.tsx"
     },
     {
         "id": "fixture-history-card-spend",
@@ -1019,6 +1347,11 @@
         "id": "fixture-home-card-info-failed",
         "flow": "Card",
         "route": "/home"
+    },
+    {
+        "id": "fixture-paperwork-verification-add-card",
+        "flow": "Card",
+        "route": "/verify?feature=card"
     },
     {
         "id": "p22-card",
@@ -1436,6 +1769,11 @@
         "route": "/withdraw"
     },
     {
+        "id": "fixture-withdraw-brazil-paused",
+        "flow": "Withdraw",
+        "route": "/withdraw/manteca?country=brazil&method=pix"
+    },
+    {
         "id": "fixture-withdraw-bank-form",
         "flow": "Withdraw",
         "route": "/withdraw/spain?step=form"
@@ -1577,6 +1915,12 @@
         "source": "features/withdraw/views/ConfirmWithdrawView.tsx"
     },
     {
+        "id": "93-f-withdraw-account-closed",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=93-f-withdraw-account-closed",
+        "source": "Common/MantecaAccountUnavailable.tsx"
+    },
+    {
         "id": "fixture-rewards",
         "flow": "Rewards",
         "route": "/rewards"
@@ -1664,6 +2008,11 @@
         "route": "/profile/accounts"
     },
     {
+        "id": "fixture-bank-proof-of-address-supplement",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
         "id": "fixture-home-avatar",
         "flow": "Profile and settings",
         "route": "/home"
@@ -1677,6 +2026,11 @@
         "id": "fixture-avatar-picker",
         "flow": "Profile and settings",
         "route": "/profile?avatarPicker=true"
+    },
+    {
+        "id": "fixture-profile-details",
+        "flow": "Profile and settings",
+        "route": "/profile/details"
     },
     {
         "id": "fixture-profile-accounts",

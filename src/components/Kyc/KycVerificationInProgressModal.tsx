@@ -14,6 +14,8 @@ interface KycVerificationInProgressModalProps {
     phase?: KycModalPhase
     onAcceptTerms?: () => void
     onSkipTerms?: () => void
+    onStartSupplement?: () => void
+    onSkipSupplement?: () => void
     onContinue?: () => void
     tosError?: string | null
     isLoadingTos?: boolean
@@ -28,6 +30,8 @@ export const KycVerificationInProgressModal = ({
     onClose,
     phase = 'verifying',
     onAcceptTerms,
+    onStartSupplement,
+    onSkipSupplement,
     onContinue,
     tosError,
     isLoadingTos,
@@ -165,6 +169,34 @@ export const KycVerificationInProgressModal = ({
                 ]}
                 preventClose
                 hideModalCloseButton
+            />
+        )
+    }
+
+    if (phase === 'supplement') {
+        return (
+            <ActionModal
+                visible={isOpen}
+                onClose={onSkipSupplement ?? onClose}
+                tone="success"
+                icon={'check' as IconName}
+                title={t('supplement.proofOfAddressTitle')}
+                description={t('supplement.proofOfAddressDescription')}
+                ctas={[
+                    {
+                        text: t('supplement.proofOfAddressCta'),
+                        onClick: onStartSupplement ?? onClose,
+                        variant: 'primary',
+                        className: 'w-full',
+                        shadowSize: '4',
+                        'data-testid': 'kyc-supplement-cta',
+                    },
+                ]}
+                tertiaryCta={{
+                    text: t('supplement.later'),
+                    onClick: onSkipSupplement ?? onClose,
+                    'data-testid': 'kyc-supplement-later',
+                }}
             />
         )
     }

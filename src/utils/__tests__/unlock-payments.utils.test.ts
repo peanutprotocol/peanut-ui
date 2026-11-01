@@ -1,6 +1,7 @@
-import { gatingResidenceIso2s, residenceAllows, residenceCloses } from '@/features/deposit-accounts/residenceGate'
+import { gatingResidenceIso2s, residenceAllows } from '@/features/deposit-accounts/residenceGate'
 import {
     buildBankRows,
+    bankAccountRow,
     withPixSend,
     buildUnlockGroups,
     dedupeHeldBankRows,
@@ -9,12 +10,19 @@ import {
 } from '@/utils/unlock-payments.utils'
 import { QrKycState } from '@/constants/kyc.consts'
 
+const CLOSED_ALL = {
+    brl: 'notAvailable',
+    ars: 'notAvailable',
+    usd: 'notAvailable',
+    mxn: 'notAvailable',
+    sepa: 'notAvailable',
+} as const
 const UNLOCK_ALL = { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' } as const
 
+const CLOSED_LOCAL = { ...UNLOCK_ALL, brl: 'notAvailable', ars: 'notAvailable' } as const
+
 const base = (over?: Partial<BuildUnlockGroupsInput>): BuildUnlockGroupsInput => ({
-    bankChips: UNLOCK_ALL,
     qrPay: QrKycState.REQUIRES_IDENTITY_VERIFICATION,
-    restrictions: { banking: false, card: false },
     card: 'get',
     ...over,
 })
@@ -22,7 +30,7 @@ const base = (over?: Partial<BuildUnlockGroupsInput>): BuildUnlockGroupsInput =>
 const bank = (over?: Partial<BankRowsInput>) =>
     buildBankRows({
         bankChips: UNLOCK_ALL,
-        restrictions: { banking: false, card: false },
+        closedBecause: {},
         residenceIso2: null,
         isEuropeResidence: false,
         ...over,
@@ -75,19 +83,19 @@ describe('buildUnlockGroups', () => {
         )
     })
 
-    it('QR payments a user does not hold keep the LATAM offer and its tap target', () => {
+    it('QR payments preserve their own offer, progress and tap target', () => {
         const groups = buildUnlockGroups(base())
         expect(group(groups, 'spend').rows[1]).toEqual(expect.objectContaining({ chip: 'unlock', regionPath: 'latam' }))
 
-        // QR reads the Brazilian corridor: Pix is the bigger of the two.
-        const pending = buildUnlockGroups(base({ bankChips: { ...UNLOCK_ALL, brl: 'processing' } }))
+        // QR progress comes from its own report entry.
+        const pending = buildUnlockGroups(base({ qrPay: QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS }))
         expect(group(pending, 'spend').rows[1].chip).toBe('processing')
     })
 
     // Audit C29 (hugo, 2026-09-26): QR is open to every verified user whatever
     // their residence, so a banking restriction never closes it.
     it('a banking restriction leaves QR payments to the QR answer', () => {
-        const restricted = { restrictions: { banking: true, card: true } }
+        const restricted = { card: 'notAvailable' as const }
         expect(
             group(buildUnlockGroups(base({ ...restricted, qrPay: QrKycState.PROCEED_TO_PAY })), 'spend').rows[1].chip
         ).toBe('active')
@@ -97,21 +105,22 @@ describe('buildUnlockGroups', () => {
 
     // Audit C53: Available comes from the QR gate alone, never from a bank rail
     it('a working bank rail alone makes QR an offer, not Available', () => {
-        const qr = group(buildUnlockGroups(base({ bankChips: { ...UNLOCK_ALL, brl: 'active' } })), 'spend').rows[1]
+        expect(rowsOf(bank({ bankChips: { ...UNLOCK_ALL, brl: 'active' } }), 'brl')[0].chip).toBe('active')
+        const qr = group(buildUnlockGroups(base({ qrPay: QrKycState.REQUIRES_IDENTITY_VERIFICATION })), 'spend').rows[1]
         expect(qr).toEqual(expect.objectContaining({ chip: 'unlock', regionPath: 'latam' }))
     })
 
     it('the always-on layer survives full restriction, and the card goes', () => {
-        const groups = buildUnlockGroups(base({ restrictions: { banking: true, card: true } }))
+        const groups = buildUnlockGroups(base({ card: 'notAvailable' }))
         expect(group(groups, 'everywhere').rows.map((r) => r.chip)).toEqual(['alwaysOn', 'alwaysOn'])
         expect(group(groups, 'spend').rows[0].chip).toBe('notAvailable')
     })
 
     it('a card-only restriction takes the card and leaves the bank rows alone', () => {
-        expect(
-            group(buildUnlockGroups(base({ restrictions: { banking: false, card: true } })), 'spend').rows[0]
-        ).toEqual(expect.objectContaining({ chip: 'notAvailable' }))
-        expect(rowsOf(bank({ restrictions: { banking: false, card: true } }), 'sepa')[0].chip).toBe('unlock')
+        expect(group(buildUnlockGroups(base({ card: 'notAvailable' })), 'spend').rows[0]).toEqual(
+            expect.objectContaining({ chip: 'notAvailable' })
+        )
+        expect(rowsOf(bank(), 'sepa')[0].chip).toBe('unlock')
     })
 
     it('an active card routes to /card for viewing', () => {
@@ -151,8 +160,7 @@ describe('buildBankRows', () => {
     it('South America is one row per currency, each with its own allowance', () => {
         const rows = bank({
             bankChips: { ...UNLOCK_ALL, brl: 'active' },
-            residenceIso2: 'BR',
-            secondResidenceIso2: 'AR',
+            residenceIso2: 'AR',
         })
         expect(rowsOf(rows, 'brl', 'ars').map((r) => [r.id, r.chip, r.limitRefs])).toEqual([
             ['brl-bank', 'active', ['BRL']],
@@ -169,8 +177,9 @@ describe('buildBankRows', () => {
     })
 
     it('sibling rows share the one unlock intent behind their two currencies', () => {
-        const rows = bank({ residenceIso2: 'BR', secondResidenceIso2: 'AR' })
-        expect(rowsOf(rows, 'brl', 'ars').map((r) => r.regionPath)).toEqual(['latam', 'latam'])
+        expect(rowsOf(bank({ residenceIso2: 'BR' }), 'brl')[0].regionPath).toBe('latam')
+        expect(rowsOf(bank({ residenceIso2: 'AR' }), 'ars')[0].regionPath).toBe('latam')
+        const rows = bank({ residenceIso2: 'BR' })
         expect(rowsOf(rows, 'usd', 'mxn').map((r) => r.regionPath)).toEqual(['north-america', 'north-america'])
     })
 
@@ -187,8 +196,8 @@ describe('buildBankRows', () => {
         ).toEqual(expect.objectContaining({ chip: 'processing', regionPath: 'latam' }))
     })
 
-    it('a banking restriction turns every bank row into Not available, and says it is the country', () => {
-        for (const row of bank({ restrictions: { banking: true, card: true } })) {
+    it('reported country refusals render every bank row Not available with their reason', () => {
+        for (const row of bank({ bankChips: CLOSED_ALL })) {
             expect(row.chip).toBe('notAvailable')
             expect(row.regionPath).toBeUndefined()
             expect(row.unavailableBecause).toBe('restricted-country')
@@ -213,13 +222,12 @@ describe('buildBankRows', () => {
  * Processing either (the abandoned Argentine ghost on a Portuguese resident's
  * screen, 2026-09-22).
  */
-describe('buildBankRows — residence decides the Manteca rows', () => {
+describe('buildBankRows — renders supplied local account chips', () => {
     // all-users replay W3: a banking restriction withdraws offers, never a working rail
     it('a banking-restricted residence keeps a working ARS rail Available and closes the rest', () => {
         const rows = bank({
             residenceIso2: 'VE',
-            restrictions: { banking: true, card: false },
-            bankChips: { ...UNLOCK_ALL, ars: 'active' },
+            bankChips: { ...CLOSED_ALL, ars: 'active' },
         })
         const ars = rows.find((r) => r.labelKey === 'ars')!
         expect(ars.chip).toBe('active')
@@ -231,55 +239,70 @@ describe('buildBankRows — residence decides the Manteca rows', () => {
         }
     })
 
-    const latamRows = (input?: Partial<BankRowsInput>) =>
+    const latamRows = (input: Partial<BankRowsInput>) =>
         rowsOf(bank(input), 'brl', 'ars').map((r) => [r.id, r.chip, r.regionPath])
 
     it('a resident of neither country reads Not available on both, with no tap target, and residence is why', () => {
-        expect(latamRows({ residenceIso2: 'PT' })).toEqual([
+        expect(latamRows({ residenceIso2: 'PT', bankChips: CLOSED_LOCAL })).toEqual([
             ['brl-bank', 'notAvailable', undefined],
             ['ars-bank', 'notAvailable', undefined],
         ])
-        expect(rowsOf(bank({ residenceIso2: 'PT' }), 'brl')[0].unavailableBecause).toBe('residence')
+        expect(
+            rowsOf(
+                bank({ residenceIso2: 'PT', bankChips: CLOSED_LOCAL, closedBecause: { brl: 'residence' } }),
+                'brl'
+            )[0].unavailableBecause
+        ).toBe('residence')
     })
 
-    it('each country opens its own row, and a dual resident gets both', () => {
-        expect(latamRows({ residenceIso2: 'BR' })).toEqual([
+    // The API opens a Manteca local account by the one residence (peanut.manteca-local-residence).
+    it('local report entries are preserved when a second residence changes the ordering', () => {
+        expect(latamRows({ residenceIso2: 'BR', bankChips: { ...CLOSED_LOCAL, brl: 'unlock' } })).toEqual([
             ['brl-bank', 'unlock', 'latam'],
             ['ars-bank', 'notAvailable', undefined],
         ])
-        expect(latamRows({ residenceIso2: 'PT', secondResidenceIso2: 'AR' })).toEqual([
+        expect(latamRows({ residenceIso2: 'PT', secondResidenceIso2: 'AR', bankChips: CLOSED_LOCAL })).toEqual([
             ['brl-bank', 'notAvailable', undefined],
-            ['ars-bank', 'unlock', 'latam'],
+            ['ars-bank', 'notAvailable', undefined],
         ])
-        expect(latamRows({ residenceIso2: 'BR', secondResidenceIso2: 'AR' })).toEqual([
+        expect(
+            latamRows({ residenceIso2: 'BR', secondResidenceIso2: 'AR', bankChips: { ...CLOSED_LOCAL, brl: 'unlock' } })
+        ).toEqual([
             ['brl-bank', 'unlock', 'latam'],
-            ['ars-bank', 'unlock', 'latam'],
+            ['ars-bank', 'notAvailable', undefined],
         ])
     })
 
-    it('an unknown residence fails closed, as the backend does', () => {
-        expect(latamRows({ residenceIso2: null })).toEqual([
+    it('a working rail stays available whatever the residence says', () => {
+        expect(latamRows({ residenceIso2: 'PT', bankChips: { ...CLOSED_LOCAL, ars: 'active' } })).toEqual([
+            ['brl-bank', 'notAvailable', undefined],
+            ['ars-bank', 'active', undefined],
+        ])
+    })
+
+    it('an unknown residence renders the account refusals the API supplied', () => {
+        expect(latamRows({ residenceIso2: null, bankChips: CLOSED_LOCAL })).toEqual([
             ['brl-bank', 'notAvailable', undefined],
             ['ars-bank', 'notAvailable', undefined],
         ])
     })
 
-    it("another country's mid-flight rail is not narrated on a row that is not offered", () => {
-        expect(latamRows({ residenceIso2: 'PT', bankChips: { ...UNLOCK_ALL, ars: 'processing' } })).toEqual([
+    it('a reported refusal stays Not available instead of narrating an old mid-flight rail', () => {
+        expect(latamRows({ residenceIso2: 'PT', bankChips: CLOSED_LOCAL })).toEqual([
             ['brl-bank', 'notAvailable', undefined],
             ['ars-bank', 'notAvailable', undefined],
         ])
     })
 
     it('a rail that already works stays a fact after a move', () => {
-        expect(latamRows({ residenceIso2: 'PT', bankChips: { ...UNLOCK_ALL, brl: 'active' } })).toEqual([
+        expect(latamRows({ residenceIso2: 'PT', bankChips: { ...CLOSED_LOCAL, brl: 'active' } })).toEqual([
             ['brl-bank', 'active', undefined],
             ['ars-bank', 'notAvailable', undefined],
         ])
     })
 
     it('the Bridge rows and QR payments are untouched by it', () => {
-        const rows = bank({ residenceIso2: 'PT' })
+        const rows = bank({ residenceIso2: 'PT', bankChips: CLOSED_LOCAL })
         expect(rowsOf(rows, 'sepa')[0].chip).toBe('unlock')
         expect(rowsOf(rows, 'usd', 'mxn').map((r) => r.chip)).toEqual(['unlock', 'unlock'])
         // paying a QR code needs no first-party account, so the offer stands
@@ -337,15 +360,20 @@ describe('gatingResidenceIso2s', () => {
         expect(gatingResidenceIso2s({ verified: 'PT', declared: 'BR' })).toEqual(['PT'])
     })
 
-    it('a declared residence counts while nothing is verified, and a second one beside it', () => {
-        expect(gatingResidenceIso2s({ verified: null, declared: 'br', second: 'AR' })).toEqual(['BR', 'AR'])
+    it('a declared residence counts while nothing is verified', () => {
+        expect(gatingResidenceIso2s({ verified: null, declared: 'br' })).toEqual(['BR'])
         expect(gatingResidenceIso2s({})).toEqual([])
     })
 
     it('the row and the top-up agree: verified PT + declared BR reads not offered on both', () => {
         const residences = gatingResidenceIso2s({ verified: 'PT', declared: 'BR' })
         expect(residenceAllows('PIX_BR', residences)).toBe(false)
-        expect(rowsOf(bank({ residenceIso2: 'PT' }), 'brl')[0].chip).toBe('notAvailable')
+        expect(
+            rowsOf(
+                bank({ residenceIso2: 'PT', bankChips: CLOSED_LOCAL, closedBecause: { brl: 'residence' } }),
+                'brl'
+            )[0].chip
+        ).toBe('notAvailable')
     })
 })
 
@@ -358,12 +386,9 @@ describe('qrPayChip', () => {
     it.each([QrKycState.REGION_RESTRICTED, QrKycState.PROVIDER_REJECTION_BLOCKED])(
         '%s reads Attention on QR payments and on the Pix send, whatever the bank rail says',
         (state) => {
-            const qr = group(
-                buildUnlockGroups(base({ qrPay: state, bankChips: { ...UNLOCK_ALL, brl: 'active' } })),
-                'spend'
-            ).rows[1]
+            const qr = group(buildUnlockGroups(base({ qrPay: state })), 'spend').rows[1]
             expect(qr.chip).toBe('attention')
-            const closed = withPixSend(bank({ residenceIso2: 'PT' }), { qrPay: state, brlChip: 'unlock' })
+            const closed = withPixSend(bank({ residenceIso2: 'PT', bankChips: CLOSED_LOCAL }), { qrPay: state })
             expect(closed.find((r) => r.labelKey === 'brl')).toEqual(
                 expect.objectContaining({ chip: 'attention', note: 'pixSendNote', regionPath: 'latam' })
             )
@@ -373,11 +398,11 @@ describe('qrPayChip', () => {
 
 describe('withPixSend', () => {
     const brl = (rows: ReturnType<typeof buildBankRows>) => rows.find((row) => row.labelKey === 'brl')!
-    const canSend = { qrPay: QrKycState.PROCEED_TO_PAY, brlChip: 'unlock' } as const
-    const cannotSend = { qrPay: QrKycState.REQUIRES_IDENTITY_VERIFICATION, brlChip: 'unlock' } as const
+    const canSend = { qrPay: QrKycState.PROCEED_TO_PAY } as const
+    const cannotSend = { qrPay: QrKycState.REQUIRES_IDENTITY_VERIFICATION } as const
 
     it('a non-resident who can pay a Pix key reads Available, and the tap opens Pix key sending', () => {
-        const rows = withPixSend(bank({ residenceIso2: 'PT' }), canSend)
+        const rows = withPixSend(bank({ residenceIso2: 'PT', bankChips: CLOSED_LOCAL }), canSend)
         expect(brl(rows)).toEqual(
             expect.objectContaining({
                 chip: 'active',
@@ -394,22 +419,21 @@ describe('withPixSend', () => {
     // a key link would end in a verification prompt. The view passes that
     // capability alone, never the QR row's fallback.
     it('a non-resident who cannot pay yet gets the LATAM offer, never a link', () => {
-        const rows = withPixSend(bank({ residenceIso2: 'PT' }), cannotSend)
+        const rows = withPixSend(bank({ residenceIso2: 'PT', bankChips: CLOSED_LOCAL }), cannotSend)
         expect(brl(rows)).toEqual(expect.objectContaining({ chip: 'unlock', note: 'pixSendNote', regionPath: 'latam' }))
         expect(brl(rows).href).toBeUndefined()
     })
 
     it('a Manteca verification in flight reads as the BRL corridor does', () => {
-        const rows = withPixSend(bank({ residenceIso2: 'PT' }), {
+        const rows = withPixSend(bank({ residenceIso2: 'PT', bankChips: CLOSED_LOCAL }), {
             qrPay: QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS,
-            brlChip: 'processing',
         })
         expect(brl(rows).chip).toBe('processing')
     })
 
     // Audit C29: a banking restriction closes adding reais, not sending to a Pix key
     it('a banking-restricted residence gets the Pix send on BRL too', () => {
-        const restricted = bank({ residenceIso2: 'JP', restrictions: { banking: true, card: false } })
+        const restricted = bank({ residenceIso2: 'JP', bankChips: CLOSED_ALL })
         const rows = withPixSend(restricted, canSend)
         expect(brl(rows)).toEqual(
             expect.objectContaining({
@@ -427,7 +451,7 @@ describe('withPixSend', () => {
         'a resident who can pay, with a bank rail at %s, gets the Pix send and keeps the rail status',
         (brlChip) => {
             const resident = bank({ residenceIso2: 'BR', bankChips: { ...UNLOCK_ALL, brl: brlChip } })
-            const row = brl(withPixSend(resident, { ...canSend, brlChip }))
+            const row = brl(withPixSend(resident, { ...canSend }))
             expect(row).toEqual(
                 expect.objectContaining({ chip: 'active', note: 'pixSendNote', bankChip: brlChip, regionPath: 'latam' })
             )
@@ -438,24 +462,59 @@ describe('withPixSend', () => {
 
     it('leaves a resident with a working rail, a resident who cannot pay, and every other row alone', () => {
         const working = bank({ residenceIso2: 'BR', bankChips: { ...UNLOCK_ALL, brl: 'active' } })
-        expect(withPixSend(working, { ...canSend, brlChip: 'active' })).toEqual(working)
+        expect(withPixSend(working, { ...canSend })).toEqual(working)
         const resident = bank({ residenceIso2: 'BR' })
         expect(withPixSend(resident, cannotSend)).toEqual(resident)
-        const ars = withPixSend(bank({ residenceIso2: 'PT' }), canSend).find((r) => r.labelKey === 'ars')
+        const ars = withPixSend(bank({ residenceIso2: 'PT', bankChips: CLOSED_LOCAL }), canSend).find(
+            (r) => r.labelKey === 'ars'
+        )
         expect(ars?.chip).toBe('notAvailable')
     })
 })
 
-// Audit C4: the Accounts rows and the Manteca top-up read this one rule
-describe('residenceCloses', () => {
-    it('closes a residence-gated corridor to a non-resident with no working rail', () => {
-        expect(residenceCloses('PIX_BR', ['PT'], false)).toBe(true)
-        expect(residenceCloses('BANK_TRANSFER_AR', ['PT'], false)).toBe(true)
+// Closure policy is decided by the API. The row renders its supplied answer.
+describe('reported account closures', () => {
+    it('a refused residence-gated corridor has no tap target for a non-resident', () => {
+        const rows = bank({
+            residenceIso2: 'PT',
+            bankChips: CLOSED_LOCAL,
+            closedBecause: { brl: 'residence', ars: 'residence' },
+        })
+        for (const row of rowsOf(rows, 'brl', 'ars')) {
+            expect(row.chip).toBe('notAvailable')
+            expect(row.chip).not.toBe('processing')
+            expect(row.unavailableBecause).toBe('residence')
+            expect(row.regionPath).toBeUndefined()
+        }
     })
+    it('a reported working account stays open, and the reader does not override a resident’s reported refusal', () => {
+        const rows = bank({
+            residenceIso2: 'BR',
+            bankChips: { ...CLOSED_LOCAL, ars: 'active' },
+            closedBecause: { brl: 'account-residence' },
+        })
+        expect(rowsOf(rows, 'ars')[0].chip).toBe('active')
+        expect(rowsOf(rows, 'brl')[0]).toMatchObject({ chip: 'notAvailable', unavailableBecause: 'account-residence' })
+        expect(rowsOf(rows, 'sepa')[0].chip).toBe('unlock')
+    })
+})
 
-    it('a rail that already works stays open, and a resident is never closed', () => {
-        expect(residenceCloses('PIX_BR', ['PT'], true)).toBe(false)
-        expect(residenceCloses('PIX_BR', ['BR'], false)).toBe(false)
-        expect(residenceCloses('SEPA_EU', [], false)).toBe(false)
+describe('bankAccountRow', () => {
+    it('uses the aggregate report chip rather than ranking the currency rows', () => {
+        const rows = bank({ bankChips: { ...CLOSED_ALL, usd: 'active', sepa: 'unlock' } })
+        expect(bankAccountRow(rows, 'processing')).toEqual({
+            id: 'bank-account',
+            labelKey: 'bankAccount',
+            concept: 'bank',
+            chip: 'processing',
+            href: '/profile/accounts',
+            currencies: ['USD', 'EUR'],
+        })
+    })
+    it('keeps a supplied refusal and omits currencies the account report refuses', () => {
+        expect(bankAccountRow(bank({ bankChips: CLOSED_ALL }), 'notAvailable')).toMatchObject({
+            chip: 'notAvailable',
+            currencies: [],
+        })
     })
 })

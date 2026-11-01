@@ -12,7 +12,6 @@ describe('nextDepositStep', () => {
         expect(nextDepositStep(undefined, 'fixable-rejection')).toBe('verify')
         expect(nextDepositStep(undefined, 'blocked-rejection')).toBe('verify')
         expect(nextDepositStep(undefined, 'restart-identity')).toBe('verify')
-        expect(nextDepositStep(undefined, 'provide-email')).toBe('verify')
     })
 
     // These resolve to the default "Unlock now" screen, which would offer a
@@ -30,6 +29,14 @@ describe('nextDepositStep', () => {
 
     it('does not give the tos consent a screen — the amount step guards it inline', () => {
         expect(nextDepositStep(undefined, 'accept-tos')).toBe('inputAmount')
+    })
+
+    // The verify screen could only offer support for it; the amount step opens the email sheet.
+    it('does not give the email a screen either — the amount step opens the email sheet', () => {
+        expect(nextDepositStep(undefined, 'provide-email')).toBe('inputAmount')
+        expect(nextDepositStep('verify', 'provide-email')).toBe('inputAmount')
+        expect(nextDepositStep('inputAmount', 'provide-email')).toBeNull()
+        expect(isVerifiableGate('provide-email')).toBe(true)
     })
 
     // A bookmarked or shared ?step=inputAmount must not walk around the

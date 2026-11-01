@@ -47,7 +47,18 @@ it('shares native ownership across get/create and forwards a bounded request ID'
     const pending = deferred<unknown>()
     const plugin = pluginFixture()
     const nativeGet = plugin.getCredential.mockReturnValue(pending.promise)
-    const nativeCreate = plugin.createCredential.mockResolvedValue('new')
+    const created = {
+        response: {
+            clientDataJSON: Buffer.from(
+                JSON.stringify({
+                    type: 'webauthn.create',
+                    challenge: 'fixture',
+                    origin: 'android:apk-key-hash:fixture',
+                })
+            ).toString('base64url'),
+        },
+    }
+    const nativeCreate = plugin.createCredential.mockResolvedValue(created)
     installAndroidPasskeyControl(plugin as unknown as CapacitorPasskeyPlugin)
     installAndroidPasskeyControl(plugin as unknown as CapacitorPasskeyPlugin)
     const original = plugin.getCredential({ publicKey: { challenge: 'private' } }).catch((error: Error) => error)
@@ -64,7 +75,7 @@ it('shares native ownership across get/create and forwards a bounded request ID'
     expect(nativeCreate).not.toHaveBeenCalled()
     pending.resolve('late credential')
     await jest.advanceTimersByTimeAsync(0)
-    await expect(plugin.createCredential({})).resolves.toBe('new')
+    await expect(plugin.createCredential({})).resolves.toBe(created)
     expect(nativeCreate).toHaveBeenCalledTimes(1)
     expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('private')
     expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('secret')
