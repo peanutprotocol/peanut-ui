@@ -14,6 +14,20 @@ const CATALOGS = { en, 'es-419': es419, 'es-AR': esAR, 'pt-BR': ptBR } as const
 const DELTA_LOCALES: readonly AppLocale[] = ['es-AR']
 const FULL_LOCALES = APP_LOCALES.filter((locale) => !DELTA_LOCALES.includes(locale))
 
+describe('test-build ribbon copy', () => {
+    it.each(APP_LOCALES)('%s resolves the test-build message with its branch', async (locale) => {
+        const messages = await loadMessages(locale)
+        const t = createTranslator({ locale, messages, namespace: 'global' })
+
+        expect(t('testBuild', { branch: 'feature/example' })).toContain('feature/example')
+    })
+
+    it('uses the approved Portuguese feedback wording', async () => {
+        const messages = await loadMessages('pt-BR')
+        expect(messages.global.feedbackBanner).toContain('o Peanut')
+    })
+})
+
 /**
  * English strings that legitimately carry more than one translation. Spanish and
  * Portuguese make distinctions English collapses, so these keys must NOT be merged

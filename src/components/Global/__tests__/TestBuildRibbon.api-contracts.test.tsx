@@ -55,6 +55,7 @@ it('subscribes to late contract failures', () => {
         notify()
     })
     expect(screen.getByTestId('test-build-ribbon')).toHaveTextContent('API contract error')
+    expect(screen.getByTestId('test-build-ribbon').querySelector('.bg-red-600')).not.toBeNull()
 })
 
 it('starts the nonblocking check on production without displaying UI', () => {
