@@ -1,6 +1,7 @@
 import {
     IDENTITY_DOCUMENT_MISSING_CODE,
     IDENTITY_REGION_RESTRICTED_CODE,
+    PROVIDER_ID_REQUEST_REASONS,
     QR_IDENTITY_MISSING_CODE,
     QR_IDENTITY_RESTART_PENDING_CODE,
     QrKycState,
@@ -74,12 +75,13 @@ export function selectQrKycGate(input: {
  * Causes whose verification step is the identity restart, not a new check,
  * in the order the verify-again screen explains them: an imported account with
  * no ID on file, a new ID check the user has not finished, an ID whose name or
- * number the payment partner cannot use.
+ * number the payment partner cannot use, a provider asking for a new ID.
  */
 const IDENTITY_RESTART_ORDER = [
     IDENTITY_DOCUMENT_MISSING_CODE,
     QR_IDENTITY_RESTART_PENDING_CODE,
     QR_IDENTITY_MISSING_CODE,
+    ...PROVIDER_ID_REQUEST_REASONS,
 ] as const
 export type QrIdentityRestartReason = (typeof IDENTITY_RESTART_ORDER)[number]
 const IDENTITY_RESTART_REASONS: ReadonlySet<string> = new Set(IDENTITY_RESTART_ORDER)

@@ -37,22 +37,6 @@ describe('KYC follow-up actions', () => {
         expect(screen.getByRole('button', { name: 'Answer questions' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Upload document' })).not.toBeInTheDocument()
     })
-    it('a government ID requirement asks for a clear retake', () => {
-        renderModal({
-            nextAction: {
-                key: 'sumsub:id',
-                kind: 'sumsub',
-                purpose: 'unlock-bridge',
-                requirementKey: 'government_id_front',
-            },
-        })
-        expect(screen.getByRole('button', { name: 'Retake ID photo' })).toBeInTheDocument()
-        expect(
-            screen.getByText(
-                'Our payment partner needs a new, clear photo of your ID. Use a valid document and show all of it.'
-            )
-        ).toBeInTheDocument()
-    })
     it('keeps the tax ID re-upload wording and upload action', () => {
         renderModal({ reasonCode: 'eea_tin_reupload' })
         expect(screen.getByRole('button', { name: 'Upload document' })).toBeInTheDocument()

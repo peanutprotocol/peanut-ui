@@ -313,6 +313,65 @@ describe('KYC modal — fixable Manteca rejection', () => {
     })
 })
 
+// The rail the API sends when Manteca's onboarding ID check failed or the ID expired: a step, carrying the restart.
+describe('KYC modal — Manteca asks for a new ID', () => {
+    const { deriveProviderRejection } = jest.requireActual('@/utils/provider-rejection.utils')
+    const mantecaIdRequest = (reason: string, resolved: boolean): RailCapability => {
+        const restart = { key: 'restart-identity', kind: 'restart-identity' as const, purpose: reason }
+        return {
+            id: 'manteca.bank_transfer_ar',
+            provider: 'manteca',
+            method: 'BANK_TRANSFER_AR',
+            channel: 'bank',
+            country: 'AR',
+            currency: 'ARS',
+            status: 'requires-info',
+            blockingActions: [restart.key],
+            reason: { code: reason, userMessage: 'Your ID has expired.' },
+            ...(resolved
+                ? {
+                      resolved: {
+                          status: 'blocked' as const,
+                          blocking: {
+                              code: reason,
+                              userMessage: 'Your ID has expired.',
+                              selfHealable: true,
+                              selfHealKind: 'restart-identity' as const,
+                          },
+                          nextAction: restart,
+                      },
+                  }
+                : {}),
+        }
+    }
+
+    test.each([
+        ['id_expired', true],
+        ['id_verification_failed', true],
+        ['id_expired', false],
+    ])(
+        'an ID Manteca asks for again (%s, verdict sent: %s) opens the identity restart, never a resubmit',
+        async (reason, resolved) => {
+            setCountry('argentina')
+            mockIsVerifiedForCountry = false
+            mockRejection = deriveProviderRejection([mantecaIdRequest(reason, resolved)], 'MANTECA', [
+                { key: 'restart-identity', kind: 'restart-identity', purpose: reason },
+            ])
+            render(<MantecaAddMoney />)
+
+            expect(lastKycModalProps!.visible).toBe(true)
+            expect(lastKycModalProps!.variant).toBe('restart_identity')
+            expect(lastKycModalProps!.reasonCode).toBe(reason)
+            await act(() => lastKycModalProps!.onVerify())
+
+            expect(mockKycFlow.handleRestartIdentity).toHaveBeenCalled()
+            expect(mockKycFlow.handleFixableRejection).not.toHaveBeenCalled()
+            expect(mockKycFlow.handleSelfHealResubmit).not.toHaveBeenCalled()
+            expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
+        }
+    )
+})
+
 /**
  * The gate comes BEFORE the amount. Manteca mints a CVU/QR for an exact locked
  * amount, so the amount screen has to stay first among the coordinates — but a

@@ -1332,8 +1332,7 @@
             "descriptionCountryPayments": "Confirmá tu identidad para activar las transferencias bancarias y los pagos en {region}.",
             "descriptionRegionUnavailable": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
             "descriptionBankUnavailable": "Las transferencias bancarias no están disponibles en tu país, así que verificar tu identidad no las desbloquearía. Tus fondos están seguros y podés seguir enviando y recibiendo dinero con otras personas.",
-            "descriptionDefault": "Confirmá tu identidad para desbloquear los pagos.",
-            "descriptionRetakeId": "Nuestro socio de pagos necesita una foto nueva y clara de tu documento de identidad. Usá un documento vigente y que se vea completo."
+            "descriptionDefault": "Confirmá tu identidad para desbloquear los pagos."
         },
         "regionRestricted": {
             "title": "No podemos verificar documentos de este país",
@@ -1716,6 +1715,8 @@
             "requirements_missing": "Para abrir tus cuentas bancarias, nuestro socio de pagos necesita un comprobante de domicilio, como un estado de cuenta bancario o una factura de servicios reciente. Agregalo y terminaremos de configurarlas automáticamente.",
             "identity_document_insufficient": "El documento con el que te verificaste no se puede usar para esta cuenta. Verificate de nuevo con otro documento de identidad.",
             "document_country_unsupported": "Esto requiere un documento de identidad emitido por el país donde vivís. Verificate de nuevo con ese documento.",
+            "id_expired": "Tu documento de identidad venció. Agregá uno válido para que tus cuentas sigan funcionando.",
+            "id_verification_failed": "No pudimos verificar tu documento de identidad. Agregá uno válido para que tus cuentas sigan funcionando.",
             "requirements_uncollectable": "Nuestro socio de pagos necesita algo que no podemos recopilar en la app. Escribile a soporte y terminaremos la configuración con vos.",
             "email_required": "Necesitamos un correo electrónico para terminar de configurar esta cuenta. Agregá uno a tu perfil y lo reintentaremos automáticamente.",
             "submission_failed": "Tuvimos un problema al finalizar tu verificación de nuestro lado. Lo vamos a resolver: tocá abajo para escribirle a soporte.",

@@ -23,16 +23,6 @@ describe('KYC action copy', () => {
             ).toBe('initiate.ctaAnswerQuestions')
         }
     )
-    test('a government ID requirement in a group asks for a retake', () => {
-        expect(
-            kycActionCtaKey({
-                key: 'sumsub:identity',
-                kind: 'sumsub',
-                purpose: 'unlock',
-                requirementKeys: ['other', 'government_id_expired'],
-            })
-        ).toBe('initiate.ctaRetakeId')
-    })
     test('proof of source of funds remains a document upload', () => {
         expect(
             kycActionCtaKey({

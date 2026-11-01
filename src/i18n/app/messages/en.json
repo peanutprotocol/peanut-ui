@@ -3128,10 +3128,8 @@
             "ctaUnlockNow": "Verify identity",
             "ctaWithdrawFunds": "Withdraw funds",
             "ctaAnswerQuestions": "Answer questions",
-            "ctaRetakeId": "Retake ID photo",
             "supportMessageDuplicateAccount": "Hi! My verification is blocked because my email is already linked to another Peanut account. Can you help me sort out which account to keep?",
             "supportMessageImportedIdentity": "Hi! My bank transfers are blocked because the payment partner couldn't verify the ID from my earlier verification. Can you help me send them a current ID?",
-            "descriptionRetakeId": "Our payment partner needs a new, clear photo of your ID. Use a valid document and show all of it.",
             "ctaAnswerQuestion": "Answer the question"
         },
         "documentRequest": {
@@ -4058,7 +4056,9 @@
             "submission_failed": "We hit a snag finishing your verification on our side. We'll get you sorted — tap below to message support.",
             "proof_of_address_review": "We sent your proof of address to our card partner — it's being reviewed.",
             "proof_of_address_received": "We received your proof of address and are passing it to our card partner.",
-            "identity_verification_required": "Our card partner needs a selfie and a photo of your ID to finish reviewing your application.",
+            "identity_verification_required": "Our card partner needs a new photo of your ID and a selfie.",
+            "id_expired": "Your ID has expired. Add a valid one to keep your accounts working.",
+            "id_verification_failed": "We couldn't verify your ID. Add a valid one to keep your accounts working.",
             "identity_verification_review": "We sent your selfie and ID to our card partner — they're being reviewed.",
             "identity_verification_received": "We received your selfie and ID and are passing them to our card partner.",
             "bridge_tos_required": "Accept our payment partner's terms to continue.",

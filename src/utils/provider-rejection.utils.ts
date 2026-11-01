@@ -1,4 +1,8 @@
-import { IDENTITY_DOCUMENT_MISSING_CODE } from '@/constants/kyc.consts'
+import {
+    IDENTITY_DOCUMENT_MISSING_CODE,
+    PROVIDER_ID_REQUEST_REASONS,
+    type ProviderIdRequestReason,
+} from '@/constants/kyc.consts'
 import { type NextAction, type RailCapability } from '@/types/capabilities'
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 
@@ -35,7 +39,8 @@ import { railUserMessage, railVerdict } from '@/utils/capability-gate'
  *   - fixable         : user can re-submit docs via self-heal (`requires-info`)
  *   - restart-identity: blocked + the rail carries a `restart-identity` action
  *                       (Manteca country-not-supported, a document the send
- *                       gate refused for any provider). Self-fixable by
+ *                       gate refused for any provider, a provider asking for
+ *                       a new ID: {@link providerIdRequestReason}). Self-fixable by
  *                       re-verifying with a different document. Also the state
  *                       for an approval with no identity document on file
  *                       (see {@link identityDocumentRestartAction}).
@@ -70,6 +75,26 @@ export function identityDocumentRestartAction(nextActions: NextAction[]): NextAc
     return nextActions.find(
         (action) => action.kind === 'restart-identity' && action.purpose === IDENTITY_DOCUMENT_MISSING_CODE
     )
+}
+
+/**
+ * Why a provider asked for a new ID, when one did. The API shares one
+ * `restart-identity` action between causes and names it after the first, so
+ * the reasons of the rails it blocks are read as well as its purpose.
+ */
+export function providerIdRequestReason(
+    rails: RailCapability[],
+    nextActions: NextAction[]
+): ProviderIdRequestReason | null {
+    const restarts = nextActions.filter((action) => action.kind === 'restart-identity')
+    const restartKeys = new Set(restarts.map((action) => action.key))
+    const named = new Set([
+        ...restarts.map((action) => action.purpose),
+        ...rails
+            .filter((rail) => rail.blockingActions?.some((key) => restartKeys.has(key)))
+            .map((rail) => rail.resolved?.blocking?.code ?? rail.reason?.code ?? ''),
+    ])
+    return PROVIDER_ID_REQUEST_REASONS.find((code) => named.has(code)) ?? null
 }
 
 /**

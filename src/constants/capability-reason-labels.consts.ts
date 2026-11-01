@@ -30,6 +30,9 @@ export const REASON_CODE_KEYS = {
     proof_of_address_review: 'reasons.proof_of_address_review',
     proof_of_address_received: 'reasons.proof_of_address_received',
     identity_verification_required: 'reasons.identity_verification_required',
+    // a provider asks for a new ID; the restart-identity action collects it
+    id_expired: 'reasons.id_expired',
+    id_verification_failed: 'reasons.id_verification_failed',
     identity_verification_review: 'reasons.identity_verification_review',
     identity_verification_received: 'reasons.identity_verification_received',
     bridge_tos_required: 'reasons.bridge_tos_required',
@@ -40,8 +43,9 @@ export const REASON_CODE_KEYS = {
     // with the self-heal classifier's fixable-specific prose ("Your ID photo
     // was blurry. Please upload a clearer photo.") — a generic catalog line
     // would mask the instruction. It renders the BE prose until the
-    // classifier's stable `action` code (REUPLOAD_ID, …) reaches the wire
-    // (api-ts follow-up, #1249 pattern).
+    // classifier's stable `action` code reaches the wire (api-ts follow-up,
+    // #1249 pattern). An ID the provider asks for again is not this code: it
+    // arrives as id_expired / id_verification_failed with a restart action.
     verification_blocked: 'reasons.verification_blocked',
     terminal_rejection: 'reasons.terminal_rejection',
     bridge_terminal_rejection: 'reasons.bridge_terminal_rejection',

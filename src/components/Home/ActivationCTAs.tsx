@@ -1,6 +1,6 @@
 'use client'
 
-import { isIdRetake, kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
+import { kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -202,9 +202,7 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
                 return {
                     bubble: { icon: 'globe-lock', color: 'blue' },
                     title: t('completeSetup.title'),
-                    description: isIdRetake(fixableAction)
-                        ? tKyc('initiate.descriptionRetakeId')
-                        : localizedRejectionMessage || t('completeSetup.description'),
+                    description: localizedRejectionMessage || t('completeSetup.description'),
                     ctaLabel: tKyc(kycActionCtaKey(fixableAction, primaryRejectionCode)),
                     href: '/profile/accounts',
                 }

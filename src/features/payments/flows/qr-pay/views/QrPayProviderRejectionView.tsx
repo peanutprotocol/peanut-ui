@@ -9,7 +9,13 @@ import ActionModal from '@/components/Global/ActionModal'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useModalsContext } from '@/context/ModalsContext'
-import { IDENTITY_DOCUMENT_MISSING_CODE, QR_IDENTITY_RESTART_PENDING_CODE, QrKycState } from '@/constants/kyc.consts'
+import {
+    IDENTITY_DOCUMENT_MISSING_CODE,
+    isProviderIdRequestReason,
+    QR_IDENTITY_RESTART_PENDING_CODE,
+    QrKycState,
+} from '@/constants/kyc.consts'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import { useQrPayFlow } from '../QrPayFlowContext'
 
@@ -18,6 +24,7 @@ export function QrPayProviderRejectionView() {
     const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
+    const tIdentity = useTranslations('identity')
     const { gate, methodIcon, onBack } = useQrPayFlow()
     const { kycGateState, qrKycUserMessage, qrKycActionKey, sumsubFlow, needsIdentityRestart, identityRestartReason } =
         gate
@@ -28,6 +35,12 @@ export function QrPayProviderRejectionView() {
     // The identity evidence behind an approval is missing: the user verifies
     // again, with any document. "A different document" is the country refusal.
     const isVerifyAgain = isRestartIdentity && needsIdentityRestart
+    // A provider asking for a new ID says why in the reason catalog, under the restart's own title.
+    const providerIdRequestKey =
+        isVerifyAgain && isProviderIdRequestReason(identityRestartReason)
+            ? reasonCodeKey(identityRestartReason)
+            : undefined
+    const isVerifyAgainCopy = isVerifyAgain && !providerIdRequestKey
     // Says why, per cause (Slava, 2026-10-26): an imported account with no ID on
     // file, a new ID check not finished, or an ID the payment partner cannot read.
     const verifyAgain =
@@ -51,7 +64,7 @@ export function QrPayProviderRejectionView() {
                 title={
                     isFixable
                         ? t('kyc.fixableTitle')
-                        : isVerifyAgain
+                        : isVerifyAgainCopy
                           ? t(`kyc.verifyAgain.${verifyAgain.copy}.title`)
                           : isRestartIdentity
                             ? t('kyc.restartTitle')
@@ -60,11 +73,13 @@ export function QrPayProviderRejectionView() {
                 description={
                     isFixable
                         ? t('kyc.fixableDescription')
-                        : isVerifyAgain
-                          ? t(`kyc.verifyAgain.${verifyAgain.copy}.description`)
-                          : isRestartIdentity
-                            ? (qrKycUserMessage ?? t('kyc.restartDescription'))
-                            : (qrKycUserMessage ?? t('kyc.blockedDescription'))
+                        : providerIdRequestKey
+                          ? tIdentity(providerIdRequestKey)
+                          : isVerifyAgain
+                            ? t(`kyc.verifyAgain.${verifyAgain.copy}.description`)
+                            : isRestartIdentity
+                              ? (qrKycUserMessage ?? t('kyc.restartDescription'))
+                              : (qrKycUserMessage ?? t('kyc.blockedDescription'))
                 }
                 tone="error"
                 icon={
@@ -87,13 +102,13 @@ export function QrPayProviderRejectionView() {
                           }
                         : isRestartIdentity
                           ? {
-                                text: isVerifyAgain
+                                text: isVerifyAgainCopy
                                     ? t(`kyc.verifyAgain.${verifyAgain.copy}.cta`)
                                     : t('kyc.restartTitle'),
                                 onClick: () => sumsubFlow.handleRestartIdentity(),
                                 variant: 'primary' as const,
                                 shadowSize: '4' as const,
-                                icon: (isVerifyAgain ? verifyAgain.icon : 'upload-cloud') satisfies IconName,
+                                icon: (isVerifyAgainCopy ? verifyAgain.icon : 'upload-cloud') satisfies IconName,
                             }
                           : {
                                 text: tCommon('contactSupport'),

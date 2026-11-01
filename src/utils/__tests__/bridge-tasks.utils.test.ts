@@ -222,16 +222,27 @@ describe('selectCardDocumentTask — a card application waiting on the user', ()
         expect(isCardDocumentTask(task!)).toBe(true)
         expect(isCardDocumentTask(rainPoa)).toBe(false)
     })
-    it('a Rain selfie-and-ID ask (needsVerification) becomes a card task', () => {
-        const identity = action({
-            key: 'sumsub:rain_identity_verification',
-            kind: 'sumsub',
-            purpose: 'rain-card',
-            levelKey: 'rain_identity_verification',
+    it('a Rain selfie-and-ID ask (needsVerification) becomes a card task that opens the card screen', () => {
+        const restart = action({
+            key: 'restart-identity',
+            kind: 'restart-identity',
+            purpose: 'identity_verification_required',
         })
-        const task = selectCardDocumentTask([identity], cardReport(step(identity)))
-        expect(task).toMatchObject({ kind: 'sumsub', levelKey: 'rain_identity_verification' })
+        const task = selectCardDocumentTask(
+            [restart],
+            cardReport({ ...step(restart), reason: 'identity_verification_required' })
+        )
+        expect(task).toEqual({ ...restart, key: 'card-document:restart-identity' })
         expect(isCardDocumentTask(task!)).toBe(true)
+    })
+    it('a restart the card shares for another cause is not a card task', () => {
+        const restart = action({ key: 'restart-identity', kind: 'restart-identity', purpose: 'id_expired' })
+        expect(
+            selectCardDocumentTask(
+                [restart],
+                cardReport({ ...step(restart), reason: 'identity_document_insufficient' })
+            )
+        ).toBeUndefined()
     })
     it('an identity re-upload in Rain’s portal becomes a card task', () => {
         expect(selectCardDocumentTask([rainHosted], cardReport(step(rainHosted)))).toEqual({

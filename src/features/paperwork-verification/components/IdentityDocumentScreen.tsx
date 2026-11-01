@@ -54,13 +54,15 @@ type Choice = PaperworkVerificationDocument
  * An ID whose issuer would make a provider refuse every feature the user
  * asked for is greyed; one that refuses some says which, and asks before
  * Sumsub opens (Slava, 2026-10-27).
- * `restart`: a verified user picks the ID of a new identity check.
+ * `restart`: a verified user picks the ID of a new identity check; `reason`
+ * says why, when a provider asked for a new ID.
  */
 export function IdentityDocumentScreen({
     plan,
     residence,
     nationality = null,
     restart = false,
+    reason = null,
     documentsLoading = false,
     busy,
     error,
@@ -73,6 +75,7 @@ export function IdentityDocumentScreen({
     /** The nationality the questions asked, when they did. */
     nationality?: string | null
     restart?: boolean
+    reason?: string | null
     /** the plan is being read again for the documents */
     documentsLoading?: boolean
     busy: boolean
@@ -264,6 +267,11 @@ export function IdentityDocumentScreen({
                 <h1 className="text-heading-m whitespace-pre-line text-foreground-primary">
                     {t(restart ? 'midpoint.restartTitle' : 'documentList.title')}
                 </h1>
+                {restart && reason && (
+                    <Callout priority="attention" className="w-full text-left" data-testid="verify-restart-reason">
+                        {reason}
+                    </Callout>
+                )}
                 <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
                     {t(restart ? 'midpoint.restartDescription' : 'documentList.description')}
                 </p>

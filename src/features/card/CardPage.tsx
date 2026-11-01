@@ -21,6 +21,8 @@ import { useCardFlow } from './useCardFlow'
 import { KycFeatureActivationStatus } from '@/features/paperwork-verification/KycFeatureActivationStatus'
 import { AddFeatureQuestions } from '@/features/paperwork-verification/AddFeatureFlow'
 
+const PROOF_OF_ADDRESS_RECEIVED = 'proof_of_address_received'
+
 export const CardPage: FC = () => {
     const t = useTranslations('card')
     const tCommon = useTranslations('common')
@@ -67,7 +69,6 @@ export const CardPage: FC = () => {
         setPoaToken,
         poaError,
         poaSubmitted,
-        rainDocumentReceivedCode,
         setPoaSubmitted,
         onUploadProofOfAddress,
         onUploadIdentity,
@@ -293,7 +294,7 @@ export const CardPage: FC = () => {
                     )
                 }
                 const cardRail = railsForProvider('rain')[0]
-                const cardRailReasonCode = poaSubmitted ? rainDocumentReceivedCode : cardRail?.reason?.code
+                const cardRailReasonCode = poaSubmitted ? PROOF_OF_ADDRESS_RECEIVED : cardRail?.reason?.code
                 const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
@@ -346,7 +347,7 @@ export const CardPage: FC = () => {
                 // on its own (reassurance + support CTA), so show it now and let
                 // the reason fill in once capabilities resolve.
                 const cardRail = capabilitiesLoading ? undefined : railsForProvider('rain')[0]
-                const cardRailReasonCode = poaSubmitted ? rainDocumentReceivedCode : cardRail?.reason?.code
+                const cardRailReasonCode = poaSubmitted ? PROOF_OF_ADDRESS_RECEIVED : cardRail?.reason?.code
                 const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen

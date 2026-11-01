@@ -6,7 +6,7 @@
  */
 import { act, render } from '@testing-library/react'
 import { useDepositGateRemediation } from '../useDepositGateRemediation'
-import type { GateState } from '@/utils/capability-gate'
+import { gateFromEntry, type GateState } from '@/utils/capability-gate'
 import { DEPOSIT_RAIL_ORDER } from '../rails'
 import type { DepositCorridor } from '../types'
 
@@ -92,6 +92,25 @@ describe('useDepositGateRemediation', () => {
         expect(handleRestartIdentity).toHaveBeenCalled()
         expect(handleInitiateKyc).not.toHaveBeenCalled()
     })
+
+    // The report entry the API sends for a rail whose provider asks for a new ID, through the real gate mapping.
+    it.each(['id_expired', 'id_verification_failed', 'identity_verification_required'])(
+        'a provider asking for a new ID (%s) opens the identity restart, never a resubmit',
+        async (reason) => {
+            const restart = { key: 'restart-identity', kind: 'restart-identity' as const, purpose: reason }
+            const gate = gateFromEntry(
+                { state: 'action_required', reason, action: restart.key },
+                { rails: [], nextActions: [restart] }
+            )
+            expect(gate).toMatchObject({ kind: 'restart-identity', reason: { code: reason } })
+            await openBannerFor(gate, 'SEPA_EU')
+
+            expect(handleRestartIdentity).toHaveBeenCalled()
+            expect(handleFixableGate).not.toHaveBeenCalled()
+            expect(handleSelfHealResubmit).not.toHaveBeenCalled()
+            expect(handleInitiateKyc).not.toHaveBeenCalled()
+        }
+    )
 
     it('hands a fixable rejection to the shared router rather than collecting it again', async () => {
         const gate = { kind: 'fixable-rejection' } as GateState

@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
-import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
+import { NuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
 import {
@@ -8,6 +8,7 @@ import {
     startKycDocumentReplacement,
 } from '@/app/actions/kyc-workflow'
 import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
+import type { UserCapabilities } from '@/types/capabilities'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getKycDetails } from '@/app/actions/kyc-paperwork-verification'
 import { IdentityRestartFlow } from '../IdentityRestartFlow'
@@ -34,12 +35,14 @@ jest.mock('@/app/actions/kyc-workflow', () => ({
     startKycDocumentReplacement: jest.fn(),
 }))
 const mockFetchUser = jest.fn(async () => {})
+let mockCapabilities: UserCapabilities | undefined
 jest.mock('@/context/authContext', () => ({
     useOptionalAuth: () => null,
     useAuth: () => ({
         fetchUser: mockFetchUser,
         user: {
             user: { username: 'tester' },
+            capabilities: mockCapabilities,
             residence: {
                 verified: null,
                 declared: { country: 'PT', status: 'UNVERIFIED', updatedAt: null, secondCountry: null },
@@ -118,15 +121,17 @@ const session = {
     },
 }
 
+const mockUrlUpdate = jest.fn<void, [UrlUpdateEvent]>()
 const renderFlow = () =>
     renderWithIntl(
-        <NuqsTestingAdapter searchParams="?step=id&restart=1" hasMemory>
+        <NuqsTestingAdapter searchParams="?step=id&restart=1" hasMemory onUrlUpdate={mockUrlUpdate}>
             <IdentityRestartFlow onExit={jest.fn()} />
         </NuqsTestingAdapter>
     )
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockCapabilities = undefined
     jest.mocked(getKycDetails).mockResolvedValue({
         name: { first: null, last: null },
         nationality: 'PT',
@@ -158,9 +163,46 @@ describe('IdentityRestartFlow', () => {
         expect(sdk).toHaveAttribute('data-document', JSON.stringify({ country: 'PRT', idDocType: 'PASSPORT' }))
 
         fireEvent.click(screen.getByText('sumsub-submit'))
-        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/verify?step=review'))
+        await waitFor(() => expect(mockUrlUpdate.mock.calls.at(-1)?.[0].queryString).toBe('?step=review'))
+        expect(mockUrlUpdate.mock.calls.at(-1)?.[0].options.history).toBe('replace')
+        expect(mockReplace).not.toHaveBeenCalled()
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
         expect(screen.queryByTestId('sumsub')).toBeNull()
+    })
+
+    // The rail and action shapes the API sends when a provider asks for a new ID.
+    it.each([
+        ['id_expired', 'Your ID has expired. Add a valid one to keep your accounts working.'],
+        ['id_verification_failed', "We couldn't verify your ID. Add a valid one to keep your accounts working."],
+        ['identity_verification_required', 'Our card partner needs a new photo of your ID and a selfie.'],
+    ])('says why at the start when a provider asked for a new ID (%s)', async (reason, copy) => {
+        mockCapabilities = {
+            rails: [
+                {
+                    id: reason === 'identity_verification_required' ? 'rain.card' : 'bridge.sepa_eu',
+                    provider: reason === 'identity_verification_required' ? 'rain' : 'bridge',
+                    method: reason === 'identity_verification_required' ? 'CARD' : 'SEPA_EU',
+                    channel: reason === 'identity_verification_required' ? 'card' : 'bank',
+                    country: 'EU',
+                    currency: 'EUR',
+                    status: 'blocked',
+                    blockingActions: ['restart-identity'],
+                    reason: { code: reason, userMessage: 'prose' },
+                },
+            ],
+            // shared with an earlier cause, so the action's purpose names another reason
+            nextActions: [{ key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_missing' }],
+            restrictions: [],
+        }
+        renderFlow()
+        expect(await screen.findByText('Verify with a different document')).toBeInTheDocument()
+        expect(screen.getByTestId('verify-restart-reason')).toHaveTextContent(copy)
+    })
+
+    it('shows no reason when no provider asked for a new ID', async () => {
+        renderFlow()
+        expect(await screen.findByText('Verify with a different document')).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-restart-reason')).toBeNull()
     })
 
     it('offers a foreign national the passport from their declared nationality', async () => {

@@ -1279,6 +1279,28 @@ describe('useSumsubKycFlow — restart forwards only an explicit override', () =
     })
 })
 
+it('a legacy-approved identity answered with the restart restarts in place, never opening the raw upload', async () => {
+    mockRestart.mockReset()
+    mockResubmit.mockReset()
+    mockResubmit.mockResolvedValue({
+        error: 'Your ID has expired. Add a valid one to keep your accounts working.',
+        code: 'restart_identity',
+        fallback: 'restart-identity',
+        reason: 'id_expired',
+    })
+    mockRestart.mockResolvedValue({
+        data: { token: 'restart-token', levelName: 'general', applicantId: 'app_1', regionIntent: 'ROW' },
+    })
+    const { result } = renderHook(() => useSumsubKycFlow({}))
+    await act(async () => {
+        await result.current.handleSelfHealResubmit('BRIDGE')
+    })
+    expect(mockRestart).toHaveBeenCalledWith(undefined)
+    expect(result.current.accessToken).toBe('restart-token')
+    expect(result.current.showWrapper).toBe(true)
+    expect(result.current.error).toBeNull()
+})
+
 it('clears cooldown details when a later restart fails for another reason', async () => {
     mockRestart.mockReset()
     mockRestart.mockResolvedValueOnce({ error: 'Please wait', cooldown: { retryAt: '2026-09-08T18:57:00Z' } })
@@ -1851,6 +1873,47 @@ describe('useSumsubKycFlow — restarting an identity verified through a verific
         })
         expect(mockRouterPush).toHaveBeenCalledWith('/verify?step=id&restart=1')
         expect(mockRestart).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        ['BRIDGE', 'id_expired'],
+        ['BRIDGE', 'id_verification_failed'],
+        ['MANTECA', 'id_verification_failed'],
+    ] as const)(
+        'a %s resubmit answered with the restart (%s) opens the identity restart, never the raw upload or an error',
+        async (provider, reason) => {
+            mockResubmit.mockReset()
+            mockResubmit.mockResolvedValue({
+                error: 'Your ID has expired. Add a valid one to keep your accounts working.',
+                code: 'restart_identity',
+                fallback: 'restart-identity',
+                reason,
+            })
+            const { result } = renderHook(() => useSumsubKycFlow({}))
+            await act(async () => {
+                await result.current.handleFixableRejection({ provider, actionKey: null })
+            })
+            expect(mockResubmit).toHaveBeenCalledWith(provider, undefined)
+            expect(mockRouterPush).toHaveBeenCalledWith('/verify?step=id&restart=1')
+            expect(result.current.showWrapper).toBe(false)
+            expect(result.current.error).toBeNull()
+            expect(result.current.isLoading).toBe(false)
+        }
+    )
+
+    it("an older app's Rain selfie-and-ID start answered with the restart opens the identity restart", async () => {
+        mockStartAction.mockResolvedValue({
+            error: 'Take a selfie and a photo of your ID.',
+            code: 'restart_identity' as const,
+            fallback: 'restart-identity' as const,
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        await act(async () => {
+            await result.current.handleStartAction('sumsub:rain_identity_verification')
+        })
+        expect(mockRouterPush).toHaveBeenCalledWith('/verify?step=id&restart=1')
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.error).toBeNull()
     })
 
     it('reopens a replacement already under way on its frozen documents, and refreshes through it', async () => {

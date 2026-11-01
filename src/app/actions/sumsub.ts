@@ -39,6 +39,8 @@ export type SumsubActionErrorCode =
     | 'start_action_failed'
     // start-action refused a supplement the gate no longer asks for; `fallback` names the step instead
     | 'supplement_not_required'
+    // a provider asks for a new ID: the identity restart collects it, never a raw upload (`fallback`)
+    | 'restart_identity'
     | 'invalid_response'
     | 'unexpected'
 
@@ -95,6 +97,20 @@ const backendOrFallback = (
     if (!backendMessage) return { error: fallback, code }
     return { error: backendMessage }
 }
+
+/** Resubmit and start-action answer a provider's ID request with the identity restart redirect. */
+const restartIdentityRedirect = (
+    failure: SumsubActionError,
+    responseJson: { code?: unknown; requiredAction?: unknown; reasonCode?: unknown }
+) =>
+    responseJson.code === 'RESTART_IDENTITY' || responseJson.requiredAction === 'RESTART_IDENTITY'
+        ? {
+              ...failure,
+              code: 'restart_identity' as const,
+              fallback: 'restart-identity' as const,
+              ...(typeof responseJson.reasonCode === 'string' ? { reason: responseJson.reasonCode } : {}),
+          }
+        : null
 
 const caughtError = (e: unknown): SumsubActionError =>
     e instanceof Error ? { error: e.message } : { error: 'An unexpected error occurred', code: 'unexpected' }
@@ -197,7 +213,7 @@ export interface SelfHealResubmissionResponse {
     applicantId: string
     actionId: string
     externalActionId: string
-    requiredAction: 'REUPLOAD_ID' | 'REUPLOAD_ADDRESS_PROOF' | 'CONTACT_SUPPORT' | 'RAIN_DOCUMENT'
+    requiredAction: 'REUPLOAD_ADDRESS_PROOF' | 'CONTACT_SUPPORT' | 'RAIN_DOCUMENT'
     userMessage: string
     attempt: number
     maxAttempts: number
@@ -366,7 +382,14 @@ export const initiateSelfHealResubmission = async (
     // Optional — target a specific (e.g. future-dated advisory) Bridge requirement
     // by key. Omitted for the legacy blocking flow (current nextAction).
     requirementKey?: string
-): Promise<{ data?: SelfHealResubmissionResponse; error?: string; code?: SumsubActionErrorCode }> => {
+): Promise<{
+    data?: SelfHealResubmissionResponse
+    error?: string
+    code?: SumsubActionErrorCode
+    /** `restart-identity` when the provider asks for a new ID; `reason` is its reason code. */
+    fallback?: SupplementFallback
+    reason?: string
+}> => {
     let status: number | undefined
     try {
         const response = await serverFetch('/users/identity/resubmit', {
@@ -383,12 +406,13 @@ export const initiateSelfHealResubmission = async (
                 Sentry.captureException(new Error('KYC request failed'), {
                     tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_resubmit' },
                 })
-            return backendOrFallback(
+            const failure = backendOrFallback(
                 responseJson,
                 'Failed to initiate document resubmission',
                 'resubmit_failed',
                 response.status
             )
+            return restartIdentityRedirect(failure, responseJson) ?? failure
         }
 
         if (!responseJson.token || !responseJson.applicantId) {
@@ -469,7 +493,7 @@ export const refreshKycState = async (): Promise<KycRefreshResponse> => {
     }
 }
 
-/** The step start-action names when it refuses a supplement the gate no longer asks for. */
+/** The step start-action or resubmit names instead of the one asked for: a supplement no longer needed, or a new ID. */
 export type SupplementFallback = 'contact-support' | 'restart-identity' | 'wait'
 const SUPPLEMENT_FALLBACKS = new Set<string>(['contact-support', 'restart-identity', 'wait'])
 
@@ -520,6 +544,8 @@ export const startKycAction = async (
                 'start_action_failed',
                 response.status
             )
+            const restart = restartIdentityRedirect(failure, responseJson)
+            if (restart) return restart
             if (response.status !== 409 || responseJson.error !== 'supplement_not_required') return failure
             const { reason, fallback } = responseJson
             return {

@@ -24,7 +24,7 @@ import {
 import { formatEffectiveDate } from '@/utils/format.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
-import { isIdRetake, kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
+import { kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { ADDITIONAL_VERIFICATION_ROUTE } from '@/constants/kyc.consts'
 
@@ -227,7 +227,7 @@ export default function PendingVerificationTasks({
             return {
                 title: t('pendingTasks.cardDocumentTitle'),
                 description:
-                    task.kind === 'rain-hosted'
+                    task.kind === 'rain-hosted' || task.kind === 'restart-identity'
                         ? t('pendingTasks.cardIdentityDescription')
                         : t('pendingTasks.cardAddressDescription'),
             }
@@ -238,11 +238,7 @@ export default function PendingVerificationTasks({
                 const key = reasonCodeKey(reason?.code)
                 return {
                     title: tKyc('documentRequest.title'),
-                    description: isIdRetake(task)
-                        ? tKyc('initiate.descriptionRetakeId')
-                        : key
-                          ? tIdentity(key)
-                          : reason?.userMessage || tKyc('setup.documentDescription'),
+                    description: key ? tIdentity(key) : reason?.userMessage || tKyc('setup.documentDescription'),
                 }
             }
             return { title: t('pendingTasks.documentTitle'), description: t('pendingTasks.documentDescription') }

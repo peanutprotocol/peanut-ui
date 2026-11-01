@@ -22,7 +22,7 @@ import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestr
 import { useRegionRestrictedCta } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import type { NextAction } from '@/types/capabilities'
-import { isIdRetake, kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
+import { kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
 import { isBridgeProcessingSlow } from '@/utils/kyc-processing.utils'
 import type { ProviderId } from '@/types/provider.types'
 import Loading from '@/components/Global/Loading'
@@ -213,7 +213,6 @@ export const InitiateKycModal = ({
         if (isBankUnavailable) return t('initiate.descriptionBankUnavailable')
         if (isSupplementInReview || slow) return resolvedProviderMessage
         if (isHostedCheck) return tHome('pendingTasks.verifyDescription')
-        if (isProviderRejection && isIdRetake(nextAction)) return t('initiate.descriptionRetakeId')
         if (isBlocked) return resolvedProviderMessage || t('initiate.descriptionBlocked')
         if (isRestartIdentity) return resolvedProviderMessage || t('initiate.descriptionRestartIdentity')
         if (isProviderRejection) return resolvedProviderMessage || t('initiate.descriptionProviderRejection')

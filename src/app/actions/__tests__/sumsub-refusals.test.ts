@@ -401,6 +401,64 @@ describe('startKycAction — a supplement that is no longer needed', () => {
     })
 })
 
+// The bodies POST /users/identity/resubmit and POST /users/kyc/start-action send when a provider asks for a new ID.
+describe('a provider asking for a new ID names the identity restart', () => {
+    const redirect = {
+        code: 'RESTART_IDENTITY',
+        requiredAction: 'RESTART_IDENTITY',
+        nextAction: { kind: 'restart-identity', url: '/verify?step=id&restart=1' },
+    }
+
+    it.each(['id_expired', 'id_verification_failed'])(
+        'resubmit for a %s Bridge ID becomes the restart fallback with its reason',
+        async (reasonCode) => {
+            respondWith(409, {
+                error: 'Restart identity verification to replace your ID',
+                ...redirect,
+                reasonCode,
+                userMessage: 'Your ID has expired. Add a valid one to keep your accounts working.',
+            })
+            const result = await initiateSelfHealResubmission('BRIDGE')
+            expect(result).toMatchObject({ fallback: 'restart-identity', reason: reasonCode, code: 'restart_identity' })
+            expect(result.data).toBeUndefined()
+        }
+    )
+
+    it("resubmit for Rain's selfie and ID becomes the restart fallback", async () => {
+        respondWith(409, {
+            error: 'Restart identity verification to verify for the card',
+            userMessage: 'Take a selfie and a photo of your ID.',
+            ...redirect,
+        })
+        expect(await initiateSelfHealResubmission('RAIN')).toMatchObject({ fallback: 'restart-identity' })
+    })
+
+    it('the retired Rain action key at start-action becomes the restart fallback', async () => {
+        respondWith(409, { error: 'Restart identity verification to verify for the card', ...redirect })
+        const result = await startKycAction('sumsub:rain_identity_verification')
+        expect(result).toMatchObject({ fallback: 'restart-identity', code: 'restart_identity' })
+        expect(result.data).toBeUndefined()
+    })
+
+    it('an ID step with no upload level left is the restart too', async () => {
+        respondWith(400, {
+            error: 'This requirement needs identity verification',
+            requiredAction: 'RESTART_IDENTITY',
+        })
+        expect((await initiateSelfHealResubmission('MANTECA')).fallback).toBe('restart-identity')
+    })
+
+    it('a Rain selfie and ID already received stays an ordinary refusal', async () => {
+        respondWith(409, {
+            error: 'Identity documents already received',
+            userMessage: 'We already received your selfie and ID.',
+        })
+        const result = await initiateSelfHealResubmission('RAIN')
+        expect(result.fallback).toBeUndefined()
+        expect(result.error).toBe('We already received your selfie and ID.')
+    })
+})
+
 describe('workflow feature-selection conflict', () => {
     it.each(['code', 'error'])('preserves a 409 selection code from %s beside readable prose', async (field) => {
         respondWith(409, { [field]: 'feature_selection_required', userMessage: 'Choose the features to set up.' })

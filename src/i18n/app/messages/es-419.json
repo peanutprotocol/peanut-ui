@@ -3128,10 +3128,8 @@
             "ctaUnlockNow": "Verificar identidad",
             "ctaWithdrawFunds": "Retirar fondos",
             "ctaAnswerQuestions": "Responder preguntas",
-            "ctaRetakeId": "Volver a fotografiar el documento",
             "supportMessageDuplicateAccount": "¡Hola! Mi verificación está bloqueada porque mi correo ya está vinculado a otra cuenta de Peanut. ¿Me ayudan a resolver qué cuenta conservar?",
             "supportMessageImportedIdentity": "¡Hola! Mis transferencias bancarias están bloqueadas porque el socio de pagos no pudo verificar el documento de mi verificación anterior. ¿Me ayudan a enviarle un documento vigente?",
-            "descriptionRetakeId": "Nuestro socio de pagos necesita una foto nueva y clara de tu documento de identidad. Usa un documento vigente y que se vea completo.",
             "ctaAnswerQuestion": "Responder la pregunta"
         },
         "documentRequest": {
@@ -4058,7 +4056,9 @@
             "submission_failed": "Tuvimos un problema al finalizar tu verificación de nuestro lado. Lo vamos a resolver: toca abajo para escribirle a soporte.",
             "proof_of_address_review": "Enviamos tu comprobante de domicilio a nuestro socio de tarjetas; está en revisión.",
             "proof_of_address_received": "Recibimos tu comprobante de domicilio y lo estamos enviando a nuestro socio de tarjetas.",
-            "identity_verification_required": "Nuestro socio de tarjetas necesita una selfie y una foto de tu documento de identidad para terminar de revisar tu solicitud.",
+            "identity_verification_required": "Nuestro socio de tarjetas necesita una foto nueva de tu documento de identidad y una selfie.",
+            "id_expired": "Tu documento de identidad venció. Agrega uno válido para que tus cuentas sigan funcionando.",
+            "id_verification_failed": "No pudimos verificar tu documento de identidad. Agrega uno válido para que tus cuentas sigan funcionando.",
             "identity_verification_review": "Enviamos tu selfie y tu documento de identidad a nuestro socio de tarjetas; están en revisión.",
             "identity_verification_received": "Recibimos tu selfie y tu documento de identidad y los estamos enviando a nuestro socio de tarjetas.",
             "bridge_tos_required": "Acepta los términos de nuestro socio de pagos para continuar.",

@@ -1046,6 +1046,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             try {
                 const response = await initiateSelfHealResubmission(provider, requirementKey)
 
+                if (response.fallback === 'restart-identity') {
+                    userInitiatedRef.current = false
+                    selfHealProviderRef.current = null
+                    return await handleRestartIdentity()
+                }
+
                 if (response.error) {
                     userInitiatedRef.current = false
                     selfHealProviderRef.current = null
@@ -1073,7 +1079,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsLoading(false)
             }
         },
-        [t, actionErrorMessage, setError]
+        [t, actionErrorMessage, setError, handleRestartIdentity]
     )
 
     // Start a capability nextAction by key (POST /users/kyc/start-action) and
@@ -1110,8 +1116,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                         return
                     }
                 }
-                // The gate no longer asks for this supplement and names the step to take instead.
-                if (response.code === 'supplement_not_required' && response.fallback) {
+                // The step the API names instead: a supplement it no longer asks for, or a new ID through the restart.
+                if (response.fallback) {
                     userInitiatedRef.current = false
                     if (response.fallback === 'restart-identity') return await handleRestartIdentity()
                     if (response.fallback === 'contact-support') {

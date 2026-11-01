@@ -212,6 +212,7 @@ export function useCardFlow() {
         resumeOnReload: false,
     })
     const startFlowAction = kycFlow.handleStartAction
+    const restartIdentity = kycFlow.handleRestartIdentity
 
     // Proof-of-address self-heal — a dedicated, deliberately tiny flow. The
     // multi-phase KYC machinery (useMultiPhaseKycFlow) is bank-onboarding
@@ -226,10 +227,6 @@ export function useCardFlow() {
     // Optimistic "we got your document" until the backend webhook flips the
     // rail reason to its own review-wait state (may lag the SDK by seconds).
     const [poaSubmitted, setPoaSubmitted] = useState(false)
-    // The same Sumsub surface also takes the selfie and ID Rain asks for on needsVerification.
-    const [rainDocumentKind, setRainDocumentKind] = useState<'proofOfAddress' | 'identity'>('proofOfAddress')
-    const rainDocumentReceivedCode =
-        rainDocumentKind === 'identity' ? 'identity_verification_received' : 'proof_of_address_received'
 
     // The rain rail's self-serve proof-of-address action, when the backend
     // classified the application as PoA-fixable (kind 'sumsub' + levelKey
@@ -244,16 +241,18 @@ export function useCardFlow() {
     // create-action idempotency into minting two Sumsub actions (the id
     // collision path deliberately mints a suffixed fresh action).
     const poaStartingRef = useRef(false)
-    const startRainDocumentUpload = useCallback(async (kind: 'proofOfAddress' | 'identity') => {
+    const startProofOfAddressUpload = useCallback(async () => {
         if (poaStartingRef.current) return
         poaStartingRef.current = true
-        posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, {
-            source: kind === 'identity' ? 'identity-self-heal' : 'poa-self-heal',
-        })
-        setRainDocumentKind(kind)
+        posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { source: 'poa-self-heal' })
         setPoaError(null)
         try {
             const response = await initiateSelfHealResubmission('RAIN')
+            // Rain's selfie and ID come first, and only through the identity restart.
+            if (response.fallback === 'restart-identity') {
+                void restartIdentity()
+                return
+            }
             if (response.error || !response.data?.token) {
                 // Surfaced inline on the status screen — a silent primary CTA on
                 // a stuck-application screen is worse than no CTA.
@@ -264,9 +263,8 @@ export function useCardFlow() {
         } finally {
             poaStartingRef.current = false
         }
-    }, [])
-    const onUploadProofOfAddress =
-        poaAction && !poaSubmitted ? () => void startRainDocumentUpload('proofOfAddress') : undefined
+    }, [restartIdentity])
+    const onUploadProofOfAddress = poaAction && !poaSubmitted ? () => void startProofOfAddressUpload() : undefined
 
     // The rain rail's identity-document re-upload action, emitted when Rain
     // rejected the card application on a proof-of-identity document. Rather than
@@ -277,16 +275,14 @@ export function useCardFlow() {
         ? nextActionsForRail(cardRail.id).find((action) => action.kind === 'rain-hosted')
         : undefined
     const { start: startIdentityUpload, error: identityUploadError } = useHostedVerification('rain-hosted')
-    // needsVerification: Rain asks for a selfie and an ID, collected in a Sumsub action we own.
-    const identityVerificationAction = cardRail
-        ? nextActionsForRail(cardRail.id).find(
-              (action) => action.kind === 'sumsub' && action.levelKey === 'rain_identity_verification'
-          )
+    // needsVerification: Rain's selfie and ID come from a new identity check, which the API then sends to Rain.
+    const identityRestartAction = cardRail
+        ? nextActionsForRail(cardRail.id).find((action) => action.kind === 'restart-identity')
         : undefined
     const onUploadIdentity = identityAction
         ? () => void startIdentityUpload()
-        : identityVerificationAction && !poaSubmitted
-          ? () => void startRainDocumentUpload('identity')
+        : identityRestartAction
+          ? () => void restartIdentity()
           : undefined
 
     const informationActions = cardRail
@@ -318,6 +314,10 @@ export function useCardFlow() {
             try {
                 const response = await startKycAction(key)
                 if (informationStartingRef.current !== attempt || informationUserRef.current !== userId) return
+                if (response.fallback === 'restart-identity') {
+                    void restartIdentity()
+                    return
+                }
                 if (response.error || !response.data?.token) {
                     setInformationError(
                         response.code ? t('informationStartFailed') : (response.error ?? t('informationStartFailed'))
@@ -333,7 +333,7 @@ export function useCardFlow() {
                 if (informationStartingRef.current === attempt) informationStartingRef.current = null
             }
         },
-        [userId, informationSession, t]
+        [userId, informationSession, t, restartIdentity]
     )
     const refreshInformationToken = useCallback(async () => {
         if (!informationSession) throw new Error('No card information action to refresh')
@@ -875,11 +875,10 @@ export function useCardFlow() {
         poaError,
         poaSubmitted,
         setPoaSubmitted,
-        rainDocumentReceivedCode,
         onUploadProofOfAddress,
-        // identity re-upload
+        // identity: Rain's portal, or the identity restart for Rain's selfie and ID
         onUploadIdentity,
-        identityUploadError,
+        identityUploadError: identityUploadError ?? (identityRestartAction ? kycFlow.error : null),
         informationActions,
         informationSession,
         setInformationSession,

@@ -192,6 +192,20 @@ describe('qrIdentityRestartReason', () => {
     it('is null when nothing needs the restart', () => {
         expect(reason({ mantecaRails: [pix()], nextActions: [restart('country_not_supported')] })).toBeNull()
     })
+
+    it.each(['id_expired', 'id_verification_failed', 'identity_verification_required'])(
+        'names a provider asking for a new ID (%s), so the verify step restarts instead of answering "already approved"',
+        (code) => {
+            expect(reason({ nextActions: [restart(code)] })).toBe(code)
+            expect(needsRestartFor(code)).toBe(true)
+        }
+    )
+
+    it('an unfinished new ID check outranks the provider ask it answers', () => {
+        expect(
+            reason({ mantecaRails: [paused('identity_restart_pending')], nextActions: [restart('id_expired')] })
+        ).toBe('identity_restart_pending')
+    })
 })
 
 function needsRestartFor(code: string) {

@@ -10,16 +10,8 @@ const QUESTIONNAIRE_LEVELS = new Set([
     'bridge_answers_rejected',
 ])
 
-export function isIdRetake(action?: NextAction): boolean {
-    return (
-        action?.kind === 'sumsub' &&
-        [action.requirementKey, ...(action.requirementKeys ?? [])].some((key) => key?.startsWith('government_id_'))
-    )
-}
-
 export function kycActionCtaKey(action?: NextAction, reasonCode?: string | null) {
     if (action?.kind === 'questions') return 'initiate.ctaAnswerQuestion' as const
-    if (isIdRetake(action)) return 'initiate.ctaRetakeId' as const
     if (reasonCode === 'eea_tin_reupload') return 'initiate.ctaUploadDocument' as const
     const levels = [action?.levelKey, action?.key.split(':').pop(), reasonCode]
     const requirements = [action?.requirementKey, ...(action?.requirementKeys ?? [])]

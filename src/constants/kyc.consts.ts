@@ -31,6 +31,20 @@ export const IDENTITY_REGION_RESTRICTED_CODE = 'identity_region_restricted'
  */
 export const IDENTITY_DOCUMENT_MISSING_CODE = 'identity_document_missing'
 
+/**
+ * A provider asking for a new ID (peanut-api-ts `src/kyc/provider-id-request.ts`):
+ * the `restart-identity` action's purpose and the rail's reason code. The fix
+ * is the identity restart, never a raw document upload.
+ */
+export const PROVIDER_ID_REQUEST_REASONS = [
+    'id_expired',
+    'id_verification_failed',
+    'identity_verification_required',
+] as const
+export type ProviderIdRequestReason = (typeof PROVIDER_ID_REQUEST_REASONS)[number]
+export const isProviderIdRequestReason = (code: string | null | undefined): code is ProviderIdRequestReason =>
+    (PROVIDER_ID_REQUEST_REASONS as readonly string[]).includes(code ?? '')
+
 /** The "what to expect" screen in front of Bridge's hosted check (AdditionalVerificationView). */
 export const ADDITIONAL_VERIFICATION_ROUTE = '/profile/accounts/additional'
 

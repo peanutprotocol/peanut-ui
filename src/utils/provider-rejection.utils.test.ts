@@ -1,4 +1,8 @@
-import { deriveProviderRejection, identityDocumentRestartAction } from './provider-rejection.utils'
+import {
+    deriveProviderRejection,
+    identityDocumentRestartAction,
+    providerIdRequestReason,
+} from './provider-rejection.utils'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 
 function mantecaRail(overrides: Partial<RailCapability> = {}): RailCapability {
@@ -457,5 +461,58 @@ describe('identityDocumentRestartAction', () => {
             ])
         ).toBeUndefined()
         expect(identityDocumentRestartAction([])).toBeUndefined()
+    })
+})
+
+describe('a provider asking for a new ID', () => {
+    const restart = (purpose: string): NextAction => ({ key: 'restart-identity', kind: 'restart-identity', purpose })
+    const idRequestRail = (provider: 'bridge' | 'manteca' | 'rain', code: string, status: RailCapability['status']) =>
+        ({
+            id: `${provider}.rail`,
+            provider,
+            method: provider === 'rain' ? 'CARD' : 'BANK_TRANSFER_AR',
+            channel: provider === 'rain' ? 'card' : 'bank',
+            country: 'AR',
+            currency: 'ARS',
+            status,
+            blockingActions: ['restart-identity'],
+            reason: { code, userMessage: 'prose' },
+        }) as RailCapability
+
+    // Manteca's failed onboarding ID task parks the rail as a step; the API's verdict for it is the restart.
+    it.each(['id_expired', 'id_verification_failed'])(
+        'a Manteca step carrying the restart (%s) reads as restart-identity, not as a resubmit',
+        (code) => {
+            const info = deriveProviderRejection([idRequestRail('manteca', code, 'requires-info')], 'MANTECA', [
+                restart(code),
+            ])
+            expect(info).toMatchObject({ state: 'restart-identity', reasonCode: code, actionKey: null })
+        }
+    )
+
+    it.each(['id_expired', 'id_verification_failed'])(
+        'a blocked Bridge rail (%s) reads as restart-identity',
+        (code) => {
+            const info = deriveProviderRejection([idRequestRail('bridge', code, 'blocked')], 'BRIDGE', [restart(code)])
+            expect(info).toMatchObject({ state: 'restart-identity', reasonCode: code })
+        }
+    )
+
+    it('names the reason from the rail when the shared action is named after another cause', () => {
+        expect(
+            providerIdRequestReason(
+                [idRequestRail('rain', 'identity_verification_required', 'requires-info')],
+                [restart('identity_document_missing')]
+            )
+        ).toBe('identity_verification_required')
+    })
+
+    it('names the reason from the action purpose', () => {
+        expect(providerIdRequestReason([], [restart('id_expired')])).toBe('id_expired')
+    })
+
+    it('ignores a rail reason the restart does not block', () => {
+        const rail = { ...idRequestRail('bridge', 'id_expired', 'blocked'), blockingActions: ['support'] }
+        expect(providerIdRequestReason([rail], [restart('country_not_supported')])).toBeNull()
     })
 })

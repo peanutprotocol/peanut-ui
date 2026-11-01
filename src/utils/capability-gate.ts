@@ -161,7 +161,9 @@ function railHintActions(rail: RailCapability, byKey: Map<string, NextAction>): 
  *     the CTA on the FIRST blocked rail only); anything else → blocked —
  *     a stale sumsub/tos/wait action on a blocked rail must NOT resurrect a
  *     self-heal CTA the old gate never offered.
- *   - requires-info: wait-only → pending+wait; a non-wait self-serve action →
+ *   - requires-info: wait-only → pending+wait; a restart-identity action →
+ *     blocked/restart-identity, as for a blocked rail (the API's own verdict);
+ *     another non-wait self-serve action →
  *     fixable with that action; actionless or contact-support-only → fixable
  *     WITHOUT a nextAction (the old 7b document-punt tier, ranked below
  *     pending in the ladder).
@@ -199,15 +201,16 @@ export function railVerdict(rail: RailCapability, byKey: Map<string, NextAction>
     // requires-info: an actionable step outranks a wait marker on the same rail
     const nextAction = actions.find((action) => action.kind !== 'wait') ?? actions[0]
     if (nextAction?.kind === 'wait') return { status: 'pending', nextAction }
+    // A provider asking for a new ID parks the rail as a step (Manteca's ID task); the API's verdict is the restart.
+    if (nextAction?.kind === 'restart-identity')
+        return { status: 'blocked', blocking: blocking(true, 'restart-identity'), nextAction }
     if (nextAction && nextAction.kind !== 'contact-support') {
         const selfHealKind =
             nextAction.kind === 'sumsub'
                 ? ('document-resubmit' as const)
                 : nextAction.kind === 'provide-email'
                   ? ('provide-email' as const)
-                  : nextAction.kind === 'restart-identity'
-                    ? ('restart-identity' as const)
-                    : undefined
+                  : undefined
         return { status: 'fixable', blocking: blocking(true, selfHealKind), nextAction }
     }
     // actionless (or contact-support-only): the document-punt tier — the BE

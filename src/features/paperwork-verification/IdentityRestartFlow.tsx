@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { parseAsString, useQueryStates } from 'nuqs'
 import { useLocale, useTranslations } from 'next-intl'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { ANALYTICS_EVENTS, type AnalyticsEvent } from '@/constants/analytics.consts'
@@ -18,8 +19,11 @@ import type { KycAttemptSession, KycDocumentPlan } from '@/app/actions/types/kyc
 import type { PaperworkVerificationDocument } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 import { getKycDetails } from '@/app/actions/kyc-paperwork-verification'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { providerIdRequestReason } from '@/utils/provider-rejection.utils'
 import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
 import { DOCUMENT_KEYS } from './paperworkVerification.utils'
+import { VERIFY_RESTART_PARAM } from './paperworkVerificationEntry'
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
 import { StepsScreen } from './components/StatusScreens'
 import {
@@ -44,6 +48,8 @@ type Failure = Extract<KycReplacementResult, { kind: 'failed' }>
  * a verification attempt. The ID screen picks the document, the restart
  * replaces the identity on it (a Smart Paperwork Verification identity stays on it),
  * Sumsub takes the photos and the selfie, and the review screen follows.
+ * When a provider asked for a new ID, the ID screen says why; the API sends
+ * the verified document on to that provider after the review.
  */
 export function IdentityRestartFlow({ onExit }: { onExit: () => void }) {
     const router = useRouter()
@@ -92,12 +98,17 @@ function RestartSteps({
     onExit: () => void
 }) {
     const t = useTranslations('kyc')
+    const tIdentity = useTranslations('identity')
     const tCooldown = useTranslations('profile.unlockPayments.cooldown')
     const locale = useLocale()
     const router = useRouter()
     const { user, fetchUser } = useAuth()
+    const [, setVerifyUrl] = useQueryStates({ step: parseAsString, [VERIFY_RESTART_PARAM]: parseAsString })
     // a requested change is the residence the new check is for
     const residence = user?.residence?.declared?.country ?? user?.residence?.verified?.country ?? null
+    const reasonKey = reasonCodeKey(
+        providerIdRequestReason(user?.capabilities?.rails ?? [], user?.capabilities?.nextActions ?? [])
+    )
     const [submitted, setSubmitted] = useState(false)
     const [busy, setBusy] = useState(false)
     const [identityStepTitle, setIdentityStepTitle] = useState<string>()
@@ -215,6 +226,7 @@ function RestartSteps({
                     residence={residence}
                     nationality={nationality}
                     restart
+                    reason={reasonKey ? tIdentity(reasonKey) : null}
                     busy={busy}
                     error={error}
                     onBack={() => void stepper.back()}
@@ -236,7 +248,8 @@ function RestartSteps({
                     track(ANALYTICS_EVENTS.KYC_PV_IDENTITY_SUBMITTED)
                     closeSession()
                     setSubmitted(true)
-                    router.replace('/verify?step=review')
+                    // Dropping the restart flag hands the review to the ordinary /verify status flow.
+                    void setVerifyUrl({ step: 'review', [VERIFY_RESTART_PARAM]: null }, { history: 'replace' })
                     void refreshKycIdentityStatus()
                         .then(() => fetchUser())
                         .catch(() => {})

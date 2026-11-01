@@ -1,4 +1,5 @@
 import type { FeatureReport, FeatureReportEntry, NextAction } from '@/types/capabilities'
+import type { ProviderIdRequestReason } from '@/constants/kyc.consts'
 
 /**
  * How many days before its due date a future-dated document request shows up.
@@ -144,13 +145,15 @@ export function bridgeDocumentTaskEntry(
 }
 
 const CARD_DOCUMENT_TASK_PREFIX = 'card-document:'
+const RAIN_IDENTITY_REQUEST_REASON: ProviderIdRequestReason = 'identity_verification_required'
 
 /**
  * The card application's document request as a Home task: Rain asks for a
- * proof of address, or for the identity document again in its own portal
- * (`rain-hosted`). The card screen holds the button, so the task opens it.
- * Keyed apart from the action, because Bridge emits the same
- * `sumsub:proof_of_address` key and only the feature says whose ask it is.
+ * proof of address, for the identity document again in its own portal
+ * (`rain-hosted`), or for a selfie and a new ID (the identity restart). The
+ * card screen holds the button, so the task opens it. Keyed apart from the
+ * action, because Bridge emits the same `sumsub:proof_of_address` and
+ * `restart-identity` keys and only the feature says whose ask it is.
  */
 export function selectCardDocumentTask(
     nextActions: NextAction[],
@@ -161,8 +164,8 @@ export function selectCardDocumentTask(
             feature === 'card' &&
             entry.state === 'action_required' &&
             (action.kind === 'rain-hosted' ||
-                (action.kind === 'sumsub' &&
-                    (action.levelKey === 'proof_of_address' || action.levelKey === 'rain_identity_verification')))
+                (action.kind === 'restart-identity' && entry.reason === RAIN_IDENTITY_REQUEST_REASON) ||
+                (action.kind === 'sumsub' && action.levelKey === 'proof_of_address'))
     )
     return card ? { ...card.action, key: `${CARD_DOCUMENT_TASK_PREFIX}${card.action.key}` } : undefined
 }
