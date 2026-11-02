@@ -35704,7 +35704,7 @@
 									"builtAt": "2026-01-01T00:00:00.000Z",
 									"commit": "0123456789abcdef0123456789abcdef01234567",
 									"contracts": {
-										"kyc": 4
+										"kyc": 5
 									},
 									"migrationsHead": "20261030190000_dead_letter_historical_sumsub_webhooks"
 								},
@@ -35744,7 +35744,7 @@
 											"properties": {
 												"kyc": {
 													"enum": [
-														4
+														5
 													],
 													"type": "number"
 												}

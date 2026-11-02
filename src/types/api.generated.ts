@@ -17382,7 +17382,7 @@ export interface paths {
                          *       "builtAt": "2026-01-01T00:00:00.000Z",
                          *       "commit": "0123456789abcdef0123456789abcdef01234567",
                          *       "contracts": {
-                         *         "kyc": 4
+                         *         "kyc": 5
                          *       },
                          *       "migrationsHead": "20261030190000_dead_letter_historical_sumsub_webhooks"
                          *     }
@@ -17393,7 +17393,7 @@ export interface paths {
                             commit: string | null;
                             contracts: {
                                 /** @enum {number} */
-                                kyc: 4;
+                                kyc: 5;
                             };
                             migrationsHead: string | null;
                         };
