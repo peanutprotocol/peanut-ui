@@ -4094,6 +4094,9 @@
 							"application/json": {
 								"schema": {
 									"properties": {
+										"brazilServicesPaused": {
+											"type": "boolean"
+										},
 										"disableXchainSend": {
 											"type": "boolean"
 										},
@@ -4116,6 +4119,9 @@
 											"type": "boolean"
 										},
 										"enableMaintenanceBanner": {
+											"type": "boolean"
+										},
+										"kycVerificationDown": {
 											"type": "boolean"
 										},
 										"maintenanceBannerPaths": {
@@ -10270,7 +10276,7 @@
 				}
 			}
 		},
-		"/healthz/mobula": {
+		"/healthz/memory": {
 			"get": {
 				"responses": {
 					"200": {
@@ -21172,29 +21178,6 @@
 				]
 			}
 		},
-		"/tokens/wallet-portfolio": {
-			"get": {
-				"parameters": [
-					{
-						"in": "query",
-						"name": "address",
-						"required": true,
-						"schema": {
-							"pattern": "^0x[a-fA-F0-9]{40}$",
-							"type": "string"
-						}
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "Default Response"
-					}
-				},
-				"tags": [
-					"tokens"
-				]
-			}
-		},
 		"/unsubscribe": {
 			"get": {
 				"parameters": [
@@ -21270,6 +21253,10 @@
 						"application/json": {
 							"schema": {
 								"properties": {
+									"attentionLedger": {
+										"additionalProperties": {},
+										"type": "object"
+									},
 									"avatarKey": {
 										"anyOf": [
 											{
@@ -25341,6 +25328,25 @@
 				}
 			}
 		},
+		"/users/logout/all": {
+			"post": {
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
 		"/users/me": {
 			"get": {
 				"parameters": [
@@ -26277,6 +26283,309 @@
 						"description": "Default Response"
 					},
 					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/me/attention": {
+			"get": {
+				"parameters": [
+					{
+						"description": "Bearer access token",
+						"in": "header",
+						"name": "authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"nextAsk": "invite",
+									"ranking": [
+										{
+											"id": "install-app",
+											"rank": 0,
+											"tier": 1
+										},
+										{
+											"id": "maintenance",
+											"rank": 0,
+											"tier": 1
+										},
+										{
+											"id": "legal-reconsent",
+											"rank": 1,
+											"tier": 1
+										},
+										{
+											"id": "arrival",
+											"rank": 2,
+											"tier": 1
+										},
+										{
+											"id": "balance-backup",
+											"rank": 3,
+											"tier": 1
+										},
+										{
+											"id": "verification-due",
+											"rank": 4,
+											"tier": 1
+										},
+										{
+											"id": "post-verification-action",
+											"rank": 5,
+											"tier": 1
+										},
+										{
+											"id": "finish-card-setup",
+											"rank": 6,
+											"tier": 1
+										},
+										{
+											"id": "finish-card-funding",
+											"rank": 7,
+											"tier": 1
+										},
+										{
+											"id": "blocked-card",
+											"rank": 2,
+											"tier": 2
+										},
+										{
+											"id": "checklist",
+											"rank": 3,
+											"tier": 2
+										},
+										{
+											"id": "verification-advisory",
+											"rank": 0,
+											"tier": 3
+										},
+										{
+											"id": "verification-deadline",
+											"rank": 1,
+											"tier": 3
+										},
+										{
+											"id": "virtual-account",
+											"rank": 1,
+											"tier": 3
+										},
+										{
+											"id": "qr-payment",
+											"rank": 2,
+											"tier": 3
+										},
+										{
+											"id": "cap-nudge",
+											"rank": 2,
+											"tier": 3
+										},
+										{
+											"id": "verify-for-qr",
+											"rank": 3,
+											"tier": 3
+										},
+										{
+											"id": "card-offer",
+											"rank": 4,
+											"tier": 3
+										},
+										{
+											"id": "next-payment",
+											"rank": 5,
+											"tier": 3
+										},
+										{
+											"id": "share-bank-details",
+											"rank": 6,
+											"tier": 3
+										},
+										{
+											"id": "request-money",
+											"rank": 7,
+											"tier": 3
+										},
+										{
+											"id": "send-money",
+											"rank": 8,
+											"tier": 3
+										},
+										{
+											"id": "backup-passkey",
+											"rank": 1,
+											"tier": 4
+										},
+										{
+											"id": "push-home-fallback",
+											"rank": 2,
+											"tier": 4
+										},
+										{
+											"id": "add-email",
+											"rank": 3,
+											"tier": 4
+										},
+										{
+											"id": "user-interview",
+											"rank": 0,
+											"tier": 5
+										},
+										{
+											"id": "invite",
+											"rank": 1,
+											"tier": 5
+										},
+										{
+											"id": "rewards",
+											"rank": 2,
+											"tier": 5
+										},
+										{
+											"id": "complete-profile",
+											"rank": 4,
+											"tier": 5
+										},
+										{
+											"id": "bug-bounty",
+											"rank": 5,
+											"tier": 5
+										},
+										{
+											"id": "early-user",
+											"rank": 1,
+											"tier": 6
+										}
+									],
+									"verdicts": {
+										"checklist": "done",
+										"invite": "show"
+									},
+									"version": 1
+								},
+								"schema": {
+									"properties": {
+										"nextAsk": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"ranking": {
+											"items": {
+												"properties": {
+													"id": {
+														"type": "string"
+													},
+													"rank": {
+														"type": "number"
+													},
+													"tier": {
+														"maximum": 6,
+														"minimum": 1,
+														"type": "integer"
+													}
+												},
+												"required": [
+													"id",
+													"tier",
+													"rank"
+												],
+												"type": "object"
+											},
+											"type": "array"
+										},
+										"verdicts": {
+											"additionalProperties": {
+												"anyOf": [
+													{
+														"const": "show",
+														"type": "string"
+													},
+													{
+														"const": "pending",
+														"type": "string"
+													},
+													{
+														"const": "done",
+														"type": "string"
+													},
+													{
+														"const": "ineligible",
+														"type": "string"
+													},
+													{
+														"const": "unknown",
+														"type": "string"
+													}
+												]
+											},
+											"type": "object"
+										},
+										"version": {
+											"enum": [
+												1
+											],
+											"type": "number"
+										}
+									},
+									"required": [
+										"version",
+										"ranking",
+										"verdicts",
+										"nextAsk"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
 						"content": {
 							"application/json": {
 								"schema": {
