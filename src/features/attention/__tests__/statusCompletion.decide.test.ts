@@ -4,7 +4,7 @@
  * re-arms. A snooze still holds them for its time.
  */
 import { isSilenced } from '../decide'
-import { checklist, legalReconsent, balanceBackup } from '../registry'
+import { checklist, legalReconsent, balanceBackup, pushHomeFallback } from '../registry'
 import type { JourneyState } from '../types'
 
 const NOW = Date.parse('2026-10-11T12:00:00Z')
@@ -26,6 +26,17 @@ test('a terms dismissal covers the status refetch, then re-arms', () => {
 
 test('a stored to-do list dismissal never silences the to-do list', () => {
     expect(isSilenced(checklist, { dismissedAt: new Date(NOW - 60_000).toISOString() }, state)).toBe(false)
+})
+
+test('an old push dismissal never hides the native settings card from a user who denied', () => {
+    const denied = {
+        ...state,
+        isNative: true,
+        push: { ready: true, unanswered: false, notEnabled: true },
+    } as JourneyState
+    expect(isSilenced(pushHomeFallback, { dismissedAt: new Date(NOW - 60 * DAY_MS).toISOString() }, denied)).toBe(false)
+    const snoozedUntil = new Date(NOW + DAY_MS).toISOString()
+    expect(isSilenced(pushHomeFallback, { snoozedUntil }, denied)).toBe(true)
 })
 
 test('a snooze still holds both', () => {
