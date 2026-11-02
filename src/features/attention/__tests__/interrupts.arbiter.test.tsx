@@ -589,3 +589,26 @@ test('when storage refuses the write, the closed balance warning stays closed fo
         })
     )
 })
+
+describe('the settle hold starts when a check starts on the current route', () => {
+    afterEach(() => jest.useRealTimers())
+
+    test('reaching Home late, the arrival check still holds the balance warning for its window', async () => {
+        jest.useFakeTimers()
+        mockState = state({ route: 'other', arrival: 'unknown', balance: { loaded: true, usd: 900 } })
+        const view = await mount()
+        await act(async () => {
+            jest.advanceTimersByTime(5_000)
+        })
+        mockState = { ...mockState, route: 'home' }
+        await rerender(view)
+        expect(surfacesInDom()).toEqual([])
+        expect(latest?.session.settleDeadlinePassed).toBe(false)
+
+        // a check that never settles fails open after its window
+        await act(async () => {
+            jest.advanceTimersByTime(4_000)
+        })
+        expect(surfacesInDom()).toEqual(['balance-backup'])
+    })
+})

@@ -96,20 +96,46 @@ const crashedFor = (userId: string | null): readonly AskId[] => (userId && crash
 // the zone cards already booked this app load, for which account
 let surfacesShownThisSession: { userId: string | null; keys: string[] } = { userId: null, keys: [] }
 
-function useSession(state: JourneyState, openInterrupt: AskId | null, crashed: readonly AskId[]): Session {
+/**
+ * Each ask that reads `unknown` holds lower asks for SETTLE_DEADLINE_MS from
+ * when it turned `unknown` on the current route: a check that starts late
+ * (the arrival check starts on Home) still gets its window.
+ */
+function useSettleDeadline(userId: string | null, route: JourneyState['route'], unknown: readonly AskId[]): boolean {
+    const since = useRef<{ userId: string | null; route: string; at: Map<AskId, number> }>({
+        userId,
+        route,
+        at: new Map(),
+    })
+    const [, setTick] = useState(0)
+    if (since.current.userId !== userId || since.current.route !== route) {
+        since.current = { userId, route, at: new Map() }
+    }
+    const now = Date.now()
+    const at = since.current.at
+    for (const id of [...at.keys()]) if (!unknown.includes(id)) at.delete(id)
+    for (const id of unknown) if (!at.has(id)) at.set(id, now)
+    const remaining = Math.max(0, ...unknown.map((id) => (at.get(id) ?? now) + SETTLE_DEADLINE_MS - now))
+    const passed = !userId || remaining === 0
+    useEffect(() => {
+        if (passed) return undefined
+        const timer = setTimeout(() => setTick((tick) => tick + 1), remaining)
+        return () => clearTimeout(timer)
+    }, [passed, remaining])
+    return passed
+}
+
+function useSession(
+    state: JourneyState,
+    openInterrupt: AskId | null,
+    crashed: readonly AskId[],
+    settleDeadlinePassed: boolean
+): Session {
     const overlayOpen = useAnyOverlayOpen()
     const modals = useModalsContextOptional()
     // the scanner and the passkey interstitial are full-screen flows outside the drawer/modal registry
     const busy = overlayOpen || !!modals?.isQRScannerOpen || !!modals?.isSecurityVerificationOpen
     const slots = useMountedSlots()
-    const [settleDeadlinePassed, setSettleDeadlinePassed] = useState(false)
-
-    useEffect(() => {
-        setSettleDeadlinePassed(false)
-        if (!state.userId) return undefined
-        const timer = setTimeout(() => setSettleDeadlinePassed(true), SETTLE_DEADLINE_MS)
-        return () => clearTimeout(timer)
-    }, [state.userId])
 
     // this load is counted before the first decision reads the count
     if (state.userId) countSession(state.userId)
@@ -231,9 +257,15 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
     }, [state.userId])
 
     const [, setCrashCount] = useState(0)
-    const session = useSession(state, openInterrupt, crashedFor(state.userId))
     const server = useServerAttention()
     const asks = useMemo(() => applyServerRanking(ASKS, server), [server])
+    const unknownKey = asks
+        .filter((ask) => ask.eligible(state) === 'unknown')
+        .map((ask) => ask.id)
+        .join(',')
+    const unknown = useMemo(() => (unknownKey ? (unknownKey.split(',') as AskId[]) : EMPTY_IDS), [unknownKey])
+    const settleDeadlinePassed = useSettleDeadline(state.userId, state.route, unknown)
+    const session = useSession(state, openInterrupt, crashedFor(state.userId), settleDeadlinePassed)
     const askOf = useCallback((id: AskId) => asks.find((ask) => ask.id === id), [asks])
     const decision = useMemo(() => decide(state, asks, ledger, session), [state, asks, ledger, session])
     useDecisionReport(decision, state, session, server)
