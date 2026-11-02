@@ -1,5 +1,8 @@
 # Peanut UI engineering checklist
 
+- Browser contract builds: explicitly cap V8 old-space at 4096 MiB on the build
+  steps. Preserve blocking browser specs and existing deadlines; heap capacity is
+  separate from total runner memory and successful hosted execution.
 - Money movement: preserve pre-sign affordability, execution idempotency and record-only recovery after funds move.
 - Visual coverage: every claimed UI state must have a deterministic, named capture scenario; capture completeness means all registered states ran, not that all changed states were registered.
 - State truth: validation for a new spend must not be shown as an error for an already processing or settled spend. Fixtures preserve the relevant input and lifecycle state without real payments or external side effects.

@@ -1,5 +1,21 @@
 # UI incident preflight
 
+## 2026-11-02: browser contract build exhausted Node's default heap
+
+- Trigger: PR #3900 Tests run 41464516586, press-contract job 125341899149,
+  aborted during the production build at roughly 2 GiB with `Reached heap limit`.
+  Neither browser spec ran; the required aggregate check correctly failed.
+- Root cause: browser contract builds inherited Node 20's implicit heap budget.
+  Set an explicit bounded 4096 MiB old-space budget on those build steps only.
+  This does not cap total process RSS or justify increasing timeouts/retries.
+- Search: `rg -n 'pnpm build|NODE_OPTIONS|continue-on-error|timeout-minutes' .github/workflows/tests.yml`.
+  Inspect effective build environments and preserve blocking browser assertions.
+- Counterexample: the native build and Screen Library use separate build paths;
+  a missing heap override is not proof that every Node task needs more memory.
+- Regression: `browser-build-memory.test.mjs` checks parsed workflow scope,
+  existing deadlines and browser gates, and the effective heap in a child Node
+  process. Actual production builds remain the evidence of memory sufficiency.
+
 ## 2026-11-02: before app received the head synthetic API
 
 - Trigger: UI PR #3620 at 3cd397138 changed the synthetic contract; its head harness fed incompatible data to the base app (owner-reported 258/295 before states failed).
