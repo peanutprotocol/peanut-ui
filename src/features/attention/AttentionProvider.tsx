@@ -22,7 +22,7 @@ import { useAnyOverlayOpen } from '@/utils/overlay-visibility'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { decide } from './decide'
 import { getSessionInterrupts, setSessionInterrupts } from './interruptState'
-import { ledgerActions, noteServerLedger, readLedger, subscribeLedger } from './ledger'
+import { ledgerActions, noteServerLedger, readLedger, resetLedgerMemoryForTests, subscribeLedger } from './ledger'
 import { bumpJourneyEpoch } from './journeyEpoch'
 import { useJourneyState } from './journeyState'
 import { ASKS } from './registry'
@@ -76,6 +76,7 @@ export function resetAttentionSessionForTests(): void {
     setSessionInterrupts({ userId: null, ids: [], open: null })
     surfacesShownThisSession = { userId: null, keys: [] }
     crashedThisLoad.clear()
+    resetLedgerMemoryForTests()
 }
 
 const ATTENTION_CRASHED = 'attention_crashed'

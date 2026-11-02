@@ -42,6 +42,18 @@ export type AttentionLedgerStore = Partial<Record<AskId, LedgerEntry>>
 
 const EMPTY: Ledger = {}
 
+// per user, the store as this load last wrote it when storage refused the write
+const unsaved = new Map<string, AttentionLedgerStore>()
+let unsavedRevision = 0
+
+export function resetLedgerMemoryForTests(): void {
+    unsaved.clear()
+    cached = null
+}
+
+const localStore = (userId: string, prefs: UserPreferences | undefined): unknown =>
+    unsaved.get(userId) ?? prefs?.attention
+
 // useSyncExternalStore needs the same object back while nothing changed, and
 // getUserPreferences parses a fresh one on every call: cache on the inputs
 let cached: { userId: string; fingerprint: string; ledger: Ledger } | null = null
@@ -121,6 +133,7 @@ const fingerprintOf = (userId: string, prefs: UserPreferences | undefined, serve
     JSON.stringify([
         server,
         prefs?.attention,
+        unsaved.has(userId) && unsavedRevision,
         prefs?.migrationPromptSnoozedAt,
         prefs?.hasSeenBalanceWarning,
         prefs?.notifModalClosedAt,
@@ -180,7 +193,7 @@ export function readLedger(userId: string | null, server?: unknown): Ledger {
     const fingerprint = fingerprintOf(userId, raw, server)
     if (cached && cached.userId === userId && cached.fingerprint === fingerprint) return cached.ledger
     const legacy = legacyEntries(userId, raw)
-    const ledger: Ledger = { ...legacy, ...mergeLedgers(sanitizeStore(raw?.attention), sanitizeStore(server)) }
+    const ledger: Ledger = { ...legacy, ...mergeLedgers(sanitizeStore(localStore(userId, raw)), sanitizeStore(server)) }
     cached = { userId, fingerprint, ledger }
     return ledger
 }
@@ -188,10 +201,15 @@ export function readLedger(userId: string | null, server?: unknown): Ledger {
 function write(userId: string, askId: AskId, patch: (entry: LedgerEntry) => LedgerEntry): void {
     const current = readLedger(userId, lastServer)
     const next: AttentionLedgerStore = {
-        ...(getUserPreferences(userId)?.attention ?? {}),
+        ...((localStore(userId, getUserPreferences(userId)) as AttentionLedgerStore | undefined) ?? {}),
         [askId]: { ...patch({ ...(current[askId] ?? {}) }), updatedAt: new Date().toISOString() },
     }
-    updateUserPreferences(userId, { attention: next })
+    // storage can refuse (quota, private mode): the answer still holds for this load and still syncs
+    if (updateUserPreferences(userId, { attention: next })) unsaved.delete(userId)
+    else {
+        unsaved.set(userId, next)
+        unsavedRevision++
+    }
     cached = null
     emit()
     scheduleLedgerSync(userId, next)
