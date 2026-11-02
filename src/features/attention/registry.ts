@@ -116,7 +116,10 @@ export const finishCardSetup: AttentionAsk = {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         if (!s.card.loaded) return 'unknown'
-        return s.card.needsSetup ? 'show' : 'ineligible'
+        if (!s.card.needsSetup) return 'ineligible'
+        // the surface shows only on the existing permission; managed funding is finish-card-funding
+        if (s.card.setupPath === 'unknown') return 'unknown'
+        return s.card.setupPath === 'legacy' ? 'show' : 'ineligible'
     },
     version: (s) => s.card.activeCardId ?? undefined,
     policy: {},

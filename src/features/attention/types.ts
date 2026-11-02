@@ -169,7 +169,13 @@ export interface JourneyState {
     blockedCardId: string | null
     /** pending Bridge verification tasks due now (selectHomeTasks().largeTasks) */
     dueTasks: number
-    card: { loaded: boolean; needsSetup: boolean; activeCardId: string | null }
+    card: {
+        loaded: boolean
+        needsSetup: boolean
+        activeCardId: string | null
+        /** the server's funding decision for the active card: which setup prompt applies */
+        setupPath: CardSetupPath
+    }
     /** a stored post-auth redirect that a post-signup action matches */
     postAuthRedirect: boolean
     postAuthRedirectDestination: string | null
@@ -219,6 +225,9 @@ export interface JourneyState {
     /** the arrival prompt (TASK-23251): `unknown` until this app session's check has answered */
     arrival: 'unknown' | 'none' | 'raised'
 }
+
+/** `unknown` while the decision loads; `none` without an active card or after a failed read */
+export type CardSetupPath = 'unknown' | 'managed' | 'legacy' | 'none'
 
 export interface LedgerEntry {
     /** ISO timestamps, newest last, capped */
