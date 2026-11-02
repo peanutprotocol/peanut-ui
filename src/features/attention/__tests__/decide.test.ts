@@ -5,7 +5,7 @@
  * drawer, both eligible in the same session.
  */
 import { ANNOUNCEMENT_COOLDOWN_DAYS, decide, isSilenced } from '../decide'
-import { ASKS, balanceBackup, legalReconsent } from '../registry'
+import { ASKS, balanceBackup, earlyUser, legalReconsent } from '../registry'
 import type { AttentionAsk, JourneyState, Ledger, Session } from '../types'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -300,9 +300,9 @@ describe('isSilenced', () => {
         const state = { ...baseState, ...TERMS_NEEDED }
         expect(isSilenced(legalReconsent, { snoozedUntil: new Date(NOW + 1).toISOString() }, state)).toBe(true)
         expect(isSilenced(legalReconsent, { snoozedUntil: new Date(NOW - 1).toISOString() }, state)).toBe(false)
-        expect(isSilenced(legalReconsent, { dismissedAt: new Date(NOW - 400 * DAY_MS).toISOString() }, state)).toBe(
-            true
-        )
+        expect(isSilenced(earlyUser, { dismissedAt: new Date(NOW - 400 * DAY_MS).toISOString() }, state)).toBe(true)
+        // the terms complete from the consent status: a dismissal only covers the status refetch
+        expect(isSilenced(legalReconsent, { dismissedAt: new Date(NOW - 2 * DAY_MS).toISOString() }, state)).toBe(false)
     })
 
     test('a dismissal with an expiry re-arms', () => {
