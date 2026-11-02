@@ -74,7 +74,7 @@ const state = (patch: Partial<JourneyState> = {}): JourneyState => ({
     onboarding: mockOnboarding,
     blockedCardId: null,
     dueTasks: 0,
-    card: { loaded: true, needsSetup: false, activeCardId: null },
+    card: { loaded: true, needsSetup: false, activeCardId: null, setupPath: 'none', needsFunding: false },
     postAuthRedirect: false,
     postAuthRedirectDestination: null,
     balance: { loaded: true, usd: 0 },
