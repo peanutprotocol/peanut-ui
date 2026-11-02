@@ -113,7 +113,11 @@ export interface AttentionAsk {
     policy: AskPolicy
     /** the legacy `modal_type` value, so existing dashboards keep working */
     analyticsKey: string
+    /** extra properties the old prompt sent on its legacy `modal_*` events (`documents`, `trigger`, `cta`) */
+    legacyProps?: (state: JourneyState, event: LegacyModalEvent) => Record<string, unknown>
 }
+
+export type LegacyModalEvent = 'shown' | 'acted' | 'dismissed' | 'snoozed'
 
 /** What a rendered surface gets: the three ways the user can answer, nothing else. */
 export interface AskSurfaceProps {

@@ -301,6 +301,8 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
     // a settle checks against the latest pick, not the closure it was created in
     const latestDecision = useRef(decision)
     latestDecision.current = decision
+    const latestState = useRef(state)
+    latestState.current = state
     // the zone card already settled this pick: a second tap in the same tick writes nothing
     const settledSurfaces = useRef<Partial<Record<Surface, AskId>>>({})
     const pickId = (surface: Exclude<Surface, 'interrupt'>) =>
@@ -336,7 +338,11 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
                 })
                 ledgerActions.shown(userId, id, Date.now(), 'interrupt', session.count)
                 posthog.capture(ANALYTICS_EVENTS.ATTENTION_SHOWN, { ask: id, surface: 'interrupt', tier: ask?.tier })
-                if (ask) posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: ask.analyticsKey })
+                if (ask)
+                    posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, {
+                        ...ask.legacyProps?.(latestState.current, 'shown'),
+                        modal_type: ask.analyticsKey,
+                    })
             }
             setOpenInterrupt(id)
         },
@@ -387,7 +393,11 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
             posthog.capture(ATTENTION_EVENT[outcome], { ask: id, surface, tier: ask?.tier })
             if (surface === 'interrupt') {
                 // the legacy modal events, so the dashboards keep working; cards never had them
-                if (ask) posthog.capture(LEGACY_EVENT[outcome], { modal_type: ask.analyticsKey })
+                if (ask)
+                    posthog.capture(LEGACY_EVENT[outcome], {
+                        ...ask.legacyProps?.(state, outcome),
+                        modal_type: ask.analyticsKey,
+                    })
                 setSessionInterrupts({ ...getSessionInterrupts(), open: null })
                 setOpenInterrupt(null)
             }

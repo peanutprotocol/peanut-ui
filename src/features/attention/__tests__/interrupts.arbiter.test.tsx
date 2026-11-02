@@ -622,3 +622,20 @@ test('an interrupt open when the provider unmounts no longer counts as open', as
     view.unmount()
     expect(isAttentionInterruptOpen()).toBe(false)
 })
+
+test("an ask's legacy properties ride on its legacy modal events", async () => {
+    const original = legalReconsent.legacyProps
+    legalReconsent.legacyProps = (s, event) => ({
+        documents: s.consent.documents.map((doc) => doc.slug),
+        ...(event === 'acted' && { cta: 'accept' }),
+    })
+    try {
+        mockState = state({ consent: TERMS_NEEDED })
+        await mount()
+        expect(events('modal_shown')).toEqual([{ modal_type: 're_consent', documents: ['terms'] }])
+        await click('acted-legal-reconsent')
+        expect(events('modal_cta_clicked')).toEqual([{ modal_type: 're_consent', documents: ['terms'], cta: 'accept' }])
+    } finally {
+        legalReconsent.legacyProps = original
+    }
+})
