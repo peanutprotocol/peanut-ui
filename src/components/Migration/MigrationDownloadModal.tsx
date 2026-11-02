@@ -13,7 +13,7 @@ import type { AskSurfaceProps } from '@/features/attention/types'
  * manager's call (the `install-app` ask); the web app stays available, so the
  * prompt has no deadline and "Maybe later" snoozes it through the manager.
  */
-export default function MigrationDownloadModal({ onSnoozed, presentation }: AskSurfaceProps) {
+export default function MigrationDownloadModal({ onSnoozed, onAction, presentation }: AskSurfaceProps) {
     const t = useTranslations('migration')
     const { deviceType } = useDeviceType()
     const store = storeForDevice(deviceType)
@@ -46,7 +46,10 @@ export default function MigrationDownloadModal({ onSnoozed, presentation }: AskS
                               variant: 'primary',
                               shadowSize: '4',
                               icon: storeIcon(store),
-                              onClick: () => openStore(store, MIGRATION_SURFACES.DOWNLOAD_MODAL),
+                              onClick: () => {
+                                  onAction?.({ cta: 'store' })
+                                  openStore(store, MIGRATION_SURFACES.DOWNLOAD_MODAL)
+                              },
                           },
                       ]
             }

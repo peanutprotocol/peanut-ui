@@ -22,7 +22,13 @@ const onboarding = (step: 'verify' | 'add_money' | 'first_payment' | 'completed'
 
 type Loose = Record<string, unknown>
 
-const CARD_OFFER_QUIET = { loaded: true, geoProhibited: false, hasCardRelationship: true, promotionDisabled: false }
+const CARD_OFFER_QUIET = {
+    canSpendViaCard: true,
+    loaded: true,
+    geoProhibited: false,
+    hasCardRelationship: true,
+    promotionDisabled: false,
+}
 const DEPOSIT_QUIET = { enabled: false, loaded: true, claimable: 0, active: 0 }
 
 /** An activated user with nothing to show: each row turns one card on. */
@@ -105,7 +111,13 @@ const NEW_ASKS = [
 ]
 
 const PUSH_UNANSWERED = { ready: true, unanswered: true, promptedThisSession: false, notEnabled: true }
-const CARD_OFFER_OPEN = { loaded: true, geoProhibited: false, hasCardRelationship: false, promotionDisabled: false }
+const CARD_OFFER_OPEN = {
+    canSpendViaCard: true,
+    loaded: true,
+    geoProhibited: false,
+    hasCardRelationship: false,
+    promotionDisabled: false,
+}
 const QR_PAY_NOW = { canPayNow: true, hasMadeQrPayment: false, verifyOpensQr: false }
 const QR_LOCKED = { canPayNow: false, hasMadeQrPayment: false, verifyOpensQr: true }
 const DEPOSIT_CLAIMABLE = { enabled: true, loaded: true, claimable: 1, active: 0 }

@@ -22,7 +22,10 @@ import { useNotifications } from '@/hooks/useNotifications'
 import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
-import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
+import { DEPOSIT_ACCOUNTS_QUERY_KEY } from '@/features/deposit-accounts/useDepositAccounts'
+import { fetchDepositAccounts, type DepositAccountsSnapshot } from '@/services/deposit-accounts'
+import type { DepositAccount } from '@/features/deposit-accounts/types'
+import { corridorFromRailId } from '@/features/deposit-accounts/rails'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { pointsApi } from '@/services/points'
 import type { HistoryEntry } from '@/utils/history.utils'
@@ -37,7 +40,8 @@ import { LEGAL_DOCUMENT_VERSIONS } from '@/constants/legal-versions.generated'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { isSameRoute } from '@/constants/routes'
 import { selectHomeTasks } from '@/utils/bridge-tasks.utils'
-import { getStoredRedirect } from '@/utils/general.utils'
+import { getStoredRedirect, getUserPreferences } from '@/utils/general.utils'
+import { visibleHomeTasks } from './taskVisibility'
 import { selectMantecaCapNudge } from '@/utils/capability-gate'
 import { isDemoMode } from '@/utils/demo'
 import { useHydrationSnapshot } from '@/utils/native-platform'
@@ -50,6 +54,53 @@ import { useJourneyEpoch } from './journeyEpoch'
 import type { JourneyState } from './types'
 
 export const CONSENT_STATUS_QUERY_KEY = 'consent-status'
+
+export function useAttentionDepositAccounts(userId: string | null, enabled: boolean) {
+    return useQuery({
+        queryKey: [...DEPOSIT_ACCOUNTS_QUERY_KEY, userId],
+        queryFn: fetchDepositAccounts,
+        enabled: !!userId && enabled,
+        refetchInterval: false,
+    })
+}
+
+export function depositAccountCounts(data: DepositAccountsSnapshot | undefined): { claimable: number; active: number } {
+    const accounts = new Map<string, DepositAccount>()
+    for (const account of data?.accounts ?? []) {
+        const corridor = corridorFromRailId(account.railId)
+        if (!corridor) continue
+        const current = accounts.get(corridor)
+        if (
+            !current ||
+            (account.isPrimary !== current.isPrimary
+                ? account.isPrimary
+                : current.status === 'retiring' && account.status !== 'retiring')
+        )
+            accounts.set(corridor, account)
+    }
+    return {
+        claimable: new Set((data?.claimable ?? []).map((c) => corridorFromRailId(c.railId)).filter(Boolean)).size,
+        active: [...accounts.values()].filter((a) => a.status === 'active').length,
+    }
+}
+
+export function cardOfferFacts(input: {
+    loading: boolean
+    cardInfo: unknown
+    error: unknown
+    showCardSurface: boolean
+    hasCardRelationship: boolean
+    promotionDisabled: boolean
+    canSpendViaCard?: boolean
+}): JourneyState['cardOffer'] {
+    return {
+        loaded: !input.loading && (input.cardInfo !== undefined || !!input.error),
+        geoProhibited: !input.showCardSurface || input.cardInfo === undefined,
+        hasCardRelationship: input.hasCardRelationship,
+        promotionDisabled: input.promotionDisabled,
+        canSpendViaCard: input.canSpendViaCard === true,
+    }
+}
 
 export type OutdatedDocument = { slug: string; currentVersion: string }
 
@@ -259,8 +310,13 @@ export function useJourneyState(): JourneyState {
     const { cardInfo, isEligible: isCardEligible, isLoading: cardInfoLoading, error: cardInfoError } = useCardInfo()
     const { balance } = useWallet()
     const migrationOn = useMigrationFlag()
-    const { oneSignalInitialized, isPermissionGranted, isPermissionDenied, isPushOptedIn, promptShownThisSession } =
-        useNotifications()
+    const {
+        oneSignalInitialized,
+        isPermissionGranted,
+        isPermissionDenied,
+        isPushOptedIn,
+        contextualPromptShownThisSession: promptShownThisSession,
+    } = useNotifications()
     const { countryCode: geoCountry } = useGeoLocation()
     // the check runs once Home opens, as it did before the manager
     const { arrival, checked: arrivalChecked } = useArrivalPrompt(isSameRoute(pathname, '/home'))
@@ -271,7 +327,7 @@ export function useJourneyState(): JourneyState {
     const { data: latestHistory } = useTransactionHistory({ mode: 'latest', limit: 50, enabled: !!userId })
     const epoch = useJourneyEpoch()
     const depositAccountsEnabled = useDepositAccountsEnabled()
-    const deposit = useDepositAccounts({ enabled: depositAccountsEnabled && !!userId })
+    const deposit = useAttentionDepositAccounts(userId, depositAccountsEnabled)
     // same key as useRewardsFlow, so Rewards and the card read one answer
     const cashStatus = useQuery({
         queryKey: ['cashStatus', userId],
@@ -285,10 +341,9 @@ export function useJourneyState(): JourneyState {
             enabled: depositAccountsEnabled,
             // a failed query settles as nothing to claim rather than a card that never resolves
             loaded: !deposit.isLoading,
-            claimable: Object.values(deposit.claimable).filter(Boolean).length,
-            active: Object.values(deposit.accounts).filter((account) => account?.status === 'active').length,
+            ...depositAccountCounts(deposit.data),
         }),
-        [depositAccountsEnabled, deposit.isLoading, deposit.claimable, deposit.accounts]
+        [depositAccountsEnabled, deposit.isLoading, deposit.data]
     )
 
     const consent = useQuery({
@@ -300,7 +355,10 @@ export function useJourneyState(): JourneyState {
     })
 
     const homeTasks = useMemo(() => selectHomeTasks(nextActions, rails ?? []), [nextActions, rails])
-    const dueTasks = homeTasks.largeTasks.length
+    const dueTasks = visibleHomeTasks(
+        homeTasks.largeTasks,
+        userId ? getUserPreferences(userId)?.pendingVerificationTasksDismissed : []
+    ).length
     const documentSlideKey = homeTasks.documentSlide?.key ?? null
 
     // the same gate the QR pay page reads, so the two never disagree
@@ -339,16 +397,28 @@ export function useJourneyState(): JourneyState {
     ])
 
     // the offer follows the nav's card gate (TASK-23017): a card-restricted residence hides it too
-    const { showCardSurface } = useCardSurfaceAccess()
+    const { showCardSurface, canSpendPathViaCard } = useCardSurfaceAccess()
     const cardOffer = useMemo<JourneyState['cardOffer']>(
-        () => ({
-            // a failed request (retries spent) settles as loaded: no card offer, instead of a placeholder that never resolves
-            loaded: !cardInfoLoading && (cardInfo !== undefined || !!cardInfoError),
-            geoProhibited: !showCardSurface,
-            hasCardRelationship: rails.some((rail) => channelOf(rail) === 'card'),
-            promotionDisabled: cardPromotionDisabled,
-        }),
-        [cardInfoLoading, cardInfo, cardInfoError, showCardSurface, rails, channelOf, cardPromotionDisabled]
+        () =>
+            cardOfferFacts({
+                loading: cardInfoLoading,
+                cardInfo,
+                error: cardInfoError,
+                showCardSurface,
+                hasCardRelationship: rails.some((rail) => channelOf(rail) === 'card'),
+                promotionDisabled: cardPromotionDisabled,
+                canSpendViaCard: canSpendPathViaCard,
+            }),
+        [
+            cardInfoLoading,
+            cardInfo,
+            cardInfoError,
+            showCardSurface,
+            rails,
+            channelOf,
+            cardPromotionDisabled,
+            canSpendPathViaCard,
+        ]
     )
 
     const capNudge = useMemo(

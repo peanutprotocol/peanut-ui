@@ -267,7 +267,7 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         expect(rendered.result.current.showPermissionModal).toBe(false)
     })
 
-    it('a dismissed trigger stays quiet for 14 days, another trigger may still ask', async () => {
+    it('an active shared ledger snooze holds every contextual trigger for 14 days', async () => {
         const rendered = await renderInitialized()
         await offer(DEPOSIT_INTENT)
         act(() => rendered.result.current.closePermissionModal())
@@ -278,11 +278,8 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         expect(rendered.result.current.showPermissionModal).toBe(false)
 
         await offer(CARD_READY)
-        expect(rendered.result.current.promptTrigger).toBe(CARD_READY)
-        expect(rendered.result.current.showPermissionModal).toBe(true)
-
-        // the deposit snooze survives the card dismissal, and ends after 14 days
-        act(() => rendered.result.current.closePermissionModal())
+        expect(rendered.result.current.promptTrigger).toBeNull()
+        expect(rendered.result.current.showPermissionModal).toBe(false)
         newSession()
         await offer(DEPOSIT_INTENT)
         expect(rendered.result.current.showPermissionModal).toBe(false)
@@ -306,6 +303,7 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         // an unanswered OS dialog snoozes the moment like "Not now"
         expect(mockPrefs?.notifPromptClosedAt).toEqual({ [CARD_READY]: expect.any(String) })
 
+        mockPrefs = { notifModalClosedAt: expiredSnooze(), notifPromptClosedAt: { [CARD_READY]: expiredSnooze() } }
         newSession()
         await offer(DEPOSIT_INTENT)
         act(() => rendered.result.current.closePermissionModal())

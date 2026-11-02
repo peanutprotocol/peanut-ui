@@ -19,7 +19,7 @@ import type { AskSurfaceProps } from '@/features/attention/types'
  * `early-user` ask reads the server's `showEarlyUserModal`); closing it
  * records `hasSeenEarlyUserModal` on the server.
  */
-const EarlyUserDrawer = ({ onActed, presentation }: AskSurfaceProps) => {
+const EarlyUserDrawer = ({ onDismissed, presentation }: AskSurfaceProps) => {
     const origin = useAppOrigin()
     const t = useTranslations('global')
     const { user, fetchUser } = useAuth()
@@ -41,7 +41,7 @@ const EarlyUserDrawer = ({ onActed, presentation }: AskSurfaceProps) => {
             // the local mark keeps it closed; the server flag is retried on the next close
             Sentry.captureException(e, { tags: { feature: 'attention', ask: 'early-user' } })
         }
-        onActed()
+        onDismissed()
     }
 
     return (

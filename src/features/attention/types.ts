@@ -125,6 +125,8 @@ export interface AskSurfaceProps {
     askId: AskId
     /** the user did the thing (accepted, enabled, tapped the CTA) */
     onActed: () => void
+    /** Records a CTA interaction without completing or closing the ask. */
+    onAction?: (properties?: { cta?: string }) => void
     /** closed without doing it; permanent unless the ask's policy has expiryDays */
     onDismissed: () => void
     /** "Not now"; `until` defaults to now + policy.snoozeDays */
@@ -204,7 +206,13 @@ export interface JourneyState {
     invitesSent: number
     hasSupportSurvivorBadge: boolean
     /** `geoProhibited`: the nav's card gate hides the card (a prohibited country or a card-restricted residence) */
-    cardOffer: { loaded: boolean; geoProhibited: boolean; hasCardRelationship: boolean; promotionDisabled: boolean }
+    cardOffer: {
+        loaded: boolean
+        geoProhibited: boolean
+        hasCardRelationship: boolean
+        promotionDisabled: boolean
+        canSpendViaCard?: boolean
+    }
     qr: {
         canPayNow: boolean
         /** undefined while history loads: the card must not flash in and out */

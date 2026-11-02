@@ -16,6 +16,9 @@ import { bridgeTaskDismissalKey, selectBridgeTasks, selectHomeTasks } from '@/ut
 import { formatEffectiveDate } from '@/utils/format.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
+import { useAttentionFlows } from '@/features/attention/surfaces/AttentionFlowContext'
+import { bumpJourneyEpoch } from '@/features/attention/journeyEpoch'
+import { isDismissibleHomeTask as isDismissibleTask, visibleHomeTasks } from '@/features/attention/taskVisibility'
 
 // Currencies whose corridor a hosted-verification task can NAME. The backend
 // sets `NextAction.currency` on the bridge-hosted catch-all; anything outside
@@ -26,7 +29,6 @@ const CORRIDOR_CURRENCIES = new Set<string>(['USD', 'EUR', 'GBP', 'MXN'])
 // Advisory ToS and hosted tasks can be dismissed. The document request cannot:
 // it reaches this card only in its final week, and the bank-screen notice sends
 // the user here to complete it.
-const isDismissibleTask = (task: NextAction): boolean => !!task.effectiveDate && task.kind !== 'sumsub'
 
 /**
  * Home card listing the user's pending Bridge verification tasks — the in-app
@@ -66,11 +68,7 @@ const isDismissibleTask = (task: NextAction): boolean => !!task.effectiveDate &&
  * and their rails are gated NOW; the Profile → Unlocked regions mount is
  * non-dismissible for everything.
  */
-export default function PendingVerificationTasks({
-    placement = 'profile',
-    whenEmpty = null,
-    whenEmptyShowsDocumentRequest = false,
-}: {
+type PendingTasksProps = {
     placement?: 'home' | 'profile'
     /** rendered in place of the card when no task is visible (Home: the carousel or the activation card) */
     whenEmpty?: ReactNode
@@ -80,15 +78,41 @@ export default function PendingVerificationTasks({
      * card hides it, this card carries the request instead, so it stays reachable.
      */
     whenEmptyShowsDocumentRequest?: boolean
+}
+
+export default function PendingVerificationTasks(props: PendingTasksProps) {
+    const flows = useAttentionFlows()
+    return flows ? (
+        <PendingTasksContent {...props} documentFlow={flows.document} hostedFlows={flows} />
+    ) : (
+        <StandalonePendingTasks {...props} />
+    )
+}
+
+function StandalonePendingTasks(props: PendingTasksProps) {
+    const documentFlow = useDocumentRequestFlow()
+    return <PendingTasksContent {...props} documentFlow={documentFlow} />
+}
+
+function PendingTasksContent({
+    placement = 'profile',
+    whenEmpty = null,
+    whenEmptyShowsDocumentRequest = false,
+    documentFlow,
+    hostedFlows,
+}: PendingTasksProps & {
+    documentFlow: ReturnType<typeof useDocumentRequestFlow>
+    hostedFlows?: NonNullable<ReturnType<typeof useAttentionFlows>>
 }) {
     const dismissible = placement === 'home'
     const t = useTranslations('home')
     const locale = useLocale()
     const { nextActions, rails } = useCapabilities()
     const { user } = useAuth()
-    const [activeTosTask, setActiveTosTask] = useState<NextAction | null>(null)
+    const [localTosTask, setLocalTosTask] = useState<NextAction | null>(null)
+    const activeTosTask = hostedFlows ? hostedFlows.tosTask : localTosTask
+    const setActiveTosTask = hostedFlows ? hostedFlows.setTosTask : setLocalTosTask
     const router = useRouter()
-    const documentFlow = useDocumentRequestFlow()
     // Stored dismissals, tagged with the user they were loaded for
     // (localStorage is unreadable during SSR, hence the post-render effect).
     // The dismissible mount must not paint until the CURRENT user's entry is
@@ -120,12 +144,12 @@ export default function PendingVerificationTasks({
     const handleDismissTask = useCallback(
         (task: NextAction) => {
             if (!userId) return
-            setStoredDismissals((prev) => {
-                const keys = prev && prev.forUserId === userId ? prev.keys : []
-                const next = [...keys, bridgeTaskDismissalKey(task)]
-                updateUserPreferences(userId, { pendingVerificationTasksDismissed: next })
-                return { forUserId: userId, keys: next }
-            })
+            const saved = getUserPreferences(userId)?.pendingVerificationTasksDismissed
+            const keys = Array.isArray(saved) ? saved : []
+            const next = [...new Set([...keys, bridgeTaskDismissalKey(task)])]
+            updateUserPreferences(userId, { pendingVerificationTasksDismissed: next })
+            setStoredDismissals({ forUserId: userId, keys: next })
+            bumpJourneyEpoch()
         },
         [userId]
     )
@@ -140,11 +164,9 @@ export default function PendingVerificationTasks({
     // (an empty list would flash already-dismissed slides).
     const visibleLargeTasks = !dismissible
         ? tasks
-        : tasks.filter(
-              (task) =>
-                  !isDismissibleTask(task) ||
-                  (dismissedKeys !== null && !dismissedKeys.includes(bridgeTaskDismissalKey(task)))
-          )
+        : dismissedKeys === null
+          ? tasks.filter((task) => !isDismissibleTask(task))
+          : visibleHomeTasks(tasks, dismissedKeys)
     const documentSlide = homeTasks?.documentSlide
     const visibleTasks =
         documentSlide && (!whenEmptyShowsDocumentRequest || visibleLargeTasks.length > 0)
@@ -167,10 +189,10 @@ export default function PendingVerificationTasks({
             // one. That is a page's worth of prep, and it owns the handoff.
             router.push('/profile/accounts/additional')
         },
-        [router, documentFlow]
+        [router, documentFlow, setActiveTosTask]
     )
 
-    const closeTos = useCallback(() => setActiveTosTask(null), [])
+    const closeTos = useCallback(() => setActiveTosTask(null), [setActiveTosTask])
 
     // Advisory tasks (future-dated, rails still usable) are about KEEPING
     // access; blocking tasks are about ENABLING it — don't tell a blocked user
@@ -231,7 +253,7 @@ export default function PendingVerificationTasks({
         return (
             <>
                 {!isHydratingDismissals && whenEmpty}
-                {documentFlow.modals}
+                {!hostedFlows && documentFlow.modals}
             </>
         )
     }
@@ -308,9 +330,9 @@ export default function PendingVerificationTasks({
 
             {visibleTasks.length === 0 && !isHydratingDismissals && whenEmpty}
 
-            {documentFlow.modals}
+            {!hostedFlows && documentFlow.modals}
 
-            {activeTosTask && <BridgeTosStep visible onComplete={closeTos} onSkip={closeTos} />}
+            {!hostedFlows && activeTosTask && <BridgeTosStep visible onComplete={closeTos} onSkip={closeTos} />}
         </>
     )
 }

@@ -3,14 +3,28 @@
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdentityCheck'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+import { useAttentionFlows } from '../AttentionFlowContext'
 import type { ZoneSurfaceProps } from '../../types'
 
 const b = (chunks: React.ReactNode) => <b>{chunks}</b>
 
 /** "Unlock QR payments": starts the QR ID check in place. */
-export default function VerifyForQrCard({ onDismissed }: ZoneSurfaceProps) {
-    const t = useAppTranslations('home.carousel')
+export default function VerifyForQrCard(props: ZoneSurfaceProps) {
+    const flows = useAttentionFlows()
+    return flows ? <VerifyForQrView {...props} qrIdentityCheck={flows.qr} hosted /> : <StandaloneQrCard {...props} />
+}
+
+function StandaloneQrCard(props: ZoneSurfaceProps) {
     const qrIdentityCheck = useQrIdentityCheck()
+    return <VerifyForQrView {...props} qrIdentityCheck={qrIdentityCheck} />
+}
+
+function VerifyForQrView({
+    onDismissed,
+    qrIdentityCheck,
+    hosted = false,
+}: ZoneSurfaceProps & { qrIdentityCheck: ReturnType<typeof useQrIdentityCheck>; hosted?: boolean }) {
+    const t = useAppTranslations('home.carousel')
     return (
         <>
             <CarouselCTA
@@ -21,7 +35,7 @@ export default function VerifyForQrCard({ onDismissed }: ZoneSurfaceProps) {
                 onClose={onDismissed}
                 onClick={() => qrIdentityCheck.start()}
             />
-            {qrIdentityCheck.modals}
+            {!hosted && qrIdentityCheck.modals}
         </>
     )
 }

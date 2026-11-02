@@ -7,7 +7,7 @@ import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import type { ZoneSurfaceProps } from '../../types'
 
 /** The native push card; a denied permission opens the OS settings through the adapter. */
-export default function PushCard({ onActed, onDismissed }: ZoneSurfaceProps) {
+export default function PushCard({ onActed, onSnoozed }: ZoneSurfaceProps) {
     const t = useAppTranslations('home.carousel')
     const toast = useToast()
     const { requestPermission, afterPermissionAttempt } = useNotifications()
@@ -16,16 +16,19 @@ export default function PushCard({ onActed, onDismissed }: ZoneSurfaceProps) {
             title={t('notifications.title')}
             description={t('notifications.description')}
             icon="bell"
-            onClose={onDismissed}
+            onClose={() => onSnoozed()}
             onClick={async () => {
-                const result = await requestPermission()
-                await afterPermissionAttempt()
-                // 'default' = the OS suppressed the prompt or the user closed it: asking again this session will not help
-                if (result === 'default') {
-                    toast.attention(t('notifications.blockedToast'))
-                    onDismissed()
-                } else {
-                    onActed()
+                try {
+                    const result = await requestPermission()
+                    await afterPermissionAttempt()
+                    if (result === 'granted') onActed()
+                    else {
+                        toast.attention(t('notifications.nativeBlockedToast'))
+                        onSnoozed()
+                    }
+                } catch {
+                    toast.attention(t('notifications.nativeBlockedToast'))
+                    onSnoozed()
                 }
             }}
         />

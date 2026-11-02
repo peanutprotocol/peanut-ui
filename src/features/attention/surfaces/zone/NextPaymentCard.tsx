@@ -19,7 +19,10 @@ export default function NextPaymentCard({ onDismissed }: ZoneSurfaceProps) {
             description={t('nextPayment.description')}
             concept={state.qr.canPayNow ? 'qrPay' : 'card'}
             onClose={onDismissed}
-            onClick={() => (state.qr.canPayNow ? setIsQRScannerOpen(true) : router.push('/card'))}
+            onClick={() => {
+                if (state.qr.canPayNow) setIsQRScannerOpen(true)
+                else if (state.cardOffer.canSpendViaCard) router.push('/card')
+            }}
         />
     )
 }

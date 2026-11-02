@@ -13,7 +13,7 @@ import type { ZoneSurfaceProps } from '../../types'
 const DAY_MS = 24 * 60 * 60 * 1000
 
 /** During the native cutover, mobile opens the store and desktop the scan-to-download modal. */
-export default function InstallAppCard({ onSnoozed }: ZoneSurfaceProps) {
+export default function InstallAppCard({ onSnoozed, onAction }: ZoneSurfaceProps) {
     const t = useTranslations('migration')
     const { deviceType } = useDeviceType()
     const { setIsGetAppModalOpen } = useModalsContext()
@@ -28,8 +28,10 @@ export default function InstallAppCard({ onSnoozed }: ZoneSurfaceProps) {
             onClose={() => onSnoozed(Date.now() + APP_INSTALL_CARD_COOLDOWN_DAYS * DAY_MS)}
             onClick={() => {
                 const store = storeForDevice(deviceType)
-                if (store) openStore(store, MIGRATION_SURFACES.HOME_BANNER)
-                else setIsGetAppModalOpen(true)
+                if (store) {
+                    onAction?.({ cta: 'store' })
+                    openStore(store, MIGRATION_SURFACES.HOME_BANNER)
+                } else setIsGetAppModalOpen(true)
             }}
         />
     )

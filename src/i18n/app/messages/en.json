@@ -181,7 +181,8 @@
             "notifications": {
                 "title": "Stay in the loop!",
                 "description": "Turn on notifications and get alerts for all your wallet activity.",
-                "blockedToast": "Notifications blocked by your browser. Enable them in site settings and reload."
+                "blockedToast": "Notifications blocked by your browser. Enable them in site settings and reload.",
+                "nativeBlockedToast": "Turn on notifications for Peanut in your device settings."
             },
             "qrPay": {
                 "title": "Pay with <b>QR code payments</b>",
@@ -193,7 +194,8 @@
             },
             "bugBounty": {
                 "title": "Help us improve and <b>get $5!</b>",
-                "description": "Be the first to report a bug. Get rewarded!"
+                "description": "Be the first to report a bug. Get rewarded!",
+                "supportPrefill": "I found a bug: "
             },
             "userInterview": {
                 "title": "Help shape Peanut",
@@ -218,6 +220,10 @@
                 },
                 "qrPay": {
                     "description": "Get the best exchange rate, pay like a <b>local</b> and earn <b>points</b>."
+                },
+                "rewards": {
+                    "title": "You have points waiting",
+                    "description": "Open Points to see what you have earned."
                 }
             },
             "card": {
@@ -254,11 +260,11 @@
             },
             "rewards": {
                 "title": "You have rewards waiting",
-                "description": "Open Rewards to see what you have earned."
+                "description": "Open Points to see what you have earned."
             },
             "completeProfile": {
                 "title": "Complete your profile",
-                "description": "Add your name so friends recognise you when you pay them."
+                "description": "Add your name so friends recognize you when you pay them."
             }
         },
         "pendingTasks": {

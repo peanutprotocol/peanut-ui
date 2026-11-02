@@ -1,12 +1,12 @@
 'use client'
 
+import { bankDetailsHref } from './bankDetailsRoute'
 import { useRouter } from 'next/navigation'
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import type { ZoneSurfaceProps } from '../../types'
 
-/** An employer or client can pay into the account; opening the details counts as shared. */
-export default function ShareBankDetailsCard({ onActed, onDismissed }: ZoneSurfaceProps) {
+export default function ShareBankDetailsCard({ onSnoozed, onDismissed }: ZoneSurfaceProps) {
     const t = useAppTranslations('home.carousel')
     const router = useRouter()
     return (
@@ -16,8 +16,8 @@ export default function ShareBankDetailsCard({ onActed, onDismissed }: ZoneSurfa
             concept="addMoney"
             onClose={onDismissed}
             onClick={() => {
-                onActed()
-                router.push('/add-money')
+                router.push(bankDetailsHref())
+                onSnoozed()
             }}
         />
     )

@@ -101,9 +101,9 @@ export const postVerificationAction: AttentionAsk = {
         if (gate !== 'ready') return gate
         return s.identity.isVerified && s.postAuthRedirect ? 'show' : 'ineligible'
     },
-    version: (s) => s.postAuthRedirectDestination ?? undefined,
+    version: (s) => s.postAuthRedirectDestination?.split(/[?#]/, 1)[0] || undefined,
     policy: {},
-    analyticsKey: MODAL_TYPES.POST_SIGNUP,
+    analyticsKey: MODAL_TYPES.POST_VERIFICATION_ACTION,
 }
 
 export const finishCardSetup: AttentionAsk = {
@@ -185,6 +185,7 @@ export const checklist: AttentionAsk = {
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
+        if (s.blockedCardId) return 'ineligible'
         if (!s.onboarding) return 'unknown'
         return s.onboarding.step === 'completed' ? 'done' : 'show'
     },
@@ -207,6 +208,7 @@ export const pushHomeFallback: AttentionAsk = {
         // answered but not on: the native card opens the OS settings
         return s.push.notEnabled ? 'show' : 'done'
     },
+    version: (s) => `${s.isNative ? 'native' : 'web'}:${s.push.unanswered ? 'prompt' : 'settings'}`,
     policy: {
         minSessions: 3,
         snoozeDays: 14,
@@ -357,16 +359,24 @@ export const nextPayment = zoneAsk('next-payment', 3, 5, 'next_payment', (s) => 
     const gate = loggedIn(s)
     if (gate !== 'ready') return gate
     if (!s.activated || !s.balance.loaded || s.balance.usd <= 0) return 'ineligible'
+    if (!s.qr.canPayNow && s.cardOffer.canSpendViaCard !== true) return 'ineligible'
     if (s.qr.hasMadeQrPayment === undefined) return 'unknown'
     const last = s.lastSpendAt ? Date.parse(s.lastSpendAt) : NaN
     return !Number.isFinite(last) || s.now - last > NEXT_PAYMENT_AFTER_DAYS * DAY_MS ? 'show' : 'ineligible'
 }) // N10
 
-export const shareBankDetails = zoneAsk('share-bank-details', 3, 6, 'share_bank_details', (s) => {
-    const gate = loggedIn(s)
-    if (gate !== 'ready') return gate
-    return s.depositAccounts.active > 0 ? 'show' : 'ineligible'
-}) // N11
+export const shareBankDetails = zoneAsk(
+    'share-bank-details',
+    3,
+    6,
+    'share_bank_details',
+    (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        return s.depositAccounts.active > 0 ? 'show' : 'ineligible'
+    },
+    { policy: { snoozeDays: 7 } }
+) // N11
 
 export const requestMoney = zoneAsk('request-money', 3, 7, 'request_money', (s) => {
     const gate = loggedIn(s)
@@ -391,11 +401,18 @@ export const backupPasskey = zoneAsk('backup-passkey', 4, 1, 'backup_passkey', (
     return s.passkeyCount === 1 ? 'show' : 'done'
 }) // N14
 
-export const addEmail = zoneAsk('add-email', 4, 3, 'add_email', (s) => {
-    const gate = loggedIn(s)
-    if (gate !== 'ready') return gate
-    return s.hasEmail ? 'done' : 'show'
-}) // N17
+export const addEmail = zoneAsk(
+    'add-email',
+    4,
+    3,
+    'add_email',
+    (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        return s.hasEmail ? 'done' : 'show'
+    },
+    { policy: { snoozeDays: 7 } }
+) // N17
 
 export const rewards = zoneAsk(
     'rewards',

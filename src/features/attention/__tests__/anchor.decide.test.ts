@@ -89,17 +89,17 @@ describe('Phase 8: Home anchor selection', () => {
 
     test('the first live anchor by rank is blocked-card, ahead of checklist and install-app', () => {
         const d = run({ ...WEB_INSTALL, blockedCardId: BLOCKED })
-        expect(d.trace.verdicts.checklist).toBe('show')
+        expect(d.trace.verdicts.checklist).toBe('ineligible')
         expect(d.zone).toEqual({ id: 'blocked-card', mode: 'ask' })
     })
 
-    test('dismissing blocked-card falls back to the checklist anchor', () => {
+    test('dismissing a still-blocked card releases the zone', () => {
         const d = run(
             { ...WEB_INSTALL, blockedCardId: BLOCKED },
             {},
             { 'blocked-card': { dismissedAt: new Date(NOW).toISOString(), version: BLOCKED } }
         )
-        expect(d.zone).toEqual({ id: 'checklist', mode: 'ask' })
+        expect(d.zone).toBeNull()
         // install-app is tier 1 (Slava, 2026-10-12): the most critical ask may open over the list
         expect(d.interrupt).toBe('install-app')
     })

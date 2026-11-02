@@ -55,8 +55,15 @@ const ReConsentModal = ({
         setError(null)
         try {
             await consentApi.accept(documents.map((d) => acceptedLegalDocument(d.slug as LegalDocumentSlug)))
-            // the ask's verdict turns `done` once the status query reflects the ledger
             await queryClient.invalidateQueries({ queryKey: [CONSENT_STATUS_QUERY_KEY] })
+            const status = await consentApi.getStatus()
+            if (
+                status.needsReConsent !== false ||
+                !Array.isArray(status.documents) ||
+                status.documents.some((d) => d.needsAcceptance)
+            ) {
+                throw new Error('Current legal acceptance remains outstanding')
+            }
             onActed()
         } catch (e) {
             // Sentry (not console): if /accept fails systematically, nobody can
