@@ -499,8 +499,7 @@ export const updateUserPreferences = (
             ...currentPrefs,
             ...partialPrefs,
         }
-        saveToLocalStorage(`${userId}:user-preferences`, newPrefs)
-        return newPrefs
+        return saveToLocalStorage(`${userId}:user-preferences`, newPrefs) ? newPrefs : undefined
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error updating user preferences:', error)

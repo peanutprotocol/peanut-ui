@@ -565,3 +565,27 @@ test('parity: every ask with an interrupt surface has a component in the real IN
     expect(interruptAsks.length).toBeGreaterThan(0)
     expect(interruptAsks.filter((id) => !INTERRUPT_SURFACES[id])).toEqual([])
 })
+
+test('when storage refuses the write, the closed balance warning stays closed for the load and still syncs', async () => {
+    mockState = state({ balance: { loaded: true, usd: 900 } })
+    await mount()
+    expect(surfacesInDom()).toEqual(['balance-backup'])
+    jest.spyOn(console, 'error').mockImplementation(() => {})
+    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new DOMException('Quota exceeded', 'QuotaExceededError')
+    })
+    await click('dismiss-balance-backup')
+    expect(events('attention_dismissed')).toHaveLength(1)
+    expect(latest?.session.openInterrupt).toBeNull()
+    expect(surfacesInDom()).toEqual([])
+    expect(readLedger('user-a')['balance-backup']?.dismissedAt).toBeDefined()
+    const { flushLedgerSyncForTests } = require('../ledgerSync')
+    await flushLedgerSyncForTests()
+    expect(mockUpdateUserById).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+            attentionLedger: expect.objectContaining({
+                'balance-backup': expect.objectContaining({ dismissedAt: expect.any(String) }),
+            }),
+        })
+    )
+})
