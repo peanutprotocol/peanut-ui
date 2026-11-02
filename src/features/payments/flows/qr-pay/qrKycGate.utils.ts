@@ -68,6 +68,9 @@ export function selectQrKycGate(input: {
             return gate(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
         case 'ready':
             return gate(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
+        default:
+            // A state this build does not know: block payment and let /verify ask the server.
+            return gate(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
     }
 }
 

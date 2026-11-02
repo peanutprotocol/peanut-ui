@@ -34,23 +34,10 @@ export const notificationsApi = {
     },
     /** Saves only the choices passed and answers with all of them. */
     async savePreferences(changes: PreferenceChanges): Promise<NotificationPreferences> {
-        let response = await serverFetch('/notifications/preferences', {
+        const response = await serverFetch('/notifications/preferences', {
             method: 'PUT',
             body: JSON.stringify(changes),
         })
-        // An older API takes only `push`; retrying with it alone must not drop an opt-in the user chose.
-        const dropsOptIn = changes.marketingPush === true || changes.emailUpdates === true
-        if (
-            response.status === 400 &&
-            typeof changes.push === 'boolean' &&
-            !dropsOptIn &&
-            Object.keys(changes).some((key) => key !== 'push')
-        ) {
-            response = await serverFetch('/notifications/preferences', {
-                method: 'PUT',
-                body: JSON.stringify({ push: changes.push }),
-            })
-        }
         if (!response.ok) throw new Error('Could not save notification preferences')
         return await response.json()
     },

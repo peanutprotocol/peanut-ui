@@ -686,3 +686,33 @@ it.each(['default', 'denied'] as const)(
         expect(states()).toEqual(['false', 'false', 'false'])
     }
 )
+
+it('does not stall after an acknowledged save of granted Important and Offers choices', async () => {
+    mockPermission.mockResolvedValueOnce('granted')
+    mockSave.mockResolvedValueOnce({
+        push: true,
+        email: true,
+        marketingPush: true,
+        emailUpdates: true,
+        pushPermission: 'granted',
+    })
+    renderStep(<NotificationsStep />)
+    fireEvent.click(important())
+    fireEvent.click(offers())
+    fireEvent.click(continueButton())
+    await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+    expect(mockSave).toHaveBeenCalledTimes(1)
+    expect(mockSave).toHaveBeenCalledWith({
+        push: true,
+        marketingPush: true,
+        emailUpdates: true,
+        pushPermission: 'granted',
+    })
+    expect(screen.queryByText('We couldn’t save your settings. Please try again.')).not.toBeInTheDocument()
+    expect(mockCapture).toHaveBeenCalledWith('notification_choices_saved', {
+        outcome: 'granted',
+        important: true,
+        offers: true,
+        email: true,
+    })
+})

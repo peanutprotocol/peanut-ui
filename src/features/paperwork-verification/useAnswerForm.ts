@@ -78,8 +78,8 @@ export async function saveSteps(
 /**
  * The answers of the steps on screen, saved step by step in the server's
  * order. Until a step is saved its answers are also kept on the device
- * (answerDraft.ts), so a restart doesn't lose them. One save runs at a time,
- * so a double tap on Continue sends one request.
+ * (answerDraft.ts), so a remount within the session doesn't lose them. One save
+ * runs at a time, so a double tap on Continue sends one request.
  */
 export function useAnswerForm(
     steps: PaperworkVerificationStep[],

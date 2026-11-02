@@ -60,7 +60,6 @@ export const NotificationsView = () => {
     const save = async (key: Switch, on: boolean, permission?: Promise<PushPermission>) => {
         if (!choices || savingRef.current) return
         savingRef.current = true
-        const before = choices
         setChoices({ ...choices, [key]: on })
         setSaving(true)
         try {
@@ -72,7 +71,12 @@ export const NotificationsView = () => {
             }
             setChoices(await notificationsApi.savePreferences(changes))
         } catch {
-            setChoices(before)
+            try {
+                setChoices(await notificationsApi.getPreferences())
+            } catch {
+                setChoices(null)
+                setLoadFailed(true)
+            }
             toast.error(tCommon('genericError'))
         } finally {
             savingRef.current = false

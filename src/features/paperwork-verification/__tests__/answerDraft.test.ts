@@ -1,6 +1,6 @@
 /**
- * Slava, 2026-10-27: answers typed before the ID check survive a phone
- * restart. They stay on the device until Sumsub has them, then leave.
+ * Slava, 2026-10-27: answers typed before the ID check survive remounts
+ * within this browser session. They never persist to localStorage.
  */
 import { act, renderHook } from '@testing-library/react'
 import { saveKycAnswers } from '@/app/actions/kyc-paperwork-verification'
@@ -46,13 +46,14 @@ const BIRTH: PaperworkVerificationStep = {
 }
 
 beforeEach(() => {
+    window.sessionStorage.clear()
     window.localStorage.clear()
     jest.useRealTimers()
     save.mockReset()
     signedIn('user-1')
 })
 
-describe('the device draft', () => {
+describe('the session draft', () => {
     test('belongs to one account', () => {
         keepAnswerDraft('user-1', { phone: '+351 912 345 678' })
         expect(readAnswerDraft('user-1')).toEqual({ phone: '+351 912 345 678' })
@@ -62,7 +63,7 @@ describe('the device draft', () => {
 
     test('never keeps the tax number', () => {
         keepAnswerDraft('user-1', { taxId: '412-55-0198' })
-        expect(window.localStorage.length).toBe(0)
+        expect(window.sessionStorage.length).toBe(0)
         keepAnswerDraft('user-1', { taxId: '412-55-0198', street: 'Rua Augusta 1' })
         expect(readAnswerDraft('user-1')).toEqual({ street: 'Rua Augusta 1' })
     })
@@ -72,7 +73,7 @@ describe('the device draft', () => {
         forgetSavedAnswers('user-1', { countryOfBirth: 'UA', cityOfBirth: 'Odesa' })
         expect(readAnswerDraft('user-1')).toEqual({ cityOfBirth: 'Kyiv' })
         forgetSavedAnswers('user-1', { cityOfBirth: 'Kyiv' })
-        expect(window.localStorage.length).toBe(0)
+        expect(window.sessionStorage.length).toBe(0)
     })
 
     test('is gone after a week', () => {
@@ -80,7 +81,7 @@ describe('the device draft', () => {
         keepAnswerDraft('user-1', { phone: '+351 912 345 678' })
         jest.setSystemTime(new Date('2026-11-03T10:00:01Z'))
         expect(readAnswerDraft('user-1')).toEqual({})
-        expect(window.localStorage.length).toBe(0)
+        expect(window.sessionStorage.length).toBe(0)
     })
 
     test('fills only what the server has no value for, never a locked field', () => {
@@ -112,16 +113,16 @@ describe('expired drafts', () => {
         keepAnswerDraft('user-old', { phone: '+351 912 345 678' })
         jest.setSystemTime(new Date('2026-11-02T10:00:00Z'))
         keepAnswerDraft('user-fresh', { phone: '+14155550100' })
-        window.localStorage.setItem('peanut:kycAnswerDraft:user-broken', '{not json')
-        window.localStorage.setItem('peanut:declaredResidence:user-old', 'PT')
+        window.sessionStorage.setItem('peanut:kycAnswerDraft:user-broken', '{not json')
+        window.sessionStorage.setItem('peanut:declaredResidence:user-old', 'PT')
         jest.setSystemTime(new Date('2026-11-03T10:00:01Z'))
 
         sweepExpiredAnswerDrafts()
 
-        expect(window.localStorage.getItem('peanut:kycAnswerDraft:user-old')).toBeNull()
-        expect(window.localStorage.getItem('peanut:kycAnswerDraft:user-broken')).toBeNull()
+        expect(window.sessionStorage.getItem('peanut:kycAnswerDraft:user-old')).toBeNull()
+        expect(window.sessionStorage.getItem('peanut:kycAnswerDraft:user-broken')).toBeNull()
         expect(readAnswerDraft('user-fresh')).toEqual({ phone: '+14155550100' })
-        expect(window.localStorage.getItem('peanut:declaredResidence:user-old')).toBe('PT')
+        expect(window.sessionStorage.getItem('peanut:declaredResidence:user-old')).toBe('PT')
     })
 })
 
@@ -131,7 +132,7 @@ describe('a change of declared residence', () => {
         forgetAnswerDraftOnResidenceChange('user-1', 'PT')
         expect(readAnswerDraft('user-1', 'PT')).toEqual({ street: 'Rua Augusta 1' })
         forgetAnswerDraftOnResidenceChange('user-1', 'ES')
-        expect(window.localStorage.length).toBe(0)
+        expect(window.sessionStorage.length).toBe(0)
     })
 
     test('keeps the draft while the residence is unknown', () => {
@@ -143,7 +144,7 @@ describe('a change of declared residence', () => {
     test('is read as no draft, so the old address never fills the new country', () => {
         keepAnswerDraft('user-1', { street: 'Rua Augusta 1' }, 'PT')
         expect(readAnswerDraft('user-1', 'ES')).toEqual({})
-        expect(window.localStorage.length).toBe(0)
+        expect(window.sessionStorage.length).toBe(0)
     })
 
     test("starts a new draft instead of mixing in the old country's answers", () => {
@@ -161,12 +162,12 @@ describe('a change of declared residence', () => {
         signedIn('user-1', 'ES')
         const after = renderHook(() => useAnswerForm([PHONE]))
         expect(after.result.current.values).toEqual({ phone: '' })
-        expect(window.localStorage.length).toBe(0)
+        expect(window.sessionStorage.length).toBe(0)
     })
 })
 
 describe('a question screen', () => {
-    test('opens after a restart with what was typed but not saved', () => {
+    test('reopens in the same session with what was typed but not saved', () => {
         const before = renderHook(() => useAnswerForm([BIRTH]))
         act(() => before.result.current.change('countryOfBirth', 'UA'))
         act(() => before.result.current.change('cityOfBirth', 'Odesa'))
@@ -202,7 +203,48 @@ describe('a question screen', () => {
         auth.mockReturnValue(null)
         const { result } = renderHook(() => useAnswerForm([PHONE]))
         act(() => result.current.change('phone', '+351 912 345 678'))
-        expect(window.localStorage.length).toBe(0)
+        expect(window.sessionStorage.length).toBe(0)
         forgetAnswerDraft(undefined)
+    })
+})
+
+describe('persistent draft removal', () => {
+    test('keeps answers only in session storage', () => {
+        keepAnswerDraft('user-1', { phone: '+351 912 345 678', street: 'Rua Augusta 1' }, 'PT')
+        expect(window.sessionStorage.getItem('peanut:kycAnswerDraft:user-1')).toContain('Rua Augusta 1')
+        expect(window.localStorage.length).toBe(0)
+        window.sessionStorage.clear()
+        expect(readAnswerDraft('user-1', 'PT')).toEqual({})
+    })
+
+    test('purges every old persistent draft without importing answers or deleting unrelated data', () => {
+        window.localStorage.setItem(
+            'peanut:kycAnswerDraft:user-1',
+            JSON.stringify({
+                values: { street: 'Do not restore this address' },
+                updatedAt: Date.now(),
+                residence: 'PT',
+            })
+        )
+        window.localStorage.setItem('peanut:kycAnswerDraft:user-2', '{broken')
+        window.localStorage.setItem('peanut:declaredResidence:user-1', 'PT')
+        window.localStorage.setItem('unrelated', 'keep me')
+        sweepExpiredAnswerDrafts()
+        expect(window.localStorage.getItem('peanut:kycAnswerDraft:user-1')).toBeNull()
+        expect(window.localStorage.getItem('peanut:kycAnswerDraft:user-2')).toBeNull()
+        expect(window.localStorage.getItem('peanut:declaredResidence:user-1')).toBe('PT')
+        expect(window.localStorage.getItem('unrelated')).toBe('keep me')
+        expect(readAnswerDraft('user-1', 'PT')).toEqual({})
+        expect(window.sessionStorage.length).toBe(0)
+    })
+
+    test('explicit forgetting clears this account from both stores and preserves another session draft', () => {
+        keepAnswerDraft('user-1', { street: 'Rua Augusta 1' })
+        keepAnswerDraft('user-2', { cityOfBirth: 'Kyiv' })
+        window.localStorage.setItem('peanut:kycAnswerDraft:user-1', 'old persistent answers')
+        forgetAnswerDraft('user-1')
+        expect(readAnswerDraft('user-1')).toEqual({})
+        expect(window.localStorage.getItem('peanut:kycAnswerDraft:user-1')).toBeNull()
+        expect(readAnswerDraft('user-2')).toEqual({ cityOfBirth: 'Kyiv' })
     })
 })

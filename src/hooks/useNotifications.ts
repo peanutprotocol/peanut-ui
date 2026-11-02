@@ -19,6 +19,7 @@ import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
 import { HOME_FALLBACK_MIN_SESSION, PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
+import { notificationsApi, toPushPermission } from '@/services/notifications'
 
 const NOTIF_PROMPT_SNOOZE_MS = NOTIF_PROMPT_SNOOZE_DAYS * 24 * 60 * 60 * 1000
 
@@ -89,6 +90,8 @@ let disableExternalIdLogin = false
 // session count gates the Home fallback.
 let promptShownThisSession = false
 const countedSessions = new Set<string>()
+const startupPreferenceReads = new Map<string, ReturnType<typeof notificationsApi.getPreferences>>()
+const startupPermissionReported = new Set<string>()
 // moments that came before OneSignal init or the user id (a cold deep link
 // into Add money or add-to-wallet), in order; offered once both are ready. A
 // list, not one slot: the first may turn out snoozed while a later one is not.
@@ -394,6 +397,42 @@ function setExternalId(externalId: string | null) {
     void offerPendingPrompts()
 }
 
+async function reportStartupPermission(userId: string, isCurrent: () => boolean) {
+    if (
+        typeof window === 'undefined' ||
+        isDemoMode() ||
+        startupPermissionReported.has(userId) ||
+        (!isCapacitor() && typeof Notification === 'undefined')
+    )
+        return
+    try {
+        // Share the read across consumers and StrictMode effect replay, once per app load.
+        let read = startupPreferenceReads.get(userId)
+        if (!read) {
+            read = notificationsApi.getPreferences()
+            startupPreferenceReads.set(userId, read)
+        }
+        const preferences = await read
+        let permission: NotificationPermissionState
+        if (isCapacitor()) {
+            await ensureInitialized()
+            if (!state.oneSignalInitialized) return
+            permission = await (await getOneSignalAdapter()).getPermission()
+        } else {
+            permission = Notification.permission
+        }
+        if (!isCurrent() || currentExternalId !== userId || startupPermissionReported.has(userId)) return
+        startupPermissionReported.add(userId)
+        const pushPermission = toPushPermission(permission)
+        // Upward only: a device without a grant must not overwrite another device's grant.
+        if (pushPermission === 'granted' && preferences.pushPermission !== 'granted') {
+            await notificationsApi.savePreferences({ pushPermission })
+        }
+    } catch {
+        // Best effort once at startup; another app load can reconcile a failed read or write.
+    }
+}
+
 // update permission state from the platform adapter
 async function refreshPermissionState() {
     if (typeof window === 'undefined') return
@@ -511,6 +550,15 @@ export function useNotifications() {
         if (appLocked || isFetchingUser || userFetchError || isLoggingOut) return
         setExternalId(externalId ?? null)
     }, [externalId, appLocked, isFetchingUser, userFetchError, isLoggingOut])
+
+    useEffect(() => {
+        if (!externalId || appLocked || isFetchingUser || userFetchError || isLoggingOut) return
+        let active = true
+        void reportStartupPermission(externalId, () => active)
+        return () => {
+            active = false
+        }
+    }, [externalId, appLocked, isFetchingUser, userFetchError, isLoggingOut, snapshot.oneSignalInitialized])
 
     return {
         showPermissionModal: snapshot.showPermissionModal,

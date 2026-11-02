@@ -5,12 +5,10 @@ import type {
 import type { IUserProfile } from '@/interfaces/interfaces'
 
 /**
- * Answers typed on this device that Sumsub has not saved yet, so restarting
- * the phone before the ID check loses nothing. Scoped per account, since
- * localStorage is shared by every login on the device. A value leaves once
- * its step is saved; the rest goes at sign-out, when the session is lost,
- * when the ID check opens, when the declared residence changes, or after a
- * week.
+ * Answers Sumsub has not saved yet, kept only for this browser session and
+ * scoped per account. A value leaves once its step is saved; the rest goes
+ * at sign-out, when the session is lost, when the ID check opens, when the
+ * declared residence changes, or after a week.
  */
 const PREFIX = 'peanut:kycAnswerDraft:'
 const keyFor = (userId: string) => `${PREFIX}${userId}`
@@ -34,9 +32,9 @@ function parse(raw: string | null): Draft | null {
 
 function read(userId: string): Draft | null {
     try {
-        const raw = window.localStorage.getItem(keyFor(userId))
+        const raw = window.sessionStorage.getItem(keyFor(userId))
         const draft = parse(raw)
-        if (raw && !draft) window.localStorage.removeItem(keyFor(userId))
+        if (raw && !draft) window.sessionStorage.removeItem(keyFor(userId))
         return draft
     } catch {
         return null
@@ -46,11 +44,11 @@ function read(userId: string): Draft | null {
 function write(userId: string, values: PaperworkVerificationAnswers, residence: string | null | undefined) {
     try {
         if (Object.keys(values).length)
-            window.localStorage.setItem(
+            window.sessionStorage.setItem(
                 keyFor(userId),
                 JSON.stringify({ values, updatedAt: Date.now(), residence: residence ?? null })
             )
-        else window.localStorage.removeItem(keyFor(userId))
+        else window.sessionStorage.removeItem(keyFor(userId))
     } catch {
         // storage unavailable (private mode, full): the answers stay in memory only
     }
@@ -102,6 +100,9 @@ export function forgetSavedAnswers(userId: string | undefined, saved: PaperworkV
 export function forgetAnswerDraft(userId: string | undefined | null) {
     if (!userId) return
     try {
+        window.sessionStorage.removeItem(keyFor(userId))
+    } catch {}
+    try {
         window.localStorage.removeItem(keyFor(userId))
     } catch {}
 }
@@ -111,7 +112,7 @@ export function forgetAnswerDraftOnResidenceChange(userId: string | undefined, r
     if (userId) current(userId, residence)
 }
 
-/** Removes every account's expired draft, not only the one that signs in next. */
+/** Removes expired session drafts and every draft left in persistent storage by older versions. */
 export function sweepExpiredAnswerDrafts() {
     try {
         const keys: string[] = []
@@ -119,7 +120,15 @@ export function sweepExpiredAnswerDrafts() {
             const key = window.localStorage.key(index)
             if (key?.startsWith(PREFIX)) keys.push(key)
         }
-        for (const key of keys) if (!parse(window.localStorage.getItem(key))) window.localStorage.removeItem(key)
+        for (const key of keys) window.localStorage.removeItem(key)
+    } catch {}
+    try {
+        const keys: string[] = []
+        for (let index = 0; index < window.sessionStorage.length; index++) {
+            const key = window.sessionStorage.key(index)
+            if (key?.startsWith(PREFIX)) keys.push(key)
+        }
+        for (const key of keys) if (!parse(window.sessionStorage.getItem(key))) window.sessionStorage.removeItem(key)
     } catch {}
 }
 

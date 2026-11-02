@@ -33,6 +33,16 @@ describe('selectQrKycGate reads the API QR entry', () => {
     it('loading → LOADING even with an on report', () => {
         expect(gate({ state: 'on' }, [], true).kycGateState).toBe(QrKycState.LOADING)
     })
+    it.each([
+        ['not_requested', QrKycState.REQUIRES_IDENTITY_VERIFICATION],
+        ['future_unknown_state', QrKycState.REQUIRES_IDENTITY_VERIFICATION],
+    ])('returns a defined closed gate for %s', (state, expected) => {
+        const result = gate({ state } as FeatureReportEntry)
+        expect(result).toBeDefined()
+        expect(result.kycGateState).toBe(expected)
+        expect(result.kycGateState).not.toBe(QrKycState.PROCEED_TO_PAY)
+        expect(result.qrKycActionKey).toBeNull()
+    })
     it('an on entry → PROCEED_TO_PAY', () => {
         expect(gate({ state: 'on' }).kycGateState).toBe(QrKycState.PROCEED_TO_PAY)
     })

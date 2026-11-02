@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { NotificationsView } from '../NotificationsView'
 
@@ -42,6 +42,8 @@ let server = { push: true, email: true, marketingPush: false, emailUpdates: fals
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockGet.mockReset()
+    mockSave.mockReset()
     mockDenied = false
     mockCanOpenSettings = true
     mockPermission.mockResolvedValue('granted')
@@ -99,13 +101,39 @@ it('turns Important off without asking the OS', async () => {
     expect(mockPermission).not.toHaveBeenCalled()
 })
 
-it('puts a choice back and says so when the save fails', async () => {
-    mockSave.mockRejectedValueOnce(new Error('network'))
+it.each([true, false])('reads server choices after an uncertain save (committed=%s)', async (committed) => {
+    mockSave.mockImplementationOnce(async (changes: object) => {
+        if (committed) server = { ...server, ...changes }
+        throw new Error('response lost')
+    })
     renderWithIntl(<NotificationsView />)
     await waitFor(() => expect(email()).toBeEnabled())
     fireEvent.click(email())
-    await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1))
-    expect(email()).toHaveAttribute('aria-checked', 'false')
+    await waitFor(() => expect(mockGet).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(email()).toHaveAttribute('aria-checked', String(committed)))
+    expect(mockToastError).toHaveBeenCalledTimes(1)
+    expect(mockSave).toHaveBeenCalledTimes(1)
+    expect(important()).toHaveAttribute('aria-checked', 'true')
+    expect(offers()).toHaveAttribute('aria-checked', 'false')
+})
+
+it('contains an unsuccessful reconciliation GET without retrying the uncertain save', async () => {
+    mockSave.mockRejectedValueOnce(new Error('response lost'))
+    mockGet.mockResolvedValueOnce(server).mockRejectedValueOnce(new Error('offline'))
+    const unhandled = jest.fn()
+    window.addEventListener('unhandledrejection', unhandled)
+    try {
+        renderWithIntl(<NotificationsView />)
+        await waitFor(() => expect(email()).toBeEnabled())
+        fireEvent.click(email())
+        await waitFor(() => expect(mockGet).toHaveBeenCalledTimes(2))
+        await act(async () => {})
+        expect(mockToastError).toHaveBeenCalled()
+        expect(mockSave).toHaveBeenCalledTimes(1)
+        expect(unhandled).not.toHaveBeenCalled()
+    } finally {
+        window.removeEventListener('unhandledrejection', unhandled)
+    }
 })
 
 it('explains blocked notifications and opens the OS settings where it can', async () => {

@@ -8,7 +8,7 @@
  *  1. every uninstall comes BEFORE invalidateNonce, in a single userOp
  *  2. the target is the LIVE nonce + 1, never the backend's number
  *  3. a payload that cannot be checked (wrong id type, root id, bad data,
- *     duplicates, empty) stops everything before any userOp
+ *     duplicates, missing floor) stops everything before any userOp
  *  4. success is proven by re-reading the chain after the receipt, not by the receipt
  *  5. an unreadable chain, an undeployed wallet or an out-of-range floor sends nothing
  *  6. concurrent signing or spend sessions stop it, and it stops them
@@ -49,9 +49,24 @@ describe('parseLegacyMigration', () => {
         })
     })
 
+    it('accepts a nonce-only retirement with an explicit positive integer floor', () => {
+        expect(parseLegacyMigration({ uninstall: [], invalidateNonceFloor: 5 })).toEqual({
+            uninstalls: [],
+            invalidateNonceFloor: 5,
+        })
+    })
+
+    it.each([undefined, null, 0, -1, 1.5, NaN, Infinity, '5'])(
+        'rejects a nonce-only retirement with invalid floor %p',
+        (invalidateNonceFloor) => {
+            expect(() => parseLegacyMigration({ uninstall: [], invalidateNonceFloor } as never)).toThrow(
+                LegacyMigrationPayloadError
+            )
+        }
+    )
+
     it.each([
         ['no payload', null],
-        ['an empty list', { ...MIGRATION, uninstall: [] }],
         [
             'too many entries',
             {
@@ -147,6 +162,44 @@ const retire = (chain: ReturnType<typeof makeChain>, extra: object = {}) =>
     })
 
 describe('retireLegacyGrants', () => {
+    it('confirms a nonce-only invalidation on chain and sends nothing when repeated', async () => {
+        const chain = makeChain({ currentNonce: 6, validNonceFrom: 1, installed: [] })
+        const migration = parseLegacyMigration({ uninstall: [], invalidateNonceFloor: 7 })
+        await retire(chain, { migration })
+
+        expect(chain.sendUserOp).toHaveBeenCalledTimes(1)
+        expect(chain.state.calls).toEqual([[{ fn: 'invalidateNonce', args: [7] }]])
+        expect(chain.sendUserOp.mock.calls[0][0]).toEqual([expect.objectContaining({ to: WALLET, value: 0n })])
+        expect(
+            chain.publicClient.readContract.mock.calls.some(([call]) => call.functionName === 'validationConfig')
+        ).toBe(false)
+        expect(chain.state.validNonceFrom).toBe(7)
+        const sendOrder = chain.sendUserOp.mock.invocationCallOrder[0]
+        expect(
+            chain.publicClient.readContract.mock.calls.some(
+                ([call], index) =>
+                    call.functionName === 'validNonceFrom' &&
+                    chain.publicClient.readContract.mock.invocationCallOrder[index] > sendOrder
+            )
+        ).toBe(true)
+
+        await retire(chain, { migration })
+        expect(chain.sendUserOp).toHaveBeenCalledTimes(1)
+    })
+
+    it('rejects a nonce-only receipt when the nonce floor did not change on chain', async () => {
+        const chain = makeChain({ currentNonce: 6, validNonceFrom: 1, installed: [] })
+        chain.state.applyOnSend = false
+        const migration = parseLegacyMigration({ uninstall: [], invalidateNonceFloor: 7 })
+        await expect(retire(chain, { migration })).rejects.toMatchObject({ name: 'KernelNonceRepairPendingError' })
+        expect(chain.sendUserOp).toHaveBeenCalledTimes(1)
+        expect(chain.state.calls).toEqual([[{ fn: 'invalidateNonce', args: [7] }]])
+        expect(chain.state.validNonceFrom).toBe(1)
+        expect(
+            chain.publicClient.readContract.mock.calls.some(([call]) => call.functionName === 'validationConfig')
+        ).toBe(false)
+    })
+
     it('uninstalls every old validation BEFORE invalidateNonce, in one userOp, to live nonce + 1', async () => {
         const chain = makeChain({ currentNonce: 2, validNonceFrom: 1 })
         await retire(chain)

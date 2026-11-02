@@ -8,15 +8,14 @@ const response = (status: number, body: unknown = {}) =>
 
 beforeEach(() => fetchMock.mockReset())
 
-it.each([true, false])('retries a mixed-version 400 once using only push=%s', async (push) => {
-    fetchMock.mockResolvedValueOnce(response(400)).mockResolvedValueOnce(response(200, { push }))
-    await expect(
-        notificationsApi.savePreferences({ push, marketingPush: false, emailUpdates: false, pushPermission: 'granted' })
-    ).resolves.toMatchObject({ push })
-    expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(fetchMock).toHaveBeenLastCalledWith('/notifications/preferences', {
+it.each([true, false])('sends exactly one complete PUT on 400 for push=%s', async (push) => {
+    const changes = { push, marketingPush: false, emailUpdates: false, pushPermission: 'granted' as const }
+    fetchMock.mockResolvedValue(response(400))
+    await expect(notificationsApi.savePreferences(changes)).rejects.toThrow()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledWith('/notifications/preferences', {
         method: 'PUT',
-        body: JSON.stringify({ push }),
+        body: JSON.stringify(changes),
     })
 })
 
@@ -34,12 +33,6 @@ it.each([{ push: false }, { emailUpdates: false }])(
         expect(fetchMock).toHaveBeenCalledTimes(1)
     }
 )
-
-it('bounds fallback failure to two attempts', async () => {
-    fetchMock.mockResolvedValue(response(400))
-    await expect(notificationsApi.savePreferences({ push: false, marketingPush: false })).rejects.toThrow()
-    expect(fetchMock).toHaveBeenCalledTimes(2)
-})
 
 it.each([{ marketingPush: true }, { emailUpdates: true }])(
     'fails instead of dropping an opt-in an older API cannot store: %p',
