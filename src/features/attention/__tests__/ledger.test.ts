@@ -3,10 +3,12 @@
  * device that already snoozed a prompt is not asked again the day the
  * manager ships. The manager writes only its own `attention` field.
  */
+jest.mock('../ledgerSync', () => ({ scheduleLedgerSync: jest.fn() }))
 let mockSunsetOn = false
 jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockSunsetOn }))
 
-import { ledgerActions, legacyEntries, readLedger } from '../ledger'
+import { ledgerActions, legacyEntries, persistLegacyLedger, readLedger } from '../ledger'
+import { scheduleLedgerSync } from '../ledgerSync'
 import { isSilenced } from '../decide'
 import { finishCardSetup, legalReconsent } from '../registry'
 import type { JourneyState } from '../types'
@@ -18,6 +20,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 beforeEach(() => {
     window.localStorage.clear()
     mockSunsetOn = false
+    ;(scheduleLedgerSync as jest.Mock).mockClear()
 })
 
 describe('legacyEntries', () => {
@@ -37,17 +40,21 @@ describe('legacyEntries', () => {
         expect(entries['install-app']?.snoozedUntil).toBe('2026-10-04T00:00:00.000Z')
         expect(entries['balance-backup']?.snoozedUntil).toBe('2026-10-22T00:00:00.000Z')
         // flag off: the old push prompt closed forever
-        expect(entries['push-home-fallback']).toEqual({ dismissedAt: closedAt })
+        expect(entries['push-home-fallback']).toEqual({ dismissedAt: closedAt, updatedAt: closedAt })
         expect(entries['blocked-card']).toEqual({
             dismissedAt: closedAt,
             version: 'blocked-card:verification-issue:provider_rejected',
+            updatedAt: closedAt,
         })
     })
 
     test('with the sunset flag on, a closed push prompt is a 14-day snooze', () => {
         mockSunsetOn = true
         const entries = legacyEntries(USER, { notifModalClosedAt: '2026-10-01T00:00:00.000Z' })
-        expect(entries['push-home-fallback']).toEqual({ snoozedUntil: '2026-10-15T00:00:00.000Z' })
+        expect(entries['push-home-fallback']).toEqual({
+            snoozedUntil: '2026-10-15T00:00:00.000Z',
+            updatedAt: '2026-10-01T00:00:00.000Z',
+        })
     })
 
     test('the legacy boolean push flag counts as closed', () => {
@@ -80,10 +87,10 @@ describe('readLedger and writes', () => {
         expect(prefs?.migrationPromptSnoozedAt).toBeUndefined()
     })
 
-    test('a stored entry outranks its legacy counterpart', () => {
+    test('a newer stored answer outranks its legacy counterpart', () => {
         updateUserPreferences(USER, { migrationPromptSnoozedAt: '2026-10-01T00:00:00.000Z' })
-        ledgerActions.cleared(USER, 'install-app')
-        expect(readLedger(USER)['install-app']?.snoozedUntil).toBeUndefined()
+        ledgerActions.snoozed(USER, 'install-app', Date.parse('2026-12-01T00:00:00Z'))
+        expect(readLedger(USER)['install-app']?.snoozedUntil).toBe('2026-12-01T00:00:00.000Z')
     })
 
     test('zone fatigue counts consecutive sessions', () => {
@@ -156,5 +163,45 @@ describe('a snooze under a new version', () => {
         ledgerActions.dismissed(USER, 'legal-reconsent', Date.now(), 'v1')
         ledgerActions.snoozed(USER, 'legal-reconsent', Date.now() + DAY_MS, 'v1')
         expect(readLedger(USER)['legal-reconsent']?.dismissedAt).toBeDefined()
+    })
+})
+
+describe('pre-manager closes', () => {
+    const closed = '2026-10-01T00:00:00.000Z'
+
+    test('a show recorded on the server does not bring a closed card back', () => {
+        updateUserPreferences(USER, { dismissedCarouselCTAs: { 'card-offer': closed } })
+        expect(readLedger(USER)['card-offer']?.dismissedAt).toBe(closed)
+        const server = {
+            'card-offer': { shownAt: ['2026-11-01T00:00:00.000Z'], updatedAt: '2026-11-01T00:00:00.000Z' },
+        }
+        expect(readLedger(USER, server)['card-offer']?.dismissedAt).toBe(closed)
+    })
+
+    test('a stored show does not lift the legacy push snooze', () => {
+        mockSunsetOn = true
+        const closedAt = new Date(Date.now() - DAY_MS).toISOString()
+        updateUserPreferences(USER, { notifModalClosedAt: closedAt })
+        ledgerActions.shown(USER, 'push-home-fallback', Date.now() - 30 * DAY_MS, 'interrupt', 3)
+        expect(Date.parse(readLedger(USER)['push-home-fallback']?.snoozedUntil ?? '')).toBeGreaterThan(Date.now())
+    })
+
+    test('the next write carries every legacy close into the synced store, once', () => {
+        updateUserPreferences(USER, { dismissedCarouselCTAs: { 'invite-friends': closed } })
+        ledgerActions.shown(USER, 'card-offer', Date.now(), 'zone', 3)
+        expect(scheduleLedgerSync).toHaveBeenCalledWith(
+            USER,
+            expect.objectContaining({ invite: expect.objectContaining({ dismissedAt: closed, updatedAt: closed }) })
+        )
+        expect(getUserPreferences(USER)?.attentionLegacyPersisted).toBe(true)
+    })
+
+    test('persistLegacyLedger copies and syncs the closes once per user', () => {
+        updateUserPreferences(USER, { dismissedCarouselCTAs: { 'bug-bounty': closed } })
+        persistLegacyLedger(USER)
+        expect(getUserPreferences(USER)?.attention?.['bug-bounty']).toMatchObject({ dismissedAt: closed })
+        expect(scheduleLedgerSync).toHaveBeenCalledTimes(1)
+        persistLegacyLedger(USER)
+        expect(scheduleLedgerSync).toHaveBeenCalledTimes(1)
     })
 })

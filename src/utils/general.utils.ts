@@ -464,6 +464,8 @@ export type UserPreferences = {
     /** App loads by this user on this device. The Home push fallback waits
      *  for the third one. */
     sessionCount?: number
+    /** the pre-manager closes above were copied into `attention` (and synced) once */
+    attentionLegacyPersisted?: boolean
     /** App-review nudge budget (see utils/app-review.ts). `moments` counts
      *  qualifying happy moments seen; `requestedAt` holds the ISO timestamps of
      *  past OS review requests, oldest first. */
