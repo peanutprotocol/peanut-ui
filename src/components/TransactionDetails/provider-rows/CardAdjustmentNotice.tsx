@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { useTranslations } from 'next-intl'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -33,7 +35,9 @@ export function CardAdjustmentNotice({ transaction }: { transaction: Transaction
 
     return (
         <Callout priority="info" data-testid="info-card">
-            {t('settlementAdjustedNotice', { amount: `$${(deltaCents / 100).toFixed(2)}` })}
+            {t('settlementAdjustedNotice', {
+                amount: `$${formatFiniteDisplay(deltaCents / 100, 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}`,
+            })}
         </Callout>
     )
 }

@@ -11,6 +11,7 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { closeBrazilPausedDrawer, isBrazilPausedDrawerOpen } from '@/features/brazil-pause/brazil-paused-drawer-store'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -241,8 +242,15 @@ function applyDefaults() {
 
 // ---------- test suites ----------
 
+let mockBrazilPaused = false
+jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
+    useBrazilServicesPaused: () => mockBrazilPaused,
+}))
+
 beforeEach(() => {
     jest.clearAllMocks()
+    mockBrazilPaused = false
+    closeBrazilPausedDrawer()
     mockSearchParams.clear()
     safeBackTesting.reset()
     applyDefaults()
@@ -426,6 +434,18 @@ describe('GROUP 4: Method Selection', () => {
 
         fireEvent.click(screen.getByTestId('action-card-Pix'))
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+    })
+
+    test('Pix opens the Brazil paused drawer instead while the pause covers the user', () => {
+        mockBrazilPaused = true
+        mockUseGeoFilteredPaymentOptions.mockReturnValue({
+            filteredMethods: [{ id: 'pix', title: 'Pix', description: '', icons: [], soon: false }],
+        })
+        renderSend()
+
+        fireEvent.click(screen.getByTestId('action-card-Pix'))
+        expect(isBrazilPausedDrawerOpen()).toBe(true)
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
     test('Clicking Peanut user navigates to /send?view=contacts', () => {

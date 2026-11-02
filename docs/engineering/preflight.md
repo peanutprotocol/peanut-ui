@@ -100,3 +100,19 @@ A queued online task reproduced the same sequence without an SDK event: React ha
 - Regression: `android-passkey-control.test.ts`, `android-passkey-scope.test.ts`, independent controller acceptance tests, signup/login hook regressions, and the native coordinator sequence tests. The disposable native cancellation-marking mutation fails the acceptance assertions.
 - Counterexample: a terminal native response can safely release its own request slot; a stale callback cannot release a newer one. An enabled Play Services package is not proof of an available credential provider.
 - Evidence boundary: TASK-23424 reports Chrome success on China-market devices; code checks and native library compilation do not establish a regional root cause or device recovery.
+
+## TASK-24355 — grouped request suggestions (2026-11-02)
+
+- Trigger: a request suggestion of 4000 is formatted as `4,000`, then `Number('4,000')` becomes NaN. The real slider renders NaN%; raw callback amounts can still be correct because callbacks separately strip commas. This alone does not prove a bad transaction.
+- Root cause: AmountInput suggestion used display-mode `formatTokenAmount` before numeric arithmetic. The previous TokenAmountInput slider explicitly stripped commas. Original change: peanut-ui commit 3a2ad8d1dd, Juan José Ramírez, 2025-12-26 07:23:42 UTC; later blame movement did not introduce this expression.
+- Search: `rg -n 'Number\(formatted|parseFloat\(.*Amount|formatTokenAmount' src/components/Global/AmountInput src/features/payments/flows/contribute-pot`. Inspect units and formatting mode; search hits alone are not bugs.
+- Safe counterexample: parsing raw `4000` is valid; the slider-change branch already uses input formatting mode.
+- Regression: finite-amount.test.tsx uses the real slider at 999, 1000, 4000, 10000, invalid initial/suggested/typed values and overflow. Payment flow tests separately reject invalid data before charge creation, even when called outside the UI button.
+
+### PR3902 follow-up — repeating-rate roundtrips
+
+- Trigger: at ARS1200/USD1, toggling untouched ARS0.05 or ARS4000 to USD and back loses a cent. Storing even36 decimal conversion digits cannot exactly represent a repeating rate; a delayed rate update can also change the original payer amount.
+- Invariant: anchor canonical input in the denomination last edited. Currency toggles change presentation; only a genuine edit changes monetary intent. Convert from that original amount once, at the destination precision.
+- Search: `rg -n 'setExactAmount|convertDecimalAmount|setDisplaySymbol' src/components/Global/AmountInput/index.tsx`; inspect every edit, suggestion, balance-fill and toggle writer. A newly typed USD amount is a safe counterexample: it intentionally replaces prior ARS intent.
+- Regression: independent `exact-roundtrip.test.tsx` covers2/4/10 toggles, sub-cent and4000 inputs, genuine edits and delayed rate changes. Restoring the published pre-repair component in a disposable copy fails8 of10 tests; the fixed component passes all10.
+- Fixture compatibility: formatter mocks must preserve newly used real exports. The crypto-deposit mock omitted `formatFiniteDisplay`; retain the actual currency module before explicit test overrides. The loaded deposit/QR, warning and help-button tests exercise this path.

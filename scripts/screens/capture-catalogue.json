@@ -679,6 +679,11 @@
         "route": "/add-money/crypto"
     },
     {
+        "id": "fixture-add-money-brazil-paused",
+        "flow": "Add money",
+        "route": "/add-money?method=bank"
+    },
+    {
         "id": "fixture-add-money-argentina",
         "flow": "Add money",
         "route": "/add-money/argentina"
@@ -1346,6 +1351,24 @@
         "route": "/qr/synthetic-success/success"
     },
     {
+        "id": "numeric-request-amount-4000",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=numeric-request-amount-4000",
+        "source": "Global/AmountInput/index.tsx"
+    },
+    {
+        "id": "numeric-request-rate-unavailable",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=numeric-request-rate-unavailable",
+        "source": "Global/AmountInput/index.tsx"
+    },
+    {
+        "id": "numeric-request-amount-invalid",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=numeric-request-amount-invalid",
+        "source": "Global/AmountInput/index.tsx"
+    },
+    {
         "id": "50-d-transactiondetailsdrawer",
         "flow": "Payments",
         "route": "/dev/surfaces?s=50-d-transactiondetailsdrawer",
@@ -1434,6 +1457,11 @@
         "id": "fixture-withdraw-usd-speed",
         "flow": "Withdraw",
         "route": "/withdraw"
+    },
+    {
+        "id": "fixture-withdraw-brazil-paused",
+        "flow": "Withdraw",
+        "route": "/withdraw/manteca?country=brazil&method=pix"
     },
     {
         "id": "fixture-withdraw-bank-form",

@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
@@ -27,7 +29,7 @@ export type RowLimitSummary =
 function formatCap(amount: number, currency: string, locale: string): string {
     const symbol = getCurrencySymbol(currency)
     const separator = symbol.length > 1 && symbol === symbol.toUpperCase() ? ' ' : ''
-    return `${symbol}${separator}${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(amount)}`
+    return `${symbol}${separator}${formatFiniteDisplay(amount, locale, { maximumFractionDigits: 0 })}`
 }
 
 export function limitSummariesForRows(

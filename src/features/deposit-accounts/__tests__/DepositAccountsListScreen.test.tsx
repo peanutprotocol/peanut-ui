@@ -12,6 +12,7 @@ import type { ClaimableCorridor, DepositAccount, DepositCorridor, UnavailableCor
 import type { GateState } from '@/utils/capability-gate'
 import type { BankRowsInput } from '@/utils/unlock-payments.utils'
 import { withReturnTo } from '@/utils/return-to.utils'
+import { closeBrazilPausedDrawer, isBrazilPausedDrawerOpen } from '@/features/brazil-pause/brazil-paused-drawer-store'
 
 /** the hub the top-ups return to — the origin every top-up push carries */
 const HUB_RETURN = '/add-money?method=bank'
@@ -78,8 +79,13 @@ jest.mock('@/hooks/useBankRows', () => ({
 // the drawer names card issuing from the same restrictions the rows read
 jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => mockBankInput.restrictions }))
 
+let brazilPaused = false
+jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({ useBrazilServicesPaused: () => brazilPaused }))
+
 beforeEach(() => {
     jest.clearAllMocks()
+    brazilPaused = false
+    closeBrazilPausedDrawer()
     depositAccountsEnabled = true
     residenceIso2s = []
     mockIsCountrySupported.mockReturnValue(true)
@@ -731,6 +737,26 @@ describe('the other ways in', () => {
 
         fireEvent.click(bankRow('brl'))
         expect(mockPush).toHaveBeenCalledWith(withReturnTo('/add-money/brazil/manteca', HUB_RETURN))
+    })
+
+    it('opens the Brazil paused drawer instead of the BRL transfer while the pause covers the user', () => {
+        brazilPaused = true
+        list(false)
+
+        fireEvent.click(bankRow('brl'))
+        expect(isBrazilPausedDrawerOpen()).toBe(true)
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('keeps every other bank row open during the Brazil pause', () => {
+        brazilPaused = true
+        residenceIso2s = ['AR']
+        mockBankInput = { ...mockBankInput, residenceIso2: 'AR' }
+        list(false)
+
+        fireEvent.click(bankRow('ars'))
+        expect(isBrazilPausedDrawerOpen()).toBe(false)
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/add-money/argentina/manteca', HUB_RETURN))
     })
 
     it('drops the bank row an active virtual account already covers', () => {

@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl'
 import Loading from '@/components/Global/Loading'
 import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
+import { BrazilPausedScreen } from '@/features/brazil-pause/components/BrazilPausedScreen'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { loadingStateKey } from '@/i18n/app/loading-states'
@@ -33,6 +34,8 @@ function QrPayFlowContent() {
             return <QrPayProviderRejectionView />
         case 'KYC_GATE':
             return <QrPayKycGateView />
+        case 'BRAZIL_PAUSED':
+            return <BrazilPausedScreen />
         case 'MAINTENANCE':
         case 'INIT_ERROR':
         case 'ORDER_NOT_READY':

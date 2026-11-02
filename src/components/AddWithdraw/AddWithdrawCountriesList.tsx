@@ -58,6 +58,8 @@ import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { useModalsContext } from '@/context/ModalsContext'
 import { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/features/kill-switches/kill-switches.consts'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
+import { openBrazilPausedDrawer } from '@/features/brazil-pause/brazil-paused-drawer-store'
+import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 
@@ -448,9 +450,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         [withdrawFlow, currentCountry, bankRail]
     )
 
+    // every Brazil method moves BRL or pays Pix, so the pause stops them all
+    const brazilPaused = useBrazilServicesPaused() && currentCountry?.path === 'brazil'
+
     const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
         // a new tap is the new intent: a rail still held for the gate is let go
         setHeldMethod(null)
+        if (brazilPaused) return openBrazilPausedDrawer()
         if (method.path && method.path.includes('/manteca')) {
             // Manteca methods route directly (has own amount input). The path
             // already carries its own `method=<rail>` (bank-transfer/pix), so the
@@ -479,6 +485,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     const handleAddMethodClick = (method: SpecificPaymentMethod) => {
         setHeldMethod(null)
+        if (brazilPaused) return openBrazilPausedDrawer()
         if (method.path) {
             if (checkBridgeGate(method, () => handleAddMethodClick(method))) return
 

@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useReturnTo } from '@/hooks/useSafeBack'
@@ -125,7 +127,11 @@ export function QrPaySuccessView() {
                                     const amountSponsored = qrPayment?.perk?.amountSponsored
                                     if (amountSponsored && typeof amountSponsored === 'number') {
                                         return t('success.earnedHoldToClaim', {
-                                            amount: amountSponsored.toFixed(2),
+                                            amount: formatFiniteDisplay(amountSponsored, 'en-US', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                                useGrouping: false,
+                                            }),
                                         })
                                     }
 
@@ -148,7 +154,11 @@ export function QrPaySuccessView() {
 
                                     if (amountSponsored && typeof amountSponsored === 'number') {
                                         return t('success.earnedInviteFriends', {
-                                            amount: amountSponsored.toFixed(2),
+                                            amount: formatFiniteDisplay(amountSponsored, 'en-US', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                                useGrouping: false,
+                                            }),
                                         })
                                     }
 
