@@ -7183,10 +7183,11 @@ export interface paths {
                     "application/json": {
                         email?: boolean;
                         emailUpdates?: boolean;
+                        expectedUserId?: string;
                         marketingPush?: boolean;
                         push?: boolean;
                         pushPermission?: "granted" | "denied" | "dismissed";
-                    };
+                    } | unknown | unknown | unknown | unknown | unknown;
                 };
             };
             responses: {
@@ -7207,6 +7208,17 @@ export interface paths {
                 };
                 /** @description Default Response */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -13751,7 +13763,13 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            code?: string;
+                            document?: {
+                                issuingCountry: string;
+                                type: string;
+                            };
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -14114,6 +14132,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        expectedUserId?: string;
                         values: {
                             [key: string]: string;
                         };
