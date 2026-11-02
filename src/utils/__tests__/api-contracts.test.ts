@@ -5,7 +5,7 @@ jest.mock('../api-fetch', () => ({
     apiFetch: (path: string, init?: RequestInit) => global.fetch(`https://api.test${path}`, init),
 }))
 
-const version = (kyc = 4) => ({
+const version = (kyc = 5) => ({
     commit: 'e7a93bf7d',
     branch: 'preview',
     builtAt: null,
@@ -25,6 +25,21 @@ describe('session API compatibility', () => {
         jest.useRealTimers()
         delete process.env.NEXT_PUBLIC_GIT_COMMIT_HASH
         delete process.env.NEXT_PUBLIC_TEST_BUILD_BRANCH
+    })
+
+    it('requires exactly KYC contract 5', () => {
+        expect(require('@/constants/api-contracts.json').REQUIRED_API_CONTRACTS.kyc).toBe(5)
+    })
+
+    it.each([
+        [4, 'incompatible'],
+        [5, 'compatible'],
+        [6, 'compatible'],
+    ])('KYC %i is %s', async (kyc, status) => {
+        global.fetch = jest.fn().mockResolvedValue(response(200, version(kyc as number)))
+        const { loadApiVersion, getApiCompatibility } = require('../api-contracts')
+        await loadApiVersion()
+        expect(getApiCompatibility().status).toBe(status)
     })
 
     it('shares one pending read and caches the result across callers', async () => {
@@ -47,7 +62,7 @@ describe('session API compatibility', () => {
         expect(getApiCompatibility()).toMatchObject({ status: 'compatible', version: version() })
     })
 
-    it.each([0, 1, 2, 3])('reports kyc v%i once with both commits and no response data', async (kyc) => {
+    it.each([0, 1, 2, 3, 4])('reports kyc v%i once with both commits and no response data', async (kyc) => {
         global.fetch = jest.fn().mockResolvedValue(response(200, version(kyc)))
         const { loadApiVersion } = require('../api-contracts')
         await Promise.all([loadApiVersion(), loadApiVersion()])
@@ -71,7 +86,7 @@ describe('session API compatibility', () => {
         expect(getApiCompatibility()).toMatchObject({ status: 'incompatible', version: { contracts: { kyc: 0 } } })
     })
 
-    it.each([null, {}, { ...version(), contracts: { kyc: '4' } }])(
+    it.each([null, {}, { ...version(), contracts: { kyc: '5' } }])(
         'keeps malformed metadata unknown: %p',
         async (body) => {
             global.fetch = jest.fn().mockResolvedValue(response(200, body))

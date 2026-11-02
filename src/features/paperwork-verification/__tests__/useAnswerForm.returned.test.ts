@@ -1,4 +1,6 @@
-import { act, renderHook } from '@testing-library/react'
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
+import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
+import { act } from '@testing-library/react'
 import type { PaperworkVerificationStep } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { useAnswerForm } from '../useAnswerForm'
 

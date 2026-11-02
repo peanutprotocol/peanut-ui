@@ -207,7 +207,7 @@ describe('every screen shows the feature report', () => {
                 entryChip(fixture.features.bank, capabilities.nextActions),
                 entryChip(fixture.features.local, capabilities.nextActions),
             ])
-            expect(bankAccountRow(rows, featureChip).chip).toBe(featureChip)
+            expect(bankAccountRow(rows, featureChip, { features: fixture.features }).chip).toBe(featureChip)
         })
 
         it('the deposit accounts list closes exactly the accounts the report refuses with no way out', () => {

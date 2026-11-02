@@ -1,9 +1,18 @@
-import { act, renderHook } from '@testing-library/react'
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
+import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
+import { act } from '@testing-library/react'
 import { saveKycAnswers } from '@/app/actions/kyc-paperwork-verification'
 import type { PaperworkVerificationStep } from '@/app/actions/types/kyc-paperwork-verification.types'
-import { getAuthToken, setAuthToken, tokenUserId } from '@/utils/auth-token'
+import { clearAuthToken, getAuthToken, setAuthToken, tokenUserId } from '@/utils/auth-token'
 import { keepAnswerDraft, readAnswerDraft } from '../answerDraft'
 import { saveSteps, useAnswerForm } from '../useAnswerForm'
+
+jest.mock('@/constants/dev-tools.consts', () => ({ DEV_TOOLS_ENABLED: true }))
+const mockAuthReady = jest.fn(async () => {})
+jest.mock('@/utils/auth-token', () => ({
+    ...jest.requireActual('@/utils/auth-token'),
+    authReady: () => mockAuthReady(),
+}))
 
 jest.mock('@/app/actions/kyc-paperwork-verification', () => ({ saveKycAnswers: jest.fn() }))
 let mockUserId = 'user-a'
@@ -22,6 +31,7 @@ const values = { bankPurpose: 'a', employmentStatus: 'b' }
 const save = jest.mocked(saveKycAnswers)
 
 beforeEach(() => {
+    mockAuthReady.mockReset().mockResolvedValue(undefined)
     window.sessionStorage.clear()
     mockUserId = 'user-a'
     setAuthToken(jwt('user-a'))
@@ -110,3 +120,56 @@ describe('answer writes belong to their initiating account', () => {
         expect(save).toHaveBeenCalledTimes(1)
     })
 })
+
+it('R18 fixture answer saves use the fixture profile instead of decoding its opaque cookie', async () => {
+    document.cookie = 'jwt-token=fixture; path=/'
+    window.sessionStorage.setItem('peanut_fixture', 'home')
+    await saveSteps(steps, values, 'bank', 'user-a')
+    expect(save.mock.calls).toEqual([
+        ['purpose', { bankPurpose: 'a' }, 'bank', 'user-a'],
+        ['work', { employmentStatus: 'b' }, 'bank', 'user-a'],
+    ])
+})
+
+it('R18 a legacy cookie-only session can save without expectedUserId', async () => {
+    document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    await saveSteps(steps, values, 'bank', 'user-a')
+    expect(save.mock.calls).toEqual([
+        ['purpose', { bankPurpose: 'a' }, 'bank', undefined],
+        ['work', { employmentStatus: 'b' }, 'bank', undefined],
+    ])
+})
+
+it.each(['same', 'changed', 'cleared', 'unmounted'] as const)(
+    'R18 form hydration preserves ownership (%s)',
+    async (state) => {
+        await clearAuthToken()
+        let finish!: () => void
+        mockAuthReady.mockReturnValueOnce(
+            new Promise((resolve) => {
+                finish = resolve
+            })
+        )
+        const view = renderHook(() => useAnswerForm(steps))
+        let pending!: ReturnType<typeof view.result.current.save>
+        act(() => {
+            pending = view.result.current.save()
+        })
+        expect(save).not.toHaveBeenCalled()
+        if (state === 'unmounted') view.unmount()
+        if (state === 'cleared')
+            await act(async () => {
+                await clearAuthToken()
+            })
+        await act(async () => {
+            if (state === 'same') setAuthToken(jwt('user-a'))
+            if (state === 'changed') setAuthToken(jwt('user-b'))
+            finish()
+            await pending
+        })
+        if (state === 'same') {
+            expect(save).toHaveBeenCalledTimes(2)
+            expect(save.mock.calls.every((call) => call[3] === 'user-a')).toBe(true)
+        } else expect(save).not.toHaveBeenCalled()
+    }
+)

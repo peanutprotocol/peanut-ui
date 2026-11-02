@@ -89,13 +89,14 @@ function NotificationSwitches() {
         const session = captureSession()
         if (!session.current()) return
         savingRef.current = true
-        const asksPermission = !skip && (push || marketingPush)
-        // Started before any other await, so the browser accepts the prompt from this tap.
-        const permission = asksPermission ? askPermission(session) : undefined
         setSaving(true)
         setSetupLoading(true)
         setError(undefined)
         try {
+            if (session.ready) await session.ready
+            if (!session.current()) return
+            // Readable sessions start the prompt in the tap's user gesture.
+            const permission = !skip && (push || marketingPush) ? askPermission(session) : undefined
             const answer = (await permission) ?? permissionRef.current
             if (!session.current()) return
             const pushAllowed = answer === 'granted'
@@ -109,7 +110,7 @@ function NotificationSwitches() {
                 emailUpdates: saved.emailUpdates,
                 ...(answer && { pushPermission: answer }),
             }
-            const ok = await notificationsApi.savePreferences(changes, session.userId!).then(
+            const ok = await notificationsApi.savePreferences(changes, session.userId ?? undefined).then(
                 () => true,
                 () => false
             )

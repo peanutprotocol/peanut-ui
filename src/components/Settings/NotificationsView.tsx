@@ -51,6 +51,8 @@ export const NotificationsView = () => {
 
     const askPermission = async (session: SessionFence): Promise<PushPermission> => {
         try {
+            if (session.ready) await session.ready
+            if (!session.current()) return 'dismissed'
             const permission = toPushPermission(await requestPermission())
             if (!session.current()) return 'dismissed'
             await afterPermissionAttempt()
@@ -66,6 +68,7 @@ export const NotificationsView = () => {
         setChoices({ ...choices, [key]: on })
         setSaving(true)
         try {
+            if (session.ready) await session.ready
             const answer = await permission
             if (!session.current()) return
             // A push switch can't work without the OS permission, so a refusal saves it off.
@@ -73,7 +76,7 @@ export const NotificationsView = () => {
                 [key]: on && (answer === undefined || answer === 'granted'),
                 ...(answer && { pushPermission: answer }),
             }
-            const saved = await notificationsApi.savePreferences(changes, session.userId!)
+            const saved = await notificationsApi.savePreferences(changes, session.userId ?? undefined)
             if (session.current()) setChoices(saved)
         } catch {
             if (!session.current()) return
@@ -94,6 +97,7 @@ export const NotificationsView = () => {
     }
 
     const onToggle = (key: Switch, on: boolean) => {
+        if (!choices || savingRef.current) return
         const session = captureSession()
         if (!session.current()) return
         // Asked inside the tap, so the browser accepts the prompt as a user gesture.

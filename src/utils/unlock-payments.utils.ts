@@ -326,7 +326,7 @@ export const BANK_ACCOUNT_HREF = '/profile/accounts'
 export function bankAccountRow(
     bankRows: readonly UnlockRow[],
     chip: UnlockChip,
-    accounts?: {
+    accounts: {
         features: FeatureReport
         heldCorridors?: readonly DepositCorridor[]
         openableCorridors?: readonly DepositCorridor[]

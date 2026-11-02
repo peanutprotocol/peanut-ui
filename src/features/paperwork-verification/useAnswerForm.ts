@@ -11,7 +11,7 @@ import type {
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { draftResidenceOf, forgetSavedAnswers, keepAnswerDraft, readAnswerDraft, withAnswerDraft } from './answerDraft'
 import { initialValues, maskedUntouched, stepPayload, withEmploymentStatus } from './paperworkVerification.utils'
-import { getAuthToken, getClearEpoch, tokenUserId } from '@/utils/auth-token'
+import { captureSessionFence } from '@/utils/session-fence'
 import { useSessionFence } from '@/hooks/useSessionFence'
 
 export type AnswerFormError =
@@ -59,8 +59,9 @@ export async function saveSteps(
     userId?: string,
     active: () => boolean = () => true
 ): Promise<SaveOutcome> {
-    const epoch = getClearEpoch()
-    const current = () => !!userId && active() && getClearEpoch() === epoch && tokenUserId(getAuthToken()) === userId
+    const session = captureSessionFence(userId, active)
+    if (session.ready) await session.ready
+    const current = session.current
     const cancelled: SaveOutcome = { ok: false, error: 'session_changed', formError: 'unavailable' }
     if (!current()) return cancelled
     let next: PaperworkVerificationStepId | null = null
@@ -69,7 +70,7 @@ export async function saveSteps(
         const payload = stepPayload(step.fields, values)
         // A saved, masked number left as it is: there is nothing to send.
         if (!Object.keys(payload).length && step.fields.some((f) => maskedUntouched(f, values))) continue
-        const result = await saveKycAnswers(step.id, payload, feature, userId)
+        const result = await saveKycAnswers(step.id, payload, feature, session.userId ?? undefined)
         if (!current()) return cancelled
         if (result.kind === 'invalid')
             return { ok: false, step: step.id, rejected: { step: step.id, errors: result.errors } }
@@ -158,12 +159,14 @@ export function useAnswerForm(
         async (toSave: PaperworkVerificationStep[] = steps): Promise<SaveOutcome> => {
             if (savingRef.current) return { ok: false }
             const session = captureSession()
-            if (!session.current() || session.userId !== userId || owner.current !== userId)
+            if (!session.current() || (session.userId && session.userId !== userId) || owner.current !== userId)
                 return { ok: false, error: 'session_changed', formError: 'unavailable' }
             savingRef.current = true
             setSaving(true)
             setFormError(null)
             try {
+                if (session.ready) await session.ready
+                if (!session.current()) return { ok: false, error: 'session_changed', formError: 'unavailable' }
                 const outcome = await saveSteps(toSave, values, feature, userId, session.current)
                 if (!session.current()) return { ok: false, error: 'session_changed', formError: 'unavailable' }
                 if (outcome.ok) setErrors({})

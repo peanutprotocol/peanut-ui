@@ -9,6 +9,7 @@ import { PeanutMascotScene } from '@/components/Global/PeanutMascot/PeanutMascot
 import { PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
 import { notificationsApi, toPushPermission } from '@/services/notifications'
 import { useSessionFence } from '@/hooks/useSessionFence'
+import { useRef } from 'react'
 
 // each money moment promises what the push will be about (TASK-23251); the
 // Home fallback keeps the original ask
@@ -21,6 +22,7 @@ const MOMENT_COPY = {
 
 export default function SetupNotificationsModal() {
     const captureSession = useSessionFence()
+    const attempting = useRef(false)
     // migration-era copy ("Get money alerts") only ships when the pwa-sunset
     // flag is on — flag off keeps today's prompt byte-for-byte (TASK-20771)
     const migrationOn = useMigrationFlag()
@@ -37,16 +39,17 @@ export default function SetupNotificationsModal() {
         // prevent event bubbling to avoid double-triggering
         e?.preventDefault()
         e?.stopPropagation()
+        if (attempting.current) return
+        attempting.current = true
         const session = captureSession()
-        if (!session.current()) return
-
-        posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
-            modal_type: MODAL_TYPES.NOTIFICATIONS,
-            cta: 'enable',
-            trigger: promptTrigger,
-        })
-
         try {
+            if (session.ready) await session.ready
+            if (!session.current()) return
+            posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
+                modal_type: MODAL_TYPES.NOTIFICATIONS,
+                cta: 'enable',
+                trigger: promptTrigger,
+            })
             // request permission - this shows the native dialog
             const permission = toPushPermission(await requestPermission())
             if (!session.current()) return
@@ -58,11 +61,13 @@ export default function SetupNotificationsModal() {
             void notificationsApi
                 .savePreferences(
                     { pushPermission: permission, ...(permission === 'granted' && { push: true }) },
-                    session.userId!
+                    session.userId ?? undefined
                 )
                 .catch(() => {})
         } catch (error) {
             console.error('Error requesting permission:', error)
+        } finally {
+            attempting.current = false
         }
     }
 

@@ -397,13 +397,14 @@ function PaperworkVerificationSteps({
         void stepper.goTo(screenOf(refused))
     }
 
-    const submitAnswers = (
+    const submitAnswers = async (
         shown: PaperworkVerificationStep[],
         values: PaperworkVerificationAnswers,
         seconds: number
     ) => {
         const session = captureSession()
-        if (!session.current() || session.userId !== user?.user.userId) {
+        if (session.ready) await session.ready
+        if (!session.current() || (session.userId && session.userId !== user?.user.userId)) {
             queueGeneration.current += 1
             router.replace('/home')
             return

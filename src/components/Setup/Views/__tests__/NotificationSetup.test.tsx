@@ -1,3 +1,4 @@
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -53,6 +54,7 @@ jest.mock('@/utils/sentry-lazy', () => ({
 }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }),
+    useOptionalAuth: () => ({ user: mockUser }),
 }))
 // Registry imports server-only content and other screens; only its order matters here.
 jest.mock('@/components/Setup/Setup.consts', () => ({

@@ -1,16 +1,19 @@
 'use client'
 
 import { useCallback, useEffect, useRef } from 'react'
-import { getAuthToken, getClearEpoch, tokenUserId } from '@/utils/auth-token'
-import { isDemoMode } from '@/utils/demo'
-
-export interface SessionFence {
-    userId: string | null
-    current: () => boolean
-}
+import { captureSessionFence } from '@/utils/session-fence'
+import { useOptionalAuth } from '@/context/authContext'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import { useTranslations } from 'next-intl'
+export type { SessionFence } from '@/utils/session-fence'
 
 /** Bind an asynchronous intent to its authenticated account and mounted owner. */
 export function useSessionFence() {
+    const userId = useOptionalAuth()?.user?.user.userId
+    const latestUserId = useRef(userId)
+    latestUserId.current = userId
+    const toast = useToast()
+    const t = useTranslations('kyc.paperworkVerification.errors')
     const lifetime = useRef(0)
     useEffect(
         () => () => {
@@ -18,21 +21,15 @@ export function useSessionFence() {
         },
         []
     )
-    return useCallback((): SessionFence => {
-        const demo = isDemoMode()
-        // Demo preference writes stay in the synthetic API; a missing real JWT
-        // never becomes permission to write to an authenticated account.
-        const userId = demo ? 'demo-user' : tokenUserId(getAuthToken())
-        const epoch = getClearEpoch()
+    return useCallback(() => {
         const owner = lifetime.current
-        return {
-            userId,
-            current: () =>
-                !!userId &&
-                lifetime.current === owner &&
-                getClearEpoch() === epoch &&
-                isDemoMode() === demo &&
-                (demo || tokenUserId(getAuthToken()) === userId),
-        }
-    }, [])
+        const account = latestUserId.current
+        const fence = captureSessionFence(
+            account,
+            () => lifetime.current === owner && latestUserId.current === account,
+            () => toast.error(t('unavailable'))
+        )
+        if (!fence.current()) toast.error(t('unavailable'))
+        return fence
+    }, [toast, t])
 }
