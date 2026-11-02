@@ -231,7 +231,13 @@ export const ledgerActions = {
         }))
     },
     snoozed(userId: string, askId: AskId, until: number, version?: string) {
-        write(userId, askId, (entry) => ({ ...entry, snoozedUntil: new Date(until).toISOString(), version }))
+        write(userId, askId, (entry) => ({
+            ...entry,
+            // a dismissal recorded for another version must not come back once this snooze ends
+            dismissedAt: entry.version === version ? entry.dismissedAt : undefined,
+            snoozedUntil: new Date(until).toISOString(),
+            version,
+        }))
     },
     /** completion is derived from state; this only clears a stale silence */
     cleared(userId: string, askId: AskId) {

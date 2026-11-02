@@ -7,6 +7,9 @@ let mockSunsetOn = false
 jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockSunsetOn }))
 
 import { ledgerActions, legacyEntries, readLedger } from '../ledger'
+import { isSilenced } from '../decide'
+import { finishCardSetup, legalReconsent } from '../registry'
+import type { JourneyState } from '../types'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 
 const USER = 'user-a'
@@ -131,5 +134,27 @@ describe('hostile storage', () => {
         expect(entries['install-app']).toBeUndefined()
         expect(entries['push-home-fallback']).toBeUndefined()
         expect(entries['blocked-card']?.dismissedAt).toBe(new Date(0).toISOString())
+    })
+})
+
+describe('a snooze under a new version', () => {
+    test.each([legalReconsent, finishCardSetup])(
+        '$id: the dismissal recorded for the previous version does not outlive the new snooze',
+        (ask) => {
+            const now = Date.parse('2026-11-02T00:00:00Z')
+            const state = { now, consent: { versions: ['v2'] }, card: { activeCardId: 'v2' } } as JourneyState
+            ledgerActions.dismissed(USER, ask.id, now - DAY_MS, 'v1')
+            expect(isSilenced(ask, readLedger(USER)[ask.id], state)).toBe(false)
+            ledgerActions.snoozed(USER, ask.id, now + 1000, 'v2')
+            expect(readLedger(USER)[ask.id]?.dismissedAt).toBeUndefined()
+            expect(isSilenced(ask, readLedger(USER)[ask.id], state)).toBe(true)
+            expect(isSilenced(ask, readLedger(USER)[ask.id], { ...state, now: now + 1001 })).toBe(false)
+        }
+    )
+
+    test('a snooze under the same version keeps the dismissal', () => {
+        ledgerActions.dismissed(USER, 'legal-reconsent', Date.now(), 'v1')
+        ledgerActions.snoozed(USER, 'legal-reconsent', Date.now() + DAY_MS, 'v1')
+        expect(readLedger(USER)['legal-reconsent']?.dismissedAt).toBeDefined()
     })
 })
