@@ -235,6 +235,12 @@ test('zone rotation counters stay on the device: never synced, never taken from 
     const merged = readLedger(USER_A, phone)
     expect(merged.invite).toMatchObject({ lastSessionShown: 3, consecutiveSessions: 1 })
     expect(merged['complete-profile']?.lastSessionShown).toBeUndefined()
+
+    // the merge itself never takes counters from the other copy, whichever side has the entry
+    const laptop = ledger({ invite: { lastSessionShown: 2, consecutiveSessions: 2, updatedAt: OLD } })
+    const pure = mergeLedgers(laptop, phone)
+    expect(pure.invite).toMatchObject({ lastSessionShown: 2, consecutiveSessions: 2 })
+    expect(pure['complete-profile']).not.toHaveProperty('lastSessionShown')
 })
 
 test('push answers stay on the device: never synced, never taken from the server copy', async () => {

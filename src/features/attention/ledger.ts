@@ -176,7 +176,7 @@ const hasDecision = (entry: LedgerEntry): boolean => !!(entry.dismissedAt || ent
  */
 export function mergeEntry(mine: LedgerEntry | undefined, theirs: LedgerEntry): LedgerEntry {
     if (!mine) {
-        const { shownAt, ...rest } = theirs
+        const { shownAt, lastSessionShown: _last, consecutiveSessions: _run, ...rest } = theirs
         const history = showHistory(shownAt ?? [])
         return history.length ? { ...rest, shownAt: history } : rest
     }
@@ -190,8 +190,8 @@ export function mergeEntry(mine: LedgerEntry | undefined, theirs: LedgerEntry): 
         snoozedUntil: answer.snoozedUntil,
         version: hasDecision(answer) ? answer.version : newer.version,
         // rotation counts this device's sessions: never taken over from another copy
-        lastSessionShown: mine.lastSessionShown ?? theirs.lastSessionShown,
-        consecutiveSessions: mine.consecutiveSessions ?? theirs.consecutiveSessions,
+        lastSessionShown: mine.lastSessionShown,
+        consecutiveSessions: mine.consecutiveSessions,
         updatedAt: newer.updatedAt,
     }
     for (const key of Object.keys(out) as (keyof LedgerEntry)[]) if (out[key] === undefined) delete out[key]
