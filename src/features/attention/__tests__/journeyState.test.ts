@@ -31,6 +31,8 @@ const base: JourneyInputs = {
     cardLoaded: true,
     cardNeedsSetup: false,
     activeCardId: null,
+    cardSetupPath: 'none',
+    cardNeedsFunding: false,
     redirectDestination: undefined,
     balanceUnits: undefined,
     migrationOn: false,

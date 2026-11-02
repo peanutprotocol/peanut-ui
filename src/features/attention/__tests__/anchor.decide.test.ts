@@ -31,7 +31,7 @@ const state = (patch: Partial<JourneyState> = {}): JourneyState => ({
     onboarding: onboarding(),
     blockedCardId: null,
     dueTasks: 0,
-    card: { loaded: true, needsSetup: false, activeCardId: null },
+    card: { loaded: true, needsSetup: false, activeCardId: null, setupPath: 'none', needsFunding: false },
     postAuthRedirect: false,
     postAuthRedirectDestination: null,
     balance: { loaded: true, usd: 0 },
@@ -212,7 +212,15 @@ describe('Phase 8: Home interrupt anchor boundary', () => {
         ],
         [
             'finish-card-setup',
-            { card: { loaded: true, needsSetup: true, activeCardId: 'card-a', setupPath: 'legacy' } },
+            {
+                card: {
+                    loaded: true,
+                    needsSetup: true,
+                    activeCardId: 'card-a',
+                    setupPath: 'legacy',
+                    needsFunding: false,
+                },
+            },
         ],
     ])('%s follows its normal T1 budget even after another T1 interrupt', (id, patch) => {
         const prior: AskId = id === 'legal-reconsent' ? 'balance-backup' : 'legal-reconsent'
