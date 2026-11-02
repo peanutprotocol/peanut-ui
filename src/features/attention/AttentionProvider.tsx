@@ -249,6 +249,13 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
     useEffect(() => {
         if (state.userId) persistLegacyLedger(state.userId)
     }, [state.userId])
+    // nothing this provider opened stays "open" once it is gone (the push store reads it)
+    useEffect(
+        () => () => {
+            if (getSessionInterrupts().open) setSessionInterrupts({ ...getSessionInterrupts(), open: null })
+        },
+        []
+    )
     const previousUserId = useRef(state.userId)
     useEffect(() => {
         if (previousUserId.current === state.userId) return
