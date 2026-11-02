@@ -2,13 +2,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
 
 import { act, renderHook } from '@testing-library/react'
 
-let mockFinishInit: () => void
-const mockInit = jest.fn(
-    () =>
-        new Promise<void>((resolve) => {
-            mockFinishInit = resolve
-        })
-)
+const mockInit = jest.fn(() => new Promise<void>(() => {}))
 const mockRequest = jest.fn(async () => 'granted')
 const mockAdapter = {
     init: mockInit,
