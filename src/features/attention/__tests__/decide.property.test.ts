@@ -375,7 +375,7 @@ describe('F. silence and the ledger', () => {
         )
     })
 
-    test('merging two devices: the newer write of an ask wins, nothing newer is lost, merge is idempotent', () => {
+    test('merging two devices: the newer write of an ask wins, a show never erases an answer, merge is idempotent', () => {
         fc.assert(
             fc.property(ledgerArb, ledgerArb, (a, b) => {
                 const merged = mergeLedgers(a, b)
@@ -385,6 +385,12 @@ describe('F. silence and the ledger', () => {
                     const stampB = Date.parse(b[id]?.updatedAt ?? '') || 0
                     const newest = Math.max(stampA, stampB)
                     if (newest > 0) expect(Date.parse(merged[id]?.updatedAt ?? '') || 0).toBe(newest)
+                    const answered = (e?: LedgerEntry) => !!(e?.dismissedAt || e?.snoozedUntil)
+                    const onlyAnswer = answered(a[id]) !== answered(b[id]) ? (answered(a[id]) ? a[id] : b[id]) : null
+                    if (onlyAnswer) {
+                        expect(merged[id]?.dismissedAt).toBe(onlyAnswer.dismissedAt)
+                        expect(merged[id]?.snoozedUntil).toBe(onlyAnswer.snoozedUntil)
+                    }
                 }
             }),
             { numRuns: 1000 }

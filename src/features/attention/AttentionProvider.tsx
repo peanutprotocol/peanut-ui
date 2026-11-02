@@ -22,7 +22,14 @@ import { useAnyOverlayOpen } from '@/utils/overlay-visibility'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { decide } from './decide'
 import { getSessionInterrupts, setSessionInterrupts } from './interruptState'
-import { ledgerActions, noteServerLedger, readLedger, resetLedgerMemoryForTests, subscribeLedger } from './ledger'
+import {
+    ledgerActions,
+    noteServerLedger,
+    persistLegacyLedger,
+    readLedger,
+    resetLedgerMemoryForTests,
+    subscribeLedger,
+} from './ledger'
 import { bumpJourneyEpoch } from './journeyEpoch'
 import { useJourneyState } from './journeyState'
 import { ASKS } from './registry'
@@ -209,6 +216,9 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
     if (getSessionInterrupts().userId !== state.userId) {
         setSessionInterrupts({ userId: state.userId, ids: [], open: null })
     }
+    useEffect(() => {
+        if (state.userId) persistLegacyLedger(state.userId)
+    }, [state.userId])
     const previousUserId = useRef(state.userId)
     useEffect(() => {
         if (previousUserId.current === state.userId) return

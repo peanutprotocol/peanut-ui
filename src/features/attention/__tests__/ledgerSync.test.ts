@@ -43,12 +43,34 @@ afterEach(() => {
     jest.useRealTimers()
 })
 
-test('a write stamps updatedAt', () => {
+test('an answer stamps updatedAt; a show does not', () => {
     ledgerActions.dismissed(USER_A, 'invite', T0)
     expect(updatedAtOf(readLedger(USER_A).invite)).toBe(NEW)
     jest.setSystemTime(T0 + 1000)
-    ledgerActions.cleared(USER_A, 'invite')
+    ledgerActions.snoozed(USER_A, 'invite', T0 + 5000)
     expect(updatedAtOf(readLedger(USER_A).invite)).toBe(iso(T0 + 1000))
+    jest.setSystemTime(T0 + 2000)
+    ledgerActions.shown(USER_A, 'invite', T0 + 2000, 'zone', 3)
+    expect(updatedAtOf(readLedger(USER_A).invite)).toBe(iso(T0 + 1000))
+})
+
+test('a server-recorded show never erases a newer answer that has not synced yet', () => {
+    // the phone said "Not now" at T0; the email job recorded its show later, on the server
+    jest.setSystemTime(T0)
+    ledgerActions.snoozed(USER_A, 'card-offer', T0 + 7 * 86_400_000)
+    const server = ledger({ 'card-offer': { shownAt: [iso(T0 + 60_000)], updatedAt: iso(T0 + 60_000) } })
+    const merged = readLedger(USER_A, server)['card-offer']
+    expect(merged?.snoozedUntil).toBe(iso(T0 + 7 * 86_400_000))
+    expect(merged?.shownAt).toEqual([iso(T0 + 60_000)])
+})
+
+test('show histories from both sides are unioned, oldest first and capped', () => {
+    const shown = (n: number) => Array.from({ length: n }, (_, i) => iso(T0 + i * 1000))
+    const merged = mergeLedgers(
+        ledger({ invite: { shownAt: shown(8) } }),
+        ledger({ invite: { shownAt: [...shown(8).slice(4), iso(T0 + 20_000), iso(T0 + 21_000), iso(T0 + 22_000)] } })
+    )
+    expect(merged.invite?.shownAt).toEqual([...shown(8).slice(1), iso(T0 + 20_000), iso(T0 + 21_000), iso(T0 + 22_000)])
 })
 
 test('1: two devices disagree on an ask, the newest updatedAt wins on both sides', () => {

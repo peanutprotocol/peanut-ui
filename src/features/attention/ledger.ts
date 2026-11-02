@@ -86,7 +86,7 @@ export function legacyEntries(userId: string, prefs: UserPreferences | undefined
     if (reconsent) out['legal-reconsent'] = { snoozedUntil: reconsent }
     if (isIso(prefs?.migrationPromptSnoozedAt)) {
         const until = addDays(prefs.migrationPromptSnoozedAt, DOWNLOAD_PROMPT_SNOOZE_DAYS)
-        if (until) out['install-app'] = { snoozedUntil: until }
+        if (until) out['install-app'] = { snoozedUntil: until, updatedAt: prefs.migrationPromptSnoozedAt }
     }
     const balance = prefs?.hasSeenBalanceWarning
     if (balance?.value && Number.isFinite(balance.expiry)) {
@@ -100,31 +100,33 @@ export function legacyEntries(userId: string, prefs: UserPreferences | undefined
     if (pushClosedAt) {
         // flag off: the old prompt closed forever; flag on: a snooze
         out['push-home-fallback'] = isPwaSunsetOn()
-            ? { snoozedUntil: addDays(pushClosedAt, NOTIF_PROMPT_SNOOZE_DAYS) }
-            : { dismissedAt: pushClosedAt }
+            ? { snoozedUntil: addDays(pushClosedAt, NOTIF_PROMPT_SNOOZE_DAYS), updatedAt: pushClosedAt }
+            : { dismissedAt: pushClosedAt, updatedAt: pushClosedAt }
     }
     const hidden = prefs?.dismissedCarouselCTAs
     const hiddenIds = Array.isArray(hidden) ? hidden : Object.keys(hidden ?? {})
-    // the legacy string[] shape carries no date and reads as closed now
+    // the legacy string[] shape carries no date: closed, at an unknown (oldest) time
     const closedAt = (id: string): string => {
         const at = Array.isArray(hidden) ? undefined : hidden?.[id]
-        return isIso(at) ? at : new Date().toISOString()
+        return isIso(at) ? at : new Date(0).toISOString()
     }
     // one entry per ask: the newest hidden blocked card; `version` keeps an
     // older hidden reason from silencing a new one (isSilenced compares it)
     const blocked = hiddenIds.filter((id) => id.startsWith(BLOCKED_CARD_PREFIX)).at(-1)
     if (blocked) {
         const at = !Array.isArray(hidden) ? hidden?.[blocked] : undefined
-        out['blocked-card'] = { dismissedAt: isIso(at) ? at : new Date(0).toISOString(), version: blocked }
+        const when = isIso(at) ? at : new Date(0).toISOString()
+        out['blocked-card'] = { dismissedAt: when, version: blocked, updatedAt: when }
     }
     for (const id of hiddenIds) {
         const askId = LEGACY_CAROUSEL_ASK[id]
         if (!askId || out[askId]) continue
         // the app-install card came back after its cooldown; every other close was for good
+        const at = closedAt(id)
         out[askId] =
             id === 'app-install'
-                ? { snoozedUntil: addDays(closedAt(id), APP_INSTALL_CARD_COOLDOWN_DAYS) }
-                : { dismissedAt: closedAt(id) }
+                ? { snoozedUntil: addDays(at, APP_INSTALL_CARD_COOLDOWN_DAYS), updatedAt: at }
+                : { dismissedAt: at, updatedAt: at }
     }
     return out
 }
@@ -162,14 +164,42 @@ export function sanitizeEntry(raw: unknown): LedgerEntry | undefined {
 }
 
 const stamp = (entry: LedgerEntry): number => (entry.updatedAt ? Date.parse(entry.updatedAt) : 0)
+const showHistory = (shownAt: string[]): string[] =>
+    [...new Set(shownAt)].sort((a, b) => Date.parse(a) - Date.parse(b)).slice(-SHOWN_HISTORY_CAP)
+const hasDecision = (entry: LedgerEntry): boolean => !!(entry.dismissedAt || entry.snoozedUntil)
 
-/** Per ask, the newer `updatedAt` wins; no stamp counts as epoch 0; a tie keeps local. */
-export function mergeLedgers(local: Ledger, server: Ledger): Ledger {
-    const out: Ledger = { ...local }
-    for (const [id, entry] of Object.entries(server) as [AskId, LedgerEntry][]) {
-        const mine = out[id]
-        if (!mine || stamp(entry) > stamp(mine)) out[id] = entry
+/**
+ * Field by field: the show history is the union of both sides; the answer
+ * (dismissal, snooze and the version they were given for) comes from the
+ * newer `updatedAt`, except that an entry without an answer (a show, from
+ * either side) never erases one. A tie keeps `mine`.
+ */
+export function mergeEntry(mine: LedgerEntry | undefined, theirs: LedgerEntry): LedgerEntry {
+    if (!mine) {
+        const { shownAt, ...rest } = theirs
+        const history = showHistory(shownAt ?? [])
+        return history.length ? { ...rest, shownAt: history } : rest
     }
+    const theirsAnswers = hasDecision(theirs) !== hasDecision(mine) ? hasDecision(theirs) : stamp(theirs) > stamp(mine)
+    const answer = theirsAnswers ? theirs : mine
+    const newer = stamp(theirs) > stamp(mine) ? theirs : mine
+    const shownAt = showHistory([...(mine.shownAt ?? []), ...(theirs.shownAt ?? [])])
+    const out: LedgerEntry = {
+        shownAt: shownAt.length ? shownAt : undefined,
+        dismissedAt: answer.dismissedAt,
+        snoozedUntil: answer.snoozedUntil,
+        version: hasDecision(answer) ? answer.version : newer.version,
+        lastSessionShown: newer.lastSessionShown,
+        consecutiveSessions: newer.consecutiveSessions,
+        updatedAt: newer.updatedAt,
+    }
+    for (const key of Object.keys(out) as (keyof LedgerEntry)[]) if (out[key] === undefined) delete out[key]
+    return out
+}
+
+export function mergeLedgers(mine: Ledger, theirs: Ledger): Ledger {
+    const out: Ledger = { ...mine }
+    for (const [id, entry] of Object.entries(theirs) as [AskId, LedgerEntry][]) out[id] = mergeEntry(out[id], entry)
     return out
 }
 
@@ -184,28 +214,29 @@ function sanitizeStore(raw: unknown): Ledger {
 }
 
 /**
- * Legacy entries fill gaps only; where both devices wrote, the newer entry
- * wins (`mergeLedgers`). `server` is the profile's copy, passed by the provider.
+ * The device's store, the pre-manager closes and `server` (the profile's
+ * copy, passed by the provider), merged field by field (`mergeEntry`).
  */
 export function readLedger(userId: string | null, server?: unknown): Ledger {
     if (!userId) return EMPTY
     const raw = getUserPreferences(userId)
     const fingerprint = fingerprintOf(userId, raw, server)
     if (cached && cached.userId === userId && cached.fingerprint === fingerprint) return cached.ledger
-    const legacy = legacyEntries(userId, raw)
-    const ledger: Ledger = { ...legacy, ...mergeLedgers(sanitizeStore(localStore(userId, raw)), sanitizeStore(server)) }
+    const local = mergeLedgers(sanitizeStore(localStore(userId, raw)), legacyEntries(userId, raw))
+    const ledger = mergeLedgers(local, sanitizeStore(server))
     cached = { userId, fingerprint, ledger }
     return ledger
 }
 
-function write(userId: string, askId: AskId, patch: (entry: LedgerEntry) => LedgerEntry): void {
-    const current = readLedger(userId, lastServer)
-    const next: AttentionLedgerStore = {
-        ...((localStore(userId, getUserPreferences(userId)) as AttentionLedgerStore | undefined) ?? {}),
-        [askId]: { ...patch({ ...(current[askId] ?? {}) }), updatedAt: new Date().toISOString() },
-    }
+/** The store to write on: the device's, with the pre-manager closes copied in once so they sync. */
+function baseStore(userId: string, prefs: UserPreferences | undefined): AttentionLedgerStore {
+    const store = sanitizeStore(localStore(userId, prefs))
+    return prefs?.attentionLegacyPersisted ? store : mergeLedgers(store, legacyEntries(userId, prefs))
+}
+
+function save(userId: string, next: AttentionLedgerStore): void {
     // storage can refuse (quota, private mode): the answer still holds for this load and still syncs
-    if (updateUserPreferences(userId, { attention: next })) unsaved.delete(userId)
+    if (updateUserPreferences(userId, { attention: next, attentionLegacyPersisted: true })) unsaved.delete(userId)
     else {
         unsaved.set(userId, next)
         unsavedRevision++
@@ -213,6 +244,34 @@ function write(userId: string, askId: AskId, patch: (entry: LedgerEntry) => Ledg
     cached = null
     emit()
     scheduleLedgerSync(userId, next)
+}
+
+function write(
+    userId: string,
+    askId: AskId,
+    patch: (entry: LedgerEntry) => LedgerEntry,
+    { answer = true }: { answer?: boolean } = {}
+): void {
+    const current = readLedger(userId, lastServer)
+    const patched = patch({ ...(current[askId] ?? {}) })
+    // `updatedAt` stamps answers only: a show must not outrank another device's newer answer
+    const next: AttentionLedgerStore = {
+        ...baseStore(userId, getUserPreferences(userId)),
+        [askId]: answer ? { ...patched, updatedAt: new Date().toISOString() } : patched,
+    }
+    save(userId, next)
+}
+
+/** Copy the pre-manager closes into the synced store, once per user and device. */
+export function persistLegacyLedger(userId: string): void {
+    const prefs = getUserPreferences(userId)
+    if (prefs?.attentionLegacyPersisted || unsaved.has(userId)) return
+    const legacy = legacyEntries(userId, prefs)
+    if (!Object.keys(legacy).length) {
+        updateUserPreferences(userId, { attentionLegacyPersisted: true })
+        return
+    }
+    save(userId, baseStore(userId, prefs))
 }
 
 // the server copy the provider last read with, so a write merges on top of it
@@ -223,22 +282,28 @@ export function noteServerLedger(server: unknown): void {
 
 export const ledgerActions = {
     shown(userId: string, askId: AskId, now: number, surface: Surface, sessionCount: number) {
-        write(userId, askId, (entry) => {
-            const shownAt = surface !== 'zone' ? [...(entry.shownAt ?? []), new Date(now).toISOString()] : entry.shownAt
-            const consecutive =
-                surface === 'zone'
-                    ? entry.lastSessionShown === sessionCount
-                        ? (entry.consecutiveSessions ?? 1)
-                        : entry.lastSessionShown === sessionCount - 1
-                          ? (entry.consecutiveSessions ?? 0) + 1
-                          : 1
-                    : entry.consecutiveSessions
-            return {
-                ...entry,
-                shownAt: shownAt?.slice(-SHOWN_HISTORY_CAP),
-                ...(surface === 'zone' && { lastSessionShown: sessionCount, consecutiveSessions: consecutive }),
-            }
-        })
+        write(
+            userId,
+            askId,
+            (entry) => {
+                const shownAt =
+                    surface !== 'zone' ? [...(entry.shownAt ?? []), new Date(now).toISOString()] : entry.shownAt
+                const consecutive =
+                    surface === 'zone'
+                        ? entry.lastSessionShown === sessionCount
+                            ? (entry.consecutiveSessions ?? 1)
+                            : entry.lastSessionShown === sessionCount - 1
+                              ? (entry.consecutiveSessions ?? 0) + 1
+                              : 1
+                        : entry.consecutiveSessions
+                return {
+                    ...entry,
+                    shownAt: shownAt?.slice(-SHOWN_HISTORY_CAP),
+                    ...(surface === 'zone' && { lastSessionShown: sessionCount, consecutiveSessions: consecutive }),
+                }
+            },
+            { answer: false }
+        )
     },
     dismissed(userId: string, askId: AskId, now: number, version?: string) {
         write(userId, askId, (entry) => ({
@@ -256,9 +321,5 @@ export const ledgerActions = {
             snoozedUntil: new Date(until).toISOString(),
             version,
         }))
-    },
-    /** completion is derived from state; this only clears a stale silence */
-    cleared(userId: string, askId: AskId) {
-        write(userId, askId, (entry) => ({ ...entry, dismissedAt: undefined, snoozedUntil: undefined }))
     },
 }
