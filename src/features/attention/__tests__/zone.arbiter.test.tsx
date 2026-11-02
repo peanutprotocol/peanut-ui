@@ -12,6 +12,7 @@ import { IntlWrapper } from '@/test-utils/intl'
 import type { AskId, JourneyState, LedgerEntry } from '../types'
 
 const mockCapture = jest.fn()
+jest.mock('@/app/actions/users', () => ({ updateUserById: async () => ({}) }))
 jest.mock('../serverAttention', () => ({
     ...jest.requireActual('../serverAttention'),
     useServerAttention: () => undefined,
@@ -217,9 +218,9 @@ async function click(text: string) {
     })
 }
 
-/** a fresh app load for the same user: the next session count, a fresh session record */
+/** a fresh app load for the same user: the provider counts it as session `count`, a fresh session record */
 function newSession(count: number, userId = 'user-a') {
-    updateUserPreferences(userId, { sessionCount: count })
+    updateUserPreferences(userId, { sessionCount: count - 1 })
     resetAttentionSessionForTests()
 }
 
@@ -252,7 +253,8 @@ beforeEach(() => {
     mockLife.unmounts = {}
     mockState = state()
     latest = undefined
-    updateUserPreferences('user-a', { sessionCount: 3 })
+    // two earlier loads: the provider counts this one as session 3
+    updateUserPreferences('user-a', { sessionCount: 2 })
 })
 
 afterEach(() => {
@@ -477,8 +479,21 @@ describe('the Home zone', () => {
         expect(events('attention_shown')).toHaveLength(0)
     })
 
+    test("the first decision and the first booking already use this load's session count", async () => {
+        jest.useFakeTimers()
+        mockState = state(INVITE_ONLY)
+        await mount()
+        expect(latest?.session.count).toBe(3)
+        expect(entry('user-a', 'invite')?.lastSessionShown).toBe(3)
+        await act(async () => {
+            jest.advanceTimersByTime(4_000)
+        })
+        expect(latest?.session.count).toBe(3)
+        expect(events('attention_shown')).toHaveLength(1)
+    })
+
     test('an account switch unmounts the card and starts the new user fresh', async () => {
-        updateUserPreferences('user-b', { sessionCount: 2 })
+        updateUserPreferences('user-b', { sessionCount: 1 })
         mockState = state(INVITE_ONLY)
         const view = await mount()
         expect(zonesInDom()).toEqual(['invite'])

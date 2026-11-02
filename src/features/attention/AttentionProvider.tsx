@@ -17,7 +17,6 @@ import posthog from 'posthog-js'
 import * as Sentry from '@sentry/nextjs'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { IS_DEV } from '@/constants/general.consts'
-import { getUserPreferences } from '@/utils/general.utils'
 import { useAnyOverlayOpen } from '@/utils/overlay-visibility'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { decide } from './decide'
@@ -34,6 +33,7 @@ import { bumpJourneyEpoch } from './journeyEpoch'
 import { useJourneyState } from './journeyState'
 import { ASKS } from './registry'
 import { applyServerRanking, useServerAttention, type ServerAttention } from './serverAttention'
+import { countSession, resetSessionCountForTests, useSessionCount } from './sessionCount'
 import { useMountedSlots } from './slotStore'
 import type { AskId, AttentionAsk, Decision, JourneyState, Ledger, Session, Surface } from './types'
 
@@ -84,6 +84,7 @@ export function resetAttentionSessionForTests(): void {
     surfacesShownThisSession = { userId: null, keys: [] }
     crashedThisLoad.clear()
     resetLedgerMemoryForTests()
+    resetSessionCountForTests()
 }
 
 const ATTENTION_CRASHED = 'attention_crashed'
@@ -110,11 +111,14 @@ function useSession(state: JourneyState, openInterrupt: AskId | null, crashed: r
         return () => clearTimeout(timer)
     }, [state.userId])
 
+    // this load is counted before the first decision reads the count
+    if (state.userId) countSession(state.userId)
+    const count = useSessionCount(state.userId)
     const current = getSessionInterrupts()
     return useMemo(
         () => ({
             slots,
-            count: getUserPreferences(state.userId ?? undefined)?.sessionCount ?? 0,
+            count,
             route: state.route,
             interruptsThisSession: current.userId === state.userId ? current.ids : [],
             openInterrupt,
@@ -125,7 +129,7 @@ function useSession(state: JourneyState, openInterrupt: AskId | null, crashed: r
             settleDeadlinePassed,
             crashed,
         }),
-        [state.userId, state.route, current, openInterrupt, busy, settleDeadlinePassed, slots, crashed]
+        [count, state.route, current, state.userId, openInterrupt, busy, settleDeadlinePassed, slots, crashed]
     )
 }
 
