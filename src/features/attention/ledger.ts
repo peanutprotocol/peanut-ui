@@ -189,8 +189,9 @@ export function mergeEntry(mine: LedgerEntry | undefined, theirs: LedgerEntry): 
         dismissedAt: answer.dismissedAt,
         snoozedUntil: answer.snoozedUntil,
         version: hasDecision(answer) ? answer.version : newer.version,
-        lastSessionShown: newer.lastSessionShown,
-        consecutiveSessions: newer.consecutiveSessions,
+        // rotation counts this device's sessions: never taken over from another copy
+        lastSessionShown: mine.lastSessionShown ?? theirs.lastSessionShown,
+        consecutiveSessions: mine.consecutiveSessions ?? theirs.consecutiveSessions,
         updatedAt: newer.updatedAt,
     }
     for (const key of Object.keys(out) as (keyof LedgerEntry)[]) if (out[key] === undefined) delete out[key]
@@ -223,7 +224,7 @@ export function readLedger(userId: string | null, server?: unknown): Ledger {
     const fingerprint = fingerprintOf(userId, raw, server)
     if (cached && cached.userId === userId && cached.fingerprint === fingerprint) return cached.ledger
     const local = mergeLedgers(sanitizeStore(localStore(userId, raw)), legacyEntries(userId, raw))
-    const ledger = mergeLedgers(local, sanitizeStore(server))
+    const ledger = mergeLedgers(local, withoutRotation(sanitizeStore(server)))
     cached = { userId, fingerprint, ledger }
     return ledger
 }
@@ -232,6 +233,16 @@ export function readLedger(userId: string | null, server?: unknown): Ledger {
 function baseStore(userId: string, prefs: UserPreferences | undefined): AttentionLedgerStore {
     const store = sanitizeStore(localStore(userId, prefs))
     return prefs?.attentionLegacyPersisted ? store : mergeLedgers(store, legacyEntries(userId, prefs))
+}
+
+/** The zone rotation counters count this device's sessions, so they stay on it. */
+function withoutRotation(store: AttentionLedgerStore): AttentionLedgerStore {
+    const out: AttentionLedgerStore = {}
+    for (const [id, entry] of Object.entries(store) as [AskId, LedgerEntry][]) {
+        const { lastSessionShown: _last, consecutiveSessions: _run, ...rest } = entry
+        out[id] = rest
+    }
+    return out
 }
 
 function save(userId: string, next: AttentionLedgerStore): void {
@@ -243,7 +254,7 @@ function save(userId: string, next: AttentionLedgerStore): void {
     }
     cached = null
     emit()
-    scheduleLedgerSync(userId, next)
+    scheduleLedgerSync(userId, withoutRotation(next))
 }
 
 function write(
