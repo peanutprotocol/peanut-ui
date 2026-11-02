@@ -117,6 +117,10 @@ function interruptRefusal(
     }
 }
 
+/** The ask has a Home card, and this device can show it. */
+const canTakeZone = (ask: AttentionAsk, state: JourneyState): boolean =>
+    ask.surfaces.includes('zone') && (!ask.policy.surfaceWhen?.zone || ask.policy.surfaceWhen.zone(state))
+
 /** Never shown first, then the oldest show; rank breaks ties (the list is in priority order). */
 function leastRecentlyShown(asks: readonly AttentionAsk[], ledger: Ledger): AttentionAsk | undefined {
     let best: AttentionAsk | undefined
@@ -158,7 +162,7 @@ export function decide(state: JourneyState, asks: readonly AttentionAsk[], ledge
         return { interrupt: null, zone: null, inline: null, banner: null, suspended: true, trace }
     }
 
-    const zoneIdle = !live.some((ask) => ask.tier <= 5 && ask.surfaces.includes('zone'))
+    const zoneIdle = !live.some((ask) => ask.tier <= 5 && canTakeZone(ask, state))
 
     // the to-do list holds Home: only a strictly higher tier may overlay it, as a card or an interrupt
     const anchor = live.find((ask) => ask.policy.anchorsHome) ?? null
@@ -215,20 +219,24 @@ function pickZone(
     const candidates = live.filter(
         (ask) =>
             ask.id !== interrupt &&
-            ask.surfaces.includes('zone') &&
-            (!ask.policy.surfaceWhen?.zone || ask.policy.surfaceWhen.zone(state)) &&
+            canTakeZone(ask, state) &&
             (!anchor || ask.id === anchor.id || ask.tier < anchor.tier)
     )
-    // no flash of a lower card while a higher one is still loading
-    const best = candidates[0]
-    const higherUnknown = sorted.some(
-        (ask) => ask.surfaces.includes('zone') && verdicts[ask.id] === 'unknown' && (!best || byPriority(ask, best) < 0)
-    )
-    if (higherUnknown && !session.settleDeadlinePassed) return null
     const fresh = candidates.filter((ask) => !isFatigued(ask, ledger[ask.id], session))
     // the top card keeps Home unless it is resting; then the yield goes to the card shown least
     // recently, so a third live card cannot starve behind the top two. Every card resting: the top one again.
-    const pick = fresh[0] === candidates[0] ? candidates[0] : (leastRecentlyShown(fresh, ledger) ?? candidates[0])
+    // A yield card already booked this session keeps the zone, or booking it would re-decide.
+    const pick =
+        fresh[0] === candidates[0]
+            ? candidates[0]
+            : (fresh.find((ask) => ledger[ask.id]?.lastSessionShown === session.count) ??
+              leastRecentlyShown(fresh, ledger) ??
+              candidates[0])
+    // no flash of a lower card while a higher one is still loading
+    const higherUnknown = sorted.some(
+        (ask) => canTakeZone(ask, state) && verdicts[ask.id] === 'unknown' && (!pick || byPriority(ask, pick) < 0)
+    )
+    if (higherUnknown && !session.settleDeadlinePassed) return null
     if (pick && anchor && pick.id !== anchor.id) return { id: pick.id, mode: 'ask', underlay: anchor.id }
     if (pick) return { id: pick.id, mode: 'ask' }
     const pending = sorted.find((ask) => verdicts[ask.id] === 'pending' && ask.surfaces.includes('zone'))

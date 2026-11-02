@@ -312,11 +312,16 @@ describe('D–E. the Home zone', () => {
         }
     })
 
-    check('no lower card while a card that outranks it is still loading', (_state, _l, session, d) => {
+    check('no lower card while a card that outranks it is still loading', (state, _l, session, d) => {
         if (!d.zone || session.settleDeadlinePassed) return
         const chosen = askOf(d.zone.id)
+        // only a card this device could show holds the zone (surfaceWhen.zone)
         const loading = ASKS.filter(
-            (ask) => ask.surfaces.includes('zone') && d.trace.verdicts[ask.id] === 'unknown' && outranks(ask, chosen)
+            (ask) =>
+                ask.surfaces.includes('zone') &&
+                (!ask.policy.surfaceWhen?.zone || ask.policy.surfaceWhen.zone(state)) &&
+                d.trace.verdicts[ask.id] === 'unknown' &&
+                outranks(ask, chosen)
         )
         expect(loading.map((a) => a.id)).toEqual([])
     })
@@ -447,14 +452,17 @@ describe('E. over many sessions (simulator)', () => {
                 gateUp: false,
                 settleDeadlinePassed: true,
             }
-            const d = decide({ ...state, now: NOW + count * DAY_MS }, ASKS, ledger, session)
-            const id = d.zone?.id ?? null
+            const at = { ...state, now: NOW + count * DAY_MS }
+            const id = decide(at, ASKS, ledger, session).zone?.id ?? null
             picks.push(id)
             if (id) {
                 // what the provider records when a card is on screen (ledgerActions.shown, surface zone)
                 const entry = ledger[id] ?? {}
                 const consecutive = entry.lastSessionShown === count - 1 ? (entry.consecutiveSessions ?? 0) + 1 : 1
                 ledger = { ...ledger, [id]: { ...entry, lastSessionShown: count, consecutiveSessions: consecutive } }
+                // the provider re-decides after the booking: the card on screen must not change
+                const after = decide(at, ASKS, ledger, session).zone?.id ?? null
+                if (after !== id) throw new Error(`session ${count}: booking ${id} swapped the zone to ${after}`)
                 if (onShow) ledger = onShow(id, count, ledger)
             }
         }
