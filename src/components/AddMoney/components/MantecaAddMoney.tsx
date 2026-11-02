@@ -255,6 +255,12 @@ const MantecaAddMoney: FC = () => {
                 isUsdDenominated,
                 currency: selectedCountry.currency,
             })
+            if (depositData.code === API_ERROR_CODES.MANTECA_KYC_REQUIRED) {
+                // the rails said eligible but the API has no country-matched
+                // Manteca KYC: send the user to the same gate, not an error
+                setShowKycModal(true)
+                return
+            }
             if (depositData.error) {
                 posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
                     method_type: 'manteca',
