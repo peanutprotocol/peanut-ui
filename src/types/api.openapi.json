@@ -12851,6 +12851,33 @@
 						"application/json": {
 							"schema": {
 								"additionalProperties": false,
+								"anyOf": [
+									{
+										"required": [
+											"push"
+										]
+									},
+									{
+										"required": [
+											"email"
+										]
+									},
+									{
+										"required": [
+											"marketingPush"
+										]
+									},
+									{
+										"required": [
+											"emailUpdates"
+										]
+									},
+									{
+										"required": [
+											"pushPermission"
+										]
+									}
+								],
 								"minProperties": 1,
 								"properties": {
 									"email": {
@@ -12858,6 +12885,11 @@
 									},
 									"emailUpdates": {
 										"type": "boolean"
+									},
+									"expectedUserId": {
+										"maxLength": 255,
+										"minLength": 1,
+										"type": "string"
 									},
 									"marketingPush": {
 										"type": "boolean"
@@ -12952,6 +12984,24 @@
 						"description": "Default Response"
 					},
 					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
 						"content": {
 							"application/json": {
 								"schema": {
@@ -26274,7 +26324,28 @@
 							"application/json": {
 								"schema": {
 									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"document": {
+											"properties": {
+												"issuingCountry": {
+													"type": "string"
+												},
+												"type": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"type",
+												"issuingCountry"
+											],
+											"type": "object"
+										},
 										"error": {
+											"type": "string"
+										},
+										"userMessage": {
 											"type": "string"
 										}
 									},
@@ -27326,6 +27397,11 @@
 							"schema": {
 								"additionalProperties": false,
 								"properties": {
+									"expectedUserId": {
+										"maxLength": 255,
+										"minLength": 1,
+										"type": "string"
+									},
 									"values": {
 										"additionalProperties": {
 											"maxLength": 200,
