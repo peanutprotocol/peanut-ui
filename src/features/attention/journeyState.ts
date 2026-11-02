@@ -40,8 +40,9 @@ import { isDemoMode } from '@/utils/demo'
 import { useHydrationSnapshot } from '@/utils/native-platform'
 import { selectMaintenance } from './maintenance'
 import { isCapacitor } from '@/utils/capacitor'
-import type { RainCardOverview } from '@/services/rain'
-import { cardSetupPath } from './cardFunding'
+import { rainApi, type RainCardFunding, type RainCardOverview } from '@/services/rain'
+import { RAIN_CARD_FUNDING_QUERY_KEY } from '@/hooks/useCardStopConfirmation'
+import { cardFundingState, cardSetupPath, useFundingPromptHold } from './cardFunding'
 import { useJourneyEpoch } from './journeyEpoch'
 import type { JourneyState } from './types'
 
@@ -118,6 +119,7 @@ export interface JourneyInputs {
     cardNeedsSetup: boolean
     activeCardId: string | null
     cardSetupPath: JourneyState['card']['setupPath']
+    cardNeedsFunding: JourneyState['card']['needsFunding']
     redirectDestination: string | undefined
     balanceUnits: bigint | undefined
     migrationOn: boolean
@@ -174,6 +176,7 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
             needsSetup: input.cardNeedsSetup,
             activeCardId: input.activeCardId,
             setupPath: input.cardSetupPath,
+            needsFunding: input.cardNeedsFunding,
         },
         postAuthRedirect: hasPostSignupRedirect(input.redirectDestination),
         postAuthRedirectDestination: hasPostSignupRedirect(input.redirectDestination)
@@ -227,12 +230,26 @@ export function useJourneyState(): JourneyState {
     const { blockedCard } = useProviderRejection(onboarding)
     const { nextActions, rails, canDo, railsForProvider, channelOf, isLoading: capabilitiesLoading } = useCapabilities()
     const { overview, isLoading: overviewLoading } = useRainCardOverview()
-    const hasActiveCard = findActiveCard(overview)?.status === 'ACTIVE'
+    const activeCard = findActiveCard(overview)
+    const hasActiveCard = activeCard?.status === 'ACTIVE'
     const fundingAccess = useCardFundingAccess({ enabled: hasActiveCard })
-    const setupPath = cardSetupPath({
-        hasActiveCard,
-        accessLoading: fundingAccess.isLoading,
-        access: fundingAccess.access,
+    const fundingInputs = { hasActiveCard, accessLoading: fundingAccess.isLoading, access: fundingAccess.access }
+    // same key and request as useRainFunding, so FundingSetupPrompt and the verdict read one answer
+    const fundingUserId = user?.user?.userId
+    const cardFunding = useQuery<RainCardFunding>({
+        queryKey: [RAIN_CARD_FUNDING_QUERY_KEY, fundingUserId],
+        queryFn: () => rainApi.getCardFunding(),
+        enabled: cardSetupPath(fundingInputs) === 'managed' && !!fundingUserId,
+        staleTime: 30_000,
+        retry: false,
+    })
+    const fundingHold = useFundingPromptHold(activeCard?.id ?? null)
+    const { setupPath, needsFunding } = cardFundingState({
+        ...fundingInputs,
+        fundingLoading: cardFunding.isLoading,
+        funding: cardFunding.isError ? undefined : cardFunding.data,
+        overview,
+        hold: fundingHold,
     })
     const { cardInfo, isEligible: isCardEligible, isLoading: cardInfoLoading, error: cardInfoError } = useCardInfo()
     const { balance } = useWallet()
@@ -357,6 +374,7 @@ export function useJourneyState(): JourneyState {
                 cardNeedsSetup: cardNeedsSetup(overview),
                 activeCardId: findActiveCard(overview)?.id ?? null,
                 cardSetupPath: setupPath,
+                cardNeedsFunding: needsFunding,
                 redirectDestination: getStoredRedirect()?.destination,
                 balanceUnits: balance,
                 migrationOn,
@@ -406,6 +424,7 @@ export function useJourneyState(): JourneyState {
             overview,
             overviewLoading,
             setupPath,
+            needsFunding,
             balance,
             migrationOn,
             oneSignalInitialized,

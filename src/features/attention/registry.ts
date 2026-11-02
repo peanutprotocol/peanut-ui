@@ -108,6 +108,26 @@ export const finishCardSetup: AttentionAsk = {
     analyticsKey: 'finish_card_setup',
 }
 
+export const finishCardFunding: AttentionAsk = {
+    id: 'finish-card-funding',
+    tier: 1,
+    rank: 7, // right after finish-card-setup: the same step on the managed funding path
+    presentation: 'modal',
+    surfaces: ['interrupt'],
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        if (!s.card.loaded || s.card.setupPath === 'unknown') return 'unknown'
+        if (s.card.setupPath !== 'managed') return 'ineligible'
+        if (s.card.needsFunding === undefined) return 'unknown'
+        return s.card.needsFunding ? 'show' : 'ineligible'
+    },
+    version: (s) => s.card.activeCardId ?? undefined,
+    // the card cannot spend until funding is set up: a finished setup never silences a later need
+    policy: { expiryDays: 0 },
+    analyticsKey: 'finish_card_funding',
+}
+
 export const installApp: AttentionAsk = {
     id: 'install-app',
     tier: 1,
@@ -433,6 +453,7 @@ export const ASKS: readonly AttentionAsk[] = [
     verificationDue,
     postVerificationAction,
     finishCardSetup,
+    finishCardFunding,
     installApp,
     blockedCard,
     checklist,

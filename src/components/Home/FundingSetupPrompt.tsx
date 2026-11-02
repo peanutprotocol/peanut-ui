@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal, { type ActionModalButtonProps, type ActionModalTertiaryCta } from '@/components/Global/ActionModal'
 import CardFundingConsent from '@/components/Card/CardFundingConsent'
@@ -8,10 +8,18 @@ import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useCardFundingAccess } from '@/hooks/useCardFundingAccess'
 import { useRainFunding } from '@/hooks/wallet/useRainFunding'
-import { isRainBalanceKnown } from '@/utils/balance.utils'
+import {
+    fundingPromptShows,
+    fundingReturnCents,
+    isFinishingReturn,
+    setFundingPromptHold,
+} from '@/features/attention/cardFunding'
+import type { AskSurfaceProps } from '@/features/attention/types'
 
 /** Matches the hook's polling window for a pending grant (useRainFunding). */
 const PENDING_WAIT_MS = 60_000
+/** "Skip for now": the card cannot spend until funding is set up, so the manager asks again soon. */
+const SKIP_MS = 60 * 60 * 1000
 
 /**
  * The Home prompt for an existing cardholder whose card funding permission is
@@ -31,7 +39,7 @@ const PENDING_WAIT_MS = 60_000
  * cancelled or failed attempt a "Skip for now" escape appears; it also appears
  * for a pending grant once the polling window has passed. Skipping is local: it grants
  * nothing, forgets nothing in flight (the hook keeps polling and the grant
- * keeps running), and the prompt returns on the next Home visit.
+ * keeps running), and the manager asks again an hour later.
  *
  * A legacy user confirms twice (the old permission is retired first). Card
  * balance moves back to the wallet only after the backend confirms the new
@@ -45,8 +53,14 @@ const PENDING_WAIT_MS = 60_000
  * `cards[0]`: in the 2026-07-02 duplicate-card incident `cards[0]` was a bare
  * duplicate. All the "have we been here" state (skip dismissal, error scope) is
  * keyed by card id, so a later re-issued card gets its own clean pass.
+ *
+ * It is the attention manager's `finish-card-funding` ask: the manager opens
+ * it while the verdict (the same show rule, `fundingPromptShows`) holds, and
+ * closes it when the verdict leaves `show`. While open it reports what only it
+ * knows (the move it still owes, a grant that ended for good) so the verdict
+ * agrees with what it renders.
  */
-export default function FundingSetupPrompt() {
+export default function FundingSetupPrompt({ onActed, onSnoozed }: AskSurfaceProps) {
     const t = useTranslations('home.fundingSetup')
     const tFunding = useTranslations('card.funding')
     const tCard = useTranslations('card.yourCard')
@@ -114,25 +128,46 @@ export default function FundingSetupPrompt() {
     // Card balance the provider can release moves back to the wallet once
     // funding is confirmed ready, which can take more than one confirmation. An
     // unreadable balance shows the usual copy; the return itself reads fresh.
-    const returnCents =
-        isRainBalanceKnown(overview) && !overview?.balanceUnavailable && overview?.balance
-            ? Math.max(0, Math.floor(overview.balance.spendingPower))
-            : 0
+    const returnCents = fundingReturnCents(overview)
     // Funding is ready and the setup started here still owes that move: one
     // explicit step (a tap, never a render), and funding stays as it is.
-    const finishingReturn = owesReturn && status === 'ready' && (returnCents > 0 || !!returnError)
+    const finishingReturn = isFinishingReturn(owesReturn, status, returnCents, !!returnError)
 
     // A card withdrawal still confirming is unfinished setup, never done. An
     // account open to enrollment is offered setup once the terms are known.
-    const shouldShow =
-        hasActiveCard &&
-        isManagedPath &&
-        !endedForGood &&
-        (needsGrant === true ||
-            isPending ||
-            isWithdrawalInFlight ||
-            finishingReturn ||
-            (offersEnrollment && !!funding?.permission.authorizationText))
+    const shouldShow = fundingPromptShows({
+        hasActiveCard,
+        isManagedPath,
+        endedForGood,
+        needsGrant,
+        isPending,
+        isWithdrawalInFlight,
+        finishingReturn,
+        offersEnrollment: !!offersEnrollment,
+        authorizationText: funding?.permission.authorizationText,
+    })
+
+    // The owed move lives in this prompt's hook; the verdict keeps the ask open for it.
+    const hasReturnError = !!returnError
+    useEffect(() => {
+        if (!cardId) return
+        setFundingPromptHold(cardId, { owesReturn, returnError: hasReturnError })
+        return () => setFundingPromptHold(cardId, { owesReturn: false, returnError: false })
+    }, [cardId, owesReturn, hasReturnError])
+    // ended for good stays for this app load, or the closed prompt would reopen
+    useEffect(() => {
+        if (cardId && endedForGood) setFundingPromptHold(cardId, { endedForGood: true })
+    }, [cardId, endedForGood])
+
+    // Setup done from this prompt (a grant or the move): settled once the backend reports ready.
+    const [actedFor, setActedFor] = useState<string | null>(null)
+    const doneHere = !!cardId && actedFor === cardId && status === 'ready' && !finishingReturn && !isSubmitting
+    const reportedRef = useRef<string | null>(null)
+    useEffect(() => {
+        if (!doneHere || reportedRef.current === cardId) return
+        reportedRef.current = cardId
+        onActed()
+    }, [doneHere, cardId, onActed])
 
     // Only honor the hook's error if the attempt it came from was for THIS
     // card. `lastAttemptFor === null` (error with no recorded attempt) can't
@@ -164,7 +199,10 @@ export default function FundingSetupPrompt() {
 
     const onContinue = () => {
         if (busy || !authorizationAccepted) return
-        void grant({ authorizationAccepted, authorizationText }).then(() => setLastAttemptFor(cardId))
+        void grant({ authorizationAccepted, authorizationText }).then(() => {
+            setLastAttemptFor(cardId)
+            setActedFor(cardId)
+        })
     }
 
     const returnRetryable = !!returnError && returnError.kind !== 'user-cancelled'
@@ -182,7 +220,10 @@ export default function FundingSetupPrompt() {
                   variant: 'primary',
                   shadowSize: '4',
                   disabled: isSubmitting,
-                  onClick: () => void continueSetup(),
+                  onClick: () => {
+                      setActedFor(cardId)
+                      void continueSetup()
+                  },
               }
             : stalled
               ? {
@@ -214,7 +255,10 @@ export default function FundingSetupPrompt() {
             ? {
                   text: tCommon('skipForNow'),
                   disabled: busy,
-                  onClick: () => setDismissedFor(cardId),
+                  onClick: () => {
+                      setDismissedFor(cardId)
+                      onSnoozed(Date.now() + SKIP_MS)
+                  },
               }
             : undefined
 
