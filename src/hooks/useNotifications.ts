@@ -19,7 +19,8 @@ import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
 import { PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
 import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 import { isAttentionInterruptOpen } from '@/features/attention/interruptState'
-import { readLedger } from '@/features/attention/ledger'
+import { ledgerActions, readLedger } from '@/features/attention/ledger'
+import { countSession } from '@/features/attention/sessionCount'
 
 const NOTIF_PROMPT_SNOOZE_MS = NOTIF_PROMPT_SNOOZE_DAYS * 24 * 60 * 60 * 1000
 
@@ -96,7 +97,6 @@ export function markPushPromptShownThisSession(trigger?: PushPromptTrigger): voi
     promptShownThisSession = true
     setState({ promptShownThisSession: true, ...(trigger ? { promptTrigger: trigger } : {}) })
 }
-const countedSessions = new Set<string>()
 // moments that came before OneSignal init or the user id (a cold deep link
 // into Add money or add-to-wallet), in order; offered once both are ready. A
 // list, not one slot: the first may turn out snoozed while a later one is not.
@@ -378,12 +378,6 @@ function isOriginBoundRefusalOffProduction(e: unknown): boolean {
     return environment === 'preview' || environment === 'development'
 }
 
-function countSession(userId: string) {
-    if (countedSessions.has(userId)) return
-    countedSessions.add(userId)
-    updateUserPreferences(userId, { sessionCount: (getUserPreferences(userId)?.sessionCount ?? 0) + 1 })
-}
-
 function setExternalId(externalId: string | null) {
     if (currentExternalId === externalId) return
     currentExternalId = externalId
@@ -477,6 +471,9 @@ function closePermissionModal() {
     const trigger = activePromptTrigger()
     setState({ showPermissionModal: false })
     recordPromptClosed(trigger)
+    // a money-moment "Not now" also snoozes the Home ask, in the ledger the manager reads
+    if (currentExternalId && trigger && trigger !== PUSH_PROMPT_TRIGGERS.HOME_FALLBACK)
+        ledgerActions.snoozed(currentExternalId, 'push-home-fallback', Date.now() + NOTIF_PROMPT_SNOOZE_MS)
     posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.NOTIFICATIONS, trigger })
 }
 
@@ -502,9 +499,10 @@ export function useNotifications() {
     const externalId = user?.user.userId
     const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
+    // logged-out visitors of public pages never load the push SDK
     useEffect(() => {
-        ensureInitialized()
-    }, [])
+        if (externalId) ensureInitialized()
+    }, [externalId])
 
     useEffect(() => {
         if (appLocked || isFetchingUser || userFetchError || isLoggingOut) return
