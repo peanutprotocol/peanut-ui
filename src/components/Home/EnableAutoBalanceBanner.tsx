@@ -109,6 +109,17 @@ export default function EnableAutoBalanceBanner({ onActed, onSnoozed, presentati
         }
     }, [stuckAfterSuccess, card])
 
+    // Settled only when a fresh overview shows the approval on the card the grant was for;
+    // an ok response alone is the stuck-after-success shape above.
+    const approvedAfterGrant =
+        !!card && grantSucceededFor === card.id && card.status === 'ACTIVE' && card.hasWithdrawApproval
+    const actedRef = useRef<string | null>(null)
+    useEffect(() => {
+        if (!approvedAfterGrant || !card || actedRef.current === card.id) return
+        actedRef.current = card.id
+        onActed()
+    }, [approvedAfterGrant, card, onActed])
+
     const ctas: ActionModalButtonProps[] = [
         {
             text: isGranting
@@ -128,7 +139,6 @@ export default function EnableAutoBalanceBanner({ onActed, onSnoozed, presentati
                     // stuck — treating it as success would fire a false
                     // Sentry page on any flaky connection.
                     if (result.ok && result.overviewFresh) setGrantSucceededFor(grantedCardId)
-                    if (result.ok) onActed()
                 })
             },
         },

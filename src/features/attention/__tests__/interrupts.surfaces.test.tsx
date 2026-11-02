@@ -10,6 +10,7 @@ import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import type { GrantSessionKeyError } from '@/hooks/wallet/useGrantSessionKey'
+import type { AskSurfaceProps } from '../types'
 
 const mockCapture = jest.fn()
 jest.mock('posthog-js', () => ({
@@ -465,14 +466,23 @@ describe('EnableAutoBalanceBanner', () => {
         expect(p.onActed).not.toHaveBeenCalled()
     })
 
-    test('a grant that reports ok reports acted', async () => {
+    test('an ok grant reports acted only once the fresh overview shows the approval for that card', async () => {
         mockGrant.mockResolvedValue({ ok: true, overviewFresh: true })
         const p = props('finish-card-setup')
-        renderSurface(EnableAutoBalanceBanner, p)
+        const view = renderSurface(EnableAutoBalanceBanner, p)
         await act(async () => {
             fireEvent.click(screen.getByText(en.common.continue))
         })
-        // "onActed() is also called after a grant reports ok"
+        // still without the approval: the stuck-after-success recovery, not a settle
+        expect(p.onActed).not.toHaveBeenCalled()
+        expect(screen.getByText(en.common.skipForNow)).toBeInTheDocument()
+
+        mockCards = mockCards.map((card) => ({ ...card, hasWithdrawApproval: true }))
+        view.rerender(
+            <QueryClientProvider client={queryClient}>
+                <EnableAutoBalanceBanner {...(p as unknown as AskSurfaceProps)} />
+            </QueryClientProvider>
+        )
         await waitFor(() => expect(p.onActed).toHaveBeenCalledTimes(1))
         expect(p.onSnoozed).not.toHaveBeenCalled()
     })
