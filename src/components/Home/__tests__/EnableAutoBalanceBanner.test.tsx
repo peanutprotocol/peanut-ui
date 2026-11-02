@@ -87,6 +87,13 @@ import EnableAutoBalanceBanner from '../EnableAutoBalanceBanner'
 
 const onActed = jest.fn()
 const onSnoozed = jest.fn()
+const surfaceProps = {
+    presentation: 'modal',
+    askId: 'finish-card-setup',
+    onActed,
+    onDismissed: jest.fn(),
+    onSnoozed,
+} as const
 
 beforeEach(() => {
     mockKernelReady = true
@@ -99,7 +106,7 @@ beforeEach(() => {
 
 describe('EnableAutoBalanceBanner — the funding decision', () => {
     it('prompts an account on the existing permission that managed funding is not open to', () => {
-        render(<EnableAutoBalanceBanner />)
+        render(<EnableAutoBalanceBanner {...surfaceProps} />)
         expect(screen.getByTestId('modal')).toBeInTheDocument()
     })
 
@@ -110,7 +117,7 @@ describe('EnableAutoBalanceBanner — the funding decision', () => {
         ['unread or failed', undefined],
     ] as const)('shows nothing for an account whose decision is %s', (_name, access) => {
         mockAccess = access ? { ...access } : undefined
-        render(<EnableAutoBalanceBanner />)
+        render(<EnableAutoBalanceBanner {...surfaceProps} />)
         expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
         expect(mockGrant).not.toHaveBeenCalled()
     })
