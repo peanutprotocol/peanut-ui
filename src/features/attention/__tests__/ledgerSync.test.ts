@@ -151,7 +151,7 @@ test('5: a write storm is debounced into one call per quiet period', async () =>
     expect(syncMock).toHaveBeenCalledTimes(1)
     const payload = syncMock.mock.calls[0][0]
     expect(payload.userId).toBe(USER_A)
-    expect(payload.attentionLedger.invite).toMatchObject({ lastSessionShown: 3, dismissedAt: iso(T0 + 1500) })
+    expect(payload.attentionLedger.invite).toMatchObject({ dismissedAt: iso(T0 + 1500) })
     await jest.advanceTimersByTimeAsync(10_000)
     expect(syncMock).toHaveBeenCalledTimes(1)
 })
@@ -193,4 +193,20 @@ test('readLedger is a stable snapshot over both local and server inputs', () => 
     const changedLocal = readLedger(USER_A, server)
     expect(changedLocal).not.toBe(settled)
     expect(changedLocal['card-offer']?.snoozedUntil).toBe(iso(T0 + 5000))
+})
+
+test('zone rotation counters stay on the device: never synced, never taken from the server copy', async () => {
+    ledgerActions.shown(USER_A, 'invite', T0, 'zone', 3)
+    await jest.advanceTimersByTimeAsync(2000)
+    expect(syncMock.mock.calls[0][0].attentionLedger.invite).not.toHaveProperty('lastSessionShown')
+    expect(syncMock.mock.calls[0][0].attentionLedger.invite).not.toHaveProperty('consecutiveSessions')
+
+    // the phone's session 300 must not make this device's card look recently shown
+    const phone = ledger({
+        invite: { lastSessionShown: 300, consecutiveSessions: 1, updatedAt: NEW },
+        'complete-profile': { lastSessionShown: 300, consecutiveSessions: 2, updatedAt: NEW },
+    })
+    const merged = readLedger(USER_A, phone)
+    expect(merged.invite).toMatchObject({ lastSessionShown: 3, consecutiveSessions: 1 })
+    expect(merged['complete-profile']?.lastSessionShown).toBeUndefined()
 })
