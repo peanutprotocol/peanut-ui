@@ -221,7 +221,8 @@ describe('the zone', () => {
         const hidden: Ledger = {
             'blocked-card': { dismissedAt: new Date(NOW).toISOString(), version: blocked.blockedCardId },
         }
-        expect(run(blocked, {}, hidden).zone).toEqual({ id: 'checklist', mode: 'ask' })
+        expect(run(blocked, {}, hidden).zone).toBeNull()
+        expect(run({ blockedCardId: null }, {}, hidden).zone).toEqual({ id: 'checklist', mode: 'ask' })
         expect(run({ blockedCardId: 'blocked-card:add-email:none' }, {}, hidden).zone).toEqual({
             id: 'blocked-card',
             mode: 'ask',

@@ -62,7 +62,8 @@
             "notifications": {
                 "title": "¡Mantenete al tanto!",
                 "description": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera.",
-                "blockedToast": "Tu navegador bloqueó las notificaciones. Activalas en la configuración del sitio y recargá."
+                "blockedToast": "Tu navegador bloqueó las notificaciones. Activalas en la configuración del sitio y recargá.",
+                "nativeBlockedToast": "Activá las notificaciones de Peanut en la configuración de tu dispositivo."
             },
             "qrPay": {
                 "title": "Pagá con <b>códigos QR</b>",
@@ -95,6 +96,10 @@
                 },
                 "qrPay": {
                     "description": "Obtené el mejor tipo de cambio, pagá como un <b>local</b> y ganá <b>puntos</b>."
+                },
+                "rewards": {
+                    "title": "Tenés puntos esperando",
+                    "description": "Abrí Puntos para ver lo que ganaste."
                 }
             },
             "card": {
@@ -114,7 +119,7 @@
                 "description": "Dale los datos de tu cuenta a tu empleador o cliente para cobrar acá."
             },
             "requestMoney": {
-                "title": "Pedí dinero",
+                "title": "Solicitá dinero",
                 "description": "¿Esperás un pago o dividís un gasto? Mandá una solicitud."
             },
             "sendMoney": {
@@ -131,11 +136,11 @@
             },
             "rewards": {
                 "title": "Tenés recompensas esperando",
-                "description": "Abrí Recompensas para ver lo que ganaste."
+                "description": "Abrí Puntos para ver lo que ganaste."
             },
             "completeProfile": {
                 "title": "Completá tu perfil",
-                "description": "Agregá tu nombre para que tus amigos te reconozcan al pagarte."
+                "description": "Agregá tu nombre para que tus amigos te reconozcan cuando les pagués."
             }
         },
         "pendingTasks": {

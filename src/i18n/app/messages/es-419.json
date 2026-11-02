@@ -181,7 +181,8 @@
             "notifications": {
                 "title": "¡Mantente al tanto!",
                 "description": "Activa las notificaciones y recibe alertas de toda la actividad de tu billetera.",
-                "blockedToast": "Tu navegador bloqueó las notificaciones. Actívalas en la configuración del sitio y recarga."
+                "blockedToast": "Tu navegador bloqueó las notificaciones. Actívalas en la configuración del sitio y recarga.",
+                "nativeBlockedToast": "Activa las notificaciones de Peanut en la configuración de tu dispositivo."
             },
             "qrPay": {
                 "title": "Paga con <b>códigos QR</b>",
@@ -193,7 +194,8 @@
             },
             "bugBounty": {
                 "title": "Ayúdanos a mejorar y <b>¡gana $5!</b>",
-                "description": "Sé el primero en reportar un error. ¡Recibe una recompensa!"
+                "description": "Sé el primero en reportar un error. ¡Recibe una recompensa!",
+                "supportPrefill": "Encontré un error: "
             },
             "userInterview": {
                 "title": "Ayúdanos a construir Peanut",
@@ -218,6 +220,10 @@
                 },
                 "qrPay": {
                     "description": "Obtén el mejor tipo de cambio, paga como un <b>local</b> y gana <b>puntos</b>."
+                },
+                "rewards": {
+                    "title": "Tienes puntos esperando",
+                    "description": "Abre Puntos para ver lo que has ganado."
                 }
             },
             "card": {
@@ -237,7 +243,7 @@
                 "description": "Dale los datos de tu cuenta a tu empleador o cliente para cobrar aquí."
             },
             "requestMoney": {
-                "title": "Pide dinero",
+                "title": "Solicita dinero",
                 "description": "¿Esperas un pago o divides un gasto? Envía una solicitud."
             },
             "sendMoney": {
@@ -254,11 +260,11 @@
             },
             "rewards": {
                 "title": "Tienes recompensas esperando",
-                "description": "Abre Recompensas para ver lo que has ganado."
+                "description": "Abre Puntos para ver lo que has ganado."
             },
             "completeProfile": {
                 "title": "Completa tu perfil",
-                "description": "Agrega tu nombre para que tus amigos te reconozcan al pagarte."
+                "description": "Agrega tu nombre para que tus amigos te reconozcan cuando les pagues."
             }
         },
         "pendingTasks": {

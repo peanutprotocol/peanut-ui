@@ -532,6 +532,7 @@ export const MODAL_TYPES = {
     NOTIFICATIONS: 'notifications',
     EARLY_USER: 'early_user',
     POST_SIGNUP: 'post_signup',
+    POST_VERIFICATION_ACTION: 'post_verification_action',
     BALANCE_WARNING: 'balance_warning',
     KYC_COMPLETED: 'kyc_completed',
     INVITE: 'invite',

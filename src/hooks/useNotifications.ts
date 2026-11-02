@@ -16,10 +16,11 @@ import { useAppLocked } from '@/hooks/useAppLocked'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
-import { type PushPromptTrigger } from '@/constants/push-prompt.consts'
+import { PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
 import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 import { notificationsApi, toPushPermission } from '@/services/notifications'
 import { isAttentionInterruptOpen } from '@/features/attention/interruptState'
+import { readLedger } from '@/features/attention/ledger'
 
 const NOTIF_PROMPT_SNOOZE_MS = NOTIF_PROMPT_SNOOZE_DAYS * 24 * 60 * 60 * 1000
 
@@ -92,6 +93,10 @@ let disableExternalIdLogin = false
 // A session is one app load. One pre-prompt per session at most, and the
 // session count gates the Home fallback.
 let promptShownThisSession = false
+export function markPushPromptShownThisSession(trigger?: PushPromptTrigger): void {
+    promptShownThisSession = true
+    setState({ promptShownThisSession: true, ...(trigger ? { promptTrigger: trigger } : {}) })
+}
 const countedSessions = new Set<string>()
 const startupPreferenceReads = new Map<string, ReturnType<typeof notificationsApi.getPreferences>>()
 const startupPermissionReported = new Set<string>()
@@ -188,6 +193,8 @@ const isWithinSnooze = (closedAt: string) => Date.now() - new Date(closedAt).get
 // The context-free Home ask is the attention manager's (features/attention,
 // the `push-home-fallback` ask); this store only knows the money moments.
 function isPromptSnoozed(trigger: PushPromptTrigger, userId: string): boolean {
+    const until = readLedger(userId)['push-home-fallback']?.snoozedUntil
+    if (until && Date.parse(until) > Date.now()) return true
     const closedAt = getUserPreferences(userId)?.notifPromptClosedAt?.[trigger]
     return !!closedAt && isWithinSnooze(closedAt)
 }
@@ -211,7 +218,7 @@ export async function offerPushPrompt(trigger: PushPromptTrigger): Promise<void>
     // re-checked after the await: two moments can land in the same tick
     if (!status || promptShownThisSession || !isPushUnanswered(status) || isAttentionInterruptOpen()) return
     if (isPromptSnoozed(trigger, userId)) return
-    promptShownThisSession = true
+    markPushPromptShownThisSession()
     setState({ showPermissionModal: true, promptTrigger: trigger, promptShownThisSession: true })
     posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.NOTIFICATIONS, trigger })
 }
@@ -438,10 +445,10 @@ async function refreshPermissionState() {
 }
 
 // request notification permission from user
-async function requestPermission(): Promise<NotificationPermissionState> {
+async function requestPermission(trigger?: PushPromptTrigger): Promise<NotificationPermissionState> {
     if (typeof window === 'undefined' || isDemoMode()) return 'default'
     setState({ isRequestingPermission: true })
-    permissionRequestTrigger = activePromptTrigger()
+    permissionRequestTrigger = trigger ?? activePromptTrigger()
     posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_PERMISSION_REQUESTED, { trigger: permissionRequestTrigger })
 
     try {
@@ -556,6 +563,8 @@ export function useNotifications() {
         showPermissionModal: snapshot.showPermissionModal,
         promptTrigger: snapshot.promptTrigger,
         promptShownThisSession: snapshot.promptShownThisSession,
+        contextualPromptShownThisSession:
+            snapshot.promptShownThisSession && snapshot.promptTrigger !== PUSH_PROMPT_TRIGGERS.HOME_FALLBACK,
         requestPermission,
         closePermissionModal,
         afterPermissionAttempt,

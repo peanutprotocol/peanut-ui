@@ -77,6 +77,7 @@ jest.mock('@/hooks/useIdentityVerification', () => ({
 const mockRequestPermission = jest.fn()
 const mockAfterPermissionAttempt = jest.fn()
 jest.mock('@/hooks/useNotifications', () => ({
+    markPushPromptShownThisSession: jest.fn(),
     useNotifications: () => ({
         requestPermission: mockRequestPermission,
         afterPermissionAttempt: mockAfterPermissionAttempt,
@@ -215,8 +216,8 @@ beforeEach(() => {
     mockUser = { user: { userId: 'alice', username: 'alice' }, showEarlyUserModal: true }
     mockUpdateUserById.mockResolvedValue({})
     mockAccept.mockResolvedValue({ recorded: 1 })
-    mockGetStatus.mockResolvedValue({ needsReConsent: true, documents: [] })
-    mockRequestPermission.mockResolvedValue(undefined)
+    mockGetStatus.mockResolvedValue({ needsReConsent: false, documents: [] })
+    mockRequestPermission.mockResolvedValue('granted')
     mockAfterPermissionAttempt.mockResolvedValue(undefined)
     mockLastError = null
     mockGrant.mockResolvedValue({ ok: false })
@@ -408,19 +409,19 @@ describe('EarlyUserDrawer', () => {
         )
     })
 
-    test('closing saves the server flag, refreshes the user, then reports acted', async () => {
+    test('closing saves the server flag, refreshes the user, then reports dismissed', async () => {
         const p = props('early-user')
         renderSurface(EarlyUserDrawer, p)
         await screen.findByRole('dialog', { name: title })
         fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' })
 
-        // "close → updateUserById({ userId, hasSeenEarlyUserModal: true }), fetchUser(), onActed()"
-        await waitFor(() => expect(p.onActed).toHaveBeenCalledTimes(1))
+        // "close → updateUserById({ userId, hasSeenEarlyUserModal: true }), fetchUser(), onDismissed()"
+        await waitFor(() => expect(p.onDismissed).toHaveBeenCalledTimes(1))
         expect(mockUpdateUserById).toHaveBeenCalledWith({ userId: 'alice', hasSeenEarlyUserModal: true })
         expect(mockFetchUser).toHaveBeenCalledTimes(1)
         expect(mockUpdateUserById.mock.invocationCallOrder[0]).toBeLessThan(mockFetchUser.mock.invocationCallOrder[0])
-        expect(mockFetchUser.mock.invocationCallOrder[0]).toBeLessThan(p.onActed.mock.invocationCallOrder[0])
-        expect(p.onDismissed).not.toHaveBeenCalled()
+        expect(mockFetchUser.mock.invocationCallOrder[0]).toBeLessThan(p.onDismissed.mock.invocationCallOrder[0])
+        expect(p.onActed).not.toHaveBeenCalled()
         expect(legacyModalEvents()).toEqual([])
     })
 
@@ -432,8 +433,8 @@ describe('EarlyUserDrawer', () => {
         await screen.findByRole('dialog', { name: title })
         fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' })
 
-        // "if the server update rejects, still onActed() and Sentry"
-        await waitFor(() => expect(p.onActed).toHaveBeenCalledTimes(1))
+        // "if the server update rejects, still onDismissed() and Sentry"
+        await waitFor(() => expect(p.onDismissed).toHaveBeenCalledTimes(1))
         await waitFor(() => expect(mockCaptureException).toHaveBeenCalled())
         expect(mockCaptureException.mock.calls[0][0]).toBe(failure)
     })

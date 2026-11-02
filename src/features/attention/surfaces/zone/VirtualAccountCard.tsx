@@ -1,5 +1,6 @@
 'use client'
 
+import { bankDetailsHref } from './bankDetailsRoute'
 import { useRouter } from 'next/navigation'
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
@@ -15,7 +16,7 @@ export default function VirtualAccountCard({ onDismissed }: ZoneSurfaceProps) {
             description={t('virtualAccount.description')}
             concept="addMoney"
             onClose={onDismissed}
-            onClick={() => router.push('/add-money')}
+            onClick={() => router.push(bankDetailsHref())}
         />
     )
 }

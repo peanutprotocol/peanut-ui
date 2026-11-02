@@ -20,7 +20,7 @@ export default function BugBountyCard({ onDismissed }: ZoneSurfaceProps) {
             iconSize={20}
             onClose={onDismissed}
             // the chat lives inside SupportDrawer's iframe on (mobile-ui) routes
-            onClick={() => openSupportWithMessage('I found a bug: ')}
+            onClick={() => openSupportWithMessage(t('bugBounty.supportPrefill'))}
         />
     )
 }

@@ -7,6 +7,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useDocumentRequestFlow } from '@/hooks/useDocumentRequestFlow'
 import { selectHomeTasks } from '@/utils/bridge-tasks.utils'
+import { useAttentionFlows } from '../AttentionFlowContext'
 import type { ZoneSurfaceProps } from '../../types'
 
 /**
@@ -15,12 +16,27 @@ import type { ZoneSurfaceProps } from '../../types'
  * final week Home moves it to the large task card (verification-due).
  */
 export default function DocumentRequestCard(_: ZoneSurfaceProps) {
+    const flows = useAttentionFlows()
+    return flows ? <DocumentRequestView documentFlow={flows.document} hosted /> : <StandaloneDocumentRequest />
+}
+
+function StandaloneDocumentRequest() {
+    const documentFlow = useDocumentRequestFlow()
+    return <DocumentRequestView documentFlow={documentFlow} />
+}
+
+function DocumentRequestView({
+    documentFlow,
+    hosted = false,
+}: {
+    documentFlow: ReturnType<typeof useDocumentRequestFlow>
+    hosted?: boolean
+}) {
     const t = useTranslations('home.pendingTasks')
     const format = useFormatter()
     const toast = useToast()
     const { nextActions, rails } = useCapabilities()
     const documentRequest = useMemo(() => selectHomeTasks(nextActions, rails ?? []).documentSlide, [nextActions, rails])
-    const documentFlow = useDocumentRequestFlow()
 
     // the card has no room for an inline error, so a failed start is a toast: never a tap that does nothing
     const startError = documentFlow.error
@@ -29,7 +45,7 @@ export default function DocumentRequestCard(_: ZoneSurfaceProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps -- once per failed start
     }, [startError])
 
-    if (!documentRequest) return null
+    if (!documentRequest) return hosted ? null : <>{!hosted && documentFlow.modals}</>
     const due = documentRequest.effectiveDate ? new Date(documentRequest.effectiveDate) : null
     const deadline =
         due && !Number.isNaN(due.getTime())
@@ -48,7 +64,7 @@ export default function DocumentRequestCard(_: ZoneSurfaceProps) {
                 }}
                 iconSize={16}
             />
-            {documentFlow.modals}
+            {!hosted && documentFlow.modals}
         </>
     )
 }
