@@ -41,6 +41,7 @@ jest.mock('@/services/onesignal', () => ({
 let mockPrefs: Record<string, unknown> | undefined
 const mockUpdateUserPreferences = jest.fn((_userId: string | undefined, partial: Record<string, unknown>) => {
     mockPrefs = { ...mockPrefs, ...partial }
+    return mockPrefs
 })
 jest.mock('@/utils/general.utils', () => ({
     getUserPreferences: () => mockPrefs,
@@ -80,6 +81,7 @@ import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
 import { PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
 import SetupNotificationsModal from '@/components/Notifications/SetupNotificationsModal'
 import { offerPushPrompt, resetPushPromptForTests, useNotifications } from '../useNotifications'
+import { readLedger, resetLedgerMemoryForTests } from '@/features/attention/ledger'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const daysAgo = (days: number) => new Date(Date.now() - days * DAY_MS).toISOString()
@@ -124,6 +126,7 @@ describe('useNotifications dismissal / snooze logic', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         resetPushPromptForTests()
+        resetLedgerMemoryForTests()
         mockPrefs = undefined
         mockUserId = 'user-1'
         mockIsPwaSunsetOn.mockReturnValue(false)
@@ -193,6 +196,7 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         resetPushPromptForTests()
+        resetLedgerMemoryForTests()
         mockPrefs = undefined
         mockUserId = 'user-1'
         mockInterruptOpen = false
@@ -276,6 +280,8 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         await offer(DEPOSIT_INTENT)
         act(() => rendered.result.current.closePermissionModal())
         expect(mockPrefs?.notifPromptClosedAt).toEqual({ [DEPOSIT_INTENT]: expect.any(String) })
+        // the Home ask reads the same "Not now" from the ledger
+        expect(readLedger('user-1')['push-home-fallback']?.snoozedUntil).toEqual(expect.any(String))
 
         newSession()
         await offer(DEPOSIT_INTENT)
