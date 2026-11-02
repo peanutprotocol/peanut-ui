@@ -116,3 +116,7 @@ Roles: fresh spec-only gpt-6-astra acceptance author; separate core and UI imple
 - Mutation evidence: restoring grouped parsing broke the4,000 real-slider test; removing the precision protection broke overprecision cases; restoring the legacy badge formatter broke Infinity display in all four locales. Original checkout was not mutated for these challenges.
 - No full-repository Jest, native/device run, live payment, deployed verification, production impact count or live alert configuration is claimed. Browser inspection timed out. Hosted screenshots for registered new scenarios and required hosted CI remain review/merge evidence.
 - No new Git hook is installed. Configured checks were invoked directly; local Git hook directory contains samples only. The new numeric checks are also wired into the existing required test workflow. A published PR does not merge or deploy the change.
+
+Publication preflight caught a stale trusted capture-catalogue snapshot after the three new scenarios were registered. Regenerated only its18 new metadata lines from the actual catalogue; the complete437-test Screen Library suite then passed on the final snapshot (17.8s). No test expectation or capture gate was weakened.
+
+The existing tool-level commit guard was observed active: it rejected a compound commit command and accepted the supported direct Git command after checks. No hook was installed or disabled; local Git hook files remain samples. Publication uses the authorized branch push and a ready-for-review PR, with merge/deployment left to maintainers.
