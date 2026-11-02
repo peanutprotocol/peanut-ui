@@ -216,7 +216,7 @@ const AmountInput = ({
     useEffect(() => {
         const isPrimaryDenomination = displaySymbol === primaryDenomination.symbol
         // Strip commas before passing to consumers - they expect raw numeric strings
-        const rawDisplayValue = displayValue
+        const rawDisplayValue = displayValue === '.' ? '' : displayValue
         // Don't output "0.00" when there's no actual value - keep it empty to avoid feedback loops
         const rawAlternativeValue = hasValue ? (rawAlternativeAmount ?? '') : ''
 
@@ -401,14 +401,14 @@ const AmountInput = ({
                                 const maxDecimals = denominations[displaySymbol].decimals
                                 const formattedAmount = formatTokenAmount(value, maxDecimals, true)
                                 if (formattedAmount !== undefined) {
-                                    value = finiteInput(formattedAmount)
+                                    value = formattedAmount === '.' ? '.' : finiteInput(formattedAmount)
                                 }
                                 if (value === displayValue) return
                                 onAmountTyped?.(displaySymbol)
                                 // a payer who emptied the field takes the next suggestion
                                 suggestionArmedRef.current = value === ''
                                 setDisplayValue(value)
-                                setExactAmount(value)
+                                setExactAmount(value === '.' ? '' : value)
                             }}
                             ref={inputRef}
                             inputMode="decimal"
