@@ -63,3 +63,17 @@ describe('form protocol failures are not network retries', () => {
         await expect(saveKycAnswers('purpose', {})).resolves.toEqual({ kind: 'blocked', code })
     })
 })
+
+it('binds each answer PUT to the account that supplied the answers', async () => {
+    mockFetch.mockResolvedValue(reply(200, { next: null }))
+    await saveKycAnswers('purpose', { cardPurpose: 'travel' }, 'card', 'user-a')
+    expect(mockFetch).toHaveBeenCalledWith(
+        '/users/kyc/answers/purpose?feature=card',
+        expect.objectContaining({
+            method: 'PUT',
+            body: JSON.stringify({ values: { cardPurpose: 'travel' }, expectedUserId: 'user-a' }),
+            headers: { 'x-kyc-client': '2' },
+            redactTelemetry: true,
+        })
+    )
+})

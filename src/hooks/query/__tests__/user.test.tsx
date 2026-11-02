@@ -1,10 +1,11 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
 import { useUserQuery } from '../user'
 import { apiFetch } from '@/utils/api-fetch'
 import { setAuthToken, clearAuthToken } from '@/utils/auth-token'
+import { USER } from '@/constants/query.consts'
 import { isDemoMode } from '@/utils/demo'
 
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn() }))
@@ -254,4 +255,95 @@ it('requests the compact residence contract and exposes nested country/status to
     expect(result.current.data?.residence?.verified?.country).toBe('PT')
     expect(result.current.data?.residence?.declared?.status).toBe('COLLECTING')
     expect(result.current.data?.geo?.signup.vercelIp?.country).toBe('BR')
+})
+
+describe('private query cache ownership', () => {
+    const setup = () => {
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
+        const wrapper = ({ children }: { children: ReactNode }) => (
+            <QueryClientProvider client={client}>{children}</QueryClientProvider>
+        )
+        const privateKey = ['private-kyc', 'user-a']
+        client.setQueryData(privateKey, { city: 'A-private-city' })
+        return { client, wrapper, privateKey }
+    }
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockApiFetch.mockReset()
+        const { getAuthToken, getClearEpoch } = jest.requireMock('@/utils/auth-token')
+        getAuthToken.mockReset().mockReturnValue('session-a')
+        getClearEpoch.mockReset().mockReturnValue(0)
+    })
+
+    it.each([401, 404])('HTTP %s cancels and removes non-USER queries, including late reads', async (status) => {
+        const { client, wrapper, privateKey } = setup()
+        const aborted = jest.fn()
+        let finish!: (data: unknown) => void
+        const pending = client
+            .fetchQuery({
+                queryKey: ['private-late', 'user-a'],
+                queryFn: ({ signal }) => {
+                    signal.addEventListener('abort', aborted)
+                    return new Promise((resolve) => {
+                        finish = resolve
+                    })
+                },
+            })
+            .catch(() => undefined)
+        mockApiFetch.mockResolvedValueOnce(mockResponse(status, null))
+        const { result } = renderHook(() => useUserQuery(), { wrapper })
+        await waitFor(() => expect(result.current.isFetched).toBe(true))
+        await waitFor(() => expect(client.getQueryData(privateKey)).toBeUndefined())
+        expect(aborted).toHaveBeenCalledTimes(1)
+        await act(async () => {
+            finish({ city: 'late-A-city' })
+            await pending
+        })
+        expect(client.getQueryData(['private-late', 'user-a'])).toBeUndefined()
+        expect(mockClearAuthToken).toHaveBeenCalledTimes(1)
+        client.clear()
+    })
+
+    it('temporary HTTP 503 preserves same-user private caches', async () => {
+        const { client, wrapper, privateKey } = setup()
+        mockApiFetch.mockResolvedValueOnce(mockResponse(200, { user: { userId: 'user-a' } }))
+        const { result } = renderHook(() => useUserQuery(), { wrapper })
+        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+        mockApiFetch.mockResolvedValue(mockResponse(503, {}))
+        await act(async () => {
+            await result.current.refetch()
+        })
+        expect(client.getQueryData(privateKey)).toEqual({ city: 'A-private-city' })
+        expect(mockClearAuthToken).not.toHaveBeenCalled()
+        client.clear()
+    })
+})
+
+it('a successful different-user refresh drops the previous account’s non-USER caches', async () => {
+    jest.clearAllMocks()
+    ;(isDemoMode as jest.Mock).mockReturnValue(false)
+    const { getAuthToken, getClearEpoch } = jest.requireMock('@/utils/auth-token')
+    getAuthToken.mockReset().mockReturnValue('session-b')
+    getClearEpoch.mockReset().mockReturnValue(0)
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
+    client.setQueryData([USER], { user: { userId: 'user-a' } })
+    client.setQueryData(['private-kyc', 'user-a'], { city: 'A-private-city' })
+    mockApiFetch.mockReset().mockResolvedValue(mockResponse(200, { user: { userId: 'user-b' } }))
+    const wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    )
+    const { result } = renderHook(() => useUserQuery(), { wrapper })
+    // Track data before the refresh, as the real AuthProvider does when it
+    // reads the profile during render. React Query notifies tracked fields.
+    expect(result.current.data?.user.userId).toBe('user-a')
+    await act(async () => {
+        const refreshed = await result.current.refetch()
+        expect(refreshed.error).toBeNull()
+        expect(refreshed.data).toMatchObject({ user: { userId: 'user-b' } })
+    })
+    expect(mockApiFetch).toHaveBeenCalledWith('/users/me', expect.anything())
+    await waitFor(() => expect(result.current.data?.user.userId).toBe('user-b'))
+    expect(client.getQueryData(['private-kyc', 'user-a'])).toBeUndefined()
+    expect(client.getQueryData([USER])).toMatchObject({ user: { userId: 'user-b' } })
+    client.clear()
 })

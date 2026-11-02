@@ -41,6 +41,7 @@ const FORM_ERROR_KEYS: Record<AnswerFormError, string> = {
     unavailable: 'errors.unavailable',
     existing_verification: 'errors.unavailable',
     conflict: 'errors.unavailable',
+    session_changed: 'errors.unavailable',
 }
 
 /** Who keeps the phone number: the card partner when the card asks for it, else the local bank partner. */
@@ -78,7 +79,12 @@ export function trackSaveOutcome(
     }
     if (outcome.rejected) {
         const attempt = rejectedBefore + 1
-        const errors = Object.entries(outcome.rejected.errors)
+        // This refusal repeats a tax declaration answer. Keep only the same
+        // generic validation code the API permits in analytics.
+        const errors = Object.entries(outcome.rejected.errors).map(([key, code]) => [
+            key,
+            code === 'us_citizen_not_supported' ? 'not_supported' : code,
+        ])
         track(ANALYTICS_EVENTS.KYC_PV_STEP_REJECTED, {
             failed_step: outcome.rejected.step,
             fields: errors.map(([key]) => key),
@@ -93,8 +99,6 @@ export function trackSaveOutcome(
                 failed_step: outcome.rejected.step,
                 attempt,
             })
-        if (errors.some(([, code]) => code === 'us_citizen_not_supported'))
-            track(ANALYTICS_EVENTS.KYC_PV_LOCAL_REFUSED, { reason: 'us_person' })
     }
     if (outcome.formError) track(ANALYTICS_EVENTS.KYC_PV_FORM_ERROR, { error: outcome.formError })
 }
@@ -200,7 +204,6 @@ export function QuestionStepScreen({
         if (removingRef.current || form.saving) return
         removingRef.current = true
         setRemovingLocal(true)
-        track(ANALYTICS_EVENTS.KYC_PV_CONTINUE_WITHOUT_LOCAL)
         try {
             await onContinueWithoutLocal?.()
         } catch {
@@ -231,7 +234,7 @@ export function QuestionStepScreen({
     const state = fields.find((field) => field.key === 'state' && (field.kind === 'select' || field.kind === 'choice'))
     const stateValue = state ? (form.values[state.key]?.trim() ?? '') : ''
     const shownStateError =
-        state && (state.required || stateValue) && !state.options?.includes(stateValue)
+        state && (stateValue || (state.required && blurred.has(state.key))) && !state.options?.includes(stateValue)
             ? { [state.key]: stateValue ? 'invalid_option' : 'required' }
             : {}
     const errors = { ...shownTaxError, ...shownStateError, ...form.errors }
@@ -252,8 +255,9 @@ export function QuestionStepScreen({
     const onFieldBlur = (key: string) => {
         const field = fields.find((f) => f.key === key)
         const value = form.values[key]?.trim() ?? ''
-        if (!field || !value) return
+        if (!field || (!value && key !== 'state')) return
         setBlurred((current) => (current.has(key) ? current : new Set([...current, key])))
+        if (!value) return
         const phone = field.kind === 'phone' ? value.replace(/[\s()-]/g, '') : ''
         const code =
             field.kind === 'phone' && phone.replace(/\D/g, '').length >= 5 && !isE164(phone)

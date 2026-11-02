@@ -106,13 +106,14 @@ export async function getKycQuestions(feature?: PaperworkVerificationFeature): P
 export async function saveKycAnswers(
     step: PaperworkVerificationStepId,
     values: PaperworkVerificationAnswers,
-    feature?: PaperworkVerificationFeature
+    feature?: PaperworkVerificationFeature,
+    expectedUserId?: string
 ): Promise<SaveAnswersResult> {
     let response: Response
     try {
         response = await call(`/users/kyc/answers/${step}${featureQuery(feature)}`, 'step_save', {
             method: 'PUT',
-            body: JSON.stringify({ values }),
+            body: JSON.stringify({ values, ...(expectedUserId && { expectedUserId }) }),
         })
     } catch {
         return { kind: 'retry' }
@@ -136,6 +137,7 @@ export async function saveKycAnswers(
 
 export type PaperworkVerificationTokenResult =
     | { kind: 'session'; session: KycAttemptSession }
+    | { kind: 'handed-back' }
     | { kind: 'document-required'; message?: string }
     /** the picked document is not one the attempt offers */
     | { kind: 'document-not-allowed'; message?: string }
@@ -159,6 +161,7 @@ export async function startPaperworkVerificationIdentity(
     }
     const body = await json(response)
     const message = userMessageOf(body)
+    if (handedBack(response, body)) return { kind: 'handed-back' }
     if (response.status === 409) {
         const code = codeOf(body)
         if (code === 'questions_missing') return { kind: 'questions-missing', step: body.step ?? null, ...message }

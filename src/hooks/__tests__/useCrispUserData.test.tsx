@@ -75,20 +75,20 @@ describe('useCrispUserData', () => {
         expect(result.current.segments).toContain('balance-unavailable')
     })
 
-    it('passes the accounts in an email collision to the sidebar, ids and usernames only', () => {
+    it('passes the accounts in an email collision to the sidebar, relation only, without account identifiers', () => {
         mockUseAuth.mockReturnValue({
             username: 'hmontenegro',
             userId: 'user-b',
             user: {
                 user: { userId: 'user-b' },
                 accounts: [],
-                supportLinkedAccounts: [{ userId: 'user-a', username: 'montenegroh', relation: 'holds_email' }],
+                supportLinkedAccounts: [{ relation: 'holds_email' }],
             },
         } as unknown as ReturnType<typeof useAuth>)
 
         const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
 
-        expect(result.current.sameEmailAccounts).toBe('holds_email @montenegroh user-a')
+        expect(result.current.sameEmailAccounts).toBe('holds_email')
     })
 
     it('picks up a warm cache without touching the network', () => {

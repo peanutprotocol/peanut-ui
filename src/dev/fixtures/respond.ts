@@ -11,7 +11,7 @@ import { setFixtureBalanceUnits } from '@/utils/demo-balance'
 import { parseUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 import type { IUserProfile } from '@/interfaces/interfaces'
-import { featureReport } from './featureReport'
+import { withFixtureFeatureReport } from './featureReport'
 
 const JSON_HEADERS = { 'content-type': 'application/json' }
 
@@ -69,23 +69,15 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
     const data = await base.json().catch(() => ({}))
     let merged = override === undefined ? data : merge(data, override)
     if (key === 'GET /users/me') {
-        const fixtureUser = override as Partial<IUserProfile> | null | undefined
-        const user = merged as IUserProfile | null
-        // The baseline's report describes the demo rails, not this fixture's.
-        if (fixtureUser?.capabilities?.features === undefined && user?.capabilities) {
-            merged = {
-                ...user,
-                capabilities: {
-                    ...user.capabilities,
-                    features: featureReport({
-                        rails: user.capabilities.rails,
-                        nextActions: user.capabilities.nextActions,
-                        identity: user.identityVerification ?? { status: 'not_started' },
-                        residence: user.residence?.verified?.country ?? user.residence?.declared?.country ?? null,
-                    }),
-                },
-            }
-        }
+        const paperworkBase = await demoRespond('/users/kyc/paperwork', undefined, { offline: true })
+        const paperworkData = await paperworkBase.json().catch(() => ({}))
+        const paperworkOverride = fixture.responses?.['GET /users/kyc/paperwork']
+        const paperwork = paperworkOverride === undefined ? paperworkData : merge(paperworkData, paperworkOverride)
+        merged = withFixtureFeatureReport(
+            merged as IUserProfile | null,
+            override as Partial<IUserProfile> | null | undefined,
+            paperwork as Parameters<typeof withFixtureFeatureReport>[2]
+        )
     }
     return new Response(JSON.stringify(stress ? stressResponse(merged) : merged), {
         status: base.status,

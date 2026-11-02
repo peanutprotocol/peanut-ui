@@ -13,11 +13,13 @@ import type { KycDocumentConfig, KycReplacementChoices } from './types/kyc-workf
 /**
  * Stable discriminant for the English fallback errors below. Server actions
  * can't run next-intl, so alongside the prose they return a `code` the client
- * translates (see useSumsubKycFlow). `code` is only set when we fell back to
- * our canned copy — a backend `userMessage` is specific, display-ready prose
- * and stays untranslated (#2554: keep BE prose as fallback where no code exists).
+ * translates (see useSumsubKycFlow). Coded 4xx refusals retain their backend discriminant even when there is no
+ * `userMessage`; codes this client knows select localized recovery copy.
+ * Codeless backend prose remains display-ready fallback copy.
  */
 export type SumsubActionErrorCode =
+    // Preserve new backend discriminants even before this client can translate them.
+    | (string & Record<never, never>)
     | 'feature_selection_required'
     // the user is on Smart Paperwork Verification: /verify starts their check, never this route
     | 'paperwork_verification_required'
@@ -91,6 +93,15 @@ const backendOrFallback = (
     // A permanent refusal keeps its code so the caller can suppress the retry,
     // AND its message — the two are not in competition.
     if (terminal) return { error: backendMessage || fallback, code: terminal }
+    // Keep the recovery code when prose is absent. A frozen choice also needs
+    // its document envelope when the API supplies a user-facing message.
+    if (
+        isClientError &&
+        typeof responseJson.code === 'string' &&
+        responseJson.code.trim() &&
+        (!backendMessage || responseJson.code === 'replacement_choice_frozen')
+    )
+        return { error: backendMessage || fallback, code: responseJson.code }
     // Everything else: a backend message stays codeless, because
     // `actionErrorMessage` prefers a mapped code over the message and would
     // replace a specific explanation with generic retry copy.
@@ -254,6 +265,7 @@ export const restartIdentityVerification = async (
     error?: string
     code?: SumsubActionErrorCode
     cooldown?: { retryAt?: string }
+    document?: { type: string; issuingCountry: string }
 }> => {
     let status: number | undefined
     try {
@@ -276,7 +288,15 @@ export const restartIdentityVerification = async (
                 'restart_failed',
                 response.status
             )
-            if (response.status !== 429) return failure
+            if (response.status !== 429) {
+                const document = responseJson.document
+                return {
+                    ...failure,
+                    ...(failure.code === 'replacement_choice_frozen' &&
+                        typeof document?.type === 'string' &&
+                        typeof document?.issuingCountry === 'string' && { document }),
+                }
+            }
             const rawRetryAt = responseJson.retryAt
             const retryAfter = response.headers?.get('retry-after')
             const retryAfterMs = retryAfter

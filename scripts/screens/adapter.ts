@@ -11,7 +11,7 @@ import { withFixtureFeatureReport } from '../../src/dev/fixtures/featureReport'
 import type { IUserProfile } from '../../src/interfaces/interfaces'
 import openapi from '../../src/types/api.openapi.json'
 import { exampleFor } from './openapi-example'
-export const ADAPTER_VERSION = 'synthetic-api-v3'
+export const ADAPTER_VERSION = 'synthetic-api-v4'
 export function merge(base: unknown, patch: unknown): unknown {
     if (
         !base ||
@@ -95,7 +95,23 @@ export async function answer(
     if (key === 'GET /users/me') data = merge(data, { user: { activationCelebratedAt: '2026-01-01T00:00:00Z' } })
     const override = state.responses?.[key]
     let merged = override === undefined ? data : merge(data, override)
-    if (key === 'GET /users/me')
-        merged = withFixtureFeatureReport(merged as IUserProfile | null, override as Partial<IUserProfile> | null)
+    if (key === 'GET /users/me') {
+        // Paperwork metadata is optional on older/minimal capture specs. Its
+        // absence must not break a mapped users/me read.
+        const paperworkBase = await synthetic('/users/kyc/paperwork', 'GET', undefined, spec).catch(
+            (error: unknown) => {
+                if (error instanceof Error && error.message.startsWith('Unmapped capture API:')) return null
+                throw error
+            }
+        )
+        const paperworkData = paperworkBase ? await paperworkBase.json() : {}
+        const paperworkOverride = state.responses?.['GET /users/kyc/paperwork']
+        const paperwork = paperworkOverride === undefined ? paperworkData : merge(paperworkData, paperworkOverride)
+        merged = withFixtureFeatureReport(
+            merged as IUserProfile | null,
+            override as Partial<IUserProfile> | null,
+            paperwork as Parameters<typeof withFixtureFeatureReport>[2]
+        )
+    }
     return Response.json(merged, { status: base.status })
 }

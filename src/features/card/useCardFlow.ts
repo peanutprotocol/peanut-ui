@@ -63,7 +63,14 @@ export function useCardFlow() {
         staleTime: 30_000,
     })
 
-    const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
+    const [pendingApplication, setPendingApplication] = useState<'pending-identity' | 'pending' | null>(null)
+    const {
+        overview,
+        isLoading: overviewLoading,
+        error: overviewError,
+    } = useRainCardOverview({
+        pendingApplication: pendingApplication === 'pending',
+    })
     // `isCardFunded` sums the smart account and Rain collateral. Both must be read
     // values: a failed first read or an unavailable Rain balance counts as 0 there.
     const isBalanceKnown = balance !== undefined && isRainBalanceKnown(overview)
@@ -155,7 +162,6 @@ export function useCardFlow() {
     }, [])
     // Smart Paperwork Verification: POST /rain/cards answered `questions-required` with the step to ask; the card questions come first.
     const [pendingQuestions, setPendingQuestions] = useState<string | null>(null)
-    const [pendingApplication, setPendingApplication] = useState<'pending-identity' | 'pending' | null>(null)
     useEffect(() => {
         setPendingApplication(null)
     }, [userId])

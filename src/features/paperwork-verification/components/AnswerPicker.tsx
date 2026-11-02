@@ -1,5 +1,7 @@
 'use client'
 
+import { twMerge } from '@/utils/tw'
+
 import { forwardRef, useEffect, useMemo, useRef, useState, type ComponentPropsWithoutRef } from 'react'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { usePaperworkVerificationTrack } from '../analytics'
@@ -119,7 +121,11 @@ export const SentencePill = forwardRef<
             aria-haspopup="dialog"
             aria-invalid={invalid || undefined}
             data-testid={`verify-pick-${field.key}`}
-            className="inline-flex w-fit max-w-[calc(100vw_-_8.5rem)] min-w-0 align-middle"
+            className={twMerge(
+                'inline-flex w-fit max-w-[calc(100vw_-_8.5rem)] min-w-0 align-middle',
+                (field.kind === 'place' || field.kind === 'text') && 'ph-mask ph-sensitive',
+                props.className
+            )}
             icon={<Leading field={field} value={value} size="xs" />}
             iconContainerClassName="size-6"
         >

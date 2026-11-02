@@ -14,6 +14,7 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { trackPromptAnswer } from '@/features/setup/notificationsExperiment'
 import { notificationsApi, toPushPermission } from '@/services/notifications'
+import { useSessionFence, type SessionFence } from '@/hooks/useSessionFence'
 
 /**
  * The notifications experiment's control: the step as it was before the three
@@ -33,9 +34,14 @@ export default function NotificationsControl() {
     // off state and an OS refusal leave the account's server default alone.
     const [optedOut, setOptedOut] = useState(false)
     const savingRef = useRef(false)
+    const captureSession = useSessionFence()
+    const choiceOwner = useRef<SessionFence | null>(null)
     const push = notificationChoices.push
 
     const onToggle = async (on: boolean) => {
+        const session = captureSession()
+        if (!session.current()) return
+        choiceOwner.current = session
         setError(undefined)
         setNotificationChoices({ ...notificationChoices, push: on })
         if (!on) {
@@ -47,19 +53,24 @@ export default function NotificationsControl() {
         try {
             // Started inside the tap, so the browser accepts the permission request.
             const permission = toPushPermission(await requestPermission())
+            if (!session.current()) return
             await afterPermissionAttempt()
+            if (!session.current()) return
             trackPromptAnswer('control', permission)
             if (permission !== 'granted') setNotificationChoices({ ...notificationChoices, push: false })
         } catch {
+            if (!session.current()) return
             trackPromptAnswer('control', 'dismissed')
             setNotificationChoices({ ...notificationChoices, push: false })
         } finally {
-            setRequesting(false)
+            if (session.current()) setRequesting(false)
         }
     }
 
     const save = async () => {
         if (savingRef.current) return
+        const session = captureSession()
+        if (!session.current() || (choiceOwner.current && !choiceOwner.current.current())) return
         savingRef.current = true
         setSaving(true)
         setSetupLoading(true)
@@ -68,10 +79,11 @@ export default function NotificationsControl() {
             if (optedOut && !push) {
                 // An explicit opt-out must be acknowledged before leaving: unset
                 // preferences default to subscribed on the server.
-                const saved = await notificationsApi.savePreferences({ push: false }).then(
+                const saved = await notificationsApi.savePreferences({ push: false }, session.userId!).then(
                     () => true,
                     () => false
                 )
+                if (!session.current()) return
                 if (!saved) {
                     setError(t('saveFailed'))
                     return
@@ -80,13 +92,18 @@ export default function NotificationsControl() {
                 // Subscribed is the server default, so a failure never blocks signup. The write is
                 // still awaited: left in flight, it could land after an opt-out made by coming back
                 // to this step, and the API keeps the last write.
-                await notificationsApi.savePreferences({ push: true, pushPermission: 'granted' }).catch(() => {})
+                await notificationsApi
+                    .savePreferences({ push: true, pushPermission: 'granted' }, session.userId!)
+                    .catch(() => {})
             }
+            if (!session.current()) return
             await handleNext()
         } finally {
             savingRef.current = false
-            setSaving(false)
-            setSetupLoading(false)
+            if (session.current()) {
+                setSaving(false)
+                setSetupLoading(false)
+            }
         }
     }
 

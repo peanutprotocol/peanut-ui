@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { saveKycAnswers } from '@/app/actions/kyc-paperwork-verification'
 import { useOptionalAuth } from '@/context/authContext'
 import type {
@@ -11,6 +11,8 @@ import type {
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { draftResidenceOf, forgetSavedAnswers, keepAnswerDraft, readAnswerDraft, withAnswerDraft } from './answerDraft'
 import { initialValues, maskedUntouched, stepPayload, withEmploymentStatus } from './paperworkVerification.utils'
+import { getAuthToken, getClearEpoch, tokenUserId } from '@/utils/auth-token'
+import { useSessionFence } from '@/hooks/useSessionFence'
 
 export type AnswerFormError =
     | 'retry'
@@ -24,6 +26,7 @@ export type AnswerFormError =
     | 'unavailable'
     | 'existing_verification'
     | 'conflict'
+    | 'session_changed'
 export type SaveOutcome =
     | { ok: true; next: PaperworkVerificationStepId | null }
     | {
@@ -53,21 +56,34 @@ export async function saveSteps(
     steps: PaperworkVerificationStep[],
     values: PaperworkVerificationAnswers,
     feature?: PaperworkVerificationFeature,
-    userId?: string
+    userId?: string,
+    active: () => boolean = () => true
 ): Promise<SaveOutcome> {
+    const epoch = getClearEpoch()
+    const current = () => !!userId && active() && getClearEpoch() === epoch && tokenUserId(getAuthToken()) === userId
+    const cancelled: SaveOutcome = { ok: false, error: 'session_changed', formError: 'unavailable' }
+    if (!current()) return cancelled
     let next: PaperworkVerificationStepId | null = null
     for (const step of steps) {
+        if (!current()) return cancelled
         const payload = stepPayload(step.fields, values)
         // A saved, masked number left as it is: there is nothing to send.
         if (!Object.keys(payload).length && step.fields.some((f) => maskedUntouched(f, values))) continue
-        const result = await saveKycAnswers(step.id, payload, feature)
+        const result = await saveKycAnswers(step.id, payload, feature, userId)
+        if (!current()) return cancelled
         if (result.kind === 'invalid')
             return { ok: false, step: step.id, rejected: { step: step.id, errors: result.errors } }
         if (result.kind === 'conflict') {
             const error = CONFLICTS.has(result.code) ? (result.code as AnswerFormError) : 'conflict'
             return { ok: false, error, formError: error, message: result.message, step: step.id }
         }
-        if (result.kind === 'blocked') return { ok: false, formError: result.code, step: step.id }
+        if (result.kind === 'blocked')
+            return {
+                ok: false,
+                ...(result.code === 'unavailable' && { error: 'unavailable' as const }),
+                formError: result.code,
+                step: step.id,
+            }
         if (result.kind === 'retry') return { ok: false, error: 'retry', formError: 'retry', step: step.id }
         forgetSavedAnswers(userId, Object.fromEntries(step.fields.map((f) => [f.key, values[f.key]])))
         next = result.next
@@ -90,6 +106,8 @@ export function useAnswerForm(
 ) {
     const user = useOptionalAuth()?.user
     const userId = user?.user.userId
+    const owner = useRef(userId)
+    const captureSession = useSessionFence()
     const declared = draftResidenceOf(user)
     const [values, setValues] = useState<PaperworkVerificationAnswers>(() => {
         const fields = steps.flatMap((s) => s.fields)
@@ -102,11 +120,19 @@ export function useAnswerForm(
         setFormErrorState(error)
         setFormMessage(message ?? null)
     }, [])
+    const seenRejection = useRef(returned)
+    useEffect(() => {
+        if (!returned || returned === seenRejection.current) return
+        seenRejection.current = returned
+        setErrors(returned.errors ?? {})
+        setFormError(returned.formError ?? null, returned.message)
+    }, [returned, setFormError])
     const [saving, setSaving] = useState(false)
     const savingRef = useRef(false)
 
     const change = useCallback(
         (key: string, value: string) => {
+            if (owner.current !== userId) return
             const fields = steps.flatMap((s) => s.fields)
             const update = (current: PaperworkVerificationAnswers) =>
                 key === 'employmentStatus' ? withEmploymentStatus(fields, current, value) : { ...current, [key]: value }
@@ -131,21 +157,25 @@ export function useAnswerForm(
     const save = useCallback(
         async (toSave: PaperworkVerificationStep[] = steps): Promise<SaveOutcome> => {
             if (savingRef.current) return { ok: false }
+            const session = captureSession()
+            if (!session.current() || session.userId !== userId || owner.current !== userId)
+                return { ok: false, error: 'session_changed', formError: 'unavailable' }
             savingRef.current = true
             setSaving(true)
             setFormError(null)
             try {
-                const outcome = await saveSteps(toSave, values, feature, userId)
+                const outcome = await saveSteps(toSave, values, feature, userId, session.current)
+                if (!session.current()) return { ok: false, error: 'session_changed', formError: 'unavailable' }
                 if (outcome.ok) setErrors({})
                 if (!outcome.ok && outcome.rejected) setErrors(outcome.rejected.errors)
                 if (!outcome.ok && outcome.formError) setFormError(outcome.formError, outcome.message)
                 return outcome
             } finally {
                 savingRef.current = false
-                setSaving(false)
+                if (session.current()) setSaving(false)
             }
         },
-        [steps, values, feature, userId, setFormError]
+        [steps, values, feature, userId, setFormError, captureSession]
     )
 
     return { values, errors, formError, formMessage, saving, change, save, setFormError }

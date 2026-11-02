@@ -1,8 +1,11 @@
 import { act, fireEvent, screen } from '@testing-library/react'
 import { useState } from 'react'
+import type { CaptureResult } from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
 import { searchKycPlaces } from '@/app/actions/kyc-paperwork-verification'
 import { PlaceField, PlacePicker } from '../components/PlaceField'
+import { maskReplayAttribute, maskReplayTextIn } from '@/utils/replay-privacy'
+import { redactAutocapture } from '@/utils/posthog-autocapture'
 
 jest.mock('@/app/actions/kyc-paperwork-verification', () => ({ searchKycPlaces: jest.fn() }))
 const mockSearch = searchKycPlaces as jest.MockedFunction<typeof searchKycPlaces>
@@ -92,6 +95,36 @@ function PickerHarness({ onChange }: { onChange: (value: string) => void }) {
 }
 
 describe('PlacePicker', () => {
+    it('masks typed-city suggestions in the portaled picker drawer', async () => {
+        const city = 'Kleindorf'
+        mockSearch.mockResolvedValue([{ name: city, region: 'Bavaria' }])
+        const { container } = renderWithIntl(<PickerHarness onChange={jest.fn()} />)
+        fireEvent.click(screen.getByTestId('verify-pick-cityOfBirth'))
+        await type(city)
+        const option = screen.getByRole('option', { name: new RegExp(city) })
+        // The privacy boundary must follow the drawer through its portal.
+        expect(container.contains(option)).toBe(false)
+        const shown = screen.getByText(city)
+        expect(maskReplayTextIn(city, shown)).not.toContain(city)
+        expect(maskReplayAttribute('title', city, shown)).not.toContain(city)
+        expect(maskReplayAttribute('aria-label', city, option)).not.toContain(city)
+
+        const chain: Element[] = []
+        for (let element: Element | null = option; element; element = element.parentElement) chain.push(element)
+        const event = {
+            event: '$autocapture',
+            properties: {
+                $el_text: city,
+                $elements: chain.map((element) => ({
+                    tag_name: element.tagName.toLowerCase(),
+                    classes: Array.from(element.classList),
+                    ...(element === option && { $el_text: city, 'attr__aria-label': city, attr__title: city }),
+                })),
+            },
+        } as unknown as CaptureResult
+        expect(JSON.stringify(redactAutocapture(event, 'https://peanut.me/verify'))).not.toContain(city)
+    })
+
     it('keeps a typed name that is not in the list once Done is tapped', async () => {
         mockSearch.mockResolvedValue([])
         const onChange = jest.fn()

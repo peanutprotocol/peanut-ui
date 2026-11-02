@@ -37,7 +37,6 @@
             "descriptionMigration": "Primero hay que actualizar el permiso de tu tarjeta. Confirmá dos veces con tu passkey: una para actualizar y otra para el nuevo permiso.",
             "descriptionPending": "Autorización enviada, aún sin confirmar. Revisá el estado en un momento. No autorices dos veces.",
             "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intentá de nuevo u omitilo por ahora. Te lo volveremos a pedir la próxima vez que abras Inicio.",
-            "descriptionReturn": "Cuando se confirme la configuración, {amount} del saldo de la tarjeta vuelve a tu billetera. Puede requerir más de una confirmación con tu passkey.",
             "descriptionWithdrawalInFlight": "Un retiro de la tarjeta todavía se está confirmando. Revisá de nuevo en un momento u omitilo por ahora.",
             "descriptionReturnPending": "El movimiento del saldo de tu tarjeta a tu billetera aún no está confirmado. Revisá de nuevo en un momento u omitilo por ahora.",
             "descriptionReturnWait": "El saldo de tu tarjeta no se puede mover ahora. Intentá más tarde u omitilo por ahora.",
@@ -1032,7 +1031,6 @@
             "payAsCreditBody": "Cuando la terminal pregunte débito o crédito, elegí crédito — tu Peanut Card corre en la red de crédito."
         },
         "funding": {
-            "body": "Peanut gestiona cuánto puede tomar de tu billetera nuestro proveedor externo para los pagos con tarjeta. Se renueva automáticamente, incluso para el dinero que agregues después.",
             "termsChanged": "Los términos cambiaron. Leelos de nuevo y confirmá.",
             "walletMismatch": "Esta tarjeta está vinculada a otra billetera. Contactá a soporte."
         },
@@ -1206,7 +1204,8 @@
             "cardAuthFailed": "Falló la autorización de la tarjeta. Intentalo de nuevo o contactá a soporte.",
             "confirmTransaction": "Confirmá la transacción.",
             "unexpected": "El retiro falló inesperadamente. Si el problema continúa, contactá a soporte",
-            "completeAccountSetup": "Completá la configuración de tu cuenta. Andá a Ajustes para actualizar tu perfil."
+            "completeAccountSetup": "Completá la configuración de tu cuenta. Andá a Ajustes para actualizar tu perfil.",
+            "feeExceedsAmount": "La comisión de red supera este retiro. Ingresá un monto mayor o elegí una red más barata."
         }
     },
     "transaction": {
@@ -1619,7 +1618,7 @@
                     "residence": "Las cuentas bancarias no están disponibles donde vivís."
                 },
                 "card": {
-                    "residence": "Peanut Card no está disponible donde vivís."
+                    "residence": "La Peanut Card no está disponible donde vivís."
                 },
                 "local": {
                     "residence": "Las transferencias bancarias locales no están disponibles donde vivís."
@@ -1642,13 +1641,20 @@
                 "invalidText": "Usá solo letras, números y signos de puntuación.",
                 "invalid": "Revisá esta respuesta.",
                 "retry": "No pudimos guardarlo. Revisá tu conexión e intentá de nuevo.",
-                "usCitizenNotSupported": "Las transferencias locales no están disponibles para ciudadanos o residentes fiscales de EE. UU. Igual podés cobrar con una cuenta en USD o pagar con QR."
+                "usCitizenNotSupported": "Las transferencias locales no están disponibles para ciudadanos o residentes fiscales de EE. UU. Igual podés cobrar con una cuenta en USD o pagar con QR.",
+                "tooShort": "Agregá el nombre y el número de la calle.",
+                "streetNumberMissing": "Agregá el número de la calle.",
+                "invalidBody": "No se pudieron aceptar estas respuestas. Volvé a abrir la verificación para continuar.",
+                "unknownStep": "Este paso ya no está disponible. Volvé a abrir la verificación para continuar.",
+                "rateLimited": "Demasiados intentos. Esperá un minuto y volvé a intentarlo."
             },
             "midpoint": {
                 "restartTitle": "Verificate con otro documento",
                 "restartDescription": "Elegí el documento que vas a usar ahora. Después tomá fotos de él y una selfie rápida.",
                 "failed": "No pudimos iniciar la verificación. Intentá de nuevo.",
-                "unavailable": "No podemos mostrar los documentos ahora. Intentá más tarde."
+                "unavailable": "No podemos mostrar los documentos ahora. Intentá más tarde.",
+                "frozenChoice": "Continuá con el documento que elegiste.",
+                "frozenDocument": "Continuá con el documento que elegiste: {document} de {country}."
             },
             "failed": {
                 "description": "Tu verificación necesita algo de vos. En el inicio vas a ver qué hacer."
@@ -1698,6 +1704,9 @@
             },
             "policyHold": {
                 "description": "Este documento no se puede usar para verificar tu identidad. Elegí otro documento."
+            },
+            "addLater": {
+                "actionDescription": "Completá la verificación adicional para terminar la configuración."
             }
         },
         "setup": {

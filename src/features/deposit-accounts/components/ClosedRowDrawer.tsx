@@ -11,6 +11,8 @@ import { DRAWER_CLOSE_MS } from '../drawer'
 import type { ClosedRow } from '../hubRows'
 import { DEPOSIT_RAILS } from '../rails'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
+import { kycFeatureRefusalCopy } from '@/utils/kyc-feature-outcome.utils'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 
 /** the residence-gated corridors' own copy, keyed by corridor */
 const RESIDENCE_COPY = {
@@ -43,6 +45,8 @@ export function ClosedRowDrawer({
     const { t } = useDepositAccountCopy()
     const tCommon = useTranslations('common')
     const tAccounts = useTranslations('profile.unlockPayments')
+    const tKyc = useTranslations('kyc')
+    const tIdentity = useTranslations('identity')
     const { openSupportWithMessage } = useModalsContext()
     const restrictions = useResidenceRestrictions()
 
@@ -86,7 +90,12 @@ export function ClosedRowDrawer({
             case 'card-restricted':
                 return {
                     title: t('list.badgeNotOffered'),
-                    body: tAccounts('cardNotAvailableNote'),
+                    body:
+                        row.reason === 'geo-blocked'
+                            ? tAccounts('cardNotAvailableNote')
+                            : reasonCodeKey(row.reason)
+                              ? tIdentity(reasonCodeKey(row.reason)!)
+                              : tKyc(kycFeatureRefusalCopy(row.reason), { feature: tKyc('documents.card') }),
                     cta: { label: tCommon('gotIt') },
                 }
             // the limit copy the claim step shows, so the two cannot drift

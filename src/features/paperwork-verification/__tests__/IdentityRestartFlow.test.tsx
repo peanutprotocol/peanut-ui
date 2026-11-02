@@ -241,7 +241,7 @@ describe('IdentityRestartFlow', () => {
         expect(screen.getByTestId('sumsub')).toHaveAttribute('data-token', 'token-2')
     })
 
-    it('sends a temporary protection document as the visa Sumsub verifies', async () => {
+    it('preserves temporary protection in the replacement request for the API to translate', async () => {
         jest.mocked(getKycDetails).mockResolvedValue({
             name: { first: null, last: null },
             nationality: 'UA',
@@ -258,7 +258,7 @@ describe('IdentityRestartFlow', () => {
         fireEvent.click(screen.getByTestId('verify-id-option-TEMPORARY_PROTECTION-PT'))
         await waitFor(() => expect(mockReplacement).toHaveBeenCalled())
         expect(mockReplacement.mock.calls[0][0].documents).toEqual([
-            { key: 'identity', type: 'VISA', issuingCountry: 'PT' },
+            { key: 'identity', type: 'TEMPORARY_PROTECTION', issuingCountry: 'PT' },
         ])
     })
 
@@ -287,6 +287,33 @@ describe('IdentityRestartFlow', () => {
         expect(await screen.findByTestId('verify-id-error')).toHaveTextContent(
             'Could not restart identity verification. Please try again.'
         )
+    })
+
+    it('a frozen choice explains the original document and the next tap resumes that choice', async () => {
+        mockReplacement.mockResolvedValueOnce({
+            kind: 'failed',
+            code: 'replacement_choice_frozen',
+            error: 'Continue with your earlier document.',
+            document: { type: 'PASSPORT', issuingCountry: 'PT' },
+        } as Awaited<ReturnType<typeof startKycDocumentReplacement>>)
+        renderFlow()
+        fireEvent.click(await screen.findByTestId('verify-id-option-RESIDENCE_PERMIT-PT'))
+        const explanation = await screen.findByTestId('verify-id-error')
+        expect(explanation).toHaveTextContent(/passport/i)
+        expect(explanation).toHaveTextContent(/Portugal/i)
+        expect(explanation).not.toHaveTextContent('Could not restart identity verification')
+        expect(screen.getByTestId('verify-id-option-PASSPORT-PT')).toHaveAttribute('aria-current', 'true')
+        expect(mockReplacement).toHaveBeenCalledTimes(1)
+        expect(screen.queryByTestId('sumsub')).toBeNull()
+
+        // The user explicitly continues the document already frozen by the API.
+        // No automatic extra reset is allowed.
+        fireEvent.click(screen.getByTestId('verify-id-option-PASSPORT-PT'))
+        await screen.findByTestId('sumsub')
+        expect(mockReplacement).toHaveBeenCalledTimes(2)
+        expect(mockReplacement.mock.calls[1][0].documents).toEqual([
+            { key: 'identity', type: 'PASSPORT', issuingCountry: 'PT' },
+        ])
     })
 
     it('a restart cooldown says when to try again', async () => {

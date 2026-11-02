@@ -1107,10 +1107,15 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             try {
                 let response = await startKycAction(key)
                 // Sumsub had already reviewed the action. Ask once more: a final rejection opens the
-                // next attempt; anything else means the step is done and the backend took it from there.
+                // next attempt. Only an explicit completed/not-required answer confirms it is done.
                 if (response.data?.completed) {
                     response = await startKycAction(key)
-                    if (!response.data?.token && !response.data?.session && !response.fallback) {
+                    if (
+                        !response.fallback &&
+                        (response.data?.completed ||
+                            response.code === 'supplement_not_required' ||
+                            response.code === 'supplement_changed')
+                    ) {
                         userInitiatedRef.current = false
                         onKycSuccess?.()
                         return

@@ -300,8 +300,6 @@ export interface IUserRail {
 }
 
 export interface SupportLinkedAccount {
-    userId: string
-    username: string | null
     /** `holds_email`: that account holds this one's email. `blocked_on_email`: that account is blocked on this one's email. */
     relation: 'holds_email' | 'blocked_on_email'
 }

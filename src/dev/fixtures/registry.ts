@@ -934,7 +934,18 @@ const QR_PAY_BLOCKED_RAIL = {
  * usable (`SUMSUB_IDENTITY_MISSING`), by cause: the fix is the identity restart.
  */
 const qrIdentityPausedCapabilities = (code: string, userMessage: string) => ({
-    rails: [{ ...QR_PAY_BLOCKED_RAIL, blockingActions: ['restart-identity'], reason: { code, userMessage } }],
+    rails: [
+        {
+            ...QR_PAY_BLOCKED_RAIL,
+            blockingActions: ['restart-identity'],
+            reason: { code, userMessage },
+            resolved: {
+                status: 'fixable',
+                blocking: { code, userMessage, selfHealable: true, selfHealKind: 'restart-identity' },
+                nextAction: { key: 'restart-identity', kind: 'restart-identity', purpose: code },
+            },
+        },
+    ],
     nextActions: [{ key: 'restart-identity', kind: 'restart-identity', purpose: code }],
     restrictions: [],
 })

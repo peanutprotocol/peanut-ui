@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
+import { clearAuthToken, setAuthToken } from '@/utils/auth-token'
 import { NotificationsView } from '../NotificationsView'
 
 const mockGet = jest.fn()
@@ -42,6 +43,7 @@ let server = { push: true, email: true, marketingPush: false, emailUpdates: fals
 
 beforeEach(() => {
     jest.clearAllMocks()
+    setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-a' }))}.y`)
     mockGet.mockReset()
     mockSave.mockReset()
     mockDenied = false
@@ -59,7 +61,7 @@ it('shows the saved choices and saves Email updates without asking the OS', asyn
     expect(email()).toHaveAttribute('aria-checked', 'false')
     fireEvent.click(email())
     expect(email()).toHaveAttribute('aria-checked', 'true')
-    await waitFor(() => expect(mockSave).toHaveBeenCalledWith({ emailUpdates: true }))
+    await waitFor(() => expect(mockSave).toHaveBeenCalledWith({ emailUpdates: true }, 'user-a'))
     expect(mockPermission).not.toHaveBeenCalled()
 })
 
@@ -69,7 +71,9 @@ it('turns Offers and perks on with Important off, asking the OS in the same tap'
     await waitFor(() => expect(offers()).toBeEnabled())
     fireEvent.click(offers())
     expect(mockPermission).toHaveBeenCalledTimes(1)
-    await waitFor(() => expect(mockSave).toHaveBeenCalledWith({ marketingPush: true, pushPermission: 'granted' }))
+    await waitFor(() =>
+        expect(mockSave).toHaveBeenCalledWith({ marketingPush: true, pushPermission: 'granted' }, 'user-a')
+    )
     expect(offers()).toHaveAttribute('aria-checked', 'true')
     expect(important()).toHaveAttribute('aria-checked', 'false')
 })
@@ -80,7 +84,7 @@ it('saves a push switch off when the OS refuses, and records the answer', async 
     renderWithIntl(<NotificationsView />)
     await waitFor(() => expect(important()).toBeEnabled())
     fireEvent.click(important())
-    await waitFor(() => expect(mockSave).toHaveBeenCalledWith({ push: false, pushPermission: 'denied' }))
+    await waitFor(() => expect(mockSave).toHaveBeenCalledWith({ push: false, pushPermission: 'denied' }, 'user-a'))
     expect(important()).toHaveAttribute('aria-checked', 'false')
 })
 
@@ -90,14 +94,14 @@ it('records a prompt closed without an answer as dismissed', async () => {
     renderWithIntl(<NotificationsView />)
     await waitFor(() => expect(important()).toBeEnabled())
     fireEvent.click(important())
-    await waitFor(() => expect(mockSave).toHaveBeenCalledWith({ push: false, pushPermission: 'dismissed' }))
+    await waitFor(() => expect(mockSave).toHaveBeenCalledWith({ push: false, pushPermission: 'dismissed' }, 'user-a'))
 })
 
 it('turns Important off without asking the OS', async () => {
     renderWithIntl(<NotificationsView />)
     await waitFor(() => expect(important()).toHaveAttribute('aria-checked', 'true'))
     fireEvent.click(important())
-    await waitFor(() => expect(mockSave).toHaveBeenCalledWith({ push: false }))
+    await waitFor(() => expect(mockSave).toHaveBeenCalledWith({ push: false }, 'user-a'))
     expect(mockPermission).not.toHaveBeenCalled()
 })
 
@@ -160,4 +164,57 @@ it('offers a retry when the settings cannot load', async () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Retry' }))
     await waitFor(() => expect(important()).toHaveAttribute('aria-checked', 'true'))
     expect(mockGet).toHaveBeenCalledTimes(2)
+})
+
+describe('permission continuation ownership', () => {
+    it.each(['changed', 'cleared', 'unmounted'] as const)(
+        'does not save after the session is %s during permission',
+        async (state) => {
+            server.push = false
+            let finish!: (permission: string) => void
+            mockPermission.mockReturnValueOnce(
+                new Promise((resolve) => {
+                    finish = resolve
+                })
+            )
+            const view = renderWithIntl(<NotificationsView />)
+            await waitFor(() => expect(offers()).toBeEnabled())
+            fireEvent.click(offers())
+            expect(mockPermission).toHaveBeenCalledTimes(1)
+            if (state === 'changed') setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-b' }))}.y`)
+            if (state === 'cleared')
+                await act(async () => {
+                    await clearAuthToken()
+                })
+            if (state === 'unmounted') view.unmount()
+            await act(async () => finish('granted'))
+            expect(mockSave).not.toHaveBeenCalled()
+        }
+    )
+
+    it('rechecks ownership after post-permission reconciliation too', async () => {
+        server.push = false
+        let finish!: () => void
+        mockAfterPermission.mockReturnValueOnce(
+            new Promise((resolve) => {
+                finish = resolve
+            })
+        )
+        renderWithIntl(<NotificationsView />)
+        await waitFor(() => expect(offers()).toBeEnabled())
+        fireEvent.click(offers())
+        await waitFor(() => expect(mockAfterPermission).toHaveBeenCalledTimes(1))
+        setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-b' }))}.y`)
+        await act(async () => finish())
+        expect(mockSave).not.toHaveBeenCalled()
+    })
+
+    it('does not authorize a preference write when no token user was present at tap', async () => {
+        await clearAuthToken()
+        renderWithIntl(<NotificationsView />)
+        await waitFor(() => expect(email()).toBeEnabled())
+        fireEvent.click(email())
+        await act(async () => {})
+        expect(mockSave).not.toHaveBeenCalled()
+    })
 })

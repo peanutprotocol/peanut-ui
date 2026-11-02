@@ -18,6 +18,7 @@ type Session = {
 }
 export type IdentityStartOutcome =
     | { kind: 'busy' }
+    | { kind: 'handed-back' }
     | { kind: 'opened'; attemptId: string }
     | { kind: 'document-required'; message?: string }
     | { kind: 'document-not-allowed'; message?: string }
@@ -34,7 +35,7 @@ const preselected = (sdkConfig: KycAttemptSession['sdkConfig'] | undefined) =>
  * the midpoint only preselects it in Sumsub; a token refresh mints again with
  * the same pick.
  */
-export function usePaperworkVerificationIdentity() {
+export function usePaperworkVerificationIdentity({ onHandedBack }: { onHandedBack?: () => void } = {}) {
     const userId = useOptionalAuth()?.user?.user.userId
     const [session, setSession] = useState<Session | null>(null)
     const [busy, setBusy] = useState(false)
@@ -86,6 +87,11 @@ export function usePaperworkVerificationIdentity() {
         if (!current) throw new Error('No verification session')
         const result = await startPaperworkVerificationIdentity(current.attemptId, current.document)
         if (sessionRef.current !== current) throw new Error('Verification session closed')
+        if (result.kind === 'handed-back') {
+            sessionRef.current = null
+            setSession(null)
+            onHandedBack?.()
+        }
         if (result.kind === 'document-required' || result.kind === 'document-not-allowed') {
             sessionRef.current = null
             setSession(null)
@@ -101,7 +107,7 @@ export function usePaperworkVerificationIdentity() {
         attemptIdRef.current = result.session.attemptId
         setSession(sessionRef.current)
         return result.session.token
-    }, [])
+    }, [onHandedBack])
 
     const close = useCallback(() => {
         generation.current += 1

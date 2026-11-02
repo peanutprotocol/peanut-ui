@@ -55,7 +55,9 @@ const RULES: Record<Exclude<(typeof APP_LOCALES)[number], 'en'>, Rule[]> = {
         // pagás/enviá/pagá NOT accent-folded: "pagas"/"envia"/"paga" are legitimate tuteo forms
         {
             name: 'voseo is es-AR only',
-            pattern: word('vos|pod[eé]s|ten[eé]s|envi[aá]s|pagás|enviá|pagá|cargá|tocá|fijate'),
+            pattern: word(
+                'vos|pod[eé]s|ten[eé]s|envi[aá]s|pagás|enviá|pagá|cargá|tocá|fijate|agregá|volvé|esperá|completá|ingresá|elegí|intentá|contactá|reiniciá|pedí|pedile|reinstalala'
+            ),
         },
         { name: 'vosotros is es-ES only', pattern: word('vosotr[oa]s|podéis|tenéis|enviáis') },
         { name: '"computadora", never "ordenador" (Spain)', pattern: word('ordenador(?:es)?') },

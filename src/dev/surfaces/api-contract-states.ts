@@ -1,6 +1,13 @@
 import type { ApiCompatibility } from '@/utils/api-contracts'
+import { REQUIRED_API_CONTRACTS } from '@/constants/api-contracts.json'
 
-const version = { commit: 'e7a93bf7d', branch: 'preview', builtAt: null, migrationsHead: null, contracts: { kyc: 3 } }
+const version = {
+    commit: 'e7a93bf7d',
+    branch: 'preview',
+    builtAt: null,
+    migrationsHead: null,
+    contracts: REQUIRED_API_CONTRACTS,
+}
 
 export const API_CONTRACT_STATES: Record<string, { name: string; api: ApiCompatibility }> = {
     'api-ribbon-loading': {

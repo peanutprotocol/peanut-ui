@@ -107,3 +107,25 @@ A queued online task reproduced the same sequence without an SDK event: React ha
 - Check: `rg -n 'createCredential|clientDataJSON|TextDecoder|toWebAuthnKey' src/utils src/hooks/useZeroDev.ts`. Inspect the shim and SDK continuation: reject before register/verify; never reorder signed JSON. Decoder normalization can conceal byte offsets, so include UTF-8 BOM and whitespace cases.
 - Counterexample: a standard compact registration with an opaque device-bound attestation is allowed. Backup eligibility alone is not incompatibility, and iOS/web/get calls must not inherit an Android create-only guard.
 - Regression: android-passkey-registration-compatibility.test.ts covers deterministic JSON-order permutations, malformed/shifted bytes, unchanged credentials, sanitized errors and forbidden server continuation. useSignupPasskey.test.tsx covers translated inline guidance and no completion after rejection. Finder and independent verifier reproduced the BOM counterexample; preserving BOM during decoding closes it. Disposable guard-removal mutation fails the sorted-layout assertion; original passes.
+
+
+## KYC feature reports and recovery (2026-11-02)
+
+- Evidence: release review-out/r3 F12/F13/F14/F15/F54/F57/F59/F60/F62/F65/F66/F67 and explicit app-fix request.
+- Triggers: a refusal is presented as residence regardless of reason, a failed second request reports success, or a pending/replacement session never observes its eventual decision. Shared provider actions can also misroute QR verification.
+- Search: `rg -n 'refusalOf|entryChip|completed|backendOrFallback|pendingApplication|approvedAtOpen|restart-identity' src/components/AddMoney/components/MantecaAddMoneyFlow.tsx src/components/Profile/views/MoneySettings.view.tsx src/hooks/useSumsubKycFlow.ts src/app/actions/sumsub.ts src/features/card src/features/paperwork-verification src/features/payments/flows/qr-pay/qrKycGate.utils.ts`. Inspect each caller and reason/action pair; a match is only a lead.
+- Invariants: render a refusal's own localized explanation and remedy; unknown reads remain unknown; only route absence selects legacy funding; pending reconciliation repeats reads without repeating writes; submitted replacement review waits for APPROVED. Preserve backend recovery codes even without userMessage.
+- Counterexamples: geo-blocked legitimately gets residence copy; quiet wait is intentional; cold REVERIFYING preserves held access; a global identity-missing cause applies to QR while Rain-only ID requests do not.
+- Privacy searches: `rg -n 'us_citizen_not_supported|KYC_PV_LOCAL_REFUSED|KYC_PV_CONTINUE_WITHOUT_LOCAL|supportLinkedAccounts' src/features/paperwork-verification src/utils/support-context.ts src/interfaces/interfaces.ts`. Field validation may name a refusal to the user, but identified analytics must normalize answer-revealing codes and omit answer-specific events. Public support links contain relation only.
+- Regression: extended existing MantecaAddMoney, MoneySettings, useSumsubKycFlow, paperwork flow/analytics, identity restart, QR gate and support-context tests; new useCardFundingAccess and pendingApplication tests exercise 404 versus failures and timer-only reconciliation. Catalog tests preserve es-AR inheritance, regional verb forms and localized product articles.
+
+
+## KYC account continuity and typed-answer echoes (release review, 2026-11-02)
+
+Verified incidents: passive 401 left private queries cached; profile/paperwork keys had no account identity; a permission wait and a queued answer batch could continue under the shared cookie's next user. A typed city also escaped the input as pill and portal text.
+
+Preflight: inspect `clearAccountQueries`, `useSessionFence`, scoped profile/paperwork keys, each `saveSteps` step and retry, terminal queue-generation invalidation, and `expectedUserId` at the transport boundary. An epoch alone cannot detect another tab replacing the cookie. Same-user token refresh remains valid. Check late initial reads after unmount too: an obsolete hand-back must not navigate the next account Home.
+
+Evidence: deferred permission/answer/read tests, real A→B cookie changes, same-user refresh, missing/malformed token and unmount negatives. The disposable saveSteps variant with account checks removed sent its second step as B and failed the account regression; production source was never mutated. The real replay and autocapture redactors must remove typed city text, attributes and portal suggestions. Fixed-option labels retain the existing policy.
+
+Server ownership checks remain the final race boundary; mocked client tests do not establish deployed API enforcement. No hooks were installed, trusted, or activated by this change; hosted CI and branch protections remain the merge boundary.

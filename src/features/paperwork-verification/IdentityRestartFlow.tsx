@@ -21,6 +21,7 @@ import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 import { getKycDetails } from '@/app/actions/kyc-paperwork-verification'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { providerIdRequestReason } from '@/utils/provider-rejection.utils'
+import { localizedCountryName } from '@/utils/country-name.utils'
 import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
 import { DOCUMENT_KEYS } from './paperworkVerification.utils'
 import { VERIFY_RESTART_PARAM } from './paperworkVerificationEntry'
@@ -37,9 +38,6 @@ type RestartStep = (typeof STEPS)[number]
 
 const newRequestKey = () =>
     Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, '0')).join('')
-
-// Sumsub has no temporary protection type; the sheet goes as a visa from the host country, as on the first check.
-const sumsubDocumentType = (type: string) => (type === 'TEMPORARY_PROTECTION' ? 'VISA' : type)
 
 type Failure = Extract<KycReplacementResult, { kind: 'failed' }>
 
@@ -113,6 +111,7 @@ function RestartSteps({
     const [busy, setBusy] = useState(false)
     const [identityStepTitle, setIdentityStepTitle] = useState<string>()
     const [error, setError] = useState<string | null>(null)
+    const [frozenDocument, setFrozenDocument] = useState<PaperworkVerificationDocument | null>(null)
     const [session, setSession] = useState<KycAttemptSession | null>(null)
     const busyRef = useRef(false)
     const sessionRef = useRef<KycAttemptSession | null>(null)
@@ -141,6 +140,15 @@ function RestartSteps({
     }, [step])
 
     const failureMessage = (failure: Failure) => {
+        if (failure.code === 'replacement_choice_frozen') {
+            if (!failure.document) return t('paperworkVerification.midpoint.frozenChoice')
+            return t('paperworkVerification.midpoint.frozenDocument', {
+                document: t(
+                    `documents.${DOCUMENT_KEYS[failure.document.type as keyof typeof DOCUMENT_KEYS] ?? 'otherDocument'}`
+                ),
+                country: localizedCountryName(locale, failure.document.issuingCountry, failure.document.issuingCountry),
+            })
+        }
         if (failure.cooldown)
             return failure.cooldown.retryAt
                 ? tCooldown('until', {
@@ -173,7 +181,7 @@ function RestartSteps({
                 documents: [
                     {
                         key: identity.key,
-                        type: sumsubDocumentType(document.type),
+                        type: document.type,
                         issuingCountry: document.issuingCountry,
                     },
                 ],
@@ -188,6 +196,7 @@ function RestartSteps({
             } else {
                 // A failed restart can close the attempt its key reserved; the next try reserves a new one.
                 requestKeyRef.current = null
+                if (result.code === 'replacement_choice_frozen' && result.document) setFrozenDocument(result.document)
                 setError(failureMessage(result))
             }
         } finally {
@@ -229,6 +238,7 @@ function RestartSteps({
                     reason={reasonKey ? tIdentity(reasonKey) : null}
                     busy={busy}
                     error={error}
+                    frozenDocument={frozenDocument}
                     onBack={() => void stepper.back()}
                     onContinue={(document) => void replace(document)}
                 />

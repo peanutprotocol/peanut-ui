@@ -25,6 +25,7 @@ export const updateUserById = async (payload: Record<string, unknown>): Promise<
         if (!response.ok) {
             return {
                 error: responseJson?.message || responseJson?.error || 'Failed to update user',
+                ...(typeof responseJson?.code === 'string' && { code: responseJson.code }),
                 failureKind: 'http',
                 status: response.status,
             }

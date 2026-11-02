@@ -264,6 +264,31 @@ describe('startKycDocumentReplacement', () => {
         })
     })
 
+    it.each([400, 409, 422])('preserves a coded %s refusal even without user-facing prose', async (status) => {
+        mockFetch.mockResolvedValue(reply(status, { code: 'replacement_choice_frozen' }))
+        await expect(startKycDocumentReplacement(replacement)).resolves.toMatchObject({
+            kind: 'failed',
+            code: 'replacement_choice_frozen',
+        })
+    })
+
+    it('keeps the frozen document alongside the refusal code and user-facing explanation', async () => {
+        const document = { type: 'PASSPORT', issuingCountry: 'PT' }
+        mockFetch.mockResolvedValue(
+            reply(409, {
+                code: 'replacement_choice_frozen',
+                userMessage: 'Continue with the document already selected.',
+                document,
+            })
+        )
+        await expect(startKycDocumentReplacement(replacement)).resolves.toMatchObject({
+            kind: 'failed',
+            code: 'replacement_choice_frozen',
+            error: 'Continue with the document already selected.',
+            document,
+        })
+    })
+
     it('a restart cooldown carries its retry time', async () => {
         mockFetch.mockResolvedValue(reply(429, { error: 'Too many', retryAt: '2026-10-24T10:00:00.000Z' }))
         await expect(startKycDocumentReplacement(replacement)).resolves.toMatchObject({

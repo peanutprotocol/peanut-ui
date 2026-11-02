@@ -11,6 +11,8 @@ import { act, renderHook } from '@testing-library/react'
 import { serverFetch } from '@/utils/api-fetch'
 import { PAPERWORK_VERIFICATION_PLAN_QUERY_KEY, usePaperworkVerificationStart } from '../usePaperworkVerificationStart'
 
+let mockUserId: string | undefined = 'user-a'
+jest.mock('@/context/authContext', () => ({ useOptionalAuth: () => ({ user: { user: { userId: mockUserId } } }) }))
 jest.mock('next/navigation', () => ({ useRouter: () => ({ prefetch: jest.fn() }) }))
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
@@ -35,6 +37,7 @@ const start = async (client = new QueryClient({ defaultOptions: { queries: { ret
 }
 
 beforeEach(() => {
+    mockUserId = 'user-a'
     jest.useFakeTimers()
     jest.mocked(serverFetch).mockReset()
 })
@@ -60,7 +63,32 @@ it('only a plan that says so opens /verify; an unreadable one keeps the start mo
 it('a tap decides from the plan Home read, without waiting for the network', async () => {
     jest.mocked(serverFetch).mockReturnValue(new Promise(() => {}))
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    client.setQueryData(PAPERWORK_VERIFICATION_PLAN_QUERY_KEY, { flow: 'verify-once', needs: [], routes: [] })
+    client.setQueryData([...PAPERWORK_VERIFICATION_PLAN_QUERY_KEY, 'user-a'], {
+        flow: 'verify-once',
+        needs: [],
+        routes: [],
+    })
 
     await expect(start(client)).resolves.toBe(true)
+})
+
+it('never reuses A’s cached plan for B while B’s plan remains unreadable', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    client.setQueryData([...PAPERWORK_VERIFICATION_PLAN_QUERY_KEY, 'user-a'], {
+        flow: 'verify-once',
+        needs: [],
+        routes: [],
+    })
+    mockUserId = 'user-b'
+    jest.mocked(serverFetch).mockRejectedValue(new TypeError('Failed to fetch'))
+    await expect(start(client)).resolves.toBe(false)
+    client.clear()
+})
+
+it('does not use an old unscoped plan entry for an authenticated account', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    client.setQueryData(PAPERWORK_VERIFICATION_PLAN_QUERY_KEY, { flow: 'verify-once', needs: [], routes: [] })
+    jest.mocked(serverFetch).mockRejectedValue(new TypeError('Failed to fetch'))
+    await expect(start(client)).resolves.toBe(false)
+    client.clear()
 })

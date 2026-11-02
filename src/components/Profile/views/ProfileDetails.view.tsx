@@ -82,8 +82,9 @@ export const ProfileDetailsView = () => {
     const onBack = useSafeBack('/profile', { replace: true })
     const { user } = useAuth()
     const { data: details, isPending } = useQuery<KycCollectedDetails>({
-        queryKey: PROFILE_DETAILS_QUERY_KEY,
+        queryKey: [...PROFILE_DETAILS_QUERY_KEY, user?.user.userId],
         queryFn: getKycDetails,
+        enabled: !!user?.user.userId,
         staleTime: 60_000,
     })
 

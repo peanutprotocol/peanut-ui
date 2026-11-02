@@ -1,3 +1,4 @@
+import { setAuthToken } from '@/utils/auth-token'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { PaperworkVerificationQuestions } from '@/app/actions/types/kyc-paperwork-verification.types'
@@ -8,6 +9,10 @@ import {
 } from '@/app/actions/kyc-paperwork-verification'
 import { getKycDocumentPlan } from '@/app/actions/kyc-workflow'
 import { AddFeatureFlow, AddFeatureQuestions } from '../AddFeatureFlow'
+
+jest.mock('@/context/authContext', () => ({
+    useOptionalAuth: () => ({ user: { user: { userId: 'user-a' } } }),
+}))
 
 jest.mock('@/app/actions/kyc-paperwork-verification', () => ({
     getKycQuestions: jest.fn(),
@@ -63,6 +68,7 @@ const cardQuestions = (): PaperworkVerificationQuestions => ({
 })
 
 beforeEach(() => {
+    setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-a' }))}.y`)
     jest.clearAllMocks()
     mockPlan.mockResolvedValue({ available: true, features, routes: [], policyVersion: 'v1', activeAttemptId: null })
     mockSaveFeatures.mockResolvedValue({ kind: 'saved' })
@@ -239,11 +245,17 @@ describe('AddFeatureQuestions: a Bridge high-risk bank account', () => {
         expect(screen.getByTestId('verify-pick-actingAsIntermediary')).toHaveTextContent('Only for myself')
         fireEvent.click(screen.getByTestId('verify-continue'))
         await waitFor(() => expect(onDone).toHaveBeenCalled())
-        expect(mockSave).toHaveBeenCalledWith('work', { employmentStatus: 'employed', occupation: 'lawyer' }, 'bank')
+        expect(mockSave).toHaveBeenCalledWith(
+            'work',
+            { employmentStatus: 'employed', occupation: 'lawyer' },
+            'bank',
+            'user-a'
+        )
         expect(mockSave).toHaveBeenCalledWith(
             'money',
             { bankMonthlyPayments: '0_4999', actingAsIntermediary: 'no' },
-            'bank'
+            'bank',
+            'user-a'
         )
     })
 })
@@ -295,7 +307,12 @@ describe('AddFeatureQuestions: local transfers (Manteca)', () => {
         fireEvent.click(screen.getByTestId('verify-toggle-isPep'))
         fireEvent.click(screen.getByTestId('verify-continue'))
         await waitFor(() => expect(onDone).toHaveBeenCalled())
-        expect(mockSave).toHaveBeenCalledWith('declarations', { isFatca: 'no', isPep: 'yes', isFep: 'no' }, 'local')
+        expect(mockSave).toHaveBeenCalledWith(
+            'declarations',
+            { isFatca: 'no', isPep: 'yes', isFep: 'no' },
+            'local',
+            'user-a'
+        )
         expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, local: true }, features)
     })
 })
@@ -325,7 +342,7 @@ describe('AddFeatureQuestions: the US question for local transfers', () => {
         fireEvent.click(screen.getByTestId('verify-continue'))
         expect(await screen.findByTestId('verify-error-isFatca')).toHaveTextContent('US citizens or tax residents')
         expect(screen.queryByTestId('verify-note-isFatca')).not.toBeInTheDocument()
-        expect(mockSave).toHaveBeenCalledWith('declarations', { isFatca: 'yes' }, 'local')
+        expect(mockSave).toHaveBeenCalledWith('declarations', { isFatca: 'yes' }, 'local', 'user-a')
     })
 })
 
@@ -432,7 +449,7 @@ describe('AddFeatureQuestions: the nationality on the birth step', () => {
         expect(screen.getByTestId('verify-pick-nationality')).toHaveTextContent('Germany')
         fireEvent.click(screen.getByTestId('verify-continue'))
         await waitFor(() => expect(onDone).toHaveBeenCalled())
-        expect(mockSave).toHaveBeenCalledWith('birth', { nationality: 'DE' }, 'bank')
+        expect(mockSave).toHaveBeenCalledWith('birth', { nationality: 'DE' }, 'bank', 'user-a')
     })
 })
 
@@ -477,6 +494,6 @@ describe('AddFeatureQuestions: a saved tax number', () => {
         expect(input).not.toHaveAttribute('readonly')
         fireEvent.change(input, { target: { value: '20123456786' } })
         fireEvent.click(screen.getByTestId('verify-continue'))
-        await waitFor(() => expect(mockSave).toHaveBeenCalledWith('tax', { taxId: '20-12345678-6' }, 'local'))
+        await waitFor(() => expect(mockSave).toHaveBeenCalledWith('tax', { taxId: '20-12345678-6' }, 'local', 'user-a'))
     })
 })

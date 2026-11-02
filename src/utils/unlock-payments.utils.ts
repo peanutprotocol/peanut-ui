@@ -14,6 +14,7 @@ import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { mantecaWithdrawUrl } from '@/features/withdraw/routes'
 import type { Concept } from '@/components/0_Bruddle/conceptIcons'
 import { QrKycState } from '@/constants/kyc.consts'
+import type { FeatureReport } from '@/types/capabilities'
 
 export type UnlockChip = 'active' | 'alwaysOn' | 'unlock' | 'processing' | 'attention' | 'notAvailable'
 
@@ -112,7 +113,7 @@ export interface BankRowsInput {
 export interface BuildUnlockGroupsInput {
     /** the QR-pay gate's answer (`selectQrKycGate`), the one /qr-pay and Home read too */
     qrPay: QrKycState
-    card: 'active' | 'get' | 'notAvailable'
+    card: UnlockChip | 'get'
 }
 
 const CARD_ROW_BASE = { id: 'card', labelKey: 'card', concept: 'card' } as const
@@ -257,7 +258,7 @@ export function buildBankRows(input: BankRowsInput): UnlockRow[] {
 export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] {
     const { qrPay, card } = input
 
-    const cardChip: UnlockChip = card === 'notAvailable' ? 'notAvailable' : card === 'active' ? 'active' : 'unlock'
+    const cardChip: UnlockChip = card === 'get' ? 'unlock' : card
     const cardRow: UnlockRow = {
         ...CARD_ROW_BASE,
         chip: cardChip,
@@ -322,15 +323,39 @@ export const BANK_ACCOUNT_HREF = '/profile/accounts'
  * local features as the API states them (`useBankRows().accountChip`); it
  * names the currencies the user can still use.
  */
-export function bankAccountRow(bankRows: readonly UnlockRow[], chip: UnlockChip): UnlockRow {
+export function bankAccountRow(
+    bankRows: readonly UnlockRow[],
+    chip: UnlockChip,
+    accounts?: {
+        features: FeatureReport
+        heldCorridors?: readonly DepositCorridor[]
+        openableCorridors?: readonly DepositCorridor[]
+    }
+): UnlockRow {
     const open = bankRows.filter((row) => row.chip !== 'notAvailable')
+    let currencies = open.flatMap((row) => (row.currency ? [row.currency] : []))
+    if (accounts) {
+        const entries = { ...accounts.features.bank.accounts, ...accounts.features.local.accounts }
+        const refused = (currency: string) => {
+            const feature = currency === 'ARS' || currency === 'BRL' ? accounts.features.local : accounts.features.bank
+            return (entries[currency] ?? feature).state === 'refused'
+        }
+        const known = new Set(Object.values(DEPOSIT_RAILS).map((rail) => rail.currency))
+        for (const [currency, entry] of Object.entries(entries))
+            if (known.has(currency) && entry.state !== 'refused') currencies.push(currency)
+        for (const corridor of [...(accounts.heldCorridors ?? []), ...(accounts.openableCorridors ?? [])]) {
+            const rail = DEPOSIT_RAILS[corridor]
+            if (rail && isClaimable(rail)) currencies.push(rail.currency)
+        }
+        currencies = currencies.filter((currency) => !refused(currency))
+    }
     return {
         id: 'bank-account',
         labelKey: 'bankAccount',
         concept: 'bank',
         chip,
         href: BANK_ACCOUNT_HREF,
-        currencies: [...new Set(open.flatMap((row) => (row.currency ? [row.currency] : [])))],
+        currencies: [...new Set(currencies)],
     }
 }
 

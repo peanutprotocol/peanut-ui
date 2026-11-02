@@ -1,3 +1,4 @@
+import { setAuthToken } from '@/utils/auth-token'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
@@ -21,6 +22,7 @@ import {
 const mockPush = jest.fn()
 const mockReplace = jest.fn()
 const mockExit = jest.fn()
+let mockAuthUserId = 'user-a'
 jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn() } }))
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('@/features/paperwork-verification/components/IdCardScanAnimation', () => ({
@@ -41,8 +43,8 @@ jest.mock('@/app/actions/kyc-workflow', () => ({
     getKycDocumentStatus: jest.fn(),
 }))
 jest.mock('@/context/authContext', () => ({
-    useOptionalAuth: () => null,
-    useAuth: () => ({ user: { user: { username: 'tester' } }, fetchUser: jest.fn() }),
+    useOptionalAuth: () => ({ user: { user: { userId: mockAuthUserId } } }),
+    useAuth: () => ({ user: { user: { userId: mockAuthUserId, username: 'tester' } }, fetchUser: jest.fn() }),
 }))
 jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: jest.fn() }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => mockExit }))
@@ -162,7 +164,9 @@ const continueButton = () => screen.getByTestId('verify-continue')
 const mockStartAction = jest.fn()
 
 beforeEach(() => {
+    mockAuthUserId = 'user-a'
     jest.clearAllMocks()
+    setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-a' }))}.y`)
     ;(useSumsubKycFlow as jest.Mock).mockReturnValue({
         isLoading: false,
         error: null,
@@ -386,7 +390,7 @@ describe('PaperworkVerificationFlow', () => {
         // The purpose shares the screen but was answered before, so only the money step is saved.
         expect(screen.queryByTestId('verify-pick-cardPurpose')).not.toBeInTheDocument()
         expect(mockSave).toHaveBeenCalledTimes(1)
-        expect(mockSave).toHaveBeenCalledWith('money', { annualSalary: '25k_50k' }, undefined)
+        expect(mockSave).toHaveBeenCalledWith('money', { annualSalary: '25k_50k' }, undefined, 'user-a')
         await act(async () => release({ kind: 'saved', next: 'tax' }))
         expect(screen.getByText('What’s your Social Security number?')).toBeInTheDocument()
     })
@@ -529,8 +533,8 @@ describe('PaperworkVerificationFlow', () => {
     // Slava, 2026-10-25: Verify showed the loading mascot before every visit.
     it('opens on what Home loaded, without the loading screen, and refreshes behind it', async () => {
         const client = new QueryClient()
-        client.setQueryData(PAPERWORK_VERIFICATION_PLAN_QUERY_KEY, plan)
-        client.setQueryData(PAPERWORK_VERIFICATION_QUESTIONS_QUERY_KEY, build())
+        client.setQueryData([...PAPERWORK_VERIFICATION_PLAN_QUERY_KEY, 'user-a'], plan)
+        client.setQueryData([...PAPERWORK_VERIFICATION_QUESTIONS_QUERY_KEY, 'user-a'], build())
         renderFlow('', client)
         expect(screen.getByTestId('verify-steps-continue')).toBeInTheDocument()
         expect(screen.queryByText('loading')).not.toBeInTheDocument()
@@ -603,7 +607,7 @@ describe('PaperworkVerificationFlow', () => {
         mockSave.mockResolvedValue({ kind: 'saved', next: 'tax' })
         fireEvent.click(continueButton())
         await waitFor(() => expect(mockSave).toHaveBeenCalledTimes(2))
-        expect(mockSave).toHaveBeenLastCalledWith('money', { annualSalary: '25k_50k' }, undefined)
+        expect(mockSave).toHaveBeenLastCalledWith('money', { annualSalary: '25k_50k' }, undefined, 'user-a')
     })
 
     it('an old conflict body with no message still names the refusal', async () => {
@@ -814,5 +818,148 @@ describe('PaperworkVerificationFlow', () => {
         expect(skipProofOfAddress).toHaveBeenCalledTimes(1)
         expect(await screen.findByTestId('verify-verified-payments')).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
+    })
+})
+
+// Queue both visible screens before the first network reply. The lifecycle
+// boundary must invalidate future queued work as well as the in-flight batch.
+describe('account-bound queued answer saves', () => {
+    afterEach(() => jest.useRealTimers())
+
+    async function queueMoneyAndTax() {
+        let finish!: (reply: Awaited<ReturnType<typeof saveKycAnswers>>) => void
+        mockSave.mockReset().mockReturnValueOnce(
+            new Promise((resolve) => {
+                finish = resolve
+            })
+        )
+        const view = await startFlow()
+        await screen.findByTestId('verify-pick-annualSalary')
+        fireEvent.click(continueButton())
+        fireEvent.change(await screen.findByTestId('verify-input-taxId'), { target: { value: '412550198' } })
+        fireEvent.click(continueButton())
+        await screen.findByText('Answers saved!')
+        expect(mockSave).toHaveBeenCalledTimes(1)
+        return { view, finish }
+    }
+
+    it.each(['changed', 'unmounted'] as const)(
+        'does not start the queued tax batch after the first save resolves with lifecycle %s',
+        async (state) => {
+            const { view, finish } = await queueMoneyAndTax()
+            if (state === 'changed') setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-b' }))}.y`)
+            else view.unmount()
+            await act(async () => finish({ kind: 'saved', next: 'tax' }))
+            expect(mockSave).toHaveBeenCalledTimes(1)
+            expect(mockToken).not.toHaveBeenCalled()
+        }
+    )
+
+    it.each([
+        ['known 409', { kind: 'conflict', code: 'feature_not_selected' }],
+        ['future expected-user 409', { kind: 'conflict', code: 'expected_user_mismatch' }],
+        ['401', { kind: 'blocked', code: 'unavailable' }],
+    ] as const)('a terminal %s discards later batches instead of sending their values', async (_label, outcome) => {
+        const { finish } = await queueMoneyAndTax()
+        await act(async () => finish(outcome))
+        expect(mockSave).toHaveBeenCalledTimes(1)
+        expect(mockToken).not.toHaveBeenCalled()
+    })
+
+    it.each(['changed', 'unmounted'] as const)(
+        'does not retry or drain queued batches after lifecycle %s during backoff',
+        async (state) => {
+            const { view, finish } = await queueMoneyAndTax()
+            jest.useFakeTimers()
+            await act(async () => finish({ kind: 'retry' }))
+            if (state === 'changed') setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-b' }))}.y`)
+            else view.unmount()
+            await act(async () => {
+                await jest.advanceTimersByTimeAsync(5_000)
+            })
+            expect(mockSave).toHaveBeenCalledTimes(1)
+            expect(mockToken).not.toHaveBeenCalled()
+        }
+    )
+})
+
+describe('initial paperwork reads belong to the mounted account', () => {
+    it.each(['unavailable questions', 'legacy plan', 'handed-back questions'] as const)(
+        'late initial %s hand-back after unmount never navigates Home',
+        async (outcome) => {
+            let finishQuestions!: (questions: PaperworkVerificationQuestions) => void
+            let failQuestions!: (error: Error) => void
+            let finishPlan!: (value: Awaited<ReturnType<typeof findKycDocumentPlan>>) => void
+            let finishStatus!: (value: Awaited<ReturnType<typeof getKycDocumentStatus>>) => void
+            mockQuestions.mockReturnValueOnce(
+                new Promise((resolve, reject) => {
+                    finishQuestions = resolve
+                    failQuestions = reject
+                })
+            )
+            mockPlan.mockReturnValueOnce(
+                new Promise((resolve) => {
+                    finishPlan = resolve
+                })
+            )
+            mockStatus.mockReturnValueOnce(
+                new Promise((resolve) => {
+                    finishStatus = resolve
+                })
+            )
+            const view = renderFlow()
+            await waitFor(() => {
+                expect(mockQuestions).toHaveBeenCalled()
+                expect(mockPlan).toHaveBeenCalled()
+                expect(mockStatus).toHaveBeenCalled()
+            })
+            expect(mockReplace).not.toHaveBeenCalled()
+            view.unmount()
+            await act(async () => {
+                if (outcome === 'handed-back questions') failQuestions(new KycFlowHandedBackError())
+                else finishQuestions({ ...build(), available: outcome !== 'unavailable questions' })
+                finishPlan(outcome === 'legacy plan' ? { ...plan, available: false, flow: null } : plan)
+                finishStatus('NOT_STARTED')
+            })
+            expect(mockReplace).not.toHaveBeenCalled()
+            expect(mockPush).not.toHaveBeenCalled()
+        }
+    )
+
+    it('reusing the mounted flow for B never publishes A’s late initial answers', async () => {
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        let finishA!: (questions: PaperworkVerificationQuestions) => void
+        mockQuestions.mockReturnValueOnce(
+            new Promise((resolve) => {
+                finishA = resolve
+            })
+        )
+        const bQuestions = build()
+        bQuestions.steps[1].fields[0].value = 'under_25k'
+        mockQuestions.mockResolvedValue(bQuestions)
+        const tree = () => (
+            <QueryClientProvider client={client}>
+                <NuqsTestingAdapter searchParams="" hasMemory>
+                    <PaperworkVerificationFlow />
+                </NuqsTestingAdapter>
+            </QueryClientProvider>
+        )
+        const view = renderWithIntl(tree())
+        await waitFor(() => expect(mockQuestions).toHaveBeenCalledTimes(1))
+        mockAuthUserId = 'user-b'
+        setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-b' }))}.y`)
+        view.rerender(tree())
+        await waitFor(() => expect(mockQuestions.mock.calls.length).toBeGreaterThan(1))
+        await waitFor(() => expect(screen.getByTestId('verify-steps-continue')).toBeEnabled())
+        fireEvent.click(screen.getByTestId('verify-steps-continue'))
+        expect(await screen.findByTestId('verify-pick-annualSalary')).toHaveTextContent('Under $25,000')
+        const bValue = screen.getByTestId('verify-pick-annualSalary').textContent
+        await act(async () => finishA(build()))
+        expect(screen.getByTestId('verify-pick-annualSalary').textContent).toBe(bValue)
+        expect(screen.getByTestId('verify-pick-annualSalary')).not.toHaveTextContent('$25,000–$49,999')
+        expect(mockReplace).not.toHaveBeenCalled()
+        expect(mockSave).not.toHaveBeenCalled()
+        view.unmount()
+        client.clear()
     })
 })

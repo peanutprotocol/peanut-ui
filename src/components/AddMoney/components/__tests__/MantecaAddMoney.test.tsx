@@ -21,8 +21,8 @@ jest.mock('@/context/authContext', () => ({
  */
 import React from 'react'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
-import type { RailCapability } from '@/types/capabilities'
-import { act, render as rtlRender, screen } from '@testing-library/react'
+import type { FeatureReportEntry, NextAction, RailCapability } from '@/types/capabilities'
+import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 // jest.mock calls are hoisted above this import, so the mocks below apply to it
@@ -89,15 +89,24 @@ const mockSubscribeCapabilities = (listener: () => void) => {
         mockCapabilityListeners.delete(listener)
     }
 }
-const mockCapabilityBlock = () =>
-    withFeatureReport(
-        { rails: mockRails, nextActions: [], restrictions: [] },
+let mockApiArs: FeatureReportEntry | null = null
+let mockNextActions: NextAction[] = []
+const mockCapabilityBlock = () => {
+    const block = withFeatureReport(
+        { rails: mockRails, nextActions: mockNextActions, restrictions: [] },
         {
             identity: { status: mockIsIdentityVerified ? 'verified' : 'not_started' },
             residence: mockResidence,
             mantecaClosedCountries: mockClosedCountries,
         }
     )
+    if (mockApiArs && block.features)
+        block.features = {
+            ...block.features,
+            local: { ...block.features.local, accounts: { ...block.features.local.accounts, ARS: mockApiArs } },
+        }
+    return block
+}
 const mockFetchUser = jest.fn(async () => {
     mockClosedCountries = new Set([mockParams.country === 'brazil' ? 'BR' : 'AR'])
     mockCapabilityRevision += 1
@@ -110,7 +119,7 @@ jest.mock('@/hooks/useCapabilities', () => ({
         return {
             capabilities: mockCapabilityBlock(),
             rails: mockRails,
-            nextActions: [],
+            nextActions: mockNextActions,
             isLoading: mockCapabilitiesLoading,
         }
     },
@@ -140,14 +149,22 @@ jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
 
 const mockDeposit = jest.fn()
 jest.mock('@/services/manteca', () => ({ mantecaApi: { deposit: (...args: unknown[]) => mockDeposit(...args) } }))
+const mockSetIsSupportModalOpen = jest.fn()
 const mockOpenSupportWithMessage = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
-    useModalsContext: () => ({ setIsSupportModalOpen: jest.fn(), openSupportWithMessage: mockOpenSupportWithMessage }),
+    useModalsContext: () => ({
+        setIsSupportModalOpen: mockSetIsSupportModalOpen,
+        openSupportWithMessage: mockOpenSupportWithMessage,
+    }),
     useModalsContextOptional: () => null,
 }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
+jest.mock('@/components/Kyc/modals/KycFailedModal', () => ({
+    KycFailedModal: ({ visible }: { visible: boolean }) =>
+        visible ? <div data-testid="identity-failed-modal" /> : null,
+}))
 // captures the KYC modal wiring so a test can drive its CTA
 type KycModalProps = {
     visible: boolean
@@ -204,12 +221,15 @@ beforeEach(() => {
     mockCapabilitiesLoading = false
     mockResidence = null
     mockRails = []
+    mockApiArs = null
+    mockNextActions = []
     mockClosedCountries = new Set()
     mockFetchUser.mockClear()
     mockRejection = { state: 'happy' }
     Object.values(mockKycFlow).forEach((v) => typeof v === 'function' && (v as jest.Mock).mockClear())
     mockDeposit.mockReset()
     mockOpenSupportWithMessage.mockReset()
+    mockSetIsSupportModalOpen.mockReset()
 })
 
 describe('denomination default', () => {
@@ -677,5 +697,85 @@ describe('provider refusal', () => {
         await act(() => lastInputStepProps!.onSubmit())
 
         expect(lastInputStepProps!.error).toBe('Failed to create on-ramp transfer for guest.')
+    })
+})
+
+describe('refused local accounts retain their own reason and remedy', () => {
+    const setRefusal = (entry: FeatureReportEntry) => {
+        setCountry('argentina')
+        mockResidence = 'AR'
+        mockApiArs = entry
+        mockNextActions = [
+            { key: 'contact-support', kind: 'contact-support', purpose: 'kyc-support' } as NextAction,
+            {
+                key: 'restart-identity',
+                kind: 'restart-identity',
+                purpose: 'document_country_unsupported',
+            } as NextAction,
+        ]
+    }
+    const expectRefused = () => {
+        expect(screen.queryByText(/only legal residents of argentina/i)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
+        expect(mockDeposit).not.toHaveBeenCalled()
+    }
+
+    test('a rejected identity opens the identity failure explanation', () => {
+        setRefusal({ state: 'refused', reason: 'identity_rejected', action: 'identity' })
+        render(<MantecaAddMoney />)
+        expectRefused()
+        expect(screen.getByTestId('identity-failed-modal')).toBeInTheDocument()
+    })
+
+    test('a document refusal opens the identity restart remedy', async () => {
+        setRefusal({ state: 'refused', reason: 'document_country_unsupported', action: 'restart-identity' })
+        render(<MantecaAddMoney />)
+        expectRefused()
+        expect(lastKycModalProps).toMatchObject({
+            visible: true,
+            variant: 'restart_identity',
+            reasonCode: 'document_country_unsupported',
+        })
+        await act(() => lastKycModalProps!.onVerify())
+        expect(mockKycFlow.handleRestartIdentity).toHaveBeenCalled()
+        expect(mockKycFlow.handleSelfHealResubmit).not.toHaveBeenCalled()
+    })
+
+    test.each(['duplicate_account', 'verification_blocked'] as const)(
+        '%s shows localized support guidance',
+        (reason) => {
+            setRefusal({
+                state: 'refused',
+                reason,
+                ...(reason === 'verification_blocked' ? { action: 'contact-support' } : {}),
+            })
+            render(<MantecaAddMoney />)
+            expectRefused()
+            expect(screen.getByText(en.identity.reasons[reason])).toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: /contact support/i }))
+            expect(mockSetIsSupportModalOpen.mock.calls.length + mockOpenSupportWithMessage.mock.calls.length).toBe(1)
+            expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
+        }
+    )
+
+    test('a generic refusal uses its localized reason without opening amount entry', () => {
+        setRefusal({
+            state: 'refused',
+            reason: 'compliance_block',
+            message: 'Provider English must not replace localized copy.',
+        })
+        render(<MantecaAddMoney />)
+        expectRefused()
+        expect(screen.getByText(en.identity.reasons.compliance_block)).toBeInTheDocument()
+        expect(screen.queryByText('Provider English must not replace localized copy.')).not.toBeInTheDocument()
+        expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    test('a residence refusal keeps the residence explanation', () => {
+        setCountry('argentina')
+        mockApiArs = { state: 'refused', reason: 'local_residence_unsupported' }
+        render(<MantecaAddMoney />)
+        expect(screen.getByText(/only legal residents of argentina/i)).toBeInTheDocument()
+        expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
     })
 })

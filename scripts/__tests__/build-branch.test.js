@@ -31,7 +31,29 @@ describe('a build for testing', () => {
     })
 
     it("takes OTAs from its branch's own channel", () => {
-        expect(testOtaChannel('innolope/KYC_document.selection')).toBe('test-innolope-kyc-document-selection')
+        expect(testOtaChannel('innolope/KYC_document.selection')).toMatch(
+            /^test-innolope-kyc-document-selection-[a-f0-9]+$/
+        )
         expect(testOtaChannel(`feat/${'x'.repeat(80)}`).length).toBeLessThanOrEqual(60)
+    })
+
+    it('distinguishes exact branch names despite punctuation, case and truncation', () => {
+        const longStem = `innolope/${'a'.repeat(80)}`
+        const branches = [
+            'feature/kyc',
+            'feature-kyc',
+            'feature_kyc',
+            'feature.KYC',
+            'feature.kyc',
+            `${longStem}-one`,
+            `${longStem}-two`,
+        ]
+        const channels = branches.map(testOtaChannel)
+        expect(new Set(channels).size).toBe(branches.length)
+        for (const [index, channel] of channels.entries()) {
+            expect(channel).toBe(testOtaChannel(branches[index]))
+            expect(channel).toMatch(/^test-[a-z0-9-]+-[a-f0-9]+$/)
+            expect(channel.length).toBeLessThanOrEqual(60)
+        }
     })
 })
