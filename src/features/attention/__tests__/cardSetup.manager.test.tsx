@@ -206,6 +206,45 @@ beforeEach(() => {
     mockFundingError = null
 })
 
+describe('finish-card-setup settles only on approval for the card it was granted for', () => {
+    beforeEach(() => {
+        mockAccess = { fundingMode: 'legacy', enrollmentAllowed: false }
+        mockState = state({ needsSetup: true, setupPath: 'legacy' })
+    })
+
+    test('an ok grant whose fresh overview still lacks the approval keeps the setup ask and its recovery', async () => {
+        mockSessionGrant.mockResolvedValue({ ok: true, overviewFresh: true })
+        await mount()
+        expect(latest?.decision.interrupt).toBe('finish-card-setup')
+        await click('continue')
+        expect(latest?.decision.interrupt).toBe('finish-card-setup')
+        expect(readLedger('user-a')['finish-card-setup']?.dismissedAt).toBeUndefined()
+        expect(screen.getByText('skipForNow')).toBeInTheDocument()
+    })
+
+    test('an ok grant with a stale overview settles nothing', async () => {
+        mockSessionGrant.mockResolvedValue({ ok: true, overviewFresh: false })
+        await mount()
+        await click('continue')
+        expect(readLedger('user-a')['finish-card-setup']?.dismissedAt).toBeUndefined()
+    })
+
+    test('a fresh overview that shows the approval for that card records it as acted', async () => {
+        mockSessionGrant.mockImplementation(async () => {
+            mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: true }]
+            return { ok: true, overviewFresh: true }
+        })
+        const view = await mount()
+        await click('continue')
+        mockState = state({ needsSetup: false, setupPath: 'legacy' })
+        view.rerender(<Tree />)
+        await act(async () => {})
+        expect(readLedger('user-a')['finish-card-setup']).toMatchObject({ version: 'card-a' })
+        expect(readLedger('user-a')['finish-card-setup']?.dismissedAt).toBeDefined()
+        expect(latest?.decision.interrupt).toBeNull()
+    })
+})
+
 describe('finish-card-funding: dev FundingSetupPrompt through the manager', () => {
     beforeEach(() => {
         mockAccess = { fundingMode: 'managed', enrollmentAllowed: false }

@@ -431,3 +431,54 @@ it('allows wallet initialization to retry and exposes Skip if it fails', async (
     fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
     expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
 })
+
+describe('EnableAutoBalanceBanner — settling the ask', () => {
+    it('an ok grant whose fresh overview still lacks the approval is not settled', async () => {
+        jest.spyOn(console, 'warn').mockImplementation(() => {})
+        mockGrant.mockResolvedValue({ ok: true, overviewFresh: true })
+        render(<EnableAutoBalanceBanner {...surfaceProps} />)
+        await act(async () => {
+            fireEvent.click(screen.getByText('Continue'))
+        })
+        expect(onActed).not.toHaveBeenCalled()
+        expect(screen.getByText('Skip for now')).toBeInTheDocument()
+    })
+
+    it('an ok grant with a stale overview is not settled', async () => {
+        mockGrant.mockResolvedValue({ ok: true, overviewFresh: false })
+        render(<EnableAutoBalanceBanner {...surfaceProps} />)
+        await act(async () => {
+            fireEvent.click(screen.getByText('Continue'))
+        })
+        expect(onActed).not.toHaveBeenCalled()
+    })
+
+    it('settles once the fresh overview shows the approval for the card it was granted for', async () => {
+        mockGrant.mockImplementation(async () => {
+            mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: true }]
+            return { ok: true, overviewFresh: true }
+        })
+        const { rerender } = render(<EnableAutoBalanceBanner {...surfaceProps} />)
+        await act(async () => {
+            fireEvent.click(screen.getByText('Continue'))
+        })
+        rerender(<EnableAutoBalanceBanner {...surfaceProps} />)
+        expect(onActed).toHaveBeenCalledTimes(1)
+    })
+
+    it('an approval that lands on a different card settles nothing', async () => {
+        mockGrant.mockImplementation(async () => {
+            mockCards = [
+                { id: 'card-a', status: 'CANCELED', hasWithdrawApproval: false },
+                { id: 'card-b', status: 'ACTIVE', hasWithdrawApproval: true },
+            ]
+            return { ok: true, overviewFresh: true }
+        })
+        const { rerender } = render(<EnableAutoBalanceBanner {...surfaceProps} />)
+        await act(async () => {
+            fireEvent.click(screen.getByText('Continue'))
+        })
+        rerender(<EnableAutoBalanceBanner {...surfaceProps} />)
+        expect(onActed).not.toHaveBeenCalled()
+    })
+})
