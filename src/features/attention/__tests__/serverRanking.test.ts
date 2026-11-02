@@ -210,3 +210,29 @@ describe('asServerAttention', () => {
         expect(asServerAttention(body)).toBe(body)
     })
 })
+
+describe('a server show for an ask the app is still loading', () => {
+    const LOADING_TERMS = { consent: { status: 'unknown', versions: [], documents: [] } }
+    const serverTerms = () => applyServerRanking(ASKS, serverOf({ verdicts: { 'legal-reconsent': 'show' } }))
+
+    test('reads as unknown, not pending', () => {
+        expect(byId(serverTerms(), 'legal-reconsent')?.eligible(stateOf(LOADING_TERMS))).toBe('unknown')
+    })
+
+    test('a loaded ask the app cannot render yet still reads as pending', () => {
+        const state = stateOf({ consent: { status: 'clear', versions: [], documents: [] } })
+        expect(byId(serverTerms(), 'legal-reconsent')?.eligible(state)).toBe('pending')
+    })
+
+    test('keeps the hold: the balance warning does not open before the terms', () => {
+        const state = stateOf({ ...LOADING_TERMS, balance: { loaded: true, usd: 900 } })
+        expect(decide(state, ASKS, {}, baseSession).interrupt).toBeNull()
+        expect(decide(state, serverTerms(), {}, baseSession).interrupt).toBeNull()
+    })
+
+    test('keeps the hold: arrival does not open before the terms', () => {
+        const state = stateOf({ ...LOADING_TERMS, arrival: 'raised' })
+        expect(decide(state, ASKS, {}, baseSession).interrupt).toBeNull()
+        expect(decide(state, serverTerms(), {}, baseSession).interrupt).toBeNull()
+    })
+})

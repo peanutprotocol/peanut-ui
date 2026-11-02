@@ -70,8 +70,11 @@ export function applyServerRanking(
             ...(ranked ? { tier: ranked.tier, rank: ranked.rank } : {}),
             ...(verdict
                 ? {
-                      eligible: (state: JourneyState) =>
-                          verdict === 'show' && ask.renderable?.(state) === false ? 'pending' : verdict,
+                      eligible: (state: JourneyState): Verdict => {
+                          if (verdict !== 'show' || ask.renderable?.(state) !== false) return verdict
+                          // the app's own input is still loading: hold lower asks as the local verdict would
+                          return ask.eligible(state) === 'unknown' ? 'unknown' : 'pending'
+                      },
                   }
                 : {}),
         }
