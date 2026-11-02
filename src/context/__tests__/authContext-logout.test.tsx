@@ -67,6 +67,10 @@ jest.mock('@/utils/signup-attribution', () => ({
 jest.mock('@/services/pending-invite-attribution', () => ({
     settlePendingInviteAttribution: jest.fn().mockResolvedValue({ status: 'none' }),
 }))
+const mockFlushLedgerSync = jest.fn().mockResolvedValue(undefined)
+jest.mock('@/features/attention/ledgerSync', () => ({
+    flushLedgerSync: (...args: unknown[]) => mockFlushLedgerSync(...args),
+}))
 jest.mock('posthog-js', () => ({
     __esModule: true,
     default: {
@@ -143,6 +147,25 @@ describe('logoutUser', () => {
         expect(mockClear).toHaveBeenCalled()
         expect(storedWhenCacheEmptied).toBeNull()
         expect(getRedirectUrl()).toBeNull()
+    })
+
+    it("sends the user's pending attention-ledger write before the session is revoked", async () => {
+        const order: string[] = []
+        mockFlushLedgerSync.mockImplementationOnce(async () => {
+            order.push('flush')
+        })
+        mockApiFetch.mockImplementationOnce(async () => {
+            order.push('revoke')
+        })
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(mockFlushLedgerSync).toHaveBeenCalledWith('u1')
+        expect(order).toEqual(['flush', 'revoke'])
     })
 
     it('leaves this tab logged out, so a later deep link is intent again', async () => {
