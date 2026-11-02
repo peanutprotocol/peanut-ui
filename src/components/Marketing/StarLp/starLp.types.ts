@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import type { StaticImageData } from 'next/image'
 import type { TitleMark } from '@/components/0_Bruddle/Title.types'
 import type { MarqueeItem } from '@/components/Global/MarqueeWrapper/marquee.types'
+import type { MigrationSurface } from '@/constants/migration.consts'
 
 /** The marketing band grounds the six star LPs use (design.md § grounds). */
 export type BandGround = 'pink' | 'cream' | 'sky' | 'yellow' | 'black' | 'white'
@@ -34,7 +35,7 @@ export interface SectionTitleProps {
 
 /** Knerd `Title` size presets for static Knerd. Call sites never pass their own
     size. The hero's oversized words are KnerdPullHeadline, not a preset. */
-export type KnerdSize = 'hero' | 'compact' | 'inline' | 'amount'
+export type KnerdSize = 'hero' | 'compact' | 'inline' | 'amount' | 'display'
 
 export interface KnerdTitleProps {
     /** Caps are applied for you. Break lines with "\n". 1–3 words. */
@@ -107,6 +108,8 @@ export interface StarLpCtaProps {
     ground: BandGround
     /** Sentence-case label. */
     children: ReactNode
+    /** Analytics surface of the click. Star LPs leave it at STAR_LP; another page passes its own. */
+    surface?: MigrationSurface
 }
 
 export interface PhoneFrameProps {
@@ -152,17 +155,30 @@ export interface StarLpFaqItem {
     answer: string
     /** Shown instead of `answer`, e.g. the same words with in-text links (FAQsPanel's answerContent). */
     answerContent?: ReactNode
+    /** A help page under the answer, shown with `learnMoreLabel` (FAQsPanel's learnMoreHref). */
+    learnMoreHref?: string
 }
 
 export interface StarLpFaqProps {
     items: StarLpFaqItem[]
     /** Legal line under the list (e.g. "Peanut is not a bank."). Only lines product/ or a partner rule requires. */
     footnote?: string
+    /** Link text for items that carry `learnMoreHref`, in the page language. */
+    learnMoreLabel?: string
+    /** Language of the questions, for the FAQPage JSON-LD (e.g. 'es-AR'). Star LPs are English and leave it out. */
+    inLanguage?: string
+    /** Section id, e.g. 'faq' for an in-page anchor. */
+    id?: string
 }
 
 export interface TrustBandProps {
     /** One line. Use "\n" for the phone line break. */
     text: string
+}
+
+/** The close fold's CTA (a StarLpCta) that the peace glove sits beside. */
+export interface CloseGloveCtaProps {
+    children: ReactNode
 }
 
 export interface CloseFoldProps {
@@ -175,8 +191,10 @@ export interface CloseFoldProps {
     ground?: BandGround
     /** Replaces the default two sparkles (approved doodles only). */
     decoration?: ReactNode
-    /** One word of `title` to circle with the hand-drawn scribble; its stroke crosses the letters, as in the homepage noFees fold. The circle replaces the default sparkles. */
+    /** One word of `title` to circle with the hand-drawn scribble; its stroke crosses the letters. The circle replaces the default sparkles. */
     circleWord?: string
+    /** Band id, e.g. an anchor or an e2e hook. */
+    id?: string
 }
 
 export interface StarLpPageProps {
@@ -219,6 +237,8 @@ export interface PopInProps {
 
 export interface DropInProps {
     children: ReactNode
+    /** A shared motion guard and viewport trigger for a visible, synchronized pop. */
+    entrance?: { enabled: boolean; visible: boolean }
     delay?: number
     /** Tilt it falls from, degrees (Split uses −14, 12, −8). */
     fromTilt?: number
@@ -281,13 +301,18 @@ export interface StarLpMarqueeProps {
 export type StarLpQrCampaign = 'qr-argentina' | 'qr-brazil'
 
 /** Where the QR sits on the page. Used as `utm_content`. */
-export type StarLpQrSlot = 'hero-sticker' | 'close-sticker' | 'ways-in'
+export type StarLpQrSlot = 'hero-sticker' | 'close-sticker' | 'ways-in' | 'home-sticker'
 
 export interface StarLpQrCodeProps {
     campaign: StarLpQrCampaign
     slot: StarLpQrSlot
     /** Width classes; the code is square and carries its own white quiet zone. */
     className?: string
+    /** The registered marketing QR to show when the PWA sunset is on. Leave it out on the
+        star LPs: the code then registers as `{campaign}-{slot}-en`. Another page (home)
+        passes its own page, placement and locale; `campaign` and `slot` still tag the
+        fallback URL while the sunset is off. */
+    qrContext?: MarketingQrContext
 }
 
 export interface StarLpQrUrlInput {
@@ -320,16 +345,18 @@ export interface StarLpEarner {
     who: string
 }
 
-/** An earner's card on one page: their own line and one short fact. */
+/** An earner's card on one page: their own line and, optionally, one short fact. */
 export interface StarLpPersonaCard extends StarLpEarner {
     /** First person, sentence case, one sentence. Not a quote: no quote marks. */
     line: string
-    /** The rail that pays them (SEPA, ACH) or where the client pays from. */
-    tag: string
+    /** The rail that pays them (SEPA, ACH) or where the client pays from. Omit and the card has no pill. */
+    tag?: string
 }
 
 export interface PersonaFoldProps {
     cards: readonly StarLpPersonaCard[]
+    /** The fold's h2, in the page language. Defaults to "Sound like you?". */
+    title?: ReactNode
 }
 
 /** A live indicative rate from the backend's /fx/rate. */
@@ -368,4 +395,6 @@ export interface TillStickerProps {
     className?: string
     /** Load the mark eagerly; set only where the sticker is in the first screen. */
     priority?: boolean
+    /** Passed to StarLpQrCode: the registered QR of a page other than the star LPs. */
+    qrContext?: MarketingQrContext
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { SetupCelebrationView } from '@/components/Setup/Views/Success'
+import AmountInput from '@/components/Global/AmountInput'
 
 /**
  * Every modal, drawer and full-screen surface in the content-taxonomy review,
@@ -24,6 +25,7 @@ import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
+import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
@@ -223,7 +225,6 @@ function WithdrawReviewSurface({
                         address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
                         symbol: 'USDC',
                         decimals: 6,
-                        price: 1,
                     } as React.ComponentProps<typeof ConfirmWithdrawView>['token']
                 }
                 chain={
@@ -312,6 +313,35 @@ export type Surface = SurfaceMeta & {
 }
 
 export const SURFACES: Record<string, Surface> = {
+    'numeric-request-amount-4000': {
+        ...SURFACE_META['numeric-request-amount-4000'],
+        render: () => (
+            <AppPageSurface>
+                <AmountInput setPrimaryAmount={noop} showSlider maxAmount={4000} defaultSliderSuggestedAmount={4000} />
+            </AppPageSurface>
+        ),
+    },
+    'numeric-request-rate-unavailable': {
+        ...SURFACE_META['numeric-request-rate-unavailable'],
+        render: () => (
+            <AppPageSurface>
+                <AmountInput
+                    initialAmount="4000"
+                    setPrimaryAmount={noop}
+                    primaryDenomination={{ symbol: 'USDC', price: 1, decimals: 6 }}
+                    secondaryDenomination={{ symbol: 'EUR', price: 0, decimals: 2 }}
+                />
+            </AppPageSurface>
+        ),
+    },
+    'numeric-request-amount-invalid': {
+        ...SURFACE_META['numeric-request-amount-invalid'],
+        render: () => (
+            <AppPageSurface>
+                <AmountInput initialAmount="Infinity" setPrimaryAmount={noop} showSlider maxAmount={4000} />
+            </AppPageSurface>
+        ),
+    },
     '01-a-landing': {
         ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,
@@ -391,6 +421,23 @@ export const SURFACES: Record<string, Surface> = {
                 platform="android"
             />
         ),
+    },
+    '08-b-loginrecoverydrawer': {
+        ...SURFACE_META['08-b-loginrecoverydrawer'],
+        render: () => (
+            <LoginRecoveryDrawer
+                visible
+                onClose={noop}
+                onRetry={noop}
+                onSignUp={noop}
+                onSupport={noop}
+                platform="ios"
+            />
+        ),
+    },
+    '08-c-loginrecoverydrawer-web': {
+        ...SURFACE_META['08-c-loginrecoverydrawer-web'],
+        render: () => <LoginRecoveryDrawer visible onClose={noop} onRetry={noop} onSupport={noop} platform="web" />,
     },
     '09-a-passkeyinfomodal': {
         name: 'PasskeyInfoDrawer',

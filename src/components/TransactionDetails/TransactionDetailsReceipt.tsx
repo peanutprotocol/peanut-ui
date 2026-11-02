@@ -30,6 +30,7 @@ import {
     isSendLinkEntry,
 } from './transaction-predicates'
 import { receiptHeadlineAmount, requestedInCurrency } from './transaction-details.utils'
+import { type ReceiptSurface } from './transaction-types'
 import { useReceiptViewModel } from './useReceiptViewModel'
 import { PublicReceiptIssuer } from './PublicReceiptIssuer'
 
@@ -65,9 +66,16 @@ export const TransactionDetailsReceipt = ({
     const t = useAppTranslations('transaction')
     const tRequest = useAppTranslations('request')
 
+    // Only the transaction details drawer passes setIsModalOpen: it keeps that
+    // drawer open while a nested drawer is up, and vaul's NestedRoot throws
+    // outside a drawer. Every other caller renders the receipt as a page. The
+    // surface is derived from the setter rather than passed beside it, so the
+    // two cannot disagree.
+    const surface: ReceiptSurface = setIsModalOpen ? 'drawer' : 'page'
+
     // All derived row-visibility / status / share-receipt state lives in the
     // hook so this component stays focused on composition.
-    const vm = useReceiptViewModel(transaction, { isPublic })
+    const vm = useReceiptViewModel(transaction, { isPublic, surface })
     const { formattedTotalAmountCollected } = vm
 
     if (!transaction) return null
@@ -243,12 +251,11 @@ export const TransactionDetailsReceipt = ({
 
             {/* the one receipt-style card (dates, conversion, fee, memo,
                 provider rows, pot progress + contributors) */}
-            {/* only the drawer passes setIsModalOpen; vaul's nested root throws outside a drawer */}
             <ReceiptDetailsCard
                 transaction={transaction}
                 vm={vm}
                 shouldShowQrShare={shouldShowQrShare}
-                inDrawer={!!setIsModalOpen}
+                inDrawer={surface === 'drawer'}
                 isActive={isActive}
             />
 

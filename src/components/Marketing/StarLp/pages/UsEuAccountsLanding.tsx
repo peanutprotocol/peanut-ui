@@ -1,16 +1,14 @@
-import HandPeace from '@/assets/illustrations/hand-peace.svg'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { CloseFold } from '@/components/Marketing/StarLp/CloseFold'
+import { CloseGloveCta } from '@/components/Marketing/StarLp/CloseGloveCta'
 import { PersonaFold } from '@/components/Marketing/StarLp/PersonaFold'
-import { PopIn } from '@/components/Marketing/StarLp/PopIn'
 import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
 import { StarLpFaq } from '@/components/Marketing/StarLp/StarLpFaq'
 import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
 import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
 import { TrustBand } from '@/components/Marketing/StarLp/TrustBand'
-import { Wiggle } from '@/components/Marketing/StarLp/Wiggle'
 import {
     STAR_LP_HREF,
     STAR_LP_SKY_CLOUDS,
@@ -138,23 +136,9 @@ export async function UsEuAccountsLanding() {
                 title={'Open\nyours now'}
                 line="Verifying takes a few minutes for most people."
                 // The glove sits beside the CTA (as in the mock), so no free-floating decoration.
-                // Below xs it stacks above the CTA so the large button keeps a one-line label at 320.
                 decoration={<></>}
                 cta={
-                    <div className="flex flex-col items-center gap-3 xs:flex-row md:gap-4">
-                        <PopIn tilt={-10} className="pointer-events-none w-12 shrink-0 md:w-16">
-                            <Wiggle kind="wobble">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                    src={HandPeace.src}
-                                    width={HandPeace.width}
-                                    height={HandPeace.height}
-                                    alt=""
-                                    aria-hidden
-                                    loading="lazy"
-                                />
-                            </Wiggle>
-                        </PopIn>
+                    <CloseGloveCta>
                         <StarLpCta
                             qrPlacement="close"
                             href={STAR_LP_HREF.accountsGuest}
@@ -163,7 +147,7 @@ export async function UsEuAccountsLanding() {
                         >
                             Open your accounts
                         </StarLpCta>
-                    </div>
+                    </CloseGloveCta>
                 }
             />
 

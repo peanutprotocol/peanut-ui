@@ -1,4 +1,6 @@
 'use client'
+
+import { formatFiniteDisplay } from '@/utils/currency'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
@@ -28,7 +30,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
 import { CROSS_CHAIN_DISABLED_MESSAGE } from '@/features/kill-switches/kill-switches.consts'
-import { useTranslations, useFormatter } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 import { isQuoteNearExpiry } from '@/services/rhino-bridge'
 
@@ -46,7 +48,7 @@ export const ConfirmClaimLinkView = ({
     setHasFetchedRoute,
 }: _consts.IClaimScreenProps) => {
     const t = useTranslations('claim')
-    const format = useFormatter()
+    const locale = useLocale()
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const toFriendlyError = useFriendlyError()
@@ -144,7 +146,10 @@ export const ConfirmClaimLinkView = ({
                     setErrorState({
                         showError: true,
                         errorMessage: t('errors.belowNetworkMinimum', {
-                            amount: format.number(belowMin.minUsd, { style: 'currency', currency: 'USD' }),
+                            amount: formatFiniteDisplay(belowMin.minUsd, locale, {
+                                style: 'currency',
+                                currency: 'USD',
+                            }),
                             network: getChainName(selectedChainID) ?? selectedChainID,
                         }),
                     })

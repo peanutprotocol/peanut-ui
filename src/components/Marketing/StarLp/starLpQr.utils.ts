@@ -23,13 +23,15 @@ const QR_SLOT_CODE: Record<StarLpQrSlot, string> = {
     'hero-sticker': 'h',
     'close-sticker': 'c',
     'ways-in': 'w',
+    'home-sticker': 'm',
 }
 
 /**
  * Where a scan of a star-LP QR lands. Flag on: /home?app_entry=1, the same
  * entry DownloadQR uses (native shells open it; browsers go on to /app, the
  * store redirect, with the utm_* params kept). Flag off: web signup.
- * Tagged `utm_campaign=qr-ar|qr-br`, `utm_content=h|c|w` (hero, close, ways-in).
+ * Tagged `utm_campaign=qr-ar|qr-br`, `utm_content=h|c|w|m` (hero, close,
+ * ways-in, home: the homepage's pay-like-a-local stickers).
  */
 export function starLpQrUrl({ origin, migrationOn, campaign, slot }: StarLpQrUrlInput): string {
     const utm = {

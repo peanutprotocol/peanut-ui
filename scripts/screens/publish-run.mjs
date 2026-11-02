@@ -17,6 +17,9 @@ import { planRevisionCapture } from './capture-impact.mjs'
 import { canonicalScope } from './capture-scope.mjs'
 import { verifyReusedBaseline } from './verify-reused-baseline.mjs'
 import { ALL_LOCALES_LABEL, missingLocales, planCaptureLocales } from './capture-locales.mjs'
+import { selectBeforeHarness } from './before-harness.mjs'
+import { readBeforeHarness, validateBeforeHarness, BASE_HARNESS_NOTE } from './before-harness-receipt.mjs'
+import { canReuseBaseline } from './baseline-reuse.mjs'
 const LOCALES = {
     en: 'English',
     'es-419': 'Español',
@@ -126,6 +129,10 @@ const localePlan = planCaptureLocales({
 })
 console.log(`Required Screen Library locales: ${localePlan.locales.join(', ')} (${localePlan.reasons.join('; ')})`)
 
+let beforeHarnessMode
+const expectedBeforeHarness = () =>
+    (beforeHarnessMode ??= selectBeforeHarness({ before: expectedBase, after: expectedHead }))
+
 function verifyExternalBaseline(expected, locales) {
     const baselineDir = process.env.SCREEN_LIBRARY_BASELINE_DIR
     const baselineRunId = process.env.SCREEN_LIBRARY_BASELINE_RUN_ID
@@ -146,12 +153,13 @@ function verifyExternalBaseline(expected, locales) {
         expectedCommit: expected,
         defaultBranch,
         locales,
+        beforeHarnessMode: expectedBeforeHarness(),
     })
     if (!verified) throw new Error('External baseline run provenance mismatch')
     const validArtifacts = verified.artifacts
     if (baselineArtifact && !validArtifacts.some((artifact) => artifact.name === baselineArtifact))
         throw new Error('External baseline artifact identity mismatch')
-    return { dir: baselineDir, kind: verified.kind, artifact: baselineArtifact }
+    return { dir: baselineDir, kind: verified.kind, artifact: baselineArtifact, harnessCommit: verified.harnessCommit }
 }
 
 const captureNames = readdirSync('incoming')
@@ -217,6 +225,24 @@ if (capturePairs.length) {
         const after = selectCaptureArtifact(captureNames, 'after', hasCapture, locale)
         const before = baselines.get(locale)
         if (!before) throw new Error(`External baseline is missing locale ${locale}`)
+        const beforeCapture = JSON.parse(readFileSync(join(before, 'capture.json'), 'utf8'))
+        const afterCapture = JSON.parse(readFileSync(join(after.name, 'capture.json'), 'utf8'))
+        const beforeHarness =
+            expectedBeforeHarness() === 'base'
+                ? validateBeforeHarness(
+                      { schema: 1, mode: 'base', harnessCommit: baseline.harnessCommit },
+                      expectedBase
+                  )
+                : undefined
+        if (
+            beforeHarness &&
+            !canReuseBaseline(beforeCapture, afterCapture, expectedBase, {
+                beforeHarness,
+                sourceHarnessCommit: baseline.harnessCommit,
+            })
+        )
+            throw new Error('External baseline environment, completeness or harness provenance mismatch')
+        if (beforeHarness) writeFileSync(join(before, 'before-harness.json'), JSON.stringify(beforeHarness))
         return { locale, attempt: after.attempt, before, after: after.name }
     })
 }
@@ -235,6 +261,9 @@ for (const capturePair of capturePairs) {
     if (after.commit !== expectedHead) throw new Error('Capture does not match triggering run head')
     if (before.commit !== expectedBase)
         throw new Error('Capture baseline does not match verified integration/review/history baseline')
+    const beforeHarness = readBeforeHarness(dirs[0], before.commit)
+    if (beforeHarness && expectedBeforeHarness() !== 'base')
+        throw new Error('Base harness receipt does not match the exact-revision synthetic API change')
     if (after.scope || before.scope) {
         if (run.event !== 'pull_request') throw new Error('Scoped captures cannot replace full integration libraries')
         trustedPlan ??= planRevisionCapture({
@@ -256,6 +285,7 @@ for (const capturePair of capturePairs) {
             receipt: JSON.parse(readFileSync(receiptPath, 'utf8')),
             beforeBytes: readFileSync(join(dirs[0], 'capture.json')),
             after,
+            beforeHarness,
             expectedCommit: expectedBase,
             repository: repo,
             api,
@@ -297,6 +327,7 @@ for (const capturePair of capturePairs) {
         path,
         before,
         after,
+        ...(comparison.beforeHarness ? { beforeHarness: comparison.beforeHarness } : {}),
         complete: comparison.scope ? false : reviewableComparison(comparison),
         ...(comparison.scope ? { scope: comparison.scope, scopeComplete: reviewableComparison(comparison) } : {}),
         changedScreens,
@@ -388,11 +419,12 @@ if (pr) {
               ? `Reviewable capture in ${localeScope}; newly registered states are marked in the report.`
               : 'Incomplete capture; unavailable states are listed in the report.'
     }${localeNote}`
+    const harnessNote = reports.some((report) => report.beforeHarness) ? `\n\n${BASE_HARNESS_NOTE}` : ''
     const body = `${marker}\n${reports
         .map(({ locale, path }) => `[${LOCALES[locale]}](${publicOrigin}/screens/${path}/)`)
         .join(
             ' · '
-        )}\n\n[Open screen library dashboard](${publicOrigin}/screens/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${reports[0].before.commit} → ${reports[0].after.commit}. ${coverageDescription}${coverageGate ? `\n\nScreen Library coverage: ${coverageGate.ok ? 'pass' : 'fail'} — ${coverageGate.reason}` : ''}`
+        )}\n\n[Open screen library dashboard](${publicOrigin}/screens/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${reports[0].before.commit} → ${reports[0].after.commit}. ${coverageDescription}${harnessNote}${coverageGate ? `\n\nScreen Library coverage: ${coverageGate.ok ? 'pass' : 'fail'} — ${coverageGate.reason}` : ''}`
     const comments = JSON.parse(
         execFileSync(
             'gh',

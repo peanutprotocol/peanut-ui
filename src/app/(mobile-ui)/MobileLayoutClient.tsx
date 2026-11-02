@@ -14,6 +14,7 @@ import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SecurityVerificationOverlay from '@/components/Global/SecurityVerificationOverlay'
 import SupportDeepLink from '@/components/Global/SupportDeepLink'
 import SupportDrawer from '@/components/Global/SupportDrawer'
+import { BrazilPausedDrawer } from '@/features/brazil-pause/components/BrazilPausedDrawer'
 import SetupNotificationsModal from '@/components/Notifications/SetupNotificationsModal'
 import { useRouter } from 'next/navigation'
 import { NavHeaderPresenceProvider } from '@/components/Global/Banner/navHeaderPresence'
@@ -249,6 +250,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             {/* every self-opening modal or drawer: one at a time, by the manager */}
                             <AttentionInterrupt />
                             <SupportDrawer />
+                            <BrazilPausedDrawer />
                             {/* Suspense is required: nuqs reads useSearchParams, which triggers
                         a client-side-rendering bailout without a boundary. */}
                             <Suspense fallback={null}>

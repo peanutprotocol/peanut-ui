@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Button } from '@/components/0_Bruddle/Button'
-import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import Loading from '@/components/Global/Loading'
 import { isEnglishFallback } from '@/i18n/englishFallback'
 import AppHelpArticleBody from './AppHelpMdx'
@@ -50,20 +49,11 @@ export default function AppHelpDrawer({ slug, locale, open, onClose, onUnavailab
         <Drawer open={open} onOpenChange={(next) => !next && onClose()} hideBottomNav>
             <DrawerContent>
                 <div className="sticky top-0 z-10 bg-white pb-2">
-                    <DrawerHeader className="flex flex-row items-start justify-between gap-2 p-0 text-left">
+                    {/* no close X: a drawer closes by swipe, overlay tap or back (design.md drawers) */}
+                    <DrawerHeader className="p-0 text-left">
                         <DrawerTitle className="text-heading-s text-foreground-primary" lang={article?.lang}>
                             {article?.title ?? tCommon('loading')}
                         </DrawerTitle>
-                        <DrawerClose asChild>
-                            <Button
-                                variant="ghost"
-                                shape="square"
-                                size="small"
-                                icon="cancel"
-                                aria-label={tCommon('close')}
-                                className="w-10 shrink-0"
-                            />
-                        </DrawerClose>
                     </DrawerHeader>
                 </div>
                 {english && <p className="pb-2 text-body-s text-foreground-secondary">{tCommon('inEnglish')}</p>}

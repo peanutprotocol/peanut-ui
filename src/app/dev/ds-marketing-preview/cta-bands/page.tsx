@@ -11,7 +11,7 @@ import { CTA_MOTION } from '@/components/Marketing/constants'
 // gray-950, the pink fill is not.
 const COLOURED_BANDS = [
     { name: 'Pink band', className: 'bg-background-brand text-foreground-primary', variant: 'secondary' },
-    { name: 'Yellow band', className: 'bg-action-secondary text-foreground-primary', variant: 'secondary' },
+    { name: 'Yellow band', className: 'bg-background-accent-yellow text-foreground-primary', variant: 'secondary' },
     { name: 'Black band', className: 'bg-gray-950 text-white', variant: 'primary' },
 ] as const
 

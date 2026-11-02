@@ -168,6 +168,9 @@ function contentSecurityPolicyReportOnly(includeReporting = true) {
             'https://pbs.twimg.com',
             // Only reached in the SDK's single-embed mode; see frame-src below.
             'https://api.typeform.com',
+            // Rhino's public token list, which recover funds reads balances for
+            // (useRecoverableBalances, TASK-23850)
+            'https://api.rhino.fi',
             ...chainRpcHosts,
         ].join(' '),
         // Bridge is the terms-of-service iframe BridgeTosStep renders through
@@ -352,6 +355,9 @@ let nextConfig = {
         ],
         // Speed up webpack builds (used for production builds with --webpack flag)
         webpackBuildWorker: true,
+        // The Release 166 production build (c755ec556) was killed for memory on Vercel.
+        // Production builds also upload Sentry source maps, so they peak higher than previews.
+        webpackMemoryOptimizations: true,
     },
 
     webpack: (config, { isServer, dev, webpack }) => {

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { WithdrawFlowProvider, useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
+import { WithdrawFlowProvider, useWithdrawFlow, type ScannedRecipient } from '@/features/withdraw/WithdrawFlowContext'
 import { validateAndResolveRecipient } from '@/lib/validation/recipient'
 import ScannedDestinationPayView from '../ScannedDestinationPayView'
 
@@ -18,12 +18,19 @@ jest.mock('@/components/Global/NavHeader', () => ({
 
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
-    default: (props: { initialAmount?: string; setPrimaryAmount: (v: string) => void; walletBalance?: string }) => (
+    default: (props: {
+        initialAmount?: string
+        setPrimaryAmount: (v: string) => void
+        walletBalance?: string
+        onSubmit?: () => void
+    }) => (
         <>
+            {/* Enter in the field submits, like the real input */}
             <input
                 data-testid="amount-field"
                 value={props.initialAmount ?? ''}
                 onChange={(e) => props.setPrimaryAmount(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && props.onSubmit?.()}
             />
             <span data-testid="balance">{props.walletBalance}</span>
         </>
@@ -36,12 +43,18 @@ jest.mock('@/components/Global/AddressLink', () => ({
     default: ({ address }: { address: string }) => <span>{address}</span>,
 }))
 
-// the selector reads the token context itself; the view only tells it the address family
+// the selector reads the token context itself; the view only tells it the address family.
+// One test runs the real selector, to let its own correction move the selection.
 const mockSelectorProps = jest.fn()
+let mockRealSelector = false
 jest.mock('@/components/Global/TokenSelector/TokenSelector', () => ({
     __esModule: true,
-    default: (props: unknown) => {
+    default: function MockTokenSelector(props: Record<string, unknown>) {
         mockSelectorProps(props)
+        if (mockRealSelector) {
+            const Real = jest.requireActual('@/components/Global/TokenSelector/TokenSelector').default
+            return <Real {...props} />
+        }
         return <div data-testid="token-selector" />
     },
 }))
@@ -59,27 +72,50 @@ jest.mock('@/features/payments/shared/components/SendWithPeanutCta', () => ({
 jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_CHAIN: { id: 42161, name: 'Arbitrum' },
     PEANUT_WALLET_TOKEN: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    // the real selector's wallet-chain entry
+    PEANUT_WALLET_TOKEN_SYMBOL: 'USDC',
+    PEANUT_WALLET_TOKEN_NAME: 'USD Coin',
+    PEANUT_WALLET_TOKEN_DECIMALS: 6,
 }))
 
 const USDC_ARB = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
 const USDC_BASE = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+const USDT_BASE = '0xfde4c96c8593536e31f229ea8f37b2ada2699bb2'
+const WETH_BASE = '0x4200000000000000000000000000000000000006'
 const ADDRESS = '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'
 
+const baseToken = (address: string, symbol: string, decimals = 6) => ({
+    chainId: '8453',
+    address,
+    symbol,
+    name: symbol,
+    decimals,
+    logoURI: '',
+})
 // the record is mainnet-only, so it never lists a sandbox wallet chain; here it
-// leaves the wallet chain out on purpose, to cover the synthesized entry
+// leaves the wallet chain out on purpose, to cover the synthesized entry. It
+// holds metadata only: nothing on this screen reads a price (TASK-23850).
 const CHAINS = {
-    '8453': { chainId: '8453', networkName: 'Base', chainIconURI: '', tokens: [] },
+    '8453': {
+        chainId: '8453',
+        networkName: 'Base',
+        chainIconURI: '',
+        tokens: [baseToken(USDC_BASE, 'USDC'), baseToken(USDT_BASE, 'USDT'), baseToken(WETH_BASE, 'WETH', 18)],
+    },
 }
+// the wallet chain's USDC, as the selector synthesizes it when the record lacks the chain
+const WALLET_USDC = expect.objectContaining({ chainId: '42161', address: USDC_ARB, symbol: 'USDC', decimals: 6 })
 
 /** Seeds the scanned recipient into the real flow context before the view mounts, the way the root flow does. */
-function Seeded({ name, children }: { name?: string; children: React.ReactNode }) {
-    const { setRecipient, setIsValidRecipient } = useWithdrawFlow()
+function Seeded({ name, scanned, children }: { name?: string; scanned?: ScannedRecipient; children: React.ReactNode }) {
+    const { setRecipient, setIsValidRecipient, setScannedRecipient } = useWithdrawFlow()
     const [ready, setReady] = useState(false)
     useEffect(() => {
         setRecipient({ name, address: ADDRESS })
         setIsValidRecipient(true)
+        if (scanned) setScannedRecipient(scanned)
         setReady(true)
-    }, [name, setRecipient, setIsValidRecipient])
+    }, [name, scanned, setRecipient, setIsValidRecipient, setScannedRecipient])
     return ready ? <>{children}</> : null
 }
 
@@ -105,6 +141,8 @@ function renderView({
     onContinue = jest.fn(),
     onBack = jest.fn(),
     addressFamily = 'evm' as const,
+    scanned,
+    chains = CHAINS,
 }: {
     chainId?: string
     tokenAddress?: string
@@ -115,24 +153,49 @@ function renderView({
     onContinue?: jest.Mock
     onBack?: jest.Mock
     addressFamily?: 'evm' | 'solana' | 'tron'
+    /** What the hand-off recorded about the scan: its family, and the chain and asset it named. */
+    scanned?: ScannedRecipient
+    chains?: Record<string, unknown>
 } = {}) {
-    const token = { address: tokenAddress, symbol: 'USDC', decimals: 6, price: 1 }
+    const token =
+        CHAINS['8453'].tokens.find((candidate) => candidate.address.toLowerCase() === tokenAddress.toLowerCase()) ??
+        WALLET_USDC
     function Harness() {
         const [selectedChainID, setSelectedChainID] = useState(chainId)
+        const [selectedTokenAddress, setSelectedTokenAddress] = useState(tokenAddress)
         return (
             <tokenSelectorContext.Provider
                 value={
                     {
-                        selectedTokenData: token,
                         selectedChainID,
-                        selectedTokenAddress: tokenAddress,
-                        supportedChainsAndTokens: CHAINS,
+                        selectedTokenAddress,
+                        supportedChainsAndTokens: chains,
+                        isLoadingChains: false,
+                        setSelectedChainID,
+                        setSelectedTokenAddress,
                     } as never
                 }
             >
-                <button onClick={() => setSelectedChainID('8453')}>switch network</button>
-                <button onClick={() => setSelectedChainID('42161')}>switch back</button>
-                <Seeded name={name}>
+                {/* a network pick selects that network's USDC, as the real selector does */}
+                <button
+                    onClick={() => {
+                        setSelectedChainID('8453')
+                        setSelectedTokenAddress(USDC_BASE)
+                    }}
+                >
+                    switch network
+                </button>
+                <button
+                    onClick={() => {
+                        setSelectedChainID('42161')
+                        setSelectedTokenAddress(USDC_ARB)
+                    }}
+                >
+                    switch back
+                </button>
+                <button onClick={() => setSelectedTokenAddress(USDT_BASE)}>switch token</button>
+                <button onClick={() => setSelectedTokenAddress(WETH_BASE)}>switch to a token not paid out</button>
+                <Seeded name={name} scanned={scanned}>
                     <ScannedDestinationPayView
                         addressFamily={addressFamily}
                         initialAmount="25"
@@ -195,9 +258,9 @@ describe('ScannedDestinationPayView (TASK-23974)', () => {
         expect(screen.queryByText(ADDRESS)).toBeNull()
     })
 
-    // The pickers stay live, with every network the address is valid on
-    it('hands the selector the scanned address family and no lock', async () => {
-        renderView({ addressFamily: 'evm' })
+    // A bare address names no network: the pickers stay live, with every network it is valid on
+    it('a bare address: hands the selector the scanned address family and no lock', async () => {
+        renderView({ addressFamily: 'evm', scanned: { addressFamily: 'evm' } })
         await ctaReady()
         expect(mockSelectorProps).toHaveBeenCalledWith(
             expect.objectContaining({ viewType: 'withdraw', addressFamily: 'evm' })
@@ -205,10 +268,143 @@ describe('ScannedDestinationPayView (TASK-23974)', () => {
         expect(mockSelectorProps).not.toHaveBeenCalledWith(expect.objectContaining({ disabled: true }))
     })
 
+    it('a bare address can still be sent on another network the user picks', async () => {
+        const { onContinue } = renderView({ scanned: { addressFamily: 'evm' } })
+        fireEvent.click(await screen.findByText('switch network'))
+        fireEvent.click(cta())
+        expect(onContinue).toHaveBeenCalledWith(expect.objectContaining({ chain: CHAINS['8453'] }))
+    })
+
+    describe('a payment request (EIP-681) is paid on the pair it names, or not at all', () => {
+        const BASE_USDC_REQUEST: ScannedRecipient = { addressFamily: 'evm', chainId: '8453', tokenAddress: USDC_BASE }
+        const requested = () => renderView({ chainId: '8453', tokenAddress: USDC_BASE, scanned: BASE_USDC_REQUEST })
+
+        it('locks the pickers on the requested token and network', async () => {
+            requested()
+            await ctaReady()
+            expect(mockSelectorProps).toHaveBeenLastCalledWith(expect.objectContaining({ disabled: true }))
+        })
+
+        it('continues on the requested pair', async () => {
+            const { token, onContinue } = requested()
+            fireEvent.click(await ctaReady())
+            expect(onContinue).toHaveBeenCalledWith({ token, chain: CHAINS['8453'], address: ADDRESS })
+        })
+
+        // Enter in the amount field submits through the same continue
+        it('Enter in the amount field continues on the requested pair', async () => {
+            const { token, onContinue } = requested()
+            await ctaReady()
+            fireEvent.keyDown(screen.getByTestId('amount-field'), { key: 'Enter' })
+            expect(onContinue).toHaveBeenCalledWith({ token, chain: CHAINS['8453'], address: ADDRESS })
+        })
+
+        it('Enter in the amount field on another pair never continues', async () => {
+            const { onContinue } = requested()
+            await ctaReady()
+            fireEvent.click(screen.getByText('switch back'))
+            fireEvent.keyDown(screen.getByTestId('amount-field'), { key: 'Enter' })
+            fireEvent.click(screen.getByText('switch network'))
+            fireEvent.click(screen.getByText('switch token'))
+            fireEvent.keyDown(screen.getByTestId('amount-field'), { key: 'Enter' })
+            expect(onContinue).not.toHaveBeenCalled()
+        })
+
+        // The chain record is what is sent: its own chain id has to be the requested one
+        it('a chain record for another chain under the requested id never continues', async () => {
+            const { onContinue } = renderView({
+                chainId: '8453',
+                tokenAddress: USDC_BASE,
+                scanned: BASE_USDC_REQUEST,
+                chains: { '8453': { chainId: '42161', networkName: 'Arbitrum', chainIconURI: '', tokens: [] } },
+            })
+            expect(await ctaReady()).toBeDisabled()
+            fireEvent.click(cta())
+            fireEvent.keyDown(screen.getByTestId('amount-field'), { key: 'Enter' })
+            expect(onContinue).not.toHaveBeenCalled()
+        })
+
+        it('another network never continues, and the requested one works again', async () => {
+            const { onContinue } = requested()
+            await ctaReady()
+            fireEvent.click(screen.getByText('switch back'))
+            expect(cta()).toBeDisabled()
+            fireEvent.click(cta())
+            expect(onContinue).not.toHaveBeenCalled()
+
+            fireEvent.click(screen.getByText('switch network'))
+            expect(cta()).toBeEnabled()
+        })
+
+        it('another token on the same network never continues', async () => {
+            const { onContinue } = requested()
+            await ctaReady()
+            fireEvent.click(screen.getByText('switch token'))
+            expect(cta()).toBeDisabled()
+            fireEvent.click(cta())
+            expect(onContinue).not.toHaveBeenCalled()
+        })
+
+        // The real selector corrects a pair it does not offer (here the record
+        // has no Base tokens) to the wallet chain's USDC by itself.
+        it('the selector correcting the pair by itself never continues on the corrected pair', async () => {
+            mockRealSelector = true
+            try {
+                const { onContinue } = renderView({
+                    chainId: '8453',
+                    tokenAddress: USDC_BASE,
+                    scanned: BASE_USDC_REQUEST,
+                    chains: { '8453': { ...CHAINS['8453'], tokens: [] } },
+                })
+                await waitFor(() => expect(screen.queryByText('switch network')).toBeInTheDocument())
+                await waitFor(() => expect(cta()).toBeDisabled())
+                fireEvent.click(cta())
+                expect(onContinue).not.toHaveBeenCalled()
+            } finally {
+                mockRealSelector = false
+            }
+        })
+    })
+
+    describe('a request that names only its network (no asset)', () => {
+        const BASE_ONLY: ScannedRecipient = { addressFamily: 'evm', chainId: '8453' }
+
+        it('keeps the token picker free and continues with another token on that network', async () => {
+            const { onContinue } = renderView({ chainId: '8453', tokenAddress: USDC_BASE, scanned: BASE_ONLY })
+            await ctaReady()
+            expect(mockSelectorProps).not.toHaveBeenCalledWith(expect.objectContaining({ disabled: true }))
+            fireEvent.click(screen.getByText('switch token'))
+            fireEvent.click(cta())
+            expect(onContinue).toHaveBeenCalledWith(
+                expect.objectContaining({ token: expect.objectContaining({ address: USDT_BASE }) })
+            )
+        })
+
+        it('never continues on another network', async () => {
+            const { onContinue } = renderView({ chainId: '8453', tokenAddress: USDC_BASE, scanned: BASE_ONLY })
+            await ctaReady()
+            fireEvent.click(screen.getByText('switch back'))
+            expect(cta()).toBeDisabled()
+            fireEvent.click(cta())
+            expect(onContinue).not.toHaveBeenCalled()
+        })
+    })
+
     it('continues with the selected token, its chain record and the address', async () => {
         const { token, onContinue } = renderView({ chainId: '8453', tokenAddress: USDC_BASE })
         fireEvent.click(await ctaReady())
         expect(onContinue).toHaveBeenCalledWith({ token, chain: CHAINS['8453'], address: ADDRESS })
+    })
+
+    // TASK-23850: the gate is the chain's withdraw list, not a price lookup
+    it('never continues with a token the chain does not pay out', async () => {
+        const { onContinue } = renderView({ chainId: '8453', tokenAddress: USDC_BASE })
+        await ctaReady()
+        fireEvent.click(screen.getByText('switch to a token not paid out'))
+        expect(cta()).toBeDisabled()
+        fireEvent.click(cta())
+        fireEvent.keyDown(screen.getByTestId('amount-field'), { key: 'Enter' })
+        expect(onContinue).not.toHaveBeenCalled()
     })
 
     it('synthesizes the wallet chain when the record does not list it', async () => {

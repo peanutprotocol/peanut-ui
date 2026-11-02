@@ -43,6 +43,8 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     'Log in': 'button label in the infinitive vs. the invite page imperative (Iniciar sesión / Inicia sesión)',
     'Pay a QR code':
         'button label in the infinitive vs. checklist hint in the imperative like its sibling hints (Pagar / Paga un código QR)',
+    'Peanut Card':
+        'product name stays "Peanut Card" (shhhhh wordmark), menu and nav labels stay translated (Tarjeta Peanut / Cartão Peanut), TASK-24037',
 }
 
 describe('deepMerge fallback', () => {

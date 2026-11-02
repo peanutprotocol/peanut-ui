@@ -1,3 +1,4 @@
+import { parsePositiveRate } from '@/lib/money'
 import { useQuery } from '@tanstack/react-query'
 import { AccountType } from '@/interfaces/interfaces'
 import { getOnrampQuote, type OnrampQuoteResponse } from '@/app/actions/onramp-quote'
@@ -40,8 +41,8 @@ export function useOnrampQuote({ accountType, enabled = true }: UseOnrampQuotePr
     })
 
     return {
-        netRate: Number(data?.netRate ?? 0),
-        grossRate: Number(data?.grossRate ?? 0),
+        netRate: isError || !data ? 0 : (parsePositiveRate(data.netRate) ?? 0),
+        grossRate: isError || !data ? 0 : (parsePositiveRate(data.grossRate) ?? 0),
         isLoading: isFetching,
         isError,
     }

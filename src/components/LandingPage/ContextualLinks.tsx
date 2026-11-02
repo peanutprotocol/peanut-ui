@@ -30,7 +30,7 @@ export function ContextualLinks({ links, label, separator = ' · ', className }:
                         href={link.href}
                         target={link.external ? '_blank' : undefined}
                         rel={link.external ? 'noopener noreferrer' : undefined}
-                        className="text-foreground-primary underline hover:no-underline"
+                        className="text-foreground-primary underline hover:no-underline active:no-underline"
                     >
                         {link.label}
                     </a>

@@ -115,7 +115,7 @@ export default function MarketingLandingPage() {
                     <div className="flex items-end gap-6 rounded-sm border border-border-default bg-background-page p-4">
                         {SECTION_PADDING.map((step) => (
                             <div key={step.label} className="space-y-1">
-                                <div className={`w-16 rounded-sm bg-action-secondary ${step.barClass}`} />
+                                <div className={`w-16 rounded-sm bg-background-accent-yellow ${step.barClass}`} />
                                 <p className="font-mono text-label-m text-foreground-secondary">{step.label}</p>
                             </div>
                         ))}

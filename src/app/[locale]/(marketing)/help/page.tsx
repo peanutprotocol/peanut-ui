@@ -69,20 +69,20 @@ function HelpLandingSkeleton() {
     return (
         <div className={`mx-auto mt-10 mb-8 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
             {/* Search bar placeholder — h-10 is SearchInput's height */}
-            <div className="h-10 w-full animate-pulse rounded-sm border border-border-default bg-foreground-primary/10" />
+            <div className="h-10 w-full animate-pulse rounded-sm border border-border-default bg-background-skeleton" />
 
             {/* Category / article rows */}
             <div className="mt-10 flex flex-col gap-10">
                 {[1, 2, 3].map((i) => (
                     <div key={i}>
-                        <div className="mb-4 h-3 w-32 animate-pulse rounded bg-foreground-primary/10" />
+                        <div className="mb-4 h-3 w-32 animate-pulse rounded bg-background-skeleton" />
                         <div className="flex flex-col">
                             {Array.from({ length: SKELETON_ROWS }).map((_, j) => (
                                 <ListItem
                                     key={j}
                                     position={getCardPosition(j, SKELETON_ROWS)}
-                                    title={<div className="h-4 w-48 animate-pulse rounded bg-foreground-primary/10" />}
-                                    body={<div className="h-3 w-32 animate-pulse rounded bg-foreground-primary/10" />}
+                                    title={<div className="h-4 w-48 animate-pulse rounded bg-background-skeleton" />}
+                                    body={<div className="h-3 w-32 animate-pulse rounded bg-background-skeleton" />}
                                     trailing={
                                         <Icon name="arrow-up-right" size={20} className="text-foreground-secondary" />
                                     }

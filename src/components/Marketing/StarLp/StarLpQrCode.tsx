@@ -15,7 +15,7 @@ import { useMarketingQrUrl } from '@/features/marketing-qr/useMarketingQrUrl'
  * page and slot. Legacy URLs fit version 5 at level L (see starLpQr.utils).
  * Registered marketing URLs use level M; the inner padding is the quiet zone.
  */
-export function StarLpQrCode({ campaign, slot, className }: StarLpQrCodeProps) {
+export function StarLpQrCode({ campaign, slot, className, qrContext }: StarLpQrCodeProps) {
     const migrationOn = useMigrationFlag()
     // Keep preview and LAN scans on the server that showed the code.
     const origin = useHydrationSnapshot(
@@ -24,7 +24,7 @@ export function StarLpQrCode({ campaign, slot, className }: StarLpQrCodeProps) {
     )
     const marketingUrl = useMarketingQrUrl({
         origin,
-        context: {
+        context: qrContext ?? {
             page: campaign === 'qr-argentina' ? 'qr-argentina' : 'qr-brazil',
             placement: slot,
             locale: 'en',

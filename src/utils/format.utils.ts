@@ -1,8 +1,10 @@
+import { parseFiniteNumber } from '@/lib/money'
 /**
  * Format points for display with thousands separators (e.g. 564,554).
  */
 export function formatPoints(points: number): string {
-    return points.toLocaleString('en-US')
+    const finite = parseFiniteNumber(points)
+    return finite === null ? '—' : finite.toLocaleString('en-US')
 }
 
 /**
@@ -10,6 +12,7 @@ export function formatPoints(points: number): string {
  * Returns { number, suffix } so the suffix (K/M) can be styled separately.
  */
 export function shortenPoints(points: number): { number: string; suffix: string } {
+    if (parseFiniteNumber(points) === null) return { number: '—', suffix: '' }
     if (points >= 1_000_000) {
         const m = points / 1_000_000
         return { number: m >= 10 ? Math.round(m).toString() : m.toFixed(1).replace(/\.0$/, ''), suffix: 'M' }

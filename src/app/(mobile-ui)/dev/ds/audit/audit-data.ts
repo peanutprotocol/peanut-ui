@@ -106,7 +106,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 0,
         status: 'duplicate',
         source: 'src/styles/globals.css:33',
-        notes: 'Darker pink used for hover. Superseded by --color-action-primary-hover (#FFA3EC). 3 call sites left; migrate and delete.',
+        notes: 'Darker pink used for hover. Superseded by --color-action-primary-press (#FFA3EC). 3 call sites left; migrate and delete.',
     },
     {
         name: 'primary-3 (#EFE4FF — lavender)',
@@ -139,7 +139,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 16,
         status: 'canonical',
         source: 'src/styles/globals.css:37',
-        notes: 'Canonical LEGACY accent yellow. EXACT dup of yellow-1 (#FFC900, 23x). Semantic successor --color-action-secondary (6x). Used by .btn-yellow. Re-typed raw #FFC900 14x.',
+        notes: 'Canonical LEGACY accent yellow. EXACT dup of yellow-1 (#FFC900, 23x). Semantic successor --color-background-accent-yellow (6x). Used by .btn-yellow. Re-typed raw #FFC900 14x.',
     },
     {
         name: 'secondary-2 (#E99898)',
@@ -359,7 +359,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 0,
         status: 'duplicate',
         source: 'src/styles/globals.css:63',
-        notes: 'EXACT dup of secondary-1 (#FFC900). 23 vs 33 — two names for the same accent yellow, both still live. Semantic successor --color-action-secondary.',
+        notes: 'EXACT dup of secondary-1 (#FFC900). 23 vs 33 — two names for the same accent yellow, both still live. Semantic successor --color-background-accent-yellow.',
     },
     {
         name: 'yellow-2 (#f5ff7c)',
@@ -879,7 +879,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         notes: 'The brand pink #FF90E8 as an action role. Used by .btn-purple and 16 files. Successor to primary-1 (89x).',
     },
     {
-        name: '--color-action-primary-hover',
+        name: '--color-action-primary-press',
         cat: 'colors',
         catLabel: 'Colour tokens',
         layer: 'tokens',
@@ -890,7 +890,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         notes: '#FFA3EC. Only 3 sites; two of them are the .btn-purple recipe in globals.css. Supersedes primary-2.',
     },
     {
-        name: '--color-action-secondary',
+        name: '--color-background-accent-yellow',
         cat: 'colors',
         catLabel: 'Colour tokens',
         layer: 'tokens',
@@ -901,7 +901,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         notes: '#FFC900. Only 6 sites vs 33 for legacy secondary-1 and 23 for yellow-1 — the yellow migration has barely started.',
     },
     {
-        name: '--color-action-ghost-hover',
+        name: '--color-action-ghost-press',
         cat: 'colors',
         catLabel: 'Colour tokens',
         layer: 'tokens',
@@ -1349,7 +1349,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 153,
         status: 'adhoc',
         source: 'src/components, src/app, src/utils, src/hooks, src/constants',
-        notes: 'Down from 312. Probe counts quoted/bracketed literals only, so it excludes the @theme definitions in globals.css (0 matches there). Top recurring literals: #FFC900 14x (== secondary-1/yellow-1/action-secondary), #374151 12x (stock gray-700, untokenised), #FF90E8 11x + #FE91E6 5x (== primary-1/action-primary), #90A8ED 9x (== secondary-3), #FFFFFF 6x, #F9F4F0 6x (one digit off the app background #FAF4F0), #000000 6x. 46 files, plus 63 rgba() literals.',
+        notes: 'Down from 312. Probe counts quoted/bracketed literals only, so it excludes the @theme definitions in globals.css (0 matches there). Top recurring literals: #FFC900 14x (== secondary-1/yellow-1/background-accent-yellow), #374151 12x (stock gray-700, untokenised), #FF90E8 11x + #FE91E6 5x (== primary-1/action-primary), #90A8ED 9x (== secondary-3), #FFFFFF 6x, #F9F4F0 6x (one digit off the app background #FAF4F0), #000000 6x. 46 files, plus 63 rgba() literals.',
     },
     {
         name: 'text-heading-big-input',
@@ -5518,9 +5518,9 @@ export const AUDIT_CLUSTERS: AuditCluster[] = [
         catLabel: 'Colour tokens',
         name: 'accent-yellow',
         from: 4,
-        rec: 'The least-migrated family. --color-action-secondary is only 6x while legacy secondary-1 (33x) and yellow-1 (23x) — the same #FFC900 under two names — are still the working tokens, plus 14 raw #FFC900 literals. Nine of the eleven legacy yellows are now 0x, so only the migration of the two live ones is left.',
+        rec: 'The least-migrated family. --color-background-accent-yellow is only 6x while legacy secondary-1 (33x) and yellow-1 (23x) — the same #FFC900 under two names — are still the working tokens, plus 14 raw #FFC900 literals. Nine of the eleven legacy yellows are now 0x, so only the migration of the two live ones is left.',
         collapses: [
-            '--color-action-secondary (#FFC900, 6x) [target]',
+            '--color-background-accent-yellow (#FFC900, 6x) [target]',
             'secondary-1 (#FFC900, 33x)',
             'yellow-1 (#FFC900, 23x)',
             'raw #FFC900 (14x)',

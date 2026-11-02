@@ -10,6 +10,7 @@ const nextPlugin = require('@next/eslint-plugin-next')
 const importPlugin = require('eslint-plugin-import-x')
 const globals = require('globals')
 const copyPropsFromCatalog = require('./eslint-rules/copy-props-from-catalog')
+const finiteNumbers = require('./eslint-rules/finite-numbers.cjs')
 
 // Barrel paths banned by CLAUDE.md ("no barrel imports — never `import * as X from
 // '@/constants'` or create `index.ts` barrels. Import from specific files"). The bare
@@ -246,6 +247,7 @@ module.exports = [
             globals: { ...globals.browser, ...globals.node },
         },
         plugins: {
+            numeric: { rules: { finite: finiteNumbers } },
             '@typescript-eslint': tsPlugin,
             react: reactPlugin,
             'react-hooks': reactHooksPlugin,
@@ -260,6 +262,7 @@ module.exports = [
             },
         },
         rules: {
+            'numeric/finite': 'error',
             ...tsPlugin.configs.recommended.rules,
             ...reactPlugin.configs.recommended.rules,
             ...reactHooksPlugin.configs.recommended.rules,
@@ -615,5 +618,18 @@ module.exports = [
                 },
             ],
         },
+    },
+    {
+        files: [
+            'src/components/Card/{CardLimitsScreen,YourCardScreen,PhysicalCardScreen,CardLimitEditDrawer}.tsx',
+            'src/components/TransactionDetails/provider-rows/{CardAdjustmentNotice,CardPaymentRows}.tsx',
+            'src/components/Profile/views/MethodLimits.tsx',
+            'src/components/Points/InviteePointsBadge.tsx',
+            'src/features/rewards/RewardsPage.tsx',
+            'src/components/ExchangeRate/index.tsx',
+            'src/components/Global/NetworkFeeRow/index.tsx',
+            'src/features/withdraw/views/WithdrawBankReviewView.tsx',
+        ],
+        rules: { 'numeric/finite': ['error', { banDirectFormatting: true }] },
     },
 ]

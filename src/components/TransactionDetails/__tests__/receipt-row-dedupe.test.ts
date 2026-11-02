@@ -83,7 +83,8 @@ const cases = [...baseline, ...datedCases]
 
 const render = (entry: HistoryEntry) => {
     const { transactionDetails } = mapTransactionDataForDrawer(entry)
-    const { result } = renderHook(() => useReceiptViewModel(transactionDetails, { isPublic: false }))
+    // a receipt page prints every row the drawer prints, plus the Transaction ID
+    const { result } = renderHook(() => useReceiptViewModel(transactionDetails, { isPublic: false, surface: 'page' }))
     return { transaction: transactionDetails, rows: result.current.rowVisibilityConfig }
 }
 

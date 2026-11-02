@@ -1,6 +1,6 @@
 import { type User } from '@/interfaces/interfaces'
 import type { IdentityVerificationStatus, RailCapability } from '@/types/capabilities'
-import { computeDisplaySpendable } from '@/utils/balance.utils'
+import { computeAvailableSpendable } from '@/utils/balance.utils'
 
 /**
  * The Home onboarding checklist (TASK-23054, Hugo 2026-09-25):
@@ -48,18 +48,18 @@ export interface OnboardingState {
 }
 
 /**
- * True when the account holds any money: wallet USDC, card collateral, or a
- * collateral top-up still in transit. Any amount counts — $0.17 sent by crypto
- * is as much "added money" as a bank top-up.
+ * True when the account holds any money: wallet USDC or card collateral. Any
+ * amount counts — $0.17 sent by crypto is as much "added money" as a bank
+ * top-up.
  *
  * `walletBalance` is USDC base units (bigint from useWallet).
  */
 export function holdsMoney(
     walletBalance: bigint | string | number | null | undefined,
-    cardBalance: { spendingPower?: number | null; inTransitToCollateralCents?: number | null } | null | undefined
+    cardBalance: { spendingPower?: number | null } | null | undefined
 ): boolean {
     if (walletBalance != null && Number(walletBalance) > 0) return true
-    return computeDisplaySpendable(0n, cardBalance?.spendingPower, cardBalance?.inTransitToCollateralCents) > 0n
+    return computeAvailableSpendable(0n, cardBalance?.spendingPower) > 0n
 }
 
 /**

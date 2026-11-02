@@ -76,7 +76,7 @@ const FIRST_PAYMENT_HELD_CARD_NOTE_KEY = {
 const SubtitleSkeleton = () => (
     // the line box stays 20px, the text line's height, so the row does not jump
     <span aria-hidden className="flex h-5 items-center">
-        <span className="h-3 w-32 animate-pulse rounded bg-foreground-primary/10" />
+        <span className="h-3 w-32 animate-pulse rounded bg-background-skeleton" />
     </span>
 )
 
@@ -289,7 +289,7 @@ const GettingStartedChecklist = ({
                         <ListItem
                             key={item.id}
                             data-testid={`checklist-${item.id}`}
-                            leading={<IconBubble {...item.bubble} size="xs" />}
+                            leading={<IconBubble {...item.bubble} size="s" />}
                             title={item.label}
                             truncate
                             // one line in every state: done, open, in review and pending

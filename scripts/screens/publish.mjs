@@ -97,7 +97,7 @@ export async function publishReport({
             ? validateCapture(input)
             : input.type === 'journeys'
               ? validateJourneys(input)
-              : compare(input.before, input.after, assets)
+              : compare(input.before, input.after, assets, input.beforeHarness)
     const after = report.type === 'comparison' ? report.after : report
     if (!reportPath.replace(/\/run-[0-9]+-[0-9]+$/, '').endsWith(after.commit))
         throw new Error('Report path does not match captured commit')

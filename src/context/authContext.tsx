@@ -80,7 +80,7 @@ interface AuthContextType {
     }) => Promise<AccountSetupOutcome>
     isFetchingUser: boolean
     userFetchError: Error | null
-    logoutUser: (options?: { skipBackendCall?: boolean }) => Promise<void>
+    logoutUser: (options?: { skipBackendCall?: boolean; allDevices?: boolean }) => Promise<void>
     isLoggingOut: boolean
     invitedUsernamesSet: Set<string>
 }
@@ -432,11 +432,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, [queryClient, user?.user.userId])
 
     /**
-     * Logs out the user
-     * @param options.skipBackendCall - If true, skips the backend logout call (useful when backend is down)
+     * Logs out the user on this device. The account stays signed in elsewhere.
+     * @param options.skipBackendCall - If true, skips the backend logout call, leaving this
+     * device's session valid server-side (backend down, or a forced re-auth about this device's key)
+     * @param options.allDevices - If true, also signs the account out on every other device
      */
     const logoutUser = useCallback(
-        async (options?: { skipBackendCall?: boolean }) => {
+        async (options?: { skipBackendCall?: boolean; allDevices?: boolean }) => {
             if (loggingOut.current) return
 
             loggingOut.current = true
@@ -452,14 +454,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             try {
                 /*
                  * Revoke server-side FIRST (needs the still-valid JWT): POST
-                 * /users/logout bumps the account's tokenVersion so every
-                 * outstanding JWT — this device and any other — stops
-                 * verifying. Best-effort: a dead backend must never trap the
-                 * user in a session, so failures fall through to local logout.
+                 * /users/logout revokes this device's session, /users/logout/all
+                 * bumps the account's tokenVersion so every outstanding JWT
+                 * stops verifying. Best-effort: a dead backend must never trap
+                 * the user in a session, so failures fall through to local logout.
                  */
                 if (!options?.skipBackendCall) {
                     try {
-                        await apiFetch('/users/logout', { method: 'POST' })
+                        const response = await apiFetch(options?.allDevices ? '/users/logout/all' : '/users/logout', {
+                            method: 'POST',
+                        })
+                        // an API without /all still revokes every session on /users/logout
+                        if (options?.allDevices && response?.status === 404) {
+                            await apiFetch('/users/logout', { method: 'POST' })
+                        }
                     } catch (e) {
                         console.warn('server-side session revocation failed, continuing local logout:', e)
                     }

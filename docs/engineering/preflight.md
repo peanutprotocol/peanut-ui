@@ -1,5 +1,29 @@
 # UI incident preflight
 
+## 2026-11-02: browser contract build exhausted Node's default heap
+
+- Trigger: PR #3900 Tests run 41464516586, press-contract job 125341899149,
+  aborted during the production build at roughly 2 GiB with `Reached heap limit`.
+  Neither browser spec ran; the required aggregate check correctly failed.
+- Root cause: browser contract builds inherited Node 20's implicit heap budget.
+  Set an explicit bounded 4096 MiB old-space budget on those build steps only.
+  This does not cap total process RSS or justify increasing timeouts/retries.
+- Search: `rg -n 'pnpm build|NODE_OPTIONS|continue-on-error|timeout-minutes' .github/workflows/tests.yml`.
+  Inspect effective build environments and preserve blocking browser assertions.
+- Counterexample: the native build and Screen Library use separate build paths;
+  a missing heap override is not proof that every Node task needs more memory.
+- Regression: `browser-build-memory.test.mjs` checks parsed workflow scope,
+  existing deadlines and browser gates, and the effective heap in a child Node
+  process. Actual production builds remain the evidence of memory sufficiency.
+
+## 2026-11-02: before app received the head synthetic API
+
+- Trigger: UI PR #3620 at 3cd397138 changed the synthetic contract; its head harness fed incompatible data to the base app (owner-reported 258/295 before states failed).
+- Invariant: compare shared transitive fixture roots and adapter answer code across immutable revisions. Synthetic changes use each app's own harness with an explicit before receipt. Renderer mismatches remain errors; source manifests alone cannot prove a reused capture's producing harness.
+- Search: `rg -n 'sameEnvironment|compare\(|canReuseBaseline|verifiedExternalBaselineSource|beforeHarness' scripts/screens`. Inspect report creation, publication, offline bundling and every baseline path.
+- Counterexample: a capture-code-only or catalogue-only change retains the head harness on both sides to avoid artificial differences.
+- Regression: `before-harness-acceptance.test.mjs` freezes trigger, receipt, renderer and reuse contracts; `capture-cost-integration.test.mjs` checks provider provenance, capability fallback and receipt preservation through offline reports.
+
 ## 2026-10-14: screenshot vote intent crossed a login switch
 
 Independent review reproduced a browser `/me` response verified as Alice followed
@@ -100,3 +124,19 @@ A queued online task reproduced the same sequence without an SDK event: React ha
 - Regression: `android-passkey-control.test.ts`, `android-passkey-scope.test.ts`, independent controller acceptance tests, signup/login hook regressions, and the native coordinator sequence tests. The disposable native cancellation-marking mutation fails the acceptance assertions.
 - Counterexample: a terminal native response can safely release its own request slot; a stale callback cannot release a newer one. An enabled Play Services package is not proof of an available credential provider.
 - Evidence boundary: TASK-23424 reports Chrome success on China-market devices; code checks and native library compilation do not establish a regional root cause or device recovery.
+
+## TASK-24355 — grouped request suggestions (2026-11-02)
+
+- Trigger: a request suggestion of 4000 is formatted as `4,000`, then `Number('4,000')` becomes NaN. The real slider renders NaN%; raw callback amounts can still be correct because callbacks separately strip commas. This alone does not prove a bad transaction.
+- Root cause: AmountInput suggestion used display-mode `formatTokenAmount` before numeric arithmetic. The previous TokenAmountInput slider explicitly stripped commas. Original change: peanut-ui commit 3a2ad8d1dd, Juan José Ramírez, 2025-12-26 07:23:42 UTC; later blame movement did not introduce this expression.
+- Search: `rg -n 'Number\(formatted|parseFloat\(.*Amount|formatTokenAmount' src/components/Global/AmountInput src/features/payments/flows/contribute-pot`. Inspect units and formatting mode; search hits alone are not bugs.
+- Safe counterexample: parsing raw `4000` is valid; the slider-change branch already uses input formatting mode.
+- Regression: finite-amount.test.tsx uses the real slider at 999, 1000, 4000, 10000, invalid initial/suggested/typed values and overflow. Payment flow tests separately reject invalid data before charge creation, even when called outside the UI button.
+
+### PR3902 follow-up — repeating-rate roundtrips
+
+- Trigger: at ARS1200/USD1, toggling untouched ARS0.05 or ARS4000 to USD and back loses a cent. Storing even36 decimal conversion digits cannot exactly represent a repeating rate; a delayed rate update can also change the original payer amount.
+- Invariant: anchor canonical input in the denomination last edited. Currency toggles change presentation; only a genuine edit changes monetary intent. Convert from that original amount once, at the destination precision.
+- Search: `rg -n 'setExactAmount|convertDecimalAmount|setDisplaySymbol' src/components/Global/AmountInput/index.tsx`; inspect every edit, suggestion, balance-fill and toggle writer. A newly typed USD amount is a safe counterexample: it intentionally replaces prior ARS intent.
+- Regression: independent `exact-roundtrip.test.tsx` covers2/4/10 toggles, sub-cent and4000 inputs, genuine edits and delayed rate changes. Restoring the published pre-repair component in a disposable copy fails8 of10 tests; the fixed component passes all10.
+- Fixture compatibility: formatter mocks must preserve newly used real exports. The crypto-deposit mock omitted `formatFiniteDisplay`; retain the actual currency module before explicit test overrides. The loaded deposit/QR, warning and help-button tests exercise this path.

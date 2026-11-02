@@ -3,7 +3,7 @@
 import { LandingAppLink } from '@/components/LandingPage/LandingAppLink'
 import { CTA_MOTION } from '@/components/Marketing/constants'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { useAuth } from '@/context/authContext'
+import { useOptionalAuth } from '@/context/authContext'
 import { COLOURED_GROUNDS } from './starLp.consts'
 import type { StarLpCtaProps } from './starLp.types'
 
@@ -14,13 +14,21 @@ import type { StarLpCtaProps } from './starLp.types'
  * PWA-sunset flag through LandingAppLink, so it needs StarLpPage's
  * AppModalProvider above it.
  */
-export function StarLpCta({ href, signedInHref, ground, children, qrPlacement }: StarLpCtaProps) {
-    const { user } = useAuth()
+export function StarLpCta({
+    href,
+    signedInHref,
+    ground,
+    children,
+    qrPlacement,
+    surface = MIGRATION_SURFACES.STAR_LP,
+}: StarLpCtaProps) {
+    // the homepage renders these with no AuthProvider above it: there every visitor gets the guest href
+    const user = useOptionalAuth()?.user
     const destination = user && signedInHref ? signedInHref : href
     return (
         <LandingAppLink
             href={destination}
-            surface={MIGRATION_SURFACES.STAR_LP}
+            surface={surface}
             qrPlacement={qrPlacement}
             variant={COLOURED_GROUNDS.includes(ground) ? 'secondary' : 'primary'}
             size="large"

@@ -1,4 +1,6 @@
 'use client'
+
+import { formatFiniteDisplay } from '@/utils/currency'
 import { type FC, useEffect, useRef, useState } from 'react'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -76,10 +78,10 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                 <div className="flex flex-col items-center gap-6 text-center" role="status">
                     <span className="sr-only">{tCommon('loading')}</span>
                     <div className="flex w-full flex-col items-center gap-1">
-                        <div className="h-8 w-40 animate-pulse rounded bg-foreground-primary/10" />
-                        <div className="h-5 w-64 animate-pulse rounded bg-foreground-primary/10" />
+                        <div className="h-8 w-40 animate-pulse rounded bg-background-skeleton" />
+                        <div className="h-5 w-64 animate-pulse rounded bg-background-skeleton" />
                     </div>
-                    <div className="h-11 w-full animate-pulse rounded-full bg-foreground-primary/10" />
+                    <div className="h-11 w-full animate-pulse rounded-full bg-background-skeleton" />
                 </div>
             ) : data?.joinedAt ? (
                 <div className="flex flex-col items-center gap-3 text-center">
@@ -90,7 +92,7 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                         description={
                             data.position === null
                                 ? t('onListBodyPending')
-                                : t('onListBody', { position: data.position.toLocaleString() })
+                                : t('onListBody', { position: formatFiniteDisplay(data.position) })
                         }
                         align="center"
                         size="s"

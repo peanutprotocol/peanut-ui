@@ -74,15 +74,13 @@ export const PROVIDERS: Record<ProviderId, ProviderRecord> = {
         privacyUrl: 'https://manteca.dev/es/pp/crypto',
         support: 'hola@manteca.dev · soporte@manteca.dev',
     },
+    // TODO: brand only until manteca confirms which brazilian entity we may name. manteca asked us to
+    // take the entity down on 2026-10-28 while its lawyers review it. once they confirm, add back
+    // legalName, registeredOffice and taxId here, and the same entity to the statement PDF
+    // (peanut-api-ts src/activity-export/labels.ts, mantecaBr)
     'manteca-br': {
         id: 'manteca-br',
         brand: 'Manteca',
-        legalName: 'PONTE GLOBAL SOCIEDADE PRESTADORA DE SERVICOS DE ATIVOS VIRTUAIS LTDA',
-        registeredOffice: [
-            'R. Brigadeiro Luís Antônio 300, 10º andar, conj. 104 (parte)',
-            'Bela Vista, São Paulo/SP, CEP 01318-903',
-        ],
-        taxId: 'CNPJ 63.653.001/0001-55',
         role: 'mantecaBr',
         userContract: true,
         termsUrl: 'https://manteca.dev/brazil-politicas/tec',

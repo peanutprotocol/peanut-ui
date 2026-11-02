@@ -19,6 +19,8 @@ const mockNext = jest.fn()
 let mockHandleNext = mockNext
 let mockDeviceType = 'android'
 let mockIOSNativeBridge = false
+// The OS sheet's own duration for the attempt, as the telemetry wrapper records it.
+let mockCeremony: { durationMs: number } | undefined
 
 jest.mock('@/hooks/useZeroDev', () => ({
     useZeroDev: () => ({ handleRegister: mockHandleRegister, address: mockAddress, isRegistering: mockIsRegistering }),
@@ -39,6 +41,7 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
 jest.mock('@/utils/passkeyPreflight', () => ({ checkPasskeySupport: () => mockSupport() }))
 jest.mock('@/utils/passkeyDebug', () => ({ capturePasskeyDebugInfo: jest.fn() }))
+jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({ latestCeremony: () => mockCeremony }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -69,6 +72,7 @@ beforeEach(() => {
     mockHandleNext = mockNext
     mockDeviceType = 'android'
     mockIOSNativeBridge = false
+    mockCeremony = undefined
     mockSupport.mockImplementation(async () => ({ isSupported: true }))
     // 404 = username free, so the handler proceeds to registration
     mockApiFetch.mockResolvedValue({ status: 404 })
@@ -426,6 +430,25 @@ describe('repeated cancels in the iOS app', () => {
         expect(await screen.findByRole('dialog')).toHaveTextContent('PasskeyNotSaved')
     })
 
+    it('opens the iCloud help on the first cancel when the sheet closed in under 2 s', async () => {
+        mockCeremony = { durationMs: 1500 }
+        mockHandleRegister.mockRejectedValue(cancel())
+        renderWithIntl(<Harness />)
+        await claimAndSettle()
+        expect(screen.getByRole('dialog')).toHaveTextContent('PasskeyNotSaved')
+        const [[, properties]] = failedEvents()
+        expect(properties).toMatchObject({ ceremony_ms: 1500, attempt: 1, native_reason: undefined })
+    })
+
+    it('keeps the two-cancel rule when the sheet stayed open for a while', async () => {
+        mockCeremony = { durationMs: 3000 }
+        mockHandleRegister.mockRejectedValue(cancel())
+        renderWithIntl(<Harness />)
+        await claimAndSettle()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(screen.getByRole('alert')).toHaveTextContent('wasn’t completed')
+    })
+
     it('does not count failures with a specific native reason', async () => {
         mockHandleRegister.mockRejectedValue(
             cancel('The operation couldn’t be completed. Device must be unlocked to perform request.')
@@ -452,6 +475,67 @@ describe('repeated cancels in the iOS app', () => {
             'Passkey verification wasn’t completed. Try again when ready.'
         )
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+})
+
+/*
+ * TASK-24017: the plugin reports an Android phone that cannot create a passkey
+ * (no screen lock, no Google account, no credential provider) with the same
+ * NotAllowedError name as a dismissal, and a provider crash with no name at all.
+ */
+describe('Android failures that are not cancels', () => {
+    it('opens the Android help drawer on the first "no create options" failure', async () => {
+        mockHandleRegister.mockRejectedValue(
+            Object.assign(new Error('No create options available.'), { name: 'NotAllowedError' })
+        )
+        renderWithIntl(<Harness />)
+        claim()
+        expect(await screen.findByRole('dialog')).toHaveTextContent('NotAllowedError')
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+        const [[, properties]] = failedEvents()
+        expect(properties).toMatchObject({ native_reason: 'setup_required', attempt: 1 })
+        // the bounded diagnostic, not the generic passkey_setup_error exception
+        expect(Sentry.captureException).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ tags: expect.objectContaining({ passkey_reason: 'setup_required' }) })
+        )
+    })
+
+    it('shows the interrupted message for a credential-provider failure', async () => {
+        mockHandleRegister.mockRejectedValue(new Error('Unsuccessful result from folsom activity.'))
+        renderWithIntl(<Harness />)
+        claim()
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+            'Something interrupted the passkey prompt. Please try again.'
+        )
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        const [[, properties]] = failedEvents()
+        expect(properties).toMatchObject({ native_reason: 'provider_failed', error_code: 'PASSKEY_INTERRUPTED' })
+    })
+
+    it('reports a passkey-server error body as unreachable servers, not a device problem', async () => {
+        mockHandleRegister.mockRejectedValue(
+            Object.assign(new Error('Passkey server request failed'), { name: 'PasskeyServerError' })
+        )
+        renderWithIntl(<Harness />)
+        claim()
+        expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t reach Peanut’s servers.')
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(Sentry.captureException).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ tags: { error_type: 'passkey_server_failure' } })
+        )
+    })
+
+    it('counts attempts across retries on the same step', async () => {
+        mockHandleRegister.mockRejectedValue(Object.assign(new Error('cancelled'), { name: 'NotAllowedError' }))
+        renderWithIntl(<Harness />)
+        claim()
+        await waitFor(() => expect(failedEvents()).toHaveLength(1))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Claim' })).toBeEnabled())
+        claim()
+        await waitFor(() => expect(failedEvents()).toHaveLength(2))
+        expect(failedEvents().map(([, properties]) => properties.attempt)).toEqual([1, 2])
     })
 })
 
