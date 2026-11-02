@@ -3,6 +3,7 @@
 import { SetupCelebrationView } from '@/components/Setup/Views/Success'
 import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
 import { API_CONTRACT_STATES } from './api-contract-states'
+import AmountInput from '@/components/Global/AmountInput'
 
 /**
  * Every modal, drawer and full-screen surface in the content-taxonomy review,
@@ -365,6 +366,35 @@ export const SURFACES: Record<string, Surface> = {
             },
         ])
     ),
+    'numeric-request-amount-4000': {
+        ...SURFACE_META['numeric-request-amount-4000'],
+        render: () => (
+            <AppPageSurface>
+                <AmountInput setPrimaryAmount={noop} showSlider maxAmount={4000} defaultSliderSuggestedAmount={4000} />
+            </AppPageSurface>
+        ),
+    },
+    'numeric-request-rate-unavailable': {
+        ...SURFACE_META['numeric-request-rate-unavailable'],
+        render: () => (
+            <AppPageSurface>
+                <AmountInput
+                    initialAmount="4000"
+                    setPrimaryAmount={noop}
+                    primaryDenomination={{ symbol: 'USDC', price: 1, decimals: 6 }}
+                    secondaryDenomination={{ symbol: 'EUR', price: 0, decimals: 2 }}
+                />
+            </AppPageSurface>
+        ),
+    },
+    'numeric-request-amount-invalid': {
+        ...SURFACE_META['numeric-request-amount-invalid'],
+        render: () => (
+            <AppPageSurface>
+                <AmountInput initialAmount="Infinity" setPrimaryAmount={noop} showSlider maxAmount={4000} />
+            </AppPageSurface>
+        ),
+    },
     '01-a-landing': {
         ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,

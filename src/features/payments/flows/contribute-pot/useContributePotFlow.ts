@@ -13,6 +13,7 @@
  * based on existing contributions (e.g. suggests 1/3 for split bills)
  */
 
+import { isPositiveFiniteAmount } from '@/lib/validation/amount'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { type Address } from 'viem'
 import { useContributePotFlowContext } from './ContributePotFlowContext'
@@ -99,8 +100,7 @@ export function useContributePotFlow() {
     // check if can proceed
     const canProceed = useMemo(() => {
         if (!amount || !recipient || !request) return false
-        const amountNum = parseFloat(amount)
-        if (isNaN(amountNum) || amountNum <= 0) return false
+        if (!isPositiveFiniteAmount(amount)) return false
         return true
     }, [amount, recipient, request])
 
@@ -174,7 +174,7 @@ export function useContributePotFlow() {
             shouldReturnAfterCreatingCharge: boolean = false,
             bypassLoginCheck: boolean = false
         ): Promise<{ success: boolean }> => {
-            if (!recipient || !amount || !request) {
+            if (!recipient || !request || !isPositiveFiniteAmount(amount)) {
                 setError({ showError: true, errorMessage: t('errors.missingData') })
                 return { success: false }
             }

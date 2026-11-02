@@ -1,5 +1,7 @@
 'use client'
 
+import { validateNumericResponse } from '@/lib/numeric-response'
+
 /**
  * Rhino Bridge service — non-stablecoin cross-chain outflow.
  *
@@ -79,7 +81,7 @@ async function postJson<TReq, TRes>(path: string, body: TReq, errorLabel: string
     // `code` / `retryAfterSec`, so the cap's 429 on the bridge path renders the
     // same localized copy as the SDA path instead of "contact support".
     if (!response.ok) throw await apiErrorFromResponse(response, errorLabel)
-    return (await response.json()) as TRes
+    return validateNumericResponse(await response.json()) as TRes
 }
 
 async function getJson<TRes>(path: string, errorLabel: string): Promise<TRes> {
@@ -88,7 +90,7 @@ async function getJson<TRes>(path: string, errorLabel: string): Promise<TRes> {
     // `code` / `retryAfterSec`, so the cap's 429 on the bridge path renders the
     // same localized copy as the SDA path instead of "contact support".
     if (!response.ok) throw await apiErrorFromResponse(response, errorLabel)
-    return (await response.json()) as TRes
+    return validateNumericResponse(await response.json()) as TRes
 }
 
 export function getBridgeQuote(params: BridgeQuoteParams): Promise<BridgeQuoteResponse> {

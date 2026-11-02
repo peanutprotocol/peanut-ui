@@ -22,6 +22,11 @@ const response = (status: number, body: unknown = {}) =>
 describe('fetchTokenPrice', () => {
     beforeEach(() => jest.clearAllMocks())
 
+    it.each([NaN, Infinity, -1, 0, '12garbage', null])('rejects invalid provider price %s', async (price) => {
+        mockApiFetch.mockResolvedValue(response(200, { price, decimals: 6 }))
+        await expect(fetchTokenPrice('0xabc', '42161')).rejects.toThrow()
+    })
+
     it('maps 404 to undefined — a missing price means not found', async () => {
         mockApiFetch.mockResolvedValue(response(404, { error: 'Token price not available' }))
         await expect(fetchTokenPrice('0xabc', '42161')).resolves.toBeUndefined()
