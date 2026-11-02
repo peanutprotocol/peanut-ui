@@ -38,7 +38,7 @@ const baseState: JourneyState = {
     onboarding: onboarding('verify'),
     blockedCardId: null,
     dueTasks: 0,
-    card: { loaded: true, needsSetup: false, activeCardId: null },
+    card: { loaded: true, needsSetup: false, activeCardId: null, setupPath: 'none' },
     postAuthRedirect: false,
     postAuthRedirectDestination: null,
     balance: { loaded: true, usd: 0 },
@@ -191,7 +191,7 @@ describe('other pairs that collide today', () => {
     test('finish card setup needs an active card, so it never competes with verify', () => {
         // an active card implies the ID check passed: the checklist is already complete
         const d = run({
-            card: { loaded: true, needsSetup: true, activeCardId: null },
+            card: { loaded: true, needsSetup: true, activeCardId: null, setupPath: 'legacy' },
             onboarding: onboarding('completed'),
         })
         expect(d.interrupt).toBe('finish-card-setup')

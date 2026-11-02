@@ -9,6 +9,7 @@ import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { QrKycState } from '@/constants/kyc.consts'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useCardFundingAccess } from '@/hooks/useCardFundingAccess'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
@@ -40,6 +41,7 @@ import { useHydrationSnapshot } from '@/utils/native-platform'
 import { selectMaintenance } from './maintenance'
 import { isCapacitor } from '@/utils/capacitor'
 import type { RainCardOverview } from '@/services/rain'
+import { cardSetupPath } from './cardFunding'
 import { useJourneyEpoch } from './journeyEpoch'
 import type { JourneyState } from './types'
 
@@ -115,6 +117,7 @@ export interface JourneyInputs {
     cardLoaded: boolean
     cardNeedsSetup: boolean
     activeCardId: string | null
+    cardSetupPath: JourneyState['card']['setupPath']
     redirectDestination: string | undefined
     balanceUnits: bigint | undefined
     migrationOn: boolean
@@ -166,7 +169,12 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
         onboarding: input.onboarding,
         blockedCardId: input.blockedCardId,
         dueTasks: input.dueTasks,
-        card: { loaded: input.cardLoaded, needsSetup: input.cardNeedsSetup, activeCardId: input.activeCardId },
+        card: {
+            loaded: input.cardLoaded,
+            needsSetup: input.cardNeedsSetup,
+            activeCardId: input.activeCardId,
+            setupPath: input.cardSetupPath,
+        },
         postAuthRedirect: hasPostSignupRedirect(input.redirectDestination),
         postAuthRedirectDestination: hasPostSignupRedirect(input.redirectDestination)
             ? (input.redirectDestination ?? null)
@@ -219,6 +227,13 @@ export function useJourneyState(): JourneyState {
     const { blockedCard } = useProviderRejection(onboarding)
     const { nextActions, rails, canDo, railsForProvider, channelOf, isLoading: capabilitiesLoading } = useCapabilities()
     const { overview, isLoading: overviewLoading } = useRainCardOverview()
+    const hasActiveCard = findActiveCard(overview)?.status === 'ACTIVE'
+    const fundingAccess = useCardFundingAccess({ enabled: hasActiveCard })
+    const setupPath = cardSetupPath({
+        hasActiveCard,
+        accessLoading: fundingAccess.isLoading,
+        access: fundingAccess.access,
+    })
     const { cardInfo, isEligible: isCardEligible, isLoading: cardInfoLoading, error: cardInfoError } = useCardInfo()
     const { balance } = useWallet()
     const migrationOn = useMigrationFlag()
@@ -341,6 +356,7 @@ export function useJourneyState(): JourneyState {
                 cardLoaded: !overviewLoading,
                 cardNeedsSetup: cardNeedsSetup(overview),
                 activeCardId: findActiveCard(overview)?.id ?? null,
+                cardSetupPath: setupPath,
                 redirectDestination: getStoredRedirect()?.destination,
                 balanceUnits: balance,
                 migrationOn,
@@ -389,6 +405,7 @@ export function useJourneyState(): JourneyState {
             dueTasks,
             overview,
             overviewLoading,
+            setupPath,
             balance,
             migrationOn,
             oneSignalInitialized,

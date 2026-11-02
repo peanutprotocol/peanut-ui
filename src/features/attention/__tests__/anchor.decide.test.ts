@@ -210,7 +210,10 @@ describe('Phase 8: Home interrupt anchor boundary', () => {
                 postAuthRedirectDestination: '/claim/abc',
             },
         ],
-        ['finish-card-setup', { card: { loaded: true, needsSetup: true, activeCardId: 'card-a' } }],
+        [
+            'finish-card-setup',
+            { card: { loaded: true, needsSetup: true, activeCardId: 'card-a', setupPath: 'legacy' } },
+        ],
     ])('%s follows its normal T1 budget even after another T1 interrupt', (id, patch) => {
         const prior: AskId = id === 'legal-reconsent' ? 'balance-backup' : 'legal-reconsent'
         expect(run(patch, { interruptsThisSession: [prior] }).interrupt).toBe(id)
