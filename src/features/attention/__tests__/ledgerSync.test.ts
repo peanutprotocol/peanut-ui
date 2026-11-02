@@ -236,3 +236,16 @@ test('zone rotation counters stay on the device: never synced, never taken from 
     expect(merged.invite).toMatchObject({ lastSessionShown: 3, consecutiveSessions: 1 })
     expect(merged['complete-profile']?.lastSessionShown).toBeUndefined()
 })
+
+test('push answers stay on the device: never synced, never taken from the server copy', async () => {
+    ledgerActions.snoozed(USER_A, 'push-home-fallback', T0 + 14 * 86_400_000)
+    ledgerActions.dismissed(USER_A, 'invite', T0)
+    await jest.advanceTimersByTimeAsync(2000)
+    const synced = syncMock.mock.calls[0][0].attentionLedger
+    expect(synced).not.toHaveProperty('push-home-fallback')
+    expect(synced).toHaveProperty('invite')
+
+    // another device's denial or "Not now" must not silence this device's push ask
+    const other = ledger({ 'push-home-fallback': { dismissedAt: NEW, updatedAt: NEW } })
+    expect(readLedger(USER_B, other)['push-home-fallback']).toBeUndefined()
+})

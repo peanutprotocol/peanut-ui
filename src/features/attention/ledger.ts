@@ -224,7 +224,7 @@ export function readLedger(userId: string | null, server?: unknown): Ledger {
     const fingerprint = fingerprintOf(userId, raw, server)
     if (cached && cached.userId === userId && cached.fingerprint === fingerprint) return cached.ledger
     const local = mergeLedgers(sanitizeStore(localStore(userId, raw)), legacyEntries(userId, raw))
-    const ledger = mergeLedgers(local, withoutRotation(sanitizeStore(server)))
+    const ledger = mergeLedgers(local, withoutDeviceState(sanitizeStore(server)))
     cached = { userId, fingerprint, ledger }
     return ledger
 }
@@ -235,10 +235,14 @@ function baseStore(userId: string, prefs: UserPreferences | undefined): Attentio
     return prefs?.attentionLegacyPersisted ? store : mergeLedgers(store, legacyEntries(userId, prefs))
 }
 
-/** The zone rotation counters count this device's sessions, so they stay on it. */
-function withoutRotation(store: AttentionLedgerStore): AttentionLedgerStore {
+/** Push permission is per device, so its ask's answers stay on the device. */
+const DEVICE_LOCAL_ASKS: ReadonlySet<AskId> = new Set(['push-home-fallback'])
+
+/** What may cross devices: no device-local asks, and no zone rotation counters (they count this device's sessions). */
+function withoutDeviceState(store: AttentionLedgerStore): AttentionLedgerStore {
     const out: AttentionLedgerStore = {}
     for (const [id, entry] of Object.entries(store) as [AskId, LedgerEntry][]) {
+        if (DEVICE_LOCAL_ASKS.has(id)) continue
         const { lastSessionShown: _last, consecutiveSessions: _run, ...rest } = entry
         out[id] = rest
     }
@@ -254,7 +258,7 @@ function save(userId: string, next: AttentionLedgerStore): void {
     }
     cached = null
     emit()
-    scheduleLedgerSync(userId, withoutRotation(next))
+    scheduleLedgerSync(userId, withoutDeviceState(next))
 }
 
 function write(
