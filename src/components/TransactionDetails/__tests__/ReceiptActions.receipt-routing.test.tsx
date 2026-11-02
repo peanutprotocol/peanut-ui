@@ -9,6 +9,9 @@ import type { ReceiptViewModel } from '../useReceiptViewModel'
 import type { ReceiptMoreAction } from '../ReceiptMoreActionsDrawer'
 
 jest.mock('next-intl', () => ({ useLocale: () => 'en' }))
+jest.mock('posthog-js', () => ({ capture: jest.fn() }))
+import posthog from 'posthog-js'
+const mockCapture = posthog.capture as jest.Mock
 jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
@@ -40,8 +43,18 @@ jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 // here it only has to receive the receipt link
 jest.mock('@/components/Global/ShareButton', () => ({
     __esModule: true,
-    default: ({ children, url, title }: { children?: React.ReactNode; url?: string; title?: string }) => (
-        <button data-testid="link-share" data-url={url} data-title={title}>
+    default: ({
+        children,
+        url,
+        title,
+        onClick,
+    }: {
+        children?: React.ReactNode
+        url?: string
+        title?: string
+        onClick?: () => void
+    }) => (
+        <button data-testid="link-share" data-url={url} data-title={title} onClick={onClick}>
             {children}
         </button>
     ),
@@ -393,4 +406,55 @@ test('native Download PDF uses the file bridge for public receipts too', () => {
     } finally {
         ;(isCapacitor as jest.Mock).mockReturnValue(false)
     }
+})
+
+/**
+ * Every receipt action records one `receipt_action_tapped` with what was
+ * tapped and where it sat, so the link primary and the More actions rows can
+ * be compared (TASK-24141). The tap is recorded, not its outcome.
+ */
+describe('receipt action events (TASK-24141)', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockPdfBusy = null
+    })
+
+    const tapped = (action: string, placement: string, kind: string) =>
+        expect(mockCapture).toHaveBeenCalledWith('receipt_action_tapped', { action, placement, kind })
+
+    test('the link primary records share_link', () => {
+        renderActions(transaction('DIRECT_TRANSFER', { publicReceipt: true }), vm())
+
+        fireEvent.click(screen.getByTestId('link-share'))
+        tapped('share_link', 'primary', 'DIRECT_TRANSFER')
+        expect(mockCapture).toHaveBeenCalledTimes(1)
+    })
+
+    test('the More actions rows record split, share_pdf and download_pdf', () => {
+        renderActions(transaction('QR_PAY', { publicReceipt: true }), vm())
+
+        fireEvent.click(screen.getByTestId('more-action-split'))
+        tapped('split', 'more_actions', 'QR_PAY')
+        fireEvent.click(screen.getByTestId('more-action-share-pdf'))
+        tapped('share_pdf', 'more_actions', 'QR_PAY')
+        expect(mockPdfShare).toHaveBeenCalledTimes(1)
+        fireEvent.click(screen.getByTestId('more-action-download'))
+        tapped('download_pdf', 'more_actions', 'QR_PAY')
+        expect(mockCapture).toHaveBeenCalledTimes(3)
+    })
+
+    test('a Split this bill primary records split as primary', () => {
+        renderActions(transaction('QR_PAY'), vm())
+
+        fireEvent.click(screen.getByText('actions.splitBill'))
+        tapped('split', 'primary', 'QR_PAY')
+    })
+
+    test('a PDF share primary records share_pdf as primary', () => {
+        renderActions(transaction('DIRECT_TRANSFER'), vm())
+
+        fireEvent.click(screen.getByTestId('pdf-share'))
+        tapped('share_pdf', 'primary', 'DIRECT_TRANSFER')
+        expect(mockPdfShare).toHaveBeenCalledTimes(1)
+    })
 })

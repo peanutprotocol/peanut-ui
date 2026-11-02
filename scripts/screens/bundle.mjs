@@ -7,7 +7,10 @@ export function bundle(directory) {
         assets = join(dir, 'assets'),
         out = join(dir, 'offline')
     const input = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'))
-    const report = input.type === 'capture' ? validateCapture(input) : compare(input.before, input.after, assets)
+    const report =
+        input.type === 'capture'
+            ? validateCapture(input)
+            : compare(input.before, input.after, assets, input.beforeHarness)
     mkdirSync(join(out, 'assets'), { recursive: true })
     const refs = new Set()
     for (const c of report.type === 'capture' ? [report] : [report.before, report.after])

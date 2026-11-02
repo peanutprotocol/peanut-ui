@@ -15,7 +15,7 @@ test('main updates capture both full catalogues and retain the original push bou
     assert.match(screenLibrary, /push:\n\s+branches: \[dev, main\]/)
     assert.match(screenLibrary, /PUSH_BEFORE: \$\{\{ github\.event\.before \}\}/)
     assert.match(screenLibrary, /node scripts\/screens\/capture-revisions\.mjs >> "\$GITHUB_OUTPUT"/)
-    assert.equal((screenLibrary.match(/'refs\/heads\/main' && '--full-catalogue'/g) ?? []).length, 2)
+    assert.equal((screenLibrary.match(/'refs\/heads\/main' && '--full-catalogue'/g) ?? []).length, 3)
     assert.match(publisher, /PUSH_BEFORE: \$\{\{ github\.event\.before \}\}/)
     for (const field of ['before', 'after'])
         assert.match(
@@ -23,6 +23,41 @@ test('main updates capture both full catalogues and retain the original push bou
             new RegExp(`MAIN_${field.toUpperCase()}: \\$\\{\\{ github\\.event\\.inputs\\.${field}_sha \\}\\}`)
         )
     assert.match(publishRun, /before: run\.event === 'push' \? process\.env\.PUSH_BEFORE : process\.env\.MAIN_BEFORE/)
+})
+
+test('before harness is decided before reuse and base capture runs entirely from target', () => {
+    const refs = screenLibrary.slice(screenLibrary.indexOf('    refs:'), screenLibrary.indexOf('    capture_after:'))
+    assert.match(refs, /before_harness: \$\{\{ steps\.before_harness\.outputs\.before_harness \|\| 'head' \}\}/)
+    assert.match(refs, /node scripts\/screens\/decide-before-harness\.mjs/)
+    const before = screenLibrary.slice(
+        screenLibrary.indexOf('    capture_before:'),
+        screenLibrary.indexOf('\n    gallery:')
+    )
+    assert.ok(
+        before.indexOf('Resolve supported before harness') < before.indexOf('Select verified exact-before capture')
+    )
+    assert.match(before, /BEFORE_HARNESS: \$\{\{ steps\.harness\.outputs\.mode \}\}/)
+    for (const name of [
+        'Install base capture tools',
+        'Install base pinned browser',
+        'Build and capture with base harness',
+    ]) {
+        const step = before.split(/^ {12}- /m).find((entry) => entry.startsWith(`name: ${name}\n`))
+        assert.ok(step, name)
+        assert.match(step, /steps\.harness\.outputs\.mode == 'base'/)
+        assert.match(step, /steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true'/)
+        assert.match(step, /working-directory: target/)
+    }
+    assert.match(before, /node scripts\/screens\/run-capture\.mjs \. "\$TARGET_SHA" \.\.\/capture/)
+    assert.match(before, /node scripts\/screens\/write-before-harness\.mjs \.\.\/capture/)
+    assert.equal(
+        (
+            screenLibrary.match(
+                /uses: peanutprotocol\/peanut-ui\/\.github\/workflows\/screen-library-publish.yml@dev/g
+            ) ?? []
+        ).length,
+        2
+    )
 })
 
 test('capture workflows run on the standard Ubuntu pool', () => {

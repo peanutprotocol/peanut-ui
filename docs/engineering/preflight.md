@@ -1,5 +1,13 @@
 # UI incident preflight
 
+## 2026-11-02: before app received the head synthetic API
+
+- Trigger: UI PR #3620 at 3cd397138 changed the synthetic contract; its head harness fed incompatible data to the base app (owner-reported 258/295 before states failed).
+- Invariant: compare shared transitive fixture roots and adapter answer code across immutable revisions. Synthetic changes use each app's own harness with an explicit before receipt. Renderer mismatches remain errors; source manifests alone cannot prove a reused capture's producing harness.
+- Search: `rg -n 'sameEnvironment|compare\(|canReuseBaseline|verifiedExternalBaselineSource|beforeHarness' scripts/screens`. Inspect report creation, publication, offline bundling and every baseline path.
+- Counterexample: a capture-code-only or catalogue-only change retains the head harness on both sides to avoid artificial differences.
+- Regression: `before-harness-acceptance.test.mjs` freezes trigger, receipt, renderer and reuse contracts; `capture-cost-integration.test.mjs` checks provider provenance, capability fallback and receipt preservation through offline reports.
+
 ## 2026-10-14: screenshot vote intent crossed a login switch
 
 Independent review reproduced a browser `/me` response verified as Alice followed

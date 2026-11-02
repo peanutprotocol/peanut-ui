@@ -1888,6 +1888,13 @@ async function start() {
     $('description').replaceChildren()
     if (report.type === 'collection' && report.description) $('description').append(el('span', report.description), ' ')
     $('description').append(captureDate ? el('strong', captureDate) : el('span', ''))
+    if ((activeComparison ?? report).beforeHarness?.mode === 'base')
+        $('description').append(
+            el(
+                'div',
+                "Before was captured with the base branch's own synthetic API because this PR changes it; differences can include synthetic-data changes."
+            )
+        )
     $('footer').textContent =
         report.type === 'collection'
             ? `${localeLabel(activeComparison?.locale ?? requestedCollectionLocale(report))} · ${activeComparison ? 'Curated before/after comparison' : 'Curated collection'} · Synthetic app states`
