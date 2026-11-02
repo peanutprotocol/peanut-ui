@@ -217,6 +217,8 @@ export const pushHomeFallback: AttentionAsk = {
     policy: {
         minSessions: HOME_FALLBACK_MIN_SESSION,
         snoozeDays: 14,
+        // completion is the permission itself; a stored dismissal (older builds acted on any answer) never silences it
+        expiryDays: 0,
         // the OS dialog is one-shot: the pre-prompt only while it is unanswered; the card only where settings can be opened
         surfaceWhen: { interrupt: (s) => s.push.unanswered, zone: (s) => s.isNative },
     },
