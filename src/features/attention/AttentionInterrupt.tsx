@@ -24,7 +24,7 @@ export function AttentionInterrupt() {
 }
 
 function InterruptHost({ attention }: { attention: AttentionContextValue }) {
-    const { decision, state, asks, opened, crashed, acted, dismissed, snoozed } = attention
+    const { decision, state, asks, opened, crashed, acted, action, dismissed, snoozed } = attention
     const id = decision.interrupt
     const Surface = id ? INTERRUPT_SURFACES[id] : undefined
 
@@ -52,6 +52,7 @@ function InterruptHost({ attention }: { attention: AttentionContextValue }) {
                         presentation={asks.find((ask) => ask.id === id)?.presentation ?? 'modal'}
                         askId={id}
                         onActed={() => acted(id)}
+                        onAction={(properties) => action(id, properties)}
                         onDismissed={() => dismissed(id)}
                         onSnoozed={(until) => snoozed(id, until)}
                     />

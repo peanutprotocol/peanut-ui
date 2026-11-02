@@ -81,7 +81,7 @@ const mockLife = {
 }
 
 function stubFor(id: AskId): React.ComponentType<AskSurfaceProps> {
-    function StubSurface({ askId, onActed, onDismissed, onSnoozed }: AskSurfaceProps) {
+    function StubSurface({ askId, onActed, onAction, onDismissed, onSnoozed }: AskSurfaceProps) {
         useLayoutEffect(() => {
             mockLife.live.add(id)
             mockLife.maxLive = Math.max(mockLife.maxLive, mockLife.live.size)
@@ -96,6 +96,7 @@ function stubFor(id: AskId): React.ComponentType<AskSurfaceProps> {
                 <button onClick={() => onActed()}>{`acted-${askId}`}</button>
                 <button onClick={() => onDismissed()}>{`dismiss-${askId}`}</button>
                 <button onClick={() => onSnoozed()}>{`snooze-${askId}`}</button>
+                <button onClick={() => onAction?.({ cta: 'store' })}>{`action-${askId}`}</button>
             </div>
         )
     }
@@ -638,4 +639,16 @@ test("an ask's legacy properties ride on its legacy modal events", async () => {
     } finally {
         legalReconsent.legacyProps = original
     }
+})
+
+test('a CTA that does not settle the ask is reported, writes nothing and leaves the prompt open', async () => {
+    mockState = state({ consent: TERMS_NEEDED })
+    await mount()
+    await click('action-legal-reconsent')
+    expect(events('attention_acted')).toEqual([
+        expect.objectContaining({ ask: 'legal-reconsent', cta: 'store', settled: false }),
+    ])
+    expect(events('modal_cta_clicked')).toEqual([expect.objectContaining({ modal_type: 're_consent', cta: 'store' })])
+    expect(readLedger('user-a')['legal-reconsent']?.dismissedAt).toBeUndefined()
+    expect(screen.getByTestId('surface-legal-reconsent')).toBeTruthy()
 })

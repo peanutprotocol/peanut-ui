@@ -224,6 +224,7 @@ export const ANALYTICS_EVENTS = {
     ATTENTION_ACTED: 'attention_acted',
     ATTENTION_DISMISSED: 'attention_dismissed',
     ATTENTION_SNOOZED: 'attention_snoozed',
+    ATTENTION_CRASHED: 'attention_crashed',
 
     // ── Arrival prompt (TASK-23251): props country, prompt ──
     ARRIVAL_PROMPT_SHOWN: 'arrival_prompt_shown',

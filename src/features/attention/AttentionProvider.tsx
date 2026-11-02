@@ -61,6 +61,8 @@ export interface AttentionContextValue {
     crashed: (id: AskId, surface?: Surface) => void
     /** the user did the thing; completion itself is derived from state */
     acted: (id: AskId, surface?: Surface) => void
+    /** a CTA on the surface was used without settling the ask (the store link): reported, nothing written */
+    action: (id: AskId, properties?: { cta?: string }, surface?: Surface) => void
     dismissed: (id: AskId, surface?: Surface) => void
     snoozed: (id: AskId, until?: number, surface?: Surface) => void
 }
@@ -86,8 +88,6 @@ export function resetAttentionSessionForTests(): void {
     resetLedgerMemoryForTests()
     resetSessionCountForTests()
 }
-
-const ATTENTION_CRASHED = 'attention_crashed'
 
 // per account, the asks whose surface threw this app load
 const crashedThisLoad = new Map<string, readonly AskId[]>()
@@ -406,6 +406,33 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
         [userId, state, askOf]
     )
 
+    const action = useCallback(
+        (id: AskId, properties: { cta?: string } = {}, surface: Surface = 'interrupt') => {
+            if (!userId || latestUserId.current !== userId) return
+            const onScreen =
+                surface === 'interrupt'
+                    ? getSessionInterrupts().open === id
+                    : (surface === 'banner' ? latestDecision.current.banner : latestDecision.current[surface]?.id) ===
+                      id
+            if (!onScreen) return
+            const ask = askOf(id)
+            posthog.capture(ANALYTICS_EVENTS.ATTENTION_ACTED, {
+                ask: id,
+                surface,
+                tier: ask?.tier,
+                settled: false,
+                ...properties,
+            })
+            if (surface === 'interrupt' && ask)
+                posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
+                    ...ask.legacyProps?.(state, 'acted'),
+                    ...properties,
+                    modal_type: ask.analyticsKey,
+                })
+        },
+        [userId, state, askOf]
+    )
+
     const crashed = useCallback(
         (id: AskId, surface: Surface = 'interrupt') => {
             if (!userId || latestUserId.current !== userId) return
@@ -413,7 +440,7 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
             if (known.includes(id)) return
             crashedThisLoad.set(userId, [...known, id])
             setCrashCount((count) => count + 1)
-            posthog.capture(ATTENTION_CRASHED, { ask: id, surface, tier: askOf(id)?.tier })
+            posthog.capture(ANALYTICS_EVENTS.ATTENTION_CRASHED, { ask: id, surface, tier: askOf(id)?.tier })
             if (surface === 'interrupt' && getSessionInterrupts().open === id) {
                 setSessionInterrupts({ ...getSessionInterrupts(), open: null })
                 setOpenInterrupt(null)
@@ -434,10 +461,11 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
             openedSurface,
             crashed,
             acted: (id, surface = 'interrupt') => settle(id, 'acted', undefined, surface),
+            action,
             dismissed: (id, surface = 'interrupt') => settle(id, 'dismissed', undefined, surface),
             snoozed: (id, until, surface = 'interrupt') => settle(id, 'snoozed', until, surface),
         }),
-        [decision, state, ledger, session, asks, opened, openedZone, openedSurface, crashed, settle]
+        [decision, state, ledger, session, asks, opened, openedZone, openedSurface, crashed, action, settle]
     )
 
     return (
