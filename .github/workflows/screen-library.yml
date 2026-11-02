@@ -46,6 +46,7 @@ jobs:
             pull-requests: read
         outputs:
             before: ${{ steps.refs.outputs.before }}
+            before_harness: ${{ steps.before_harness.outputs.before_harness || 'head' }}
             after: ${{ steps.refs.outputs.after }}
             mode: ${{ steps.impact.outputs.mode || steps.plan.outputs.mode }}
             only: ${{ steps.impact.outputs.only }}
@@ -98,8 +99,15 @@ jobs:
                   PR_NUMBER: ${{ github.event.pull_request.number }}
               run: node scripts/screens/decide-capture.mjs
             - name: Install isolated impact parser
-              if: steps.plan.outputs.mode != 'skip' && github.event_name == 'pull_request'
+              if: steps.plan.outputs.mode != 'skip'
               run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/publisher
+            - name: Decide synthetic API harness
+              id: before_harness
+              if: steps.plan.outputs.mode != 'skip'
+              env:
+                  BEFORE: ${{ steps.refs.outputs.before }}
+                  AFTER: ${{ steps.refs.outputs.after }}
+              run: node scripts/screens/decide-before-harness.mjs
             - name: Resolve trusted compatible screen scope
               id: impact
               if: steps.plan.outputs.mode != 'skip' && github.event_name == 'pull_request'
@@ -217,6 +225,14 @@ jobs:
               run: |
                   npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/publisher
                   ln -s scripts/screens/publisher/node_modules node_modules
+            - name: Resolve supported before harness
+              id: harness
+              working-directory: harness
+              env:
+                  BEFORE_HARNESS: ${{ needs.refs.outputs.before_harness }}
+                  CAPTURE_ONLY: ${{ needs.refs.outputs.only }}
+                  FULL_CATALOGUE: ${{ github.ref == 'refs/heads/main' }}
+              run: node scripts/screens/decide-before-harness.mjs --target=../target
             - name: Select verified exact-before capture
               id: reuse
               working-directory: harness
@@ -225,6 +241,7 @@ jobs:
                   REPOSITORY: ${{ github.repository }}
                   BEFORE: ${{ needs.refs.outputs.before }}
                   LOCALE: ${{ matrix.locale }}
+                  BEFORE_HARNESS: ${{ steps.harness.outputs.mode }}
               run: node scripts/screens/select-before.mjs ../after ../capture
             - name: Check current PR before fresh fallback
               id: current
@@ -238,17 +255,17 @@ jobs:
                   PR_BASE: ${{ github.event.pull_request.base.sha }}
               run: node scripts/screens/check-review-current.mjs
             - name: Install capture tools
-              if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true'
+              if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true' && steps.harness.outputs.mode != 'base'
               working-directory: harness
               run: |
                   rm node_modules
                   pnpm install --frozen-lockfile
             - name: Install pinned browser
-              if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true'
+              if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true' && steps.harness.outputs.mode != 'base'
               working-directory: harness
               run: pnpm exec playwright install --with-deps --no-shell chromium
             - name: Build and capture exact revision
-              if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true'
+              if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true' && steps.harness.outputs.mode != 'base'
               working-directory: harness
               env:
                   TARGET_SHA: ${{ needs.refs.outputs.before }}
@@ -258,6 +275,31 @@ jobs:
                   args=()
                   if [ -n "$CAPTURE_ONLY" ]; then args+=("--scope=targeted" "--only=$CAPTURE_ONLY"); fi
                   node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} "${args[@]}" ${{ github.ref == 'refs/heads/main' && '--full-catalogue' || '' }}
+            - name: Install base capture tools
+              if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true' && steps.harness.outputs.mode == 'base'
+              working-directory: target
+              run: pnpm install --frozen-lockfile
+            - name: Install base pinned browser
+              if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true' && steps.harness.outputs.mode == 'base'
+              working-directory: target
+              run: pnpm exec playwright install --with-deps --no-shell chromium
+            - name: Build and capture with base harness
+              if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true' && steps.harness.outputs.mode == 'base'
+              working-directory: target
+              env:
+                  TARGET_SHA: ${{ needs.refs.outputs.before }}
+                  CAPTURE_ONLY: ${{ needs.refs.outputs.only }}
+              shell: bash
+              run: |
+                  args=()
+                  if [ -n "$CAPTURE_ONLY" ]; then args+=("--scope=targeted" "--only=$CAPTURE_ONLY"); fi
+                  node scripts/screens/run-capture.mjs . "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} "${args[@]}" ${{ github.ref == 'refs/heads/main' && '--full-catalogue' || '' }}
+            - name: Record base harness provenance
+              if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true' && steps.harness.outputs.mode == 'base'
+              working-directory: harness
+              env:
+                  BEFORE: ${{ needs.refs.outputs.before }}
+              run: node scripts/screens/write-before-harness.mjs ../capture
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always() && steps.current.outputs.current != 'false'
               with:

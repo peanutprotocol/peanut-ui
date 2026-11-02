@@ -16,6 +16,7 @@ import { verifyReusedBaseline } from './verify-reused-baseline.mjs'
 import { canReuseBaseline } from './baseline-reuse.mjs'
 import { currentCaptureReview } from './check-review-current.mjs'
 import { compatibleGalleryRevision } from './check-gallery-current.mjs'
+import { beforeBaseCapability, selectBeforeHarness } from './before-harness.mjs'
 
 const before = 'a'.repeat(40),
     after = 'b'.repeat(40),
@@ -281,6 +282,141 @@ test('trusted exact main and dev push captures are reusable; PR/fork sources are
     }
 })
 
+test('base reuse authenticates the producing integration harness and never searches scheduled candidates', () => {
+    const source = findBaselineSource({
+        api: provider,
+        repository,
+        expectedCommit: before,
+        beforeHarnessMode: 'base',
+        log() {},
+    })
+    assert.equal(source.harnessCommit, before)
+    assert.equal(source.kind, 'integration')
+    for (const change of [{ event: 'pull_request' }, { head_sha: after }, { head_branch: 'feature' }]) {
+        const calls = []
+        const api = (path) => {
+            calls.push(path)
+            return path.startsWith('actions/runs?head_sha=')
+                ? { workflow_runs: [{ ...run, ...change }] }
+                : provider(path)
+        }
+        assert.equal(
+            findBaselineSource({ api, repository, expectedCommit: before, beforeHarnessMode: 'base', log() {} }),
+            null
+        )
+        assert.equal(
+            calls.some((path) => path.includes('branch=')),
+            false
+        )
+    }
+})
+
+test('old base runners fall back for absent files or unsupported required flags', () => {
+    const files = {
+        'scripts/screens/run-capture.mjs': readFileSync('scripts/screens/run-capture.mjs', 'utf8'),
+        'scripts/screens/capture.ts': readFileSync('scripts/screens/capture.ts', 'utf8'),
+    }
+    const read = (path) => files[path]
+    assert.equal(beforeBaseCapability({ read, only: 'home', fullCatalogue: true }), true)
+    for (const flag of ['locale', 'scope', 'only', 'full-catalogue']) {
+        const unsupported = (path) => read(path).replaceAll(flag, 'unsupported')
+        assert.equal(beforeBaseCapability({ read: unsupported, only: 'home', fullCatalogue: true }), false, flag)
+    }
+    assert.equal(
+        beforeBaseCapability({
+            read() {
+                throw Object.assign(new Error('missing'), { code: 'ENOENT' })
+            },
+        }),
+        false
+    )
+    assert.throws(
+        () =>
+            beforeBaseCapability({
+                read() {
+                    throw new Error('disk failed')
+                },
+            }),
+        /disk failed/
+    )
+})
+
+test('synthetic identity hashes raw binary dependencies without UTF-8 replacement collisions', () => {
+    const tree = {
+        'src/dev/fixtures/registry.ts': "import './image.png'",
+        'src/dev/fixtures/image.png': Buffer.from([0x80]),
+        'src/utils/demo-api.ts': '',
+        'src/constants/demo-data.ts': '',
+        'src/constants/residence.consts.ts': '',
+        'src/types/api.openapi.json': '{}',
+        'scripts/screens/adapter.ts': '',
+        'scripts/screens/openapi-example.ts': '',
+    }
+    const runGit = (args) => {
+        if (args[0] === 'ls-tree') return Buffer.from(Object.keys(tree).join('\0'))
+        const path = args[1].slice(41)
+        return args[1].startsWith(after) && path.endsWith('.png') ? Buffer.from([0x81]) : Buffer.from(tree[path])
+    }
+    assert.equal(selectBeforeHarness({ before, after, runGit }), 'base')
+})
+
+test('base receipt survives report creation and offline recomputation; absent receipt still fails', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'screen-base-report-'))
+    try {
+        const beforeDir = join(directory, 'before'),
+            afterDir = join(directory, 'after'),
+            out = join(directory, 'report')
+        for (const dir of [beforeDir, afterDir]) mkdirSync(join(dir, 'assets'), { recursive: true })
+        const png = new PNG({ width: 393, height: 852 })
+        png.data.fill(255)
+        const image = storeAsset(join(beforeDir, 'assets'), PNG.sync.write(png))
+        storeAsset(join(afterDir, 'assets'), PNG.sync.write(png))
+        writeFileSync(join(beforeDir, 'capture.json'), JSON.stringify(manifest(image)))
+        writeFileSync(
+            join(afterDir, 'capture.json'),
+            JSON.stringify({
+                ...manifest(image),
+                commit: after,
+                harness: '9'.repeat(64),
+                fixtures: '8'.repeat(64),
+                adapter: 'v-next',
+            })
+        )
+        const invoke = () =>
+            execFileSync(process.execPath, ['scripts/screens/report.mjs', beforeDir, afterDir, out], {
+                encoding: 'utf8',
+                timeout: 30000,
+                stdio: ['ignore', 'pipe', 'pipe'],
+            })
+        assert.throws(invoke, /environments differ/)
+        const receipt = { schema: 1, mode: 'base', harnessCommit: before }
+        execFileSync(process.execPath, ['scripts/screens/write-before-harness.mjs', beforeDir], {
+            env: { ...process.env, BEFORE: before },
+            timeout: 30000,
+        })
+        assert.deepEqual(JSON.parse(readFileSync(join(beforeDir, 'before-harness.json'))), receipt)
+        invoke()
+        const report = JSON.parse(readFileSync(join(out, 'manifest.json')))
+        assert.deepEqual(report.beforeHarness, receipt)
+        assert.equal(
+            report.screens.every((screen) => screen.status === 'unchanged'),
+            true
+        )
+        const offline = JSON.parse(
+            readFileSync(join(out, 'offline/report.js'), 'utf8')
+                .replace(/^window.SCREEN_REPORT=/, '')
+                .replace(/;$/, '')
+        )
+        assert.deepEqual(offline.beforeHarness, receipt)
+        assert.match(
+            readFileSync(join(out, 'offline/viewer.js'), 'utf8'),
+            /differences can include synthetic-data changes/
+        )
+    } finally {
+        rmSync(directory, { recursive: true, force: true })
+    }
+})
+
 test('cache absence is distinct from provider error, malformed pages, overflow and total deadline', () => {
     const api = (path) => (path.startsWith('actions/runs?head_sha=') ? { workflow_runs: [] } : provider(path))
     assert.equal(findBaselineSource({ api, repository, expectedCommit: before, log() {} }), null)
@@ -403,6 +539,37 @@ test('reuse receipt verifies real external bytes and cannot certify retagged bas
     }
     verifyReusedBaseline(input)
     assert.equal(downloads, 1)
+    const beforeHarness = { schema: 1, mode: 'base', harnessCommit: before }
+    const syntheticChange = { ...right, harness: '9'.repeat(64), fixtures: '8'.repeat(64), adapter: 'v-next' }
+    verifyReusedBaseline({ ...input, after: syntheticChange, beforeHarness })
+    assert.equal(downloads, 2)
+    assert.throws(() => verifyReusedBaseline({ ...input, after: syntheticChange }), /environment/)
+    assert.throws(
+        () =>
+            verifyReusedBaseline({
+                ...input,
+                beforeHarness,
+                api: (path) => (path === 'actions/runs/12' ? { ...run, head_sha: after } : provider(path)),
+            }),
+        /not trusted/
+    )
+    assert.throws(
+        () =>
+            verifyReusedBaseline({
+                ...input,
+                beforeHarness,
+                api: (path) =>
+                    path === 'actions/runs/12'
+                        ? {
+                              ...run,
+                              path: '.github/workflows/screen-library-baseline.yml',
+                              event: 'schedule',
+                              conclusion: 'success',
+                          }
+                        : provider(path),
+            }),
+        /not trusted/
+    )
     const forged = Buffer.from(JSON.stringify({ ...JSON.parse(bytes), capturedAt: 'retagged' }))
     assert.throws(
         () =>
@@ -527,7 +694,7 @@ test('workflow skips before installs, checks current PR, gates one fresh fallbac
     const beforeJob = workflow.slice(workflow.indexOf('    capture_before:'))
     assert.ok(beforeJob.indexOf('Select verified exact-before capture') < beforeJob.indexOf('Install capture tools'))
     assert.ok(beforeJob.indexOf('Check current PR before fresh fallback') < beforeJob.indexOf('Install capture tools'))
-    assert.equal((beforeJob.match(/node scripts\/screens\/run-capture.mjs/g) ?? []).length, 1)
+    assert.equal((beforeJob.match(/node scripts\/screens\/run-capture.mjs/g) ?? []).length, 2)
     assert.match(beforeJob, /steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true'/)
     assert.match(workflow, /screen-library-publish.yml@dev/)
     assert.equal(

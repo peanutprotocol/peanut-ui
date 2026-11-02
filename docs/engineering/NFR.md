@@ -1,5 +1,8 @@
 # Peanut UI engineering checklist
 
+- Browser contract builds: explicitly cap V8 old-space at 4096 MiB on the build
+  steps. Preserve blocking browser specs and existing deadlines; heap capacity is
+  separate from total runner memory and successful hosted execution.
 - Money movement: preserve pre-sign affordability, execution idempotency and record-only recovery after funds move.
 - Visual coverage: every claimed UI state must have a deterministic, named capture scenario; capture completeness means all registered states ran, not that all changed states were registered.
 - State truth: validation for a new spend must not be shown as an error for an already processing or settled spend. Fixtures preserve the relevant input and lifecycle state without real payments or external side effects.
@@ -13,6 +16,7 @@
 - Capture cost: classify known nonvisual diffs before capture dependency/browser installation. Unknown or unprovable impact requires full capture. A targeted PR runs every registered state in its affected flows across all four supported locales; dev/main after libraries remain full.
 - Scoped coverage: targeted reports retain `complete: false` for the whole library and separately prove `scopeComplete`. The publisher recomputes the expected scope from immutable revisions. Omitted states are not tested, removed or unchanged; scoped reports cannot become full baselines or advance the full-library latest pointer.
 - Baseline reuse: require a trusted exact-before source, retained full capture, valid image digests and compatible harness, fixtures, renderer, locale, viewport, adapter, origin and device. Missing, expired or incompatible evidence triggers at most one fresh-before capture per locale; API failures remain unknown and visible.
+- Synthetic API changes: before may use its own base harness only with a matching receipt; renderer fields still match. Base reuse requires the exact before integration push to prove the producing harness. Harness-only fixes retain head on both sides; unsupported base runners visibly fall back to head.
 - Verification: run focused acceptance and Jest regressions, the Screen Library suite, affected lint/format/type checks, and required hosted CI. Report local checks separately from native/device, hosted capture, and deployed behavior.
 - Local hook: `.codex/quality-gates.json` runs a bounded Screen Library acceptance set plus affected ESLint and Prettier checks before direct commits. The full Screen Library suite and typecheck remain required in hosted CI; the local hook is an additional guardrail.
 
