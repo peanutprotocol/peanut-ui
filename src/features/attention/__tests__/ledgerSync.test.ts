@@ -11,7 +11,7 @@ import * as Sentry from '@sentry/nextjs'
 import { updateUserById } from '@/app/actions/users'
 import { updateUserPreferences } from '@/utils/general.utils'
 import { ledgerActions, mergeLedgers, readLedger } from '../ledger'
-import { flushLedgerSyncForTests, resetLedgerSyncForTests, scheduleLedgerSync } from '../ledgerSync'
+import { flushLedgerSync, flushLedgerSyncForTests, resetLedgerSyncForTests, scheduleLedgerSync } from '../ledgerSync'
 import type { Ledger, LedgerEntry } from '../types'
 
 const USER_A = 'user-a'
@@ -156,19 +156,45 @@ test('5: a write storm is debounced into one call per quiet period', async () =>
     expect(syncMock).toHaveBeenCalledTimes(1)
 })
 
-test('6: a user switch cancels the pending sync, never cross-posting', async () => {
+test("6: a user switch keeps each user's pending sync, never cross-posting", async () => {
     ledgerActions.dismissed(USER_A, 'invite', T0)
     ledgerActions.dismissed(USER_B, 'rewards', T0)
     await jest.advanceTimersByTimeAsync(2000)
-    expect(syncMock).toHaveBeenCalledTimes(1)
-    expect(syncMock.mock.calls[0][0].userId).toBe(USER_B)
-    expect(Object.keys(syncMock.mock.calls[0][0].attentionLedger)).toEqual(['rewards'])
+    expect(syncMock).toHaveBeenCalledTimes(2)
+    const byUser = Object.fromEntries(
+        syncMock.mock.calls.map(([call]) => [call.userId, Object.keys(call.attentionLedger)])
+    )
+    expect(byUser).toEqual({ [USER_A]: ['invite'], [USER_B]: ['rewards'] })
 
     scheduleLedgerSync(USER_A, { invite: entry({ dismissedAt: NEW }) })
     scheduleLedgerSync(USER_B, { rewards: entry({ dismissedAt: NEW }) })
     await flushLedgerSyncForTests()
-    expect(syncMock).toHaveBeenCalledTimes(2)
-    expect(syncMock.mock.calls[1][0]).toEqual({ userId: USER_B, attentionLedger: { rewards: { dismissedAt: NEW } } })
+    expect(syncMock).toHaveBeenCalledTimes(4)
+    expect(syncMock.mock.calls.slice(2).map(([call]) => call)).toEqual([
+        { userId: USER_A, attentionLedger: { invite: { dismissedAt: NEW } } },
+        { userId: USER_B, attentionLedger: { rewards: { dismissedAt: NEW } } },
+    ])
+})
+
+test.each(['pagehide', 'visibilitychange'])('a pending write is sent at once on %s', async (event) => {
+    ledgerActions.dismissed(USER_A, 'invite', T0)
+    await jest.advanceTimersByTimeAsync(100)
+    const hidden = jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+    if (event === 'pagehide') window.dispatchEvent(new Event('pagehide'))
+    else document.dispatchEvent(new Event('visibilitychange'))
+    await Promise.resolve()
+    expect(syncMock).toHaveBeenCalledTimes(1)
+    hidden.mockRestore()
+    await jest.advanceTimersByTimeAsync(2000)
+    expect(syncMock).toHaveBeenCalledTimes(1)
+})
+
+test("flushLedgerSync(userId) sends only that user's pending write (logout, before the token is cleared)", async () => {
+    ledgerActions.dismissed(USER_A, 'invite', T0)
+    ledgerActions.dismissed(USER_B, 'rewards', T0)
+    await flushLedgerSync(USER_A)
+    expect(syncMock).toHaveBeenCalledTimes(1)
+    expect(syncMock.mock.calls[0][0].userId).toBe(USER_A)
 })
 
 test("7: user A's server copy never shows up under user B", () => {
