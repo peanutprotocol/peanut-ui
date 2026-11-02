@@ -165,13 +165,25 @@ export function validSession(value: KycAttemptSession, documentRequired = true):
 }
 export type KycReplacementResult =
     | { kind: 'session'; session: KycAttemptSession }
-    | { kind: 'failed'; error?: string; code?: SumsubActionErrorCode; cooldown?: { retryAt?: string } }
+    | {
+          kind: 'failed'
+          error?: string
+          code?: SumsubActionErrorCode
+          cooldown?: { retryAt?: string }
+          document?: { type: string; issuingCountry: string }
+      }
 
 /** Restart an attempt-based identity on new documents. The API keeps the attempt's flow (Smart Paperwork Verification stays on it). */
 export async function startKycDocumentReplacement(replacement: KycReplacementChoices): Promise<KycReplacementResult> {
     const response = await restartIdentityVerification(undefined, replacement)
     if (!response.data)
-        return { kind: 'failed', error: response.error, code: response.code, cooldown: response.cooldown }
+        return {
+            kind: 'failed',
+            error: response.error,
+            code: response.code,
+            cooldown: response.cooldown,
+            ...(response.document && { document: response.document }),
+        }
     try {
         return { kind: 'session', session: validSession(response.data as KycAttemptSession) }
     } catch {

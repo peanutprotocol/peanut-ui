@@ -335,7 +335,8 @@
                 "nameRequired": "Informe seu nome.",
                 "invalidEmail": "Digite um endereço de e-mail válido.",
                 "emailInUse": "Este e-mail já está associado a outra conta.",
-                "invalidCode": "Digite o código de 6 dígitos recebido por e-mail."
+                "invalidCode": "Digite o código de 6 dígitos recebido por e-mail.",
+                "nameReadOnly": "Seu nome não foi salvo. Os nomes são gerenciados pela verificação de identidade."
             },
             "verifiedNameHelp": "Seu nome vem da verificação de identidade e não pode ser editado aqui. Fale com o suporte se precisar corrigi-lo.",
             "emailCode": "Código de verificação",
@@ -3760,10 +3761,10 @@
                     "taxId": "Contas bancárias precisam de um número de identificação fiscal válido."
                 },
                 "card": {
-                    "default": "Peanut Card não está disponível com os seus dados atuais.",
-                    "residence": "Peanut Card não está disponível onde você mora.",
-                    "nationality": "Peanut Card não está disponível para a sua nacionalidade.",
-                    "taxId": "Peanut Card precisa de um número de identificação fiscal válido."
+                    "default": "O Peanut Card não está disponível com os seus dados atuais.",
+                    "residence": "O Peanut Card não está disponível onde você mora.",
+                    "nationality": "O Peanut Card não está disponível para a sua nacionalidade.",
+                    "taxId": "O Peanut Card precisa de um número de identificação fiscal válido."
                 },
                 "local": {
                     "default": "Transferências bancárias locais não estão disponíveis com os seus dados atuais.",
@@ -3804,7 +3805,7 @@
             },
             "tax": {
                 "title": {
-                    "ssn": "Qual é o seu Social Security number?",
+                    "ssn": "Qual é o seu número do Seguro Social?",
                     "other": "Qual é o seu número fiscal?"
                 },
                 "description": {
@@ -3844,7 +3845,7 @@
                 "required": "Responda para continuar.",
                 "invalidOption": "Escolha uma das opções.",
                 "invalidTaxId": "Confira o número. Ele não parece correto.",
-                "itinNotAccepted": "Esse é um ITIN. Informe seu Social Security number.",
+                "itinNotAccepted": "Esse é um ITIN. Informe seu número do Seguro Social.",
                 "invalidPhone": "Informe o número completo com o código do país, como +55.",
                 "invalidCountry": "Escolha um país da lista.",
                 "tooLong": "Está muito longo. Use menos de 100 caracteres.",
@@ -3867,7 +3868,9 @@
                 "restartDescription": "Escolha o documento que você vai usar agora. Depois tire fotos dele e uma selfie rápida.",
                 "privacy": "A Sumsub cuida dos seus documentos com segurança.",
                 "failed": "Não conseguimos iniciar a verificação. Tente de novo.",
-                "unavailable": "Não conseguimos mostrar os documentos agora. Tente mais tarde."
+                "unavailable": "Não conseguimos mostrar os documentos agora. Tente mais tarde.",
+                "frozenChoice": "Continue com o documento que você escolheu.",
+                "frozenDocument": "Continue com o documento que você escolheu: {document} de {country}."
             },
             "review": {
                 "description": "A verificação costuma levar alguns minutos. Se uma pessoa precisar revisar, leva de 1 a 3 dias úteis. Você pode sair desta tela, e avisaremos quando terminar.",

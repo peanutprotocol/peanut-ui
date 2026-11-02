@@ -206,8 +206,24 @@ describe('qrIdentityRestartReason', () => {
     it.each(['id_expired', 'id_verification_failed', 'identity_verification_required'])(
         'names a provider asking for a new ID (%s), so the verify step restarts instead of answering "already approved"',
         (code) => {
-            expect(reason({ nextActions: [restart(code)] })).toBe(code)
+            expect(reason({ mantecaRails: [paused(code)], nextActions: [] })).toBe(code)
             expect(needsRestartFor(code)).toBe(true)
+        }
+    )
+
+    it.each(['id_expired', 'id_verification_failed', 'identity_verification_required'])(
+        'a shared provider-specific %s purpose cannot restart QR without a Manteca cause',
+        (code) => {
+            expect(reason({ nextActions: [restart(code)] })).toBeNull()
+            expect(qrVerificationNeedsRestart({ mantecaRails: [], nextActions: [restart(code)] })).toBe(false)
+        }
+    )
+
+    it.each(['identity_document_missing', 'identity_restart_pending', 'identity_missing'])(
+        'preserves the provider-less identity cause %s from the shared action',
+        (code) => {
+            expect(reason({ nextActions: [restart(code)] })).toBe(code)
+            expect(qrVerificationNeedsRestart({ mantecaRails: [], nextActions: [restart(code)] })).toBe(true)
         }
     )
 

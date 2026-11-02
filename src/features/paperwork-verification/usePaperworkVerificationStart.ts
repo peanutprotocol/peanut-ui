@@ -8,6 +8,7 @@ import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-wor
 import { PAPERWORK_VERIFICATION_FLOW, type KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
+import { useOptionalAuth } from '@/context/authContext'
 
 export const PAPERWORK_VERIFICATION_PLAN_QUERY_KEY = ['kyc-plan', 'paperwork-verification'] as const
 export const PAPERWORK_VERIFICATION_QUESTIONS_QUERY_KEY = ['kyc-questions', 'paperwork-verification'] as const
@@ -20,15 +21,16 @@ const opensFlow = (plan: KycDocumentPlan | null | undefined) =>
     plan?.flow === PAPERWORK_VERIFICATION_FLOW && !plan.needs?.length
 
 /** Loads what /verify opens on, so it shows its first screen without a wait. */
-export function prefetchPaperworkVerification(queryClient: QueryClient) {
+export function prefetchPaperworkVerification(queryClient: QueryClient, userId?: string) {
+    if (!userId) return
     void queryClient.prefetchQuery({
-        queryKey: PAPERWORK_VERIFICATION_QUESTIONS_QUERY_KEY,
+        queryKey: [...PAPERWORK_VERIFICATION_QUESTIONS_QUERY_KEY, userId],
         queryFn: () => getKycQuestions(),
         staleTime: PLAN_STALE_MS,
         gcTime: QUESTIONS_GC_MS,
     })
     void queryClient.prefetchQuery({
-        queryKey: PAPERWORK_VERIFICATION_STATUS_QUERY_KEY,
+        queryKey: [...PAPERWORK_VERIFICATION_STATUS_QUERY_KEY, userId],
         queryFn: () => getKycDocumentStatus(),
         staleTime: PLAN_STALE_MS,
     })
@@ -45,33 +47,36 @@ export function prefetchPaperworkVerification(queryClient: QueryClient) {
  * paperwork_verification_required and the start then opens /verify.
  */
 export function usePaperworkVerificationStart(): () => Promise<boolean> {
+    const userId = useOptionalAuth()?.user?.user.userId
     const degraded = useKycDegraded()
     const { isRegionRestricted } = useIdentityVerification()
     const queryClient = useQueryClient()
     const router = useRouter()
     // Loads the plan with Home, so most taps resolve from the cache. The read retries itself.
     const { data: plan } = useQuery({
-        queryKey: PAPERWORK_VERIFICATION_PLAN_QUERY_KEY,
+        queryKey: [...PAPERWORK_VERIFICATION_PLAN_QUERY_KEY, userId],
         queryFn: () => findKycDocumentPlan('home'),
         staleTime: PLAN_STALE_MS,
         retry: false,
+        enabled: !!userId,
     })
     const flowAhead = opensFlow(plan) && !degraded && !isRegionRestricted
     useEffect(() => {
         if (!flowAhead) return
-        prefetchPaperworkVerification(queryClient)
+        prefetchPaperworkVerification(queryClient, userId)
         router.prefetch('/verify')
-    }, [flowAhead, queryClient, router])
+    }, [flowAhead, queryClient, router, userId])
     return useCallback(async () => {
-        if (degraded || isRegionRestricted) return false
-        const cached = queryClient.getQueryData<KycDocumentPlan | null>(PAPERWORK_VERIFICATION_PLAN_QUERY_KEY)
+        if (!userId || degraded || isRegionRestricted) return false
+        const key = [...PAPERWORK_VERIFICATION_PLAN_QUERY_KEY, userId]
+        const cached = queryClient.getQueryData<KycDocumentPlan | null>(key)
         if (cached !== undefined) {
-            void queryClient.invalidateQueries({ queryKey: PAPERWORK_VERIFICATION_PLAN_QUERY_KEY })
+            void queryClient.invalidateQueries({ queryKey: key })
             return cached?.flow === PAPERWORK_VERIFICATION_FLOW
         }
         try {
             const fresh = await queryClient.fetchQuery({
-                queryKey: PAPERWORK_VERIFICATION_PLAN_QUERY_KEY,
+                queryKey: key,
                 queryFn: () => findKycDocumentPlan('home'),
                 staleTime: PLAN_STALE_MS,
                 retry: false,
@@ -80,5 +85,5 @@ export function usePaperworkVerificationStart(): () => Promise<boolean> {
         } catch {
             return false
         }
-    }, [degraded, isRegionRestricted, queryClient])
+    }, [degraded, isRegionRestricted, queryClient, userId])
 }

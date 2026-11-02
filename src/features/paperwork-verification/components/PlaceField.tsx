@@ -166,7 +166,7 @@ export function PlaceField({
                                 onClick={() => choose(place)}
                                 onMouseMove={() => setActive(index)}
                                 className={twMerge(
-                                    'flex w-full cursor-pointer flex-col rounded-sm px-3 py-2 transition-colors select-none',
+                                    'ph-mask ph-sensitive flex w-full cursor-pointer flex-col rounded-sm px-3 py-2 transition-colors select-none',
                                     index === active && 'bg-background-disabled'
                                 )}
                             >
@@ -238,7 +238,7 @@ export function PlacePicker({
                     invalid={invalid}
                 />
             </DrawerTrigger>
-            <DrawerContent>
+            <DrawerContent className="ph-mask ph-sensitive">
                 <div className="flex flex-col gap-4 pb-4">
                     <DrawerTitle>{title}</DrawerTitle>
                     <div className="flex flex-col gap-1">

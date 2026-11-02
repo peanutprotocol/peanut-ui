@@ -1,3 +1,4 @@
+import { setAuthToken } from '@/utils/auth-token'
 /**
  * Slava, 2026-10-27: answers typed before the ID check survive remounts
  * within this browser session. They never persist to localStorage.
@@ -51,6 +52,7 @@ beforeEach(() => {
     jest.useRealTimers()
     save.mockReset()
     signedIn('user-1')
+    setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-1' }))}.y`)
 })
 
 describe('the session draft', () => {
@@ -185,7 +187,7 @@ describe('a question screen', () => {
         await act(async () => {
             await result.current.save()
         })
-        expect(save).toHaveBeenCalledWith('phone', { phone: '+351912345678' }, undefined)
+        expect(save).toHaveBeenCalledWith('phone', { phone: '+351912345678' }, undefined, 'user-1')
         expect(readAnswerDraft('user-1')).toEqual({})
     })
 

@@ -21,6 +21,7 @@ import {
     type PushPermission,
 } from '@/services/notifications'
 import { canOpenAppSettings, openAppSettings } from '@/utils/native-settings'
+import { useSessionFence, type SessionFence } from '@/hooks/useSessionFence'
 
 type Switch = 'push' | 'marketingPush' | 'emailUpdates'
 
@@ -40,6 +41,7 @@ export const NotificationsView = () => {
     const [loadFailed, setLoadFailed] = useState(false)
     const [saving, setSaving] = useState(false)
     const savingRef = useRef(false)
+    const captureSession = useSessionFence()
 
     const load = useCallback(() => {
         setLoadFailed(false)
@@ -47,9 +49,10 @@ export const NotificationsView = () => {
     }, [])
     useEffect(load, [load])
 
-    const askPermission = async (): Promise<PushPermission> => {
+    const askPermission = async (session: SessionFence): Promise<PushPermission> => {
         try {
             const permission = toPushPermission(await requestPermission())
+            if (!session.current()) return 'dismissed'
             await afterPermissionAttempt()
             return permission
         } catch {
@@ -57,37 +60,45 @@ export const NotificationsView = () => {
         }
     }
 
-    const save = async (key: Switch, on: boolean, permission?: Promise<PushPermission>) => {
+    const save = async (key: Switch, on: boolean, session: SessionFence, permission?: Promise<PushPermission>) => {
         if (!choices || savingRef.current) return
         savingRef.current = true
         setChoices({ ...choices, [key]: on })
         setSaving(true)
         try {
             const answer = await permission
+            if (!session.current()) return
             // A push switch can't work without the OS permission, so a refusal saves it off.
             const changes: PreferenceChanges = {
                 [key]: on && (answer === undefined || answer === 'granted'),
                 ...(answer && { pushPermission: answer }),
             }
-            setChoices(await notificationsApi.savePreferences(changes))
+            const saved = await notificationsApi.savePreferences(changes, session.userId!)
+            if (session.current()) setChoices(saved)
         } catch {
+            if (!session.current()) return
             try {
-                setChoices(await notificationsApi.getPreferences())
+                const fresh = await notificationsApi.getPreferences()
+                if (!session.current()) return
+                setChoices(fresh)
             } catch {
+                if (!session.current()) return
                 setChoices(null)
                 setLoadFailed(true)
             }
             toast.error(tCommon('genericError'))
         } finally {
             savingRef.current = false
-            setSaving(false)
+            if (session.current()) setSaving(false)
         }
     }
 
     const onToggle = (key: Switch, on: boolean) => {
+        const session = captureSession()
+        if (!session.current()) return
         // Asked inside the tap, so the browser accepts the prompt as a user gesture.
-        const permission = on && key !== 'emailUpdates' ? askPermission() : undefined
-        void save(key, on, permission)
+        const permission = on && key !== 'emailUpdates' ? askPermission(session) : undefined
+        void save(key, on, session, permission)
     }
 
     return (

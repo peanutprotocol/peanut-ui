@@ -287,3 +287,14 @@ describe('card partner review reason copy', () => {
         expect(leafValue(await loadMessages('es-AR'), key)).toBe(leafValue(es419, key))
     })
 })
+
+describe('Argentine Spanish inherits unchanged funding copy', () => {
+    it.each(['card.funding.body', 'home.fundingSetup.descriptionReturn'])(
+        '%s stays out of the delta catalog and resolves to Latin American Spanish',
+        async (key) => {
+            expect(leafPaths(esAR)).not.toContain(key)
+            const resolved = await loadMessages('es-AR')
+            expect(leafValue(resolved as unknown as Record<string, unknown>, key)).toBe(leafValue(es419, key))
+        }
+    )
+})

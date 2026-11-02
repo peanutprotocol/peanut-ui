@@ -32,9 +32,32 @@ const showFeature = !isLoading && country !== null && allowedCountries.has(count
 Mount `useStoreCountry()` only where needed. It reads on mount and foreground,
 clears on background and while refreshing, and ignores superseded/late reads.
 Its value lives only in component memory for the current surface. It is not a
-global cache. Do not put it in React Query, local/session storage, preferences,
-backend user records, PostHog properties/events/flag overrides, Sentry context,
-or customer profiles. Fetch again for a later decision.
+global cache. Do not reuse a retained signup observation for a later availability
+decision or put this surface's result in React Query, analytics, or Sentry.
+Fetch again for a later decision. Signup geo collection is a separate retained
+observation, described below.
+
+## Signup geo retention
+
+The product decision recorded in `dbe878e85` (Slava, 2026-10-28) keeps the store
+country in signup geo analytics and sends it to the API. This is an explicit
+exception to the transient feature-surface usage above; this document describes
+the implemented decision, rather than making a new compliance assessment.
+
+`src/features/setup/country-signals.ts` collects the store country, its
+`app-store`/`google-play` source and collection time. It registers
+`signup_store_country`, `signup_store_country_source` and
+`signup_store_country_collected_at` as PostHog super properties, includes them
+in the signup country-signals event, and sets identified person properties.
+`src/services/signup-geo.ts` sends the observation as `signup.store` to
+`POST /users/me/geo`, for retention in `users.geo`. Pending delivery is persisted
+per account in localStorage on web or Capacitor Preferences on native, with a
+24-hour delivery window. Missing plugins and unknown results stay unknown.
+
+This observation is neither residence nor financial eligibility. The retained
+signup value must not replace a fresh `getStoreCountry()` read for later
+store-specific decisions. Provider policy references below remain relevant to
+the owner's retention decision.
 
 ## Native implementations
 
@@ -62,7 +85,9 @@ returned value. Background the app, change the store account region where
 supported, return, and verify a fresh read. Check a device without a signed-in
 store account, Play service unavailable/unsupported responses, offline reads,
 an old binary running the new JS, and a web/PWA build. Confirm unknown does not
-unlock the feature. No analytics or backend record should contain store country.
+unlock the feature. For signup, verify the retained country/source/time in the
+analytics and geo payload, account-scoped pending delivery, and unknown handling;
+do not interpret that observation as residence or a later storefront read.
 
 Provider documentation:
 

@@ -19,6 +19,7 @@ import type { DepositAccount } from '@/features/deposit-accounts/types'
 import type { RainCardFunding, RainFundingAccess } from '@/services/rain'
 import type { NotificationPreferences } from '@/services/notifications'
 import type { KycIntents } from '@/hooks/useKycIntents'
+import { REQUIRED_API_CONTRACTS } from '@/constants/api-contracts.json'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -1067,7 +1068,7 @@ export async function demoRespond(
             branch: 'synthetic',
             builtAt: null,
             migrationsHead: null,
-            contracts: { kyc: 3 },
+            contracts: REQUIRED_API_CONTRACTS,
         })
     }
 

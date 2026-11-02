@@ -1,3 +1,4 @@
+import { setAuthToken } from '@/utils/auth-token'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
@@ -5,7 +6,11 @@ import type { PaperworkVerificationStep } from '@/app/actions/types/kyc-paperwor
 import { saveKycAnswers } from '@/app/actions/kyc-paperwork-verification'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { PaperworkVerificationTrackingProvider } from '../analytics'
-import { QuestionStepScreen } from '../components/QuestionStepScreen'
+import { QuestionStepScreen, trackSaveOutcome } from '../components/QuestionStepScreen'
+
+jest.mock('@/context/authContext', () => ({
+    useOptionalAuth: () => ({ user: { user: { userId: 'user-a' } } }),
+}))
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/app/actions/kyc-paperwork-verification', () => ({ saveKycAnswers: jest.fn() }))
@@ -61,7 +66,10 @@ function fillIn() {
     fireEvent.change(screen.getByTestId('verify-input-phone'), { target: { value: '+55 11 98765 4321' } })
 }
 
-beforeEach(() => jest.clearAllMocks())
+beforeEach(() => {
+    jest.clearAllMocks()
+    setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-a' }))}.y`)
+})
 
 describe('Smart Paperwork Verification tracking', () => {
     it('reports the screen, the submit and the save with the flow, residence, features and both step ids', async () => {
@@ -133,5 +141,30 @@ describe('Smart Paperwork Verification tracking', () => {
         renderScreen()
         fireEvent.click(screen.getByTestId('verify-why'))
         expect(propsOf(ANALYTICS_EVENTS.KYC_PV_WHY_OPENED)[0]).toMatchObject({ steps: 'address+phone' })
+    })
+})
+
+describe('declaration analytics privacy', () => {
+    it('normalizes the tax-answer refusal in both step and field events', () => {
+        const track = jest.fn()
+        trackSaveOutcome(
+            track,
+            {
+                ok: false,
+                step: 'declarations',
+                rejected: { step: 'declarations', errors: { isFatca: 'us_citizen_not_supported' } },
+            },
+            { seconds: 4, rejectedBefore: 0 }
+        )
+        expect(track).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.KYC_PV_STEP_REJECTED,
+            expect.objectContaining({ codes: ['not_supported'] })
+        )
+        expect(track).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.KYC_PV_FIELD_ERROR,
+            expect.objectContaining({ field: 'isFatca', code: 'not_supported' })
+        )
+        const sent = JSON.stringify(track.mock.calls)
+        expect(sent).not.toMatch(/us_citizen_not_supported|us_person|local_refused/)
     })
 })

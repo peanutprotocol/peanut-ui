@@ -335,7 +335,8 @@
                 "nameRequired": "Por favor ingresa tu nombre.",
                 "invalidEmail": "Ingresa una dirección de correo válida.",
                 "emailInUse": "Este correo ya está asociado a otra cuenta.",
-                "invalidCode": "Ingresa el código de 6 dígitos que recibiste por correo."
+                "invalidCode": "Ingresa el código de 6 dígitos que recibiste por correo.",
+                "nameReadOnly": "No se guardó tu nombre. Los nombres se administran mediante la verificación de identidad."
             },
             "verifiedNameHelp": "Tu nombre proviene de la verificación de identidad y no se puede editar aquí. Contacta a soporte si necesitas corregirlo.",
             "emailCode": "Código de verificación",
@@ -630,15 +631,15 @@
                 "bundleLabel": "Paquete en uso",
                 "deviceLabel": "ID del dispositivo",
                 "deviceCopied": "ID del dispositivo copiado",
-                "staged": "Ya estás en actualizaciones beta. Reiniciá la app para cargar la compilación beta más reciente.",
+                "staged": "Ya estás en actualizaciones beta. Reinicia la app para cargar la compilación beta más reciente.",
                 "joined": "Ya estás en actualizaciones beta. Por ahora no hay una compilación beta más reciente.",
                 "joinedWithoutBundle": "Ya estás en actualizaciones beta, pero no se pudo descargar ninguna compilación beta. La app lo intentará de nuevo en el próximo inicio.",
                 "deviceCopyFailed": "No se pudo copiar el ID del dispositivo.",
-                "leftStillBeta": "Saliste de las actualizaciones beta, pero la app sigue ejecutando la compilación beta. Reinstalala desde la tienda para volver a la versión publicada.",
+                "leftStillBeta": "Saliste de las actualizaciones beta, pero la app sigue ejecutando la compilación beta. Reinstálala desde la tienda para volver a la versión publicada.",
                 "left": "Actualizaciones beta desactivadas. Este dispositivo volvió a la versión publicada.",
-                "leftOverride": "Capgo todavía asigna este dispositivo a otro canal de actualizaciones. Pedí a soporte que revise la asignación del canal.",
-                "leftUnconfirmed": "La app no pudo confirmar el canal de la versión publicada. Las actualizaciones beta siguen seleccionadas. Intentá desactivarlas otra vez; si el problema continúa, contactá a soporte con el ID de este dispositivo.",
-                "closed": "El canal {channel} todavía no acepta testers. Pedile a un administrador que habilite la autoasignación en Capgo.",
+                "leftOverride": "Capgo todavía asigna este dispositivo a otro canal de actualizaciones. Pide a soporte que revise la asignación del canal.",
+                "leftUnconfirmed": "La app no pudo confirmar el canal de la versión publicada. Las actualizaciones beta siguen seleccionadas. Intenta desactivarlas otra vez; si el problema continúa, contacta a soporte con el ID de este dispositivo.",
+                "closed": "El canal {channel} todavía no acepta testers. Pídele a un administrador que habilite la autoasignación en Capgo.",
                 "failed": "No se pudo cambiar el canal de actualizaciones.",
                 "revealed": "El interruptor de actualizaciones beta ya está visible abajo.",
                 "appOnly": "Las actualizaciones beta solo están disponibles en la app de Peanut."
@@ -2410,7 +2411,7 @@
             "unexpected": "El retiro falló inesperadamente. Si el problema continúa, contacta a soporte",
             "completeAccountSetup": "Completa la configuración de tu cuenta. Ve a Ajustes para actualizar tu perfil.",
             "minWithdrawAmount": "El monto del retiro debe ser de al menos ${amount}",
-            "feeExceedsAmount": "La comisión de red supera este retiro. Ingresá un monto mayor o elegí una red más barata."
+            "feeExceedsAmount": "La comisión de red supera este retiro. Ingresa un monto mayor o elige una red más barata."
         },
         "resolvesTo": "se resuelve a",
         "withdrawToBank": "Agregar nueva cuenta bancaria",
@@ -3760,10 +3761,10 @@
                     "taxId": "Las cuentas bancarias necesitan un número de identificación fiscal válido."
                 },
                 "card": {
-                    "default": "Peanut Card no está disponible con tus datos actuales.",
-                    "residence": "Peanut Card no está disponible donde vives.",
-                    "nationality": "Peanut Card no está disponible para tu nacionalidad.",
-                    "taxId": "Peanut Card necesita un número de identificación fiscal válido."
+                    "default": "La Peanut Card no está disponible con tus datos actuales.",
+                    "residence": "La Peanut Card no está disponible donde vives.",
+                    "nationality": "La Peanut Card no está disponible para tu nacionalidad.",
+                    "taxId": "La Peanut Card necesita un número de identificación fiscal válido."
                 },
                 "local": {
                     "default": "Las transferencias bancarias locales no están disponibles con tus datos actuales.",
@@ -3855,19 +3856,21 @@
                 "identitySubmitted": "Ya enviaste tu documento, así que estas respuestas no pueden cambiar ahora.",
                 "unavailable": "Esta verificación no está disponible en este momento.",
                 "usCitizenNotSupported": "Las transferencias locales no están disponibles para ciudadanos o residentes fiscales de EE. UU. Igual puedes cobrar con una cuenta en USD o pagar con QR.",
-                "tooShort": "Agregá el nombre y el número de la calle.",
-                "streetNumberMissing": "Agregá el número de la calle.",
+                "tooShort": "Agrega el nombre y el número de la calle.",
+                "streetNumberMissing": "Agrega el número de la calle.",
                 "poBoxNotAccepted": "No se puede usar un apartado postal como domicilio.",
-                "invalidBody": "No se pudieron aceptar estas respuestas. Volvé a abrir la verificación para continuar.",
-                "unknownStep": "Este paso ya no está disponible. Volvé a abrir la verificación para continuar.",
-                "rateLimited": "Demasiados intentos. Esperá un minuto y volvé a intentarlo."
+                "invalidBody": "No se pudieron aceptar estas respuestas. Vuelve a abrir la verificación para continuar.",
+                "unknownStep": "Este paso ya no está disponible. Vuelve a abrir la verificación para continuar.",
+                "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo."
             },
             "midpoint": {
                 "restartTitle": "Verifícate con otro documento",
                 "restartDescription": "Elige el documento que usarás ahora. Luego toma fotos de él y una selfie rápida.",
                 "privacy": "Sumsub maneja tus documentos de forma segura.",
                 "failed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
-                "unavailable": "No podemos mostrar los documentos ahora. Inténtalo más tarde."
+                "unavailable": "No podemos mostrar los documentos ahora. Inténtalo más tarde.",
+                "frozenChoice": "Continúa con el documento que elegiste.",
+                "frozenDocument": "Continúa con el documento que elegiste: {document} de {country}."
             },
             "review": {
                 "description": "La revisión suele tardar unos minutos. Si una persona necesita revisarlo, tarda de 1 a 3 días hábiles. Puedes salir de esta pantalla y te avisaremos cuando esté listo.",
@@ -3916,7 +3919,7 @@
                 },
                 "doneCta": "Listo",
                 "actionTitle": "Un paso más",
-                "actionDescription": "Completá la verificación adicional para terminar la configuración."
+                "actionDescription": "Completa la verificación adicional para terminar la configuración."
             },
             "loadFailed": {
                 "title": "No pudimos cargar esto",

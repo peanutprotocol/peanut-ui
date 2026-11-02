@@ -184,7 +184,7 @@ export type ClosedRow =
     | { kind: 'not-offered'; corridor: DepositCorridor }
     | { kind: 'residence'; corridor: 'PIX_BR' | 'BANK_TRANSFER_AR' }
     | { kind: 'restricted-country' }
-    | { kind: 'card-restricted' }
+    | { kind: 'card-restricted'; reason?: string }
     | { kind: 'verification-down' }
     /** at the account limit: nothing more opens until support raises it */
     | { kind: 'account-limit'; limit: number }

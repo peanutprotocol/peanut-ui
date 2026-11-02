@@ -97,6 +97,14 @@ describe.each(['choice', 'select'] as const)('server kind %s', (kind) => {
             </NuqsTestingAdapter>
         )
         const picker = screen.getByRole('combobox', { name: /state or region/i })
+        if (value === null) {
+            expect(screen.queryByText(/answer this to continue|choose one of the options/i)).not.toBeInTheDocument()
+            expect(picker).not.toHaveAttribute('aria-invalid', 'true')
+            fireEvent.blur(picker)
+        } else {
+            expect(screen.getByText(/answer this to continue|choose one of the options/i)).toBeVisible()
+            expect(picker).toHaveAttribute('aria-invalid', 'true')
+        }
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         expect(onSubmitted).not.toHaveBeenCalled()
         expect(screen.getByText(/answer this to continue|choose one of the options/i)).toBeVisible()

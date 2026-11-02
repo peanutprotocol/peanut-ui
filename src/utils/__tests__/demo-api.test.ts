@@ -3,6 +3,7 @@
  */
 // node env: the WebView's global Response/Request are natively present in Node
 // but stripped by jsdom. demo-api uses only web-standard APIs, so node is faithful.
+import { REQUIRED_API_CONTRACTS } from '@/utils/api-contracts'
 import { demoRespond } from '@/utils/demo-api'
 import { DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
@@ -501,4 +502,12 @@ it('demo uses served issuer changes rather than the bundled refusal list', async
     } finally {
         mockDemoSets = undefined
     }
+})
+
+describe('demo API compatibility', () => {
+    it('advertises the exact contracts required by this bundled UI', async () => {
+        const response = await demoRespond('/version', { method: 'GET' }, { offline: true, strict: true })
+        expect(response.status).toBe(200)
+        expect((await response.json()).contracts).toEqual(REQUIRED_API_CONTRACTS)
+    })
 })

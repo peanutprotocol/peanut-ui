@@ -19,6 +19,7 @@ import { type NotificationChoices, useSetupFlowContext } from '@/features/setup/
 import { readNotificationsVariant, trackPromptAnswer } from '@/features/setup/notificationsExperiment'
 import NotificationsControl from './NotificationsControl'
 import NotificationsStepLayout from '../components/NotificationsStepLayout'
+import { useSessionFence, type SessionFence } from '@/hooks/useSessionFence'
 import {
     notificationsApi,
     toPushPermission,
@@ -53,6 +54,7 @@ function NotificationSwitches() {
     const savingRef = useRef(false)
     // A retry after a failed save reuses the answer instead of asking again.
     const permissionRef = useRef<PushPermission>()
+    const captureSession = useSessionFence()
     const { push, marketingPush, emailUpdates } = notificationChoices
     const anyOn = push || marketingPush || emailUpdates
 
@@ -66,31 +68,36 @@ function NotificationSwitches() {
         })
     }
 
-    const askPermission = async (): Promise<PushPermission> => {
+    const askPermission = async (session: SessionFence): Promise<PushPermission> => {
         if (permissionRef.current) return permissionRef.current
         try {
             const permission = toPushPermission(await requestPermission())
+            if (!session.current()) return 'dismissed'
             await afterPermissionAttempt()
+            if (!session.current()) return 'dismissed'
             permissionRef.current = permission
             trackPromptAnswer('switches', permission)
             return permission
         } catch {
-            trackPromptAnswer('switches', 'dismissed')
+            if (session.current()) trackPromptAnswer('switches', 'dismissed')
             return 'dismissed'
         }
     }
 
     const save = async (skip: boolean) => {
         if (savingRef.current) return
+        const session = captureSession()
+        if (!session.current()) return
         savingRef.current = true
         const asksPermission = !skip && (push || marketingPush)
         // Started before any other await, so the browser accepts the prompt from this tap.
-        const permission = asksPermission ? askPermission() : undefined
+        const permission = asksPermission ? askPermission(session) : undefined
         setSaving(true)
         setSetupLoading(true)
         setError(undefined)
         try {
             const answer = (await permission) ?? permissionRef.current
+            if (!session.current()) return
             const pushAllowed = answer === 'granted'
             const saved: NotificationChoices = {
                 ...notificationChoices,
@@ -102,10 +109,11 @@ function NotificationSwitches() {
                 emailUpdates: saved.emailUpdates,
                 ...(answer && { pushPermission: answer }),
             }
-            const ok = await notificationsApi.savePreferences(changes).then(
+            const ok = await notificationsApi.savePreferences(changes, session.userId!).then(
                 () => true,
                 () => false
             )
+            if (!session.current()) return
             // Continue always needs acknowledgement. A skip only does when push could arrive.
             const pushCouldArrive = permissionState === 'granted' || permissionRef.current === 'granted'
             if (!ok && (!skip || pushCouldArrive)) {
@@ -123,8 +131,10 @@ function NotificationSwitches() {
             await handleNext()
         } finally {
             savingRef.current = false
-            setSaving(false)
-            setSetupLoading(false)
+            if (session.current()) {
+                setSaving(false)
+                setSetupLoading(false)
+            }
         }
     }
 

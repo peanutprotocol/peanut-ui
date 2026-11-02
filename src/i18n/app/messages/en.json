@@ -335,7 +335,8 @@
                 "nameRequired": "Please provide your name.",
                 "invalidEmail": "Please enter a valid email address.",
                 "emailInUse": "This email is already associated with another account.",
-                "invalidCode": "Enter the 6-digit code from your email."
+                "invalidCode": "Enter the 6-digit code from your email.",
+                "nameReadOnly": "Your name was not saved. Names are managed through identity verification."
             },
             "verifiedNameHelp": "Your name comes from your identity verification and cannot be edited here. Contact support if it needs correcting.",
             "emailCode": "Verification code",
@@ -3867,7 +3868,9 @@
                 "restartDescription": "Pick the ID you’ll use now. Then take photos of it and a quick selfie.",
                 "privacy": "Your documents are handled securely by Sumsub.",
                 "failed": "We couldn’t start the ID check. Try again.",
-                "unavailable": "We can’t show the documents right now. Try again later."
+                "unavailable": "We can’t show the documents right now. Try again later.",
+                "frozenChoice": "Continue with the document you chose.",
+                "frozenDocument": "Continue with the document you chose: {document} from {country}."
             },
             "review": {
                 "description": "Checks usually come back in a few minutes. If a reviewer needs to look, it takes 1 to 3 business days. You can leave this screen, and we’ll let you know when it’s done.",

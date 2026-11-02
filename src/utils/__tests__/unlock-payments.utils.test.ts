@@ -9,6 +9,7 @@ import {
     type BuildUnlockGroupsInput,
 } from '@/utils/unlock-payments.utils'
 import { QrKycState } from '@/constants/kyc.consts'
+import type { FeatureReport } from '@/types/capabilities'
 
 const CLOSED_ALL = {
     brl: 'notAvailable',
@@ -500,6 +501,52 @@ describe('reported account closures', () => {
 })
 
 describe('bankAccountRow', () => {
+    const allCurrencies: FeatureReport = {
+        qr: { state: 'on' },
+        card: { state: 'on' },
+        local: { state: 'on', accounts: { BRL: { state: 'on' }, ARS: { state: 'on' } } },
+        bank: {
+            state: 'on',
+            accounts: {
+                USD: { state: 'on' },
+                EUR: { state: 'on' },
+                GBP: { state: 'ready' },
+                MXN: { state: 'on' },
+                COP: { state: 'ready' },
+            },
+        },
+    }
+
+    it('names all usable report currencies including GBP and COP without adding currency rows', () => {
+        const rows = bank()
+        const caption = bankAccountRow(rows, 'active', { features: allCurrencies }).currencies ?? []
+        expect([...caption].sort()).toEqual(['ARS', 'BRL', 'COP', 'EUR', 'GBP', 'MXN', 'USD'])
+        expect(rows.map((row) => row.labelKey)).toEqual(['brl', 'ars', 'usd', 'mxn', 'sepa'])
+    })
+
+    it('includes held and openable claimable corridors once and honors explicit currency refusals', () => {
+        const features: FeatureReport = {
+            ...allCurrencies,
+            local: { state: 'refused', accounts: { BRL: { state: 'refused' }, ARS: { state: 'refused' } } },
+            bank: {
+                state: 'on',
+                accounts: {
+                    USD: { state: 'on' },
+                    EUR: { state: 'ready' },
+                    GBP: { state: 'refused', reason: 'residence' },
+                    MXN: { state: 'refused', reason: 'residence' },
+                },
+            },
+        }
+        const caption =
+            bankAccountRow(bank({ bankChips: CLOSED_ALL }), 'active', {
+                features,
+                heldCorridors: ['BANK_TRANSFER_CO', 'FASTER_PAYMENTS_GB'],
+                openableCorridors: ['BANK_TRANSFER_CO', 'SEPA_EU', 'SPEI_MX'],
+            }).currencies ?? []
+        expect([...caption].sort()).toEqual(['COP', 'EUR', 'USD'])
+    })
+
     it('uses the aggregate report chip rather than ranking the currency rows', () => {
         const rows = bank({ bankChips: { ...CLOSED_ALL, usd: 'active', sepa: 'unlock' } })
         expect(bankAccountRow(rows, 'processing')).toEqual({

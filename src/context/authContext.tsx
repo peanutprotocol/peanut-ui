@@ -54,6 +54,7 @@ import { attachSignupAttribution } from '@/services/signup-attribution'
 import { clearSignupAttribution } from '@/utils/signup-attribution'
 import { completeAccountSetup, type AccountSetupOutcome } from '@/services/account-setup'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
+import { clearAccountQueries } from '@/utils/account-query-cache'
 
 interface AuthContextType {
     user: IUserProfile | null
@@ -99,6 +100,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const logoutGeneration = useRef(0)
+    const lastHeldUserId = useRef<string | null>(null)
     const toast = useToast()
     const tErrors = useTranslations('errors')
     const queryClient = useQueryClient()
@@ -118,6 +120,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } = useUserQuery(!appLocked)
 
     const geoUserId = user?.user?.userId
+    useEffect(() => {
+        if (geoUserId) lastHeldUserId.current = geoUserId
+    }, [geoUserId])
     useEffect(() => {
         if (!geoUserId || appLocked) return
         return resumeSignupGeo(geoUserId)
@@ -252,6 +257,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     )
 
     const hydrateLoginSession = useCallback(async () => {
+        const previousUserId = lastHeldUserId.current
         const generation = logoutGeneration.current
         const pushLogoutVersion = getNotificationLogoutVersion()
         const cancel = () => queryClient.cancelQueries({ queryKey: [USER] })
@@ -261,6 +267,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (result.error) throw result.error
             return result.data ?? null
         }, cancel)
+        if (previousUserId && previousUserId !== profile.user.userId) clearAccountQueries(queryClient)
         if (generation === logoutGeneration.current && pushLogoutVersion === getNotificationLogoutVersion()) {
             void resumeNotificationIdentity(profile.user.userId).catch((error) => {
                 reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)

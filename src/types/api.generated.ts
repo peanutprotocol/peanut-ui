@@ -12317,13 +12317,21 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Invalid input — malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code. */
+                /** @description Invalid input or a typed name change. PROFILE_NAME_READ_ONLY rejects the entire request before any profile fields are saved or email verification code is consumed. Blank or unchanged names are ignored. */
                 400: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "code": "PROFILE_NAME_READ_ONLY",
+                         *       "error": "Your name was not saved. Names are managed through identity verification."
+                         *     }
+                         */
                         "application/json": {
+                            /** @enum {string} */
+                            code?: "PROFILE_NAME_READ_ONLY";
                             error?: string;
                         };
                     };

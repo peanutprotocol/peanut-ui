@@ -10,6 +10,8 @@ import {
     relativeAge,
 } from '../support-context'
 import { AccountType, type Account, type IUserProfile } from '@/interfaces/interfaces'
+import type { SupportLinkedAccount } from '@/interfaces/interfaces'
+import type { paths } from '@/types/api.generated'
 import type { RainCardOverview } from '@/services/rain'
 
 const NOW = new Date('2026-08-27T12:00:00Z').getTime()
@@ -116,13 +118,10 @@ describe('buildCardSummary', () => {
 })
 
 describe('buildSupportLinkedAccounts', () => {
-    it('lists each linked account by relation, username and id, and nothing else', () => {
-        expect(
-            buildSupportLinkedAccounts([
-                { userId: 'user-a', username: 'montenegroh', relation: 'holds_email' },
-                { userId: 'user-c', username: null, relation: 'blocked_on_email' },
-            ])
-        ).toBe('holds_email @montenegroh user-a · blocked_on_email user-c')
+    it('lists the relation-only public payload without private identifiers', () => {
+        expect(buildSupportLinkedAccounts([{ relation: 'holds_email' }, { relation: 'blocked_on_email' }])).toBe(
+            'holds_email · blocked_on_email'
+        )
         expect(buildSupportLinkedAccounts([])).toBeUndefined()
         expect(buildSupportLinkedAccounts(undefined)).toBeUndefined()
     })
@@ -308,4 +307,20 @@ describe('redactSupportText', () => {
         )
         expect(redactSupportText('')).toBe('')
     })
+})
+
+// Compile-time public contract: handwritten support metadata must not demand or
+// advertise identifiers that GET /users/me intentionally withholds.
+type WireLinkedAccount = NonNullable<
+    paths['/users/me']['get']['responses'][200]['content']['application/json']['supportLinkedAccounts']
+>[number]
+it('the handwritten linked-account type is exactly the public relation-only shape', () => {
+    const sameKeys: [keyof SupportLinkedAccount] extends [keyof WireLinkedAccount]
+        ? [keyof WireLinkedAccount] extends [keyof SupportLinkedAccount]
+            ? true
+            : false
+        : false = true
+    expect(sameKeys).toBe(true)
+    const linked: SupportLinkedAccount[] = [{ relation: 'holds_email' }, { relation: 'blocked_on_email' }]
+    expect(buildSupportLinkedAccounts(linked)).toBe('holds_email · blocked_on_email')
 })

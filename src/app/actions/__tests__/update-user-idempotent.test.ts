@@ -56,3 +56,20 @@ it('classifies any other throw as other', async () => {
 
     expect(await updateUserById({ userId: 'u1' })).toMatchObject({ failureKind: 'other', error: 'boom' })
 })
+
+it('preserves PROFILE_NAME_READ_ONLY so the profile can localize the server refusal', async () => {
+    mockServerFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({
+            code: 'PROFILE_NAME_READ_ONLY',
+            error: 'Your name was not saved. Names are managed through identity verification.',
+        }),
+    } as unknown as Response)
+    expect(await updateUserById({ userId: 'u1', fullName: 'Typed Name' })).toMatchObject({
+        failureKind: 'http',
+        status: 400,
+        code: 'PROFILE_NAME_READ_ONLY',
+    })
+    expect(mockServerFetch).toHaveBeenCalledTimes(1)
+})

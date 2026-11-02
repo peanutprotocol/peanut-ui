@@ -2053,3 +2053,79 @@ describe('server-selected feature routing', () => {
         expect(result.current.showWrapper).toBe(false)
     })
 })
+
+describe('a reviewed supplement re-ask reports only confirmed success', () => {
+    beforeEach(() => mockStartAction.mockReset())
+    test.each([
+        ['server failure', { error: 'Failed to start verification', code: 'start_action_failed' as const }],
+        ['network failure', { error: 'fetch failed' }],
+        ['rate limit', { error: 'Too many verification requests, please try again in a moment' }],
+    ])('a second-call %s cannot announce an upload', async (_name, failure) => {
+        const onKycSuccess = jest.fn()
+        mockStartAction
+            .mockResolvedValueOnce({ data: { levelName: 'provider-rfi-proof-of-address', completed: true } })
+            .mockResolvedValueOnce(failure)
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+        await act(async () => {
+            await result.current.handleStartAction('supplement:bridge')
+        })
+        expect(mockStartAction).toHaveBeenCalledTimes(2)
+        expect(onKycSuccess).not.toHaveBeenCalled()
+        expect(result.current.error).toBeTruthy()
+        expect(result.current.showWrapper).toBe(false)
+    })
+
+    test('a second call explicitly confirming no supplement is needed reports success', async () => {
+        const onKycSuccess = jest.fn()
+        mockStartAction
+            .mockResolvedValueOnce({ data: { levelName: 'provider-rfi-proof-of-address', completed: true } })
+            .mockResolvedValueOnce({
+                error: 'No additional document is needed right now.',
+                code: 'supplement_not_required',
+            })
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+        await act(async () => {
+            await result.current.handleStartAction('supplement:bridge')
+        })
+        expect(mockStartAction).toHaveBeenCalledTimes(2)
+        expect(onKycSuccess).toHaveBeenCalledTimes(1)
+        expect(result.current.error).toBeNull()
+        expect(result.current.showWrapper).toBe(false)
+    })
+
+    test('a second-call wait fallback remains quiet without announcing success', async () => {
+        const onKycSuccess = jest.fn()
+        mockStartAction
+            .mockResolvedValueOnce({ data: { levelName: 'provider-rfi-proof-of-address', completed: true } })
+            .mockResolvedValueOnce({
+                error: 'Failed to start verification',
+                code: 'supplement_not_required',
+                reason: 'requirements_unreadable',
+                fallback: 'wait',
+            })
+        const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+        await act(async () => {
+            await result.current.handleStartAction('supplement:bridge')
+        })
+        expect(onKycSuccess).not.toHaveBeenCalled()
+        expect(result.current.error).toBeNull()
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isLoading).toBe(false)
+    })
+})
+
+test('a reviewed supplement whose re-ask confirms supplement_changed reports success', async () => {
+    mockStartAction.mockReset()
+    const onKycSuccess = jest.fn()
+    mockStartAction
+        .mockResolvedValueOnce({ data: { levelName: 'provider-rfi-proof-of-address', completed: true } })
+        .mockResolvedValueOnce({ error: 'The requested supplement has changed.', code: 'supplement_changed' } as never)
+    const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
+    await act(async () => {
+        await result.current.handleStartAction('supplement:bridge')
+    })
+    expect(mockStartAction).toHaveBeenCalledTimes(2)
+    expect(onKycSuccess).toHaveBeenCalledTimes(1)
+    expect(result.current.error).toBeNull()
+    expect(result.current.showWrapper).toBe(false)
+})

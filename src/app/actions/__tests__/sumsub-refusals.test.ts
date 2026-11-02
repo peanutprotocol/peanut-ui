@@ -206,6 +206,31 @@ describe('restartIdentityVerification — wire shape', () => {
     })
 })
 
+describe('restart coded refusal recovery', () => {
+    it.each([400, 409, 422])('preserves a coded %s without requiring a userMessage', async (status) => {
+        respondWith(status, { code: 'replacement_choice_frozen' })
+        const result = await restartIdentityVerification()
+        expect(result).toMatchObject({ code: 'replacement_choice_frozen' })
+        expect(result.data).toBeUndefined()
+        expect(mockFetch).toHaveBeenCalledTimes(1)
+    })
+
+    it('preserves the document already frozen by the API for an explicit continuation', async () => {
+        const document = { type: 'PASSPORT', issuingCountry: 'PT' }
+        respondWith(409, {
+            code: 'replacement_choice_frozen',
+            userMessage: 'Continue with the document already selected.',
+            document,
+        })
+        expect(await restartIdentityVerification()).toMatchObject({
+            code: 'replacement_choice_frozen',
+            error: 'Continue with the document already selected.',
+            document,
+        })
+        expect(mockFetch).toHaveBeenCalledTimes(1)
+    })
+})
+
 describe('restart cooldown details', () => {
     it('preserves the retry time on rate limits', async () => {
         respondWith(429, { error: 'Please wait', retryAt: '2026-09-08T18:57:00Z' })

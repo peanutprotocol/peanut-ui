@@ -9,10 +9,12 @@ export function MantecaAccountUnavailable({
     title,
     onBack,
     onSupport,
+    description,
 }: {
     title: string
     onBack: () => void
     onSupport: () => void
+    description?: string
 }) {
     const tErrors = useTranslations('errors')
     const tCommon = useTranslations('common')
@@ -22,7 +24,7 @@ export function MantecaAccountUnavailable({
             <NavHeader title={title} onPrev={onBack} />
             <PageStack.Center>
                 <Callout priority="error" ctas={[{ label: tCommon('contactSupport'), onClick: onSupport }]}>
-                    {tErrors('mantecaAccountRejected')}
+                    {description ?? tErrors('mantecaAccountRejected')}
                 </Callout>
             </PageStack.Center>
         </PageStack>

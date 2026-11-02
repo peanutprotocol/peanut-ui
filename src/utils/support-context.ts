@@ -139,15 +139,12 @@ export function buildLinkedAccounts(accounts: Account[] | undefined): string | u
 }
 
 /**
- * The other Peanut accounts in an email collision with this one, so the agent
- * opens both instead of reasoning about one (TASK-24046). Ids and usernames
- * only: the API sends nothing more, and the sidebar needs nothing more.
+ * The direction of an email collision. The public API deliberately withholds
+ * the other account's identifiers; support looks them up in internal tools.
  */
 export function buildSupportLinkedAccounts(linked: SupportLinkedAccount[] | undefined): string | undefined {
     if (!linked?.length) return undefined
-    return linked
-        .map(({ relation, username, userId }) => `${relation} ${username ? `@${username} ` : ''}${userId}`)
-        .join(' · ')
+    return linked.map(({ relation }) => relation).join(' · ')
 }
 
 export interface SupportSegmentInput {

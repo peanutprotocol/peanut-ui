@@ -102,6 +102,22 @@ beforeEach(() => {
 })
 
 describe('useDepositAccounts', () => {
+    it('does not request accounts until explicitly enabled', async () => {
+        resolveAccounts([])
+        const { result, rerender } = renderHook(({ enabled }) => useDepositAccounts({ enabled }), {
+            wrapper,
+            initialProps: { enabled: false },
+        })
+        expect(fetchDepositAccounts).not.toHaveBeenCalled()
+
+        rerender({ enabled: true })
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(fetchDepositAccounts).toHaveBeenCalledTimes(1)
+
+        rerender({ enabled: false })
+        expect(fetchDepositAccounts).toHaveBeenCalledTimes(1)
+    })
+
     /**
      * Bridge refused USD to 79 of 85 Bangladesh residents. The engine
      * sends that refusal in the feature report before verification, so the

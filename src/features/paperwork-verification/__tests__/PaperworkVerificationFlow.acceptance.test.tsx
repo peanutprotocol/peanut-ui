@@ -1,3 +1,5 @@
+import { setAuthToken } from '@/utils/auth-token'
+import posthog from 'posthog-js'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
@@ -12,6 +14,8 @@ import {
 import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-workflow'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { PaperworkVerificationFlow } from '../PaperworkVerificationFlow'
+
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 const mockPush = jest.fn()
 const mockReplace = jest.fn()
@@ -38,9 +42,12 @@ jest.mock('@/app/actions/kyc-workflow', () => ({
 }))
 let mockIdentityReason: string | undefined
 jest.mock('@/context/authContext', () => ({
-    useOptionalAuth: () => null,
+    useOptionalAuth: () => ({ user: { user: { userId: 'user-a' } } }),
     useAuth: () => ({
-        user: { user: { username: 'tester' }, identityVerification: { reason: { code: mockIdentityReason } } },
+        user: {
+            user: { userId: 'user-a', username: 'tester' },
+            identityVerification: { reason: { code: mockIdentityReason } },
+        },
         fetchUser: jest.fn(),
     }),
 }))
@@ -65,7 +72,7 @@ jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
             <div>
                 <button onClick={onComplete}>sumsub-submit</button>
                 <button onClick={onClose}>sumsub-close</button>
-                <button onClick={() => void onRefreshToken()}>sumsub-refresh</button>
+                <button onClick={() => void onRefreshToken().catch(() => undefined)}>sumsub-refresh</button>
             </div>
         ) : null,
 }))
@@ -171,6 +178,7 @@ const mockStartAction = jest.fn()
 beforeEach(() => {
     mockIdentityReason = undefined
     jest.clearAllMocks()
+    setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-a' }))}.y`)
     ;(useSumsubKycFlow as jest.Mock).mockReturnValue({
         isLoading: false,
         error: null,
@@ -338,6 +346,11 @@ describe('US person local-transfer opt-out acceptance', () => {
         await waitFor(() => expect(mockQuestions.mock.calls.length).toBeGreaterThan(readsBeforeOptOut))
         expect(await screen.findByTestId('verify-pick-annualSalary')).toBeInTheDocument()
         expect(mockToken).not.toHaveBeenCalled()
+        // This recovery path implies a FATCA answer even without a value property.
+        // Keep its UI controls but never publish an identified answer-specific event.
+        expect(JSON.stringify(jest.mocked(posthog.capture).mock.calls)).not.toMatch(
+            /us_citizen_not_supported|us_person|local_refused|continue_without_local/
+        )
     })
 })
 
@@ -356,4 +369,74 @@ describe('form protocol failure copy acceptance', () => {
             expect(mockToken).not.toHaveBeenCalled()
         }
     )
+})
+
+describe('identity-session hand-back recovery', () => {
+    it('a handed-back identity token routes Home without opening the SDK', async () => {
+        mockQuestions.mockResolvedValue(build({ purpose: true, money: true, tax: true }, null))
+        mockToken.mockResolvedValue({ kind: 'handed-back' } as never)
+        await startFlow()
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
+        expect(screen.queryByText('sumsub-submit')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('verify-id-error')).not.toBeInTheDocument()
+        expect(mockToken).toHaveBeenCalledTimes(1)
+    })
+
+    it('a handed-back token refresh closes the stale SDK and routes Home', async () => {
+        mockStatus.mockResolvedValue('ACTION_REQUIRED')
+        mockToken.mockResolvedValueOnce(session()).mockResolvedValueOnce({ kind: 'handed-back' } as never)
+        renderFlow()
+        fireEvent.click(await screen.findByRole('button', { name: /try again/i }))
+        fireEvent.click(await screen.findByText('sumsub-refresh'))
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
+        await waitFor(() => expect(screen.queryByText('sumsub-submit')).not.toBeInTheDocument())
+        expect(mockToken).toHaveBeenCalledTimes(2)
+    })
+})
+
+describe('a submitted replacement waits for its own approval', () => {
+    afterEach(() => jest.useRealTimers())
+
+    it('a review hand-off opened on REVERIFYING waits and then advances on APPROVED', async () => {
+        jest.useFakeTimers()
+        mockStatus.mockResolvedValue('REVERIFYING')
+        mockQuestions.mockResolvedValue(build({ purpose: true, money: true, tax: true }, null))
+        renderFlow('?step=review')
+        expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-verified-payments')).not.toBeInTheDocument()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(15_000)
+        })
+        expect(screen.getByTestId('verify-review-home')).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-verified-payments')).not.toBeInTheDocument()
+        const reads = mockStatus.mock.calls.length
+        mockStatus.mockResolvedValue('APPROVED')
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(15_000)
+        })
+        expect(mockStatus.mock.calls.length).toBeGreaterThan(reads)
+        expect(await screen.findByTestId('verify-verified-payments')).toBeInTheDocument()
+    })
+
+    it('an SDK submission with stored REVERIFYING stays in review until APPROVED', async () => {
+        jest.useFakeTimers()
+        mockQuestions.mockResolvedValue(build({ purpose: true, money: true, tax: true }, null))
+        mockToken.mockResolvedValue(session())
+        await startFlow()
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
+        mockStatus.mockResolvedValue('REVERIFYING')
+        fireEvent.click(await screen.findByText('sumsub-submit'))
+        expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(15_000)
+        })
+        expect(screen.getByTestId('verify-review-home')).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-verified-payments')).not.toBeInTheDocument()
+        mockStatus.mockResolvedValue('APPROVED')
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(15_000)
+        })
+        expect(await screen.findByTestId('verify-verified-payments')).toBeInTheDocument()
+    })
 })

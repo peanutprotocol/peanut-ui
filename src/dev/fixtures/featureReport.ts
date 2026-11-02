@@ -8,6 +8,7 @@
  * a fixture names a residence refusal by product (`productRefusals`).
  */
 import type {
+    CapabilityRestriction,
     FeatureReport,
     FeatureReportEntry,
     IdentityVerificationStatus,
@@ -79,7 +80,10 @@ export interface FeatureReportInput {
      * an approval exists, the declaration's before. `banking` carries the
      * refusal the bank routes give (`uk_resident_blocked`, `residence_bank_restricted`).
      */
-    restrictions?: { banking: { code: string; userMessage: string } | null; card: boolean } | null
+    restrictions?:
+        | { banking: { code: string; userMessage: string } | null; card: boolean }
+        | CapabilityRestriction[]
+        | null
     /** ISO-2 countries whose Manteca account Manteca closed (`isMantecaAccountRejected`). */
     mantecaClosedCountries?: ReadonlySet<string>
     /** The feature's first use opens it (`POST /users/kyc/features/:feature/activate`). */
@@ -160,7 +164,7 @@ export function featureReport(input: FeatureReportInput): FeatureReport {
             refusal:
                 featureRefusal(input, 'card') ??
                 reasonOnly(productRefusal(input, 'rain.card')) ??
-                (input.restrictions?.card ? { reason: 'geo-blocked' } : null),
+                (!Array.isArray(input.restrictions) && input.restrictions?.card ? { reason: 'geo-blocked' } : null),
         }),
     }
 }
@@ -350,6 +354,15 @@ const FEATURE_PROVIDER: Record<KycIntent, 'bridge' | 'manteca' | 'rain'> = {
  * policy-rejected Manteca attempt is always the first-party account.
  */
 function featureRefusal(input: FeatureReportInput, feature: KycIntent): { reason: string } | null {
+    // Capability restrictions name the provider rails they close. Manteca's
+    // first-party restriction does not close its pool-backed QR feature.
+    const restriction =
+        feature !== 'qr' && Array.isArray(input.restrictions)
+            ? input.restrictions.find((entry) =>
+                  entry.affectedRailIds.some((id) => id.startsWith(`${FEATURE_PROVIDER[feature]}.`))
+              )
+            : undefined
+    if (restriction) return { reason: restriction.code }
     const reason = input.planReasons?.[FEATURE_PROVIDER[feature]]
     if (!reason) return null
     if (feature === 'qr' && input.plan?.manteca !== 'none') return null
@@ -358,7 +371,7 @@ function featureRefusal(input: FeatureReportInput, feature: KycIntent): { reason
 
 /** The plan's refusal of Bridge, else the banking residence gate's (`uk_resident_blocked`, `residence_bank_restricted`). */
 function bankRefusal(input: FeatureReportInput): { reason: string; message?: string } | null {
-    const banking = input.restrictions?.banking
+    const banking = !Array.isArray(input.restrictions) ? input.restrictions?.banking : null
     return featureRefusal(input, 'bank') ?? (banking ? { reason: banking.code, message: banking.userMessage } : null)
 }
 
@@ -448,7 +461,8 @@ function supportCaseOf(value: string | null | undefined): string | undefined {
 /** A fixture's `/users/me` with the report the API would send for its rails, unless the fixture gives its own. */
 export function withFixtureFeatureReport(
     user: IUserProfile | null,
-    override: Partial<IUserProfile> | null | undefined
+    override: Partial<IUserProfile> | null | undefined,
+    paperwork?: { products?: { product: string; available: boolean; reason?: string }[] }
 ): IUserProfile | null {
     // The baseline's report describes the demo rails, not this fixture's.
     if (!user?.capabilities || override?.capabilities?.features !== undefined) return user
@@ -460,8 +474,19 @@ export function withFixtureFeatureReport(
                 rails: user.capabilities.rails,
                 nextActions: user.capabilities.nextActions,
                 identity: user.identityVerification ?? { status: 'not_started' },
-                residence: user.residence?.verified?.country ?? user.residence?.declared?.country ?? null,
+                residence: residenceCountry(user.residence?.verified) ?? residenceCountry(user.residence?.declared),
+                restrictions: user.capabilities.restrictions,
+                productRefusals: Object.fromEntries(
+                    (paperwork?.products ?? []).flatMap((product) =>
+                        !product.available && product.reason ? [[product.product, product.reason]] : []
+                    )
+                ),
             }),
         },
     }
+}
+
+/** Older fixtures used the ISO-2 string before residence became an object. */
+function residenceCountry(value: string | { country?: string | null } | null | undefined): string | null {
+    return typeof value === 'string' ? value : (value?.country ?? null)
 }

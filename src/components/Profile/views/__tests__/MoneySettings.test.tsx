@@ -17,6 +17,7 @@ import type { NextAction, RailCapability, IdentityVerificationStatus } from '@/t
 import { act, render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
+import en from '@/i18n/app/messages/en.json'
 import MoneySettings from '@/components/Profile/views/MoneySettings.view'
 
 // The view reaches for the query client (residence-change invalidation), so
@@ -48,6 +49,7 @@ let mockDepositEnabled = false
 let mockDepositAccounts: Record<string, unknown> = {}
 let mockDepositCorridors: string[] = []
 let mockDepositClaimable: Record<string, unknown> = {}
+let mockDepositLoading = false
 // a gate for every corridor, as the real read returns: EUR and USD ready, the
 // rest with no rail for this user
 const mockGates = () =>
@@ -56,7 +58,7 @@ const mockGates = () =>
         .corridorRecord((corridor: string) =>
             corridor === 'SEPA_EU' || corridor === 'ACH_US' ? { kind: 'ready' } : { kind: 'needs-enrollment' }
         )
-const mockReadDepositAccounts = jest.fn(() => ({
+const mockReadDepositAccounts = jest.fn((_options?: { enabled?: boolean }) => ({
     corridors: mockDepositCorridors,
     accounts: mockDepositAccounts,
     claimable: mockDepositClaimable,
@@ -64,7 +66,7 @@ const mockReadDepositAccounts = jest.fn(() => ({
     slotsHeld: Object.keys(mockDepositAccounts).length,
     accountLimit: 2,
     gates: mockGates(),
-    isLoading: false,
+    isLoading: mockDepositLoading,
     isError: false,
     refetch: jest.fn(),
 }))
@@ -72,7 +74,7 @@ jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => mockDepositEnabled,
 }))
 jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
-    useDepositAccounts: () => mockReadDepositAccounts(),
+    useDepositAccounts: (options?: { enabled?: boolean }) => mockReadDepositAccounts(options),
 }))
 
 let mockRails: unknown[] = []
@@ -156,7 +158,7 @@ const mockCapabilityBlock = () => {
         resolved: railVerdict(rail, byKey),
     }))
     const residence = mockUser?.residence?.verified?.country ?? mockUser?.residence?.declared?.country ?? null
-    return withFeatureReport(
+    const block = withFeatureReport(
         { rails, nextActions, restrictions: [] },
         {
             identity: { ...mockIdentity, status: mockIdentity.status as IdentityVerificationStatus },
@@ -173,7 +175,12 @@ const mockCapabilityBlock = () => {
             },
         }
     )
+    if (mockApiCard && block.features) block.features = { ...block.features, card: mockApiCard }
+    if (mockApiBank && block.features) block.features = { ...block.features, bank: mockApiBank }
+    return block
 }
+let mockApiCard: import('@/types/capabilities').FeatureReportEntry | null = null
+let mockApiBank: import('@/types/capabilities').FeatureAccountsEntry | null = null
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
         user: mockUser
@@ -285,10 +292,13 @@ jest.mock('@/components/Profile/views/ResidenceChangeDrawer', () => ({
 }))
 
 beforeEach(() => {
+    mockApiCard = null
+    mockApiBank = null
     mockDepositEnabled = false
     mockDepositAccounts = {}
     mockDepositCorridors = []
     mockDepositClaimable = {}
+    mockDepositLoading = false
     mockMantecaLimits = null
     mockBridgeLimits = null
     jest.clearAllMocks()
@@ -393,12 +403,43 @@ describe('MoneySettings', () => {
                 ).toBeTruthy()
             }
             // only the currencies the user can still use: BRL and ARS need a Brazilian or Argentine residence
-            expect(screen.getByText('USD, MXN, EUR')).toBeInTheDocument()
+            expect(screen.getByText('USD, MXN, EUR, GBP')).toBeInTheDocument()
             expect(screen.queryByText('Other ways to move money with Peanut')).not.toBeInTheDocument()
             expect(screen.queryByText('Spend')).not.toBeInTheDocument()
             for (const title of ['BRL', 'ARS', 'USD', 'MXN', 'EUR']) {
                 expect(screen.queryByText(title)).not.toBeInTheDocument()
             }
+            fireEvent.click(screen.getByText('Bank account'))
+            expect(mockPush).toHaveBeenCalledWith('/profile/accounts')
+        })
+
+        it('names GBP and a held or openable COP corridor while omitting refused report currencies', () => {
+            mockDepositEnabled = true
+            mockApiBank = {
+                state: 'on',
+                accounts: {
+                    USD: { state: 'on' },
+                    EUR: { state: 'ready' },
+                    GBP: { state: 'ready' },
+                    MXN: { state: 'refused', reason: 'account_unavailable_in_residence' },
+                },
+            }
+            mockDepositAccounts = {
+                BANK_TRANSFER_CO: { status: 'active', instructions: {}, matching: { sender: 'anyone' } },
+            }
+            mockDepositCorridors = ['BANK_TRANSFER_CO', 'FASTER_PAYMENTS_GB', 'SPEI_MX']
+            mockDepositClaimable = {
+                BANK_TRANSFER_CO: { currency: 'COP' },
+                FASTER_PAYMENTS_GB: { currency: 'GBP' },
+                SPEI_MX: { currency: 'MXN' },
+            }
+            render('payments')
+
+            expect(
+                screen.getByText((text) => text.split(', ').sort().join(',') === 'COP,EUR,GBP,USD')
+            ).toBeInTheDocument()
+            expect(screen.queryByText('USD, MXN, EUR, GBP')).not.toBeInTheDocument()
+            expect(mockReadDepositAccounts).toHaveBeenCalledWith({ enabled: true })
             fireEvent.click(screen.getByText('Bank account'))
             expect(mockPush).toHaveBeenCalledWith('/profile/accounts')
         })
@@ -806,18 +847,7 @@ describe('MoneySettings', () => {
 
     it('holds the bank rows behind skeletons until the accounts load, so the deduped list does not jump', () => {
         mockDepositEnabled = true
-        mockReadDepositAccounts.mockReturnValueOnce({
-            corridors: [],
-            claimable: {},
-            unavailable: {},
-            slotsHeld: 0,
-            accountLimit: 2,
-            accounts: {},
-            gates: mockGates(),
-            isLoading: true,
-            isError: false,
-            refetch: jest.fn(),
-        })
+        mockDepositLoading = true
         render()
 
         expect(screen.getByText('Other ways to move money with Peanut')).toBeInTheDocument()
@@ -892,7 +922,8 @@ describe('MoneySettings', () => {
     it('does not query bank accounts while their rollout flag is off, but still shows the unlock rows', () => {
         mockReadDepositAccounts.mockClear()
         render()
-        expect(mockReadDepositAccounts).not.toHaveBeenCalled()
+        expect(mockReadDepositAccounts).toHaveBeenCalled()
+        for (const [options] of mockReadDepositAccounts.mock.calls) expect(options).toEqual({ enabled: false })
         // The ways-in list still renders the KYC-unlock bank/QR rows with the
         // flag off — only the VA fetch (and its rows) are gated. With no
         // standing accounts at all, the account-numbers heading must not appear.
@@ -1724,5 +1755,77 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
 
         expect(badgeFor('BRL').getByText('Active')).toBeInTheDocument()
         expect(badgeFor('ARS').getByText('Not available')).toBeInTheDocument()
+    })
+})
+
+describe('card refusal rows follow the feature report', () => {
+    test.each([
+        ['identity_rejected', 'identity'],
+        ['document_country_unsupported', 'restart-identity'],
+    ])('%s reads Action needed and retains the card route', (reason, action) => {
+        mockUser = { user: { userId: 'card-user' }, residence: normalizeResidence({ declared: 'AR', verified: 'AR' }) }
+        mockIdentity = { status: 'verified' }
+        mockApiCard = { state: 'refused', reason, action }
+        mockNextActions = [
+            {
+                key: 'restart-identity',
+                kind: 'restart-identity',
+                purpose: 'document_country_unsupported',
+            } as NextAction,
+        ]
+        render('payments')
+        const title = screen.getByText('Peanut card')
+        let row = title.parentElement!
+        while (row.parentElement && !/Action needed|Not available/.test(row.textContent ?? '')) row = row.parentElement
+        expect(within(row).getByText('Action needed')).toBeInTheDocument()
+        fireEvent.click(title)
+        expect(mockPush).toHaveBeenCalledWith('/card')
+        expect(
+            screen.queryByText("The Peanut card isn't available for residents of your country.")
+        ).not.toBeInTheDocument()
+    })
+
+    test.each([
+        { state: 'refused', reason: 'duplicate_account' },
+        { state: 'refused', reason: 'verification_blocked', action: 'contact-support' },
+    ] as import('@/types/capabilities').FeatureReportEntry[])(
+        '$reason opens support from its attention row',
+        (entry) => {
+            mockApiCard = entry
+            mockNextActions = [
+                { key: 'contact-support', kind: 'contact-support', purpose: 'kyc-support' } as NextAction,
+            ]
+            render('payments')
+            fireEvent.click(screen.getByText('Peanut card'))
+            expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
+            expect(mockPush).not.toHaveBeenCalled()
+            expect(
+                screen.queryByText("The Peanut card isn't available for residents of your country.")
+            ).not.toBeInTheDocument()
+        }
+    )
+
+    test('geo-blocked keeps the closed residence explanation', () => {
+        mockApiCard = { state: 'refused', reason: 'geo-blocked' }
+        render('payments')
+        fireEvent.click(screen.getByText('Peanut card'))
+        expect(screen.getByText("The Peanut card isn't available for residents of your country.")).toBeInTheDocument()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    test('a closed nonresidence refusal shows its own message', () => {
+        mockApiCard = {
+            state: 'refused',
+            reason: 'compliance_block',
+            message: 'Provider English must not replace localized copy.',
+        }
+        render('payments')
+        fireEvent.click(screen.getByText('Peanut card'))
+        expect(screen.getByText(en.identity.reasons.compliance_block)).toBeInTheDocument()
+        expect(screen.queryByText(mockApiCard.message!)).not.toBeInTheDocument()
+        expect(
+            screen.queryByText("The Peanut card isn't available for residents of your country.")
+        ).not.toBeInTheDocument()
+        expect(mockPush).not.toHaveBeenCalled()
     })
 })

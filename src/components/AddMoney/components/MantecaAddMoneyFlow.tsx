@@ -41,6 +41,10 @@ import { withReturnTo, readReturnTo } from '@/utils/return-to.utils'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
 import { useModalsContext } from '@/context/ModalsContext'
+import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
+import { kycFeatureRefusalCopy } from '@/utils/kyc-feature-outcome.utils'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import NavHeader from '@/components/Global/NavHeader'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails' | 'showQR'
@@ -54,6 +58,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const locale = useLocale()
     const t = useTranslations('addMoney')
     const tErrors = useTranslations('errors')
+    const tKyc = useTranslations('kyc')
+    const tIdentity = useTranslations('identity')
     const { openSupportWithMessage, setIsSupportModalOpen } = useModalsContext()
     const { fetchUser } = useAuth()
     // rewinds to home past every entry the flow pushed; a replace kept the
@@ -114,7 +120,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         selectedCountry?.id === 'AR' || selectedCountry?.id === 'BR' ? (selectedCountry.id as 'AR' | 'BR') : null
     const localAccount = residenceGatedCountry ? bankEntryFor(residenceGatedCountry === 'AR' ? 'ars' : 'brl') : null
     const accountRejected = isMantecaAccountClosed(localAccount ?? undefined)
-    const requiresResidenceGate = !!refusalOf(localAccount ?? undefined) && !accountRejected
+    const refusal = refusalOf(localAccount ?? undefined)
+    const requiresResidenceGate = refusal === 'local_residence_unsupported'
     // The pool→full upgrade gate asks "did the user clear ID verification?",
     // not "do they have an enabled rail elsewhere?" — read the identity
     // signal directly (Sumsub-cleared the human) instead of the old
@@ -143,14 +150,14 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     useEffect(() => {
         // a non-resident sees the residence screen, not the KYC gate — Manteca
         // would reject the verification anyway
-        if (requiresResidenceGate) return
+        if (localAccount?.state === 'refused') return
         if (accountRejected) return
         if (areCapabilitiesLoading) return
         if (isUserMantecaKycApprovedForCountry) return
         if (kycGateDismissed) return
         setShowKycModal(true)
     }, [
-        requiresResidenceGate,
+        localAccount?.state,
         accountRejected,
         areCapabilitiesLoading,
         isUserMantecaKycApprovedForCountry,
@@ -356,6 +363,50 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                 qrPayHref="/qr-pay"
                 residenceChangeHref={withReturnTo('/profile?open=residence', '/add-money?method=bank')}
                 onBack={onBack}
+            />
+        )
+    }
+
+    // A refused account cannot accept an amount. Its own action explains the
+    // identity decision or starts the replacement; support cases stay with support.
+    if (localAccount?.state === 'refused') {
+        if (areCapabilitiesLoading) return null
+        if (localAccount.action === 'identity') {
+            return (
+                <>
+                    <NavHeader title={t('title')} onPrev={onBack} />
+                    <KycFailedModal visible onClose={onBack} onRetry={onBack} isTerminal />
+                </>
+            )
+        }
+        const action = nextActions.find((candidate) => candidate.key === localAccount.action)
+        if (localAccount.action === 'restart-identity' || action?.kind === 'restart-identity') {
+            return (
+                <>
+                    <NavHeader title={t('title')} onPrev={onBack} />
+                    <InitiateKycModal
+                        visible
+                        variant="restart_identity"
+                        reasonCode={refusal}
+                        onClose={onBack}
+                        onVerify={() => void sumsubFlow.handleRestartIdentity()}
+                        isLoading={sumsubFlow.isLoading}
+                        error={sumsubFlow.error}
+                    />
+                    <SumsubKycModals flow={sumsubFlow} />
+                </>
+            )
+        }
+        const reasonKey = reasonCodeKey(refusal)
+        const description = reasonKey
+            ? tIdentity(reasonKey)
+            : tKyc(kycFeatureRefusalCopy(refusal), { feature: tKyc('documents.local') })
+        return (
+            <MantecaAccountUnavailable
+                title={t('title')}
+                description={description}
+                onBack={onBack}
+                onSupport={() => setIsSupportModalOpen(true)}
             />
         )
     }

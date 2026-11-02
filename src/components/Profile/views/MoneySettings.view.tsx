@@ -7,7 +7,8 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 import VirtualAccountsHub from './VirtualAccountsHub'
 import { AccountsHubList } from '@/features/deposit-accounts/components/AccountsHubList'
 import { ClosedRowDrawer } from '@/features/deposit-accounts/components/ClosedRowDrawer'
-import type { ClosedRow } from '@/features/deposit-accounts/hubRows'
+import { virtualAccountRows, type ClosedRow } from '@/features/deposit-accounts/hubRows'
+import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useBankRows } from '@/hooks/useBankRows'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
@@ -35,11 +36,10 @@ import { getRegionIntent, providerForRegionIntent, type Region } from '@/utils/r
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
 import { IDENTITY_DOCUMENT_MISSING_CODE, QrKycState } from '@/constants/kyc.consts'
-import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useLimits } from '@/hooks/useLimits'
 import { limitSummariesForRows, MethodLimits } from './MethodLimits'
 import { rowStatusBadge, isRowTappable } from './RowStatusBadge'
-import { findActiveCard } from '@/components/Card/cardState.utils'
+import { entryChip, entryAction, UNKNOWN_REPORT } from '@/features/kyc-features/report'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -122,19 +122,19 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         isTerminalFailure: isIdentityFinallyRejected,
     } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
-    const { overview } = useRainCardOverview()
     const { mantecaLimits, bridgeLimits } = useLimits()
     const { openSupportWithMessage, setIsSupportModalOpen } = useModalsContext()
 
     const isSumsubApproved = isKycApproved
     const depositAccountsEnabled = useDepositAccountsEnabled()
+    const depositAccounts = useDepositAccounts({ enabled: depositAccountsEnabled })
+    const accountCorridors = virtualAccountRows(depositAccounts, depositAccountsEnabled)
 
     // ── list model ──────────────────────────────────────────────────────────
 
     const { rows: bankRows, accountChip } = useBankRows()
     // Copy only: which sentence a closed row's notes use. Whether a row is closed is the report's.
     const restrictions = useResidenceRestrictions()
-    const hasActiveCard = !!findActiveCard(overview)
     // Would a QR payment go through today? The gate /qr-pay itself enforces
     // and Home reads (`selectQrKycGate`), so the QR row, the Pix key send and
     // those screens give one answer (audit C53). It replaces a second path
@@ -148,7 +148,8 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     }).kycGateState
     const canPayQrNow = qrPay === QrKycState.PROCEED_TO_PAY
 
-    const cardRefused = capabilities.features?.card.state === 'refused'
+    const cardEntry = capabilities.features?.card ?? UNKNOWN_REPORT.card
+    const cardChip = entryChip(cardEntry, nextActions)
     const groups = useMemo(
         () =>
             buildUnlockGroups({
@@ -156,9 +157,9 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                 // every verified user holds pay by QR even though they cannot
                 // deposit or withdraw.
                 qrPay,
-                card: hasActiveCard ? 'active' : cardRefused ? 'notAvailable' : 'get',
+                card: cardChip,
             }),
-        [qrPay, hasActiveCard, cardRefused]
+        [qrPay, cardChip]
     )
 
     // The two lists beside the bank rows, named by group id rather than by position.
@@ -168,21 +169,35 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const methodSections = useMemo(
         () =>
             paymentMethodSections([
-                bankAccountRow(bankRows, accountChip),
+                bankAccountRow(bankRows, accountChip, {
+                    features: capabilities.features ?? UNKNOWN_REPORT,
+                    heldCorridors: accountCorridors.held,
+                    openableCorridors: accountCorridors.open.filter((row) => row.openable).map((row) => row.corridor),
+                }),
                 ...(spendGroup?.rows ?? []),
                 ...(peanutGroup?.rows ?? []),
             ]),
-        [bankRows, accountChip, spendGroup, peanutGroup]
+        [
+            bankRows,
+            accountChip,
+            capabilities.features,
+            accountCorridors.held,
+            accountCorridors.open,
+            spendGroup,
+            peanutGroup,
+        ]
     )
     // A Spend row the user cannot use explains why on tap, like the bank rows
     // (hugo, 2026-09-24: "always show the rails, tell the user why").
     const [closedSpendRow, setClosedSpendRow] = useState<ClosedRow | null>(null)
     const closeSpendRow = useCallback(
         (row: UnlockRow) =>
-            setClosedSpendRow({
-                kind: row.labelKey === 'card' && !restrictions.banking ? 'card-restricted' : 'restricted-country',
-            }),
-        [restrictions.banking]
+            setClosedSpendRow(
+                row.labelKey === 'card'
+                    ? { kind: 'card-restricted', reason: cardEntry.reason }
+                    : { kind: 'restricted-country' }
+            ),
+        [cardEntry.reason]
     )
 
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──
@@ -314,6 +329,17 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
 
     const handleRowClick = useCallback(
         (row: UnlockRow) => {
+            if (
+                row.labelKey === 'card' &&
+                row.chip === 'attention' &&
+                (cardEntry.reason === 'duplicate_account' ||
+                    cardEntry.reason === 'imported_identity_rejected' ||
+                    cardEntry.action === 'contact-support' ||
+                    entryAction(cardEntry, nextActions)?.kind === 'contact-support')
+            ) {
+                setIsSupportModalOpen(true)
+                return
+            }
             if (row.href) {
                 router.push(row.href)
                 return
@@ -333,7 +359,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
             // name (display); icons are not shown in the modal itself.
             setSelectedRegion({ path: row.regionPath, name: t(`groups.${regionGroupKey(row.regionPath)}`), icon: '' })
         },
-        [router, t, isKycDegraded]
+        [router, t, isKycDegraded, cardEntry, nextActions, setIsSupportModalOpen]
     )
 
     // What both forms of the shared list take from this screen.

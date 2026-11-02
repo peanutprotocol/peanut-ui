@@ -42,3 +42,14 @@ it.each([{ marketingPush: true }, { emailUpdates: true }])(
         expect(fetchMock).toHaveBeenCalledTimes(1)
     }
 )
+
+it('binds a preference PUT to the account that initiated the choice', async () => {
+    const changes = { push: true, marketingPush: false, pushPermission: 'granted' as const }
+    fetchMock.mockResolvedValue(response(200, { ...changes }))
+    await notificationsApi.savePreferences(changes, 'user-a')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledWith('/notifications/preferences', {
+        method: 'PUT',
+        body: JSON.stringify({ ...changes, expectedUserId: 'user-a' }),
+    })
+})

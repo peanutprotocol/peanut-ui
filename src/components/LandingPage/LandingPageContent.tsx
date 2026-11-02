@@ -19,6 +19,12 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
 
     // Only some answers have a single article worth linking.
     const learnMoreHrefs: Record<string, string> = {
+        // Keep the pinned content's numbered IDs until the content pin changes.
+        '1': contentHrefs.whatAreDigitalDollars,
+        '2': contentHrefs.verification,
+        '3': contentHrefs.passkeys,
+        '4': contentHrefs.securityCustody,
+        '5': contentHrefs.feesPricing,
         'who-can-pay': contentHrefs.depositBank,
         cost: contentHrefs.feesPricing,
         'local-bank': contentHrefs.supportedGeographies,

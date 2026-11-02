@@ -51,6 +51,7 @@ export type UpdateUserFailureKind = 'network' | 'http' | 'other'
 export interface UpdateUserResult<T> {
     data?: T
     error?: string
+    code?: string
     failureKind?: UpdateUserFailureKind
     /** The HTTP status, when the API answered. */
     status?: number

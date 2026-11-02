@@ -66,6 +66,7 @@ export function IdentityDocumentScreen({
     documentsLoading = false,
     busy,
     error,
+    frozenDocument = null,
     onBack,
     onContinue,
     onChangeResidence,
@@ -80,6 +81,8 @@ export function IdentityDocumentScreen({
     documentsLoading?: boolean
     busy: boolean
     error: string | null
+    /** An open replacement can only resume on the document the API already saved. */
+    frozenDocument?: PaperworkVerificationDocument | null
     onBack: () => void
     onContinue: (document: PaperworkVerificationDocument) => void
     onChangeResidence?: () => void
@@ -209,9 +212,16 @@ export function IdentityDocumentScreen({
                 body={issued}
                 bodyWrap
                 leading={<Flag country={c.issuingCountry} />}
-                trailing={busy && chosen === key ? <Spinner /> : undefined}
+                trailing={
+                    busy && chosen === key ? (
+                        <Spinner />
+                    ) : frozenDocument && keyOf(frozenDocument) === key ? (
+                        <Icon name="check" size={20} />
+                    ) : undefined
+                }
                 chevron={!(busy && chosen === key)}
                 disabled={busy && chosen !== key}
+                aria-current={frozenDocument && keyOf(frozenDocument) === key ? 'true' : undefined}
                 onClick={() => pick(c, source)}
                 data-testid={`verify-id-option-${key}`}
             />
@@ -282,10 +292,12 @@ export function IdentityDocumentScreen({
                 )}
                 {document && (pickable || featureRefused > 0) && (
                     <ListGroup>
-                        {protectionInMain && protectionChoices.map((c) => row(c, 'list'))}
-                        {main.map((c) => row(c, 'list'))}
-                        {refused.map((c) => refusedRow(c))}
-                        {otherChoices.length > 0 && (
+                        {(frozenDocument
+                            ? [frozenDocument]
+                            : [...(protectionInMain ? protectionChoices : []), ...main]
+                        ).map((c) => row(c, 'list'))}
+                        {!frozenDocument && refused.map((c) => refusedRow(c))}
+                        {!frozenDocument && otherChoices.length > 0 && (
                             <ListItem
                                 title={t('documentList.other')}
                                 body={t('documentList.otherHint')}

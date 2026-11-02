@@ -81,3 +81,25 @@ describe('InitiateKycModal — gate kinds', () => {
         expect(onVerify).not.toHaveBeenCalled()
     })
 })
+
+describe('page processing actions match their purpose', () => {
+    it('the in-review acknowledgement has no upload icon', () => {
+        renderModal({ variant: 'provider_rejection', reasonCode: 'requirements_in_review' })
+        const gotIt = screen.getByRole('button', { name: /got it/i })
+        expect(gotIt.querySelector('svg')).toBeNull()
+    })
+    it('slow processing has one support control without an upload icon', () => {
+        const onContactSupport = jest.fn()
+        renderModal({
+            variant: 'provider_rejection',
+            reasonCode: 'bridge_processing',
+            pendingSince: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+            onContactSupport,
+        })
+        const support = screen.getAllByRole('button', { name: /contact support/i })
+        expect(support).toHaveLength(1)
+        expect(support[0].querySelector('svg')).toBeNull()
+        fireEvent.click(support[0])
+        expect(onContactSupport).toHaveBeenCalledTimes(1)
+    })
+})

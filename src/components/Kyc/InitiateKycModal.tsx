@@ -403,14 +403,14 @@ export const InitiateKycModal = ({
                     <PageStack.Center>
                         <DocumentRequestState
                             title={getTitle()}
-                            ctaIcon={isHostedCheck ? null : undefined}
+                            ctaIcon={cta.icon ?? null}
                             reason={description(false)}
                             reasonTestId={descriptionTestId}
                             ctaLabel={cta.text}
                             onCta={cta.onClick}
                             ctaLoading={isLoading}
                             ctaTestId={cta.testId}
-                            onContactSupport={onContactSupport}
+                            onContactSupport={slow ? undefined : onContactSupport}
                         />
                     </PageStack.Center>
                 </PageStack>

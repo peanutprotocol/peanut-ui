@@ -76,6 +76,62 @@ function addFixture(name: string, fixture: Fixture) {
 }
 
 describe('fixtureRespond capability report', () => {
+    it.each(['get-paid-usd-closed-bangladesh', 'get-paid-usd-closed-bangladesh-claim'])(
+        '%s carries the paperwork USD refusal into its synthesized report',
+        async (name) => {
+            activateFixture(name)
+            const body = await (await fixtureRespond('/users/me')).json()
+            const paperwork = await (await fixtureRespond('/users/kyc/paperwork')).json()
+            expect(paperwork.products).toContainEqual(
+                expect.objectContaining({ product: 'bridge.usd', available: false })
+            )
+            expect(body.capabilities.features.bank.accounts.USD).toMatchObject({ state: 'refused' })
+            expect(body.capabilities.features.bank.accounts.EUR.state).toBe('action_required')
+            expect(body.capabilities.features.bank.accounts.GBP.state).toBe('action_required')
+            expect(body.capabilities.features.bank.accounts.MXN.state).toBe('action_required')
+        }
+    )
+
+    it.each(['qr-pay-identity-missing', 'qr-pay-identity-restart-pending', 'qr-pay-identity-document-missing'])(
+        '%s exposes an explicit resolved identity restart and a matching QR action',
+        async (name) => {
+            activateFixture(name)
+            const body = await (await fixtureRespond('/users/me')).json()
+            expect(body.capabilities.features.qr).toMatchObject({
+                state: 'action_required',
+                action: 'restart-identity',
+            })
+            const qr = body.capabilities.rails.find((rail: { id: string }) => rail.id === 'manteca.pix_br')
+            expect(qr.resolved).toMatchObject({
+                status: 'fixable',
+                blocking: { selfHealable: true, selfHealKind: 'restart-identity' },
+                nextAction: { kind: 'restart-identity' },
+            })
+        }
+    )
+
+    it('preserves capability restriction metadata in report synthesis', async () => {
+        const restriction = {
+            code: 'manteca_us_nationality',
+            affectedRailIds: ['manteca.pix_br'],
+            userMessage: 'This identity cannot use this provider.',
+        }
+        addFixture('test-report-synthesis', {
+            route: '/profile/accounts',
+            about: 'Synthetic restricted identity metadata fixture',
+            responses: {
+                'GET /users/me': {
+                    capabilities: { rails: [], nextActions: [], restrictions: [restriction] },
+                    identityVerification: { status: 'verified' },
+                    residence: { declared: 'BR', verified: null },
+                },
+            },
+        })
+        const body = await (await fixtureRespond('/users/me')).json()
+        expect(body.capabilities.restrictions).toEqual([restriction])
+        expect(body.capabilities.features.local.accounts.BRL).toMatchObject({ state: 'refused' })
+    })
+
     it.each(['add-money-brazil-paused', 'withdraw-brazil-paused'])(
         '%s supplies the Brazil residence used by the pause and capability report',
         async (name) => {

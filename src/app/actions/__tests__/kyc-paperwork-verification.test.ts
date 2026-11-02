@@ -276,3 +276,19 @@ describe("a user handed back to today's flow", () => {
         expect(error).toEqual(new Error('KYC questions unavailable'))
     })
 })
+
+describe('identity token hand-back', () => {
+    it.each([
+        { code: 'existing_verification' },
+        {
+            code: 'existing_verification',
+            userMessage: 'Continue your existing identity verification.',
+            error: 'existing_verification',
+        },
+    ])('maps the existing-verification token conflict to a hand-back: %j', async (body) => {
+        mockFetch.mockResolvedValue(reply(409, body))
+        await expect(
+            startPaperworkVerificationIdentity('attempt-1', { type: 'PASSPORT', issuingCountry: 'US' })
+        ).resolves.toMatchObject({ kind: 'handed-back' })
+    })
+})

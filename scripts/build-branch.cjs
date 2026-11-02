@@ -7,6 +7,7 @@
  * overrides both.
  */
 const { execSync } = require('child_process')
+const { createHash } = require('crypto')
 
 const git = (command) => {
     try {
@@ -34,10 +35,14 @@ function buildBranch(env = process.env) {
 const isTestBuild = (branch) => !!branch && branch !== 'main'
 
 /** The branch's own Capgo channel: lowercase, dashes, within Capgo's name limit. */
-const testOtaChannel = (branch) =>
-    `test-${branch
+const testOtaChannel = (branch) => {
+    const slug = branch
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')}`.slice(0, 60)
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 46)
+    const digest = createHash('sha256').update(branch).digest('hex').slice(0, 8)
+    return `test-${slug || 'branch'}-${digest}`
+}
 
 module.exports = { buildBranch, isTestBuild, testOtaChannel }

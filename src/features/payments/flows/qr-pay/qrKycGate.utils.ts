@@ -87,15 +87,21 @@ const IDENTITY_RESTART_ORDER = [
     ...PROVIDER_ID_REQUEST_REASONS,
 ] as const
 export type QrIdentityRestartReason = (typeof IDENTITY_RESTART_ORDER)[number]
-const IDENTITY_RESTART_REASONS: ReadonlySet<string> = new Set(IDENTITY_RESTART_ORDER)
+const SHARED_IDENTITY_REASONS: ReadonlySet<string> = new Set([
+    IDENTITY_DOCUMENT_MISSING_CODE,
+    QR_IDENTITY_RESTART_PENDING_CODE,
+    QR_IDENTITY_MISSING_CODE,
+])
 
-/** Which restart cause the QR screen explains, from the actions and the Manteca rails; null when none applies. */
+/** QR owns Manteca rail causes and provider-less identity actions; another provider's shared restart purpose cannot change the QR check. */
 export function qrIdentityRestartReason(input: {
     mantecaRails: RailCapability[]
     nextActions: NextAction[]
 }): QrIdentityRestartReason | null {
     const named = new Set([
-        ...input.nextActions.filter((action) => action.kind === 'restart-identity').map((action) => action.purpose),
+        ...input.nextActions
+            .filter((action) => action.kind === 'restart-identity' && SHARED_IDENTITY_REASONS.has(action.purpose))
+            .map((action) => action.purpose),
         ...input.mantecaRails.map((rail) => rail.resolved?.blocking?.code ?? rail.reason?.code ?? ''),
     ])
     return IDENTITY_RESTART_ORDER.find((code) => named.has(code)) ?? null
@@ -112,12 +118,7 @@ export function qrVerificationNeedsRestart(input: {
     mantecaRails: RailCapability[]
     nextActions: NextAction[]
 }): boolean {
-    const isRestartAction = (action: NextAction) =>
-        action.kind === 'restart-identity' && IDENTITY_RESTART_REASONS.has(action.purpose)
-    if (input.nextActions.some(isRestartAction)) return true
-    return input.mantecaRails.some((rail) =>
-        IDENTITY_RESTART_REASONS.has(rail.resolved?.blocking?.code ?? rail.reason?.code ?? '')
-    )
+    return qrIdentityRestartReason(input) !== null
 }
 
 /**

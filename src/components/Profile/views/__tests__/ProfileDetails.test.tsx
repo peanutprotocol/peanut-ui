@@ -5,7 +5,7 @@
  * only for something collected; no location row.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { getKycDetails } from '@/app/actions/kyc-paperwork-verification'
 import type { KycCollectedDetails } from '@/app/actions/types/kyc-paperwork-verification.types'
@@ -16,7 +16,7 @@ jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/app/actions/kyc-paperwork-verification', () => ({ getKycDetails: jest.fn() }))
 const mockUser = {
-    user: { fullName: 'Ivan Petrenko', email: 'ivan@example.com' },
+    user: { userId: 'user-a', fullName: 'Ivan Petrenko', email: 'ivan@example.com' },
     residence: normalizeResidence({ declared: 'PT', declaredSecond: null, verified: 'PT' }),
 }
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
@@ -53,7 +53,8 @@ const rowValue = (label: string) => {
 }
 
 beforeEach(() => {
-    jest.mocked(getKycDetails).mockResolvedValue(details())
+    mockUser.user = { userId: 'user-a', fullName: 'Ivan Petrenko', email: 'ivan@example.com' }
+    jest.mocked(getKycDetails).mockReset().mockResolvedValue(details())
     mockUser.residence = normalizeResidence({ declared: 'PT', declaredSecond: null, verified: 'PT' })
 })
 
@@ -160,5 +161,59 @@ describe('ProfileDetailsView', () => {
         render()
         expect(await screen.findByText('Address')).toBeInTheDocument()
         expect(rowValue('Address')).toBe('Not stored at Peanut')
+    })
+})
+
+describe('account-scoped KYC details', () => {
+    it('never paints A’s cached city or phone while B’s read is pending', async () => {
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } })
+        const tree = () => (
+            <QueryClientProvider client={client}>
+                <ProfileDetailsView />
+            </QueryClientProvider>
+        )
+        const first = renderWithIntl(tree())
+        await screen.findByText('Odesa')
+        first.unmount()
+        mockUser.user = { userId: 'user-b', fullName: 'Maria Silva', email: 'b@example.com' }
+        let finish!: (value: KycCollectedDetails) => void
+        jest.mocked(getKycDetails).mockReturnValueOnce(
+            new Promise((resolve) => {
+                finish = resolve
+            })
+        )
+        renderWithIntl(tree())
+        expect(screen.getByText('b@example.com')).toBeInTheDocument()
+        expect(screen.queryByText('Odesa')).not.toBeInTheDocument()
+        expect(screen.queryByText('+351912345678')).not.toBeInTheDocument()
+        await act(async () => finish(details({ stored: { cityOfBirth: 'Lisbon', phone: '+351922222222' } })))
+        expect(await screen.findByText('Lisbon')).toBeInTheDocument()
+        expect(screen.queryByText('Odesa')).not.toBeInTheDocument()
+        client.clear()
+    })
+
+    it('ignores A’s late detail response after switching the mounted view to B', async () => {
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        let finishA!: (value: KycCollectedDetails) => void
+        jest.mocked(getKycDetails).mockReturnValueOnce(
+            new Promise((resolve) => {
+                finishA = resolve
+            })
+        )
+        const tree = () => (
+            <QueryClientProvider client={client}>
+                <ProfileDetailsView />
+            </QueryClientProvider>
+        )
+        const view = renderWithIntl(tree())
+        mockUser.user = { userId: 'user-b', fullName: 'Maria Silva', email: 'b@example.com' }
+        jest.mocked(getKycDetails).mockResolvedValue(details({ stored: { cityOfBirth: 'Lisbon' } }))
+        view.rerender(tree())
+        expect(await screen.findByText('Lisbon')).toBeInTheDocument()
+        await act(async () => finishA(details()))
+        expect(screen.queryByText('Odesa')).not.toBeInTheDocument()
+        expect(screen.queryByText('+351912345678')).not.toBeInTheDocument()
+        expect(screen.getByText('Lisbon')).toBeInTheDocument()
+        client.clear()
     })
 })
