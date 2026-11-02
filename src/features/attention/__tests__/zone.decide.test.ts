@@ -349,3 +349,52 @@ describe('the push ask in the zone', () => {
         expect(d.zone).toEqual({ id: 'checklist', mode: 'ask' })
     })
 })
+
+describe('the yield pick holds for the session', () => {
+    const session = { count: 5, settleDeadlinePassed: true }
+    const threeCards = { invitesSent: 0, hasSupportSurvivorBadge: false, hasFullName: false }
+    const resting = { lastSessionShown: 4, consecutiveSessions: 3 }
+
+    test('booking the least recently shown card does not hand the zone to the runner-up', () => {
+        const ledger = { invite: resting, 'complete-profile': { lastSessionShown: 2, consecutiveSessions: 1 } }
+        const first = run(threeCards, session, ledger).zone?.id
+        expect(first).toBe('bug-bounty')
+        const booked = { ...ledger, 'bug-bounty': { lastSessionShown: 5, consecutiveSessions: 1 } }
+        expect(run(threeCards, session, booked).zone?.id).toBe('bug-bounty')
+    })
+
+    test('a loading card ranked above the yield pick holds the zone until it settles', () => {
+        // virtual-account (T3·1) rests; qr-payment (T3·2) still loading; invite (T5·1) fresh
+        const loading = {
+            depositAccounts: { enabled: true, loaded: true, claimable: 1, active: 0 },
+            qr: { canPayNow: true, hasMadeQrPayment: undefined, verifyOpensQr: false },
+            invitesSent: 0,
+        }
+        const ledger = { 'virtual-account': resting }
+        expect(run(loading, { count: 5 }, ledger).trace.verdicts['qr-payment']).toBe('unknown')
+        expect(run(loading, { count: 5 }, ledger).zone).toBeNull()
+        expect(run(loading, { count: 5, settleDeadlinePassed: true }, ledger).zone?.id).toBe('invite')
+    })
+})
+
+describe('a zone ask the zone cannot show on this device', () => {
+    const webDenied = {
+        isNative: false,
+        push: { ready: true, unanswered: false, promptedThisSession: false, notEnabled: true },
+        showEarlyUserModal: true,
+    }
+
+    test('does not keep the zone busy: the T6 announcement may interrupt on the web', () => {
+        const d = run(webDenied, { count: 5, settleDeadlinePassed: true })
+        expect(d.zone).toBeNull()
+        expect(d.interrupt).toBe('early-user')
+    })
+
+    test('does not hold the zone while it loads', () => {
+        const loadingPush = {
+            isNative: false,
+            push: { ready: false, unanswered: false, promptedThisSession: false, notEnabled: false },
+        }
+        expect(run({ ...loadingPush, invitesSent: 0 }, { count: 5 }).zone?.id).toBe('invite')
+    })
+})
