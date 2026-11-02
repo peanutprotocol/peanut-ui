@@ -94,6 +94,13 @@ let mockLastError: GrantSessionKeyError | null = null
 jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({
     useGrantSessionKey: () => ({ grant: mockGrant, isGranting: false, lastError: mockLastError }),
 }))
+// an account on the existing card permission: the decision that picks this prompt
+jest.mock('@/hooks/useCardFundingAccess', () => ({
+    useCardFundingAccess: () => ({
+        access: { fundingMode: 'legacy', enrollmentAllowed: false },
+        setupPath: 'legacy',
+    }),
+}))
 type MockCard = { id: string; status: string; hasWithdrawApproval: boolean }
 let mockCards: MockCard[] = []
 jest.mock('@/hooks/useRainCardOverview', () => ({
