@@ -14,6 +14,7 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useReadsSelectedTokenPrice } from '@/hooks/useReadsSelectedTokenPrice'
 import { sendLinksApi } from '@/services/sendLinks'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
@@ -126,6 +127,8 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
         setHideTokenSelector,
     } = useClaimBankFlow()
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
+    // the claim gates on the selected token's data and re-routes when it refreshes
+    useReadsSelectedTokenPrice()
     const {
         selectedChainID,
         selectedTokenAddress,

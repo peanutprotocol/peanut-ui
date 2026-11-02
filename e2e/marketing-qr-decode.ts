@@ -3,6 +3,15 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
 export async function decodeQr(context: BrowserContext, element: Locator, baseURL: string): Promise<string> {
+    // Inline stickers drop in with a framer-motion spring, which `animations: 'disabled'` does not
+    // stop. Decode the resting pose a person scans, not a frame from the middle of the drop.
+    let previousBox = ''
+    for (let attempt = 0; attempt < 20; attempt++) {
+        const box = JSON.stringify(await element.boundingBox())
+        if (box === previousBox) break
+        previousBox = box
+        await element.page().waitForTimeout(150)
+    }
     // Decode pixels from the rendered QR, not its DOM data attribute or source URL.
     const png = await element.screenshot({ animations: 'disabled' })
     const modulePath = path.dirname(require.resolve('qr-scanner'))

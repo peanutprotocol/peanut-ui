@@ -139,6 +139,7 @@ async function main() {
             'src/utils/demo-api.ts',
             'src/constants/demo-data.ts',
             'src/constants/residence.consts.ts',
+            'src/types/api.openapi.json',
         ])
     )
     const manifest = () => {

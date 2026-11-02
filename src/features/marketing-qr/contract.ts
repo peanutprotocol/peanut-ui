@@ -2,7 +2,7 @@ import { UTM_MEDIUMS, UTM_SOURCES } from '@/utils/utm.utils'
 
 const LOCALES = ['en', 'es-419', 'es-ar', 'pt-br'] as const
 const PAGE_SLOTS = {
-    home: ['hero', 'app-fold', 'rates', 'countries'],
+    home: ['hero', 'app-fold', 'rates', 'countries', 'artwork', 'pay-local-ar', 'pay-local-br'],
     'us-europe-accounts': ['hero', 'request-fold', 'close', 'artwork'],
     'qr-argentina': ['hero', 'close', 'artwork', 'hero-sticker', 'close-sticker'],
     'qr-brazil': ['hero', 'close', 'artwork', 'hero-sticker', 'close-sticker', 'ways-in'],
@@ -31,6 +31,8 @@ export type MarketingQrRegistration = {
 }
 
 export const MARKETING_QR_MAX_URL_BYTES = 200
+/** Names the registration on the scanned /home URL; kept short so sticker QRs stay at version 4. */
+export const MARKETING_QR_ENTRY_PARAM = 'mqr'
 export const MARKETING_QR_EVENT = 'marketing_qr_opened'
 const SOURCES = new Set<string>(Object.values(UTM_SOURCES))
 const MEDIUMS = new Set<string>(Object.values(UTM_MEDIUMS))
@@ -186,7 +188,9 @@ export function buildMarketingQrUrl({
         const parsedOrigin = new URL(origin)
         if (!['https:', 'http:'].includes(parsedOrigin.protocol) || parsedOrigin.username || parsedOrigin.password)
             return null
-        base = `${parsedOrigin.origin}/q/${registration.qr_id}`
+        // Released native apps claim /home whatever its query, so an installed app opens
+        // directly. Browsers reach the /q handoff through the proxy (marketingQrHandoffUrl).
+        base = `${parsedOrigin.origin}/home?${MARKETING_QR_ENTRY_PARAM}=${registration.qr_id}`
     } catch {
         return null
     }
@@ -211,7 +215,7 @@ export function buildMarketingQrUrl({
         }
         if (attribution.attributionAdjustment !== 'none') params.set('a', attribution.attributionAdjustment)
         const query = params.toString()
-        return `${base}${query ? `?${query}` : ''}`
+        return `${base}${query ? `&${query}` : ''}`
     }
     let url = encode()
     if (url.length > MARKETING_QR_MAX_URL_BYTES && attribution.campaign.content) {
@@ -226,13 +230,44 @@ export function buildMarketingQrUrl({
     return url.length <= MARKETING_QR_MAX_URL_BYTES ? url : null
 }
 
+/**
+ * Where the proxy sends a browser that opened a registered QR: the /q handoff, with the
+ * QR's campaign labels. Returns null for any other URL, which keeps its existing route.
+ */
+export function marketingQrHandoffUrl(url: URL): URL | null {
+    if (url.pathname !== '/home') return null
+    const registration = getMarketingQrRegistration(url.searchParams.get(MARKETING_QR_ENTRY_PARAM) ?? '')
+    if (!registration) return null
+    const target = new URL(`/q/${registration.qr_id}`, url.origin)
+    // Pass every other key through, so /q still rejects unknown or duplicate keys.
+    url.searchParams.forEach((value, key) => {
+        if (key !== MARKETING_QR_ENTRY_PARAM) target.searchParams.append(key, value)
+    })
+    return target
+}
+
+/** The opening event's fields, shared by the web handoff and the installed apps. */
+export function marketingQrEventFields(
+    registration: MarketingQrRegistration,
+    attribution: MarketingQrAttribution
+): Record<string, string> {
+    return {
+        qr_id: registration.qr_id,
+        utm_source: attribution.campaign.source,
+        utm_medium: attribution.campaign.medium,
+        utm_campaign: attribution.campaign.campaign,
+        ...(attribution.campaign.content ? { utm_content: attribution.campaign.content } : {}),
+        attribution_origin: attribution.attributionOrigin,
+        attribution_adjustment: attribution.attributionAdjustment,
+    }
+}
+
 export function marketingQrContinuation(
     registration: MarketingQrRegistration,
     campaign: MarketingQrCampaign,
     analyticsAllowed: boolean
 ): string {
     const params = new URLSearchParams({
-        app_entry: '1',
         marketing_qr: registration.qr_id,
         qr_analytics: analyticsAllowed ? 'allow' : 'deny',
     })
@@ -242,7 +277,8 @@ export function marketingQrContinuation(
         params.set('utm_campaign', campaign.campaign)
         if (campaign.content) params.set('utm_content', campaign.content)
     }
-    return `/home?${params}`
+    // Straight to the store page: the browser has already passed /home and the proxy.
+    return `/app?${params}`
 }
 
 export function parseMarketingQrHandoff(

@@ -15,8 +15,9 @@ jest.mock('@/context/authContext', () => ({ useOptionalAuth: () => null }))
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 
+// rendered without a parent drawer, as on a receipt page
 function Card({ transaction, isPublic = false }: { transaction: TransactionDetails; isPublic?: boolean }) {
-    const vm = useReceiptViewModel(transaction, { isPublic })
+    const vm = useReceiptViewModel(transaction, { isPublic, surface: 'page' })
     return (
         <QueryClientProvider client={new QueryClient()}>
             <ToastProvider>

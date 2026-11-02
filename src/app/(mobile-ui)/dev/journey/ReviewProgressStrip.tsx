@@ -31,7 +31,7 @@ export default function ReviewProgressStrip({
             <ProgressBar
                 value={percent}
                 className="min-w-24 flex-1"
-                fillClassName={done ? 'bg-background-icon-bubble-green' : 'bg-action-secondary'}
+                fillClassName={done ? 'bg-background-icon-bubble-green' : 'bg-background-accent-yellow'}
             />
             <span className="text-label-m text-foreground-secondary">
                 {done ? 'all reviewed' : `${total - checked} awaiting verdict`}

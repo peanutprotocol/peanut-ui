@@ -29,15 +29,23 @@ describe('starLpQrUrl', () => {
         expect(url.searchParams.get('utm_content')).toBe('w')
     })
 
+    it('tags the homepage stickers with their own one-letter slot', () => {
+        expect(
+            starLpQrUrl({
+                origin: 'https://peanut.me',
+                migrationOn: false,
+                campaign: 'qr-brazil',
+                slot: 'home-sticker',
+            })
+        ).toBe('https://peanut.me/setup?utm_source=star-lp&utm_medium=content&utm_campaign=qr-br&utm_content=m')
+    })
+
     it('fits QR version 5 at level L on prod, flag on or off (byte capacity 106)', () => {
         for (const migrationOn of [false, true]) {
-            const url = starLpQrUrl({
-                origin: 'https://peanut.me',
-                migrationOn,
-                campaign: 'qr-argentina',
-                slot: 'close-sticker',
-            })
-            expect(url.length).toBeLessThanOrEqual(106)
+            for (const slot of ['close-sticker', 'home-sticker'] as const) {
+                const url = starLpQrUrl({ origin: 'https://peanut.me', migrationOn, campaign: 'qr-argentina', slot })
+                expect(url.length).toBeLessThanOrEqual(106)
+            }
         }
         expect(STAR_LP_QR_LEVEL).toBe('L')
     })

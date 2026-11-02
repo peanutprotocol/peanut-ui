@@ -11,7 +11,7 @@ import NetworkFeeRow from '@/components/Global/NetworkFeeRow'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
-import { type ITokenPriceData } from '@/interfaces/interfaces'
+import { type IToken } from '@/interfaces/interfaces'
 import { formatCurrency, isStableCoin } from '@/utils/general.utils'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { useMemo } from 'react'
@@ -21,7 +21,7 @@ import { savedAddressLabel } from '@/utils/saved-address.utils'
 
 interface WithdrawConfirmViewProps {
     amount: string
-    token: ITokenPriceData
+    token: IToken
     chain: ChainWithTokens
     toAddress: string
     /** Rhino's quoted total fee (USD), verbatim from `useCrossChainTransfer`. */

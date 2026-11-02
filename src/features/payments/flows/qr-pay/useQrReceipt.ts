@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { useHistoryEntry } from '@/hooks/useHistoryEntry'
+import { withPublicReceipt } from '@/utils/history.utils'
 import { qrPaymentDisplayStatus } from '@/utils/qr-payment.utils'
 import { useQrPayFlow } from './QrPayFlowContext'
 import { formatBrTaxId } from '@/utils/br-tax-id.utils'
@@ -8,6 +10,9 @@ import { normalizeMerchantName } from '@/components/TransactionDetails/transacti
 
 export function useQrReceipt() {
     const { qrPayment, currency, usdAmount, methodIcon, pixKeyOwner, pixKeyLabel } = useQrPayFlow()
+    // the receipt is built here, before Activity has it, so only the history
+    // entry can say whether it has a public link to share
+    const { data: entry } = useHistoryEntry(qrPayment?.id, 'QR_PAY')
     // receipt transaction for the success drawer — built up-front (not in the
     // cta's onClick) because the drawer opens off the url's `?tx=` match.
     const receiptTransaction: TransactionDetails | null = useMemo(() => {
@@ -16,7 +21,7 @@ export function useQrReceipt() {
         // A PIX key the payer looked up: the owner, with the key beside the name,
         // as activity shows it.
         const counterparty = pixKeyOwner ? normalizeMerchantName(pixKeyOwner.name) : qrPayment.details.merchant.name
-        return {
+        const receipt: TransactionDetails = {
             // Manteca synthetic id — the only key /receipt/<id>
             // resolves, and what Activity rows already carry.
             // `externalId` is UUID-shaped, so it slips past the
@@ -48,7 +53,8 @@ export function useQrReceipt() {
             },
             totalAmountCollected: Number(usdAmount),
         }
-    }, [qrPayment, currency, usdAmount, methodIcon, pixKeyOwner, pixKeyLabel])
+        return withPublicReceipt(receipt, entry)
+    }, [qrPayment, currency, usdAmount, methodIcon, pixKeyOwner, pixKeyLabel, entry])
 
     return receiptTransaction
 }

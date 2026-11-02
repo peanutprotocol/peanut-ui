@@ -89,10 +89,19 @@ const AmountInput = ({
     // Only autofocus on desktop (WEB), not on mobile devices (IOS/ANDROID)
     const shouldAutoFocus = deviceType === DeviceType.WEB
     const showConversion = !hideCurrencyToggle && !!secondaryDenomination
+    const initialSymbol =
+        initialDenomination &&
+        (initialDenomination === primaryDenomination.symbol || initialDenomination === secondaryDenomination?.symbol)
+            ? initialDenomination
+            : primaryDenomination.symbol
 
     // Store display value for input field (what user sees when typing)
     const [displayValue, setDisplayValue] = useState<string>(finiteInput(initialAmount))
     const [exactAmount, setExactAmount] = useState(finiteInput(initialAmount))
+    // Anchor intent in the denomination last edited by the payer. A toggle is
+    // presentation, not a new source amount: repeating rates cannot be stored
+    // as a finite decimal and converted back without losing a minor unit.
+    const [exactSymbol, setExactSymbol] = useState(initialSymbol)
     // Use initialDenomination if provided and valid, otherwise default to primaryDenomination
     const [displaySymbol, setDisplaySymbol] = useState<string>(() => {
         if (initialDenomination) {
@@ -125,6 +134,7 @@ const AmountInput = ({
             const rawAmount = finiteInput(initialAmount)
             setDisplayValue(rawAmount)
             setExactAmount(rawAmount)
+            setExactSymbol(displaySymbol)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialAmount])
@@ -167,26 +177,34 @@ const AmountInput = ({
     // Retain exact raw conversion precision across toggles, even when the
     // displayed denomination rounds to zero. Round only the emitted/displayed
     // value, never the canonical amount used for the return conversion.
-    const alternativeValue = useMemo(() => {
-        if (!secondaryDenomination) return '0'
+    const rawAlternativeAmount = useMemo(() => {
+        if (!alternativeDisplaySymbol) return null
         return convertDecimalAmount(
             exactAmount || '0',
             denominations[alternativeDisplaySymbol]?.price,
-            denominations[displaySymbol]?.price,
-            36
-        )
-    }, [exactAmount, secondaryDenomination, denominations, alternativeDisplaySymbol, displaySymbol])
-
-    const rawAlternativeAmount = useMemo(() => {
-        if (alternativeValue === null) return null
-        return convertDecimalAmount(
-            alternativeValue,
-            1,
-            1,
+            denominations[exactSymbol]?.price,
             denominations[alternativeDisplaySymbol]?.decimals ?? 6,
             roundSecondaryUp && alternativeDisplaySymbol === secondaryDenomination?.symbol
         )
-    }, [alternativeValue, denominations, alternativeDisplaySymbol, roundSecondaryUp, secondaryDenomination?.symbol])
+    }, [
+        exactAmount,
+        exactSymbol,
+        denominations,
+        alternativeDisplaySymbol,
+        roundSecondaryUp,
+        secondaryDenomination?.symbol,
+    ])
+
+    const shownValue =
+        displaySymbol === exactSymbol
+            ? displayValue
+            : (convertDecimalAmount(
+                  exactAmount || '0',
+                  denominations[displaySymbol]?.price,
+                  denominations[exactSymbol]?.price,
+                  denominations[displaySymbol]?.decimals ?? 6,
+                  roundSecondaryUp && displaySymbol === secondaryDenomination?.symbol
+              ) ?? '')
 
     const alternativeDisplayValue = useMemo(() => {
         if (rawAlternativeAmount === null) return '—'
@@ -216,7 +234,7 @@ const AmountInput = ({
     useEffect(() => {
         const isPrimaryDenomination = displaySymbol === primaryDenomination.symbol
         // Strip commas before passing to consumers - they expect raw numeric strings
-        const rawDisplayValue = displayValue === '.' ? '' : displayValue
+        const rawDisplayValue = shownValue === '.' ? '' : shownValue
         // Don't output "0.00" when there's no actual value - keep it empty to avoid feedback loops
         const rawAlternativeValue = hasValue ? (rawAlternativeAmount ?? '') : ''
 
@@ -233,7 +251,7 @@ const AmountInput = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         displayValue,
-        alternativeValue,
+        shownValue,
         rawAlternativeAmount,
         alternativeDisplayValue,
         alternativeDisplaySymbol,
@@ -276,6 +294,7 @@ const AmountInput = ({
                     suggestionArmedRef.current = false
                     setDisplayValue(formattedAmount)
                     setExactAmount(formattedAmount)
+                    setExactSymbol(displaySymbol)
                 }
             }
         },
@@ -308,6 +327,7 @@ const AmountInput = ({
             lastSuggestionRef.current = formattedAmount
             setDisplayValue(formattedAmount)
             setExactAmount(formattedAmount)
+            setExactSymbol(displaySymbol)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [defaultSliderSuggestedAmount])
@@ -341,23 +361,24 @@ const AmountInput = ({
         suggestionArmedRef.current = false
         setDisplayValue(fillValue)
         setExactAmount(fillValue)
+        setExactSymbol(displaySymbol)
         // Reported separately from setPrimaryAmount, which cannot tell a filled
         // amount from a typed one — the withdraw screen needs that distinction
         // to know the user asked for "everything".
         onBalanceFilled?.(fillValue)
-    }, [fillValue, onBalanceFilled])
+    }, [fillValue, onBalanceFilled, displaySymbol])
 
     const inputRef = useRef<HTMLInputElement>(null)
     // set input width based on display value length
     // add extra space for decimal numbers to prevent cutoff
     useEffect(() => {
         if (inputRef.current) {
-            const length = displayValue?.length || 0
+            const length = shownValue?.length || 0
             // add 0.6ch extra width to prevent cutoff, minimum 4ch
             const width = length ? `${length + 0.6}ch` : '4ch'
             inputRef.current.style.width = width
         }
-    }, [displayValue])
+    }, [shownValue])
 
     // Autofocus the amount field on mount (desktop only). Done explicitly via the
     // ref instead of React's `autoFocus` prop, which only fires at the exact moment
@@ -403,17 +424,18 @@ const AmountInput = ({
                                 if (formattedAmount !== undefined) {
                                     value = formattedAmount === '.' ? '.' : finiteInput(formattedAmount)
                                 }
-                                if (value === displayValue) return
+                                if (value === shownValue) return
                                 onAmountTyped?.(displaySymbol)
                                 // a payer who emptied the field takes the next suggestion
                                 suggestionArmedRef.current = value === ''
                                 setDisplayValue(value)
                                 setExactAmount(value === '.' ? '' : value)
+                                setExactSymbol(displaySymbol)
                             }}
                             ref={inputRef}
                             inputMode="decimal"
                             type="text"
-                            value={displayValue}
+                            value={shownValue}
                             autoComplete="off"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
@@ -438,7 +460,7 @@ const AmountInput = ({
                 {/* Conversion */}
                 {showConversion && (
                     <label
-                        className={`text-heading-card ${!Number(alternativeValue) ? 'text-foreground-secondary' : ''}`}
+                        className={`text-heading-card ${!Number(rawAlternativeAmount) ? 'text-foreground-secondary' : ''}`}
                     >
                         ≈ {alternativeDisplaySymbol} {conversionLabel}{' '}
                     </label>
@@ -487,7 +509,7 @@ const AmountInput = ({
                 <button
                     type="button"
                     aria-label={t('amountInput.switchCurrency')}
-                    disabled={disabled || alternativeValue === null}
+                    disabled={disabled || rawAlternativeAmount === null}
                     className="absolute top-1/2 right-0 -translate-x-1/2 -translate-y-1/2 transform cursor-pointer transition-opacity duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                     onClick={(e) => {
                         e.preventDefault()
@@ -498,11 +520,11 @@ const AmountInput = ({
                         if (!hasValue) {
                             setDisplayValue('')
                             setExactAmount('')
+                            setExactSymbol(alternativeDisplaySymbol)
                             setDisplaySymbol(alternativeDisplaySymbol)
                             return
                         }
-                        if (alternativeValue === null) return
-                        setExactAmount(alternativeValue)
+                        if (rawAlternativeAmount === null) return
                         setDisplayValue(rawAlternativeAmount ?? '')
                         setDisplaySymbol(alternativeDisplaySymbol)
                     }}

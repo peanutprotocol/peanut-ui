@@ -104,7 +104,6 @@ const API_STATIC_ROUTES = new Set([
     '/rhino/sda-transfer/preview',
     '/send-links',
     '/tokens/price',
-    '/tokens/wallet-portfolio',
     '/update-user',
     '/user/crisp-token',
     '/users/accounts',

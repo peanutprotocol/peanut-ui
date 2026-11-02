@@ -39,7 +39,7 @@ describe('DownloadReceiptPdfLink', () => {
                 <DownloadReceiptPdfLink entryId="entry-1" kind="OFFRAMP" version="completed|5" />
             </IntlWrapper>
         )
-        const link = screen.getByRole('link', { name: 'Download Receipt (PDF)' })
+        const link = screen.getByRole('link', { name: 'Download receipt (PDF)' })
         // locale rides the URL: it is the CDN cache key, and the only locale
         // signal the native external browser ever gets
         expect(link).toHaveAttribute('href', '/receipt/entry-1/pdf?kind=OFFRAMP&locale=en&v=completed%7C5')
@@ -60,7 +60,7 @@ describe('DownloadReceiptPdfLink', () => {
             </NextIntlClientProvider>
         )
 
-        expect(screen.getByRole('link', { name: 'Download Receipt (PDF)' })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: 'Download receipt (PDF)' })).toHaveAttribute(
             'href',
             '/receipt/entry-localized/pdf?kind=OFFRAMP&locale=pt-BR&v=completed%7C5'
         )
@@ -74,13 +74,13 @@ describe('DownloadReceiptPdfLink', () => {
                 <DownloadReceiptPdfLink entryId="entry-1" kind="OFFRAMP" version="completed|5" />
             </IntlWrapper>
         )
-        const before = screen.getByRole('link', { name: 'Download Receipt (PDF)' }).getAttribute('href')
+        const before = screen.getByRole('link', { name: 'Download receipt (PDF)' }).getAttribute('href')
         view.rerender(
             <IntlWrapper>
                 <DownloadReceiptPdfLink entryId="entry-1" kind="OFFRAMP" version="refunded|5" />
             </IntlWrapper>
         )
-        const after = screen.getByRole('link', { name: 'Download Receipt (PDF)' }).getAttribute('href')
+        const after = screen.getByRole('link', { name: 'Download receipt (PDF)' }).getAttribute('href')
         expect(after).not.toBe(before)
     })
 
@@ -91,7 +91,7 @@ describe('DownloadReceiptPdfLink', () => {
                 <DownloadReceiptPdfLink entryId="entry-1" kind="SEND_LINK" version="completed|5" />
             </IntlWrapper>
         )
-        fireEvent.click(screen.getByRole('link', { name: 'Download Receipt (PDF)' }))
+        fireEvent.click(screen.getByRole('link', { name: 'Download receipt (PDF)' }))
         expect(mockOpenExternalUrl).toHaveBeenCalledTimes(1)
         const opened = mockOpenExternalUrl.mock.calls[0][0] as string
         expect(opened).toMatch(/^https?:\/\//)
@@ -123,13 +123,23 @@ const tx = (overrides: Record<string, unknown> = {}, drawerOverrides: Record<str
     }) as unknown as TransactionDetails
 
 const downloadVisible = (transaction: TransactionDetails, isPublic = false) =>
-    renderHook(() => useReceiptViewModel(transaction, { isPublic })).result.current.shouldShowDownloadPdf
+    renderHook(() => useReceiptViewModel(transaction, { isPublic, surface: isPublic ? 'page' : 'drawer' })).result
+        .current.shouldShowDownloadPdf
 
 describe('useReceiptViewModel — shouldShowDownloadPdf', () => {
-    test('shows for completed fiat-rail receipts, in-app and public', () => {
+    test('shows for completed fiat-rail receipts in the app', () => {
         expect(downloadVisible(tx())).toBe(true)
-        expect(downloadVisible(tx(), true)).toBe(true)
         expect(downloadVisible(tx({}, { kind: 'QR_PAY' }))).toBe(true)
+    })
+
+    // TASK-24141: the API decides which entries anyone with the link may read
+    test('the public page shows it only for an entry the API marks as a public receipt', () => {
+        expect(downloadVisible(tx({}, { publicReceipt: true }), true)).toBe(true)
+        expect(downloadVisible(tx({ direction: 'send' }, { kind: 'DIRECT_TRANSFER', publicReceipt: true }), true)).toBe(
+            true
+        )
+        // the kind alone opens nothing
+        expect(downloadVisible(tx(), true)).toBe(false)
     })
 
     test('shows for a completed sendlink (its receipt page exists) via the txHash share gate', () => {
@@ -139,7 +149,7 @@ describe('useReceiptViewModel — shouldShowDownloadPdf', () => {
     test('shows authenticated PDF actions for every in-app transaction kind', () => {
         expect(downloadVisible(tx({ direction: 'send', txHash: '0xabc' }, { kind: 'DIRECT_TRANSFER' }))).toBe(true)
         expect(downloadVisible(tx({ direction: 'card_pay' }, { kind: 'CARD_SPEND_CLEAR' }))).toBe(true)
-        // The standalone public page remains on its established capability-url whitelist.
+        // the public page waits for the API's public-receipt flag
         expect(downloadVisible(tx({}, { kind: 'DIRECT_TRANSFER' }), true)).toBe(false)
     })
 
@@ -159,7 +169,9 @@ describe('useReceiptViewModel — shouldShowDownloadPdf', () => {
     })
 
     test('share button itself stays hidden on public receipts while download shows', () => {
-        const { result } = renderHook(() => useReceiptViewModel(tx(), { isPublic: true }))
+        const { result } = renderHook(() =>
+            useReceiptViewModel(tx({}, { publicReceipt: true }), { isPublic: true, surface: 'page' })
+        )
         expect(result.current.shouldShowShareReceipt).toBe(false)
         expect(result.current.shouldShowDownloadPdf).toBe(true)
     })

@@ -94,3 +94,79 @@ describe('nativeErrorCode', () => {
         expect(nativeErrorCode(new Error(message))).toBeUndefined()
     })
 })
+
+// The messages below are verbatim from production (Sentry and the PostHog
+// exception mirror, 30 days to 2026-10-28). Each used to fall through to the
+// LOGIN_ERROR fallback, which wipes the session at login (TASK-24017).
+describe('messages the plugin names UnknownError or NotAllowedError', () => {
+    it.each([
+        ['User canceled the request', 'canceled', 'LOGIN_CANCELED'],
+        ['[16] Canceled on BiometricPromptFragment.', 'canceled', 'LOGIN_CANCELED'],
+        ['Client call cancel', 'canceled', 'LOGIN_CANCELED'],
+        ['Sign in canceled', 'canceled', 'LOGIN_CANCELED'],
+        ['User verification is cancelled by the user.', 'canceled', 'LOGIN_CANCELED'],
+        ['This request has been cancelled by the user.', 'canceled', 'LOGIN_CANCELED'],
+        ['Passkey registration was cancelled.', 'canceled', 'LOGIN_CANCELED'],
+        ['Passkey authentication was cancelled.', 'canceled', 'LOGIN_CANCELED'],
+        ['No create options available.', 'setup_required', 'PASSKEY_UNSUPPORTED'],
+        ['Screen lock is missing.', 'setup_required', 'PASSKEY_UNSUPPORTED'],
+        [
+            'createCredentialAsync no provider dependencies found - please ensure the desired provider dependencies are added',
+            'setup_required',
+            'PASSKEY_UNSUPPORTED',
+        ],
+        ['Unsuccessful result from folsom activity.', 'provider_failed', 'PASSKEY_INTERRUPTED'],
+        ['[50162] Unsuccessful result from folsom activity.', 'provider_failed', 'PASSKEY_INTERRUPTED'],
+        ['The UI was interrupted - please try again.', 'provider_failed', 'PASSKEY_INTERRUPTED'],
+        ['[15] Flow has timed out.', 'provider_failed', 'PASSKEY_INTERRUPTED'],
+        [
+            PREFIX + '(AuthenticationServicesCore.ASCABLEClient.ClientError error 2.)',
+            'provider_failed',
+            'PASSKEY_INTERRUPTED',
+        ],
+        ['Couldn’t communicate with a helper application.', 'provider_failed', 'PASSKEY_INTERRUPTED'],
+        ['[50156] Cannot find credential in local KeyStore or database.', 'credential_missing', 'PASSKEY_NOT_FOUND'],
+    ] as const)('names %s', (message, reason, code) => {
+        const error = new Error(message)
+        expect(nativePasskeyFailure(error)).toBe(reason)
+        expect(classifyPasskeyError(error).code).toBe(code)
+        expect(friendlyError(error)).toEqual({
+            kind: 'code',
+            code: reason === 'canceled' ? 'passkeyVerificationIncomplete' : 'passkeyNotCompleted',
+        })
+    })
+
+    it.each(['Passkey registration failed.', 'Passkey authentication failed.', 'Login not verified'])(
+        'leaves %s without a native reason',
+        (message) => {
+            expect(nativePasskeyFailure(new Error(message))).toBeUndefined()
+            expect(classifyPasskeyError(new Error(message)).code).toBe('LOGIN_ERROR')
+        }
+    )
+
+    it.each([
+        [
+            'No se pudo completar la operación. (Error de com.apple.AuthenticationServices.AuthorizationError 1001)',
+            'canceled',
+            'AuthorizationError:1001',
+        ],
+        [
+            'A operação não pôde ser concluída. (com.apple.AuthenticationServices.AuthorizationError erro 1001.)',
+            'canceled',
+            'AuthorizationError:1001',
+        ],
+        [
+            'No se pudo completar la operación. (Error de com.apple.AuthenticationServices.AuthorizationError 1004)',
+            'authorization_failed',
+            'AuthorizationError:1004',
+        ],
+        [
+            PREFIX + '(com.apple.AuthenticationServices.AuthorizationError error 1000.)',
+            undefined,
+            'AuthorizationError:1000',
+        ],
+    ])('reads the localised iOS sentence %s', (message, reason, code) => {
+        expect(nativePasskeyFailure(message)).toBe(reason)
+        expect(nativeErrorCode(message)).toBe(code)
+    })
+})

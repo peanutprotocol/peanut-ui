@@ -7,7 +7,9 @@ import Star from '@/assets/illustrations/star.svg'
 import Image from 'next/image'
 import ExchangeRateWidget from '../Global/ExchangeRateWidget'
 import { useRouter } from 'next/navigation'
-import { twMerge } from '@/utils/tw'
+import { Band } from '@/components/Marketing/StarLp/Band'
+import { PopIn } from '@/components/Marketing/StarLp/PopIn'
+import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { PROSE_WIDTH } from '@/components/Marketing/constants'
 import { ContextualLinks } from './ContextualLinks'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
@@ -28,21 +30,6 @@ export function NoFees({
 }) {
     const router = useRouter()
     const interceptAppCta = useAppModal()
-
-    // Ruled ramp only (design.md §3.2): heading 60 mobile, stepping down to
-    // headingSmall 42 for catalogs whose longest word would clip at 60px
-    // ("TRANSFERENCIA"/"TRANSFERÊNCIA" measure 491px at 60px). <html lang> is
-    // SSR'd as "en" and only corrected after hydration, so a :lang() step would
-    // first paint at the EN size and jump on the es/pt pages. The 8-character
-    // threshold is what messages.test.ts holds the catalogs to.
-    // Below xs (390) every catalog steps down once more so the longest word
-    // fits the 272px column at 320: heading → headingSmall, and the long-word
-    // catalogs from headingSmall to the DS heading-m, the largest step that
-    // fits "TRANSFERENCIA" (342px at 42px).
-    const headlineSize =
-        Math.max(...strings.zeroFees.split(' ').map((word) => word.length)) > 8
-            ? 'text-heading-m xs:text-headingSmall'
-            : 'text-headingSmall xs:text-heading'
 
     // The scribble circles the closing word of the line, so each catalog picks
     // what gets circled just by putting that word last.
@@ -70,13 +57,7 @@ export function NoFees({
     }
 
     return (
-        <section
-            id="no-fees"
-            className={twMerge(
-                'relative overflow-hidden bg-background-marketing-sky px-6 py-16 md:px-4 md:py-24',
-                className
-            )}
-        >
+        <Band ground="sky" id="no-fees" className={className}>
             {/* CSS keyframes rather than framer-motion: these loop forever, and a
                 perpetual rAF loop on the main thread was the landing page's single
                 largest blocking cost. transform animations run on the compositor. */}
@@ -111,11 +92,15 @@ export function NoFees({
                     <Image src={Star} alt="Floating Star" width={50} height={50} />
                 </AnimateOnView>
 
-                <h1
-                    className={`font-roboto-flex-extrabold ${headlineSize} text-foreground-primary md:text-headingMedium`}
-                >
-                    {strings.zeroFees}
-                </h1>
+                {/* h2: the home hero owns the page's one h1. One word in Knerd (Konrad, round 2:
+                    "ZERO" instead of "Zero transfer fees"); screen readers and heading lists
+                    still hear what is zero. */}
+                <h2 className="mb-4 md:mb-6">
+                    <PopIn as="span" className="inline-block">
+                        <KnerdTitle text={strings.zeroFees} size="display" />
+                    </PopIn>
+                    <span className="sr-only"> {strings.zeroFeesSr}</span>
+                </h2>
 
                 {/* Was a single SVG with the copy baked into vector paths — the
                     lettering is real text now so it localizes; only the doodles
@@ -124,10 +109,12 @@ export function NoFees({
                 {/* below xs the line takes the long-word headline step, so
                     es/pt keep the 390 proportion (headline = this line) */}
                 <div className="mx-auto mb-1 w-full max-w-xs md:max-w-md">
-                    <div className="font-roboto-flex-extrabold pt-[0.23em] text-heading-m text-foreground-primary xs:text-headingSmall">
+                    <div className="font-roboto-flex-extrabold text-heading-m text-balance text-foreground-primary xs:text-headingSmall">
                         <p>
                             {reallyZeroLead}
-                            <span className="relative inline-block">
+                            {/* inline-block margins open the line box to the scribble's reach,
+                                so the circle clears the words above and below when the line wraps */}
+                            <span className="relative my-[0.27em] inline-block">
                                 {reallyZeroCircled}
                                 <Image
                                     src={scribbleCircle}
@@ -138,9 +125,13 @@ export function NoFees({
                             </span>
                         </p>
                         <p className="flex items-center justify-center gap-[0.19em]">
-                            <Image src={gotItHand} alt="" aria-hidden className="w-[0.887em] shrink-0" />
+                            <PopIn as="span" className="inline-block w-[0.887em] shrink-0">
+                                <Image src={gotItHand} alt="" aria-hidden className="w-full" />
+                            </PopIn>
                             <span>{strings.noHiddenFees}</span>
-                            <Image src={gotItHandFlipped} alt="" aria-hidden className="w-[0.887em] shrink-0" />
+                            <PopIn as="span" className="inline-block w-[0.887em] shrink-0">
+                                <Image src={gotItHandFlipped} alt="" aria-hidden className="w-full" />
+                            </PopIn>
                         </p>
                     </div>
                 </div>
@@ -164,6 +155,6 @@ export function NoFees({
                     ]}
                 />
             </div>
-        </section>
+        </Band>
     )
 }

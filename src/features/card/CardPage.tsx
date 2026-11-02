@@ -1,5 +1,6 @@
 'use client'
-import { type FC, useEffect, useState } from 'react'
+import { type FC, useCallback, useEffect, useState } from 'react'
+import type { StopAttempt } from '@/hooks/useCardStopConfirmation'
 import { useTranslations } from 'next-intl'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { CardAcquisitionScreen, CardMilestoneScreen } from './components/CardAcquisitionScreen'
@@ -8,6 +9,7 @@ import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
 import CardCountryConfirmScreen from '@/components/Card/CardCountryConfirmScreen'
 import YourCardScreen from '@/components/Card/YourCardScreen'
+import CardStopBanner from '@/components/Card/CardStopBanner'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
@@ -25,6 +27,9 @@ export const CardPage: FC = () => {
         isCardFunded,
         isBalanceKnown,
         needsFundingBeforeApply,
+        termsFundingPath,
+        fundingAccessLoading,
+        refetchFundingAccess,
         fundingRequired,
         fetchUser,
         cardInfoError,
@@ -68,6 +73,9 @@ export const CardPage: FC = () => {
         setIsSupportModalOpen,
         onBack,
     } = useCardFlow()
+    // Outlives the card screen: a cancel can remove the last card while the stop is still pending.
+    const [stopAttempt, setStopAttempt] = useState<StopAttempt | null>(null)
+    const clearStopAttempt = useCallback(() => setStopAttempt(null), [])
 
     const celebrationKey = `card_issuance_celebration_pending_v1:${user?.user.userId}`
     const [showIssuedCelebration, setShowIssuedCelebration] = useState(false)
@@ -153,9 +161,26 @@ export const CardPage: FC = () => {
             )
         }
         if (pendingTerms) {
+            // The terms differ by funding path, so they wait for the server's
+            // decision; an unreadable decision offers a retry, never a guess.
+            if (!termsFundingPath) {
+                return fundingAccessLoading ? (
+                    <div className="flex min-h-inherit w-full items-center justify-center">
+                        <Loading />
+                    </div>
+                ) : (
+                    <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
+                        <p className="text-center text-foreground-primary">{t('page.loadFailed')}</p>
+                        <Button onClick={() => void refetchFundingAccess()} variant="primary" shadowSize="4">
+                            {tCommon('retry')}
+                        </Button>
+                    </div>
+                )
+            }
             return (
                 <CardTermsScreen
                     isUsResident={pendingTerms.isUsResident}
+                    managedFunding={termsFundingPath === 'managed'}
                     onAccept={handleAcceptTerms}
                     onPrev={() => setPendingTerms(null)}
                     submitError={applyError}
@@ -281,7 +306,9 @@ export const CardPage: FC = () => {
                     )
                 }
                 const card = findActiveCard(overview)!
-                return <YourCardScreen overview={overview!} card={card} onPrev={onBack} />
+                return (
+                    <YourCardScreen overview={overview!} card={card} onPrev={onBack} onStopAttempt={setStopAttempt} />
+                )
             }
             default:
                 return null
@@ -290,7 +317,17 @@ export const CardPage: FC = () => {
 
     return (
         <PageContainer>
-            {renderState()}
+            {/* PageContainer lays its children out in a row; the stop banner
+                must stack above the screen, not take width from it. */}
+            <div className="flex min-h-inherit flex-col gap-6">
+                <CardStopBanner
+                    key={stopAttempt?.attemptId}
+                    enabled={!!overview?.status?.hasApplication}
+                    attempt={stopAttempt}
+                    onSettled={clearStopAttempt}
+                />
+                {renderState()}
+            </div>
             <SumsubKycWrapper
                 visible={poaToken !== null}
                 accessToken={poaToken}

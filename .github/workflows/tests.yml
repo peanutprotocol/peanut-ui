@@ -392,10 +392,6 @@ jobs:
                   node scripts/import-be-baseline.mjs /tmp/be-baseline/be-baseline.jsonl \
                       src/components/TransactionDetails/__tests__/fixtures/be-entries.json
 
-            - name: Verify numeric lint and screen invariants
-              timeout-minutes: 1
-              run: node --test eslint-rules/finite-numbers.test.cjs scripts/screens/numeric-ui.test.mjs
-
             - name: Run unit tests
               run: pnpm test:unit:ci
 

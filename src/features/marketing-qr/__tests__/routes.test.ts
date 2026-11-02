@@ -1,6 +1,6 @@
 /** @jest-environment node */
 import { after } from 'next/server'
-import { POST, GET as captureGet } from '@/app/api/marketing-qr/open/route'
+import { OPTIONS, POST, GET as captureGet } from '@/app/api/marketing-qr/open/route'
 import { GET, HEAD } from '@/app/q/[placement]/route'
 
 jest.mock('next/server', () => ({ after: jest.fn() }))
@@ -81,6 +81,7 @@ it('returns before capture and sends only the stable, anonymous allowlisted even
             placement: 'hero',
             locale: 'en',
             destination_key: 'app-entry',
+            opened_in: 'web',
             $process_person_profile: false,
             $geoip_disable: true,
         },
@@ -105,6 +106,38 @@ it('accepts the local browser envelope without enabling production transport', a
     expect((await POST(request(payload(), {}, 'http://localhost:8777'))).status).toBe(204)
     await tasks[0]()
     expect(global.fetch).not.toHaveBeenCalled()
+})
+
+it.each(['capacitor://localhost', 'https://localhost'])(
+    'accepts an opening the installed app sends from %s, with CORS, and marks it as an app opening',
+    async (appOrigin) => {
+        const response = await POST(request(payload(), { origin: appOrigin }))
+        expect(response.status).toBe(204)
+        expect(response.headers.get('access-control-allow-origin')).toBe(appOrigin)
+        expect(response.headers.get('access-control-allow-credentials')).toBeNull()
+        await tasks[0]()
+        const sent = JSON.parse(jest.mocked(global.fetch).mock.calls[0][1]!.body as string)
+        expect(sent.properties.opened_in).toBe('app')
+        expect(sent.distinct_id).toBe(`marketing-qr:${eventId}`)
+    }
+)
+
+it('answers the CORS preflight for the installed apps only', () => {
+    const preflight = (origin: string) =>
+        OPTIONS(
+            new Request('https://peanut.me/api/marketing-qr/open', {
+                method: 'OPTIONS',
+                headers: { origin, 'access-control-request-method': 'POST' },
+            })
+        )
+    const app = preflight('capacitor://localhost')
+    expect(app.status).toBe(204)
+    expect(app.headers.get('access-control-allow-origin')).toBe('capacitor://localhost')
+    expect(app.headers.get('access-control-allow-methods')).toBe('POST')
+    expect(app.headers.get('access-control-allow-headers')).toBe('Content-Type')
+    for (const origin of ['https://peanut.me', 'https://evil.example', 'capacitor://evil', 'null']) {
+        expect(preflight(origin).status).toBe(405)
+    }
 })
 
 it.each(['https://evil.example', 'null', 'https://peanut.me.evil.example', ''])(

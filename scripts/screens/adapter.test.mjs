@@ -86,3 +86,96 @@ test('strict synthetic transport answers shared config and legacy rates without 
     assert.equal(result.values[3].body.from, 'EUR')
     assert.equal(result.values[4].body.available, false)
 })
+
+function probeWithSpec(fixture, requests, spec) {
+    const output = execFileSync(
+        process.execPath,
+        [
+            '--import',
+            'tsx',
+            '--input-type=module',
+            '-e',
+            `
+ import adapter from './scripts/screens/adapter.ts'; const {answer}=adapter;
+ let networkRequests=0;
+ globalThis.fetch=()=>{networkRequests++;throw new Error('Unexpected network request')};
+ const spec=${JSON.stringify(spec) ?? 'undefined'};
+ const values=[];
+ for(const [method,path] of ${JSON.stringify(requests)}) {
+ try {
+ const response=await answer(${JSON.stringify(fixture)},path,method,undefined,spec);
+ values.push({status:response.status,body:await response.json()});
+ } catch(error) { values.push({error:String(error)}); }
+ }
+ console.log('RESULT:'+JSON.stringify({values,networkRequests}));
+ `,
+        ],
+        { encoding: 'utf8' }
+    )
+    return JSON.parse(output.split('RESULT:')[1])
+}
+
+const example = (status, value) => ({
+    responses: { [status]: { content: { 'application/json': { example: value } } } },
+})
+const EXAMPLE_SPEC = {
+    paths: {
+        '/users/kyc/attempts/{attemptId}/token': { post: example(201, { token: 'synthetic-example-token' }) },
+        '/capture-only/undocumented': { get: { responses: { 200: { description: 'No example' } } } },
+        '/users/me': { get: example(200, { user: { username: 'from-example' } }) },
+        '/tokens/price': { get: example(200, { price: 999 }) },
+    },
+}
+
+test('unmapped routes answer with their OpenAPI example and status', () => {
+    const result = probeWithSpec(
+        'home',
+        [
+            ['POST', '/users/kyc/attempts/attempt-1/token'],
+            ['POST', '/users/kyc/attempts/attempt-1/token?retry=1'],
+        ],
+        EXAMPLE_SPEC
+    )
+    assert.equal(result.networkRequests, 0)
+    assert.deepEqual(result.values, [
+        { status: 201, body: { token: 'synthetic-example-token' } },
+        { status: 201, body: { token: 'synthetic-example-token' } },
+    ])
+})
+
+test('unmapped routes without an example still fail the screen', () => {
+    for (const spec of [EXAMPLE_SPEC, undefined]) {
+        const result = probeWithSpec(
+            'home',
+            [
+                ['GET', '/capture-only/undocumented'],
+                ['GET', '/not-a-fixture'],
+                ['DELETE', '/users/kyc/attempts/attempt-1/token'],
+            ],
+            spec
+        )
+        assert.equal(result.networkRequests, 0)
+        assert.deepEqual(
+            result.values.map((value) => value.error),
+            [
+                'Error: Unmapped capture API: GET /capture-only/undocumented',
+                'Error: Unmapped capture API: GET /not-a-fixture',
+                'Error: Unmapped capture API: DELETE /users/kyc/attempts/attempt-1/token',
+            ]
+        )
+    }
+})
+
+test('fixture overrides and demo-api answers win over OpenAPI examples', () => {
+    const requests = [
+        ['GET', '/users/me'],
+        ['GET', '/tokens/price?chainId=42161&address=synthetic'],
+    ]
+    const withExamples = probeWithSpec('home', requests, EXAMPLE_SPEC)
+    assert.deepEqual(withExamples, probeWithSpec('home', requests, {}))
+    assert.notEqual(withExamples.values[0].body.user.username, 'from-example')
+    assert.equal(withExamples.values[1].body.price, 1)
+
+    const failing = probeWithSpec('withdraw-crypto-eth-no-price', [['GET', '/tokens/price']], EXAMPLE_SPEC)
+    assert.deepEqual(failing.values, [{ status: 500, body: { error: 'Synthetic failure' } }])
+})

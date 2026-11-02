@@ -45,6 +45,8 @@ function renderLink(locale: 'en' | 'es-419' | 'es-AR' | 'pt-BR', href: string) {
 }
 
 const openHelp = () => fireEvent.click(screen.getByRole('button', { name: 'Read help' }))
+// the drawer has no close X, so tests close it the way a keyboard user does
+const closeHelp = () => fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
 
 beforeEach(() => {
     served = {}
@@ -146,7 +148,8 @@ describe('app help drawers', () => {
         fetchMock.mockImplementationOnce(() => new Promise<Response>((resolve) => (finishFirstLoad = resolve)))
         renderLink('es-AR', '/en/help/request-money')
         openHelp()
-        fireEvent.click(await screen.findByRole('button', { name: 'Close' }))
+        await screen.findByRole('dialog')
+        closeHelp()
         finishFirstLoad({ ok: false } as Response)
         await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
         await act(async () => undefined)
@@ -209,14 +212,13 @@ describe('app help drawers', () => {
         expect(screen.getByRole('link', { name: 'Read help' })).toHaveAttribute('href', '/en/help')
     })
 
-    it('uses a prominent h2 and an accessible icon to close the article', async () => {
+    it('uses a prominent h2, shows no close X, and still closes on Escape', async () => {
         serve('verification', 'en')
         renderLink('en', '/en/help/verification')
         openHelp()
         expect(await screen.findByRole('heading', { level: 2, name: 'verification en' })).toHaveClass('text-heading-s')
-        const close = screen.getByRole('button', { name: 'Close' })
-        expect(close).not.toHaveTextContent('Close')
-        fireEvent.click(close)
+        expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument()
+        closeHelp()
         expect(screen.getByRole('dialog', { hidden: true })).toHaveAttribute('data-state', 'closed')
     })
 
@@ -240,7 +242,7 @@ describe('app help drawers', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Electronic consent' }))
         expect(await screen.findByText('card-esign article es-419')).toBeInTheDocument()
         // Return to the cached source article and follow its relative help link.
-        fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+        closeHelp()
         fireEvent.click(screen.getByRole('button', { name: 'Read help', hidden: true }))
         await screen.findByRole('button', { name: 'Recovery' })
         fireEvent.click(screen.getByRole('button', { name: 'Recovery' }))
