@@ -1,3 +1,4 @@
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 /**
  * APK #4: /verify read a failed plan GET as "the server keeps this user on
  * today's flow" and sent them Home, where the same failure opened the legacy

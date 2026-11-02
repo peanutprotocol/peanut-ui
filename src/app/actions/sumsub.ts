@@ -566,6 +566,8 @@ export const startKycAction = async (
             )
             const restart = restartIdentityRedirect(failure, responseJson)
             if (restart) return restart
+            if (response.status === 409 && responseJson.error === 'supplement_changed')
+                return { ...failure, code: 'supplement_changed' }
             if (response.status !== 409 || responseJson.error !== 'supplement_not_required') return failure
             const { reason, fallback } = responseJson
             return {

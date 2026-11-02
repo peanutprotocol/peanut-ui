@@ -3,13 +3,18 @@ import { renderWithIntl } from '@/test-utils/intl'
 import { clearAuthToken, setAuthToken } from '@/utils/auth-token'
 import SetupNotificationsModal from '../SetupNotificationsModal'
 
+const mockAuthReady = jest.fn(async () => {})
+jest.mock('@/utils/auth-token', () => ({
+    ...jest.requireActual('@/utils/auth-token'),
+    authReady: () => mockAuthReady(),
+}))
 const mockPermission = jest.fn<Promise<string>, []>()
 const mockAfterPermission = jest.fn<Promise<void>, []>()
 const mockSave = jest.fn()
 const mockClose = jest.fn()
 const mockToast = jest.fn()
 let mockUserId = 'user-a'
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: mockUserId } } }) }))
+jest.mock('@/context/authContext', () => ({ useOptionalAuth: () => ({ user: { user: { userId: mockUserId } } }) }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToast }) }))
 jest.mock('@/utils/general.utils', () => ({ updateUserPreferences: jest.fn() }))
 jest.mock('@/hooks/useNotifications', () => ({
@@ -34,6 +39,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
 const jwt = (userId: string) => `x.${btoa(JSON.stringify({ userId }))}.y`
 beforeEach(() => {
     jest.clearAllMocks()
+    mockAuthReady.mockReset().mockResolvedValue(undefined)
     mockUserId = 'user-a'
     setAuthToken(jwt('user-a'))
     mockPermission.mockReset().mockResolvedValue('granted')
@@ -83,4 +89,25 @@ it('rechecks identity after post-permission reconciliation before saving', async
     setAuthToken(jwt('user-b'))
     await act(async () => finish())
     expect(mockSave).not.toHaveBeenCalled()
+})
+
+it('R18 duplicate taps during hydration ask permission and save only once', async () => {
+    await clearAuthToken()
+    let finish!: () => void
+    mockAuthReady.mockReturnValueOnce(
+        new Promise((resolve) => {
+            finish = resolve
+        })
+    )
+    renderWithIntl(<SetupNotificationsModal />)
+    fireEvent.click(screen.getByRole('button', { name: 'allow notifications' }))
+    fireEvent.click(screen.getByRole('button', { name: 'allow notifications' }))
+    expect(mockPermission).not.toHaveBeenCalled()
+    expect(mockSave).not.toHaveBeenCalled()
+    await act(async () => {
+        setAuthToken(jwt('user-a'))
+        finish()
+    })
+    expect(mockPermission).toHaveBeenCalledTimes(1)
+    expect(mockSave).toHaveBeenCalledTimes(1)
 })

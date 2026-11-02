@@ -1,3 +1,6 @@
+const mockToastError = jest.fn()
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
+jest.mock('@/constants/dev-tools.consts', () => ({ DEV_TOOLS_ENABLED: true }))
 import { setAuthToken } from '@/utils/auth-token'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -164,6 +167,7 @@ const continueButton = () => screen.getByTestId('verify-continue')
 const mockStartAction = jest.fn()
 
 beforeEach(() => {
+    window.sessionStorage.clear()
     mockAuthUserId = 'user-a'
     jest.clearAllMocks()
     setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-a' }))}.y`)
@@ -963,3 +967,31 @@ describe('initial paperwork reads belong to the mounted account', () => {
         client.clear()
     })
 })
+
+it.each(['fixture', 'legacy-cookie'] as const)(
+    'R18 %s Continue saves answers instead of bouncing home',
+    async (mode) => {
+        if (mode === 'fixture') {
+            window.sessionStorage.setItem('peanut_fixture', 'home')
+            document.cookie = 'jwt-token=fixture; path=/'
+        } else {
+            document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        }
+        mockSave.mockResolvedValue({ kind: 'saved', next: 'tax' })
+        await startFlow()
+        await screen.findByTestId('verify-pick-annualSalary')
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-input-taxId')).toBeInTheDocument()
+        await waitFor(() =>
+            expect(mockSave).toHaveBeenCalledWith(
+                'money',
+                { annualSalary: '25k_50k' },
+                undefined,
+                mode === 'fixture' ? 'user-a' : undefined
+            )
+        )
+        expect(mockReplace).not.toHaveBeenCalledWith('/home')
+        if (mode === 'legacy-cookie')
+            expect(mockToastError).toHaveBeenCalledWith('This check isn’t available right now.')
+    }
+)

@@ -549,7 +549,15 @@ describe('bankAccountRow', () => {
 
     it('uses the aggregate report chip rather than ranking the currency rows', () => {
         const rows = bank({ bankChips: { ...CLOSED_ALL, usd: 'active', sepa: 'unlock' } })
-        expect(bankAccountRow(rows, 'processing')).toEqual({
+        expect(
+            bankAccountRow(rows, 'processing', {
+                features: {
+                    ...allCurrencies,
+                    bank: { state: 'on', accounts: {} },
+                    local: { state: 'on', accounts: {} },
+                },
+            })
+        ).toEqual({
             id: 'bank-account',
             labelKey: 'bankAccount',
             concept: 'bank',
@@ -559,7 +567,15 @@ describe('bankAccountRow', () => {
         })
     })
     it('keeps a supplied refusal and omits currencies the account report refuses', () => {
-        expect(bankAccountRow(bank({ bankChips: CLOSED_ALL }), 'notAvailable')).toMatchObject({
+        expect(
+            bankAccountRow(bank({ bankChips: CLOSED_ALL }), 'notAvailable', {
+                features: {
+                    ...allCurrencies,
+                    bank: { state: 'refused', accounts: {} },
+                    local: { state: 'refused', accounts: {} },
+                },
+            })
+        ).toMatchObject({
             chip: 'notAvailable',
             currencies: [],
         })

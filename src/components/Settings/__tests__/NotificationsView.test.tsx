@@ -3,6 +3,17 @@ import { renderWithIntl } from '@/test-utils/intl'
 import { clearAuthToken, setAuthToken } from '@/utils/auth-token'
 import { NotificationsView } from '../NotificationsView'
 
+const mockAuthReady = jest.fn(async () => {})
+jest.mock('@/utils/auth-token', () => ({
+    ...jest.requireActual('@/utils/auth-token'),
+    authReady: () => mockAuthReady(),
+}))
+jest.mock('@/constants/dev-tools.consts', () => ({ DEV_TOOLS_ENABLED: true }))
+
+let mockProfileUserId: string | undefined
+jest.mock('@/context/authContext', () => ({
+    useOptionalAuth: () => ({ user: mockProfileUserId ? { user: { userId: mockProfileUserId } } : null }),
+}))
 const mockGet = jest.fn()
 const mockSave = jest.fn()
 const mockToastError = jest.fn()
@@ -43,6 +54,9 @@ let server = { push: true, email: true, marketingPush: false, emailUpdates: fals
 
 beforeEach(() => {
     jest.clearAllMocks()
+    window.sessionStorage.clear()
+    mockProfileUserId = undefined
+    mockAuthReady.mockReset().mockResolvedValue(undefined)
     setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-a' }))}.y`)
     mockGet.mockReset()
     mockSave.mockReset()
@@ -209,12 +223,109 @@ describe('permission continuation ownership', () => {
         expect(mockSave).not.toHaveBeenCalled()
     })
 
-    it('does not authorize a preference write when no token user was present at tap', async () => {
+    it('uses the old-client save with unavailable feedback when hydration cannot read an identity', async () => {
         await clearAuthToken()
         renderWithIntl(<NotificationsView />)
         await waitFor(() => expect(email()).toBeEnabled())
         fireEvent.click(email())
         await act(async () => {})
-        expect(mockSave).not.toHaveBeenCalled()
+        expect(mockSave).toHaveBeenCalledWith({ emailUpdates: true }, undefined)
+        expect(mockToastError).toHaveBeenCalledWith('This check isn’t available right now.')
     })
+})
+
+it('R18 fixture permission precondition succeeds and logout cancels the continuation', async () => {
+    await clearAuthToken()
+    document.cookie = 'jwt-token=fixture; path=/'
+    window.sessionStorage.setItem('peanut_fixture', 'home')
+    let finish!: (permission: string) => void
+    mockPermission.mockReturnValueOnce(
+        new Promise((resolve) => {
+            finish = resolve
+        })
+    )
+    renderWithIntl(<NotificationsView />)
+    await waitFor(() => expect(offers()).toBeEnabled())
+    fireEvent.click(offers())
+    expect(mockPermission).toHaveBeenCalledTimes(1)
+    await act(async () => {
+        await clearAuthToken()
+    })
+    await act(async () => finish('granted'))
+    expect(mockSave).not.toHaveBeenCalled()
+})
+
+it.each(['same', 'changed', 'cleared', 'unmounted'] as const)(
+    'R18 waits for hydration before saving (%s)',
+    async (state) => {
+        await clearAuthToken()
+        mockProfileUserId = 'user-a'
+        let finish!: () => void
+        mockAuthReady.mockReturnValueOnce(
+            new Promise((resolve) => {
+                finish = resolve
+            })
+        )
+        const view = renderWithIntl(<NotificationsView />)
+        await waitFor(() => expect(email()).toBeEnabled())
+        fireEvent.click(email())
+        expect(mockSave).not.toHaveBeenCalled()
+        if (state === 'unmounted') view.unmount()
+        if (state === 'cleared')
+            await act(async () => {
+                await clearAuthToken()
+            })
+        await act(async () => {
+            if (state === 'same') setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-a' }))}.y`)
+            if (state === 'changed') {
+                setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-b' }))}.y`)
+            }
+            finish()
+        })
+        if (state === 'same') expect(mockSave).toHaveBeenCalledWith({ emailUpdates: true }, 'user-a')
+        else expect(mockSave).not.toHaveBeenCalled()
+    }
+)
+
+it('R18 fixture saves carry the actual fixture profile identity', async () => {
+    document.cookie = 'jwt-token=fixture; path=/'
+    window.sessionStorage.setItem('peanut_fixture', 'home')
+    mockProfileUserId = 'fixture-user'
+    renderWithIntl(<NotificationsView />)
+    await waitFor(() => expect(email()).toBeEnabled())
+    fireEvent.click(email())
+    await waitFor(() => expect(mockSave).toHaveBeenCalledWith({ emailUpdates: true }, 'fixture-user'))
+    expect(mockAuthReady).not.toHaveBeenCalled()
+})
+
+it('R18 a hydration failure shows unavailable feedback without saving', async () => {
+    await clearAuthToken()
+    mockAuthReady.mockRejectedValueOnce(new Error('storage unavailable'))
+    renderWithIntl(<NotificationsView />)
+    await waitFor(() => expect(email()).toBeEnabled())
+    fireEvent.click(email())
+    await waitFor(() => expect(mockToastError).toHaveBeenCalledWith('This check isn’t available right now.'))
+    expect(mockSave).not.toHaveBeenCalled()
+})
+
+it('R18 duplicate taps while hydration is pending cannot start duplicate permissions or saves', async () => {
+    await clearAuthToken()
+    let finish!: () => void
+    mockAuthReady.mockReturnValueOnce(
+        new Promise((resolve) => {
+            finish = resolve
+        })
+    )
+    renderWithIntl(<NotificationsView />)
+    await waitFor(() => expect(offers()).toBeEnabled())
+    fireEvent.click(offers())
+    fireEvent.click(offers())
+    expect(mockPermission).not.toHaveBeenCalled()
+    expect(mockSave).not.toHaveBeenCalled()
+    await act(async () => {
+        setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-a' }))}.y`)
+        finish()
+    })
+    expect(mockPermission).toHaveBeenCalledTimes(1)
+    expect(mockSave).toHaveBeenCalledTimes(1)
 })

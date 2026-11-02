@@ -1,3 +1,4 @@
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 /** Fix E: spec-only server state-choice acceptance, independent of rendering implementation. */
 import { useState } from 'react'
 import { fireEvent, screen } from '@testing-library/react'

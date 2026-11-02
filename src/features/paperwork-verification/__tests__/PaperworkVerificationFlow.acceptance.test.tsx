@@ -1,3 +1,4 @@
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 import { setAuthToken } from '@/utils/auth-token'
 import posthog from 'posthog-js'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'

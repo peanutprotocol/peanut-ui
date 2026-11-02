@@ -1,9 +1,11 @@
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
+import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { setAuthToken } from '@/utils/auth-token'
 /**
  * Slava, 2026-10-27: answers typed before the ID check survive remounts
  * within this browser session. They never persist to localStorage.
  */
-import { act, renderHook } from '@testing-library/react'
+import { act } from '@testing-library/react'
 import { saveKycAnswers } from '@/app/actions/kyc-paperwork-verification'
 import type { PaperworkVerificationStep } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { useOptionalAuth } from '@/context/authContext'

@@ -1,7 +1,9 @@
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
+import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 
-import { act, renderHook } from '@testing-library/react'
+import { act } from '@testing-library/react'
 import { clearAuthToken, getAuthToken, setAuthToken } from '@/utils/auth-token'
 import { disableDemoMode, enableDemoMode } from '@/utils/demo'
 import { useSessionFence } from '../useSessionFence'
@@ -40,21 +42,22 @@ it('leaving a demo for an authenticated account invalidates the demo continuatio
     expect(signedIn.current()).toBe(true)
 })
 
-it('a normal session without a token cannot authorize a continuation', () => {
+it('an unreadable identity can use the legacy cookie path after hydration', async () => {
     const { result } = renderHook(() => useSessionFence())
     const pending = result.current()
     expect(pending.userId).toBeNull()
-    expect(pending.current()).toBe(false)
+    await pending.ready
+    expect(pending.current()).toBe(true)
 })
 
 it.each(['not-a-jwt', 'x.not-base64.y', `x.${btoa(JSON.stringify({ unrelated: 'value' }))}.y`])(
-    'a malformed or unowned token cannot authorize a continuation: %s',
+    'an unreadable identity can use the API old-client path: %s',
     (token) => {
         setAuthToken(token)
         const { result } = renderHook(() => useSessionFence())
         const pending = result.current()
         expect(pending.userId).toBeNull()
-        expect(pending.current()).toBe(false)
+        expect(pending.current()).toBe(true)
     }
 )
 

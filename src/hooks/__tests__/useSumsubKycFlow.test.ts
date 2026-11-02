@@ -50,6 +50,8 @@ jest.mock('@/app/actions/sumsub', () => ({
     refreshVerificationSession: jest.fn(),
     getVerificationSession: jest.fn(async () => null),
 }))
+jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
+
 jest.mock('@/hooks/useWebSocket', () => ({
     useWebSocket: (opts: { onSumsubKycStatusUpdate?: (status: string, labels?: string[]) => void }) => {
         mockWs.handler = opts.onSumsubKycStatusUpdate
@@ -2114,18 +2116,35 @@ describe('a reviewed supplement re-ask reports only confirmed success', () => {
     })
 })
 
-test('a reviewed supplement whose re-ask confirms supplement_changed reports success', async () => {
+test.each([
+    ['supplement_changed', true],
+    ['session_unavailable', false],
+] as const)('a reviewed supplement re-ask through the real action: %s (success=%s)', async (code, success) => {
     mockStartAction.mockReset()
     const onKycSuccess = jest.fn()
-    mockStartAction
-        .mockResolvedValueOnce({ data: { levelName: 'provider-rfi-proof-of-address', completed: true } })
-        .mockResolvedValueOnce({ error: 'The requested supplement has changed.', code: 'supplement_changed' } as never)
+    const fetch = jest.mocked(require('@/utils/api-fetch').serverFetch)
+    fetch
+        .mockReset()
+        .mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({ status: 'completed', levelName: 'provider-rfi-proof-of-address' }),
+        })
+        .mockResolvedValueOnce({
+            ok: false,
+            status: 409,
+            json: async () => ({ error: code, userMessage: 'The requested supplement has changed.' }),
+        })
+    mockStartAction.mockImplementation(jest.requireActual('@/app/actions/sumsub').startKycAction)
     const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
     await act(async () => {
         await result.current.handleStartAction('supplement:bridge')
     })
     expect(mockStartAction).toHaveBeenCalledTimes(2)
-    expect(onKycSuccess).toHaveBeenCalledTimes(1)
-    expect(result.current.error).toBeNull()
+    expect(onKycSuccess).toHaveBeenCalledTimes(success ? 1 : 0)
+    if (success) expect(result.current.error).toBeNull()
+    else expect(result.current.error).toBeTruthy()
     expect(result.current.showWrapper).toBe(false)
+    await act(async () => {})
+    expect(onKycSuccess).toHaveBeenCalledTimes(success ? 1 : 0)
 })

@@ -521,3 +521,20 @@ it.each([undefined, 'card', {}, 2])('does not trust an unknown selection feature
     respondWith(409, { code: 'feature_selection_required', feature })
     expect(await initiateSumsubKyc()).not.toHaveProperty('feature')
 })
+
+describe('R17 start-action supplement_changed wire response', () => {
+    it.each([undefined, 'The requested supplement has changed.'])(
+        'retains the 409 code with userMessage=%s',
+        async (userMessage) => {
+            respondWith(409, { error: 'supplement_changed', userMessage })
+            const result = await startKycAction('supplement:bridge')
+            expect(result.code).toBe('supplement_changed')
+            expect(result.error).toBe(userMessage ?? 'Failed to start verification')
+            expect(result.data).toBeUndefined()
+        }
+    )
+    it('does not classify a server failure as a completed supplement', async () => {
+        respondWith(503, { error: 'supplement_changed', userMessage: 'Try later' })
+        expect((await startKycAction('supplement:bridge')).code).not.toBe('supplement_changed')
+    })
+})
