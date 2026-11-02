@@ -275,3 +275,51 @@ test('the server answer arriving is reported even when the visible pick stays th
     expect(reports.map((p) => p.ranking_source)).toEqual(['local', 'server'])
     expect(reports[1]).toMatchObject({ interrupt: 'legal-reconsent', server_next_ask: 'legal-reconsent' })
 })
+
+class AppBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
+    state = { error: null as Error | null }
+    static getDerivedStateFromError(error: Error) {
+        return { error }
+    }
+    render() {
+        return this.state.error ? (
+            <button onClick={() => this.setState({ error: null })}>{`app error: ${this.state.error.message}`}</button>
+        ) : (
+            this.props.children
+        )
+    }
+}
+
+test("a page's own crash goes to the app's boundary, is not filed as an attention crash, and leaves the manager on", async () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    let crashes = 1
+    function Page() {
+        React.useEffect(() => {
+            if (crashes > 0) {
+                crashes--
+                throw new Error('page exploded')
+            }
+        }, [])
+        return <div>page</div>
+    }
+    render(
+        <AppBoundary>
+            <AttentionProvider>
+                <Page />
+                <Probe />
+            </AttentionProvider>
+        </AppBoundary>
+    )
+    await act(async () => {})
+    expect(mockSentry).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ tags: { feature: 'attention' } })
+    )
+    // the app's error page, then its reset: the manager is still there
+    await act(async () => {
+        screen.getByText('app error: page exploded').click()
+    })
+    expect(screen.getByText('page')).toBeInTheDocument()
+    expect(screen.getByTestId('interrupt')).toBeInTheDocument()
+    spy.mockRestore()
+})
