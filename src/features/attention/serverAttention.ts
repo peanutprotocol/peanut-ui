@@ -2,16 +2,19 @@ import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/context/authContext'
 import { serverFetch } from '@/utils/api-fetch'
+import type { paths } from '@/types/api.generated'
 import { useJourneyEpoch } from './journeyEpoch'
 import type { AttentionAsk, JourneyState, Tier, Verdict } from './types'
 
-/** `GET /users/me/attention`: the API's ranking is the authority; the registry's literals are the fallback. */
-export interface ServerAttention {
-    version: number
-    ranking: { id: string; tier: Tier; rank: number }[]
-    /** only the asks whose facts the server holds; absent means the client decides */
+type ServerAttentionBody = paths['/users/me/attention']['get']['responses'][200]['content']['application/json']
+
+/**
+ * `GET /users/me/attention`: the API's ranking is the authority; the registry's literals are the fallback.
+ * `verdicts` has only the asks whose facts the server holds; absent means the client decides.
+ */
+export type ServerAttention = Omit<ServerAttentionBody, 'ranking' | 'verdicts'> & {
+    ranking: (ServerAttentionBody['ranking'][number] & { tier: Tier })[]
     verdicts: Partial<Record<string, Verdict>>
-    nextAsk: string | null
 }
 
 /** anything but a version-1 body (a demo or fixture default, a proxy page) reads as no answer */
