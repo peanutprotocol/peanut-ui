@@ -51,6 +51,9 @@ interface StubProps {
 
 let mockZoneSurfaces: Partial<Record<string, React.ComponentType<StubProps>>> = {}
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
+jest.mock('../surfaces/AttentionFlowHost', () => ({
+    AttentionFlowHost: ({ children }: { children: React.ReactNode }) => children,
+}))
 jest.mock('../zoneSurfaces', () => ({
     get ZONE_SURFACES() {
         return mockZoneSurfaces

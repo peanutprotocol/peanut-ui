@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { recoverFromChunkError } from '@/utils/chunk-error-recovery'
 import { useAttentionOptional, type AttentionContextValue } from './AttentionProvider'
 import { ZONE_SURFACES } from './zoneSurfaces'
+import { AttentionFlowHost } from './surfaces/AttentionFlowHost'
 import type { AskId } from './types'
 
 /**
@@ -17,7 +18,13 @@ import type { AskId } from './types'
 export function HomeAttention() {
     const attention = useAttentionOptional()
     // the manager crashed and its boundary renders the app without it: Home shows no card instead of crashing
-    return attention ? <ZoneHost attention={attention} /> : null
+    if (!attention) return null
+    // flows a card starts (document upload, QR identity check, ToS) outlive the card: its verdict can flip mid-flow
+    return (
+        <AttentionFlowHost key={attention.state.userId ?? ''}>
+            <ZoneHost attention={attention} />
+        </AttentionFlowHost>
+    )
 }
 
 function ZoneHost({ attention }: { attention: AttentionContextValue }) {

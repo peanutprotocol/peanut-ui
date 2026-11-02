@@ -42,6 +42,20 @@ describe('useSumsubReloadResume', () => {
         })
     })
 
+    it('two flows mounted on one page replay a persisted state once', async () => {
+        const first = jest.fn().mockResolvedValue(true)
+        const second = jest.fn().mockResolvedValue(true)
+        renderHook(
+            () => {
+                useSumsubReloadResume(null, first)
+                useSumsubReloadResume(null, second)
+            },
+            { wrapper: wrapperFor(encode({ intent: 'ROW' })) }
+        )
+        await waitFor(() => expect(first).toHaveBeenCalledTimes(1))
+        expect(second).not.toHaveBeenCalled()
+    })
+
     it('resumes only once per mount', async () => {
         const onResume = jest.fn().mockResolvedValue(true)
         const { rerender } = renderHook(() => useSumsubReloadResume(null, onResume), {
