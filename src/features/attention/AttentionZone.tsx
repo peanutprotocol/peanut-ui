@@ -3,6 +3,7 @@
 import { Component, Suspense, useEffect, useRef, type ErrorInfo, type ReactNode } from 'react'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
+import { recoverFromChunkError } from '@/utils/chunk-error-recovery'
 import { useAttentionOptional, type AttentionContextValue } from './AttentionProvider'
 import { ZONE_SURFACES } from './zoneSurfaces'
 import type { AskId } from './types'
@@ -60,13 +61,14 @@ function ZoneHost({ attention }: { attention: AttentionContextValue }) {
 
 export const AttentionZone = HomeAttention
 
-/** A card that throws is settled as dismissed, so the next candidate takes the zone. */
+/** A card that throws is skipped for this load, so the next candidate takes the zone. */
 class ZoneBoundary extends Component<{ askId: AskId; onCrash: () => void; children: ReactNode }, { failed: boolean }> {
     state = { failed: false }
     static getDerivedStateFromError() {
         return { failed: true }
     }
     componentDidCatch(error: Error, info: ErrorInfo) {
+        recoverFromChunkError(error)
         Sentry.captureException(error, {
             tags: { feature: 'attention', ask: this.props.askId },
             extra: { componentStack: info.componentStack },

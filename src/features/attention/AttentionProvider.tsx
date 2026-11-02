@@ -19,6 +19,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { IS_DEV } from '@/constants/general.consts'
 import { getUserPreferences } from '@/utils/general.utils'
 import { useAnyOverlayOpen } from '@/utils/overlay-visibility'
+import { useModalsContextOptional } from '@/context/ModalsContext'
 import { decide } from './decide'
 import { getSessionInterrupts, setSessionInterrupts } from './interruptState'
 import { ledgerActions, noteServerLedger, readLedger, subscribeLedger } from './ledger'
@@ -49,7 +50,7 @@ export interface AttentionContextValue {
     /** a zone card for this ask is on screen (AttentionZone reports it; once per session per ask) */
     openedZone: (id: AskId) => void
     openedSurface: (id: AskId, surface: Exclude<Surface, 'interrupt'>) => void
-    /** the surface threw: settle it as dismissed whether or not it had reported itself open */
+    /** the surface threw: skip the ask for this load; the ledger is not touched */
     crashed: (id: AskId, surface?: Surface) => void
     /** the user did the thing; completion itself is derived from state */
     acted: (id: AskId, surface?: Surface) => void
@@ -60,6 +61,7 @@ export interface AttentionContextValue {
 const AttentionContext = createContext<AttentionContextValue | undefined>(undefined)
 
 const EMPTY_LEDGER: Ledger = {}
+const EMPTY_IDS: readonly AskId[] = []
 
 function useLedger(userId: string | null, server: unknown): Ledger {
     noteServerLedger(server)
@@ -73,13 +75,23 @@ function useLedger(userId: string | null, server: unknown): Ledger {
 export function resetAttentionSessionForTests(): void {
     setSessionInterrupts({ userId: null, ids: [], open: null })
     surfacesShownThisSession = { userId: null, keys: [] }
+    crashedThisLoad.clear()
 }
+
+const ATTENTION_CRASHED = 'attention_crashed'
+
+// per account, the asks whose surface threw this app load
+const crashedThisLoad = new Map<string, readonly AskId[]>()
+const crashedFor = (userId: string | null): readonly AskId[] => (userId && crashedThisLoad.get(userId)) || EMPTY_IDS
 
 // the zone cards already booked this app load, for which account
 let surfacesShownThisSession: { userId: string | null; keys: string[] } = { userId: null, keys: [] }
 
-function useSession(state: JourneyState, openInterrupt: AskId | null): Session {
-    const busy = useAnyOverlayOpen()
+function useSession(state: JourneyState, openInterrupt: AskId | null, crashed: readonly AskId[]): Session {
+    const overlayOpen = useAnyOverlayOpen()
+    const modals = useModalsContextOptional()
+    // the scanner and the passkey interstitial are full-screen flows outside the drawer/modal registry
+    const busy = overlayOpen || !!modals?.isQRScannerOpen || !!modals?.isSecurityVerificationOpen
     const slots = useMountedSlots()
     const [settleDeadlinePassed, setSettleDeadlinePassed] = useState(false)
 
@@ -103,8 +115,9 @@ function useSession(state: JourneyState, openInterrupt: AskId | null): Session {
             // down, auth), so while this provider is mounted no gate is up
             gateUp: false,
             settleDeadlinePassed,
+            crashed,
         }),
-        [state.userId, state.route, current, openInterrupt, busy, settleDeadlinePassed, slots]
+        [state.userId, state.route, current, openInterrupt, busy, settleDeadlinePassed, slots, crashed]
     )
 }
 
@@ -202,7 +215,8 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
         setOpenInterrupt(null)
     }, [state.userId])
 
-    const session = useSession(state, openInterrupt)
+    const [, setCrashCount] = useState(0)
+    const session = useSession(state, openInterrupt, crashedFor(state.userId))
     const server = useServerAttention()
     const asks = useMemo(() => applyServerRanking(ASKS, server), [server])
     const askOf = useCallback((id: AskId) => asks.find((ask) => ask.id === id), [asks])
@@ -234,7 +248,7 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
     const userId = state.userId
     const opened = useCallback(
         (id: AskId) => {
-            if (!userId) return
+            if (!userId || crashedFor(userId).includes(id)) return
             const current = getSessionInterrupts()
             // the bookkeeping is once per show; the state sync is unconditional
             if (current.open !== id) {
@@ -308,11 +322,18 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
 
     const crashed = useCallback(
         (id: AskId, surface: Surface = 'interrupt') => {
-            // the throw may land before the surface reported itself open
-            if (surface === 'interrupt') setSessionInterrupts({ ...getSessionInterrupts(), open: id })
-            settle(id, 'dismissed', undefined, surface)
+            if (!userId || latestUserId.current !== userId) return
+            const known = crashedFor(userId)
+            if (known.includes(id)) return
+            crashedThisLoad.set(userId, [...known, id])
+            setCrashCount((count) => count + 1)
+            posthog.capture(ATTENTION_CRASHED, { ask: id, surface, tier: askOf(id)?.tier })
+            if (surface === 'interrupt' && getSessionInterrupts().open === id) {
+                setSessionInterrupts({ ...getSessionInterrupts(), open: null })
+                setOpenInterrupt(null)
+            }
         },
-        [settle]
+        [userId, askOf]
     )
 
     const value = useMemo<AttentionContextValue>(

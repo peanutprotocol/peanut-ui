@@ -5,11 +5,13 @@
  * lifecycle, not any one prompt's UI. Every "handle" item of the phase-2
  * failure list that lives in the orchestration has at least one test here.
  */
-import React, { StrictMode, useLayoutEffect } from 'react'
+import React, { StrictMode, useLayoutEffect, lazy } from 'react'
 import { act, render, screen } from '@testing-library/react'
 import type { AskId, AskSurfaceProps, JourneyState } from '../types'
 
 const mockCapture = jest.fn()
+const mockUpdateUserById = jest.fn(async (_: unknown) => ({}))
+jest.mock('@/app/actions/users', () => ({ updateUserById: (a: unknown) => mockUpdateUserById(a) }))
 jest.mock('../serverAttention', () => ({
     ...jest.requireActual('../serverAttention'),
     useServerAttention: () => undefined,
@@ -21,6 +23,7 @@ const mockCaptureMessage = jest.fn()
 jest.mock('@sentry/nextjs', () => ({
     captureException: (...args: unknown[]) => mockCaptureException(...args),
     captureMessage: (...args: unknown[]) => mockCaptureMessage(...args),
+    addBreadcrumb: () => {},
 }))
 
 let mockOverlayOpen = false
@@ -418,6 +421,33 @@ test('an account switch or logout while a surface is open unmounts it and starts
     expect(readLedger('user-b')['balance-backup']?.shownAt).toHaveLength(1)
 })
 
+test('a surface whose lazy chunk fails to load is not stored or synced, and asks again on the next load', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {})
+    const chunkError = Object.assign(new Error('Loading chunk 4242 failed.'), { name: 'ChunkLoadError' })
+    mockSurfaces = {
+        ...allStubs(),
+        'legal-reconsent': lazy(() => Promise.reject(chunkError)) as unknown as React.ComponentType<AskSurfaceProps>,
+    }
+    mockState = state({ consent: TERMS_NEEDED })
+    const first = await mount()
+    await flush()
+    await flush()
+    expect(readLedger('user-a')['legal-reconsent']?.dismissedAt).toBeUndefined()
+    expect(readLedger('user-a')['legal-reconsent']?.snoozedUntil).toBeUndefined()
+    const { flushLedgerSyncForTests } = require('../ledgerSync')
+    await flushLedgerSyncForTests()
+    const synced = mockUpdateUserById.mock.calls.map(([a]) => (a as any).attentionLedger?.['legal-reconsent'])
+    expect(synced.filter((entry) => entry?.dismissedAt || entry?.snoozedUntil)).toEqual([])
+    first.unmount()
+
+    resetAttentionSessionForTests()
+    updateUserPreferences('user-a', { sessionCount: 4 })
+    mockSurfaces = allStubs()
+    mockState = state({ consent: TERMS_NEEDED, now: NOW + 30 * DAY_MS })
+    await mount()
+    expect(surfacesInDom()).toEqual(['legal-reconsent'])
+})
+
 test('a user-opened overlay blocks a new surface but never suspends the open one', async () => {
     // "a user-opened overlay (support drawer, QR scanner) does prevent a new interrupt from opening"
     mockOverlayOpen = true
@@ -437,7 +467,7 @@ test('a user-opened overlay blocks a new surface but never suspends the open one
     expect(mockLife.unmounts['legal-reconsent'] ?? 0).toBe(0)
 })
 
-test('a throwing surface is contained, settled as dismissed, reported, and not re-mounted', async () => {
+test('a throwing surface is contained, skipped for this load without a ledger write, reported, and not re-mounted', async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {})
     const boom = new Error('surface exploded')
     let renders = 0
@@ -459,9 +489,13 @@ test('a throwing surface is contained, settled as dismissed, reported, and not r
         boom,
         expect.objectContaining({ tags: expect.objectContaining({ feature: 'attention' }) })
     )
-    // "the ask is settled as dismissed (so it does not re-mount in a loop)"
-    expect(readLedger('user-a')['legal-reconsent']?.dismissedAt).toBeDefined()
+    // a crash is not the user's answer: nothing is recorded, the ask is skipped for this load only
+    expect(readLedger('user-a')['legal-reconsent']).toBeUndefined()
     expect(latest?.session.openInterrupt).toBeNull()
+    expect(latest?.session.crashed).toEqual(['legal-reconsent'])
+    expect(events('attention_crashed')).toEqual([expect.objectContaining({ ask: 'legal-reconsent' })])
+    expect(events('attention_dismissed')).toHaveLength(0)
+    expect(events('modal_dismissed')).toHaveLength(0)
 
     const rendersAfterFailure = renders
     await rerender(view)

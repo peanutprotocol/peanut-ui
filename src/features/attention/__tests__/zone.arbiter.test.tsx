@@ -438,7 +438,7 @@ describe('the Home zone', () => {
         expect(zonesInDom()).toEqual(['invite'])
     })
 
-    test('a throwing zone surface is contained, settled as dismissed, and the next card renders', async () => {
+    test('a throwing zone surface is contained, skipped for this load without a ledger write, and the next card renders', async () => {
         jest.spyOn(console, 'error').mockImplementation(() => {})
         const boom = new Error('zone card exploded')
         mockZoneSurfaces = {
@@ -455,7 +455,7 @@ describe('the Home zone', () => {
             boom,
             expect.objectContaining({ tags: expect.objectContaining({ feature: 'attention' }) })
         )
-        expect(entry('user-a', 'invite')?.dismissedAt).toBeDefined()
+        expect(entry('user-a', 'invite')?.dismissedAt).toBeUndefined()
         // "and the next candidate renders"
         expect(zonesInDom()).toEqual(['bug-bounty'])
         expect(screen.getByText('app-shell')).toBeInTheDocument()
