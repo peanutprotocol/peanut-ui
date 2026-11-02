@@ -144,7 +144,10 @@ export function decide(state: JourneyState, asks: readonly AttentionAsk[], ledge
     const verdicts: Partial<Record<AskId, Verdict>> = {}
     for (const ask of sorted) verdicts[ask.id] = ask.eligible(state)
 
-    const live = sorted.filter((ask) => verdicts[ask.id] === 'show' && !isSilenced(ask, ledger[ask.id], state))
+    const live = sorted.filter(
+        (ask) =>
+            verdicts[ask.id] === 'show' && !session.crashed?.includes(ask.id) && !isSilenced(ask, ledger[ask.id], state)
+    )
     const trace: DecisionTrace = { verdicts, candidates: live.map((ask) => ask.id), reasons: {} }
 
     // an open interrupt stays until the user answers it or it stops being eligible

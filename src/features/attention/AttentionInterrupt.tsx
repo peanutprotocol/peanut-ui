@@ -2,6 +2,7 @@
 
 import { Component, Suspense, useEffect, useRef, type ErrorInfo, type ReactNode } from 'react'
 import * as Sentry from '@sentry/nextjs'
+import { recoverFromChunkError } from '@/utils/chunk-error-recovery'
 import { AttentionSurfaceContext } from '@/utils/overlay-visibility'
 import { useAttentionOptional, type AttentionContextValue } from './AttentionProvider'
 import { INTERRUPT_SURFACES } from './surfaces'
@@ -60,7 +61,7 @@ function InterruptHost({ attention }: { attention: AttentionContextValue }) {
     )
 }
 
-/** A surface that throws is settled as dismissed, so it cannot re-mount in a loop. */
+/** A surface that throws is skipped for this load (never recorded as an answer), so it cannot re-mount in a loop. */
 export class SurfaceBoundary extends Component<
     { askId: AskId; onCrash: () => void; children: ReactNode },
     { failed: boolean }
@@ -70,6 +71,7 @@ export class SurfaceBoundary extends Component<
         return { failed: true }
     }
     componentDidCatch(error: Error, info: ErrorInfo) {
+        recoverFromChunkError(error)
         Sentry.captureException(error, {
             tags: { feature: 'attention', ask: this.props.askId },
             extra: { componentStack: info.componentStack },

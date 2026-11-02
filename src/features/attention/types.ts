@@ -262,6 +262,8 @@ export interface Session {
     gateUp: boolean
     /** the settle deadline passed: `unknown` no longer holds lower-priority interrupts */
     settleDeadlinePassed: boolean
+    /** asks whose surface threw this app load: skipped until the next load, never written to the ledger */
+    crashed?: readonly AskId[]
 }
 
 export interface ZonePick {

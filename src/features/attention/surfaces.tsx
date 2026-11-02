@@ -1,6 +1,7 @@
 'use client'
 
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react'
+import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
 import type { AskId, AskSurfaceProps } from './types'
 
 type Surface = LazyExoticComponent<ComponentType<AskSurfaceProps>>
@@ -11,13 +12,15 @@ type Surface = LazyExoticComponent<ComponentType<AskSurfaceProps>>
  * registry needs an entry here (a parity test pins it).
  */
 export const INTERRUPT_SURFACES: Partial<Record<AskId, Surface>> = {
-    'legal-reconsent': lazy(() => import('./surfaces/LegalReconsentSurface')),
-    arrival: lazy(() => import('@/features/home/components/ArrivalDrawer')),
-    'balance-backup': lazy(() => import('./surfaces/BalanceBackupSurface')),
-    'post-verification-action': lazy(() => import('@/components/Global/PostSignupActionManager')),
-    'finish-card-setup': lazy(() => import('@/components/Home/EnableAutoBalanceBanner')),
-    'finish-card-funding': lazy(() => import('@/components/Home/FundingSetupPrompt')),
-    'install-app': lazy(() => import('@/components/Migration/MigrationDownloadModal')),
-    'push-home-fallback': lazy(() => import('./surfaces/HomePushPrompt')),
-    'early-user': lazy(() => import('@/components/Global/EarlyUserDrawer')),
+    'legal-reconsent': lazy(() => importWithChunkRetry(() => import('./surfaces/LegalReconsentSurface'))),
+    arrival: lazy(() => importWithChunkRetry(() => import('@/features/home/components/ArrivalDrawer'))),
+    'balance-backup': lazy(() => importWithChunkRetry(() => import('./surfaces/BalanceBackupSurface'))),
+    'post-verification-action': lazy(() =>
+        importWithChunkRetry(() => import('@/components/Global/PostSignupActionManager'))
+    ),
+    'finish-card-setup': lazy(() => importWithChunkRetry(() => import('@/components/Home/EnableAutoBalanceBanner'))),
+    'finish-card-funding': lazy(() => importWithChunkRetry(() => import('@/components/Home/FundingSetupPrompt'))),
+    'install-app': lazy(() => importWithChunkRetry(() => import('@/components/Migration/MigrationDownloadModal'))),
+    'push-home-fallback': lazy(() => importWithChunkRetry(() => import('./surfaces/HomePushPrompt'))),
+    'early-user': lazy(() => importWithChunkRetry(() => import('@/components/Global/EarlyUserDrawer'))),
 }
