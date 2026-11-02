@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import NavHeader from '@/components/Global/NavHeader'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -26,7 +28,7 @@ import { useRouter } from 'next/navigation'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { captureException } from '@sentry/nextjs'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
-import { useFormatter, useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { loadingStateKey } from '@/i18n/app/loading-states'
 
 // Helper function to check if a token is native ETH
@@ -55,7 +57,7 @@ export default function RecoverFundsPage() {
     const t = useTranslations('recoverFunds')
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
-    const format = useFormatter()
+    const locale = useLocale()
     // Balance discovery + failure semantics live in the hook so they are
     // testable (TASK-21829): fetch failure → retryable error state, never a
     // false "no tokens to recover".
@@ -183,7 +185,9 @@ export default function RecoverFundsPage() {
                             </h1>
                             <h2 className="text-heading-s">
                                 {t('amountInChain', {
-                                    amount: format.number(selectedBalance!.amount, { maximumFractionDigits: 8 }),
+                                    amount: formatFiniteDisplay(selectedBalance!.amount, locale, {
+                                        maximumFractionDigits: 8,
+                                    }),
                                     symbol: selectedBalance!.symbol,
                                     chain:
                                         getChainName(selectedBalance!.chainId) ??
@@ -239,7 +243,9 @@ export default function RecoverFundsPage() {
                             </h1>
                             <h2 className="text-heading-s">
                                 {t('amountInChain', {
-                                    amount: format.number(selectedBalance!.amount, { maximumFractionDigits: 8 }),
+                                    amount: formatFiniteDisplay(selectedBalance!.amount, locale, {
+                                        maximumFractionDigits: 8,
+                                    }),
                                     symbol: selectedBalance!.symbol,
                                     chain:
                                         getChainName(selectedBalance!.chainId) ??

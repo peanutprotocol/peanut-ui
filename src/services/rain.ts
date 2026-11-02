@@ -1,3 +1,4 @@
+import { validateNumericResponse } from '@/lib/numeric-response'
 /**
  * Rain Card API Service
  *
@@ -542,7 +543,7 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
         })
     }
 
-    return (await response.json()) as T
+    return validateNumericResponse(await response.json()) as T
 }
 
 // ─── Public API ─────────────────────────────────────────────────────────────

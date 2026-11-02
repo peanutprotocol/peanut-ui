@@ -66,18 +66,19 @@ describe('General Utilities', () => {
             })
         })
 
+        // TASK-24355: invalid display data is unavailable, never a fabricated zero.
         describe('formatAmount', () => {
             describe('edge cases', () => {
                 it('should handle empty string', () => {
-                    expect(formatAmount('')).toBe('0')
+                    expect(formatAmount('')).toBe('—')
                 })
 
                 it('should handle invalid string input', () => {
-                    expect(formatAmount('invalid')).toBe('0')
+                    expect(formatAmount('invalid')).toBe('—')
                 })
 
                 it('should handle NaN', () => {
-                    expect(formatAmount(NaN)).toBe('0')
+                    expect(formatAmount(NaN)).toBe('—')
                 })
             })
 
@@ -139,20 +140,20 @@ describe('General Utilities', () => {
         describe('formatExtendedNumber', () => {
             describe('edge cases', () => {
                 it('should handle empty string', () => {
-                    expect(formatExtendedNumber('')).toBe('0')
+                    expect(formatExtendedNumber('')).toBe('—')
                 })
 
                 it('should handle invalid string input', () => {
-                    expect(formatExtendedNumber('invalid')).toBe('0')
+                    expect(formatExtendedNumber('invalid')).toBe('—')
                 })
 
                 it('should handle NaN', () => {
-                    expect(formatExtendedNumber(NaN)).toBe('0')
+                    expect(formatExtendedNumber(NaN)).toBe('—')
                 })
 
                 it('should handle undefined and null', () => {
-                    expect(formatExtendedNumber(undefined as any)).toBe('0')
-                    expect(formatExtendedNumber(null as any)).toBe('0')
+                    expect(formatExtendedNumber(undefined as any)).toBe('—')
+                    expect(formatExtendedNumber(null as any)).toBe('—')
                 })
             })
 
@@ -744,5 +745,28 @@ describe('General Utilities', () => {
             saveRedirectUrl()
             expect(getRedirectUrl()).toBe('/profile')
         })
+    })
+})
+
+// TASK-24355: missing/invalid display data must never be formatted as a number.
+describe('numeric formatting boundaries', () => {
+    it('rejects nonfinite and partial raw token amounts without throwing', () => {
+        for (const value of [NaN, Infinity, -Infinity, '12garbage', '4,000', '9'.repeat(400)]) {
+            expect(formatTokenAmount(value)).toBeUndefined()
+        }
+        expect(formatTokenAmount('9'.repeat(400), 2, true)).toBe('')
+    })
+
+    it('can display whole-unit tokens at zero fraction digits', () => {
+        expect(formatTokenAmount(0, 0)).toBe('0')
+        expect(formatTokenAmount(10, 0)).toBe('10')
+        expect(formatTokenAmount(999.99, 0)).toBe('999')
+    })
+
+    it('returns unavailable for arithmetic overflow rather than emitting infinity', () => {
+        expect(formatTokenAmount(Number.MAX_VALUE, 2)).toBeUndefined()
+        expect(formatAmount(Infinity)).toBe('—')
+        expect(formatExtendedNumber(Infinity)).toBe('—')
+        expect(formatNumberForDisplay('9'.repeat(400))).toBe('—')
     })
 })

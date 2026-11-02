@@ -1,4 +1,6 @@
 'use client'
+
+import { formatFiniteDisplay } from '@/utils/currency'
 import { type FC, useEffect, useRef, useState } from 'react'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -90,7 +92,7 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                         description={
                             data.position === null
                                 ? t('onListBodyPending')
-                                : t('onListBody', { position: data.position.toLocaleString() })
+                                : t('onListBody', { position: formatFiniteDisplay(data.position) })
                         }
                         align="center"
                         size="s"

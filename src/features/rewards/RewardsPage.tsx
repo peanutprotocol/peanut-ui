@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { useNativePlatform } from '@/utils/native-platform'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -99,16 +101,26 @@ export function RewardsPage() {
                         cashStatus.data &&
                         (() => {
                             const rewards = cashStatus.data.rewards
-                            const pendingUsd = rewards?.pendingUsd ?? 0
+                            // Older APIs omit rewards entirely; a present object with a missing amount is unknown.
+                            const pendingUsd = rewards ? rewards.pendingUsd : 0
                             const lifetimeUsd = rewards?.lifetimeEarnedUsd ?? cashStatus.data.lifetimeEarned
 
                             return (
                                 <div className="flex flex-col items-center gap-1">
-                                    {pendingUsd > 0 ? (
+                                    {!Number.isFinite(pendingUsd) ? (
+                                        <h2 className="text-heading-l text-foreground-primary">
+                                            {formatFiniteDisplay(pendingUsd)}
+                                        </h2>
+                                    ) : pendingUsd > 0 ? (
                                         <>
                                             <p className="text-body-s text-foreground-secondary">{t('youHave')}</p>
                                             <h2 className="text-heading-l text-foreground-primary">
-                                                ${pendingUsd.toFixed(2)}
+                                                $
+                                                {formatFiniteDisplay(pendingUsd, 'en-US', {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
+                                                    useGrouping: false,
+                                                })}
                                             </h2>
                                             <p className="text-center text-body-s text-foreground-secondary">
                                                 {t('pendingCallout')}
@@ -120,7 +132,9 @@ export function RewardsPage() {
                                         </p>
                                     )}
                                     <p className="mt-2 text-center text-body-s text-foreground-secondary">
-                                        {t('lifetimeRewards', { amount: `$${lifetimeUsd.toFixed(2)}` })}
+                                        {t('lifetimeRewards', {
+                                            amount: `$${formatFiniteDisplay(lifetimeUsd, 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}`,
+                                        })}
                                     </p>
                                 </div>
                             )

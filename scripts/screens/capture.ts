@@ -1,4 +1,5 @@
 import { chromium, devices, expect, type Request } from '@playwright/test'
+import { hasInvalidNumericUi } from './numeric-ui.mjs'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { release } from 'node:os'
@@ -553,6 +554,18 @@ async function main() {
                 if (transportFailures.size)
                     throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
                 if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)
+                // Applies to every registered screen/state and requested locale,
+                // including controls whose value does not appear in innerText.
+                const numericSnapshot = await page.evaluate(() => ({
+                    text: document.body.innerText,
+                    inputs: [...document.querySelectorAll('input')].map((input) => input.value),
+                    sliderAttributes: [...document.querySelectorAll('[role="slider"]')].flatMap((slider) =>
+                        ['aria-valuenow', 'aria-valuemin', 'aria-valuemax', 'aria-valuetext'].map(
+                            (name) => slider.getAttribute(name) ?? ''
+                        )
+                    ),
+                }))
+                if (hasInvalidNumericUi(numericSnapshot)) throw new Error('Invalid numeric UI in captured state')
                 let previous = await page.screenshot({
                     animations: 'disabled',
                     caret: 'hide',

@@ -1,4 +1,6 @@
 'use client'
+
+import { formatFiniteDisplay } from '@/utils/currency'
 import { type FC, useCallback, useState } from 'react'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
@@ -118,7 +120,9 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
             {balanceDueCents > 0 && (
                 <Callout
                     priority="attention"
-                    title={t('balanceDueTitle', { amount: `$${(balanceDueCents / 100).toFixed(2)}` })}
+                    title={t('balanceDueTitle', {
+                        amount: `$${formatFiniteDisplay(balanceDueCents / 100, 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}`,
+                    })}
                 >
                     {t('balanceDueBody')}
                 </Callout>

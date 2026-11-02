@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import Card from '@/components/Global/Card'
 import Badge from '@/components/Global/Badges/Badge'
@@ -89,9 +91,9 @@ export function RequestFulfillmentNotice({ requestId }: { requestId: string }) {
     // cent-exact result directly: formatTokenAmount's floating-point floor
     // can subtract a cent even from a correct decimal sum (e.g. 16.15).
     const received = showCombinedProgress
-        ? Number(receivedAmount).toLocaleString('en-US', { maximumFractionDigits: 2 })
-        : (formatTokenAmount(receivedAmount, 2) ?? receivedAmount)
-    const requested = formatTokenAmount(data.tokenAmount, 2) ?? data.tokenAmount ?? '0'
+        ? formatFiniteDisplay(receivedAmount, 'en-US', { maximumFractionDigits: 2 })
+        : (formatTokenAmount(receivedAmount, 2) ?? '—')
+    const requested = formatTokenAmount(data.tokenAmount, 2) ?? '—'
 
     // A part payment states both numbers, because the requester's next move is
     // to ask for the difference. A paid request states who paid instead: the

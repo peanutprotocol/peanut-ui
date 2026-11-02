@@ -266,3 +266,39 @@ describe('completeExternalWalletPayment', () => {
         expect(ctx.setIsLoading).toHaveBeenLastCalledWith(false)
     })
 })
+
+describe('finite contribution boundary', () => {
+    test.each(['Infinity', 'NaN', '9'.repeat(400), '12junk'])(
+        'rejects invalid amount %s before charge side effects',
+        async (amount) => {
+            ctx.amount = amount
+            ctx.usdAmount = amount
+            ctx.totalAmount = 10000
+            ctx.charge = openCharge({ tokenAmount: amount })
+            const { result } = renderHookWithIntl(() => useContributePotFlow())
+            expect(result.current.canProceed).toBe(false)
+            let outcome: { success: boolean } | undefined
+            await act(async () => {
+                outcome = await result.current.executeContribution(true, true)
+            })
+            expect(outcome).toEqual(expect.objectContaining({ success: false }))
+            expect(mockCreateCharge).not.toHaveBeenCalled()
+            expect(mockFetchCharge).not.toHaveBeenCalled()
+        }
+    )
+
+    test('4000 can proceed and creates a charge with the raw amount', async () => {
+        ctx.amount = '4000'
+        ctx.usdAmount = '4000'
+        ctx.totalAmount = 10000
+        const { result } = renderHookWithIntl(() => useContributePotFlow())
+        expect(result.current.canProceed).toBe(true)
+        let outcome: { success: boolean } | undefined
+        await act(async () => {
+            outcome = await result.current.executeContribution(true, true)
+        })
+        expect(outcome).toEqual({ success: true })
+        expect(mockCreateCharge).toHaveBeenCalledWith(expect.objectContaining({ tokenAmount: '4000' }))
+        expect(mockFetchCharge).not.toHaveBeenCalled()
+    })
+})

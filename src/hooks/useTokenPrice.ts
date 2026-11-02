@@ -1,3 +1,4 @@
+import { parsePositiveRate } from '@/lib/money'
 import { useQuery } from '@tanstack/react-query'
 import { fetchTokenPrice } from '@/services/tokens-price'
 import {
@@ -117,14 +118,7 @@ export const useTokenPrice = ({
             if (!data) return null
 
             // Validate price is a valid positive number
-            if (typeof data.price !== 'number' || isNaN(data.price) || data.price <= 0) {
-                console.warn('[useTokenPrice] Invalid price detected, returning null:', {
-                    tokenAddress,
-                    chainId,
-                    price: data.price,
-                })
-                return null
-            }
+            if (parsePositiveRate(data.price) === null) return null
 
             return data
         },

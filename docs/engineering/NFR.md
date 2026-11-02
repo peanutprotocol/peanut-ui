@@ -80,3 +80,15 @@ cannot be reconstructed from reports that were never captured or retained.
 - Verification: Node screen tests, formatting/lint for changed files, disposable toggle mutation, desktop/mobile browser inspection when available.
 
 Undecided: None for this change. Live deployment is outside this change.
+
+## Numeric money and UI invariants (TASK-24355)
+
+- Raw money and localized display strings are separate. Construct Money with explicit currency/asset, precision and exact bigint minor units; never serialize the Money object itself. Payment guards reject zero/negative, malformed/nonfinite, excessive precision and uint256 overflow before optimistic cache changes, charge creation or signing.
+- Shared numeric API decoders reject invalid present amount/rate fields without coercing responses. Nullable optional data remains unavailable; owning token/rate decoders enforce required fields. Rates must be finite and positive. Preserve transport auth, timeouts, request keys and post-transfer record-only recovery.
+- AmountInput retains canonical raw decimal state and rational conversion precision across toggles. A missing rate is unavailable and cannot mint a converted amount. Typed amounts remain owned by the payer during delayed rate/suggestion updates.
+- Invalid numeric displays use an unavailable marker, never a fabricated zero or free/sponsored fee. A legitimately pending fee keeps its pending state. The shared formatting adapters preserve existing valid locale and rounding contracts.
+- Numeric diagnostics contain only fixed source/category dimensions (at most35 combinations per runtime). The Sentry export boundary strips user, request, breadcrumbs, contexts, arbitrary tags and values. Reporting failure must not affect product behavior.
+- Bounds: raw numeric text1024 characters before regex/bigint processing; Money precision0..36; response decoder depth32 and100000 visited values. The registry compatibility test covers every existing asset spelling without bundling the token registry into Money.
+- Verification: independent spec tests, deterministic exact-unit/conversion oracles (seed24355), four-locale real-component failure/recovery tests, no-side-effect submission regressions, mutation challenges and lint-rule tests. Every registered Screen Library capture checks visible text, input values and slider attributes before its screenshot. The numeric rule and capture tests run in required test workflow alongside existing suites.
+
+Undecided: production alert thresholds and release/rollout ownership remain operational decisions. No live payment, deployment or production alert change is part of this PR.

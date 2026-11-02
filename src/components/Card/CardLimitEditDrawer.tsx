@@ -1,4 +1,6 @@
 'use client'
+
+import { formatFiniteDisplay } from '@/utils/currency'
 import { type FC, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useFormatter, useTranslations } from 'next-intl'
@@ -30,14 +32,30 @@ const CardLimitEditDrawer: FC<Props> = ({ cardId, frequency, label, initialAmoun
     const format = useFormatter()
     const queryClient = useQueryClient()
     const { returnExcess } = useReturnExcessCollateral()
-    const [value, setValue] = useState<string>(initialAmountCents != null ? (initialAmountCents / 100).toFixed(2) : '')
+    const [value, setValue] = useState<string>(
+        initialAmountCents != null && Number.isFinite(initialAmountCents)
+            ? formatFiniteDisplay(initialAmountCents / 100, 'en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                  useGrouping: false,
+              })
+            : ''
+    )
     const [saving, setSaving] = useState(false)
     const [validationError, setValidationError] = useState<string | null>(null)
     const [apiError, setApiError] = useState<string | null>(null)
 
     useEffect(() => {
         if (isOpen) {
-            setValue(initialAmountCents != null ? (initialAmountCents / 100).toFixed(2) : '')
+            setValue(
+                initialAmountCents != null && Number.isFinite(initialAmountCents)
+                    ? formatFiniteDisplay(initialAmountCents / 100, 'en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                          useGrouping: false,
+                      })
+                    : ''
+            )
             setValidationError(null)
             setApiError(null)
             posthog.capture(ANALYTICS_EVENTS.CARD_LIMIT_CHANGE_OPENED, {

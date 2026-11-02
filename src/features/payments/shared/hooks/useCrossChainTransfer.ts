@@ -1,5 +1,7 @@
 'use client'
 
+import { requirePaymentMoney } from '@/lib/money'
+
 /**
  * Unified cross-chain transfer hook — Rhino SDA flow.
  *
@@ -23,7 +25,7 @@
 
 import { useCallback, useRef, useState } from 'react'
 import { captureException } from '@sentry/nextjs'
-import { encodeFunctionData, erc20Abi, parseUnits, type Address, type Hex } from 'viem'
+import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { prepareRequestLinkFulfillmentTransaction } from '@/utils/peanut-claim.utils'
 import { estimateTransactionCostUsd } from '@/app/actions/tokens'
@@ -527,7 +529,7 @@ async function runBridgePath({
     // Under whichever names the API used — this build runs against an API from
     // either side of the 2026-09 quote rename, so deploy order doesn't matter.
     const { payAmount, receiveAmount } = quoteAmounts(quote)
-    const approveAmount = parseUnits(payAmount, STABLECOIN_DECIMALS)
+    const approveAmount = requirePaymentMoney(payAmount, 'USDC', STABLECOIN_DECIMALS).minorUnits
     // Approve USDC for Rhino's bridge contract — required for both same-chain
     // swap (the swap contract does transferFrom) and cross-chain depositWithId.
     const approveData = encodeFunctionData({
@@ -678,7 +680,7 @@ function applyRhinoResult({
     // the Peanut wallet token as source — Circle USDC on Arbitrum (Arb Sepolia
     // in the sandbox), 6 decimals. Destination USDC can differ (BNB Chain is 18).
     const STABLECOIN_DECIMALS = 6
-    const payAmountBaseUnits = parseUnits(preview.payAmount, STABLECOIN_DECIMALS)
+    const payAmountBaseUnits = requirePaymentMoney(preview.payAmount, 'USDC', STABLECOIN_DECIMALS).minorUnits
 
     const transferData = encodeFunctionData({
         abi: erc20Abi,

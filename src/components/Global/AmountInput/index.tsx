@@ -1,15 +1,17 @@
 'use client'
 
 import { formatTokenAmount } from '@/utils/general.utils'
-import { formatAmountNumber, roundUpToDecimals } from '@/utils/currency'
+import { formatAmountNumber, formatFiniteDisplay } from '@/utils/currency'
+import { convertDecimalAmount } from '@/lib/money'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 import { Slider } from '../Slider'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useTranslations } from 'next-intl'
 
-// Used for internal calculations, not displayed to the user
-const DECIMAL_SCALE = 18 // Max expected decimal places for any denomination
+// State is raw decimal text. Localized labels never enter arithmetic.
+const finiteInput = (value: string = '') =>
+    value.length <= 1024 && /^\d*\.?\d*$/.test(value) && Number.isFinite(Number(value || '0')) ? value : ''
 
 interface AmountInputProps {
     className?: string
@@ -89,8 +91,8 @@ const AmountInput = ({
     const showConversion = !hideCurrencyToggle && !!secondaryDenomination
 
     // Store display value for input field (what user sees when typing)
-    const [displayValue, setDisplayValue] = useState<string>(initialAmount || '')
-    const [exactValue, setExactValue] = useState(Number(initialAmount || '') * 10 ** DECIMAL_SCALE)
+    const [displayValue, setDisplayValue] = useState<string>(finiteInput(initialAmount))
+    const [exactAmount, setExactAmount] = useState(finiteInput(initialAmount))
     // Use initialDenomination if provided and valid, otherwise default to primaryDenomination
     const [displaySymbol, setDisplaySymbol] = useState<string>(() => {
         if (initialDenomination) {
@@ -112,7 +114,7 @@ const AmountInput = ({
     const suggestionArmedRef = useRef(false)
 
     // A positive conversion can display as zero at the currency precision.
-    const hasValue = exactValue > 0
+    const hasValue = Number(exactAmount) > 0
 
     // Sync displayValue with initialAmount changes (e.g. when charge is fetched)
     // Skip sync if user is actively editing to prevent overwriting their input
@@ -120,8 +122,9 @@ const AmountInput = ({
     // so depending on it would re-run the sync on every keystroke.
     useEffect(() => {
         if (initialAmount && initialAmount !== displayValue && !isEditingRef.current) {
-            setDisplayValue(initialAmount)
-            setExactValue(Number(initialAmount) * 10 ** DECIMAL_SCALE)
+            const rawAmount = finiteInput(initialAmount)
+            setDisplayValue(rawAmount)
+            setExactAmount(rawAmount)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialAmount])
@@ -161,41 +164,44 @@ const AmountInput = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [displaySymbol])
 
-    /*
-     * Rate needed to convert from primary to secondary denomination by
-     * multiplying the primary rate by the exchange rate.
-     * Expressed as a integer with the scale of the max resolution denomination
-     */
-    const exchangeRate = useMemo(() => {
-        if (!secondaryDenomination) return 1
-        const alternativePrice = denominations[alternativeDisplaySymbol]?.price
-        const mainPrice = denominations[displaySymbol]?.price
-        return alternativePrice / mainPrice
-    }, [displaySymbol, alternativeDisplaySymbol, secondaryDenomination, denominations])
-
+    // Retain exact raw conversion precision across toggles, even when the
+    // displayed denomination rounds to zero. Round only the emitted/displayed
+    // value, never the canonical amount used for the return conversion.
     const alternativeValue = useMemo(() => {
-        if (!secondaryDenomination || !displayValue) return 0
-        return exactValue * exchangeRate
-    }, [exactValue, secondaryDenomination, exchangeRate, displayValue])
+        if (!secondaryDenomination) return '0'
+        return convertDecimalAmount(
+            exactAmount || '0',
+            denominations[alternativeDisplaySymbol]?.price,
+            denominations[displaySymbol]?.price,
+            36
+        )
+    }, [exactAmount, secondaryDenomination, denominations, alternativeDisplaySymbol, displaySymbol])
+
+    const rawAlternativeAmount = useMemo(() => {
+        if (alternativeValue === null) return null
+        return convertDecimalAmount(
+            alternativeValue,
+            1,
+            1,
+            denominations[alternativeDisplaySymbol]?.decimals ?? 6,
+            roundSecondaryUp && alternativeDisplaySymbol === secondaryDenomination?.symbol
+        )
+    }, [alternativeValue, denominations, alternativeDisplaySymbol, roundSecondaryUp, secondaryDenomination?.symbol])
 
     const alternativeDisplayValue = useMemo(() => {
-        if (!secondaryDenomination || !alternativeValue) return '0.00'
-        const scaledDownValue = alternativeValue / 10 ** DECIMAL_SCALE
-        const decimals = denominations[alternativeDisplaySymbol]?.decimals
-        if (roundSecondaryUp && alternativeDisplaySymbol === secondaryDenomination.symbol) {
-            // formatTokenAmount floors, and a float like 11.17 * 100 can floor a cent away
-            return roundUpToDecimals(scaledDownValue, decimals).toLocaleString('en-US', {
-                maximumFractionDigits: decimals,
-            })
-        }
-        return formatTokenAmount(scaledDownValue, decimals) ?? '0.00'
-    }, [alternativeValue, alternativeDisplaySymbol, secondaryDenomination, denominations, roundSecondaryUp])
+        if (rawAlternativeAmount === null) return '—'
+        return formatFiniteDisplay(rawAlternativeAmount, 'en-US', {
+            maximumFractionDigits: denominations[alternativeDisplaySymbol]?.decimals ?? 6,
+        })
+    }, [rawAlternativeAmount, denominations, alternativeDisplaySymbol])
 
     // A cent-denominated line reads like every other amount: "0.10", "11", never
     // "0.1" (design.md, copy). A finer denomination keeps its own digits.
     const conversionLabel =
         denominations[alternativeDisplaySymbol]?.decimals === 2
-            ? formatAmountNumber(alternativeDisplayValue.replace(/,/g, ''))
+            ? rawAlternativeAmount === null
+                ? '—'
+                : formatAmountNumber(rawAlternativeAmount)
             : alternativeDisplayValue
 
     // primaryDenomination.symbol is included: it decides which consumer gets the
@@ -210,9 +216,9 @@ const AmountInput = ({
     useEffect(() => {
         const isPrimaryDenomination = displaySymbol === primaryDenomination.symbol
         // Strip commas before passing to consumers - they expect raw numeric strings
-        const rawDisplayValue = displayValue.replace(/,/g, '')
+        const rawDisplayValue = displayValue
         // Don't output "0.00" when there's no actual value - keep it empty to avoid feedback loops
-        const rawAlternativeValue = hasValue ? alternativeDisplayValue.replace(/,/g, '') : ''
+        const rawAlternativeValue = hasValue ? (rawAlternativeAmount ?? '') : ''
 
         // Always call setDisplayedAmount with the currently displayed value
         setDisplayedAmount?.(rawDisplayValue)
@@ -225,11 +231,21 @@ const AmountInput = ({
             setSecondaryAmount?.(rawDisplayValue)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [displayValue, alternativeDisplayValue, displaySymbol, denominations, hasValue, primaryDenomination.symbol])
+    }, [
+        displayValue,
+        alternativeValue,
+        rawAlternativeAmount,
+        alternativeDisplayValue,
+        alternativeDisplaySymbol,
+        displaySymbol,
+        denominations,
+        hasValue,
+        primaryDenomination.symbol,
+    ])
 
     const onSliderValueChange = useCallback(
         (value: number[]) => {
-            if (maxAmount) {
+            if (maxAmount && Number.isFinite(maxAmount) && Number.isFinite(value[0])) {
                 isEditingRef.current = true
                 const selectedPercentage = value[0]
                 let selectedAmount = (selectedPercentage / 100) * maxAmount
@@ -249,16 +265,17 @@ const AmountInput = ({
                     }
                 }
 
+                if (!Number.isFinite(selectedAmount)) return
                 const selectedAmountStr = parseFloat(selectedAmount.toFixed(4)).toString()
                 const formattedAmount = formatTokenAmount(
                     selectedAmountStr,
                     denominations[displaySymbol]?.decimals,
                     true
                 )
-                if (formattedAmount) {
+                if (formattedAmount && finiteInput(formattedAmount)) {
                     suggestionArmedRef.current = false
                     setDisplayValue(formattedAmount)
-                    setExactValue(Number(formattedAmount) * 10 ** DECIMAL_SCALE)
+                    setExactAmount(formattedAmount)
                 }
             }
         },
@@ -280,17 +297,17 @@ const AmountInput = ({
     // Keyed on the suggestion alone: the field state it reads must not re-run
     // it on every keystroke.
     useEffect(() => {
-        if (!defaultSliderSuggestedAmount) return
+        if (!defaultSliderSuggestedAmount || !Number.isFinite(defaultSliderSuggestedAmount)) return
         const isUntouchedEmpty = displayValue === '' && !isEditingRef.current
         const holdsOnlySuggestion = !isEditingRef.current && displayValue === lastSuggestionRef.current
         if (!isUntouchedEmpty && !holdsOnlySuggestion && !suggestionArmedRef.current) return
-        const formattedAmount = formatTokenAmount(defaultSliderSuggestedAmount.toString(), 2)
-        if (formattedAmount) {
+        const formattedAmount = formatTokenAmount(defaultSliderSuggestedAmount.toString(), 2, true)
+        if (formattedAmount && finiteInput(formattedAmount)) {
             // an emptied field takes this one suggestion; typing again owns it
             suggestionArmedRef.current = false
             lastSuggestionRef.current = formattedAmount
             setDisplayValue(formattedAmount)
-            setExactValue(Number(formattedAmount) * 10 ** DECIMAL_SCALE)
+            setExactAmount(formattedAmount)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [defaultSliderSuggestedAmount])
@@ -323,7 +340,7 @@ const AmountInput = ({
         isEditingRef.current = true
         suggestionArmedRef.current = false
         setDisplayValue(fillValue)
-        setExactValue(Number(fillValue) * 10 ** DECIMAL_SCALE)
+        setExactAmount(fillValue)
         // Reported separately from setPrimaryAmount, which cannot tell a filled
         // amount from a typed one — the withdraw screen needs that distinction
         // to know the user asked for "everything".
@@ -384,14 +401,14 @@ const AmountInput = ({
                                 const maxDecimals = denominations[displaySymbol].decimals
                                 const formattedAmount = formatTokenAmount(value, maxDecimals, true)
                                 if (formattedAmount !== undefined) {
-                                    value = formattedAmount
+                                    value = finiteInput(formattedAmount)
                                 }
                                 if (value === displayValue) return
                                 onAmountTyped?.(displaySymbol)
                                 // a payer who emptied the field takes the next suggestion
                                 suggestionArmedRef.current = value === ''
                                 setDisplayValue(value)
-                                setExactValue(Number(value) * 10 ** DECIMAL_SCALE)
+                                setExactAmount(value)
                             }}
                             ref={inputRef}
                             inputMode="decimal"
@@ -470,6 +487,7 @@ const AmountInput = ({
                 <button
                     type="button"
                     aria-label={t('amountInput.switchCurrency')}
+                    disabled={disabled || alternativeValue === null}
                     className="absolute top-1/2 right-0 -translate-x-1/2 -translate-y-1/2 transform cursor-pointer transition-opacity duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                     onClick={(e) => {
                         e.preventDefault()
@@ -479,16 +497,13 @@ const AmountInput = ({
                         // If no meaningful value entered, just switch symbol and keep empty
                         if (!hasValue) {
                             setDisplayValue('')
-                            setExactValue(0)
+                            setExactAmount('')
                             setDisplaySymbol(alternativeDisplaySymbol)
                             return
                         }
-                        setExactValue(alternativeValue)
-                        setDisplayValue(
-                            Number(alternativeDisplayValue.replace(/,/g, '')) === 0
-                                ? '0'
-                                : alternativeDisplayValue.replace(/,/g, '')
-                        )
+                        if (alternativeValue === null) return
+                        setExactAmount(alternativeValue)
+                        setDisplayValue(rawAlternativeAmount ?? '')
                         setDisplaySymbol(alternativeDisplaySymbol)
                     }}
                 >
@@ -501,11 +516,11 @@ const AmountInput = ({
                 </button>
             )}
             {infoContent}
-            {showSlider && maxAmount && (
+            {showSlider && !!maxAmount && Number.isFinite(maxAmount) && maxAmount > 0 && (
                 <div className="mt-2 h-14">
                     <Slider
                         onValueChange={onSliderValueChange}
-                        value={[(exactValue / 10 ** DECIMAL_SCALE / maxAmount) * 100]}
+                        value={[Math.min(120, (Number(exactAmount) / maxAmount) * 100)]}
                         defaultValue={[defaultSliderValue ? defaultSliderValue : 100]}
                     />
                 </div>

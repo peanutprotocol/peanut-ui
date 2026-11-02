@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { formatUnits } from 'viem'
@@ -252,14 +254,18 @@ export function QrPayFormView() {
                     <GlobalCard className="px-4">
                         <PaymentInfoRow
                             label={t('info.exchangeRate')}
-                            value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
+                            value={`1 USD = ${formatFiniteDisplay(currency.price, 'en-US', { maximumFractionDigits: 20, useGrouping: false })} ${currency.code.toUpperCase()}`}
                             moreInfoText={tCommon('exchangeRateInfo')}
                         />
                         {(() => {
                             if (!hasCardMarkupComparison(currency.code)) return null
                             const savingsInCents = calculateSavingsInCents(usdAmount, cardMarkup?.rate)
                             if (savingsInCents <= 0) return null
-                            const savingsUsd = (savingsInCents / 100).toFixed(2)
+                            const savingsUsd = formatFiniteDisplay(savingsInCents / 100, 'en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                                useGrouping: false,
+                            })
                             return (
                                 <PaymentInfoRow
                                     label={t('info.saveVsCard')}

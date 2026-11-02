@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { useNativePlatform } from '@/utils/native-platform'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Card from '@/components/Global/Card'
@@ -122,11 +124,17 @@ const InvitesPage = () => {
             <section className="mx-auto space-y-4 mt-10 mb-auto w-full">
                 <Card className="flex flex-col items-center justify-center gap-2 p-4">
                     {invites?.summary?.totalLifetimeEarnedUsd !== undefined &&
-                    invites.summary.totalLifetimeEarnedUsd > 0 ? (
+                    (invites.summary.totalLifetimeEarnedUsd > 0 ||
+                        !Number.isFinite(invites.summary.totalLifetimeEarnedUsd)) ? (
                         <>
                             <h2 className="text-center text-body-m text-foreground-primary">{t('friendsEarnedYou')}</h2>
                             <span className="text-heading-m text-foreground-primary">
-                                ${invites.summary.totalLifetimeEarnedUsd.toFixed(2)}
+                                $
+                                {formatFiniteDisplay(invites.summary.totalLifetimeEarnedUsd, 'en-US', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                    useGrouping: false,
+                                })}
                             </span>
                             {nativePlatform.isIOSNative && (
                                 <span className="text-body-s text-foreground-secondary">{t('lifetimeCaption')}</span>

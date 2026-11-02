@@ -1,3 +1,5 @@
+import { formatFiniteDisplay } from '@/utils/currency'
+import { parseFiniteNumber } from '@/lib/money'
 import CurrencySelect from '@/components/LandingPage/CurrencySelect'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import {
@@ -135,7 +137,11 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     const netDestinationDisplayValue = useMemo<string>(() => {
         if (isEditingDestination) return getDestinationDisplayValue()
         if (netDestinationAmount === '' || typeof netDestinationAmount !== 'number') return ''
-        return netDestinationAmount.toFixed(2)
+        return formatFiniteDisplay(netDestinationAmount, 'en-US', {
+            useGrouping: false,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        })
     }, [isEditingDestination, getDestinationDisplayValue, netDestinationAmount])
 
     const updateUrlParams = useCallback(
@@ -285,8 +291,8 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                                 if (inputValue === '') {
                                     handleSourceAmountChange('')
                                 } else {
-                                    const value = parseFloat(inputValue)
-                                    handleSourceAmountChange(isNaN(value) ? '' : value)
+                                    const value = parseFiniteNumber(inputValue)
+                                    handleSourceAmountChange(value ?? '')
                                 }
                             }}
                             type="number"
@@ -343,13 +349,14 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                                 if (inputValue === '') {
                                     handleDestinationAmountChange('', '')
                                 } else {
-                                    const value = parseFloat(inputValue)
+                                    const value = parseFiniteNumber(inputValue)
                                     // User typed a net "Recipient Gets" value — gross it up
                                     // before handing to the hook so the source amount is
                                     // computed from the gross equivalent (net / (1 - fee) / rate).
-                                    const grossValue = isNaN(value)
-                                        ? ''
-                                        : reverseBridgeCrossCurrencyFee(value, sourceCurrency, destinationCurrency)
+                                    const grossValue =
+                                        value === null
+                                            ? ''
+                                            : reverseBridgeCrossCurrencyFee(value, sourceCurrency, destinationCurrency)
                                     handleDestinationAmountChange(inputValue, grossValue)
                                 }
                             }}
@@ -385,11 +392,17 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 <div className="h-5 w-32 animate-pulse rounded-full bg-foreground-primary/10" />
             ) : (
                 <div className="rounded-full bg-background-disabled px-2 py-[2px] text-label-m text-foreground-secondary">
-                    {isError ? (
+                    {isError || exchangeRate <= 0 ? (
                         <span>{l.rateUnavailable}</span>
                     ) : (
                         <>
-                            1 {sourceCurrency} = {exchangeRate.toFixed(4)} {destinationCurrency}
+                            1 {sourceCurrency} ={' '}
+                            {formatFiniteDisplay(exchangeRate, 'en-US', {
+                                useGrouping: false,
+                                minimumFractionDigits: 4,
+                                maximumFractionDigits: 4,
+                            })}{' '}
+                            {destinationCurrency}
                         </>
                     )}
                 </div>

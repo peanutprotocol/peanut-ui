@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import ActionModal from '@/components/Global/ActionModal'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import AddressLink from '@/components/Global/AddressLink'
@@ -351,7 +353,10 @@ export default function WithdrawCryptoPage() {
                 const usdToWithdraw = parseFloat(amountUsd)
                 const minUsd = getMinWithdrawUsdForChain(data.chain.chainId)
                 if (!Number.isFinite(usdToWithdraw) || usdToWithdraw < minUsd) {
-                    const minDisplay = minUsd % 1 === 0 ? `$${minUsd}` : `$${minUsd.toFixed(2)}`
+                    const minDisplay =
+                        minUsd % 1 === 0
+                            ? `$${minUsd}`
+                            : `$${formatFiniteDisplay(minUsd, 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}`
                     setError(
                         `Withdrawals to ${data.chain.networkName} need at least ${minDisplay}. Increase the amount or pick a different network.`
                     )
@@ -898,7 +903,7 @@ export default function WithdrawCryptoPage() {
         // delivery they will never see. Measured against the amount pinned to
         // the charge — `?amount=` stays editable here and is not what moves.
         if (feeConsumesWithdrawal(networkFee, parseFloat(quoteAmount))) {
-            return `The network fee to ${withdrawData?.chain.networkName ?? 'this network'} is $${networkFee.toFixed(2)}, which would leave nothing to deliver. Enter a larger amount or pick a cheaper network.`
+            return `The network fee to ${withdrawData?.chain.networkName ?? 'this network'} is $${formatFiniteDisplay(networkFee, 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}, which would leave nothing to deliver. Enter a larger amount or pick a cheaper network.`
         }
         return null
     }, [isCrossChainWithdrawal, payAmount, minDepositLimitUsd, networkFee, quoteAmount, withdrawData])

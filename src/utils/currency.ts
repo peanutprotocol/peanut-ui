@@ -1,3 +1,5 @@
+import { isMoneyUnit, parseFiniteNumber } from '@/lib/money'
+import { reportInvalidNumeric } from '@/lib/numeric-telemetry'
 import { SYMBOLS_BY_CURRENCY_CODE } from '@/constants/currency-symbols.consts'
 
 // Helper function to get currency symbol based on code
@@ -12,10 +14,15 @@ export const getDisplayCurrencySymbol = (code?: string, fallbackSymbol: string =
  * round amount (design.md, copy). Rounds to the cent first, so 1999.999 is "€2,000".
  */
 export const formatBankAmount = (amount: string | number, currencyCode: string): string => {
+    if (!isMoneyUnit(currencyCode)) {
+        reportInvalidNumeric('format', 'unit')
+        return '—'
+    }
     const symbol = getDisplayCurrencySymbol(currencyCode)
     // A currency with no symbol of its own shows its code, which needs a space: "ARS 1,000", not "ARS1,000".
     const prefix = /^[A-Z]+$/.test(symbol) ? `${symbol} ` : symbol
-    return `${prefix}${formatAmountNumber(amount)}`
+    const formatted = formatAmountNumber(amount)
+    return formatted === '—' ? formatted : `${prefix}${formatted}`
 }
 
 /**
@@ -33,15 +40,20 @@ export const formatAmountNumber = (
     maxDecimals: number = 2,
     minDecimals: number = 2
 ): string => {
-    const value = typeof amount === 'string' ? parseFloat(amount) : amount
-    if (isNaN(value)) return '0'
-    return value
-        .toLocaleString('en-US', {
-            minimumFractionDigits: Math.min(minDecimals, maxDecimals),
-            maximumFractionDigits: maxDecimals,
-            roundingMode: 'halfExpand',
-        })
-        .replace(/\.0+$/, '')
+    const value = parseFiniteNumber(amount)
+    if (value === null) {
+        reportInvalidNumeric('format', 'malformed')
+        return '—'
+    }
+    if (!validDecimals(maxDecimals) || !validDecimals(minDecimals)) {
+        reportInvalidNumeric('format', 'precision')
+        return '—'
+    }
+    return formatFiniteDisplay(value, 'en-US', {
+        minimumFractionDigits: Math.min(minDecimals, maxDecimals),
+        maximumFractionDigits: maxDecimals,
+        roundingMode: 'halfExpand',
+    }).replace(/\.0+$/, '')
 }
 
 /**
@@ -55,3 +67,24 @@ export const roundUpToDecimals = (amount: number, decimals: number): number => {
     // below any real rate's precision and far above the error.
     return Math.ceil(Number((amount * factor).toFixed(9))) / factor
 }
+
+/** Numeric display adapter. Missing/invalid data is unavailable, never a fabricated zero. */
+export function formatFiniteDisplay(
+    value: unknown,
+    locales?: Intl.LocalesArgument,
+    options?: Intl.NumberFormatOptions
+): string {
+    const finite = parseFiniteNumber(value)
+    if (finite === null) {
+        reportInvalidNumeric('format', 'malformed')
+        return '—'
+    }
+    try {
+        return finite.toLocaleString(locales, options)
+    } catch {
+        reportInvalidNumeric('format', 'precision')
+        return '—'
+    }
+}
+
+const validDecimals = (value: number) => Number.isInteger(value) && value >= 0 && value <= 100
