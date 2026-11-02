@@ -49,7 +49,7 @@ export function isSilenced(ask: AttentionAsk, entry: LedgerEntry | undefined, st
     if (entry.dismissedAt) {
         const expiry = ask.policy.expiryDays
         if (expiry === undefined) return true
-        const dismissed = Date.parse(entry.dismissedAt)
+        const dismissed = Math.min(state.now, Date.parse(entry.dismissedAt))
         return Number.isFinite(dismissed) && state.now - dismissed < expiry * DAY_MS
     }
     return false

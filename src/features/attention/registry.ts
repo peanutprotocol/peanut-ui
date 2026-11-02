@@ -33,7 +33,8 @@ export const legalReconsent: AttentionAsk = {
     version: (s) => (s.consent.versions.length ? s.consent.versions.join(',') : undefined),
     // ToS §17.3: a prompt, never a lock, so "Not now" exists; the modal
     // computes its own snooze date from the documents' effective dates
-    policy: { routes: 'any', snoozeDays: 7 },
+    // completion is the consent status; a dismissal only covers the status refetch, so a stray one re-arms
+    policy: { routes: 'any', snoozeDays: 7, expiryDays: 1 },
     analyticsKey: MODAL_TYPES.RE_CONSENT,
 }
 
@@ -173,7 +174,8 @@ export const blockedCard: AttentionAsk = {
         return s.blockedCardId ? 'show' : 'ineligible'
     },
     version: (s) => s.blockedCardId ?? undefined,
-    policy: { anchorsHome: true },
+    // nothing dismisses the to-do list; an old stored dismissal never silences it
+    policy: { anchorsHome: true, expiryDays: 0 },
     analyticsKey: 'blocked_card',
 }
 
@@ -189,7 +191,8 @@ export const checklist: AttentionAsk = {
         if (!s.onboarding) return 'unknown'
         return s.onboarding.step === 'completed' ? 'done' : 'show'
     },
-    policy: { anchorsHome: true },
+    // nothing dismisses the to-do list; an old stored dismissal never silences it
+    policy: { anchorsHome: true, expiryDays: 0 },
     analyticsKey: 'checklist',
 }
 
