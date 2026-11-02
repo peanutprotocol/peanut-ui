@@ -195,23 +195,45 @@ function useDecisionReport(
     }, [decision, state.userId, state.userLoaded, session.busy, session.route, session.count, server])
 }
 
+// errors thrown by the app below the provider, not by the manager
+const pageErrors = new WeakSet<object>()
+
+/** Marks a page's error and passes it on, so the manager's boundary hands it to the app's own. */
+class PageErrorPassThrough extends Component<{ children: ReactNode }, { error: unknown }> {
+    state = { error: undefined as unknown }
+    static getDerivedStateFromError(error: unknown) {
+        if (error && typeof error === 'object') pageErrors.add(error)
+        return { error }
+    }
+    render() {
+        if (this.state.error !== undefined) throw this.state.error
+        return this.props.children
+    }
+}
+
 /**
- * The provider wraps the whole app shell. A throw inside it (a selector,
- * a hook, decide) must never take the app down with it: the boundary
- * renders the children without the manager and pages Sentry.
+ * The provider wraps the whole app shell. A throw inside the manager (a
+ * selector, a hook, decide) must never take the app down with it: the
+ * boundary renders the children without the manager and pages Sentry. A
+ * page's own error is not the manager's: it goes on to the app's boundary.
  */
-class AttentionBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
-    state = { failed: false }
-    static getDerivedStateFromError() {
-        return { failed: true }
+class AttentionBoundary extends Component<{ children: ReactNode }, { failed: boolean; pageError: unknown }> {
+    state = { failed: false, pageError: undefined as unknown }
+    static getDerivedStateFromError(error: unknown) {
+        return error && typeof error === 'object' && pageErrors.has(error)
+            ? { pageError: error }
+            : { failed: true, pageError: undefined }
     }
     componentDidCatch(error: Error, info: ErrorInfo) {
+        if (pageErrors.has(error)) return
+        setSessionInterrupts({ ...getSessionInterrupts(), open: null })
         Sentry.captureException(error, {
             tags: { feature: 'attention' },
             extra: { componentStack: info.componentStack },
         })
     }
     render() {
+        if (this.state.pageError !== undefined) throw this.state.pageError
         return this.state.failed ? (
             this.props.children
         ) : (
@@ -408,7 +430,11 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
         [decision, state, ledger, session, asks, opened, openedZone, openedSurface, crashed, settle]
     )
 
-    return <AttentionContext.Provider value={value}>{children}</AttentionContext.Provider>
+    return (
+        <AttentionContext.Provider value={value}>
+            <PageErrorPassThrough>{children}</PageErrorPassThrough>
+        </AttentionContext.Provider>
+    )
 }
 
 export function useAttention(): AttentionContextValue {
