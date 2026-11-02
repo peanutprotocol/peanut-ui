@@ -16,6 +16,7 @@ export const INTERRUPT_SURFACES: Partial<Record<AskId, Surface>> = {
     'balance-backup': lazy(() => import('./surfaces/BalanceBackupSurface')),
     'post-verification-action': lazy(() => import('@/components/Global/PostSignupActionManager')),
     'finish-card-setup': lazy(() => import('@/components/Home/EnableAutoBalanceBanner')),
+    'finish-card-funding': lazy(() => import('@/components/Home/FundingSetupPrompt')),
     'install-app': lazy(() => import('@/components/Migration/MigrationDownloadModal')),
     'push-home-fallback': lazy(() => import('./surfaces/HomePushPrompt')),
     'early-user': lazy(() => import('@/components/Global/EarlyUserDrawer')),

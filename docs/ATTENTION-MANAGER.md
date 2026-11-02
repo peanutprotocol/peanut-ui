@@ -23,7 +23,7 @@ Tiers rank urgency among asks eligible at the same moment. Journey dependencies 
 
 | Tier | Who                                                                          | Interrupt budget                                             |
 | ---- | ---------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| 1    | install the app (web), maintenance banner, terms, arrival in a new country, unprotected balance, verification due, half-done action, half-done card | any session |
+| 1    | install the app (web), maintenance banner, terms, arrival in a new country, unprotected balance, verification due, half-done action, half-done card (`finish-card-setup` on the existing card permission, then `finish-card-funding` on managed funding; the server's funding decision picks one) | any session |
 | 2    | the checklist (verify, add money, first payment by card or QR), blocked card | never |
 | 3    | repeat use: a partner's document request, virtual account, QR payment and its ID check, card offer, next payment, share bank details, request money, send money; inline: verification deadline, limit cap | one per session, none after a T1 (no T3 ask opens by itself today) |
 | 4    | backup passkey, push, email                                                  | one per session, none after a T1 (contextual moments later)  |
@@ -50,7 +50,7 @@ One entry in `registry.ts` (eligibility, policy, version) with its tier and rank
 
 ## Surfaces and presentation
 
-- Interrupt: one self-opening overlay. Its registry presentation is modal or drawer; AskShell renders it. Legal consent, post-verification action, card setup, install app, and Home push use modals; arrival, balance backup and early user use drawers.
+- Interrupt: one self-opening overlay. Its registry presentation is modal or drawer; AskShell renders it. Legal consent, post-verification action, card setup, card funding, install app, and Home push use modals; arrival, balance backup and early user use drawers.
 - Zone: one Home card with its existing bespoke component and fatigue policy.
 - Inline: one notice across the mounted bank-transfer and limits slots. Tier/rank wins, then mounted-slot order; slot context supplies the deadline. No budget, rotation, or settle hold. A picked interrupt cannot also be the inline notice.
 - Banner: the first live banner ask by tier/rank, independent of the other picks. Maintenance keeps the existing feature/global copy and evaluates locally on routes without a provider.

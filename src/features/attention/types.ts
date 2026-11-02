@@ -43,6 +43,7 @@ export type AskId =
     | 'verification-due'
     | 'post-verification-action'
     | 'finish-card-setup'
+    | 'finish-card-funding'
     | 'install-app'
     | 'blocked-card'
     | 'checklist'
@@ -175,6 +176,8 @@ export interface JourneyState {
         activeCardId: string | null
         /** the server's funding decision for the active card: which setup prompt applies */
         setupPath: CardSetupPath
+        /** managed funding still to set up (FundingSetupPrompt would show); undefined while its state loads */
+        needsFunding: boolean | undefined
     }
     /** a stored post-auth redirect that a post-signup action matches */
     postAuthRedirect: boolean

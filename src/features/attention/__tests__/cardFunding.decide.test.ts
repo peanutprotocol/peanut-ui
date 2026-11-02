@@ -1,13 +1,15 @@
 /**
- * Card setup follows the server's funding decision (`setupPath`):
- * `finish-card-setup` is the prompt for the existing card permission only,
- * and an unread decision holds it as `unknown`.
+ * Card setup has two prompts, picked by the server's funding decision
+ * (`setupPath`): `finish-card-setup` (the existing card permission) and
+ * `finish-card-funding` (managed funding, dev's FundingSetupPrompt). At most
+ * one is live for a card, and an unread decision holds both as `unknown`.
  */
 import { decide } from '../decide'
-import { ASKS, finishCardSetup } from '../registry'
+import { ASKS, finishCardFunding, finishCardSetup } from '../registry'
 import type { JourneyState, Ledger, Session } from '../types'
 
 const NOW = Date.parse('2026-11-02T12:00:00Z')
+const DAY_MS = 24 * 60 * 60 * 1000
 
 type Card = JourneyState['card']
 
@@ -36,7 +38,7 @@ const baseState = {
     },
     blockedCardId: null,
     dueTasks: 0,
-    card: { loaded: true, needsSetup: false, activeCardId: null, setupPath: 'none' },
+    card: { loaded: true, needsSetup: false, activeCardId: null, setupPath: 'none', needsFunding: false },
     postAuthRedirect: false,
     postAuthRedirectDestination: null,
     balance: { loaded: true, usd: 0 },
@@ -100,5 +102,76 @@ describe('finish-card-setup follows the funding decision', () => {
 
     test('a card that needs no setup is ineligible whatever the decision', () => {
         expect(finishCardSetup.eligible(stateWith({ needsSetup: false, setupPath: 'unknown' }))).toBe('ineligible')
+    })
+})
+
+describe('finish-card-funding (dev FundingSetupPrompt)', () => {
+    test('a T1 interrupt ranked right after finish-card-setup', () => {
+        expect(finishCardFunding).toMatchObject({ tier: 1, rank: 7, surfaces: ['interrupt'], presentation: 'modal' })
+        const tierOne = ASKS.filter((ask) => ask.tier === 1 && ask.surfaces.includes('interrupt'))
+        expect(Math.max(...tierOne.map((ask) => ask.rank))).toBe(finishCardFunding.rank)
+        expect(tierOne.filter((ask) => ask.rank === finishCardFunding.rank)).toHaveLength(1)
+    })
+
+    test('shows exactly when the prompt would: managed path and something to set up', () => {
+        expect(finishCardFunding.eligible(stateWith({ setupPath: 'managed', needsFunding: true }))).toBe('show')
+        expect(run({ setupPath: 'managed', needsFunding: true }).interrupt).toBe('finish-card-funding')
+        expect(finishCardFunding.eligible(stateWith({ setupPath: 'managed', needsFunding: false }))).toBe('ineligible')
+    })
+
+    test('is unknown while the decision or the funding state loads', () => {
+        expect(finishCardFunding.eligible(stateWith({ setupPath: 'unknown' }))).toBe('unknown')
+        expect(finishCardFunding.eligible(stateWith({ setupPath: 'managed', needsFunding: undefined }))).toBe('unknown')
+        expect(finishCardFunding.eligible(stateWith({ loaded: false }))).toBe('unknown')
+    })
+
+    test.each(['legacy', 'none'] as const)('is ineligible on the %s path', (setupPath) => {
+        expect(finishCardFunding.eligible(stateWith({ setupPath, needsFunding: true, needsSetup: true }))).toBe(
+            'ineligible'
+        )
+    })
+
+    test('the two card prompts are never live for one card at once', () => {
+        for (const setupPath of ['unknown', 'managed', 'legacy', 'none'] as const) {
+            for (const needsSetup of [true, false]) {
+                for (const needsFunding of [true, false, undefined]) {
+                    const state = stateWith({ setupPath, needsSetup, needsFunding })
+                    const live = [finishCardSetup, finishCardFunding].filter((ask) => ask.eligible(state) === 'show')
+                    expect(live.length).toBeLessThanOrEqual(1)
+                }
+            }
+        }
+    })
+
+    test('opens on Home only, after the terms, and holds while a higher T1 is open', () => {
+        expect(run({ setupPath: 'managed', needsFunding: true }, {}, { route: 'other' }).interrupt).toBeNull()
+        const terms = {
+            ...stateWith({ setupPath: 'managed', needsFunding: true }),
+            consent: {
+                status: 'needed' as const,
+                versions: ['2026-11-01'],
+                documents: [{ slug: 'terms', currentVersion: '2026-11-01' }],
+            },
+        }
+        expect(decide(terms, ASKS, {}, session).interrupt).toBe('legal-reconsent')
+        expect(decide(terms, ASKS, {}, { ...session, openInterrupt: 'legal-reconsent' }).interrupt).toBe(
+            'legal-reconsent'
+        )
+    })
+
+    test('"Skip for now" holds it until the snooze ends; a re-issued card asks again', () => {
+        const until = new Date(NOW + 60 * 60 * 1000).toISOString()
+        const ledger: Ledger = { 'finish-card-funding': { snoozedUntil: until, version: 'card-a' } }
+        expect(run({ setupPath: 'managed', needsFunding: true }, ledger).interrupt).toBeNull()
+        expect(run({ setupPath: 'managed', needsFunding: true, activeCardId: 'card-b' }, ledger).interrupt).toBe(
+            'finish-card-funding'
+        )
+    })
+
+    test('a finished setup never silences the prompt if the same card needs funding again', () => {
+        const ledger: Ledger = {
+            'finish-card-funding': { dismissedAt: new Date(NOW - DAY_MS).toISOString(), version: 'card-a' },
+        }
+        expect(run({ setupPath: 'managed', needsFunding: true }, ledger).interrupt).toBe('finish-card-funding')
     })
 })

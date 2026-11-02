@@ -72,6 +72,8 @@ export const stateArb: fc.Arbitrary<JourneyState> = fc
             loaded: fc.boolean(),
             needsSetup: fc.boolean(),
             activeCardId: fc.constantFrom(null, 'card-1', 'card-2'),
+            setupPath: fc.constantFrom('unknown', 'managed', 'legacy', 'none'),
+            needsFunding: fc.constantFrom(true, false, undefined),
         }),
         postAuthRedirect: fc.boolean(),
         postAuthRedirectDestination: fc.constantFrom(null, '/claim?c=1', '/a/b?chargeId=1'),
