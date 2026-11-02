@@ -1,3 +1,4 @@
+import { validateNumericResponse } from '@/lib/numeric-response'
 import {
     type CreateRequestRequest,
     type RequestDepositInstructions,
@@ -25,7 +26,7 @@ export const requestsApi = {
             throw await apiErrorFromResponse(response, `Failed to create request: ${response.statusText}`)
         }
 
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
 
     update: async (id: string, data: Partial<CreateRequestRequest>): Promise<TRequestResponse> => {
@@ -38,7 +39,7 @@ export const requestsApi = {
             throw new Error(`Failed to update request: ${response.statusText}`)
         }
 
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
 
     get: async (uuid: string): Promise<TRequestResponse> => {
@@ -48,7 +49,7 @@ export const requestsApi = {
         if (!response.ok) {
             throw new Error(`Failed to fetch request: ${response.statusText}`)
         }
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
 
     /**
@@ -68,7 +69,7 @@ export const requestsApi = {
         if (!response.ok) {
             throw new Error(`Failed to fetch deposit instructions: ${response.statusText}`)
         }
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
 
     /**
@@ -84,7 +85,7 @@ export const requestsApi = {
         if (!response.ok) {
             throw new Error(`Failed to fetch pay amounts: ${response.statusText}`)
         }
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
 
     search: async (params: {
@@ -107,7 +108,7 @@ export const requestsApi = {
             }
             throw new Error('Failed to fetch requests')
         }
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
 
     close: async (uuid: string): Promise<TRequestResponse> => {
@@ -117,6 +118,6 @@ export const requestsApi = {
         if (!response.ok) {
             throw new Error(`Failed to close request: ${response.statusText}`)
         }
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
 }

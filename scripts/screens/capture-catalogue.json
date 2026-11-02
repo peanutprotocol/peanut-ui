@@ -1679,6 +1679,24 @@
         "route": "/qr/synthetic-success/success"
     },
     {
+        "id": "numeric-request-amount-4000",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=numeric-request-amount-4000",
+        "source": "Global/AmountInput/index.tsx"
+    },
+    {
+        "id": "numeric-request-rate-unavailable",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=numeric-request-rate-unavailable",
+        "source": "Global/AmountInput/index.tsx"
+    },
+    {
+        "id": "numeric-request-amount-invalid",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=numeric-request-amount-invalid",
+        "source": "Global/AmountInput/index.tsx"
+    },
+    {
         "id": "50-d-transactiondetailsdrawer",
         "flow": "Payments",
         "route": "/dev/surfaces?s=50-d-transactiondetailsdrawer",

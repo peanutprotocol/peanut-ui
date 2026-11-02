@@ -1,3 +1,4 @@
+import { validateNumericResponse } from '@/lib/numeric-response'
 import {
     type MantecaDepositResponseData,
     type MantecaWithdrawResponse,
@@ -193,7 +194,7 @@ export const mantecaApi = {
             })
         }
 
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
     /**
      * Complete QR payment with a pre-signed transaction.
@@ -276,7 +277,7 @@ export const mantecaApi = {
             throw await apiErrorFromResponse(response, `QR payment failed: ${response.statusText}`)
         }
 
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
     getPrices: async (
         { asset, against }: { asset: string; against: string },
@@ -294,7 +295,7 @@ export const mantecaApi = {
             })
         }
 
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
     deposit: async (
         params: CreateMantecaOnrampParams
@@ -530,7 +531,7 @@ export const mantecaApi = {
         if (!response.ok) {
             throw await apiErrorFromResponse(response, `PIX key lookup failed: ${response.statusText}`)
         }
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
     /** Saves a PIX key to the user's address book under `label`; saving a saved key renames it. */
     savePixKey: async (pixKey: string, label: string): Promise<void> => {

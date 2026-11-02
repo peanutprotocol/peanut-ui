@@ -50,6 +50,7 @@ export function useCountUp(target: number, options: UseCountUpOptions = {}): num
     const prevTargetRef = useRef(target)
 
     useEffect(() => {
+        if (!Number.isFinite(target)) return
         if (!hydrated || !enabled || hasAnimated.current) return
 
         const from = display ?? initialDisplay
@@ -92,6 +93,10 @@ export function useCountUp(target: number, options: UseCountUpOptions = {}): num
 
     // if target changes after animation completed (e.g. refetch), snap to new value
     useEffect(() => {
+        if (!Number.isFinite(target)) {
+            prevTargetRef.current = target
+            return
+        }
         if (prevTargetRef.current !== target && hasAnimated.current && !isAnimating.current) {
             setDisplay(target)
             if (storageKey) {
@@ -101,5 +106,5 @@ export function useCountUp(target: number, options: UseCountUpOptions = {}): num
         prevTargetRef.current = target
     }, [target, storageKey])
 
-    return display ?? initialDisplay
+    return Number.isFinite(target) ? (display ?? initialDisplay) : target
 }

@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { formatNetworkFee } from '@/utils/cross-chain-fee.utils'
 import { useTranslations } from 'next-intl'
@@ -47,7 +49,14 @@ export default function NetworkFeeRow({
     } else if (sponsoredGasUsd !== undefined && sponsoredGasUsd >= 0.01) {
         value = (
             <>
-                <span className="line-through">$ {sponsoredGasUsd.toFixed(2)}</span>
+                <span className="line-through">
+                    ${' '}
+                    {formatFiniteDisplay(sponsoredGasUsd, 'en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                        useGrouping: false,
+                    })}
+                </span>
                 {' - '}
                 <span className="font-medium text-foreground-secondary">{tCommon('sponsoredByPeanut')}</span>
             </>

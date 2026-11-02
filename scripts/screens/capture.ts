@@ -1,4 +1,5 @@
 import { chromium, devices, expect, type Request } from '@playwright/test'
+import { hasInvalidNumericUi } from './numeric-ui.mjs'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { release } from 'node:os'
@@ -9,8 +10,7 @@ import { APP_LOCALES, type AppLocale } from '../../src/i18n/app/config'
 import { answer, ADAPTER_VERSION } from './adapter'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
 import { canonicalScope, scopeCapture } from './capture-scope.mjs'
-import { fixtureIdentityFiles } from './capture-impact.mjs'
-import { knownNonvisual } from './capture-plan.mjs'
+import { fixtureIdentityFiles, fixtureRootFiles } from './capture-impact.mjs'
 import { harnessIdentityFiles, fileIdentity } from './capture-identity.mjs'
 import { captureExitCode } from './capture-status.mjs'
 import { captureProfile } from './capture-profiles.mjs'
@@ -132,15 +132,7 @@ async function main() {
     if (requireFullCatalogue && selected.length) throw new Error('Full catalogue capture cannot use --only')
     const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;locale=${captureLocale};device=${profile.device.platform};browser=${profile.browserProfile};safe-area=${Object.values(profile.device.safeArea).join(',')};UTC;light;reduced-motion`
     const harness = identity(harnessIdentityFiles())
-    const fixtures = identity(
-        fixtureIdentityFiles([
-            ...walk('src/dev/fixtures').filter((path) => !knownNonvisual(path)),
-            'src/utils/demo-api.ts',
-            'src/constants/demo-data.ts',
-            'src/constants/residence.consts.ts',
-            'src/types/api.openapi.json',
-        ])
-    )
+    const fixtures = identity(fixtureIdentityFiles(fixtureRootFiles(walk('src/dev/fixtures'))))
     const manifest = () => {
         const capture = {
             schema: 1,
@@ -554,6 +546,18 @@ async function main() {
                 if (transportFailures.size)
                     throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
                 if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)
+                // Applies to every registered screen/state and requested locale,
+                // including controls whose value does not appear in innerText.
+                const numericSnapshot = await page.evaluate(() => ({
+                    text: document.body.innerText,
+                    inputs: [...document.querySelectorAll('input')].map((input) => input.value),
+                    sliderAttributes: [...document.querySelectorAll('[role="slider"]')].flatMap((slider) =>
+                        ['aria-valuenow', 'aria-valuemin', 'aria-valuemax', 'aria-valuetext'].map(
+                            (name) => slider.getAttribute(name) ?? ''
+                        )
+                    ),
+                }))
+                if (hasInvalidNumericUi(numericSnapshot)) throw new Error('Invalid numeric UI in captured state')
                 let previous = await page.screenshot({
                     animations: 'disabled',
                     caret: 'hide',

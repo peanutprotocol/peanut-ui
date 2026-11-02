@@ -1024,6 +1024,8 @@ jobs:
             # the page gate redirects to /setup.
             - name: Build
               env:
+                  # Node 20's implicit ~2 GiB heap exhausted before the browser specs (#3900).
+                  NODE_OPTIONS: --max-old-space-size=4096
                   NEXT_PUBLIC_VERCEL_ENV: preview
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3081
                   # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
@@ -1109,6 +1111,8 @@ jobs:
                   exit 1
             - name: Build with production indexing policy
               env:
+                  # Keep the same bounded build heap as the preview browser contract.
+                  NODE_OPTIONS: --max-old-space-size=4096
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
               run: pnpm build
             - name: Check every rendered sitemap URL

@@ -5,6 +5,7 @@ import { reviewHeadRevision, reviewProvenance } from './review-provenance.mjs'
 import { verifiedExternalBaselineSource } from './baseline-runs.mjs'
 import { parseCaptureArtifact } from './capture-artifacts.mjs'
 import { CAPTURE_LOCALES } from './capture-locales.mjs'
+import { selectBeforeHarness } from './before-harness.mjs'
 
 const repo = process.env.REPOSITORY,
     runId = process.env.RUN_ID
@@ -31,6 +32,7 @@ const binding = reviewProvenance(repo, currentRun, prCandidates, (args) =>
 if (!binding) throw new Error('Unable to resolve the pull request base revision')
 const expectedBase = binding.before
 if (!/^[a-f0-9]{40}$/.test(expectedBase)) throw new Error('Unable to resolve the merge-base revision')
+const beforeHarnessMode = selectBeforeHarness({ before: expectedBase, after: reviewHead })
 
 // The publisher still requires every locale its trusted plan needs; this only sizes the search.
 const capturedLocales = existsSync('incoming')
@@ -68,9 +70,12 @@ for (const run of integrationRuns) {
         expectedCommit: expectedBase,
         defaultBranch,
         locales,
+        beforeHarnessMode,
     })
     if (verified?.kind === 'integration') publishSource(run, verified.artifacts)
 }
+if (beforeHarnessMode === 'base')
+    throw new Error(`No trusted integration capture with its own harness for ${expectedBase} is retained`)
 
 // A main-triggered baseline can cover dev revisions whose integration capture
 // was unavailable. Search recent trusted runs rather than every repository
@@ -88,6 +93,7 @@ for (const run of baselineRuns) {
         expectedCommit: expectedBase,
         defaultBranch,
         locales,
+        beforeHarnessMode,
     })
     if (verified?.kind === 'baseline') publishSource(run, verified.artifacts)
 }

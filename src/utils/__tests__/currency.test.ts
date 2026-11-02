@@ -1,4 +1,4 @@
-import { formatAmountNumber, formatBankAmount } from '@/utils/currency'
+import { formatAmountNumber, formatBankAmount, formatFiniteDisplay } from '@/utils/currency'
 
 // One formatter for every bank amount a person reads — the rule lines on a
 // virtual account, the "Recipient gets" row on a withdrawal, the request payer
@@ -40,7 +40,24 @@ describe('formatAmountNumber', () => {
         expect(formatAmountNumber(1.5, 0)).toBe('2')
     })
 
-    it('reads anything unparseable as zero', () => {
-        expect(formatAmountNumber('abc')).toBe('0')
+    it('shows unparseable data as unavailable (TASK-24355)', () => {
+        expect(formatAmountNumber('abc')).toBe('—')
+    })
+})
+
+// Runtime display guard remains locale-aware and cannot manufacture a value.
+describe('formatFiniteDisplay', () => {
+    it('preserves formatting options and locale-specific separators', () => {
+        expect(formatFiniteDisplay('4000.5', 'de-DE', { minimumFractionDigits: 2 })).toBe('4.000,50')
+        expect(formatFiniteDisplay(0, 'en-US', { maximumFractionDigits: 0 })).toBe('0')
+    })
+
+    it('returns unavailable for bad values, units or formatting precision', () => {
+        for (const value of [NaN, Infinity, -Infinity, '12garbage', '4,000', undefined, null]) {
+            expect(formatFiniteDisplay(value)).toBe('—')
+        }
+        expect(formatFiniteDisplay(1, 'en-US', { maximumFractionDigits: -1 })).toBe('—')
+        expect(formatBankAmount(1, '')).toBe('—')
+        expect(formatAmountNumber(1, Infinity)).toBe('—')
     })
 })

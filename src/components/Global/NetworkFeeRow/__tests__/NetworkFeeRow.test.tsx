@@ -31,3 +31,12 @@ describe('NetworkFeeRow', () => {
         expect(screen.getByText('-')).toBeInTheDocument()
     })
 })
+
+test.each([undefined, NaN, Infinity, -1])(
+    'an unknown/invalid cross-chain fee %s is not advertised as sponsored',
+    (feeUsd) => {
+        const { container } = renderWithIntl(<NetworkFeeRow label="Network fee" isCrossChain feeUsd={feeUsd} />)
+        expect(container.textContent).toContain('—')
+        expect(container.textContent).not.toMatch(/Sponsored|NaN|Infinity/)
+    }
+)
