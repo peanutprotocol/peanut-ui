@@ -55,8 +55,8 @@ export interface ParsedLegacyMigration {
 export function parseLegacyMigration(migration: RainFundingMigration | null | undefined): ParsedLegacyMigration {
     if (!migration || typeof migration !== 'object') throw new LegacyMigrationPayloadError('no migration payload')
     const { uninstall, invalidateNonceFloor } = migration
-    if (!Array.isArray(uninstall) || uninstall.length > MAX_UNINSTALLS) {
-        throw new LegacyMigrationPayloadError('uninstall list is missing or too long')
+    if (!Array.isArray(uninstall) || uninstall.length === 0 || uninstall.length > MAX_UNINSTALLS) {
+        throw new LegacyMigrationPayloadError('uninstall list is missing, empty or too long')
     }
     if (!Number.isInteger(invalidateNonceFloor) || invalidateNonceFloor <= 0) {
         throw new LegacyMigrationPayloadError('invalid nonce floor')

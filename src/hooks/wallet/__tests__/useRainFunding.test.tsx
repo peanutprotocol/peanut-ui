@@ -669,6 +669,7 @@ describe('useRainFunding.grant — a legacy grant (migration_required)', () => {
     })
 
     it.each([
+        ['an empty uninstall list', { ...MIGRATION, uninstall: [] }],
         ['a missing uninstall list', { invalidateNonceFloor: 5 }],
         [
             'the root validator id',
@@ -688,45 +689,6 @@ describe('useRainFunding.grant — a legacy grant (migration_required)', () => {
         // no card balance is moved
         expect(moves()).toHaveLength(0)
         expect(mockRetireLegacyGrants).not.toHaveBeenCalled()
-        expect(mockSignKernelPermission).not.toHaveBeenCalled()
-        expect(mockSubmitFundingGrant).not.toHaveBeenCalled()
-    })
-
-    it('waits for nonce-only retirement and backend confirmation before creating or signing a grant', async () => {
-        const payload = { uninstall: [], invalidateNonceFloor: 5 }
-        mockGetCardFunding
-            .mockResolvedValueOnce(funding('migration_required', {}, payload))
-            .mockResolvedValueOnce(funding('required'))
-        const update = deferred()
-        mockRetireLegacyGrants.mockImplementation(() => update.promise)
-        const hook = renderHook(() => useRainFunding({ enabled: false }), { wrapper })
-        const pending = startGrant(hook)
-        await waitFor(() => expect(mockRetireLegacyGrants).toHaveBeenCalledTimes(1))
-        expect(mockRetireLegacyGrants).toHaveBeenCalledWith(
-            expect.objectContaining({ migration: { uninstalls: [], invalidateNonceFloor: 5 } })
-        )
-        expect(mockToCallPolicy).not.toHaveBeenCalled()
-        expect(mockSignKernelPermission).not.toHaveBeenCalled()
-        expect(mockSubmitFundingGrant).not.toHaveBeenCalled()
-        update.release()
-        expect(await finish(pending)).toEqual({ ok: true, status: 'pending' })
-        expect(mockGetCardFunding.mock.invocationCallOrder[1]).toBeLessThan(
-            mockSignKernelPermission.mock.invocationCallOrder[0]
-        )
-        expect(mockSignKernelPermission).toHaveBeenCalledTimes(1)
-    })
-
-    it('a nonce-only retirement whose confirmation fails creates and signs no new grant', async () => {
-        mockGetCardFunding.mockResolvedValue(
-            funding('migration_required', {}, { uninstall: [], invalidateNonceFloor: 5 })
-        )
-        mockRetireLegacyGrants.mockRejectedValueOnce(
-            Object.assign(new Error('unconfirmed'), { name: 'KernelNonceRepairPendingError' })
-        )
-        const { out } = await runGrant()
-        expect(out).toEqual({ ok: false, error: { kind: 'migration-pending' } })
-        expect(mockRetireLegacyGrants).toHaveBeenCalledTimes(1)
-        expect(mockToCallPolicy).not.toHaveBeenCalled()
         expect(mockSignKernelPermission).not.toHaveBeenCalled()
         expect(mockSubmitFundingGrant).not.toHaveBeenCalled()
     })
