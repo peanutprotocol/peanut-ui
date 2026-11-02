@@ -612,3 +612,13 @@ describe('the settle hold starts when a check starts on the current route', () =
         expect(surfacesInDom()).toEqual(['balance-backup'])
     })
 })
+
+test('an interrupt open when the provider unmounts no longer counts as open', async () => {
+    const { isAttentionInterruptOpen } = require('../AttentionProvider')
+    mockState = state({ consent: TERMS_NEEDED })
+    const view = await mount()
+    expect(surfacesInDom()).toEqual(['legal-reconsent'])
+    expect(isAttentionInterruptOpen()).toBe(true)
+    view.unmount()
+    expect(isAttentionInterruptOpen()).toBe(false)
+})
