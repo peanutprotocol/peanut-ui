@@ -1,6 +1,7 @@
+'use client'
+
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import { CARD_PROMOTION_DISABLED_FLAG } from '@/constants/card-flags.consts'
-'use client'
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'

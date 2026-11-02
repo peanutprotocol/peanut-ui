@@ -33,6 +33,9 @@ function mockZoneSurface({ askId, onActed }: ZoneSurfaceProps) {
         </div>
     )
 }
+jest.mock('../surfaces/AttentionFlowHost', () => ({
+    AttentionFlowHost: ({ children }: { children: React.ReactNode }) => <div data-testid="flow-host">{children}</div>,
+}))
 jest.mock('../zoneSurfaces', () => ({
     ZONE_SURFACES: {
         checklist: (props: ZoneSurfaceProps) => mockZoneSurface(props),
@@ -127,6 +130,16 @@ afterEach(() => {
 describe('Phase 8: HomeAttention frame and summary', () => {
     test('AttentionZone remains an alias of HomeAttention', () => {
         expect(AttentionZone).toBe(HomeAttention)
+    })
+
+    test('the zone renders inside the flow host, which stays mounted when the zone is empty', async () => {
+        await mount()
+        expect(within(screen.getByTestId('flow-host')).getByTestId('home-attention')).toBeInTheDocument()
+        mockState = state({ userId: 'user-a', onboarding: null, userLoaded: false })
+        cleanup()
+        await mount()
+        expect(screen.queryByTestId('home-attention')).not.toBeInTheDocument()
+        expect(screen.getByTestId('flow-host')).toBeInTheDocument()
     })
 
     test('the checklist renders inside one labelled section without a duplicate summary', async () => {
