@@ -39,15 +39,6 @@ export function useOverlayVisibility(open: boolean, owner?: symbol): void {
     }, [open, id, manager])
 }
 
-/** An automatic announcement must ignore its own hold to avoid an open/close loop. */
-export function useOtherOpenOverlays(owner: symbol): boolean {
-    return useSyncExternalStore(
-        subscribe,
-        () => Array.from(openOverlays.keys()).some((id) => id !== owner),
-        () => false
-    )
-}
-
 const anyUserOverlayOpen = () => Array.from(openOverlays.values()).some((entry) => !entry.manager)
 
 /** Whether a user-opened modal or drawer is open: the manager opens nothing new while one is. */

@@ -1,4 +1,5 @@
 import { parseFiniteNumber } from '@/lib/money'
+import type { LedgerEntry } from '@/features/attention/types'
 import { reportInvalidNumeric } from '@/lib/numeric-telemetry'
 import { nativeCurrencyAddresses } from '@/constants/general.consts'
 import { supportedPeanutChains, peanutTokenDetails } from '@/constants/token-registry.consts'
@@ -422,15 +423,7 @@ export interface RecentMethod {
     path: string
 }
 
-export type AttentionLedgerEntry = {
-    shownAt?: string[]
-    dismissedAt?: string
-    snoozedUntil?: string
-    version?: string
-    lastSessionShown?: number
-    consecutiveSessions?: number
-    updatedAt?: string
-}
+export type AttentionLedgerEntry = LedgerEntry
 
 export type UserPreferences = {
     balanceHidden?: boolean
@@ -443,9 +436,8 @@ export type UserPreferences = {
     hasSeenBalanceWarning?: { value: boolean; expiry: number }
     /** tracks surprise moment claim count for referral CTA copy (rewards v2). 0=first, 1=second, 2+=normal */
     rewards_surprise_claim_count?: number
-    /** Home CTAs the user has dismissed, with the ISO timestamp of each dismissal.
-     *  A dismissal is permanent, except the allow-list in RECURRING_CAROUSEL_CTAS
-     *  (home-carousel.utils.ts). Legacy shape was `string[]`; both are accepted on read. */
+    /** Pre-manager Home carousel closes, with the ISO timestamp of each. Read once into the
+     *  attention ledger (features/attention/ledger.ts). Legacy shape was `string[]`; both are accepted on read. */
     dismissedCarouselCTAs?: string[] | Record<string, string>
     /** Last fully-settled spendable total (smart + Rain), in USDC base units as a
      *  string. DISPLAY-only seed so a cold start paints the previous number instead
