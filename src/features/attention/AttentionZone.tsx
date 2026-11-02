@@ -22,7 +22,7 @@ export function HomeAttention() {
 
 function ZoneHost({ attention }: { attention: AttentionContextValue }) {
     const t = useTranslations('home.attention')
-    const { decision, state, openedZone, crashed, acted, dismissed, snoozed } = attention
+    const { decision, state, openedZone, crashed, acted, action, dismissed, snoozed } = attention
     const pick = decision.zone
     const id = pick?.id ?? null
     const Surface = id ? ZONE_SURFACES[id] : undefined
@@ -50,6 +50,7 @@ function ZoneHost({ attention }: { attention: AttentionContextValue }) {
                         askId={id}
                         mode={pick.mode}
                         onActed={() => acted(id, 'zone')}
+                        onAction={(properties) => action(id, properties, 'zone')}
                         onDismissed={() => dismissed(id, 'zone')}
                         onSnoozed={(until) => snoozed(id, until, 'zone')}
                     />

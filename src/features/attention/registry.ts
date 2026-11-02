@@ -1,5 +1,6 @@
 import type { AttentionAsk, JourneyState } from './types'
 import { MODAL_TYPES } from '@/constants/analytics.consts'
+import { HOME_FALLBACK_MIN_SESSION, PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 
 /*
  * The tier is the display urgency; `rank` is the order inside the tier and
@@ -36,6 +37,7 @@ export const legalReconsent: AttentionAsk = {
     // completion is the consent status; a dismissal only covers the status refetch, so a stray one re-arms
     policy: { routes: 'any', snoozeDays: 7, expiryDays: 1 },
     analyticsKey: MODAL_TYPES.RE_CONSENT,
+    legacyProps: (s) => ({ documents: s.consent.documents.map((d) => d.slug) }),
 }
 
 export const balanceBackup: AttentionAsk = {
@@ -54,6 +56,7 @@ export const balanceBackup: AttentionAsk = {
     },
     policy: { expiryDays: BALANCE_WARNING_EXPIRY_DAYS },
     analyticsKey: MODAL_TYPES.BALANCE_WARNING,
+    legacyProps: (_s, event) => (event === 'acted' ? { cta: 'slide_to_continue' } : {}),
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -156,8 +159,7 @@ export const blockedCard: AttentionAsk = {
         return s.blockedCardId ? 'show' : 'ineligible'
     },
     version: (s) => s.blockedCardId ?? undefined,
-    // nothing dismisses the to-do list; an old stored dismissal never silences it
-    policy: { anchorsHome: true, expiryDays: 0 },
+    policy: { anchorsHome: true },
     analyticsKey: 'blocked_card',
 }
 
@@ -195,12 +197,16 @@ export const pushHomeFallback: AttentionAsk = {
     },
     version: (s) => `${s.isNative ? 'native' : 'web'}:${s.push.unanswered ? 'prompt' : 'settings'}`,
     policy: {
-        minSessions: 3,
+        minSessions: HOME_FALLBACK_MIN_SESSION,
         snoozeDays: 14,
         // the OS dialog is one-shot: the pre-prompt only while it is unanswered; the card only where settings can be opened
         surfaceWhen: { interrupt: (s) => s.push.unanswered, zone: (s) => s.isNative },
     },
     analyticsKey: MODAL_TYPES.NOTIFICATIONS,
+    legacyProps: (_s, event) => ({
+        trigger: PUSH_PROMPT_TRIGGERS.HOME_FALLBACK,
+        ...(event === 'acted' && { cta: 'enable' }),
+    }),
 }
 
 export const verificationAdvisory: AttentionAsk = {
