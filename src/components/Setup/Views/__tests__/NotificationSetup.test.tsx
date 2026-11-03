@@ -31,7 +31,7 @@ jest.mock('posthog-js', () => ({
     __esModule: true,
     default: { capture: (...args: unknown[]) => mockCapture(...args) },
 }))
-let mockVariant: 'control' | 'all_on' = 'control'
+let mockVariant: 'control' | 'defaults_on' = 'control'
 jest.mock('@/features/setup/notificationsExperiment', () => ({
     ...jest.requireActual('@/features/setup/notificationsExperiment'),
     readNotificationsVariant: () => mockVariant,
@@ -502,41 +502,52 @@ it('sends no experiment answer when no prompt opened', async () => {
     expect(mockCapture).not.toHaveBeenCalledWith('signup_push_permission_answered', expect.anything())
 })
 
-describe('all_on: every switch starts on', () => {
+describe('defaults_on: Important alerts and Email updates start on', () => {
     beforeEach(() => {
-        mockVariant = 'all_on'
+        mockVariant = 'defaults_on'
     })
 
-    it('shows the same three switches, all on, with Continue enabled and Not now under it', () => {
+    it('starts Important alerts and Email updates on and Offers and perks off, with Continue enabled', () => {
         renderStep(<NotificationsStep />)
         expect(screen.getByRole('heading', { name: 'Enable notifications to stay in the loop' })).toBeInTheDocument()
-        expect(states()).toEqual(['true', 'true', 'true'])
+        expect(states()).toEqual(['true', 'false', 'true'])
         expect(continueButton()).toBeEnabled()
         expect(notNow()).toBeEnabled()
     })
-    it('asks the OS inside the Continue tap and saves all three with the grant', async () => {
+    it('asks the OS inside the Continue tap and saves the defaults with the grant', async () => {
         mockPermission.mockResolvedValueOnce('granted')
         renderStep(<NotificationsStep />)
         fireEvent.click(continueButton())
         expect(mockPermission).toHaveBeenCalledTimes(1)
         await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
         expect(mockSave).toHaveBeenCalledWith(
-            { push: true, marketingPush: true, emailUpdates: true, pushPermission: 'granted' },
+            { push: true, marketingPush: false, emailUpdates: true, pushPermission: 'granted' },
             'new-user'
         )
         expect(mockCapture).toHaveBeenCalledWith('signup_push_permission_answered', {
-            variant: 'all_on',
+            variant: 'defaults_on',
             answer: 'granted',
         })
         expect(mockCapture).toHaveBeenCalledWith('notification_choices_saved', {
-            variant: 'all_on',
+            variant: 'defaults_on',
             outcome: 'granted',
             important: true,
-            offers: true,
+            offers: false,
             email: true,
         })
     })
-    it('keeps Email updates but saves both push switches off when the OS says no', async () => {
+    it('saves Offers and perks on only after the user taps it', async () => {
+        mockPermission.mockResolvedValueOnce('granted')
+        renderStep(<NotificationsStep />)
+        fireEvent.click(offers())
+        fireEvent.click(continueButton())
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockSave).toHaveBeenCalledWith(
+            { push: true, marketingPush: true, emailUpdates: true, pushPermission: 'granted' },
+            'new-user'
+        )
+    })
+    it('keeps Email updates but saves Important alerts off when the OS says no', async () => {
         mockPermission.mockResolvedValueOnce('denied')
         renderStep(<NotificationsStep />)
         fireEvent.click(continueButton())
@@ -552,12 +563,11 @@ describe('all_on: every switch starts on', () => {
         fireEvent.click(emailUpdates())
         fireEvent.click(important())
         fireEvent.click(important())
-        expect(states()).toEqual(['true', 'true', 'false'])
+        expect(states()).toEqual(['true', 'false', 'false'])
     })
     it('disables Continue once every switch is off', () => {
         renderStep(<NotificationsStep />)
         fireEvent.click(important())
-        fireEvent.click(offers())
         fireEvent.click(emailUpdates())
         expect(states()).toEqual(['false', 'false', 'false'])
         expect(continueButton()).toBeDisabled()
@@ -576,12 +586,11 @@ describe('all_on: every switch starts on', () => {
             mockNext.mockImplementation(() => setNext(true))
             return next ? <button onClick={() => setNext(false)}>Back</button> : <NotificationsStep />
         }
-        mockPermission.mockResolvedValueOnce('granted')
         renderStep(<RoundTrip />)
-        fireEvent.click(offers())
+        fireEvent.click(important())
         fireEvent.click(continueButton())
         fireEvent.click(await screen.findByRole('button', { name: 'Back' }))
-        expect(states()).toEqual(['true', 'false', 'true'])
+        expect(states()).toEqual(['false', 'false', 'true'])
     })
 })
 

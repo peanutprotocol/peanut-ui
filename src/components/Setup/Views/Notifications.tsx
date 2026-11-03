@@ -44,12 +44,19 @@ const SWITCHES: { key: Switch; icon: IconName; label: 'important' | 'offers' | '
 
 const ALL_OFF = { push: false, marketingPush: false, emailUpdates: false }
 // Already cascaded, so switching Important back on never brings back an Email updates the user turned off.
-const ALL_ON: NotificationChoices = { push: true, marketingPush: true, emailUpdates: true, cascaded: true }
+const DEFAULTS_ON: NotificationChoices = {
+    push: true,
+    // Never on by default: App Store Review Guideline 4.5.4 requires the user's explicit opt-in to marketing pushes.
+    marketingPush: false,
+    emailUpdates: true,
+    cascaded: true,
+}
 
 /**
  * Three switches. In control they start off, and the first time Important alerts
  * turns on, Email updates turns on with it; Offers and perks never follows another
- * switch. In `all_on` all three start on until the user changes one.
+ * switch. In `defaults_on` Important alerts and Email updates start on until the
+ * user changes one, and Offers and perks still starts off.
  * Continue asks the OS when a push switch is on and saves what its answer allows.
  */
 function NotificationSwitches({ variant }: { variant: NotificationsVariant }) {
@@ -61,7 +68,7 @@ function NotificationSwitches({ variant }: { variant: NotificationsVariant }) {
         setIsLoading: setSetupLoading,
     } = useSetupFlowContext()
     const notificationChoices =
-        variant === 'all_on' && isUntouchedNotificationChoices(storedChoices) ? ALL_ON : storedChoices
+        variant === 'defaults_on' && isUntouchedNotificationChoices(storedChoices) ? DEFAULTS_ON : storedChoices
     const { handleNext } = useSetupFlow()
     const { requestPermission, afterPermissionAttempt, permissionState } = useNotifications()
     const [saving, setSaving] = useState(false)

@@ -12,12 +12,12 @@ beforeEach(() => {
 })
 
 it('starts the switches on only for users PostHog put in that variant', () => {
-    getFeatureFlag.mockReturnValue('all_on')
-    expect(readNotificationsVariant()).toBe('all_on')
+    getFeatureFlag.mockReturnValue('defaults_on')
+    expect(readNotificationsVariant()).toBe('defaults_on')
     expect(getFeatureFlag).toHaveBeenCalledWith(NOTIFICATIONS_EXPERIMENT_FLAG)
 })
 
-it.each(['control', 'switches', undefined, false, 'something-else'])(
+it.each(['control', 'switches', 'all_on', undefined, false, 'something-else'])(
     'falls back to control for a flag value of %p',
     (value) => {
         getFeatureFlag.mockReturnValue(value)
