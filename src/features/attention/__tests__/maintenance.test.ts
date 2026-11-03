@@ -1,4 +1,4 @@
-import config from '@/config/underMaintenance.config'
+import { DEFAULT_KILL_SWITCHES as config } from '@/features/kill-switches/kill-switches.consts'
 import { selectMaintenance } from '../maintenance'
 
 const off = { ...config, enableFullMaintenance: false, enableMaintenanceBanner: false, maintenanceBannerPaths: [] }

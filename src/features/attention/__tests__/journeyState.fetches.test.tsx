@@ -3,6 +3,9 @@
  * manager fetches the data that only Home's asks read on Home alone.
  */
 import { renderHook } from '@testing-library/react'
+import type { FeatureReport } from '@/types/capabilities'
+
+let mockFeatures: FeatureReport | undefined
 
 let mockPathname = '/home'
 jest.mock('next/navigation', () => ({ usePathname: () => mockPathname }))
@@ -23,7 +26,7 @@ jest.mock('@/hooks/useActivationStatus', () => ({
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
-        capabilities: { rails: [], nextActions: [], restrictions: [] },
+        capabilities: { rails: [], nextActions: [], restrictions: [], features: mockFeatures },
         nextActions: [],
         rails: [],
         canDo: () => false,
@@ -93,8 +96,24 @@ import { CONSENT_STATUS_QUERY_KEY, useJourneyState } from '../journeyState'
 const enabledFor = (key: unknown) => mockQueryOptions.findLast((options) => options.queryKey[0] === key)?.enabled
 
 beforeEach(() => {
+    mockFeatures = undefined
     mockQueryOptions.length = 0
     jest.clearAllMocks()
+})
+
+test.each([
+    ['on', true],
+    ['refused', false],
+    ['pending', false],
+] as const)('QR availability follows the canonical %s feature report', (state, expected) => {
+    mockFeatures = {
+        qr: { state },
+        card: { state: 'refused' },
+        local: { state: 'refused', accounts: {} },
+        bank: { state: 'refused', accounts: {} },
+    }
+    const { result } = renderHook(() => useJourneyState())
+    expect(result.current.qr.canPayNow).toBe(expected)
 })
 
 test.each([

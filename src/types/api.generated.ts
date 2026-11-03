@@ -16215,292 +16215,292 @@ export interface paths {
                     content: {
                         /**
                          * @example {
-                         *       "version": 1,
-                         *       "catalogueVersion": 1,
                          *       "catalogue": [
                          *         {
+                         *           "analyticsKey": "migration_download",
+                         *           "emailMappings": [],
                          *           "id": "install-app",
-                         *           "tier": 1,
+                         *           "policy": {
+                         *             "interrupt": "always",
+                         *             "snoozeDays": 3
+                         *           },
                          *           "rank": 0,
                          *           "surfaces": [
                          *             "interrupt",
                          *             "zone"
                          *           ],
-                         *           "policy": {
-                         *             "interrupt": "always",
-                         *             "snoozeDays": 3
-                         *           },
-                         *           "analyticsKey": "migration_download",
-                         *           "emailMappings": []
+                         *           "tier": 1
                          *         }
                          *       ],
-                         *       "settings": {
-                         *         "settleMs": 4000,
-                         *         "quietSessionMinCount": 3,
-                         *         "announcementCooldownDays": 7,
-                         *         "maxConsecutiveSessions": 3,
-                         *         "balanceThresholdUsd": 500,
-                         *         "nextPaymentAfterDays": 14,
-                         *         "defaultSnoozeDays": 7
+                         *       "catalogueVersion": 1,
+                         *       "explanations": {
+                         *         "invite": {
+                         *           "reason": "show",
+                         *           "unknownSources": [],
+                         *           "verdict": "show"
+                         *         }
                          *       },
                          *       "facts": {
-                         *         "onboarding": null,
-                         *         "canSpendViaCard": null,
                          *         "canPayQr": null,
-                         *         "firstPeerPaymentAt": null,
-                         *         "lastSpendAt": null,
-                         *         "spendHistoryAvailable": true,
-                         *         "hasMadeQrPayment": false,
-                         *         "hasReceivedRequestPayment": false,
+                         *         "canSpendViaCard": null,
                          *         "consent": {
                          *           "status": "clear",
                          *           "versions": []
-                         *         }
+                         *         },
+                         *         "firstPeerPaymentAt": null,
+                         *         "hasMadeQrPayment": false,
+                         *         "hasReceivedRequestPayment": false,
+                         *         "lastSpendAt": null,
+                         *         "onboarding": null,
+                         *         "spendHistoryAvailable": true
                          *       },
-                         *       "explanations": {
-                         *         "invite": {
-                         *           "verdict": "show",
-                         *           "reason": "show",
-                         *           "unknownSources": []
-                         *         }
-                         *       },
+                         *       "nextAsk": "invite",
                          *       "ranking": [
                          *         {
                          *           "id": "install-app",
-                         *           "tier": 1,
-                         *           "rank": 0
+                         *           "rank": 0,
+                         *           "tier": 1
                          *         },
                          *         {
                          *           "id": "maintenance",
-                         *           "tier": 1,
-                         *           "rank": 0
+                         *           "rank": 0,
+                         *           "tier": 1
                          *         },
                          *         {
                          *           "id": "legal-reconsent",
-                         *           "tier": 1,
-                         *           "rank": 1
+                         *           "rank": 1,
+                         *           "tier": 1
                          *         },
                          *         {
                          *           "id": "arrival",
-                         *           "tier": 1,
-                         *           "rank": 2
+                         *           "rank": 2,
+                         *           "tier": 1
                          *         },
                          *         {
                          *           "id": "balance-backup",
-                         *           "tier": 1,
-                         *           "rank": 3
+                         *           "rank": 3,
+                         *           "tier": 1
                          *         },
                          *         {
                          *           "id": "verification-due",
-                         *           "tier": 1,
-                         *           "rank": 4
+                         *           "rank": 4,
+                         *           "tier": 1
                          *         },
                          *         {
                          *           "id": "verification-advisory",
-                         *           "tier": 1,
-                         *           "rank": 4.5
+                         *           "rank": 4.5,
+                         *           "tier": 1
                          *         },
                          *         {
                          *           "id": "post-verification-action",
-                         *           "tier": 1,
-                         *           "rank": 5
+                         *           "rank": 5,
+                         *           "tier": 1
                          *         },
                          *         {
                          *           "id": "finish-card-setup",
-                         *           "tier": 1,
-                         *           "rank": 6
+                         *           "rank": 6,
+                         *           "tier": 1
                          *         },
                          *         {
                          *           "id": "finish-card-funding",
-                         *           "tier": 1,
-                         *           "rank": 7
+                         *           "rank": 7,
+                         *           "tier": 1
                          *         },
                          *         {
                          *           "id": "blocked-card",
-                         *           "tier": 2,
-                         *           "rank": 2
+                         *           "rank": 2,
+                         *           "tier": 2
                          *         },
                          *         {
                          *           "id": "checklist",
-                         *           "tier": 2,
-                         *           "rank": 3
+                         *           "rank": 3,
+                         *           "tier": 2
                          *         },
                          *         {
                          *           "id": "verification-deadline",
-                         *           "tier": 3,
-                         *           "rank": 1
+                         *           "rank": 1,
+                         *           "tier": 3
                          *         },
                          *         {
                          *           "id": "virtual-account",
-                         *           "tier": 3,
-                         *           "rank": 1
+                         *           "rank": 1,
+                         *           "tier": 3
                          *         },
                          *         {
                          *           "id": "qr-payment",
-                         *           "tier": 3,
-                         *           "rank": 2
+                         *           "rank": 2,
+                         *           "tier": 3
                          *         },
                          *         {
                          *           "id": "cap-nudge",
-                         *           "tier": 3,
-                         *           "rank": 2
+                         *           "rank": 2,
+                         *           "tier": 3
                          *         },
                          *         {
                          *           "id": "verify-for-qr",
-                         *           "tier": 3,
-                         *           "rank": 3
+                         *           "rank": 3,
+                         *           "tier": 3
                          *         },
                          *         {
                          *           "id": "card-offer",
-                         *           "tier": 3,
-                         *           "rank": 4
+                         *           "rank": 4,
+                         *           "tier": 3
                          *         },
                          *         {
                          *           "id": "next-payment",
-                         *           "tier": 3,
-                         *           "rank": 5
+                         *           "rank": 5,
+                         *           "tier": 3
                          *         },
                          *         {
                          *           "id": "share-bank-details",
-                         *           "tier": 3,
-                         *           "rank": 6
+                         *           "rank": 6,
+                         *           "tier": 3
                          *         },
                          *         {
                          *           "id": "request-money",
-                         *           "tier": 3,
-                         *           "rank": 7
+                         *           "rank": 7,
+                         *           "tier": 3
                          *         },
                          *         {
                          *           "id": "send-money",
-                         *           "tier": 3,
-                         *           "rank": 8
+                         *           "rank": 8,
+                         *           "tier": 3
                          *         },
                          *         {
                          *           "id": "backup-passkey",
-                         *           "tier": 4,
-                         *           "rank": 1
+                         *           "rank": 1,
+                         *           "tier": 4
                          *         },
                          *         {
                          *           "id": "push-home-fallback",
-                         *           "tier": 4,
-                         *           "rank": 2
+                         *           "rank": 2,
+                         *           "tier": 4
                          *         },
                          *         {
                          *           "id": "add-email",
-                         *           "tier": 4,
-                         *           "rank": 3
+                         *           "rank": 3,
+                         *           "tier": 4
                          *         },
                          *         {
                          *           "id": "user-interview",
-                         *           "tier": 5,
-                         *           "rank": 0
+                         *           "rank": 0,
+                         *           "tier": 5
                          *         },
                          *         {
                          *           "id": "invite",
-                         *           "tier": 5,
-                         *           "rank": 1
+                         *           "rank": 1,
+                         *           "tier": 5
                          *         },
                          *         {
                          *           "id": "rewards",
-                         *           "tier": 5,
-                         *           "rank": 2
+                         *           "rank": 2,
+                         *           "tier": 5
                          *         },
                          *         {
                          *           "id": "complete-profile",
-                         *           "tier": 5,
-                         *           "rank": 4
+                         *           "rank": 4,
+                         *           "tier": 5
                          *         },
                          *         {
                          *           "id": "bug-bounty",
-                         *           "tier": 5,
-                         *           "rank": 5
+                         *           "rank": 5,
+                         *           "tier": 5
                          *         },
                          *         {
                          *           "id": "early-user",
-                         *           "tier": 6,
-                         *           "rank": 1
+                         *           "rank": 1,
+                         *           "tier": 6
                          *         }
                          *       ],
+                         *       "settings": {
+                         *         "announcementCooldownDays": 7,
+                         *         "balanceThresholdUsd": 500,
+                         *         "defaultSnoozeDays": 7,
+                         *         "maxConsecutiveSessions": 3,
+                         *         "nextPaymentAfterDays": 14,
+                         *         "quietSessionMinCount": 3,
+                         *         "settleMs": 4000
+                         *       },
                          *       "verdicts": {
                          *         "checklist": "done",
                          *         "invite": "show"
                          *       },
-                         *       "nextAsk": "invite"
+                         *       "version": 1
                          *     }
                          */
                         "application/json": {
-                            /** @enum {number} */
-                            version: 1;
-                            /** @enum {number} */
-                            catalogueVersion: 1;
                             catalogue: {
-                                id: string;
-                                tier: number;
-                                rank: number;
-                                surfaces: ("interrupt" | "zone" | "inline" | "banner")[];
-                                slots?: ("bank-transfer" | "limits")[];
-                                policy: {
-                                    routes?: "home" | "any";
-                                    interrupt?: "always" | "session" | "quiet" | "never";
-                                    snoozeDays?: number;
-                                    expiryDays?: number;
-                                    minSessions?: number;
-                                    maxConsecutiveSessions?: number;
-                                    anchorsHome?: boolean;
-                                    overAnchor?: boolean;
-                                };
                                 analyticsKey: string;
                                 emailMappings: {
                                     prefix: string;
                                     when?: "activated" | "not-activated";
                                 }[];
+                                id: string;
+                                policy: {
+                                    anchorsHome?: boolean;
+                                    expiryDays?: number;
+                                    interrupt?: "always" | "session" | "quiet" | "never";
+                                    maxConsecutiveSessions?: number;
+                                    minSessions?: number;
+                                    overAnchor?: boolean;
+                                    routes?: "home" | "any";
+                                    snoozeDays?: number;
+                                };
+                                rank: number;
+                                slots?: ("bank-transfer" | "limits")[];
+                                surfaces: ("interrupt" | "zone" | "inline" | "banner")[];
+                                tier: number;
                             }[];
-                            settings: {
-                                settleMs: number;
-                                quietSessionMinCount: number;
-                                announcementCooldownDays: number;
-                                maxConsecutiveSessions: number;
-                                balanceThresholdUsd: number;
-                                nextPaymentAfterDays: number;
-                                defaultSnoozeDays: number;
+                            /** @enum {number} */
+                            catalogueVersion: 1;
+                            explanations: {
+                                [key: string]: {
+                                    reason: string;
+                                    unknownSources: string[];
+                                    verdict: "show" | "pending" | "done" | "ineligible" | "unknown";
+                                };
                             };
                             facts: {
-                                onboarding: {
-                                    verify: "todo" | "in_review" | "action_required" | "failed" | "done";
-                                    addMoneyDone: boolean;
-                                    firstPaymentDone: boolean;
-                                    firstPaymentRoute: "card_qr" | "card" | "qr" | "none" | "pending";
-                                    cardHeld?: boolean;
-                                    step: "verify" | "add_money" | "first_payment" | "completed";
-                                } | null;
-                                canSpendViaCard: boolean | null;
                                 canPayQr: boolean | null;
-                                firstPeerPaymentAt: string | null;
-                                lastSpendAt: string | null;
-                                spendHistoryAvailable: boolean;
-                                hasMadeQrPayment: boolean | null;
-                                hasReceivedRequestPayment: boolean | null;
+                                canSpendViaCard: boolean | null;
                                 consent: {
                                     status: "unknown" | "clear" | "needed";
                                     versions: string[];
                                 };
+                                firstPeerPaymentAt: string | null;
+                                hasMadeQrPayment: boolean | null;
+                                hasReceivedRequestPayment: boolean | null;
+                                lastSpendAt: string | null;
+                                onboarding: {
+                                    addMoneyDone: boolean;
+                                    cardHeld?: boolean;
+                                    firstPaymentDone: boolean;
+                                    firstPaymentRoute: "card_qr" | "card" | "qr" | "none" | "pending";
+                                    step: "verify" | "add_money" | "first_payment" | "completed";
+                                    verify: "todo" | "in_review" | "action_required" | "failed" | "done";
+                                } | null;
+                                spendHistoryAvailable: boolean;
                             };
-                            explanations: {
-                                [key: string]: {
-                                    verdict: "show" | "pending" | "done" | "ineligible" | "unknown";
-                                    reason: string;
-                                    unknownSources: string[];
-                                };
-                            };
+                            nextAsk: string | null;
                             ranking: {
                                 id: string;
-                                tier: number;
                                 rank: number;
+                                tier: number;
                             }[];
+                            settings: {
+                                announcementCooldownDays: number;
+                                balanceThresholdUsd: number;
+                                defaultSnoozeDays: number;
+                                maxConsecutiveSessions: number;
+                                nextPaymentAfterDays: number;
+                                quietSessionMinCount: number;
+                                settleMs: number;
+                            };
                             verdicts: {
                                 [key: string]: "show" | "pending" | "done" | "ineligible" | "unknown";
                             };
-                            nextAsk: string | null;
+                            /** @enum {number} */
+                            version: 1;
                         };
                     };
                 };

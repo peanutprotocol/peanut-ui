@@ -314,7 +314,7 @@ export default function FundingSetupPrompt({ onActed, onSnoozed }: AskSurfacePro
                 stalled || finishingReturn ? undefined : (
                     <CardFundingConsent
                         authorizationText={authorizationText}
-                        showDisclosure
+                        showDisclosure={!isMigration && !offersEnrollment}
                         authorizationAccepted={authorizationAccepted}
                         onAuthorizationChange={setAuthorizationAccepted}
                         disabled={busy}

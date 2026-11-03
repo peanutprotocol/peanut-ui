@@ -198,6 +198,8 @@ export interface JourneyInputs {
     onboarding: JourneyState['onboarding']
     blockedCardId: string | null
     dueTasks: number
+    blockedIdentityRestart?: boolean
+    dueTasksWhileRestartVisible?: number
     cardLoaded: boolean
     cardNeedsSetup: boolean
     activeCardId: string | null
@@ -257,6 +259,8 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
         onboarding: input.onboarding,
         blockedCardId: input.blockedCardId,
         dueTasks: input.dueTasks,
+        blockedIdentityRestart: input.blockedIdentityRestart,
+        dueTasksWhileRestartVisible: input.dueTasksWhileRestartVisible,
         card: {
             loaded: input.cardLoaded,
             needsSetup: input.cardNeedsSetup,
@@ -323,15 +327,7 @@ export function useJourneyState(): JourneyState {
     const { status, isVerified, needsAction, isTerminalFailure, isRegionRestricted } = useIdentityVerification()
     const { onboarding, isActivated, isLoading: onboardingLoading } = useActivationStatus()
     const { blockedCard } = useProviderRejection(onboarding)
-    const {
-        capabilities,
-        nextActions,
-        rails,
-        canDo,
-        railsForProvider,
-        channelOf,
-        isLoading: capabilitiesLoading,
-    } = useCapabilities()
+    const { capabilities, nextActions, rails, channelOf, isLoading: capabilitiesLoading } = useCapabilities()
     const serverAttention = useServerAttention()
     const { overview, isLoading: overviewLoading } = useRainCardOverview()
     const activeCard = fact('activeCard', () => findActiveCard(overview), null)
@@ -433,6 +429,18 @@ export function useJourneyState(): JourneyState {
             ).length,
         0
     )
+    const blockedIdentityRestart = blockedCard?.kind === 'restart-identity'
+    const dueTasksWhileRestartVisible = blockedIdentityRestart
+        ? fact(
+              'restartDueTasks',
+              () =>
+                  visibleHomeTasks(
+                      selectHomeTasks(nextActions, capabilities.features, undefined, true).largeTasks,
+                      userId ? getUserPreferences(userId)?.pendingVerificationTasksDismissed : []
+                  ).length,
+              dueTasks
+          )
+        : undefined
     const documentSlideKey = homeTasks.documentSlide?.key ?? null
 
     // the same gate the QR pay page reads, so the two never disagree
@@ -443,10 +451,7 @@ export function useJourneyState(): JourneyState {
                 () => {
                     const gate = selectQrKycGate({
                         isLoading: capabilitiesLoading || !user,
-                        isRegionRestricted,
-                        isTerminalFailure,
-                        canPayManteca: canDo('pay', { provider: 'manteca' }),
-                        mantecaRails: railsForProvider('manteca'),
+                        features: capabilities.features,
                         nextActions,
                     })
                     const railsInFlight = rails.some(
@@ -465,21 +470,9 @@ export function useJourneyState(): JourneyState {
                         }),
                     }
                 },
-                { canPayNow: false, hasMadeQrPayment: false, verifyOpensQr: false }
+                { canPayNow: false, hasMadeQrPayment: undefined, verifyOpensQr: false }
             ),
-        [
-            capabilitiesLoading,
-            user,
-            isRegionRestricted,
-            isTerminalFailure,
-            canDo,
-            railsForProvider,
-            nextActions,
-            rails,
-            latestHistory,
-            status,
-            isCardEligible,
-        ]
+        [capabilitiesLoading, user, capabilities.features, nextActions, rails, latestHistory, status, isCardEligible]
     )
 
     // the offer follows the nav's card gate (TASK-23017): a card-restricted residence hides it too
@@ -558,6 +551,8 @@ export function useJourneyState(): JourneyState {
                     onboarding: onboardingLoading ? null : onboarding,
                     blockedCardId: blockedCard?.ctaId ?? null,
                     dueTasks,
+                    blockedIdentityRestart,
+                    dueTasksWhileRestartVisible,
                     cardLoaded: !overviewLoading,
                     cardNeedsSetup: fact('cardNeedsSetup', () => cardNeedsSetup(overview), false),
                     activeCardId: fact('activeCard', () => findActiveCard(overview)?.id ?? null, null),
@@ -616,6 +611,8 @@ export function useJourneyState(): JourneyState {
             onboardingLoading,
             blockedCard?.ctaId,
             dueTasks,
+            blockedIdentityRestart,
+            dueTasksWhileRestartVisible,
             overview,
             overviewLoading,
             setupPath,

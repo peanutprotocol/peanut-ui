@@ -181,6 +181,10 @@ export interface JourneyState {
     onboarding: OnboardingState | null
     /** the blocked card's dismissal key (`blockedCardCtaId`), null when no door is shut */
     blockedCardId: string | null
+    /** Identity restart currently replaces Bridge document tasks until its card is dismissed. */
+    blockedIdentityRestart?: boolean
+    dueTasksWhileRestartVisible?: number
+    prioritizeIdentityRestart?: boolean
     /** pending Bridge verification tasks due now (selectHomeTasks().largeTasks) */
     dueTasks: number
     card: {

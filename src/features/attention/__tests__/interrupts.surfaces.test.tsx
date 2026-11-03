@@ -8,6 +8,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
+import { setAuthToken } from '@/utils/auth-token'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import type { GrantSessionKeyError } from '@/hooks/wallet/useGrantSessionKey'
 import type { AskSurfaceProps } from '../types'
@@ -43,6 +44,7 @@ let mockUser: { user: { userId: string; username: string }; showEarlyUserModal?:
 const mockFetchUser = jest.fn()
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }),
+    useOptionalAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }),
 }))
 
 const mockUpdateUserById = jest.fn()
@@ -74,6 +76,14 @@ jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ isVerified: true }),
 }))
 
+jest.mock('@/features/attention/AttentionProvider', () => ({
+    useAttention: () => ({ holdPushPrompt: jest.fn(), state: { userId: mockUser?.user.userId } }),
+}))
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
+const mockSavePreferences = jest.fn()
+jest.mock('@/services/notifications', () => ({
+    notificationsApi: { savePreferences: (...args: unknown[]) => mockSavePreferences(...args) },
+}))
 const mockRequestPermission = jest.fn()
 const mockAfterPermissionAttempt = jest.fn()
 jest.mock('@/hooks/useNotifications', () => ({
@@ -214,10 +224,12 @@ beforeEach(() => {
     window.localStorage.clear()
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     mockUser = { user: { userId: 'alice', username: 'alice' }, showEarlyUserModal: true }
+    setAuthToken(`x.${btoa(JSON.stringify({ userId: 'alice' }))}.y`)
     mockUpdateUserById.mockResolvedValue({})
     mockAccept.mockResolvedValue({ recorded: 1 })
     mockGetStatus.mockResolvedValue({ needsReConsent: false, documents: [] })
     mockRequestPermission.mockResolvedValue('granted')
+    mockSavePreferences.mockResolvedValue({ push: true })
     mockAfterPermissionAttempt.mockResolvedValue(undefined)
     mockLastError = null
     mockGrant.mockResolvedValue({ ok: false })
@@ -331,6 +343,7 @@ describe('HomePushPrompt', () => {
         // "Enable → requestPermission() then afterPermissionAttempt() then onActed()"
         expect(mockRequestPermission).toHaveBeenCalledTimes(1)
         expect(mockAfterPermissionAttempt).toHaveBeenCalledTimes(1)
+        expect(mockSavePreferences).toHaveBeenCalledWith({ pushPermission: 'granted', push: true }, 'alice')
         expect(p.onActed).toHaveBeenCalledTimes(1)
         expect(mockRequestPermission.mock.invocationCallOrder[0]).toBeLessThan(
             mockAfterPermissionAttempt.mock.invocationCallOrder[0]
@@ -340,6 +353,24 @@ describe('HomePushPrompt', () => {
         )
         expect(p.onSnoozed).not.toHaveBeenCalled()
         expect(legacyModalEvents()).toEqual([])
+    })
+
+    test('does not report acted until the account-bound preference save succeeds', async () => {
+        let finish!: (value: { push: boolean }) => void
+        mockSavePreferences.mockReturnValueOnce(
+            new Promise((resolve) => {
+                finish = resolve
+            })
+        )
+        const p = props('push-home-fallback')
+        renderSurface(loadHomePushPrompt(), p)
+        fireEvent.click(screen.getByText(t.enable))
+        await waitFor(() =>
+            expect(mockSavePreferences).toHaveBeenCalledWith({ pushPermission: 'granted', push: true }, 'alice')
+        )
+        expect(p.onActed).not.toHaveBeenCalled()
+        await act(async () => finish({ push: true }))
+        expect(p.onActed).toHaveBeenCalledTimes(1)
     })
 
     test('Not now snoozes with the policy default (no argument)', async () => {

@@ -1,5 +1,4 @@
 /** UI Jest environment. Synthetic public asks test arbitration, not registry eligibility. */
-import { describe, expect, it } from '@jest/globals'
 import { decide } from '@/features/attention/decide'
 import { applyServerRanking } from '@/features/attention/serverAttention'
 import type { AttentionAsk, JourneyState, Session } from '@/features/attention/types'

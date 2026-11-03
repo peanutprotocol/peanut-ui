@@ -33953,179 +33953,242 @@
 			"get": {
 				"parameters": [
 					{
-						"schema": {
-							"type": "string"
-						},
+						"description": "Bearer access token",
 						"in": "header",
 						"name": "authorization",
 						"required": true,
-						"description": "Bearer access token"
+						"schema": {
+							"type": "string"
+						}
 					}
 				],
 				"responses": {
 					"200": {
-						"description": "Default Response",
 						"content": {
 							"application/json": {
+								"example": {
+									"catalogue": [
+										{
+											"analyticsKey": "migration_download",
+											"emailMappings": [],
+											"id": "install-app",
+											"policy": {
+												"interrupt": "always",
+												"snoozeDays": 3
+											},
+											"rank": 0,
+											"surfaces": [
+												"interrupt",
+												"zone"
+											],
+											"tier": 1
+										}
+									],
+									"catalogueVersion": 1,
+									"explanations": {
+										"invite": {
+											"reason": "show",
+											"unknownSources": [],
+											"verdict": "show"
+										}
+									},
+									"facts": {
+										"canPayQr": null,
+										"canSpendViaCard": null,
+										"consent": {
+											"status": "clear",
+											"versions": []
+										},
+										"firstPeerPaymentAt": null,
+										"hasMadeQrPayment": false,
+										"hasReceivedRequestPayment": false,
+										"lastSpendAt": null,
+										"onboarding": null,
+										"spendHistoryAvailable": true
+									},
+									"nextAsk": "invite",
+									"ranking": [
+										{
+											"id": "install-app",
+											"rank": 0,
+											"tier": 1
+										},
+										{
+											"id": "maintenance",
+											"rank": 0,
+											"tier": 1
+										},
+										{
+											"id": "legal-reconsent",
+											"rank": 1,
+											"tier": 1
+										},
+										{
+											"id": "arrival",
+											"rank": 2,
+											"tier": 1
+										},
+										{
+											"id": "balance-backup",
+											"rank": 3,
+											"tier": 1
+										},
+										{
+											"id": "verification-due",
+											"rank": 4,
+											"tier": 1
+										},
+										{
+											"id": "verification-advisory",
+											"rank": 4.5,
+											"tier": 1
+										},
+										{
+											"id": "post-verification-action",
+											"rank": 5,
+											"tier": 1
+										},
+										{
+											"id": "finish-card-setup",
+											"rank": 6,
+											"tier": 1
+										},
+										{
+											"id": "finish-card-funding",
+											"rank": 7,
+											"tier": 1
+										},
+										{
+											"id": "blocked-card",
+											"rank": 2,
+											"tier": 2
+										},
+										{
+											"id": "checklist",
+											"rank": 3,
+											"tier": 2
+										},
+										{
+											"id": "verification-deadline",
+											"rank": 1,
+											"tier": 3
+										},
+										{
+											"id": "virtual-account",
+											"rank": 1,
+											"tier": 3
+										},
+										{
+											"id": "qr-payment",
+											"rank": 2,
+											"tier": 3
+										},
+										{
+											"id": "cap-nudge",
+											"rank": 2,
+											"tier": 3
+										},
+										{
+											"id": "verify-for-qr",
+											"rank": 3,
+											"tier": 3
+										},
+										{
+											"id": "card-offer",
+											"rank": 4,
+											"tier": 3
+										},
+										{
+											"id": "next-payment",
+											"rank": 5,
+											"tier": 3
+										},
+										{
+											"id": "share-bank-details",
+											"rank": 6,
+											"tier": 3
+										},
+										{
+											"id": "request-money",
+											"rank": 7,
+											"tier": 3
+										},
+										{
+											"id": "send-money",
+											"rank": 8,
+											"tier": 3
+										},
+										{
+											"id": "backup-passkey",
+											"rank": 1,
+											"tier": 4
+										},
+										{
+											"id": "push-home-fallback",
+											"rank": 2,
+											"tier": 4
+										},
+										{
+											"id": "add-email",
+											"rank": 3,
+											"tier": 4
+										},
+										{
+											"id": "user-interview",
+											"rank": 0,
+											"tier": 5
+										},
+										{
+											"id": "invite",
+											"rank": 1,
+											"tier": 5
+										},
+										{
+											"id": "rewards",
+											"rank": 2,
+											"tier": 5
+										},
+										{
+											"id": "complete-profile",
+											"rank": 4,
+											"tier": 5
+										},
+										{
+											"id": "bug-bounty",
+											"rank": 5,
+											"tier": 5
+										},
+										{
+											"id": "early-user",
+											"rank": 1,
+											"tier": 6
+										}
+									],
+									"settings": {
+										"announcementCooldownDays": 7,
+										"balanceThresholdUsd": 500,
+										"defaultSnoozeDays": 7,
+										"maxConsecutiveSessions": 3,
+										"nextPaymentAfterDays": 14,
+										"quietSessionMinCount": 3,
+										"settleMs": 4000
+									},
+									"verdicts": {
+										"checklist": "done",
+										"invite": "show"
+									},
+									"version": 1
+								},
 								"schema": {
-									"type": "object",
 									"properties": {
-										"version": {
-											"type": "number",
-											"enum": [
-												1
-											]
-										},
-										"catalogueVersion": {
-											"type": "number",
-											"enum": [
-												1
-											]
-										},
 										"catalogue": {
-											"type": "array",
 											"items": {
-												"type": "object",
 												"properties": {
-													"id": {
-														"type": "string"
-													},
-													"tier": {
-														"minimum": 1,
-														"maximum": 6,
-														"type": "integer"
-													},
-													"rank": {
-														"type": "number"
-													},
-													"surfaces": {
-														"type": "array",
-														"items": {
-															"anyOf": [
-																{
-																	"type": "string",
-																	"enum": [
-																		"interrupt"
-																	]
-																},
-																{
-																	"type": "string",
-																	"enum": [
-																		"zone"
-																	]
-																},
-																{
-																	"type": "string",
-																	"enum": [
-																		"inline"
-																	]
-																},
-																{
-																	"type": "string",
-																	"enum": [
-																		"banner"
-																	]
-																}
-															]
-														}
-													},
-													"slots": {
-														"type": "array",
-														"items": {
-															"anyOf": [
-																{
-																	"type": "string",
-																	"enum": [
-																		"bank-transfer"
-																	]
-																},
-																{
-																	"type": "string",
-																	"enum": [
-																		"limits"
-																	]
-																}
-															]
-														}
-													},
-													"policy": {
-														"type": "object",
-														"properties": {
-															"routes": {
-																"anyOf": [
-																	{
-																		"type": "string",
-																		"enum": [
-																			"home"
-																		]
-																	},
-																	{
-																		"type": "string",
-																		"enum": [
-																			"any"
-																		]
-																	}
-																]
-															},
-															"interrupt": {
-																"anyOf": [
-																	{
-																		"type": "string",
-																		"enum": [
-																			"always"
-																		]
-																	},
-																	{
-																		"type": "string",
-																		"enum": [
-																			"session"
-																		]
-																	},
-																	{
-																		"type": "string",
-																		"enum": [
-																			"quiet"
-																		]
-																	},
-																	{
-																		"type": "string",
-																		"enum": [
-																			"never"
-																		]
-																	}
-																]
-															},
-															"snoozeDays": {
-																"minimum": 0,
-																"type": "number"
-															},
-															"expiryDays": {
-																"minimum": 0,
-																"type": "number"
-															},
-															"minSessions": {
-																"minimum": 0,
-																"type": "integer"
-															},
-															"maxConsecutiveSessions": {
-																"minimum": 0,
-																"type": "integer"
-															},
-															"anchorsHome": {
-																"type": "boolean"
-															},
-															"overAnchor": {
-																"type": "boolean"
-															}
-														}
-													},
 													"analyticsKey": {
 														"type": "string"
 													},
 													"emailMappings": {
-														"type": "array",
 														"items": {
-															"type": "object",
 															"properties": {
 																"prefix": {
 																	"type": "string"
@@ -34133,24 +34196,158 @@
 																"when": {
 																	"anyOf": [
 																		{
-																			"type": "string",
 																			"enum": [
 																				"activated"
-																			]
+																			],
+																			"type": "string"
 																		},
 																		{
-																			"type": "string",
 																			"enum": [
 																				"not-activated"
-																			]
+																			],
+																			"type": "string"
 																		}
 																	]
 																}
 															},
 															"required": [
 																"prefix"
+															],
+															"type": "object"
+														},
+														"type": "array"
+													},
+													"id": {
+														"type": "string"
+													},
+													"policy": {
+														"properties": {
+															"anchorsHome": {
+																"type": "boolean"
+															},
+															"expiryDays": {
+																"minimum": 0,
+																"type": "number"
+															},
+															"interrupt": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"always"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"session"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"quiet"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"never"
+																		],
+																		"type": "string"
+																	}
+																]
+															},
+															"maxConsecutiveSessions": {
+																"minimum": 0,
+																"type": "integer"
+															},
+															"minSessions": {
+																"minimum": 0,
+																"type": "integer"
+															},
+															"overAnchor": {
+																"type": "boolean"
+															},
+															"routes": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"home"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"any"
+																		],
+																		"type": "string"
+																	}
+																]
+															},
+															"snoozeDays": {
+																"minimum": 0,
+																"type": "number"
+															}
+														},
+														"type": "object"
+													},
+													"rank": {
+														"type": "number"
+													},
+													"slots": {
+														"items": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"bank-transfer"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"limits"
+																	],
+																	"type": "string"
+																}
 															]
-														}
+														},
+														"type": "array"
+													},
+													"surfaces": {
+														"items": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"interrupt"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"zone"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"inline"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"banner"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"type": "array"
+													},
+													"tier": {
+														"maximum": 6,
+														"minimum": 1,
+														"type": "integer"
 													}
 												},
 												"required": [
@@ -34161,296 +34358,29 @@
 													"policy",
 													"analyticsKey",
 													"emailMappings"
-												]
-											}
-										},
-										"settings": {
-											"type": "object",
-											"properties": {
-												"settleMs": {
-													"minimum": 0,
-													"type": "integer"
-												},
-												"quietSessionMinCount": {
-													"minimum": 0,
-													"type": "integer"
-												},
-												"announcementCooldownDays": {
-													"minimum": 0,
-													"type": "number"
-												},
-												"maxConsecutiveSessions": {
-													"minimum": 0,
-													"type": "integer"
-												},
-												"balanceThresholdUsd": {
-													"minimum": 0,
-													"type": "number"
-												},
-												"nextPaymentAfterDays": {
-													"minimum": 0,
-													"type": "number"
-												},
-												"defaultSnoozeDays": {
-													"minimum": 0,
-													"type": "number"
-												}
+												],
+												"type": "object"
 											},
-											"required": [
-												"settleMs",
-												"quietSessionMinCount",
-												"announcementCooldownDays",
-												"maxConsecutiveSessions",
-												"balanceThresholdUsd",
-												"nextPaymentAfterDays",
-												"defaultSnoozeDays"
-											]
+											"type": "array"
 										},
-										"facts": {
-											"type": "object",
-											"properties": {
-												"onboarding": {
-													"anyOf": [
-														{
-															"type": "object",
-															"properties": {
-																"verify": {
-																	"anyOf": [
-																		{
-																			"type": "string",
-																			"enum": [
-																				"todo"
-																			]
-																		},
-																		{
-																			"type": "string",
-																			"enum": [
-																				"in_review"
-																			]
-																		},
-																		{
-																			"type": "string",
-																			"enum": [
-																				"action_required"
-																			]
-																		},
-																		{
-																			"type": "string",
-																			"enum": [
-																				"failed"
-																			]
-																		},
-																		{
-																			"type": "string",
-																			"enum": [
-																				"done"
-																			]
-																		}
-																	]
-																},
-																"addMoneyDone": {
-																	"type": "boolean"
-																},
-																"firstPaymentDone": {
-																	"type": "boolean"
-																},
-																"firstPaymentRoute": {
-																	"anyOf": [
-																		{
-																			"type": "string",
-																			"enum": [
-																				"card_qr"
-																			]
-																		},
-																		{
-																			"type": "string",
-																			"enum": [
-																				"card"
-																			]
-																		},
-																		{
-																			"type": "string",
-																			"enum": [
-																				"qr"
-																			]
-																		},
-																		{
-																			"type": "string",
-																			"enum": [
-																				"none"
-																			]
-																		},
-																		{
-																			"type": "string",
-																			"enum": [
-																				"pending"
-																			]
-																		}
-																	]
-																},
-																"cardHeld": {
-																	"type": "boolean"
-																},
-																"step": {
-																	"anyOf": [
-																		{
-																			"type": "string",
-																			"enum": [
-																				"verify"
-																			]
-																		},
-																		{
-																			"type": "string",
-																			"enum": [
-																				"add_money"
-																			]
-																		},
-																		{
-																			"type": "string",
-																			"enum": [
-																				"first_payment"
-																			]
-																		},
-																		{
-																			"type": "string",
-																			"enum": [
-																				"completed"
-																			]
-																		}
-																	]
-																}
-															},
-															"required": [
-																"verify",
-																"addMoneyDone",
-																"firstPaymentDone",
-																"firstPaymentRoute",
-																"step"
-															]
-														},
-														{
-															"type": "null"
-														}
-													]
-												},
-												"canSpendViaCard": {
-													"anyOf": [
-														{
-															"type": "boolean"
-														},
-														{
-															"type": "null"
-														}
-													]
-												},
-												"canPayQr": {
-													"anyOf": [
-														{
-															"type": "boolean"
-														},
-														{
-															"type": "null"
-														}
-													]
-												},
-												"firstPeerPaymentAt": {
-													"anyOf": [
-														{
-															"type": "string"
-														},
-														{
-															"type": "null"
-														}
-													]
-												},
-												"lastSpendAt": {
-													"anyOf": [
-														{
-															"type": "string"
-														},
-														{
-															"type": "null"
-														}
-													]
-												},
-												"spendHistoryAvailable": {
-													"type": "boolean"
-												},
-												"hasMadeQrPayment": {
-													"anyOf": [
-														{
-															"type": "boolean"
-														},
-														{
-															"type": "null"
-														}
-													]
-												},
-												"hasReceivedRequestPayment": {
-													"anyOf": [
-														{
-															"type": "boolean"
-														},
-														{
-															"type": "null"
-														}
-													]
-												},
-												"consent": {
-													"type": "object",
-													"properties": {
-														"status": {
-															"anyOf": [
-																{
-																	"type": "string",
-																	"enum": [
-																		"unknown"
-																	]
-																},
-																{
-																	"type": "string",
-																	"enum": [
-																		"clear"
-																	]
-																},
-																{
-																	"type": "string",
-																	"enum": [
-																		"needed"
-																	]
-																}
-															]
-														},
-														"versions": {
-															"type": "array",
-															"items": {
-																"type": "string"
-															}
-														}
-													},
-													"required": [
-														"status",
-														"versions"
-													]
-												}
-											},
-											"required": [
-												"onboarding",
-												"canSpendViaCard",
-												"canPayQr",
-												"firstPeerPaymentAt",
-												"lastSpendAt",
-												"spendHistoryAvailable",
-												"hasMadeQrPayment",
-												"hasReceivedRequestPayment",
-												"consent"
-											]
+										"catalogueVersion": {
+											"enum": [
+												1
+											],
+											"type": "number"
 										},
 										"explanations": {
-											"type": "object",
 											"additionalProperties": {
-												"type": "object",
 												"properties": {
+													"reason": {
+														"type": "string"
+													},
+													"unknownSources": {
+														"items": {
+															"type": "string"
+														},
+														"type": "array"
+													},
 													"verdict": {
 														"anyOf": [
 															{
@@ -34474,50 +34404,334 @@
 																"type": "string"
 															}
 														]
-													},
-													"reason": {
-														"type": "string"
-													},
-													"unknownSources": {
-														"type": "array",
-														"items": {
-															"type": "string"
-														}
 													}
 												},
 												"required": [
 													"verdict",
 													"reason",
 													"unknownSources"
-												]
-											}
+												],
+												"type": "object"
+											},
+											"type": "object"
+										},
+										"facts": {
+											"properties": {
+												"canPayQr": {
+													"anyOf": [
+														{
+															"type": "boolean"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"canSpendViaCard": {
+													"anyOf": [
+														{
+															"type": "boolean"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"consent": {
+													"properties": {
+														"status": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"unknown"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"clear"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"needed"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"versions": {
+															"items": {
+																"type": "string"
+															},
+															"type": "array"
+														}
+													},
+													"required": [
+														"status",
+														"versions"
+													],
+													"type": "object"
+												},
+												"firstPeerPaymentAt": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"hasMadeQrPayment": {
+													"anyOf": [
+														{
+															"type": "boolean"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"hasReceivedRequestPayment": {
+													"anyOf": [
+														{
+															"type": "boolean"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"lastSpendAt": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"onboarding": {
+													"anyOf": [
+														{
+															"properties": {
+																"addMoneyDone": {
+																	"type": "boolean"
+																},
+																"cardHeld": {
+																	"type": "boolean"
+																},
+																"firstPaymentDone": {
+																	"type": "boolean"
+																},
+																"firstPaymentRoute": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"card_qr"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"card"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"qr"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"none"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"pending"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"step": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"verify"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"add_money"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"first_payment"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"completed"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"verify": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"todo"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"in_review"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"action_required"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"failed"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"done"
+																			],
+																			"type": "string"
+																		}
+																	]
+																}
+															},
+															"required": [
+																"verify",
+																"addMoneyDone",
+																"firstPaymentDone",
+																"firstPaymentRoute",
+																"step"
+															],
+															"type": "object"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"spendHistoryAvailable": {
+													"type": "boolean"
+												}
+											},
+											"required": [
+												"onboarding",
+												"canSpendViaCard",
+												"canPayQr",
+												"firstPeerPaymentAt",
+												"lastSpendAt",
+												"spendHistoryAvailable",
+												"hasMadeQrPayment",
+												"hasReceivedRequestPayment",
+												"consent"
+											],
+											"type": "object"
+										},
+										"nextAsk": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
 										},
 										"ranking": {
-											"type": "array",
 											"items": {
-												"type": "object",
 												"properties": {
 													"id": {
 														"type": "string"
 													},
-													"tier": {
-														"minimum": 1,
-														"maximum": 6,
-														"type": "integer"
-													},
 													"rank": {
 														"type": "number"
+													},
+													"tier": {
+														"maximum": 6,
+														"minimum": 1,
+														"type": "integer"
 													}
 												},
 												"required": [
 													"id",
 													"tier",
 													"rank"
-												]
-											}
+												],
+												"type": "object"
+											},
+											"type": "array"
+										},
+										"settings": {
+											"properties": {
+												"announcementCooldownDays": {
+													"minimum": 0,
+													"type": "number"
+												},
+												"balanceThresholdUsd": {
+													"minimum": 0,
+													"type": "number"
+												},
+												"defaultSnoozeDays": {
+													"minimum": 0,
+													"type": "number"
+												},
+												"maxConsecutiveSessions": {
+													"minimum": 0,
+													"type": "integer"
+												},
+												"nextPaymentAfterDays": {
+													"minimum": 0,
+													"type": "number"
+												},
+												"quietSessionMinCount": {
+													"minimum": 0,
+													"type": "integer"
+												},
+												"settleMs": {
+													"minimum": 0,
+													"type": "integer"
+												}
+											},
+											"required": [
+												"settleMs",
+												"quietSessionMinCount",
+												"announcementCooldownDays",
+												"maxConsecutiveSessions",
+												"balanceThresholdUsd",
+												"nextPaymentAfterDays",
+												"defaultSnoozeDays"
+											],
+											"type": "object"
 										},
 										"verdicts": {
-											"type": "object",
 											"additionalProperties": {
 												"anyOf": [
 													{
@@ -34541,17 +34755,14 @@
 														"type": "string"
 													}
 												]
-											}
+											},
+											"type": "object"
 										},
-										"nextAsk": {
-											"anyOf": [
-												{
-													"type": "string"
-												},
-												{
-													"type": "null"
-												}
-											]
+										"version": {
+											"enum": [
+												1
+											],
+											"type": "number"
 										}
 									},
 									"required": [
@@ -34564,230 +34775,17 @@
 										"ranking",
 										"verdicts",
 										"nextAsk"
-									]
-								},
-								"example": {
-									"version": 1,
-									"catalogueVersion": 1,
-									"catalogue": [
-										{
-											"id": "install-app",
-											"tier": 1,
-											"rank": 0,
-											"surfaces": [
-												"interrupt",
-												"zone"
-											],
-											"policy": {
-												"interrupt": "always",
-												"snoozeDays": 3
-											},
-											"analyticsKey": "migration_download",
-											"emailMappings": []
-										}
 									],
-									"settings": {
-										"settleMs": 4000,
-										"quietSessionMinCount": 3,
-										"announcementCooldownDays": 7,
-										"maxConsecutiveSessions": 3,
-										"balanceThresholdUsd": 500,
-										"nextPaymentAfterDays": 14,
-										"defaultSnoozeDays": 7
-									},
-									"facts": {
-										"onboarding": null,
-										"canSpendViaCard": null,
-										"canPayQr": null,
-										"firstPeerPaymentAt": null,
-										"lastSpendAt": null,
-										"spendHistoryAvailable": true,
-										"hasMadeQrPayment": false,
-										"hasReceivedRequestPayment": false,
-										"consent": {
-											"status": "clear",
-											"versions": []
-										}
-									},
-									"explanations": {
-										"invite": {
-											"verdict": "show",
-											"reason": "show",
-											"unknownSources": []
-										}
-									},
-									"ranking": [
-										{
-											"id": "install-app",
-											"tier": 1,
-											"rank": 0
-										},
-										{
-											"id": "maintenance",
-											"tier": 1,
-											"rank": 0
-										},
-										{
-											"id": "legal-reconsent",
-											"tier": 1,
-											"rank": 1
-										},
-										{
-											"id": "arrival",
-											"tier": 1,
-											"rank": 2
-										},
-										{
-											"id": "balance-backup",
-											"tier": 1,
-											"rank": 3
-										},
-										{
-											"id": "verification-due",
-											"tier": 1,
-											"rank": 4
-										},
-										{
-											"id": "verification-advisory",
-											"tier": 1,
-											"rank": 4.5
-										},
-										{
-											"id": "post-verification-action",
-											"tier": 1,
-											"rank": 5
-										},
-										{
-											"id": "finish-card-setup",
-											"tier": 1,
-											"rank": 6
-										},
-										{
-											"id": "finish-card-funding",
-											"tier": 1,
-											"rank": 7
-										},
-										{
-											"id": "blocked-card",
-											"tier": 2,
-											"rank": 2
-										},
-										{
-											"id": "checklist",
-											"tier": 2,
-											"rank": 3
-										},
-										{
-											"id": "verification-deadline",
-											"tier": 3,
-											"rank": 1
-										},
-										{
-											"id": "virtual-account",
-											"tier": 3,
-											"rank": 1
-										},
-										{
-											"id": "qr-payment",
-											"tier": 3,
-											"rank": 2
-										},
-										{
-											"id": "cap-nudge",
-											"tier": 3,
-											"rank": 2
-										},
-										{
-											"id": "verify-for-qr",
-											"tier": 3,
-											"rank": 3
-										},
-										{
-											"id": "card-offer",
-											"tier": 3,
-											"rank": 4
-										},
-										{
-											"id": "next-payment",
-											"tier": 3,
-											"rank": 5
-										},
-										{
-											"id": "share-bank-details",
-											"tier": 3,
-											"rank": 6
-										},
-										{
-											"id": "request-money",
-											"tier": 3,
-											"rank": 7
-										},
-										{
-											"id": "send-money",
-											"tier": 3,
-											"rank": 8
-										},
-										{
-											"id": "backup-passkey",
-											"tier": 4,
-											"rank": 1
-										},
-										{
-											"id": "push-home-fallback",
-											"tier": 4,
-											"rank": 2
-										},
-										{
-											"id": "add-email",
-											"tier": 4,
-											"rank": 3
-										},
-										{
-											"id": "user-interview",
-											"tier": 5,
-											"rank": 0
-										},
-										{
-											"id": "invite",
-											"tier": 5,
-											"rank": 1
-										},
-										{
-											"id": "rewards",
-											"tier": 5,
-											"rank": 2
-										},
-										{
-											"id": "complete-profile",
-											"tier": 5,
-											"rank": 4
-										},
-										{
-											"id": "bug-bounty",
-											"tier": 5,
-											"rank": 5
-										},
-										{
-											"id": "early-user",
-											"tier": 6,
-											"rank": 1
-										}
-									],
-									"verdicts": {
-										"checklist": "done",
-										"invite": "show"
-									},
-									"nextAsk": "invite"
+									"type": "object"
 								}
 							}
-						}
+						},
+						"description": "Default Response"
 					},
 					"401": {
-						"description": "Default Response",
 						"content": {
 							"application/json": {
 								"schema": {
-									"type": "object",
 									"properties": {
 										"error": {
 											"type": "string"
@@ -34795,17 +34793,17 @@
 									},
 									"required": [
 										"error"
-									]
+									],
+									"type": "object"
 								}
 							}
-						}
+						},
+						"description": "Default Response"
 					},
 					"503": {
-						"description": "Default Response",
 						"content": {
 							"application/json": {
 								"schema": {
-									"type": "object",
 									"properties": {
 										"error": {
 											"type": "string"
@@ -34813,10 +34811,12 @@
 									},
 									"required": [
 										"error"
-									]
+									],
+									"type": "object"
 								}
 							}
-						}
+						},
+						"description": "Default Response"
 					}
 				}
 			}

@@ -27,16 +27,13 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }))
 jest.mock('@/utils/demo', () => ({ ...jest.requireActual('@/utils/demo'), isDemoMode: () => false }))
-jest.mock('@/config/underMaintenance.config', () => ({
-    // the spread drops the non-enumerable flag, and without it the default import resolves to this wrapper
-    __esModule: true,
-    ...jest.requireActual('@/config/underMaintenance.config'),
-    default: {
-        ...jest.requireActual('@/config/underMaintenance.config').default,
+jest.mock('@/features/kill-switches/useKillSwitches', () => ({
+    useKillSwitches: () => ({
+        ...jest.requireActual('@/features/kill-switches/kill-switches.consts').DEFAULT_KILL_SWITCHES,
         enableFullMaintenance: true,
         enableMaintenanceBanner: false,
         maintenanceBannerPaths: [],
-    },
+    }),
 }))
 
 let mockState: JourneyState
@@ -155,8 +152,9 @@ jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => null }
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: ({ name }: { name: string }) => <span data-icon={name} /> }))
 
 import { AttentionProvider, resetAttentionSessionForTests, useAttentionOptional } from '../AttentionProvider'
-import config from '@/config/underMaintenance.config'
+import { DEFAULT_KILL_SWITCHES } from '@/features/kill-switches/kill-switches.consts'
 import { selectMaintenance } from '../maintenance'
+const config = { ...DEFAULT_KILL_SWITCHES, enableFullMaintenance: true }
 
 // Export-shape tolerance follows the existing arbiter tests; the contracts are tested through public components.
 const shellModule = require('../AskShell')

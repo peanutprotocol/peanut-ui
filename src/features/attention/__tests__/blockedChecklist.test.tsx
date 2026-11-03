@@ -294,3 +294,71 @@ test('hiding a blocked card must not expose a permanent checklist dismissal', as
     expect(screen.queryByText('Hide')).not.toBeInTheDocument()
     expect(readLedger('user-a').checklist?.dismissedAt).toBeUndefined()
 })
+
+test.each(['dismiss', 'snooze'] as const)(
+    'an identity restart leads bank documents until the user %ss it',
+    async (action) => {
+        mockState = state({
+            ...BEFORE_ACTIVATION,
+            blockedCardId: 'blocked-card:restart-identity:provider_rejected',
+            blockedIdentityRestart: true,
+            dueTasks: 1,
+            dueTasksWhileRestartVisible: 0,
+        })
+        await mount()
+        expect(latest?.decision.zone?.id).toBe('blocked-card')
+        await click(`${action}-blocked-card`)
+        expect(latest?.decision.zone?.id).toBe('verification-due')
+        expect(readLedger('user-a')['blocked-card']?.version).toBe('blocked-card:restart-identity:provider_rejected')
+    }
+)
+
+test('a changed restart reason resurfaces, while an unrelated due task still takes priority', async () => {
+    const first = 'blocked-card:restart-identity:first'
+    mockState = state({
+        ...BEFORE_ACTIVATION,
+        blockedCardId: first,
+        blockedIdentityRestart: true,
+        dueTasks: 1,
+        dueTasksWhileRestartVisible: 0,
+    })
+    const view = await mount()
+    await click('dismiss-blocked-card')
+    expect(latest?.decision.zone?.id).toBe('verification-due')
+    mockState = state({
+        ...BEFORE_ACTIVATION,
+        blockedCardId: 'blocked-card:restart-identity:second',
+        blockedIdentityRestart: true,
+        dueTasks: 1,
+        dueTasksWhileRestartVisible: 0,
+    })
+    await rerender(view)
+    expect(latest?.decision.zone?.id).toBe('blocked-card')
+    mockState = state({
+        ...BEFORE_ACTIVATION,
+        blockedCardId: 'blocked-card:restart-identity:second',
+        blockedIdentityRestart: true,
+        dueTasks: 2,
+        dueTasksWhileRestartVisible: 1,
+    })
+    await rerender(view)
+    expect(latest?.decision.zone?.id).toBe('verification-due')
+})
+
+test('a restart dismissed by one account remains visible for a different account', async () => {
+    const scenario = {
+        ...BEFORE_ACTIVATION,
+        blockedCardId: 'blocked-card:restart-identity:first',
+        blockedIdentityRestart: true,
+        dueTasks: 1,
+        dueTasksWhileRestartVisible: 0,
+    }
+    mockState = state(scenario)
+    const view = await mount()
+    await click('dismiss-blocked-card')
+    expect(latest?.decision.zone?.id).toBe('verification-due')
+    mockState = state({ ...scenario, userId: 'user-b' })
+    await rerender(view)
+    expect(latest?.decision.zone?.id).toBe('blocked-card')
+    expect(readLedger('user-b')['blocked-card']?.dismissedAt).toBeUndefined()
+})

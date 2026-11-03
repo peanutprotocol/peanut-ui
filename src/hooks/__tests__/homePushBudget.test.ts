@@ -52,7 +52,14 @@ let mockInterruptOpen = false
 jest.mock('@/features/attention/interruptState', () => ({ isAttentionInterruptOpen: () => mockInterruptOpen }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 let mockUserId = 'user-1'
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: mockUserId } } }) }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { userId: mockUserId } } }),
+    useOptionalAuth: () => ({ user: { user: { userId: mockUserId } } }),
+}))
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
+jest.mock('@/features/attention/AttentionProvider', () => ({
+    useAttention: () => ({ holdPushPrompt: jest.fn(), state: { userId: mockUserId } }),
+}))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
@@ -71,6 +78,9 @@ jest.mock('@sentry/nextjs', () => ({
 }))
 
 import { PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
+import { isSilenced } from '@/features/attention/decide'
+import { pushHomeFallback } from '@/features/attention/registry'
+import type { JourneyState, LedgerEntry } from '@/features/attention/types'
 
 import { offerPushPrompt, resetPushPromptForTests, useNotifications } from '../useNotifications'
 
@@ -136,7 +146,7 @@ test('Home Not now spends this session pre-prompt budget', async () => {
     expect(hook.result.current.showPermissionModal).toBe(false)
 })
 
-test('active Home ledger snooze suppresses a contextual prompt in a later session', async () => {
+test('active Home ledger snooze permits a contextual prompt in a later session', async () => {
     resetPushPromptForTests()
     mockInterruptOpen = false
     mockPrefs = { sessionCount: 3 }
@@ -149,5 +159,13 @@ test('active Home ledger snooze suppresses a contextual prompt in a later sessio
         attention: { 'push-home-fallback': { snoozedUntil: new Date(Date.now() + DAY_MS).toISOString() } },
     }
     await offer(DEPOSIT_INTENT)
-    expect(hook.result.current.showPermissionModal).toBe(false)
+    expect(hook.result.current.showPermissionModal).toBe(true)
+    const entry = (mockPrefs?.attention as Record<string, LedgerEntry>)['push-home-fallback']
+    expect(
+        isSilenced(pushHomeFallback, entry, {
+            now: Date.now(),
+            isNative: true,
+            push: { unanswered: true },
+        } as JourneyState)
+    ).toBe(true)
 })

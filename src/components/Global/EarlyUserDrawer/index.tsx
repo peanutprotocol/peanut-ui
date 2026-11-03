@@ -23,7 +23,11 @@ const EarlyUserDrawer = ({ onDismissed, presentation }: AskSurfaceProps) => {
     const origin = useAppOrigin()
     const t = useTranslations('global')
     const { user, fetchUser } = useAuth()
-    const inviteLink = generateInviteCodeLink(user?.user.username ?? '', REFERRAL_SOURCES.EARLY_USER_DRAWER, origin).inviteLink
+    const inviteLink = generateInviteCodeLink(
+        user?.user.username ?? '',
+        REFERRAL_SOURCES.EARLY_USER_DRAWER,
+        origin
+    ).inviteLink
     const userId = user?.user.userId
     const [open, setOpen] = useState(true)
 

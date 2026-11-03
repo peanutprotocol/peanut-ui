@@ -1,5 +1,4 @@
 /** UI Jest environment; direct production imports, no subject adapter. */
-import { describe, expect, it } from '@jest/globals'
 import { sanitizeEntry } from '@/features/attention/ledger'
 import { isSilenced } from '@/features/attention/decide'
 import type { AttentionAsk, JourneyState } from '@/features/attention/types'

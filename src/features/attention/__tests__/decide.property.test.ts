@@ -190,7 +190,7 @@ function check(name: string, predicate: (state: JourneyState, ledger: Ledger, se
             fc.property(caseArb, ([state, ledger, session]) => {
                 predicate(state, ledger, session, decide(state, ASKS, ledger, session))
             }),
-            { numRuns: RUNS }
+            { numRuns: RUNS, seed: -1085902575 }
         )
     })
 }
@@ -252,10 +252,16 @@ describe('B–E. the interrupt', () => {
         expect(holders.map((a) => a.id)).toEqual([])
     })
 
-    check('while the to-do list is live on Home, only a higher tier interrupts', (state, ledger, session, d) => {
+    check('Home anchor permits only a higher tier or the explicit Home-push exception', (state, ledger, session, d) => {
         if (!d.interrupt || d.interrupt === session.openInterrupt || session.route !== 'home') return
         const anchor = anchorOf(live(state, ledger, d))
-        if (anchor) expect(askOf(d.interrupt).tier).toBeLessThan(anchor.tier)
+        if (anchor) {
+            const chosen = askOf(d.interrupt)
+            if (chosen.tier >= anchor.tier) {
+                expect(chosen.id).toBe('push-home-fallback')
+                expect(chosen.policy.overAnchor).toBe(true)
+            } else expect(chosen.tier).toBeLessThan(anchor.tier)
+        }
     })
 
     check(

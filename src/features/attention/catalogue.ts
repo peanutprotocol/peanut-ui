@@ -63,6 +63,7 @@ export function asCatalogue(value: unknown): CatalogueEntry[] | undefined {
             row.emailMappings.length > 32
         )
             return undefined
+        const sourcePolicy = row.policy
         if (
             row.slots !== undefined &&
             (!Array.isArray(row.slots) || row.slots.some((slot) => slot !== 'bank-transfer' && slot !== 'limits'))
@@ -70,9 +71,11 @@ export function asCatalogue(value: unknown): CatalogueEntry[] | undefined {
             return undefined
         if (row.policy.routes !== undefined && row.policy.routes !== 'home' && row.policy.routes !== 'any')
             return undefined
-        if (NUMERIC_POLICY_KEYS.some((key) => row.policy[key] !== undefined && !nonnegative(row.policy[key])))
+        if (NUMERIC_POLICY_KEYS.some((key) => sourcePolicy[key] !== undefined && !nonnegative(sourcePolicy[key])))
             return undefined
-        if (BOOLEAN_POLICY_KEYS.some((key) => row.policy[key] !== undefined && typeof row.policy[key] !== 'boolean'))
+        if (
+            BOOLEAN_POLICY_KEYS.some((key) => sourcePolicy[key] !== undefined && typeof sourcePolicy[key] !== 'boolean')
+        )
             return undefined
         if (
             row.emailMappings.some(

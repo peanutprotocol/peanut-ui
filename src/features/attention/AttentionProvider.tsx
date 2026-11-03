@@ -22,7 +22,7 @@ import { IS_DEV } from '@/constants/general.consts'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { useAnyOverlayOpen } from '@/utils/overlay-visibility'
 import { useModalsContextOptional } from '@/context/ModalsContext'
-import { decide } from './decide'
+import { decide, isSilenced } from './decide'
 import { guardAsks, resetAttentionFaultsForTests } from './faults'
 import { getSessionInterrupts, setSessionInterrupts } from './interruptState'
 import {
@@ -284,8 +284,32 @@ const ATTENTION_EVENT: Record<SettleOutcome, string> = {
 }
 
 function AttentionEngine({ publish }: { publish: (value: AttentionContextValue | undefined) => void }) {
-    const state = useJourneyState()
-    const ledger = useLedger(state.userId, state.serverLedger)
+    const journey = useJourneyState()
+    const ledger = useLedger(journey.userId, journey.serverLedger)
+    const server = useServerAttention()
+    const { disabledAttentionAsks } = useKillSwitches()
+    const asks = useMemo(
+        () => guardAsks(applyServerRanking(ASKS, server), disabledAttentionAsks),
+        [server, disabledAttentionAsks]
+    )
+    const restartAsk = asks.find((ask) => ask.id === 'blocked-card')
+    const prioritizeIdentityRestart = !!(
+        journey.blockedIdentityRestart &&
+        journey.blockedCardId &&
+        restartAsk &&
+        restartAsk.eligible(journey) === 'show' &&
+        !isSilenced(restartAsk, ledger['blocked-card'], journey)
+    )
+    const state = useMemo(
+        () => ({
+            ...journey,
+            prioritizeIdentityRestart,
+            dueTasks: prioritizeIdentityRestart
+                ? (journey.dueTasksWhileRestartVisible ?? journey.dueTasks)
+                : journey.dueTasks,
+        }),
+        [journey, prioritizeIdentityRestart]
+    )
     const [openInterrupt, setOpenInterrupt] = useState<AskId | null>(null)
     const [heldPushUser, setHeldPushUser] = useState<string | null>(null)
     const [heldPushCardUser, setHeldPushCardUser] = useState<string | null>(null)
@@ -316,12 +340,6 @@ function AttentionEngine({ publish }: { publish: (value: AttentionContextValue |
     }, [state.userId])
 
     const [, setCrashCount] = useState(0)
-    const server = useServerAttention()
-    const { disabledAttentionAsks } = useKillSwitches()
-    const asks = useMemo(
-        () => guardAsks(applyServerRanking(ASKS, server), disabledAttentionAsks),
-        [server, disabledAttentionAsks]
-    )
     const unknownKey = asks
         .filter((ask) => ask.eligible(state) === 'unknown')
         .map((ask) => ask.id)

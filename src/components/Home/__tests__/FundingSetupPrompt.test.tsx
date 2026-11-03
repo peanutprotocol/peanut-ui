@@ -359,6 +359,8 @@ describe('FundingSetupPrompt — one confirmation or two', () => {
         mockStatus = 'migration_required'
         render(<FundingSetupPrompt {...surfaceProps} />)
         expect(screen.getByText('Card payments update')).toBeInTheDocument()
+        expect(screen.queryByText(/Peanut manages how much our third party provider/)).not.toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'Real-Time Funding Terms' })).toBeInTheDocument()
         expect(screen.getByTestId('description')).toHaveTextContent(
             'We’re changing how the card payments are processed. From now on, your card will pay directly from your Peanut balance.'
         )

@@ -109,7 +109,7 @@ describe('legal re-consent and download under the attention manager', () => {
                 firstPaymentRoute: 'card_qr',
                 step: 'completed',
             },
-        } as const
+        } satisfies Partial<import('@/features/attention/types').JourneyState>
         expect(run(facts, { settleDeadlinePassed: false }).interrupt).toBeNull()
         const after = run(facts, { settleDeadlinePassed: true })
         expect(after.interrupt).toBe('early-user')

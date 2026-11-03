@@ -28,6 +28,7 @@ let gatesByRailId: Record<string, GateState> = {}
 let userRails: RailCapability[] = []
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
+        capabilities: { rails: userRails, nextActions: [], restrictions: [] },
         gateFor: (_op: string, scope?: GateScope) =>
             (scope?.railId && gatesByRailId[scope.railId]) || ({ kind: 'needs-enrollment' } as GateState),
         rails: userRails,
