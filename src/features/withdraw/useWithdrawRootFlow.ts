@@ -263,6 +263,17 @@ export function useWithdrawRootFlow() {
     // handleAmountChange is the user typing, which retires the max intent.
     const filledFromBalanceRef = useRef<string | null>(null)
 
+    // A URL write that lands after Continue's push discards that navigation in
+    // Next.js, so Continue waits for a write from the field still in flight.
+    const pendingUrlWriteRef = useRef<Promise<unknown> | null>(null)
+    const trackUrlWrite = useCallback((write: Promise<unknown>) => {
+        pendingUrlWriteRef.current = write
+        const settle = () => {
+            if (pendingUrlWriteRef.current === write) pendingUrlWriteRef.current = null
+        }
+        write.then(settle, settle)
+    }, [])
+
     const handleBalanceFilled = useCallback(
         (value: string) => {
             filledFromBalanceRef.current = value
@@ -299,17 +310,27 @@ export function useWithdrawRootFlow() {
             // the URL is the durable copy of the typed amount (survives refresh,
             // shareable mid-flow) — nuqs throttles the actual history writes.
             // For a bank-currency amount the USD is only derived; the bank amount is stored.
-            if (!bankCurrency) void setUrlAmount(newValue === '' ? null : newValue)
+            if (!bankCurrency) trackUrlWrite(setUrlAmount(newValue === '' ? null : newValue))
             // the field re-reports an unchanged USD when the rate refreshes; an
             // unchanged URL write can discard Continue's navigation (see below)
-            else if (isBankFieldInUsd && newValue !== urlAmount) void setUrlAmount(newValue === '' ? null : newValue)
+            else if (isBankFieldInUsd && newValue !== urlAmount)
+                trackUrlWrite(setUrlAmount(newValue === '' ? null : newValue))
 
             // clear any existing errors when user starts typing
             if (error.showError) {
                 setError({ showError: false, errorMessage: '' })
             }
         },
-        [setUrlAmount, error.showError, setError, setIsMaxWithdrawal, bankCurrency, isBankFieldInUsd, urlAmount]
+        [
+            setUrlAmount,
+            error.showError,
+            setError,
+            setIsMaxWithdrawal,
+            bankCurrency,
+            isBankFieldInUsd,
+            urlAmount,
+            trackUrlWrite,
+        ]
     )
 
     const handleDestinationAmountChange = useCallback(
@@ -320,9 +341,9 @@ export function useWithdrawRootFlow() {
             // Writing it anyway replaces the URL, and in Next.js that discards a
             // navigation in flight, such as Continue's push to the review.
             if (next === destinationAmount) return
-            void setDestinationAmount(next || null)
+            trackUrlWrite(setDestinationAmount(next || null))
         },
-        [setDestinationAmount, destinationAmount]
+        [setDestinationAmount, destinationAmount, trackUrlWrite]
     )
 
     // only validate when rawTokenAmount changes and we're on the amount step
@@ -368,10 +389,17 @@ export function useWithdrawRootFlow() {
             from_send_flow: isFromSendFlow,
         })
 
+        const push = (url: string) => {
+            const pending = pendingUrlWriteRef.current
+            const go = () => router.push(url)
+            if (pending) void pending.then(go, go)
+            else go()
+        }
+
         // Route based on selected method type (check method type first to avoid
         // a stale bank account taking priority)
         if (selectedMethod.type === 'crypto') {
-            router.push(`/withdraw/crypto${downstreamQuery()}`)
+            push(`/withdraw/crypto${downstreamQuery()}`)
         } else if (selectedMethod.type === 'manteca') {
             // Manteca (AR/BR) accounts route to the Manteca flow. Checked BEFORE
             // the generic saved-bank-account branch below — that branch targets
@@ -380,13 +408,13 @@ export function useWithdrawRootFlow() {
             // resolved. The manteca flow honors ?amount= and skips its own
             // amount entry (TASK-21664).
             const mantecaMethod = selectedMethod.title?.toLowerCase().replace(/\s+/g, '-') || 'bank-transfer'
-            router.push(
+            push(
                 `/withdraw/manteca${downstreamQuery({ method: mantecaMethod, country: selectedMethod.countryPath ?? '' })}`
             )
         } else if (selectedBankAccount) {
             const country = getCountryFromAccount(selectedBankAccount)
             if (country) {
-                router.push(withdrawBankUrl(country.path, downstreamQuery()))
+                push(withdrawBankUrl(country.path, downstreamQuery()))
             } else {
                 // Never throw inside the click handler: a synchronous throw aborts
                 // the router transition with no UI feedback, so the button silently
@@ -403,7 +431,7 @@ export function useWithdrawRootFlow() {
             // A bridge method with no account yet — an old `?step=amount` link,
             // or flow memory lost to a refresh. The form comes first now, so
             // send them there with the amount they typed still in the URL.
-            router.push(withdrawCountryUrl(selectedMethod.countryPath, downstreamQuery({ step: 'form' })))
+            push(withdrawCountryUrl(selectedMethod.countryPath, downstreamQuery({ step: 'form' })))
         } else {
             // No branch matched the selected method — surface an error rather
             // than leaving the user with a silently-dead Continue button.
@@ -519,7 +547,7 @@ export function useWithdrawRootFlow() {
                   isInUsd: isBankFieldInUsd,
                   onDenominationChange: (symbol: string) => {
                       const next = symbol.toUpperCase() === 'USD' ? 'usd' : null
-                      if (next !== amountCurrencyParam) void setAmountCurrencyParam(next)
+                      if (next !== amountCurrencyParam) trackUrlWrite(setAmountCurrencyParam(next))
                   },
               }
             : null,

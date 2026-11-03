@@ -512,12 +512,13 @@ describe('GROUP 2b: bank amount typed in its currency', () => {
         expect(screen.getByTestId('amount-field')).toHaveAttribute('data-symbol', 'EUR')
     })
 
-    test('Continue hands the bank amount to the review, never as ?amount=', () => {
+    test('Continue hands the bank amount to the review, never as ?amount=', async () => {
         renderWithdraw({ step: 'amount' })
 
         fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '90' } })
         fireEvent.click(screen.getByText('Continue'))
 
+        await waitFor(() => expect(mockRouterPush).toHaveBeenCalled())
         const pushed = mockRouterPush.mock.calls.at(-1)?.[0] as string
         expect(pushed).toContain('destinationAmount=90')
         expect(pushed).not.toMatch(/[?&]amount=/)
@@ -552,6 +553,28 @@ describe('GROUP 2b: bank amount typed in its currency', () => {
         fireEvent.click(screen.getByText('Continue'))
 
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany/bank?destinationAmount=5')
+    })
+
+    // Screen capture, 2026-11-03: Continue tapped while the typed amount was still
+    // on its way to the URL. The write landed after the push and discarded it.
+    test('Continue tapped before the typed EUR amount reaches the URL navigates once it has', async () => {
+        mockUseRealAmountInput = true
+        mockBankRate = '0.875'
+        const params = { step: 'amount' }
+        render(<NuqsTestingAdapter>{null}</NuqsTestingAdapter>).unmount()
+        setSearchParams(params)
+        render(withdrawTree(params, createQueryClient(), { hasMemory: true }))
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: '5' } })
+        fireEvent.click(screen.getByText('Continue'))
+
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        await waitFor(() => expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany/bank?destinationAmount=5'))
+        const writes = mockOnUrlUpdate.mock.invocationCallOrder.filter((_, call) =>
+            mockOnUrlUpdate.mock.calls[call][0].queryString.includes('destinationAmount=5')
+        )
+        expect(writes.length).toBeGreaterThan(0)
+        expect(Math.max(...writes)).toBeLessThan(mockRouterPush.mock.invocationCallOrder[0])
     })
 
     // Hugo, 2026-09-25: an amount typed in USD leads with USD on the review. It
@@ -678,13 +701,13 @@ describe('GROUP 2b: bank amount typed in its currency', () => {
         }
     )
 
-    test('a mid-typing "90." is handed on as 90', () => {
+    test('a mid-typing "90." is handed on as 90', async () => {
         renderWithdraw({ step: 'amount' })
 
         fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '90.' } })
         fireEvent.click(screen.getByText('Continue'))
 
-        expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/germany/bank?destinationAmount=90')
+        await waitFor(() => expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany/bank?destinationAmount=90'))
     })
 
     test('waits for the rate before opening the field', () => {
@@ -1124,7 +1147,7 @@ describe('GROUP 3: Amount Validation', () => {
         expect(screen.getByText('Continue')).not.toBeDisabled()
     })
 
-    test('Full balance passes validation and continues with that amount', () => {
+    test('Full balance passes validation and continues with that amount', async () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
 
         renderWithdraw({ step: 'amount' })
@@ -1134,7 +1157,7 @@ describe('GROUP 3: Amount Validation', () => {
         expect(continueBtn).not.toBeDisabled()
 
         fireEvent.click(continueBtn)
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/us?step=form&amount=100')
+        await waitFor(() => expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/us?step=form&amount=100'))
     })
 
     test('Full balance below the method minimum keeps Continue disabled', async () => {
