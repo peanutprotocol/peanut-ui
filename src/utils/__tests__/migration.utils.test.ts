@@ -12,10 +12,14 @@ jest.mock('@/utils/capacitor', () => ({
     openExternalUrl: jest.fn(),
 }))
 
-// a getter, so the TEST_WEB_SIGNUP cases that re-require the constants can move it
+// getters, so the TEST_WEB_SIGNUP cases that re-require the constants can move them
+let mockIsDev = false
 let mockBaseUrl = 'http://localhost:3000'
 jest.mock('@/constants/general.consts', () => ({
     ...jest.requireActual('@/constants/general.consts'),
+    get IS_DEV() {
+        return mockIsDev
+    },
     get BASE_URL() {
         return mockBaseUrl
     },
@@ -49,18 +53,24 @@ beforeEach(() => {
 
 describe('TEST_WEB_SIGNUP', () => {
     // read at module load, so each build re-requires the constants
-    function onBuild(baseUrl: string): boolean {
+    function onBuild(baseUrl: string, isDev = false): boolean {
         mockBaseUrl = baseUrl
+        mockIsDev = isDev
         let value = false
         jest.isolateModules(() => {
             value = require('@/constants/migration.consts').TEST_WEB_SIGNUP
         })
         mockBaseUrl = 'http://localhost:3000'
+        mockIsDev = false
         return value
     }
 
     it('never shows the test sign-up on peanut.me', () => {
         expect(onBuild('https://peanut.me')).toBe(false)
+    })
+
+    it('shows it under next dev, where an unset base URL falls back to peanut.me', () => {
+        expect(onBuild('https://peanut.me', true)).toBe(true)
     })
 
     it.each([

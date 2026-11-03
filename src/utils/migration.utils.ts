@@ -22,6 +22,11 @@ export function hasKeepWebCookie(): boolean {
     return getFromCookie(KEEP_WEB_COOKIE) === KEEP_WEB_TOKEN
 }
 
+/** True when the URL is support's keep-web link itself (before its cookie is saved). */
+export function isKeepWebLink(param: string | null): boolean {
+    return param === KEEP_WEB_TOKEN
+}
+
 /** The store this device downloads from. Desktop has none: it gets the QR code instead. */
 export function storeForDevice(deviceType: DeviceType): StoreKind | null {
     if (deviceType === DeviceType.IOS) return 'ios'

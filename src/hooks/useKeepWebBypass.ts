@@ -4,7 +4,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { KEEP_WEB_COOKIE, KEEP_WEB_COOKIE_DAYS, KEEP_WEB_TOKEN } from '@/constants/migration.consts'
 import { saveToCookie } from '@/utils/general.utils'
-import { hasKeepWebCookie } from '@/utils/migration.utils'
+import { hasKeepWebCookie, isKeepWebLink } from '@/utils/migration.utils'
 import { useHydrationSnapshot } from '@/utils/native-platform'
 
 const serverCookieBypass = () => false
@@ -19,7 +19,7 @@ export function useKeepWebBypass(): boolean {
     const [queryBypass, setQueryBypass] = useState(false)
     useEffect(() => {
         const param = new URLSearchParams(window.location.search).get(KEEP_WEB_COOKIE)
-        if (param === KEEP_WEB_TOKEN) {
+        if (isKeepWebLink(param)) {
             saveToCookie(KEEP_WEB_COOKIE, KEEP_WEB_TOKEN, KEEP_WEB_COOKIE_DAYS)
             posthog.capture(ANALYTICS_EVENTS.MIGRATION_KEEP_WEB_USED)
             setQueryBypass(true)

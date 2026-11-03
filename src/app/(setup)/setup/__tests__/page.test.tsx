@@ -262,6 +262,16 @@ it('keeps the signup fast path in a keep-web browser', async () => {
     expect(mockResolve).toHaveBeenCalledWith(expect.objectContaining({ webSignupClosed: false }))
 })
 
+it('keeps the signup fast path on the first visit of a keep-web link', async () => {
+    mockNative = false
+    mockSearchParams = new URLSearchParams(`step=signup&${KEEP_WEB_COOKIE}=${KEEP_WEB_TOKEN}`)
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(mockResolve).toHaveBeenCalledWith(expect.objectContaining({ webSignupClosed: false }))
+})
+
 it('bounds waiting for session hydration', async () => {
     mockAuth.isFetchingUser = true
     renderWithIntl(<SetupPage />)

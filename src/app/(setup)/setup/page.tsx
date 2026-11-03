@@ -16,7 +16,8 @@ import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
 import { isCapacitor } from '@/utils/capacitor'
-import { hasKeepWebCookie } from '@/utils/migration.utils'
+import { hasKeepWebCookie, isKeepWebLink } from '@/utils/migration.utils'
+import { KEEP_WEB_COOKIE } from '@/constants/migration.consts'
 import { getStoredRedirect, getValidRedirectUrl, toInviteCode } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
 import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
@@ -130,6 +131,7 @@ function SetupPageContent() {
     // the user back to the entry step.
     const inviteCodeParam = searchParams.get('code')
     const legacyStepParam = searchParams.get('step')
+    const keepWebParam = searchParams.get(KEEP_WEB_COOKIE)
     const searchParamsString = searchParams.toString()
     const signupEntryFlow = useHydrationSnapshot(
         () => {
@@ -430,7 +432,8 @@ function SetupPageContent() {
             // past the landing gate — otherwise claim/invite links deep-link
             // straight into the signup form. Native app and support's keep-web
             // browsers keep the fast path.
-            const webSignupClosed = !isCapacitor() && !hasKeepWebCookie()
+            // The link's own visit counts: its cookie is saved after this entry resolves.
+            const webSignupClosed = !isCapacitor() && !hasKeepWebCookie() && !isKeepWebLink(keepWebParam)
             const entryInput = {
                 hasInviteCode: !!userInviteCode,
                 stepParam: legacyStepParam,
@@ -459,7 +462,7 @@ function SetupPageContent() {
         return () => {
             cancelled = true
         }
-    }, [steps, inviteCodeParam, legacyStepParam])
+    }, [steps, inviteCodeParam, legacyStepParam, keepWebParam])
 
     if (recoveryReason) {
         return (

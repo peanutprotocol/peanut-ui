@@ -1,4 +1,4 @@
-import { BASE_URL } from '@/constants/general.consts'
+import { BASE_URL, IS_DEV } from '@/constants/general.consts'
 
 /**
  * Signup is app-only. The web never offers it: it shows download prompts and
@@ -10,8 +10,9 @@ import { BASE_URL } from '@/constants/general.consts'
  * Builds that are not peanut.me (staging, PR previews, local, CI) show a
  * marked test-build sign-up on the web landing, so the team can still create
  * web accounts there. Decided at build time: peanut.me never renders it.
+ * `next dev` counts too, because BASE_URL falls back to peanut.me when unset.
  */
-export const TEST_WEB_SIGNUP = BASE_URL !== 'https://peanut.me'
+export const TEST_WEB_SIGNUP = IS_DEV || BASE_URL !== 'https://peanut.me'
 
 /**
  * Marks the already-native-associated `/home` route as an app-download entry
