@@ -29,18 +29,24 @@ export type SurfaceMeta = {
     shotClickTestId?: string
 }
 
+const apiRibbon = (id: string): SurfaceMeta => {
+    const state = API_CONTRACT_STATES[id]
+    return {
+        name: state.name,
+        path: 'Global/TestBuildRibbon.tsx',
+        captureState: [`API status: ${state.api.status}`, `route contract fault: ${state.api.contractError}`],
+        expectSelector: '[data-testid="test-build-ribbon"]',
+    }
+}
+
+// Ids stay literal: the Screen Library capture finds surfaces by searching this file's text.
 export const SURFACE_META: Record<string, SurfaceMeta> = {
-    ...Object.fromEntries(
-        Object.entries(API_CONTRACT_STATES).map(([id, state]) => [
-            id,
-            {
-                name: state.name,
-                path: 'Global/TestBuildRibbon.tsx',
-                captureState: [`API status: ${state.api.status}`, `route contract fault: ${state.api.contractError}`],
-                expectSelector: '[data-testid="test-build-ribbon"]',
-            },
-        ])
-    ),
+    'api-ribbon-loading': apiRibbon('api-ribbon-loading'),
+    'api-ribbon-compatible': apiRibbon('api-ribbon-compatible'),
+    'api-ribbon-too-old': apiRibbon('api-ribbon-too-old'),
+    'api-ribbon-missing-version': apiRibbon('api-ribbon-missing-version'),
+    'api-ribbon-unavailable': apiRibbon('api-ribbon-unavailable'),
+    'api-ribbon-contract-error': apiRibbon('api-ribbon-contract-error'),
     'numeric-request-amount-4000': {
         name: 'Request amount — 4,000 USDC',
         path: 'Global/AmountInput/index.tsx',
