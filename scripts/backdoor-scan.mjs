@@ -214,6 +214,18 @@ export function offScreenIsComment(path, text) {
 // 2026-10-25. A body counts only when it parses as JSON, and `[^<]*` keeps it from closing its tag.
 const INERT_JSON_BLOCK = /<script type="application\/json"(?: id="[A-Za-z0-9_-]+")?>([^<]*)<\/script>/g
 
+// After an inert block, anything a browser runs (a script, an event handler, a javascript: URL) may be what
+// the space run inside the block pushed off-screen, so the line then stays code.
+const RUNS_IN_PAGE = /<script(?![^>]*type="application\/json")|\son[a-z]+\s*=|javascript:/i
+
+/** A saved web page line whose only off-screen gap is inside inert JSON, with nothing runnable after it. */
+export function hidesOnlyInertJson(text) {
+	if (HIDDEN_RUN.test(withoutInertJson(text))) return false
+	let end = -1
+	for (const m of text.matchAll(INERT_JSON_BLOCK)) if (HIDDEN_RUN.test(m[0])) end = m.index + m[0].length
+	return end >= 0 && !RUNS_IN_PAGE.test(text.slice(end))
+}
+
 export function withoutInertJson(text) {
 	return text.replace(INERT_JSON_BLOCK, (block, body) => {
 		try {
@@ -245,7 +257,10 @@ export function scanLines(lines, { allow = new Set() } = {}) {
 			// A .json file nothing runs is data: off-screen text there is a string, not code. It paged
 			// Squirrel-Core on an archived PostHog query export on 2026-10-20. JSON that runs
 			// (package.json, .vscode, .devcontainer, rc files) is on the exec surface and still blocks.
-			const data = !tier && (/\.json$/i.test(entry.path) || !HIDDEN_RUN.test(withoutInertJson(entry.text)))
+			// The inert-JSON exception is for saved web pages only: in a .ts or .js file the same string is
+			// just a string, and code after it is code (bypass found 2026-11-03).
+			const page = /\.html?$/i.test(entry.path)
+			const data = !tier && (/\.json$/i.test(entry.path) || (page && hidesOnlyInertJson(entry.text)))
 			const comment = offScreenIsComment(entry.path, entry.text)
 			add(data || comment ? 'warn' : 'block', 'hidden-code', entry, `${run} spaces, then more ${data ? 'text' : comment ? 'comment' : 'code'} off-screen`)
 		}
