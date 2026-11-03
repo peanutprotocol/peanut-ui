@@ -993,7 +993,7 @@
                 "title": "Link your profile to one country",
                 "description": "Here’s what each unlocks."
             },
-            "sentence": "I’m a resident <nw>of <residence></residence></nw> and hold the nationality <nw>of <nationality></nationality>.</nw>",
+            "sentence": "I’m a resident <nw>of <residence></residence></nw><br></br>and hold the nationality <nw>of <nationality></nationality>.</nw>",
             "residenceTitle": "Where are you a resident?",
             "nationalityTitle": "What’s your nationality?",
             "sameCountry": "the same country",

@@ -993,7 +993,7 @@
                 "title": "Vincula tu perfil a un solo país",
                 "description": "Esto es lo que habilita cada uno."
             },
-            "sentence": "Mi país de residencia <nw>es <residence></residence></nw> y el de nacionalidad <nw>es <nationality></nationality>.</nw>",
+            "sentence": "Mi país de residencia <nw>es <residence></residence></nw><br></br>y el de nacionalidad <nw>es <nationality></nationality>.</nw>",
             "residenceTitle": "¿Dónde tienes residencia?",
             "nationalityTitle": "¿Cuál es tu nacionalidad?",
             "sameCountry": "el mismo",
