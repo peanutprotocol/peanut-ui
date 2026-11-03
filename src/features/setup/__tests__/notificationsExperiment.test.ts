@@ -11,13 +11,13 @@ beforeEach(() => {
     getFeatureFlag.mockReset()
 })
 
-it('starts the switches on only for users PostHog put in that variant', () => {
-    getFeatureFlag.mockReturnValue('defaults_on')
-    expect(readNotificationsVariant()).toBe('defaults_on')
+it.each(['switches', 'defaults_on'] as const)('shows the %s variant only to users PostHog put in it', (variant) => {
+    getFeatureFlag.mockReturnValue(variant)
+    expect(readNotificationsVariant()).toBe(variant)
     expect(getFeatureFlag).toHaveBeenCalledWith(NOTIFICATIONS_EXPERIMENT_FLAG)
 })
 
-it.each(['control', 'switches', 'all_on', undefined, false, 'something-else'])(
+it.each(['control', 'all_on', undefined, false, 'something-else'])(
     'falls back to control for a flag value of %p',
     (value) => {
         getFeatureFlag.mockReturnValue(value)

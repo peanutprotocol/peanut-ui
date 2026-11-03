@@ -21,10 +21,11 @@ import {
     useSetupFlowContext,
 } from '@/features/setup/SetupFlowContext'
 import {
-    type NotificationsVariant,
     readNotificationsVariant,
+    type SwitchesVariant,
     trackPromptAnswer,
 } from '@/features/setup/notificationsExperiment'
+import NotificationsControl from './NotificationsControl'
 import NotificationsStepLayout from '../components/NotificationsStepLayout'
 import { useSessionFence, type SessionFence } from '@/hooks/useSessionFence'
 import {
@@ -53,13 +54,13 @@ const DEFAULTS_ON: NotificationChoices = {
 }
 
 /**
- * Three switches. In control they start off, and the first time Important alerts
+ * Three switches. In `switches` they start off, and the first time Important alerts
  * turns on, Email updates turns on with it; Offers and perks never follows another
  * switch. In `defaults_on` Important alerts and Email updates start on until the
  * user changes one, and Offers and perks still starts off.
  * Continue asks the OS when a push switch is on and saves what its answer allows.
  */
-function NotificationSwitches({ variant }: { variant: NotificationsVariant }) {
+function NotificationSwitches({ variant }: { variant: SwitchesVariant }) {
     const t = useTranslations('setup.notifications')
     const tSetup = useTranslations('setup')
     const {
@@ -211,5 +212,5 @@ function NotificationSwitches({ variant }: { variant: NotificationsVariant }) {
 
 export default function NotificationsStep() {
     const [variant] = useState(readNotificationsVariant)
-    return <NotificationSwitches variant={variant} />
+    return variant === 'control' ? <NotificationsControl /> : <NotificationSwitches variant={variant} />
 }
