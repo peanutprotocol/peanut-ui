@@ -205,12 +205,12 @@ export function offScreenIsComment(path, text) {
 	const gap = text.match(/[ \t]{60,}/)
 	const offScreen = text.slice(gap.index + gap[0].length)
 	// A Python comment line can end an open string only with a triple quote; shell strings span lines.
-	// Inside an open shell (or Make, or Actions) string a `#` is text and `$(...)`, `${...}` still expand,
-	// so any `$` keeps the line code (Chip on ui#3823, 2026-11-03).
+	// Inside an open string a `#` is text and expansions still run: `$(...)` and `${...}` in shell, Make and
+	// Actions, `{...}` in a Python f-string. So a `{` in Python, or a `$` elsewhere, keeps the line code (Chip on ui#3823/api#1954).
 	const python = /\.py$/i.test(path)
-	const stringEnd = python ? /"""|'''|\\/ : /["'`\\$]/
+	const stringEnd = python ? /"""|'''|\\|\{/ : /["'`\\$]/
 	const wholeLine = text.trimStart().startsWith('#') && !stringEnd.test(text)
-	const trailing = offScreen.startsWith('#') && !(python ? /["'`\\]/ : /["'`\\$]/).test(offScreen)
+	const trailing = offScreen.startsWith('#') && !(python ? /["'`\\{]/ : /["'`\\$]/).test(offScreen)
 	return wholeLine || trailing
 }
 
