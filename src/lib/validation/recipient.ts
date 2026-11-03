@@ -3,11 +3,12 @@ import { isAddress } from 'viem'
 import { resolveEns } from '@/app/actions/ens'
 
 import { AccountType } from '@/interfaces/interfaces'
-import { usersApi } from '@/services/users'
+import { personFrom } from '@/lib/person/person'
+import { fetchProfile } from '@/lib/person/usePerson'
 import { serverFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'
 import { RecipientValidationError } from '../url-parser/errors'
-import { type RecipientType } from '../url-parser/types/payment'
+import { type RecipientType, type ResolvedRecipient } from '../url-parser/types/payment'
 import { isValidAddressForFamily, type WithdrawAddressFamily } from './addressFamily'
 import { isArgentinePaymentAlias } from './argentine-alias'
 import { isSupportedEnsName } from './ens'
@@ -19,7 +20,7 @@ export async function validateAndResolveRecipient(
     // Destination chain for ENS resolution (ENSIP-11 per-chain addresses).
     // Omitted = mainnet record, which is correct for non-withdraw contexts.
     chainId?: string
-): Promise<{ identifier: string; recipientType: RecipientType; resolvedAddress: string }> {
+): Promise<ResolvedRecipient> {
     // Non-EVM withdraw destinations (Solana/Tron): a base58 address is the
     // only valid input — no ENS, no usernames. The family comes from the
     // selected destination chain, never inferred from the string.
@@ -27,7 +28,7 @@ export async function validateAndResolveRecipient(
         if (!isValidAddressForFamily(recipient, addressFamily)) {
             throw new RecipientValidationError(`Invalid ${addressFamily === 'solana' ? 'Solana' : 'Tron'} address`)
         }
-        return { identifier: recipient, recipientType: 'ADDRESS', resolvedAddress: recipient }
+        return { identifier: recipient, recipientType: 'ADDRESS', resolvedAddress: recipient, person: null }
     }
 
     const recipientType = getRecipientType(recipient, isWithdrawal)
@@ -43,6 +44,7 @@ export async function validateAndResolveRecipient(
                 identifier: recipient,
                 recipientType,
                 resolvedAddress,
+                person: null,
             }
         }
 
@@ -54,6 +56,7 @@ export async function validateAndResolveRecipient(
                 identifier: recipient,
                 recipientType,
                 resolvedAddress: recipient,
+                person: null,
             }
 
         case 'USERNAME': {
@@ -61,10 +64,11 @@ export async function validateAndResolveRecipient(
             // Single source of truth: getByUsername (GET /users/username/:username)
             // is the same resource the old verifyPeanutUsername pre-check hit, and it
             // 404s for unknown AND deactivated (deletion-requested) usernames — so one
-            // fetch validates and resolves, avoiding a duplicate round-trip.
+            // fetch validates and resolves, avoiding a duplicate round-trip. It goes
+            // through the person cache, so the views read this same profile.
             let user
             try {
-                user = await usersApi.getByUsername(recipient)
+                user = await fetchProfile(recipient)
             } catch {
                 throw new RecipientValidationError('Invalid Peanut username')
             }
@@ -73,6 +77,7 @@ export async function validateAndResolveRecipient(
                 identifier: recipient,
                 recipientType,
                 resolvedAddress: address!,
+                person: personFrom(user),
             }
         }
 
