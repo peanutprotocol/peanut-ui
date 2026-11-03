@@ -398,3 +398,24 @@ describe('a zone ask the zone cannot show on this device', () => {
         expect(run({ ...loadingPush, invitesSent: 0 }, { count: 5 }).zone?.id).toBe('invite')
     })
 })
+
+describe('the backup passkey ask', () => {
+    const onePasskey = { passkeyCount: 1 }
+    // acting on a zone card writes a dismissal stamp (ledgerActions.dismissed)
+    const acted = { 'backup-passkey': { dismissedAt: new Date(NOW - 1000).toISOString() } }
+
+    test('one passkey and no answer: a candidate', () => {
+        expect(run(onePasskey).trace.candidates).toContain('backup-passkey')
+    })
+
+    test('opening the backup guide silences it, though the passkey count stays at one', () => {
+        const decision = run(onePasskey, {}, acted)
+        expect(decision.trace.verdicts['backup-passkey']).toBe('show')
+        expect(decision.trace.candidates).not.toContain('backup-passkey')
+        expect(decision.zone?.id).not.toBe('backup-passkey')
+    })
+
+    test('two passkeys is still done on its own', () => {
+        expect(verdictOf('backup-passkey', { passkeyCount: 2 })).toBe('done')
+    })
+})
