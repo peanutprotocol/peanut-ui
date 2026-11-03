@@ -4,6 +4,7 @@ import Badge, { type StatusType } from '@/components/Global/Badges/Badge'
 import { isOpenRequestDisplay, isTestTransaction, PENDING_AMOUNT_STATUSES } from '@/utils/history.utils'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { MerchantLogoIcon } from '@/components/TransactionDetails/MerchantLogoIcon'
+import type { Person } from '@/lib/person/person.types'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import {
     IN_SENTENCE_NAME_KEYS,
@@ -49,9 +50,9 @@ interface TransactionDetailsHeaderCardProps {
     /** Rain-enriched merchant brand logo for a card spend. Shown when there is
      *  no `avatarUrl`; the generic card badge is the fallback. */
     merchantLogo?: string | null
-    /** The counterparty's picked profile avatar (TASK-22625). A merchant
+    /** The counterparty as a Peanut user (TASK-23756). A merchant
      *  `avatarUrl` still wins — it identifies the payee more precisely. */
-    avatarKey?: string | null
+    person?: Person | null
     /** `false` for a row whose name is system copy (a reaper-failed transfer),
      *  so the avatar slot does not draw a face for a failure message. */
     isPeer?: boolean
@@ -240,7 +241,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     transactionType,
     avatarUrl,
     merchantLogo,
-    avatarKey,
+    person,
     isPeer,
     haveSentMoneyToUser = false,
     isNameClickable = false,
@@ -274,10 +275,6 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const nameForAvatar = showFullName && fullName ? fullName : localizedUserName
-    // The sticker's letter follows the handle instead (same rule as the feed
-    // row), so the receipt and the profile agree. An address counterparty draws
-    // no letter from `userName`, so the display name is the fallback.
-    const avatarNameForAvatar = isAddress(userName) ? nameForAvatar : userName
 
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(userName)
@@ -298,8 +295,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
         <TransactionAvatarBadge
             initials={initials}
             userName={nameForAvatar}
-            avatarName={avatarNameForAvatar}
-            avatarKey={avatarKey}
+            person={person}
             isPeer={isPeer}
             isLinkTransaction={isLinkTransaction}
             transactionType={typeForAvatar}

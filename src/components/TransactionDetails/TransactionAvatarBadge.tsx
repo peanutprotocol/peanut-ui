@@ -5,6 +5,7 @@ import { type StatusType } from '@/components/Global/Badges/Badge'
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { type TransactionType } from '@/components/TransactionDetails/transaction-types'
+import type { Person } from '@/lib/person/person.types'
 import { AVATAR_TEXT_DARK, AVATAR_WALLET_BG, getColorForUsername } from '@/utils/color.utils'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import React from 'react'
@@ -37,19 +38,14 @@ interface TransactionAvatarBadgeProps {
      */
     countryCode?: string | null
     /**
-     * The counterparty's picked profile avatar (TASK-22625). Only read on the
-     * person branch — a bank, link, wallet or card row keeps its icon whatever
-     * this holds.
+     * The counterparty as a Peanut user (TASK-23756). Only read on the person
+     * branch — a bank, link, wallet or card row keeps its icon whatever this
+     * holds. Its letter sticker follows the handle, so a peer without a pick
+     * looks the same here as on their profile, even though `userName` above
+     * honours their showFullName choice (it also has to stay the display
+     * name — it is the address discriminator).
      */
-    avatarKey?: string | null
-    /**
-     * The counterparty's handle, when the row has one. The letter sticker
-     * follows it so a peer without a pick looks the same here as on their
-     * profile, even though `userName` above honours their showFullName choice
-     * (it also has to stay the display name — it is the address discriminator).
-     * Falls back to `userName`.
-     */
-    avatarName?: string
+    person?: Person | null
     /**
      * The authoritative "there is a person behind this row" flag, when the
      * caller has one. `undefined` keeps this component's own heuristic (a named
@@ -76,8 +72,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     size = 'l',
     transactionType,
     countryCode,
-    avatarKey,
-    avatarName,
+    person,
     isPeer,
     status,
 }) => {
@@ -156,19 +151,20 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
             } else if (!isValidUser) {
                 // an address, not a person: a crypto send or receive
                 return conceptBubble('crypto')
-            } else if (displayInitials && isPeer === false) {
-                // Named, but nobody is behind it — the transformer rewrote the
-                // name to system copy. Keep the initials circle: a sticker here
-                // would draw a face for a failure message.
+            } else if (displayInitials && (isPeer === false || !person)) {
+                // Named, but no person to show — the transformer rewrote the
+                // name to system copy, or the row resolved no Peanut user. Keep
+                // the initials circle: a sticker here would draw a face for a
+                // failure message.
                 const colors = getColorForUsername(userName)
                 calculatedBgColor = colors.lightShade
                 textColor = colors.darkShade
-            } else if (displayInitials) {
+            } else if (displayInitials && person) {
                 // The one branch with a person behind it, so it shows who they
-                // are: their picked avatar, or the letter sticker drawn from
-                // the name this row already displays (TASK-22625). `decorative`
-                // because that name is on screen right next to it.
-                return <UserAvatar name={avatarName || userName} avatarKey={avatarKey} size={size} decorative />
+                // are: their picked avatar, or their handle's letter sticker
+                // (TASK-22625). `decorative` because their name is on screen
+                // right next to it.
+                return <UserAvatar person={person} size={size} decorative />
             }
             // no name and not a link: an external wallet, the crypto concept
             if (!displayInitials) return conceptBubble('crypto')
