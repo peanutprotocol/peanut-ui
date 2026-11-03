@@ -1,4 +1,7 @@
 const { checkApiContracts } = require('../api-contract-check')
+const {
+    REQUIRED_API_CONTRACTS: { kyc: requiredKyc },
+} = require('../../src/constants/api-contracts.json')
 
 const apiUrl = 'https://api.example.test'
 const version = (...values) => ({
@@ -6,7 +9,7 @@ const version = (...values) => ({
     branch: null,
     builtAt: null,
     migrationsHead: null,
-    contracts: { kyc: values.length ? values[0] : 4 },
+    contracts: { kyc: values.length ? values[0] : requiredKyc },
 })
 const openapi = (paths = { '/users/kyc/plan': { get: {} } }) => ({ openapi: '3.0.0', paths })
 const response = (status, body) => ({
@@ -27,13 +30,16 @@ const options = (fetchImpl, overrides = {}) => ({ apiUrl, fetchImpl, logger: log
 const messages = (mock) => mock.mock.calls.flat().map(String).join(' ')
 
 describe('native API contract preflight', () => {
-    test.each([4, 5])('accepts compatible kyc contract version %i and required operation', async (kyc) => {
-        const fetchImpl = fetchFor(response(200, version(kyc)))
-        await checkApiContracts(options(fetchImpl))
-        expect(fetchImpl.mock.calls.map(([url]) => String(url))).toEqual(
-            expect.arrayContaining([`${apiUrl}/version`, `${apiUrl}/openapi.json`])
-        )
-    })
+    test.each([requiredKyc, requiredKyc + 1])(
+        'accepts compatible kyc contract version %i and required operation',
+        async (kyc) => {
+            const fetchImpl = fetchFor(response(200, version(kyc)))
+            await checkApiContracts(options(fetchImpl))
+            expect(fetchImpl.mock.calls.map(([url]) => String(url))).toEqual(
+                expect.arrayContaining([`${apiUrl}/version`, `${apiUrl}/openapi.json`])
+            )
+        }
+    )
 
     test('normalizes a trailing slash in the API URL', async () => {
         const fetchImpl = fetchFor(response(200, version()))
@@ -43,7 +49,7 @@ describe('native API contract preflight', () => {
         )
     })
 
-    test.each([0, 1, 2, 3, -1, 1.5, '4', null, undefined])(
+    test.each([0, requiredKyc - 1, -1, 1.5, String(requiredKyc), null, undefined])(
         'rejects invalid or insufficient kyc contract %p in test builds',
         async (kyc) => {
             await expect(checkApiContracts(options(fetchFor(response(200, version(kyc)))))).rejects.toThrow(/kyc/i)
