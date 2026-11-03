@@ -1,3 +1,4 @@
+import type { Person } from '@/lib/person/person.types'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { AVATAR_TEXT_DARK } from '@/utils/color.utils'
 import { useCallback } from 'react'
@@ -14,11 +15,10 @@ import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/com
 import type { PotContributor } from '@/features/payments/flows/contribute-pot/ContributePotFlowContext'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 
-interface UserCardProps {
+interface UserCardBaseProps {
     type: 'send' | 'request' | 'received_link' | 'request_pay' | 'request_fulfilment'
     username: string
     fullName?: string
-    recipientType?: RecipientType
     size?: AvatarSize
     message?: string
     fileUrl?: string
@@ -34,10 +34,15 @@ interface UserCardProps {
     /** A request sent with no amount: the person paying chooses it. */
     isOpenAmount?: boolean
     contributors?: PotContributor[]
-    /** The other person's picked avatar (TASK-22625). Read only when
-     *  `recipientType` is USERNAME — an address has nobody behind it. */
-    avatarKey?: string | null
 }
+
+/** A Peanut handle is a person, so the card needs the resolved person to draw
+ *  their avatar (TASK-23756); an address or ENS name has nobody behind it. */
+type UserCardProps = UserCardBaseProps &
+    (
+        | { recipientType: Extract<RecipientType, 'USERNAME'>; person: Person }
+        | { recipientType?: Exclude<RecipientType, 'USERNAME'>; person?: undefined }
+    )
 
 const UserCard = ({
     type,
@@ -56,7 +61,7 @@ const UserCard = ({
     isRequestPot,
     isOpenAmount,
     contributors,
-    avatarKey,
+    person,
 }: UserCardProps) => {
     const t = useTranslations('global')
     const getIcon = (): IconName | undefined => {
@@ -97,7 +102,7 @@ const UserCard = ({
                     // A Peanut handle is a person: their picked avatar, with the
                     // handle's letter as the fallback. `decorative` because the
                     // card names them right beside it.
-                    <UserAvatar name={username} avatarKey={avatarKey} size={size} decorative />
+                    <UserAvatar person={person} size={size} decorative />
                 ) : (
                     <AvatarWithBadge
                         // an address is the crypto concept (coins on blue)

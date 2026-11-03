@@ -17,7 +17,7 @@ import { isLetterAvatarKey, storeLetterAvatar } from './avatar-letter.storage'
 import { useAvatarArt } from './useAvatarArt'
 import { useAvatarKey } from './useAvatarKey'
 import { roveAvatarTiles } from './avatarPicker.utils'
-import { UserAvatar } from './UserAvatar'
+import { AvatarSticker } from './AvatarSticker'
 
 interface AvatarPickerProps {
     open: boolean
@@ -189,8 +189,8 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                             className="absolute top-1 right-1"
                                         />
                                     )}
-                                    <UserAvatar
-                                        name={initial ? username : undefined}
+                                    <AvatarSticker
+                                        letterOf={initial ? (username ?? '') : ''}
                                         avatarKey={initial ? initialKey : key}
                                         size="l"
                                         className="aspect-square h-auto w-3/5"
