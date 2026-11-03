@@ -916,14 +916,18 @@ jobs:
             # Stress gate (TASK-23132): every fixture with worst-case data and
             # with large system text. Reuses the build above. ADVISORY until it
             # has one clean week: a failure shows as a warning, not a red job.
+            # `!cancelled()`, not `always()`: it still runs after a failed
+            # overflow gate, but a cancelled run stops here. With `always()` the
+            # ~20-minute stress run went on after a cancel and held this
+            # workflow's concurrency group, so the PR's next run sat pending.
             - name: Stress gate (advisory)
               id: stress
-              if: always() && steps.build.outcome == 'success'
+              if: ${{ !cancelled() && steps.build.outcome == 'success' }}
               continue-on-error: true
               run: pnpm test:stress:run
 
             - name: Upload stress results on failure
-              if: always() && steps.stress.outcome == 'failure'
+              if: ${{ !cancelled() && steps.stress.outcome == 'failure' }}
               uses: actions/upload-artifact@v4
               with:
                   name: stress-results-${{ github.run_number }}
