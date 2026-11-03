@@ -60,20 +60,23 @@ export function asServerAttention(body: unknown): ServerAttention | undefined {
     const raw = body as Record<string, unknown>
     const catalogue = raw.catalogueVersion === CATALOGUE_VERSION ? asCatalogue(raw.catalogue) : undefined
     const settings = catalogue ? asSettings(raw.settings) : undefined
+    const incompatiblePolicy = raw.catalogueVersion !== undefined && (!catalogue || !settings)
     const facts = asFacts(raw.facts)
     const explanations = asExplanations(raw.explanations)
     // a malformed row drops alone; a tier outside 1–6 has no interrupt budget, so it would interrupt
     return {
         version: 1,
-        nextAsk: typeof raw.nextAsk === 'string' ? raw.nextAsk : null,
-        ranking: (raw.catalogueVersion !== undefined && (!catalogue || !settings) ? [] : ranking).filter(
+        nextAsk: !incompatiblePolicy && typeof raw.nextAsk === 'string' ? raw.nextAsk : null,
+        ranking: (incompatiblePolicy ? [] : ranking).filter(
             (entry) =>
                 !!entry && typeof entry.id === 'string' && TIERS.includes(entry.tier) && Number.isFinite(entry.rank)
         ),
-        verdicts: Object.fromEntries(Object.entries(verdicts).filter(([, verdict]) => VERDICTS.includes(verdict))),
+        verdicts: incompatiblePolicy
+            ? {}
+            : Object.fromEntries(Object.entries(verdicts).filter(([, verdict]) => VERDICTS.includes(verdict))),
         ...(catalogue && settings ? { catalogueVersion: CATALOGUE_VERSION, catalogue, settings } : {}),
         ...(facts ? { facts } : {}),
-        ...(explanations ? { explanations } : {}),
+        ...(!incompatiblePolicy && explanations ? { explanations } : {}),
     }
 }
 

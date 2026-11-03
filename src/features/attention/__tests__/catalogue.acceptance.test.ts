@@ -47,13 +47,21 @@ test.each([
     { catalogue: DEFAULT_CATALOGUE.map((row) => ({ ...row, tier: 9 })) },
     { settings: { ...DEFAULT_SETTINGS, settleMs: NaN } },
 ])('CAT.3 malformed or unsupported policy data uses the generated rules', (patch) => {
-    const server = asServerAttention(envelope({ ranking: [{ id: 'balance-backup', tier: 6, rank: 88 }], ...patch }))
+    const server = asServerAttention(
+        envelope({ ranking: [{ id: 'balance-backup', tier: 6, rank: 88 }], verdicts: { invite: 'show' }, ...patch })
+    )
     expect(server?.catalogue).toBeUndefined()
     expect(applyServerRanking(ASKS, server).find((entry) => entry.id === 'balance-backup')).toMatchObject({
         tier: 1,
         rank: 3,
         policy: { expiryDays: 21 },
     })
+    const state = { userId: 'user-a', userLoaded: true, activated: false, invitesSent: 1 } as JourneyState
+    expect(
+        applyServerRanking(ASKS, server)
+            .find((entry) => entry.id === 'invite')
+            ?.eligible(state)
+    ).toBe('ineligible')
 })
 
 test('B3.2 lifetime history facts replace a misleading latest-50 display window', () => {

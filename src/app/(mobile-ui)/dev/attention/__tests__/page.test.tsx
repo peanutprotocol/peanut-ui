@@ -25,7 +25,7 @@ jest.mock('@/features/attention/AttentionProvider', () => ({
 }))
 jest.mock('@/features/attention/serverAttention', () => ({ useServerAttention: () => undefined }))
 jest.mock('@/features/attention/catalogue', () => ({
-    getSettings: () => ({ settleMs: 4000 }),
+    getSettings: () => ({ settleMs: 4000, defaultSnoozeDays: 9, quietSessionMinCount: 3, maxConsecutiveSessions: 3 }),
     getCatalogue: () => [
         {
             id: 'push-home-fallback',
@@ -64,6 +64,9 @@ test('shows policy and unknown explanation for the signed-in account without pro
     expect(screen.getByText(/Waiting for facts/)).toBeInTheDocument()
     expect(screen.getByText('Home decision preview')).toBeInTheDocument()
     expect(screen.getByText('Generated fallback (live catalogue unavailable/unsupported)')).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'home', exact: true })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: '9', exact: true })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'No automatic expiry', exact: true })).toBeInTheDocument()
     expect(mockDecide).toHaveBeenCalledWith(
         expect.objectContaining({ route: 'home' }),
         expect.anything(),

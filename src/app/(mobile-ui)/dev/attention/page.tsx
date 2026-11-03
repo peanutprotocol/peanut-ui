@@ -135,7 +135,7 @@ export default function AttentionDebugPage() {
                             <th>Tier</th>
                             <th>Rank</th>
                             <th>Surfaces</th>
-                            <th>Routes</th>
+                            <th>Interrupt routes</th>
                             <th>Budget</th>
                             <th>Snooze days</th>
                             <th>Expiry days</th>
@@ -153,13 +153,18 @@ export default function AttentionDebugPage() {
                                 <td>{row.tier}</td>
                                 <td>{row.rank}</td>
                                 <td>{row.surfaces.join(', ')}</td>
-                                <td>{row.policy.routes ?? 'any'}</td>
+                                <td>{row.surfaces.includes('interrupt') ? (row.policy.routes ?? 'home') : '—'}</td>
                                 <td>{row.policy.interrupt}</td>
-                                <td>{row.policy.snoozeDays ?? 'default'}</td>
-                                <td>{row.policy.expiryDays ?? 'default'}</td>
+                                <td>{row.policy.snoozeDays ?? settings.defaultSnoozeDays}</td>
+                                <td>{row.policy.expiryDays ?? 'No automatic expiry'}</td>
                                 <td>
-                                    min {row.policy.minSessions ?? 'default'}; consecutive{' '}
-                                    {row.policy.maxConsecutiveSessions ?? 'default'}
+                                    min{' '}
+                                    {row.policy.minSessions ??
+                                        (row.policy.interrupt === 'quiet' ? settings.quietSessionMinCount : 0)}
+                                    ; consecutive{' '}
+                                    {row.tier >= 3
+                                        ? (row.policy.maxConsecutiveSessions ?? settings.maxConsecutiveSessions)
+                                        : 'unlimited'}
                                 </td>
                                 <td>
                                     anchor {row.policy.anchorsHome ? 'yes' : 'no'}; over anchor{' '}
