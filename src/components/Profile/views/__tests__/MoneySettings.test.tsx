@@ -292,8 +292,18 @@ jest.mock('@/components/Profile/views/ResidenceChangeDrawer', () => ({
             </div>
         ) : null,
 }))
+// True: the tap belongs to a Smart Paperwork Verification user, whom the hook sends to /verify.
+let mockSendsToVerify = false
+const mockVerifyRedirect = jest.fn()
+jest.mock('@/features/paperwork-verification/usePaperworkVerificationRedirect', () => ({
+    usePaperworkVerificationRedirect: (active: boolean, entry: unknown) => {
+        mockVerifyRedirect(active, entry)
+        return active && mockSendsToVerify
+    },
+}))
 
 beforeEach(() => {
+    mockSendsToVerify = false
     mockApiCard = null
     mockApiBank = null
     mockDepositEnabled = false
@@ -494,6 +504,23 @@ describe('MoneySettings', () => {
         fireEvent.click(screen.getByText('EUR'))
         expect(screen.getByText('unlock-modal-open:bridge:id-only')).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    // Staging, 2026-11-03: this intro listed 5 steps, then its Continue landed on /verify's own intro with 6.
+    it('a Smart Paperwork Verification user goes to /verify without this shorter intro first', () => {
+        mockSendsToVerify = true
+        render()
+        fireEvent.click(screen.getByText('EUR'))
+        expect(mockVerifyRedirect).toHaveBeenLastCalledWith(true, { intent: 'EU', targetCountry: undefined })
+        expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('a Manteca row names its country for that redirect', () => {
+        mockUser = { residence: normalizeResidence({ declared: 'BR', verified: 'BR' }) }
+        render()
+        fireEvent.click(screen.getByText('BRL'))
+        expect(mockVerifyRedirect).toHaveBeenLastCalledWith(true, { intent: 'LATAM', targetCountry: 'BR' })
     })
 
     it('the card row routes to /card and only the card row does', () => {
