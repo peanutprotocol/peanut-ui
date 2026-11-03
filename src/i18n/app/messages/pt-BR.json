@@ -976,16 +976,15 @@
                     "p2p": "Peanut para Peanut",
                     "pix": "Pagamentos e transferências PIX",
                     "arQr": "Pagamentos QR e transferências próprias",
-                    "spei": "Transferências bancárias em pesos mexicanos",
-                    "usdAch": "Transferências bancárias em dólares americanos",
-                    "eurSepa": "Transferências bancárias em euros",
-                    "gbpFps": "Transferências bancárias em libras esterlinas",
+                    "bankAccount": "Conta bancária: {currencies}",
                     "bank": "Transferências bancárias onde houver suporte",
                     "card": "Cartão Peanut"
                 },
-                "missing": {
-                    "banking": "Transferências bancárias",
-                    "card": "Cartão Peanut"
+                "currencies": {
+                    "USD": "dólar americano",
+                    "EUR": "euro",
+                    "GBP": "libra esterlina",
+                    "MXN": "peso mexicano"
                 },
                 "multiCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda.",
                 "guideTitle": "Qual país você deve selecionar?",
