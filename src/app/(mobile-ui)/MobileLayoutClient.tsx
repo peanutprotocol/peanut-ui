@@ -35,6 +35,7 @@ import { useNativePlugins } from '@/hooks/useNativePlugins'
 // guarantees the patch is installed before any child page's mount-time router.push.
 import '@/hooks/useSafeBack'
 import { isDemoMode, enableDemoMode } from '@/utils/demo'
+import { useVerifyShell } from '@/utils/verify-shell'
 
 /**
  * How long the protected auth gate may show the mascot before it gives up.
@@ -69,7 +70,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isProfileMenu = pathName === '/profile' || pathName === '/profile/'
     const isDev = pathName?.startsWith('/dev') ?? false
     // Smart Paperwork Verification is a full-screen setup-style flow: no bottom nav, its own insets.
-    const isVerify = pathName === '/verify' || pathName === '/verify/'
+    // Its screens on other routes (a feature's activation on /add-money, /withdraw, /card) hold the same shell.
+    const verifyScreenOpen = useVerifyShell()
+    const isVerify = pathName === '/verify' || pathName === '/verify/' || verifyScreenOpen
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
 

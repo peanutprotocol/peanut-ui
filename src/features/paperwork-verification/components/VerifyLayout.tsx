@@ -12,6 +12,7 @@ import SetupFooter from '@/components/Setup/components/SetupFooter'
 import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
 import { confettiPresets } from '@/utils/confetti'
 import { twMerge } from '@/utils/tw'
+import { useVerifyShellHold } from '@/utils/verify-shell'
 import { useInsetColor } from '../useInsetColor'
 
 const SCREEN_HEIGHT = 'min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]'
@@ -52,6 +53,7 @@ export function VerifyQuestionLayout({
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     useInsetColor(false)
+    useVerifyShellHold()
     return (
         <div className={twMerge('flex w-full flex-col bg-white', SCREEN_HEIGHT)}>
             <div
@@ -101,6 +103,7 @@ export function VerifyHeroLayout({
     footer: ReactNode
 }) {
     useInsetColor(true)
+    useVerifyShellHold()
     return (
         <div className={twMerge('flex w-full flex-col bg-white', SCREEN_HEIGHT)}>
             {onBack && (
