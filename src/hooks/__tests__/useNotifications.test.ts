@@ -380,6 +380,9 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         })
         await act(async () => mockPermissionListener?.('granted'))
 
-        expect(capturedWith('notification_permission_granted')).toEqual([{ trigger: DEPOSIT_INTENT }])
+        // the ask got no answer of its own (no Notification API here), so the change event carries its trigger
+        expect(capturedWith('notification_permission_granted')).toEqual([
+            { trigger: DEPOSIT_INTENT, via: 'change', previous_permission: null },
+        ])
     })
 })

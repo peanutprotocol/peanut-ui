@@ -1,8 +1,8 @@
 'use client'
 
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
-import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
-import { type SignupEntryFlow } from '@/features/setup/signup-analytics'
+import type { ISetupStep, ScreenId } from '@/components/Setup/Setup.types'
+import type { SignupEntryFlow } from '@/features/setup/signup-analytics'
 
 import type { SetupFundingChannel, SetupPaymentChannel } from './paymentChannels'
 

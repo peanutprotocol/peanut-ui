@@ -3,6 +3,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { renderWithIntl } from '@/test-utils/intl'
+import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 import { setupScreenIds } from '@/components/Setup/Setup.consts'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { USER } from '@/constants/query.consts'
@@ -55,7 +56,7 @@ const renderSignup = () => {
     const view = renderWithIntl(
         <QueryClientProvider client={queryClient}>
             <SetupFlowProvider masterScreenIds={setupScreenIds}>
-                <SignupStep />
+                {onSignupScreen('signup', <SignupStep />)}
                 <FlowState />
             </SetupFlowProvider>
         </QueryClientProvider>
@@ -103,9 +104,9 @@ describe('Claim username', () => {
         expect(screen.queryByText(rules)).not.toBeInTheDocument()
         expect(mockApiFetch).not.toHaveBeenCalled()
         expect(claimButton()).toBeDisabled()
+        // the category only: what the person typed stays out of analytics
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, {
             error_type: 'too_short',
-            username: 'abc',
         })
     })
 
@@ -120,8 +121,8 @@ describe('Claim username', () => {
         expect(mockApiFetch).not.toHaveBeenCalled()
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, {
             error_type: errorType,
-            username: value,
         })
+        expect(signupControls(posthog.capture as jest.Mock)).toEqual(['username:change', `username:error:${errorType}`])
     })
 
     it('keeps Claim disabled for a taken username', async () => {
@@ -258,5 +259,43 @@ describe('Claim username', () => {
         await waitFor(() => expect(mockClaim).toHaveBeenCalledTimes(1))
         expect(isDemoMode()).toBe(false)
         expect(mockSetScreenId).not.toHaveBeenCalled()
+    })
+})
+
+describe('Claim username — control analytics', () => {
+    const controls = () => signupControls(posthog.capture as jest.Mock)
+
+    it('reports the first edit, each new error category, the clear button and Claim, never the typed name', async () => {
+        mockApiFetch.mockResolvedValueOnce({ status: 200 })
+        renderSignup()
+        fireEvent.change(usernameField(), { target: { value: 'abc' } })
+        await screen.findByText('Use at least 4 characters.')
+        fireEvent.change(usernameField(), { target: { value: 'takenname' } })
+        await screen.findByText('Username already taken')
+        fireEvent.change(usernameField(), { target: { value: 'freename' } })
+        await waitFor(() => expect(claimButton()).toBeEnabled())
+        fireEvent.click(claimButton())
+        await waitFor(() => expect(mockClaim).toHaveBeenCalledTimes(1))
+        expect(controls()).toEqual(['username:change', 'username:error:too_short', 'username:error:taken', 'claim:tap'])
+        const sent = JSON.stringify((posthog.capture as jest.Mock).mock.calls)
+        expect(sent).not.toMatch(/takenname|freename/)
+    })
+
+    it('reports Log in for a taken username and the passkey help drawer actions', () => {
+        Object.assign(mockPasskey, { usernameTaken: true, helpErrorName: 'NotAllowedError', isHelpOpen: true })
+        renderSignup()
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+        fireEvent.click(screen.getByRole('link', { name: 'Still stuck?' }))
+        fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+        fireEvent.click(screen.getByRole('button', { name: 'Log in', hidden: true }))
+        expect(controls()).toEqual([
+            'passkey_help_retry:tap',
+            'passkey_help_support:tap',
+            'passkey_help:dismiss',
+            'log_in:tap',
+        ])
+        expect(mockPasskey.retryFromHelp).toHaveBeenCalledTimes(1)
+        expect(mockPasskey.closeHelp).toHaveBeenCalledTimes(1)
+        expect(mockPasskey.logIn).toHaveBeenCalledTimes(1)
     })
 })
