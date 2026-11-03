@@ -160,3 +160,39 @@ describe('served KYC rules acceptance', () => {
 })
 
 jest.mock('@/app/actions/clients', () => ({}))
+
+it('does not guess a verification level while restriction lists are unknown', () => {
+    expect(regionIntentForResidence('PT', null)).toBeNull()
+})
+
+it('withholds residence-dependent channels without lists or intents', () => {
+    expect(setupChannelsForResidence(null, 'PT', true)).toEqual({
+        funding: ['crypto', 'peanut'],
+        payment: ['peanut'],
+    })
+})
+
+it('uses served intents even while restriction lists are unknown', () => {
+    const served = {
+        qr: { available: true },
+        local: { available: true },
+        bank: { available: true, currencies: ['EUR'] },
+        card: { available: false },
+    }
+    expect(setupChannelsForResidence(null, 'BR', true, served)).toEqual({
+        funding: ['brlBank', 'bank', 'crypto', 'peanut'],
+        payment: ['qr'],
+    })
+    expect(residenceAvailability(null, 'BR', served)).toEqual({
+        iso2: 'BR',
+        available: ['pix', 'eurSepa', 'p2p'],
+        unavailable: ['card'],
+        multiCurrency: true,
+    })
+    expect(residenceAvailability(null, 'PT')).toEqual({
+        iso2: 'PT',
+        available: ['p2p'],
+        unavailable: [],
+        multiCurrency: false,
+    })
+})

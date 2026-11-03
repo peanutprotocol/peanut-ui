@@ -16,22 +16,22 @@ export const SETUP_CHANNEL_CONCEPTS: Record<SetupChannel, Concept> = {
     peanut: 'friends',
 }
 export function setupChannelsForResidence(
-    sets: ResidenceRestrictionSets,
+    sets: ResidenceRestrictionSets | null,
     residence: string,
     settled: boolean,
     intents?: KycIntents
 ): { funding: SetupFundingChannel[]; payment: SetupPaymentChannel[] } {
     const country = residence.trim().toUpperCase()
-    const known = settled && !!country
+    const known = settled && !!country && (!!intents || sets !== null)
     // The server's answer (GET /config/kyc-intents) when it arrived; the restriction tiers otherwise.
-    const restrictions = deriveResidenceRestrictionsFrom(sets, country)
-    const bridge = known && (intents ? intents.bank.available : !restrictions.banking)
-    const localOpen = known && (intents ? intents.local.available : !restrictions.banking)
+    const restrictions = sets ? deriveResidenceRestrictionsFrom(sets, country) : null
+    const bridge = known && (intents ? intents.bank.available : !restrictions?.banking)
+    const localOpen = known && (intents ? intents.local.available : !restrictions?.banking)
     const local: SetupFundingChannel[] =
         localOpen && country === 'BR' ? ['brlBank'] : localOpen && country === 'AR' ? ['arsBank'] : []
     const bank: SetupFundingChannel[] = [...local, ...(bridge ? (['bank'] as const) : [])]
-    const card = known && (intents ? intents.card.available : !restrictions.card)
-    const qr = known && (intents ? intents.qr.available : !isQrResidenceRestricted(sets, country))
+    const card = known && (intents ? intents.card.available : !restrictions?.card)
+    const qr = known && (intents ? intents.qr.available : sets !== null && !isQrResidenceRestricted(sets, country))
     // Spending is the Peanut Card and QR payments (Hugo, 2026-10-10). Where neither is
     // offered, paying another Peanut user keeps the plan answerable.
     const spend: SetupPaymentChannel[] = [...(card ? ['card' as const] : []), ...(qr ? ['qr' as const] : [])]

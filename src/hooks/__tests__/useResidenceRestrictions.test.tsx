@@ -1,8 +1,9 @@
 /** @jest-environment jsdom */
+import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.fixture'
 import { normalizeResidence } from '@/utils/residence-profile'
 
 import { renderHook } from '@testing-library/react'
-import { deriveResidenceRestrictions, useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+import { deriveResidenceRestrictionsFrom, useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 
 let mockUser: {
     residenceRestrictions?: { banking: boolean; card: boolean }
@@ -19,20 +20,22 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
 }))
 
 // Hermetic: the real sets hook fetches the server tier lists on first mount;
-// stand the bundled mirror in for them, loaded or not.
+// supply a parsed server-shaped fixture.
 let mockSettled = true
 jest.mock('@/hooks/useResidenceRestrictionSets', () => {
     const actual = jest.requireActual('@/hooks/useResidenceRestrictionSets')
     return {
         ...actual,
         useResidenceRestrictionSetsWithStatus: () => ({
-            sets: actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
+            sets: mockSettled
+                ? jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS
+                : null,
             settled: mockSettled,
         }),
     }
 })
 
-describe('deriveResidenceRestrictions', () => {
+describe('deriveResidenceRestrictionsFrom', () => {
     it.each([
         ['RU', { banking: true, card: true }],
         // Bridge- and Rain-prohibited, so both halves (api#1738)
@@ -54,7 +57,7 @@ describe('deriveResidenceRestrictions', () => {
         ['BR', { banking: false, card: false }],
         ['', { banking: false, card: false }],
     ])('%s → %j', (iso2, expected) => {
-        expect(deriveResidenceRestrictions(iso2)).toEqual(expected)
+        expect(deriveResidenceRestrictionsFrom(RESIDENCE_RESTRICTION_SETS, iso2)).toEqual(expected)
     })
 })
 
@@ -77,7 +80,7 @@ describe('useResidenceRestrictions', () => {
         window.localStorage.setItem('peanut:declaredResidence:u1', 'RU')
         mockUser = { user: { userId: 'u1' } }
         const { result } = renderHook(() => useResidenceRestrictions())
-        expect(result.current).toEqual(deriveResidenceRestrictions('RU'))
+        expect(result.current).toEqual(deriveResidenceRestrictionsFrom(RESIDENCE_RESTRICTION_SETS, 'RU'))
     })
 
     it('prefers the server value when present', () => {
@@ -120,7 +123,7 @@ describe('useResidenceRestrictions', () => {
         expect(result.current).toEqual({ banking: true, card: true })
     })
 
-    it('opens nothing before the server lists load, since the bundled mirror is incomplete', () => {
+    it('opens nothing before the server lists load', () => {
         mockSettled = false
         mockSetupState = { residenceCountry: 'KR' }
         const { result, rerender } = renderHook(() => useResidenceRestrictions())

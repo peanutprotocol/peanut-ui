@@ -11,9 +11,9 @@ import {
 } from '@/constants/zerodev.consts'
 import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import { getResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
+import { parseResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
 import { deriveResidenceRestrictionsFrom, isQrResidenceRestricted } from '@/utils/residence-restrictions'
-import { KYC_USER_READS } from '@/utils/demo-kyc'
+import { DEMO_RESIDENCE_RESTRICTIONS, KYC_USER_READS } from '@/utils/demo-kyc'
 import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import type { RainCardFunding, RainFundingAccess } from '@/services/rain'
@@ -472,15 +472,17 @@ let demoNotificationPreferences: NotificationPreferences = {
 
 const MANTECA_LOCAL_RESIDENCES = new Set(['AR', 'BR'])
 
+const DEMO_RESTRICTION_SETS = parseResidenceRestrictionSets(DEMO_RESIDENCE_RESTRICTIONS)!
+
 /**
  * GET /config/kyc-intents for a residence (and the ID's issuing country), from
- * the restriction tiers that mirror the API's paperwork rules: sanctioned
- * residences close Manteca, the UK and Bridge's refused residences close the
- * bank, Rain's close the card, and local transfers open only in AR and BR. A
- * refused issuer closes everything else; a Russian ID closes the card.
+ * the demo backend's own restriction answer: sanctioned residences close
+ * Manteca, the UK and banking-restricted residences close the bank, card-restricted
+ * ones close the card, and local transfers open only in AR and BR. A refused
+ * issuer closes everything else; a Russian ID closes the card.
  */
 function demoKycIntents(residence: string, idCountry?: string): KycIntents {
-    const sets = getResidenceRestrictionSets()
+    const sets = DEMO_RESTRICTION_SETS
     const restrictions = deriveResidenceRestrictionsFrom(sets, residence)
     const sanctioned = isQrResidenceRestricted(sets, residence)
     const documentRefused = !!idCountry && sets.refusedIdIssuers.has(idCountry)
@@ -1084,6 +1086,8 @@ export async function demoRespond(
             ...(destinationAmount ? { destinationAmount, sourceAmount: destinationAmount } : {}),
         })
     }
+
+    if (method === 'GET' && pathname === '/config/residence-restrictions') return json(DEMO_RESIDENCE_RESTRICTIONS)
 
     // What a residence can unlock depends on the residence in the query.
     if (method === 'GET' && pathname === '/config/kyc-intents') {

@@ -181,14 +181,13 @@ const noop = () => {}
 function ResidenceCompareSurface({ residence, nationality }: { residence: string; nationality: string }) {
     const locale = useLocale()
     const options = React.useMemo(() => buildResidenceCountryOptions(locale), [locale])
-    const { sets, settled } = useResidenceRestrictionSetsWithStatus()
+    const { sets } = useResidenceRestrictionSetsWithStatus()
     return (
         <ResidenceCompare
             residence={residence}
             nationality={nationality}
             labelOf={(iso2) => options.find((option) => option.value === iso2)?.label ?? iso2}
             restrictionSets={sets}
-            restrictionsSettled={settled}
             busy={false}
             onChoose={noop}
         />

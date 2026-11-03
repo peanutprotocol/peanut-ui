@@ -9,14 +9,18 @@ import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn() }))
+let mockRestrictionsKnown = true
 jest.mock('@/hooks/useResidenceRestrictionSets', () => ({
-    useResidenceRestrictionSets: () => ({
-        full: new Set(['RU']),
-        cardOnly: new Set<string>(),
-        bankingOnly: new Set<string>(),
-        refusedIdIssuers: new Set<string>(),
-        bankingNewCustomersOnly: new Set<string>(),
-    }),
+    useResidenceRestrictionSets: () =>
+        mockRestrictionsKnown
+            ? {
+                  full: new Set(['RU']),
+                  cardOnly: new Set<string>(),
+                  bankingOnly: new Set<string>(),
+                  refusedIdIssuers: new Set<string>(),
+                  bankingNewCustomersOnly: new Set<string>(),
+              }
+            : null,
 }))
 // Off by default: the older cases pin the save mechanics, not what a move closes.
 let mockIntents = false
@@ -50,6 +54,7 @@ const render = (props?: Partial<React.ComponentProps<typeof ResidenceChangeDrawe
 
 describe('ResidenceChangeDrawer', () => {
     beforeEach(() => {
+        mockRestrictionsKnown = true
         jest.clearAllMocks()
         window.localStorage.clear()
         mockedUpdate.mockResolvedValue({ data: undefined })
@@ -223,5 +228,11 @@ describe('ResidenceChangeDrawer', () => {
                 "Heads up: bank transfers and card issuing aren't available for residents of this country."
             )
         ).toBeInTheDocument()
+    })
+    it('shows no restriction note when lists are unknown', () => {
+        mockRestrictionsKnown = false
+        render({ declared: 'RU', verified: null })
+        expect(screen.queryByText(/Heads up:/)).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
     })
 })

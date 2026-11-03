@@ -131,7 +131,7 @@ export default function PaymentPlanStep() {
 
     const onContinue = () => {
         if (!funding || !payment) return
-        if (sets.full.has(residenceCountry)) {
+        if (sets?.full.has(residenceCountry)) {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_CONTINUED, {
                 residence_country: residenceCountry,
             })

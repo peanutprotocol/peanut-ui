@@ -1,17 +1,12 @@
 /** Capture-only API adapter. No historical components or styles are copied. */
 import { demoRespond } from '../../src/utils/demo-api'
 import { KYC_USER_READS } from '../../src/utils/demo-kyc'
-import {
-    RESTRICTED_RESIDENCE_ISO2,
-    CARD_RESTRICTED_RESIDENCE_ISO2,
-    BANKING_RESTRICTED_RESIDENCE_ISO2,
-} from '../../src/constants/residence.consts'
 import { FIXTURES } from '../../src/dev/fixtures/registry'
 import { withFixtureFeatureReport } from '../../src/dev/fixtures/featureReport'
 import type { IUserProfile } from '../../src/interfaces/interfaces'
 import openapi from '../../src/types/api.openapi.json'
 import { exampleFor } from './openapi-example'
-export const ADAPTER_VERSION = 'synthetic-api-v4'
+export const ADAPTER_VERSION = 'synthetic-api-v5'
 export function merge(base: unknown, patch: unknown): unknown {
     if (
         !base ||
@@ -68,12 +63,6 @@ export async function answer(
     if (key === 'GET /notifications') return Response.json({ items: [], nextCursor: null })
     if (key === 'POST /invites/validate')
         return Response.json({ success: true, attributionResolved: true, onboardingResolved: true, username: 'demo' })
-    if (key === 'GET /config/residence-restrictions')
-        return Response.json({
-            full: [...RESTRICTED_RESIDENCE_ISO2],
-            cardOnly: [...CARD_RESTRICTED_RESIDENCE_ISO2],
-            bankingOnly: [...BANKING_RESTRICTED_RESIDENCE_ISO2],
-        })
     if (key === 'GET /qr/synthetic-invalid') return Response.json({ claimed: false, available: false })
     if (key === 'GET /qr/synthetic-success')
         return Response.json({ claimed: true, available: false, claimedAt: '2026-09-01T12:00:00Z' })

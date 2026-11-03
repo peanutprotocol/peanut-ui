@@ -5,15 +5,15 @@ import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
 import PaymentPlanStep from '../PaymentPlan'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { LOCAL_RESIDENCE_RESTRICTION_SETS } from '@/hooks/useResidenceRestrictionSets'
+import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.fixture'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
 
-let mockSets = LOCAL_RESIDENCE_RESTRICTION_SETS
+let mockSets = RESIDENCE_RESTRICTION_SETS
 let mockSettled = true
 jest.mock('@/hooks/useResidenceRestrictionSets', () => ({
     ...jest.requireActual('@/hooks/useResidenceRestrictionSets'),
-    useResidenceRestrictionSetsWithStatus: () => ({ sets: mockSets, settled: mockSettled }),
+    useResidenceRestrictionSetsWithStatus: () => ({ sets: mockSettled ? mockSets : null, settled: mockSettled }),
 }))
 let mockIntentsSettled = true
 let mockIntentsMissing = false
@@ -82,7 +82,7 @@ function optionsIn(kind: 'Add money with' | 'Make a payment with', current = 'Ch
         .map((x) => x.getAttribute('aria-label'))
 }
 beforeEach(() => {
-    mockSets = LOCAL_RESIDENCE_RESTRICTION_SETS
+    mockSets = RESIDENCE_RESTRICTION_SETS
     mockSettled = true
     mockIntentsSettled = true
     mockIntentsMissing = false
@@ -212,6 +212,19 @@ it('offers only universal channels while the restriction lookup is unsettled', a
     fireEvent.click(continueButton())
     expect(mockNext).toHaveBeenCalledTimes(1)
     expect(screen.getByLabelText('Plan')).toHaveTextContent('crypto/peanut')
+})
+
+it('uses served intents while restriction lists are unknown', async () => {
+    mockSettled = false
+    renderWithIntl(ui('PT'))
+    await choose('Add money with', 'Choose', 'Bank transfer (USD, EUR, GBP, MXN)')
+    await choose('Make a payment with', 'Choose', 'Peanut Card')
+    fireEvent.click(continueButton())
+    expect(mockNext).toHaveBeenCalledTimes(1)
+    expect(posthog.capture).not.toHaveBeenCalledWith(
+        ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_CONTINUED,
+        expect.anything()
+    )
 })
 
 it('reports a fully restricted resident continuing, and only them', async () => {

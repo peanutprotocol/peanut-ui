@@ -7,12 +7,8 @@ import { REQUIRED_API_CONTRACTS } from '@/utils/api-contracts'
 import { demoRespond } from '@/utils/demo-api'
 import { DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import { type ResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
-let mockDemoSets: ResidenceRestrictionSets | undefined
-jest.mock('@/utils/residence-restriction-sets', () => {
-    const actual = jest.requireActual('@/utils/residence-restriction-sets')
-    return { ...actual, getResidenceRestrictionSets: () => mockDemoSets ?? actual.LOCAL_RESIDENCE_RESTRICTION_SETS }
-})
+import { parseResidenceRestrictionSets, setServerResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
+import { DEMO_RESIDENCE_RESTRICTIONS } from '@/utils/demo-kyc'
 import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
 
 // The web-safe test requires @/utils/demo → general.utils → app/actions/clients, whose
@@ -491,16 +487,35 @@ describe('demoRespond — notification preferences', () => {
     })
 })
 
-it('demo uses served issuer changes rather than the bundled refusal list', async () => {
-    const { LOCAL_RESIDENCE_RESTRICTION_SETS } = jest.requireActual('@/utils/residence-restriction-sets')
-    mockDemoSets = { ...LOCAL_RESIDENCE_RESTRICTION_SETS, refusedIdIssuers: new Set(['PT']) }
+it.each([undefined, { offline: true, strict: true }])('serves complete residence lists in mode %p', async (capture) => {
+    const response = await demoRespond('/config/residence-restrictions', { method: 'GET' }, capture)
+    expect(response.status).toBe(200)
+    const answer = await response.json()
+    expect(answer).toEqual(DEMO_RESIDENCE_RESTRICTIONS)
+    expect(parseResidenceRestrictionSets(answer)).not.toBeNull()
+    for (const issuer of answer.refusedIdIssuers) {
+        const data = await (
+            await demoRespond(`/config/kyc-intents?residence=DE&idCountry=${issuer}`, undefined, capture)
+        ).json()
+        expect(data.intents.bank).toEqual({ available: false, reason: 'document_country_unsupported', currencies: [] })
+    }
+})
+
+it('derives issuer eligibility from the answer it serves, not from app memory', async () => {
+    const served = parseResidenceRestrictionSets(await (await strict('/config/residence-restrictions')).json())!
+    const [refused] = served.refusedIdIssuers
+    setServerResidenceRestrictionSets({ ...served, refusedIdIssuers: new Set(['PT']) })
     try {
-        const added = await (await strict('/config/kyc-intents?residence=DE&idCountry=PT')).json()
-        expect(added.intents.bank).toEqual({ available: false, reason: 'document_country_unsupported', currencies: [] })
-        const removed = await (await strict('/config/kyc-intents?residence=DE&idCountry=IR')).json()
-        expect(removed.intents.bank).toEqual({ available: true, currencies: [] })
+        const pt = await (await strict('/config/kyc-intents?residence=DE&idCountry=PT')).json()
+        expect(pt.intents.bank).toEqual({ available: true, currencies: [] })
+        const issuer = await (await strict(`/config/kyc-intents?residence=DE&idCountry=${refused}`)).json()
+        expect(issuer.intents.bank).toEqual({
+            available: false,
+            reason: 'document_country_unsupported',
+            currencies: [],
+        })
     } finally {
-        mockDemoSets = undefined
+        setServerResidenceRestrictionSets(null)
     }
 })
 

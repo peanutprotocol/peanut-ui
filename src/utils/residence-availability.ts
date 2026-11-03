@@ -80,7 +80,7 @@ function railsFromIntents(code: string, intents: KycIntents): AvailabilityItemKe
  * tiers without naming currencies. Informational only.
  */
 export function residenceAvailability(
-    sets: ResidenceRestrictionSets,
+    sets: ResidenceRestrictionSets | null,
     iso2: string,
     intents?: KycIntents
 ): ResidenceAvailability {
@@ -94,7 +94,7 @@ export function residenceAvailability(
         else unavailable.push('banking')
         if (intents.card.available) available.push('card')
         else unavailable.push('card')
-    } else {
+    } else if (sets) {
         const restrictions = deriveResidenceRestrictionsFrom(sets, code)
         if (restrictions.banking) unavailable.push('banking')
         else available.push('bank')

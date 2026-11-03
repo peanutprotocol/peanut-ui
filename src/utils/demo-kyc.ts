@@ -13,6 +13,35 @@ import type { IUserProfile } from '@/interfaces/interfaces'
 import type { paths } from '@/types/api.generated'
 import type { FeatureReport, FeatureReportEntry, IdentityVerificationStatus } from '@/types/capabilities'
 
+// Synthetic GET /config/residence-restrictions answer for the demo backend and fixtures, not the rules.
+export const DEMO_RESIDENCE_RESTRICTIONS = {
+    full: ['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'MM', 'VE', 'IQ', 'PS', 'YE', 'SS', 'CD'],
+    cardOnly: [
+        'IN',
+        'TR',
+        'UA',
+        'VN',
+        'IL',
+        'NP',
+        'NI',
+        'AO',
+        'BF',
+        'CM',
+        'HT',
+        'ID',
+        'ML',
+        'MZ',
+        'NA',
+        'TZ',
+        'NG',
+        'LK',
+        'ZA',
+    ],
+    bankingOnly: ['DZ', 'BI', 'GW', 'JP', 'TN', 'AF', 'SD', 'LY', 'LB', 'SO', 'KR'],
+    refusedIdIssuers: ['IR', 'BY', 'KP', 'SY', 'CU', 'MM'],
+    bankingNewCustomersOnly: ['KR'],
+}
+
 type KycQuestions = paths['/users/kyc/questions']['get']['responses'][200]['content']['application/json']
 type KycUserRead = (user: IUserProfile | null) => unknown
 
