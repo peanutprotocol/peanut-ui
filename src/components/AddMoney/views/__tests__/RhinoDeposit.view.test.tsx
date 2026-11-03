@@ -34,6 +34,15 @@ jest.mock('@/components/User/UserCard', () => ({
     default: () => <div data-testid="user-card" />,
 }))
 
+jest.mock('@/lib/person/usePerson', () => ({
+    usePerson: (username?: string | null) => ({
+        person: username ? jest.requireActual('@/lib/person/person').personFrom({ username }) : null,
+        profile: null,
+        isLoading: false,
+        error: null,
+    }),
+}))
+
 import RhinoDepositView from '../RhinoDeposit.view'
 import { rhinoApi } from '@/services/rhino'
 
@@ -159,7 +168,7 @@ describe('RhinoDepositView after a short deposit', () => {
     })
 
     it('leaves the status alone, and shows no Done, on an ordinary deposit', () => {
-        renderView(58.51, { showUserCard: true })
+        renderView(58.51, { showUserCard: true, identifier: 'alice' })
         expect(rhinoApi.resetDepositAddressStatus).not.toHaveBeenCalled()
         expect(screen.getByTestId('user-card')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Done' })).not.toBeInTheDocument()

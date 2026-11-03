@@ -15,6 +15,7 @@ import { useCryptoDepositPolling } from '../hooks/useCryptoDepositPolling'
 import type { CreateDepositAddressResponse, RhinoChainType } from '@/services/services.types'
 import { CHAIN_LOGOS, SUPPORTED_EVM_CHAINS, NETWORK_LABELS, getSupportedTokens } from '@/constants/rhino.consts'
 import UserCard from '@/components/User/UserCard'
+import { usePerson } from '@/lib/person/usePerson'
 import { isCryptoAddress, printableAddress } from '@/utils/general.utils'
 import { isBelowRhinoMinDeposit } from '@/utils/withdraw.utils'
 import { useTranslations } from 'next-intl'
@@ -72,6 +73,11 @@ const RhinoDepositView = ({
         resetStatus,
         isResetting,
     } = useCryptoDepositPolling(depositAddressData?.depositAddress, onSuccess)
+
+    // The requester is a Peanut handle unless the identifier is a wallet address.
+    // The payment parser already fetched them, so this reads the cached person.
+    const isAddressIdentifier = isCryptoAddress(identifier ?? '')
+    const { person: requester } = usePerson(isAddressIdentifier ? null : identifier)
 
     const amountLimitsTitle = chainType === 'EVM' ? t('evmNetworks') : NETWORK_LABELS[chainType]
 
@@ -168,19 +174,32 @@ const RhinoDepositView = ({
                         </div>
                     </Card>
                 )}
-                {showUserCard && !shortDeposit && (
-                    <UserCard
-                        recipientType={isCryptoAddress(identifier ?? '') ? 'ADDRESS' : 'USERNAME'}
-                        type="request_fulfilment"
-                        username={
-                            isCryptoAddress(identifier ?? '') ? printableAddress(identifier ?? '') : (identifier ?? '')
-                        }
-                        amount={amount}
-                        tokenAmount={tokenAmount}
-                        // a wallet or network fee taken from the deposit leaves the charge partly paid
-                        amountNote={t('sendExtraForFees')}
-                    />
-                )}
+                {showUserCard &&
+                    !shortDeposit &&
+                    (isAddressIdentifier ? (
+                        <UserCard
+                            recipientType="ADDRESS"
+                            type="request_fulfilment"
+                            username={printableAddress(identifier ?? '')}
+                            amount={amount}
+                            tokenAmount={tokenAmount}
+                            // a wallet or network fee taken from the deposit leaves the charge partly paid
+                            amountNote={t('sendExtraForFees')}
+                        />
+                    ) : (
+                        requester && (
+                            <UserCard
+                                recipientType="USERNAME"
+                                person={requester}
+                                type="request_fulfilment"
+                                username={identifier ?? ''}
+                                amount={amount}
+                                tokenAmount={tokenAmount}
+                                // a wallet or network fee taken from the deposit leaves the charge partly paid
+                                amountNote={t('sendExtraForFees')}
+                            />
+                        )
+                    ))}
                 <Tabs
                     tabs={[
                         { value: 'EVM', label: 'EVM' },
