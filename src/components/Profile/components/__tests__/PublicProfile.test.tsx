@@ -1,11 +1,14 @@
 let mockRequestContact: any = { data: null, isLoading: false, isError: false }
 jest.mock('@/hooks/useRequestContact', () => ({ useRequestContact: () => mockRequestContact }))
-import { fireEvent, screen, waitFor } from '@testing-library/react'
-import type { ComponentProps, ReactNode } from 'react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { NextIntlClientProvider } from 'next-intl'
+import type { ComponentProps, ReactElement, ReactNode } from 'react'
 import posthog from 'posthog-js'
 import PublicProfile from '../PublicProfile'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
-import { renderWithIntl } from '@/test-utils/intl'
+import type { Person } from '@/lib/person/person.types'
+import { IntlWrapper } from '@/test-utils/intl'
 import { __testing as safeBackTesting } from '@/hooks/useSafeBack'
 import en from '@/i18n/app/messages/en.json'
 
@@ -46,11 +49,11 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 // the prior-transfer indicator, not the page furniture.
 jest.mock('../ProfileHeader', () => ({
     __esModule: true,
-    default: ({ haveSentMoneyToUser, avatarKey }: { haveSentMoneyToUser?: boolean; avatarKey?: string | null }) => (
+    default: ({ haveSentMoneyToUser, person }: { haveSentMoneyToUser?: boolean; person?: Person | null }) => (
         <div
             data-testid="profile-header"
             data-sent-money={String(!!haveSentMoneyToUser)}
-            data-avatar-key={avatarKey ?? ''}
+            data-avatar-key={person?.avatarKey ?? ''}
         />
     ),
 }))
@@ -85,6 +88,15 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 
 const JOIN_CTA = en.profile.publicProfile.joinCta
 
+// usePerson caches by username, so every test gets a client of its own
+let queryClient: QueryClient
+const Providers = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+        <IntlWrapper>{children}</IntlWrapper>
+    </QueryClientProvider>
+)
+const renderProfile = (ui: ReactElement) => render(ui, { wrapper: Providers })
+
 type ValidateResult = {
     success: boolean
     attributionResolved: boolean
@@ -118,6 +130,7 @@ const deferValidation = () => {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    queryClient = new QueryClient()
     safeBackTesting.reset()
     mockAuth = { user: null, isFetchingUser: false }
     mockInterceptGuestCta.mockReturnValue(false)
@@ -134,7 +147,7 @@ beforeEach(() => {
 
 describe('PublicProfile guest door', () => {
     it('credits the profile owner and routes the guest into /invite', async () => {
-        renderWithIntl(<PublicProfile username="Satoshi" />)
+        renderProfile(<PublicProfile username="Satoshi" />)
 
         expect(
             await screen.findByText(en.profile.publicProfile.invitedLine.replace('{username}', 'Satoshi'))
@@ -154,7 +167,7 @@ describe('PublicProfile guest door', () => {
     it('hands off to the store inside the click, and still writes the cookie after', async () => {
         mockInterceptGuestCta.mockReturnValue(true)
         const settleValidation = deferValidation()
-        renderWithIntl(<PublicProfile username="Satoshi" />)
+        renderProfile(<PublicProfile username="Satoshi" />)
 
         fireEvent.click(await screen.findByRole('button', { name: JOIN_CTA }))
 
@@ -182,7 +195,7 @@ describe('PublicProfile guest door', () => {
 
     it('shows no join cta to a logged-in visitor', async () => {
         mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
-        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        renderProfile(<PublicProfile username="satoshi" isLoggedIn />)
 
         expect(await screen.findByRole('button', { name: en.navigation.send })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: JOIN_CTA })).not.toBeInTheDocument()
@@ -192,7 +205,7 @@ describe('PublicProfile guest door', () => {
     it('routes a registered user directly even when a cached legacy access flag is false', async () => {
         mockAuth = { user: { user: { username: 'hal', hasAppAccess: false } }, isFetchingUser: false }
         mockRequestContact = { data: { relationshipTypes: ['received_money'] }, isLoading: false, isError: false }
-        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        renderProfile(<PublicProfile username="satoshi" isLoggedIn />)
 
         fireEvent.click(await screen.findByRole('button', { name: en.navigation.request }))
 
@@ -202,14 +215,14 @@ describe('PublicProfile guest door', () => {
 
     it('holds the impression back until auth has settled', async () => {
         mockAuth = { user: null, isFetchingUser: true }
-        renderWithIntl(<PublicProfile username="satoshi" />)
+        renderProfile(<PublicProfile username="satoshi" />)
 
         await screen.findByRole('button', { name: JOIN_CTA })
         expect(posthog.capture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, expect.anything())
     })
 
     it('fires the referral impression once auth has settled on a guest', async () => {
-        renderWithIntl(<PublicProfile username="satoshi" />)
+        renderProfile(<PublicProfile username="satoshi" />)
 
         await screen.findByRole('button', { name: JOIN_CTA })
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, {
@@ -219,7 +232,7 @@ describe('PublicProfile guest door', () => {
     })
 
     it('routes a guest through the crediting door from the Request-gate drawer too', async () => {
-        renderWithIntl(<PublicProfile username="Satoshi" />)
+        renderProfile(<PublicProfile username="Satoshi" />)
 
         // Request opens the invite-gate drawer for guests — it must offer the
         // same crediting door as the join card, not the old beg-for-an-invite
@@ -248,7 +261,7 @@ describe('PublicProfile guest door', () => {
         async (_label, profileUsername, expectedCode, validation) => {
             if (validation) mockValidateInviteCode.mockResolvedValue(validation)
             else mockValidateInviteCode.mockRejectedValue(new Error('network down'))
-            renderWithIntl(<PublicProfile username={profileUsername} />)
+            renderProfile(<PublicProfile username={profileUsername} />)
 
             fireEvent.click(await screen.findByRole('button', { name: JOIN_CTA }))
 
@@ -268,7 +281,7 @@ describe('PublicProfile guest door', () => {
 describe('PublicProfile prior-transfer indicator', () => {
     beforeEach(() => {
         mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
-        mockGetByUsername.mockResolvedValue({ userId: 'user-1' })
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', username: 'satoshi' })
     })
 
     it('shows the indicator when interaction status reports a prior transfer', async () => {
@@ -277,7 +290,7 @@ describe('PublicProfile prior-transfer indicator', () => {
             isLoading: false,
             isError: false,
         })
-        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        renderProfile(<PublicProfile username="satoshi" isLoggedIn />)
 
         await waitFor(() => expect(screen.getByTestId('profile-header')).toHaveAttribute('data-sent-money', 'true'))
         expect(mockUseUserInteractions).toHaveBeenLastCalledWith(['user-1'])
@@ -285,7 +298,7 @@ describe('PublicProfile prior-transfer indicator', () => {
 
     it('stays neutral while the interaction query is loading', async () => {
         mockUseUserInteractions.mockReturnValue({ interactions: {}, isLoading: true, isError: false })
-        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        renderProfile(<PublicProfile username="satoshi" isLoggedIn />)
 
         await waitFor(() => expect(mockUseUserInteractions).toHaveBeenLastCalledWith(['user-1']))
         expect(screen.getByTestId('profile-header')).toHaveAttribute('data-sent-money', 'false')
@@ -293,7 +306,7 @@ describe('PublicProfile prior-transfer indicator', () => {
 
     it('never queries interaction status for guests', async () => {
         mockAuth = { user: null, isFetchingUser: false }
-        renderWithIntl(<PublicProfile username="satoshi" />)
+        renderProfile(<PublicProfile username="satoshi" />)
 
         await screen.findByRole('button', { name: JOIN_CTA })
         expect(mockUseUserInteractions).toHaveBeenLastCalledWith([])
@@ -308,8 +321,8 @@ describe('PublicProfile avatar', () => {
     })
 
     it('hands the profile owner pick to the header', async () => {
-        mockGetByUsername.mockResolvedValue({ userId: 'user-1', avatarKey: 'basic.frog' })
-        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', username: 'satoshi', avatarKey: 'basic.frog' })
+        renderProfile(<PublicProfile username="satoshi" isLoggedIn />)
 
         await waitFor(() =>
             expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.frog')
@@ -317,8 +330,8 @@ describe('PublicProfile avatar', () => {
     })
 
     it('hands null through when the owner has no pick', async () => {
-        mockGetByUsername.mockResolvedValue({ userId: 'user-1' })
-        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', username: 'satoshi' })
+        renderProfile(<PublicProfile username="satoshi" isLoggedIn />)
 
         await waitFor(() => expect(mockGetByUsername).toHaveBeenCalled())
         expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', '')
@@ -332,8 +345,8 @@ describe('PublicProfile avatar across navigations', () => {
     })
 
     it('never wears the previous profile owner avatar, not even for one render', async () => {
-        mockGetByUsername.mockResolvedValue({ userId: 'user-1', avatarKey: 'basic.frog' })
-        const { rerender } = renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', username: 'satoshi', avatarKey: 'basic.frog' })
+        const { rerender } = renderProfile(<PublicProfile username="satoshi" isLoggedIn />)
         await waitFor(() =>
             expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.frog')
         )
@@ -348,18 +361,52 @@ describe('PublicProfile avatar across navigations', () => {
     })
 
     it('shows the second owner pick once it lands', async () => {
-        mockGetByUsername.mockResolvedValue({ userId: 'user-1', avatarKey: 'basic.frog' })
-        const { rerender } = renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', username: 'satoshi', avatarKey: 'basic.frog' })
+        const { rerender } = renderProfile(<PublicProfile username="satoshi" isLoggedIn />)
         await waitFor(() =>
             expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.frog')
         )
 
-        mockGetByUsername.mockResolvedValue({ userId: 'user-2', avatarKey: 'basic.star' })
+        mockGetByUsername.mockResolvedValue({ userId: 'user-2', username: 'nakamoto', avatarKey: 'basic.star' })
         rerender(<PublicProfile username="nakamoto" isLoggedIn />)
 
         await waitFor(() =>
             expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.star')
         )
+    })
+})
+
+// The api localizes badge copy: a language change refetches the profile, and
+// the first render does not fetch twice.
+describe('PublicProfile language change', () => {
+    const inLocale = (locale: 'en' | 'es-419') => (
+        <NextIntlClientProvider locale={locale} messages={en} timeZone="UTC">
+            <PublicProfile username="satoshi" isLoggedIn />
+        </NextIntlClientProvider>
+    )
+
+    beforeEach(() => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', username: 'satoshi' })
+    })
+
+    it('refetches the profile when the language changes', async () => {
+        const { rerender } = renderProfile(inLocale('en'))
+        await waitFor(() => expect(mockGetByUsername).toHaveBeenCalledTimes(1))
+
+        rerender(inLocale('es-419'))
+
+        await waitFor(() => expect(mockGetByUsername).toHaveBeenCalledTimes(2))
+    })
+
+    it('fetches once when the language stays the same', async () => {
+        const { rerender } = renderProfile(inLocale('en'))
+        await waitFor(() => expect(mockGetByUsername).toHaveBeenCalledTimes(1))
+
+        rerender(inLocale('en'))
+
+        await waitFor(() => expect(screen.getByTestId('profile-header')).toBeInTheDocument())
+        expect(mockGetByUsername).toHaveBeenCalledTimes(1)
     })
 })
 
@@ -369,7 +416,7 @@ describe('PublicProfile back navigation', () => {
     })
 
     it('falls back to /home on a cold deep-link (no in-app history)', async () => {
-        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        renderProfile(<PublicProfile username="satoshi" isLoggedIn />)
 
         fireEvent.click(await screen.findByTestId('nav-back'))
         expect(mockPush).toHaveBeenCalledWith('/home')
@@ -378,7 +425,7 @@ describe('PublicProfile back navigation', () => {
 
     it('returns through in-app history when it exists (Rewards → profile → back)', async () => {
         window.history.pushState({}, '', '/satoshi')
-        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        renderProfile(<PublicProfile username="satoshi" isLoggedIn />)
 
         fireEvent.click(await screen.findByTestId('nav-back'))
         expect(mockBack).toHaveBeenCalledTimes(1)
@@ -393,7 +440,7 @@ describe('PublicProfile request eligibility', () => {
 
     it('disables Request for a non-money contact without disabling Send', async () => {
         mockRequestContact = { data: null, isLoading: false, isError: false }
-        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        renderProfile(<PublicProfile username="satoshi" isLoggedIn />)
         expect(await screen.findByRole('button', { name: en.navigation.request })).toBeDisabled()
         expect(screen.getByRole('button', { name: en.navigation.send })).not.toBeDisabled()
         expect(screen.getByText(/You can only request money/)).toBeInTheDocument()
@@ -402,7 +449,7 @@ describe('PublicProfile request eligibility', () => {
     it('keeps money-contact restrictions without restoring the removed invite gate', async () => {
         mockAuth = { user: { user: { username: 'hal', hasAppAccess: false } }, isFetchingUser: false }
         mockRequestContact = { data: null, isLoading: false, isError: false }
-        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        renderProfile(<PublicProfile username="satoshi" isLoggedIn />)
         expect(await screen.findByRole('button', { name: en.navigation.request })).toBeDisabled()
         expect(screen.getByRole('button', { name: en.navigation.send })).not.toBeDisabled()
         expect(screen.queryByTestId('invite-drawer')).not.toBeInTheDocument()
@@ -413,7 +460,7 @@ describe('PublicProfile request eligibility', () => {
         mockAuth = { user: { user: { username: 'hal', hasAppAccess: false } }, isFetchingUser: false }
         mockRequestContact = { data: { relationshipTypes: ['received_money'] }, isLoading: false, isError: false }
         mockUseUserInteractions.mockReturnValue({ interactions: {}, isLoading: false, isError: false })
-        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        renderProfile(<PublicProfile username="satoshi" isLoggedIn />)
         fireEvent.click(await screen.findByRole('button', { name: en.navigation.request }))
         expect(mockPush).toHaveBeenCalledWith('/request/satoshi')
     })
