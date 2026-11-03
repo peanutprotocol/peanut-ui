@@ -17,12 +17,23 @@ export type ServerAttention = Omit<ServerAttentionBody, 'ranking' | 'verdicts'> 
     verdicts: Partial<Record<string, Verdict>>
 }
 
+const TIERS: readonly unknown[] = [1, 2, 3, 4, 5, 6]
+const VERDICTS: readonly unknown[] = ['show', 'pending', 'done', 'ineligible', 'unknown']
+
 /** anything but a version-1 body (a demo or fixture default, a proxy page) reads as no answer */
 export function asServerAttention(body: unknown): ServerAttention | undefined {
     if (!body || typeof body !== 'object') return undefined
     const { version, ranking, verdicts } = body as Partial<ServerAttention>
     if (version !== 1 || !Array.isArray(ranking) || !verdicts || typeof verdicts !== 'object') return undefined
-    return body as ServerAttention
+    // a malformed row drops alone; a tier outside 1–6 has no interrupt budget, so it would interrupt
+    return {
+        ...(body as ServerAttention),
+        ranking: ranking.filter(
+            (entry) =>
+                !!entry && typeof entry.id === 'string' && TIERS.includes(entry.tier) && Number.isFinite(entry.rank)
+        ),
+        verdicts: Object.fromEntries(Object.entries(verdicts).filter(([, verdict]) => VERDICTS.includes(verdict))),
+    }
 }
 
 async function fetchServerAttention(): Promise<ServerAttention | undefined> {

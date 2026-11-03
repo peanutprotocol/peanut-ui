@@ -16,6 +16,7 @@ export const DEFAULT_KILL_SWITCHES: KillSwitches = {
     pixBrazilOnrampMaintenance: false,
     brazilServicesPaused: false,
     kycVerificationDown: false,
+    disabledAttentionAsks: [],
 }
 
 /** Page routes that stay open during full maintenance. */

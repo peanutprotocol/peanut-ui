@@ -55,8 +55,11 @@ import { ledgerActions, readLedger } from '../ledger'
 import { ASKS, legalReconsent } from '../registry'
 import { updateUserPreferences } from '@/utils/general.utils'
 
+import { useOverlayVisibility } from '@/utils/overlay-visibility'
+
 const interruptModule = require('../AttentionInterrupt')
 const AttentionInterrupt: React.ComponentType = interruptModule.AttentionInterrupt ?? interruptModule.default
+const SURFACE_SHOW_DEADLINE_MS: number = interruptModule.SURFACE_SHOW_DEADLINE_MS
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const NOW = Date.parse('2026-10-11T12:00:00Z')
@@ -651,4 +654,43 @@ test('a CTA that does not settle the ask is reported, writes nothing and leaves 
     expect(events('modal_cta_clicked')).toEqual([expect.objectContaining({ modal_type: 're_consent', cta: 'store' })])
     expect(readLedger('user-a')['legal-reconsent']?.dismissedAt).toBeUndefined()
     expect(screen.getByTestId('surface-legal-reconsent')).toBeTruthy()
+})
+
+describe('a picked surface that puts nothing on screen', () => {
+    afterEach(() => jest.useRealTimers())
+
+    test('is skipped for the load past the show deadline and reported, so the next interrupt can open', async () => {
+        jest.useFakeTimers()
+        mockState = state({ consent: TERMS_NEEDED, balance: { loaded: true, usd: 900 } })
+        await mount()
+        expect(surfacesInDom()).toEqual(['legal-reconsent'])
+        await act(async () => {
+            jest.advanceTimersByTime(SURFACE_SHOW_DEADLINE_MS)
+        })
+        expect(mockCaptureMessage).toHaveBeenCalledWith('attention: legal-reconsent was picked but showed nothing', {
+            level: 'warning',
+            tags: { feature: 'attention', ask: 'legal-reconsent' },
+        })
+        expect(events('attention_crashed')).toEqual([expect.objectContaining({ ask: 'legal-reconsent' })])
+        expect(surfacesInDom()).toEqual(['balance-backup'])
+    })
+
+    test('a surface with its modal or drawer on screen is left alone', async () => {
+        jest.useFakeTimers()
+        const Invisible = stubFor('legal-reconsent')
+        mockSurfaces = {
+            ...allStubs(),
+            'legal-reconsent': function OnScreen(props: AskSurfaceProps) {
+                useOverlayVisibility(true)
+                return <Invisible {...props} />
+            },
+        }
+        mockState = state({ consent: TERMS_NEEDED, balance: { loaded: true, usd: 900 } })
+        await mount()
+        await act(async () => {
+            jest.advanceTimersByTime(SURFACE_SHOW_DEADLINE_MS * 2)
+        })
+        expect(mockCaptureMessage).not.toHaveBeenCalled()
+        expect(surfacesInDom()).toEqual(['legal-reconsent'])
+    })
 })

@@ -217,8 +217,31 @@ describe('asServerAttention', () => {
     )
 
     test('a version-1 answer passes through', () => {
-        const body = { version: 1, ranking: [], verdicts: {}, nextAsk: null }
-        expect(asServerAttention(body)).toBe(body)
+        const body = {
+            version: 1,
+            ranking: [{ id: 'invite', tier: 3, rank: 4 }],
+            verdicts: { invite: 'show' },
+            nextAsk: null,
+        }
+        expect(asServerAttention(body)).toEqual(body)
+    })
+
+    test('a malformed row drops alone, so applying the ranking cannot throw or hand an ask a tier without a budget', () => {
+        const body = {
+            version: 1,
+            ranking: [
+                null,
+                { id: 'invite', tier: 9, rank: 0 },
+                { id: 'bug-bounty', tier: 3 },
+                { id: 'rewards', tier: 3, rank: 1 },
+            ],
+            verdicts: { invite: 'show', rewards: 'maybe', 'bug-bounty': null },
+            nextAsk: null,
+        }
+        const server = asServerAttention(body)
+        expect(server?.ranking).toEqual([{ id: 'rewards', tier: 3, rank: 1 }])
+        expect(server?.verdicts).toEqual({ invite: 'show' })
+        expect(() => applyServerRanking(ASKS, server)).not.toThrow()
     })
 })
 

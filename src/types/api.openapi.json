@@ -4103,6 +4103,12 @@
 										"disableXchainWithdraw": {
 											"type": "boolean"
 										},
+										"disabledAttentionAsks": {
+											"items": {
+												"type": "string"
+											},
+											"type": "array"
+										},
 										"disabledMantecaCurrencies": {
 											"items": {
 												"type": "string"

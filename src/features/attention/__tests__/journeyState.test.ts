@@ -88,6 +88,12 @@ describe('buildJourneyState', () => {
             usd: 512.25,
         })
     })
+
+    test('a history page that breaks the summary reads as not loaded; the rest of the state still builds', () => {
+        const built = buildJourneyState({ ...base, history: [null] as never, balanceUnits: 1_000_000n })
+        expect(built).toMatchObject({ lastSpendAt: null, hasReceivedRequestPayment: undefined })
+        expect(built.balance).toEqual({ loaded: true, usd: 1 })
+    })
 })
 
 describe('outdatedConsentVersions', () => {
