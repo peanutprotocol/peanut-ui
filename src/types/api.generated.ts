@@ -2131,6 +2131,7 @@ export interface paths {
                             brazilServicesPaused?: boolean;
                             disableXchainSend?: boolean;
                             disableXchainWithdraw?: boolean;
+                            disabledAttentionAsks?: string[];
                             disabledMantecaCurrencies?: string[];
                             disabledPaymentProviders?: string[];
                             enableFullMaintenance?: boolean;

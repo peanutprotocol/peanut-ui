@@ -6,6 +6,7 @@ import {
     useCallback,
     useContext,
     useEffect,
+    useLayoutEffect,
     useMemo,
     useRef,
     useState,
@@ -13,13 +14,16 @@ import {
     type ErrorInfo,
     type ReactNode,
 } from 'react'
+import { usePathname } from 'next/navigation'
 import posthog from 'posthog-js'
 import * as Sentry from '@sentry/nextjs'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { IS_DEV } from '@/constants/general.consts'
+import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { useAnyOverlayOpen } from '@/utils/overlay-visibility'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { decide } from './decide'
+import { guardAsks, resetAttentionFaultsForTests } from './faults'
 import { getSessionInterrupts, setSessionInterrupts } from './interruptState'
 import {
     ledgerActions,
@@ -87,6 +91,7 @@ export function resetAttentionSessionForTests(): void {
     crashedThisLoad.clear()
     resetLedgerMemoryForTests()
     resetSessionCountForTests()
+    resetAttentionFaultsForTests()
 }
 
 // per account, the asks whose surface threw this app load
@@ -195,55 +200,61 @@ function useDecisionReport(
     }, [decision, state.userId, state.userLoaded, session.busy, session.route, session.count, server])
 }
 
-// errors thrown by the app below the provider, not by the manager
-const pageErrors = new WeakSet<object>()
+/** engine restarts per app load after a crash, one per route change */
+export const ENGINE_RETRIES = 2
 
-/** Marks a page's error and passes it on, so the manager's boundary hands it to the app's own. */
-class PageErrorPassThrough extends Component<{ children: ReactNode }, { error: unknown }> {
-    state = { error: undefined as unknown }
-    static getDerivedStateFromError(error: unknown) {
-        if (error && typeof error === 'object') pageErrors.add(error)
-        return { error }
+type EngineFailure = { route: string | null } | null
+
+/**
+ * A throw inside the engine (a selector, a hook, decide) pages Sentry and
+ * clears the decision, so every host renders nothing. The engine starts again
+ * on the next route, at most ENGINE_RETRIES times per load: data that broke it
+ * once does not end the prompts for the rest of the session.
+ */
+class EngineBoundary extends Component<
+    { route: string | null; onFailed: () => void; children: ReactNode },
+    { failed: boolean; failedOn: EngineFailure; retries: number }
+> {
+    state = { failed: false, failedOn: null as EngineFailure, retries: 0 }
+    static getDerivedStateFromError() {
+        return { failed: true }
+    }
+    componentDidCatch(error: Error, info: ErrorInfo) {
+        setSessionInterrupts({ ...getSessionInterrupts(), open: null })
+        Sentry.captureException(error, {
+            tags: { feature: 'attention' },
+            extra: { componentStack: info.componentStack, retries: this.state.retries },
+        })
+        this.setState({ failedOn: { route: this.props.route } })
+        this.props.onFailed()
+    }
+    componentDidUpdate() {
+        const { failed, failedOn, retries } = this.state
+        if (failed && failedOn && failedOn.route !== this.props.route && retries < ENGINE_RETRIES)
+            this.setState({ failed: false, failedOn: null, retries: retries + 1 })
     }
     render() {
-        if (this.state.error !== undefined) throw this.state.error
-        return this.props.children
+        return this.state.failed ? null : this.props.children
     }
 }
 
 /**
- * The provider wraps the whole app shell. A throw inside the manager (a
- * selector, a hook, decide) must never take the app down with it: the
- * boundary renders the children without the manager and pages Sentry. A
- * page's own error is not the manager's: it goes on to the app's boundary.
+ * The engine runs beside the app, not around it: a throw inside it never
+ * unmounts a page or loses what the user typed, and a page's own error goes
+ * straight to the app's boundary.
  */
-class AttentionBoundary extends Component<{ children: ReactNode }, { failed: boolean; pageError: unknown }> {
-    state = { failed: false, pageError: undefined as unknown }
-    static getDerivedStateFromError(error: unknown) {
-        return error && typeof error === 'object' && pageErrors.has(error)
-            ? { pageError: error }
-            : { failed: true, pageError: undefined }
-    }
-    componentDidCatch(error: Error, info: ErrorInfo) {
-        if (pageErrors.has(error)) return
-        setSessionInterrupts({ ...getSessionInterrupts(), open: null })
-        Sentry.captureException(error, {
-            tags: { feature: 'attention' },
-            extra: { componentStack: info.componentStack },
-        })
-    }
-    render() {
-        if (this.state.pageError !== undefined) throw this.state.pageError
-        return this.state.failed ? (
-            this.props.children
-        ) : (
-            <AttentionProviderInner>{this.props.children}</AttentionProviderInner>
-        )
-    }
-}
-
 export function AttentionProvider({ children }: { children: ReactNode }) {
-    return <AttentionBoundary>{children}</AttentionBoundary>
+    const [value, setValue] = useState<AttentionContextValue | undefined>(undefined)
+    const route = usePathname()
+    const clear = useCallback(() => setValue(undefined), [])
+    return (
+        <AttentionContext.Provider value={value}>
+            <EngineBoundary route={route} onFailed={clear}>
+                <AttentionEngine publish={setValue} />
+            </EngineBoundary>
+            {children}
+        </AttentionContext.Provider>
+    )
 }
 
 const LEGACY_EVENT: Record<SettleOutcome, string> = {
@@ -257,7 +268,7 @@ const ATTENTION_EVENT: Record<SettleOutcome, string> = {
     snoozed: ANALYTICS_EVENTS.ATTENTION_SNOOZED,
 }
 
-function AttentionProviderInner({ children }: { children: ReactNode }) {
+function AttentionEngine({ publish }: { publish: (value: AttentionContextValue | undefined) => void }) {
     const state = useJourneyState()
     const ledger = useLedger(state.userId, state.serverLedger)
     const [openInterrupt, setOpenInterrupt] = useState<AskId | null>(null)
@@ -287,7 +298,11 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
 
     const [, setCrashCount] = useState(0)
     const server = useServerAttention()
-    const asks = useMemo(() => applyServerRanking(ASKS, server), [server])
+    const { disabledAttentionAsks } = useKillSwitches()
+    const asks = useMemo(
+        () => guardAsks(applyServerRanking(ASKS, server), disabledAttentionAsks),
+        [server, disabledAttentionAsks]
+    )
     const unknownKey = asks
         .filter((ask) => ask.eligible(state) === 'unknown')
         .map((ask) => ask.id)
@@ -468,11 +483,10 @@ function AttentionProviderInner({ children }: { children: ReactNode }) {
         [decision, state, ledger, session, asks, opened, openedZone, openedSurface, crashed, action, settle]
     )
 
-    return (
-        <AttentionContext.Provider value={value}>
-            <PageErrorPassThrough>{children}</PageErrorPassThrough>
-        </AttentionContext.Provider>
-    )
+    // before paint: the hosts render this decision in the same frame
+    useLayoutEffect(() => publish(value), [publish, value])
+    useLayoutEffect(() => () => publish(undefined), [publish])
+    return null
 }
 
 export function useAttention(): AttentionContextValue {

@@ -51,6 +51,7 @@ import { isCapacitor } from '@/utils/capacitor'
 import { rainApi, type RainCardFunding, type RainCardOverview } from '@/services/rain'
 import { RAIN_CARD_FUNDING_QUERY_KEY } from '@/hooks/useCardStopConfirmation'
 import { cardFundingState, cardSetupPath, useFundingPromptHold } from './cardFunding'
+import { fact } from './faults'
 import { useJourneyEpoch } from './journeyEpoch'
 import type { JourneyState } from './types'
 
@@ -205,6 +206,7 @@ export interface JourneyInputs {
 /** Pure, so a test (and later the API) can build the state without React. */
 export function buildJourneyState(input: JourneyInputs): JourneyState {
     const documents = input.consentDocuments
+    const units = input.balanceUnits
     const consent: JourneyState['consent'] =
         documents === undefined
             ? // a failed status check must never hold the app: fail open, retry next session
@@ -240,11 +242,11 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
             ? (input.redirectDestination ?? null)
             : null,
         balance: {
-            loaded: input.balanceUnits !== undefined,
+            loaded: units !== undefined,
             usd:
-                input.balanceUnits === undefined
+                units === undefined
                     ? 0
-                    : Number(formatUnits(input.balanceUnits, PEANUT_WALLET_TOKEN_DECIMALS)),
+                    : fact('balance', () => Number(formatUnits(units, PEANUT_WALLET_TOKEN_DECIMALS)), 0),
         },
         migration: { on: input.migrationOn },
         push: {
@@ -263,7 +265,10 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
         documentSlideKey: input.documentSlideKey,
         flags: { userInterview: input.userInterviewFlag },
         depositAccounts: input.depositAccounts,
-        ...summarizeHistory(input.history),
+        ...fact('history', () => summarizeHistory(input.history), {
+            lastSpendAt: null,
+            hasReceivedRequestPayment: undefined,
+        }),
         firstPeerPaymentAt: input.firstPeerPaymentAt,
         passkeyCount: input.passkeyCount,
         hasEmail: input.hasEmail,
@@ -287,7 +292,7 @@ export function useJourneyState(): JourneyState {
     const { blockedCard } = useProviderRejection(onboarding)
     const { nextActions, rails, canDo, railsForProvider, channelOf, isLoading: capabilitiesLoading } = useCapabilities()
     const { overview, isLoading: overviewLoading } = useRainCardOverview()
-    const activeCard = findActiveCard(overview)
+    const activeCard = fact('activeCard', () => findActiveCard(overview), null)
     const hasActiveCard = activeCard?.status === 'ACTIVE'
     const fundingAccess = useCardFundingAccess({ enabled: hasActiveCard })
     const fundingInputs = { hasActiveCard, accessLoading: fundingAccess.isLoading, access: fundingAccess.access }
@@ -296,18 +301,23 @@ export function useJourneyState(): JourneyState {
     const cardFunding = useQuery<RainCardFunding>({
         queryKey: [RAIN_CARD_FUNDING_QUERY_KEY, fundingUserId],
         queryFn: () => rainApi.getCardFunding(),
-        enabled: cardSetupPath(fundingInputs) === 'managed' && !!fundingUserId,
+        enabled: fact('cardSetupPath', () => cardSetupPath(fundingInputs), 'none') === 'managed' && !!fundingUserId,
         staleTime: 30_000,
         retry: false,
     })
     const fundingHold = useFundingPromptHold(activeCard?.id ?? null)
-    const { setupPath, needsFunding } = cardFundingState({
-        ...fundingInputs,
-        fundingLoading: cardFunding.isLoading,
-        funding: cardFunding.isError ? undefined : cardFunding.data,
-        overview,
-        hold: fundingHold,
-    })
+    const { setupPath, needsFunding } = fact<ReturnType<typeof cardFundingState>>(
+        'cardFunding',
+        () =>
+            cardFundingState({
+                ...fundingInputs,
+                fundingLoading: cardFunding.isLoading,
+                funding: cardFunding.isError ? undefined : cardFunding.data,
+                overview,
+                hold: fundingHold,
+            }),
+        { setupPath: 'none', needsFunding: false }
+    )
     const { cardInfo, isEligible: isCardEligible, isLoading: cardInfoLoading, error: cardInfoError } = useCardInfo()
     const { balance } = useWallet()
     const migrationOn = useMigrationFlag()
@@ -340,7 +350,7 @@ export function useJourneyState(): JourneyState {
             enabled: depositAccountsEnabled,
             // a failed query settles as nothing to claim rather than a card that never resolves
             loaded: !deposit.isLoading,
-            ...depositAccountCounts(deposit.data),
+            ...fact('depositAccounts', () => depositAccountCounts(deposit.data), { claimable: 0, active: 0 }),
         }),
         [depositAccountsEnabled, deposit.isLoading, deposit.data]
     )
@@ -353,61 +363,94 @@ export function useJourneyState(): JourneyState {
         retry: 1,
     })
 
-    const homeTasks = useMemo(() => selectHomeTasks(nextActions, rails ?? []), [nextActions, rails])
-    const dueTasks = visibleHomeTasks(
-        homeTasks.largeTasks,
-        userId ? getUserPreferences(userId)?.pendingVerificationTasksDismissed : []
-    ).length
+    const homeTasks = useMemo(
+        () =>
+            fact<ReturnType<typeof selectHomeTasks>>('homeTasks', () => selectHomeTasks(nextActions, rails ?? []), {
+                largeTasks: [],
+                documentSlide: undefined,
+            }),
+        [nextActions, rails]
+    )
+    const dueTasks = fact(
+        'dueTasks',
+        () =>
+            visibleHomeTasks(
+                homeTasks.largeTasks,
+                userId ? getUserPreferences(userId)?.pendingVerificationTasksDismissed : []
+            ).length,
+        0
+    )
     const documentSlideKey = homeTasks.documentSlide?.key ?? null
 
     // the same gate the QR pay page reads, so the two never disagree
-    const qr = useMemo<JourneyState['qr']>(() => {
-        const gate = selectQrKycGate({
-            isLoading: capabilitiesLoading || !user,
+    const qr = useMemo<JourneyState['qr']>(
+        () =>
+            fact<JourneyState['qr']>(
+                'qr',
+                () => {
+                    const gate = selectQrKycGate({
+                        isLoading: capabilitiesLoading || !user,
+                        isRegionRestricted,
+                        isTerminalFailure,
+                        canPayManteca: canDo('pay', { provider: 'manteca' }),
+                        mantecaRails: railsForProvider('manteca'),
+                        nextActions,
+                    })
+                    const railsInFlight = rails.some(
+                        (rail) => rail.status === 'pending' || rail.status === 'requires-info'
+                    )
+                    return {
+                        canPayNow: gate.kycGateState === QrKycState.PROCEED_TO_PAY,
+                        hasMadeQrPayment: latestHistory?.entries.some((entry) => entry.extraData?.kind === 'QR_PAY'),
+                        verifyOpensQr: showVerifyCTA({
+                            qrGateState: gate.kycGateState,
+                            isIdentityVerified: verifyRowStatus({ status: user ? status : undefined }) === 'done',
+                            isInFlight: railsInFlight,
+                            isCardEligible,
+                        }),
+                    }
+                },
+                { canPayNow: false, hasMadeQrPayment: false, verifyOpensQr: false }
+            ),
+        [
+            capabilitiesLoading,
+            user,
             isRegionRestricted,
             isTerminalFailure,
-            canPayManteca: canDo('pay', { provider: 'manteca' }),
-            mantecaRails: railsForProvider('manteca'),
+            canDo,
+            railsForProvider,
             nextActions,
-        })
-        const railsInFlight = rails.some((rail) => rail.status === 'pending' || rail.status === 'requires-info')
-        return {
-            canPayNow: gate.kycGateState === QrKycState.PROCEED_TO_PAY,
-            hasMadeQrPayment: latestHistory?.entries.some((entry) => entry.extraData?.kind === 'QR_PAY'),
-            verifyOpensQr: showVerifyCTA({
-                qrGateState: gate.kycGateState,
-                isIdentityVerified: verifyRowStatus({ status: user ? status : undefined }) === 'done',
-                isInFlight: railsInFlight,
-                isCardEligible,
-            }),
-        }
-    }, [
-        capabilitiesLoading,
-        user,
-        isRegionRestricted,
-        isTerminalFailure,
-        canDo,
-        railsForProvider,
-        nextActions,
-        rails,
-        latestHistory,
-        status,
-        isCardEligible,
-    ])
+            rails,
+            latestHistory,
+            status,
+            isCardEligible,
+        ]
+    )
 
     // the offer follows the nav's card gate (TASK-23017): a card-restricted residence hides it too
     const { showCardSurface, canSpendPathViaCard } = useCardSurfaceAccess()
     const cardOffer = useMemo<JourneyState['cardOffer']>(
         () =>
-            cardOfferFacts({
-                loading: cardInfoLoading,
-                cardInfo,
-                error: cardInfoError,
-                showCardSurface,
-                hasCardRelationship: rails.some((rail) => channelOf(rail) === 'card'),
-                promotionDisabled: cardPromotionDisabled,
-                canSpendViaCard: canSpendPathViaCard,
-            }),
+            fact<JourneyState['cardOffer']>(
+                'cardOffer',
+                () =>
+                    cardOfferFacts({
+                        loading: cardInfoLoading,
+                        cardInfo,
+                        error: cardInfoError,
+                        showCardSurface,
+                        hasCardRelationship: rails.some((rail) => channelOf(rail) === 'card'),
+                        promotionDisabled: cardPromotionDisabled,
+                        canSpendViaCard: canSpendPathViaCard,
+                    }),
+                {
+                    loaded: true,
+                    geoProhibited: true,
+                    hasCardRelationship: false,
+                    promotionDisabled: true,
+                    canSpendViaCard: false,
+                }
+            ),
         [
             cardInfoLoading,
             cardInfo,
@@ -421,12 +464,19 @@ export function useJourneyState(): JourneyState {
     )
 
     const capNudge = useMemo(
-        () => (capabilitiesLoading ? undefined : (selectMantecaCapNudge(rails, nextActions) ?? null)),
+        () =>
+            capabilitiesLoading
+                ? undefined
+                : fact('capNudge', () => selectMantecaCapNudge(rails, nextActions) ?? null, null),
         [capabilitiesLoading, rails, nextActions]
     )
     const demoMode = useHydrationSnapshot(isDemoMode, () => false)
     const deviceType = useHydrationSnapshot<JourneyState['deviceType']>(detectDeviceType, () => null)
-    const maintenance = selectMaintenance({ pathname, config: killSwitches, demo: demoMode })
+    const maintenance = fact<JourneyState['maintenance']>(
+        'maintenance',
+        () => selectMaintenance({ pathname, config: killSwitches, demo: demoMode }),
+        'none'
+    )
 
     return useMemo(
         () =>
@@ -440,7 +490,7 @@ export function useJourneyState(): JourneyState {
                 isNative: isCapacitor(),
                 deviceType,
                 pathname,
-                consentDocuments: outdatedConsentDocuments(consent.data),
+                consentDocuments: fact('consent', () => outdatedConsentDocuments(consent.data), []),
                 consentFailed: consent.isError,
                 identity: {
                     status: user ? status : undefined,
@@ -453,11 +503,11 @@ export function useJourneyState(): JourneyState {
                 blockedCardId: blockedCard?.ctaId ?? null,
                 dueTasks,
                 cardLoaded: !overviewLoading,
-                cardNeedsSetup: cardNeedsSetup(overview),
-                activeCardId: findActiveCard(overview)?.id ?? null,
+                cardNeedsSetup: fact('cardNeedsSetup', () => cardNeedsSetup(overview), false),
+                activeCardId: fact('activeCard', () => findActiveCard(overview)?.id ?? null, null),
                 cardSetupPath: setupPath,
                 cardNeedsFunding: needsFunding,
-                redirectDestination: getStoredRedirect()?.destination,
+                redirectDestination: fact('storedRedirect', () => getStoredRedirect()?.destination, undefined),
                 balanceUnits: balance,
                 migrationOn,
                 pushReady: oneSignalInitialized,
@@ -468,8 +518,11 @@ export function useJourneyState(): JourneyState {
                 activated: isActivated,
                 geoCountry,
                 invitesSent: user?.invitesSent?.length ?? 0,
-                hasSupportSurvivorBadge:
-                    user?.user?.badges?.some((badge) => badge.code === 'SUPPORT_SURVIVOR') ?? false,
+                hasSupportSurvivorBadge: fact(
+                    'badges',
+                    () => user?.user?.badges?.some((badge) => badge.code === 'SUPPORT_SURVIVOR') ?? false,
+                    false
+                ),
                 cardOffer,
                 qr,
                 documentSlideKey,

@@ -3,7 +3,7 @@
 import { Component, Suspense, useEffect, useRef, type ErrorInfo, type ReactNode } from 'react'
 import * as Sentry from '@sentry/nextjs'
 import { recoverFromChunkError } from '@/utils/chunk-error-recovery'
-import { AttentionSurfaceContext } from '@/utils/overlay-visibility'
+import { AttentionSurfaceContext, isManagerOverlayOpen } from '@/utils/overlay-visibility'
 import { useAttentionOptional, type AttentionContextValue } from './AttentionProvider'
 import { INTERRUPT_SURFACES } from './surfaces'
 import type { AskId } from './types'
@@ -56,10 +56,38 @@ function InterruptHost({ attention }: { attention: AttentionContextValue }) {
                         onDismissed={() => dismissed(id)}
                         onSnoozed={(until) => snoozed(id, until)}
                     />
+                    <ShowDeadline askId={id} onMissed={() => crashed(id)} />
                 </Suspense>
             </SurfaceBoundary>
         </AttentionSurfaceContext.Provider>
     )
+}
+
+/** How long a surface whose code has loaded may take to put its modal or drawer on screen. */
+export const SURFACE_SHOW_DEADLINE_MS = 10_000
+
+/**
+ * Some surfaces still check their own conditions. When that check and the
+ * verdict disagree, the pick shows nothing and would hold the interrupt slot
+ * for the session; past the deadline it is skipped for this load and reported.
+ * Mounted beside the surface inside Suspense, so the clock starts once its code
+ * has loaded.
+ */
+function ShowDeadline({ askId, onMissed }: { askId: AskId; onMissed: () => void }) {
+    const missed = useRef(onMissed)
+    missed.current = onMissed
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (isManagerOverlayOpen()) return
+            Sentry.captureMessage(`attention: ${askId} was picked but showed nothing`, {
+                level: 'warning',
+                tags: { feature: 'attention', ask: askId },
+            })
+            missed.current()
+        }, SURFACE_SHOW_DEADLINE_MS)
+        return () => clearTimeout(timer)
+    }, [askId])
+    return null
 }
 
 /** A surface that throws is skipped for this load (never recorded as an answer), so it cannot re-mount in a loop. */

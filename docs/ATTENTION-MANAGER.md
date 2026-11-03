@@ -57,6 +57,19 @@ One entry in `registry.ts` (eligibility, policy, version) with its tier and rank
 
 A surface that throws (a render error or a lazy chunk that fails to load) is not an answer: its ask is skipped for the rest of the app load for that account, nothing is written to the ledger, and the manager reports `attention_crashed`. The boundaries try the chunk-error reload first, and every surface import retries a failed chunk once. A page's own error is not the manager's: it goes on to the app's error handling, and the manager stays on.
 
+## When something breaks
+
+One fault never takes every prompt down:
+
+- **An ask's rule throws** (`eligible`, `version`, `surfaceWhen`, …): that ask reads `ineligible` and the others still decide. Sentry gets one report per rule and load (tags `ask`, `rule`), PostHog `attention_crashed { ask, rule }` (`faults.ts`).
+- **A fact throws** (a selector over app data in `journeyState.ts`): it reads as its fallback, the value that hides the asks reading it or "not loaded". One Sentry report per fact (tag `fact`).
+- **The engine throws** (anything else in the provider): the engine runs beside the app, not around it, so no page remounts and nothing the user typed is lost. The hosts render nothing, Sentry is paged, and the engine starts again on the next route, at most `ENGINE_RETRIES` (2) times per load.
+- **A pick shows nothing** (a surface that still checks its own conditions disagrees with the verdict): if no modal or drawer is on screen 10 s after its code loaded (`SURFACE_SHOW_DEADLINE_MS`), the ask is skipped for the load, PostHog gets `attention_crashed` and Sentry a warning. It no longer holds the interrupt slot for the session.
+- **Two overlays at once**: a manager prompt and another modal or drawer open together for more than a second send one Sentry warning per load (`overlay-visibility.ts`). The app-store review sheet never opens over a manager prompt.
+- **A malformed server answer**: rows of `GET /users/me/attention` with a bad id, tier or rank, and unknown verdicts, are dropped one by one.
+
+**Off switch.** The API kill switch `disabledAttentionAsks` (served by `GET /config/kill-switches`; the app reads it on open and on resume, on native too) lists asks the app never shows; `*` turns every ask off, and an open one closes. A listed ask also stops holding other asks' push and email nudges. Flip it from peanut-api-ts with `scripts/flip-rail-gates.ts --set disabledAttentionAsks=install-app` (dry run unless `--apply`). The API's nudge gate has its own: `notificationsBypassAttentionGate=true` sends nudges as before the gate.
+
 Busy means no new interrupt: an existing interrupt stays eligible, and zone, inline, and banner remain visible behind user-opened overlays. A gate still clears the non-interrupt picks. Inline and banner impressions are booked once per account, app session, ask, and surface. Missing slots and failed slot conditions appear in the decision trace.
 
 Toasts and user-opened in-flow modals stay outside the manager. Zone cards retain their bespoke components.

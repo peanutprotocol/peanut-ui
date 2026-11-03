@@ -4,7 +4,7 @@
  * ledger snapshot has to be stable or useSyncExternalStore re-renders forever.
  */
 import React from 'react'
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import type { JourneyState } from '../types'
 
 const mockCapture = jest.fn()
@@ -28,9 +28,54 @@ jest.mock('../serverAttention', () => ({
     useServerAttention: () => mockServer,
 }))
 jest.mock('@/utils/overlay-visibility', () => ({ useAnyOverlayOpen: () => mockOverlayOpen }))
+let mockModals: { isQRScannerOpen: boolean; isSecurityVerificationOpen: boolean } | undefined
+jest.mock('@/context/ModalsContext', () => ({ useModalsContextOptional: () => mockModals }))
+let mockPathname = '/home'
+jest.mock('next/navigation', () => ({ usePathname: () => mockPathname }))
+const NO_KILL_SWITCHES = { disabledAttentionAsks: [] as string[] }
+let mockKillSwitches = NO_KILL_SWITCHES
+const mockKillSwitchListeners = new Set<() => void>()
+jest.mock('@/features/kill-switches/useKillSwitches', () => {
+    const { useSyncExternalStore } = jest.requireActual('react')
+    return {
+        useKillSwitches: () =>
+            useSyncExternalStore(
+                (listener: () => void) => {
+                    mockKillSwitchListeners.add(listener)
+                    return () => mockKillSwitchListeners.delete(listener)
+                },
+                () => mockKillSwitches
+            ),
+    }
+})
+const setKillSwitches = (next: typeof NO_KILL_SWITCHES) => {
+    mockKillSwitches = next
+    mockKillSwitchListeners.forEach((listener) => listener())
+}
+// asks whose rules throw, to show one broken ask leaves the others deciding
+const mockBroken = new Set<string>()
+jest.mock('../registry', () => {
+    const actual = jest.requireActual('../registry')
+    return {
+        ...actual,
+        ASKS: actual.ASKS.map((ask: { id: string; eligible: (s: unknown) => unknown }) => ({
+            ...ask,
+            eligible: (s: unknown) => {
+                if (mockBroken.has(ask.id)) throw new Error(`${ask.id} rule exploded`)
+                return ask.eligible(s)
+            },
+        })),
+    }
+})
 
-import { AttentionProvider, resetAttentionSessionForTests, useAttention } from '../AttentionProvider'
+import {
+    AttentionProvider,
+    ENGINE_RETRIES,
+    resetAttentionSessionForTests,
+    useAttentionOptional,
+} from '../AttentionProvider'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
+import { ledgerActions } from '../ledger'
 import { AttentionInterrupt } from '../AttentionInterrupt'
 import { HomeAttention } from '../AttentionZone'
 
@@ -90,7 +135,9 @@ const state = (overrides: Partial<JourneyState> = {}): JourneyState => ({
 let renders = 0
 function Probe() {
     renders++
-    const { decision, opened, dismissed } = useAttention()
+    const attention = useAttentionOptional()
+    if (!attention) return <span data-testid="no-manager" />
+    const { decision, opened, dismissed } = attention
     return (
         <div>
             <span data-testid="interrupt">{decision.interrupt ?? 'none'}</span>
@@ -128,6 +175,9 @@ beforeEach(() => {
     mockThrow = null
     mockSentry.mockClear()
     mockState = state()
+    mockPathname = '/home'
+    mockKillSwitches = NO_KILL_SWITCHES
+    mockBroken.clear()
     renders = 0
 })
 
@@ -321,6 +371,126 @@ test("a page's own crash goes to the app's boundary, is not filed as an attentio
         screen.getByText('app error: page exploded').click()
     })
     expect(screen.getByText('page')).toBeInTheDocument()
+    expect(screen.getByTestId('interrupt')).toBeInTheDocument()
+    spy.mockRestore()
+})
+
+test('an ask whose rule throws drops alone: the others still decide, and Sentry names the ask once', async () => {
+    updateUserPreferences('user-a', { sessionCount: 3 })
+    mockBroken.add('legal-reconsent')
+    render(
+        <AttentionProvider>
+            <Probe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    expect(screen.getByTestId('interrupt').textContent).not.toBe('legal-reconsent')
+    expect(screen.getByTestId('zone').textContent).toBe('checklist')
+    expect(mockSentry).toHaveBeenCalledTimes(1)
+    expect(mockSentry).toHaveBeenCalledWith(expect.objectContaining({ message: 'legal-reconsent rule exploded' }), {
+        tags: { feature: 'attention', ask: 'legal-reconsent', rule: 'eligible' },
+    })
+    expect(mockCapture).toHaveBeenCalledWith(
+        'attention_crashed',
+        expect.objectContaining({ ask: 'legal-reconsent', rule: 'eligible' })
+    )
+})
+
+test('the kill switch turns an ask off even while it is the pick; "*" turns every ask off', async () => {
+    updateUserPreferences('user-a', { sessionCount: 3 })
+    render(
+        <AttentionProvider>
+            <Probe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    expect(screen.getByTestId('interrupt').textContent).toBe('legal-reconsent')
+    await act(async () => setKillSwitches({ disabledAttentionAsks: ['legal-reconsent'] }))
+    expect(screen.getByTestId('interrupt').textContent).not.toBe('legal-reconsent')
+    expect(screen.getByTestId('zone').textContent).toBe('checklist')
+    await act(async () => setKillSwitches({ disabledAttentionAsks: ['*'] }))
+    expect(screen.getByTestId('interrupt').textContent).toBe('none')
+    expect(screen.getByTestId('zone').textContent).toBe('none')
+    await act(async () => setKillSwitches(NO_KILL_SWITCHES))
+    expect(screen.getByTestId('interrupt').textContent).toBe('legal-reconsent')
+})
+
+function AmountField() {
+    const [amount, setAmount] = React.useState('')
+    return <input aria-label="amount" value={amount} onChange={(event) => setAmount(event.target.value)} />
+}
+
+test('an engine crash mid-session keeps the page mounted and what the user typed', async () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    render(
+        <AttentionProvider>
+            <AmountField />
+            <Probe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    const input = screen.getByLabelText('amount') as HTMLInputElement
+    fireEvent.change(input, { target: { value: '42' } })
+    mockThrow = new Error('selector exploded')
+    // a ledger write re-runs the engine, which now throws
+    await act(async () => ledgerActions.shown('user-a', 'checklist', Date.now(), 'zone', 1))
+    expect(screen.getByLabelText('amount')).toBe(input)
+    expect(input.value).toBe('42')
+    expect(screen.getByTestId('no-manager')).toBeInTheDocument()
+    expect(mockSentry).toHaveBeenCalledTimes(1)
+    spy.mockRestore()
+})
+
+test(`a crashed engine starts again on the next route, at most ${ENGINE_RETRIES} times per load`, async () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const ui = () => (
+        <AttentionProvider>
+            <Probe />
+        </AttentionProvider>
+    )
+    mockThrow = new Error('selector exploded')
+    const { rerender } = render(ui())
+    await act(async () => {})
+    expect(screen.getByTestId('no-manager')).toBeInTheDocument()
+
+    // the same route never retries
+    rerender(ui())
+    await act(async () => {})
+    expect(mockSentry).toHaveBeenCalledTimes(1)
+
+    // each new route is one more try while the data stays broken
+    for (const [index, route] of ['/send', '/request'].entries()) {
+        mockPathname = route
+        rerender(ui())
+        await act(async () => {})
+        expect(mockSentry).toHaveBeenCalledTimes(index + 2)
+    }
+
+    // the budget is spent: a later route stays without the manager, even with good data
+    mockThrow = null
+    mockPathname = '/profile'
+    rerender(ui())
+    await act(async () => {})
+    expect(screen.getByTestId('no-manager')).toBeInTheDocument()
+    expect(mockSentry).toHaveBeenCalledTimes(1 + ENGINE_RETRIES)
+    spy.mockRestore()
+})
+
+test('a crash the next route no longer hits brings the manager back', async () => {
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const ui = () => (
+        <AttentionProvider>
+            <Probe />
+        </AttentionProvider>
+    )
+    mockThrow = new Error('selector exploded')
+    const { rerender } = render(ui())
+    await act(async () => {})
+    expect(screen.getByTestId('no-manager')).toBeInTheDocument()
+    mockThrow = null
+    mockPathname = '/send'
+    rerender(ui())
+    await act(async () => {})
     expect(screen.getByTestId('interrupt')).toBeInTheDocument()
     spy.mockRestore()
 })
