@@ -881,7 +881,9 @@
         "loginFailed": "No pudimos iniciar tu sesión. Inténtalo de nuevo.",
         "landing": {
             "signUp": "Regístrate",
-            "recoverWallet": "¿Necesitas recuperar la cuenta de Peanut?"
+            "recoverWallet": "¿Necesitas recuperar la cuenta de Peanut?",
+            "testBuild": "Versión de prueba",
+            "testSignUp": "Regístrate en la web"
         },
         "loginRecovery": {
             "title": "Tu passkey puede estar en el teléfono donde creaste tu cuenta",
@@ -3039,8 +3041,6 @@
         }
     },
     "notifications": {
-        "setupTitle": "¿Activar las notificaciones?",
-        "setupDescription": "Activa las notificaciones y recibe alertas de toda la actividad de tu billetera.",
         "migrationSetupTitle": "Recibe alertas de dinero",
         "migrationSetupDescription": "Te avisamos al instante cuando llegue dinero o alguien te pida un pago.",
         "enable": "Activar notificaciones",

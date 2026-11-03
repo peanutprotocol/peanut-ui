@@ -1,14 +1,15 @@
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { BASE_URL, IS_DEV } from '@/constants/general.consts'
 import {
-    PWA_SUNSET_QA_OVERRIDE_KEY,
+    KEEP_WEB_COOKIE,
+    KEEP_WEB_TOKEN,
     STORE_URL,
     type MigrationSurface,
     type StoreKind,
 } from '@/constants/migration.consts'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
+import { getFromCookie } from '@/utils/general.utils'
 import {
     buildDeferredPayload,
     copyIOSHandoff,
@@ -16,34 +17,9 @@ import {
     trackDeferredHandoffCreated,
 } from '@/utils/deferred-link'
 
-const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
-
-/**
- * Every Vercel preview deployment keeps the web signup flow open: ad-hoc PR
- * previews are temporary review environments, and the `dev` branch preview
- * backs staging, where the team still creates accounts.
- *
- * Require a git ref as well as VERCEL_ENV: local visual builds set only
- * NEXT_PUBLIC_VERCEL_ENV=preview to enable fixtures and must keep the
- * production behaviour.
- */
-function isVercelPreviewDeployment(): boolean {
-    return process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview' && Boolean(process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF)
-}
-
-/**
- * Web signup is closed for good on peanut.me: new users sign up in the app.
- * This is code, not a PostHog flag, so a PostHog outage can never reopen it.
- * Vercel previews (PR previews and staging) keep it open. Local, CI and other
- * non-production builds keep it open too, unless localStorage['pwa-sunset'] =
- * 'true', which is how QA sees the closed state there. Production builds for
- * peanut.me ignore the override.
- */
-export function isPwaSunsetOn(): boolean {
-    if (IS_DEV || !IS_PROD_DOMAIN) {
-        return typeof localStorage !== 'undefined' && localStorage.getItem(PWA_SUNSET_QA_OVERRIDE_KEY) === 'true'
-    }
-    return !isVercelPreviewDeployment()
+/** True when support's keep-web link has reopened web signup in this browser. */
+export function hasKeepWebCookie(): boolean {
+    return getFromCookie(KEEP_WEB_COOKIE) === KEEP_WEB_TOKEN
 }
 
 /** The store this device downloads from. Desktop has none: it gets the QR code instead. */

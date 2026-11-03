@@ -101,11 +101,6 @@
     gap: 16px;
 }
 
-.login {
-    flex-shrink: 0;
-    white-space: nowrap;
-}
-
 .star {
     position: absolute;
     z-index: 4;

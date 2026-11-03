@@ -1,14 +1,17 @@
+import { BASE_URL } from '@/constants/general.consts'
+
 /**
- * PWA → native app migration (pwa-sunset).
- *
- * Web signup on peanut.me is closed in code (see isPwaSunsetOn): the web shows
- * download prompts and store links instead. Existing accounts keep logging in
- * on the web (ruled 2026-10-07, hugo): signup is app-only, the web app is not
- * switched off.
+ * Signup is app-only. The web never offers it: it shows download prompts and
+ * store links instead. Existing accounts keep logging in on the web (ruled
+ * 2026-10-07, hugo); the web app is a fallback, not a signup path.
  */
 
-/** localStorage key that shows the closed-signup state on non-production builds (QA). */
-export const PWA_SUNSET_QA_OVERRIDE_KEY = 'pwa-sunset'
+/**
+ * Builds that are not peanut.me (staging, PR previews, local, CI) show a
+ * marked test-build sign-up on the web landing, so the team can still create
+ * web accounts there. Decided at build time: peanut.me never renders it.
+ */
+export const TEST_WEB_SIGNUP = BASE_URL !== 'https://peanut.me'
 
 /**
  * Marks the already-native-associated `/home` route as an app-download entry
@@ -22,12 +25,11 @@ export const APP_ENTRY_QUERY_PARAM = 'app_entry'
 export const DOWNLOAD_PROMPT_SNOOZE_DAYS = 3
 
 // how long "Not now" on the notifications pre-prompt snoozes before re-asking
-// (only while web signup is closed; elsewhere "Not now" closes it for good)
 export const NOTIF_PROMPT_SNOOZE_DAYS = 14
 
 // support escape hatch for users who can't install the app: support DMs
-// `/home?keep-web=<token>`; visiting it stores a 90-day cookie that reopens
-// web signup in that browser.
+// `/setup?keep-web=<token>`; visiting it stores a 90-day cookie that reopens
+// web signup in that browser, invite and ?step=signup links included.
 // ponytail: static shared token, FE-only; per-user tokens need a BE endpoint.
 export const KEEP_WEB_COOKIE = 'keep-web'
 export const KEEP_WEB_TOKEN = 'walnut-still-cracks'

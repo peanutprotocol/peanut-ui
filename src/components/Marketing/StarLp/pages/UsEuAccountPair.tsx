@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useInView } from 'framer-motion'
 import detailsEur from '@/assets/star-lp/us-eu-details-eur.webp'
 import detailsUsd from '@/assets/star-lp/us-eu-details-usd.webp'
-import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
 import { twMerge } from '@/utils/tw'
 import { UsEuAccountCapture } from './UsEuAccountCapture'
 import { UsEuAppLink } from './UsEuAppLink'
@@ -59,8 +58,6 @@ export function UsEuAccountPair({ className, surface, pairedEntrance = false }: 
     )
     return (
         <UsEuAppLink
-            href={STAR_LP_HREF.accountsGuest}
-            signedInHref={STAR_LP_HREF.accountsSignedIn}
             surface={surface}
             className={twMerge(
                 'mx-auto flex w-full max-w-sm flex-col md:max-w-104 md:pt-8 lg:max-w-224 lg:flex-row lg:items-start lg:pt-4',

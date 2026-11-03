@@ -17,7 +17,6 @@ const mockSetBackgroundColor = jest.fn()
 jest.mock('@/i18n/app/locale-context', () => ({ useAppLocale: () => ({ locale: 'en', setLocale: jest.fn() }) }))
 
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('@/utils/capacitor', () => ({
     ...jest.requireActual('@/utils/capacitor'),
     isCapacitor: () => mockCapacitor.value,

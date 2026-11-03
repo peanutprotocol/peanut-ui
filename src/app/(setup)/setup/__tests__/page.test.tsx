@@ -1,5 +1,7 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
+import { getFromCookie } from '@/utils/general.utils'
+import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '@/constants/migration.consts'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
@@ -46,7 +48,6 @@ const mockAuth = {
     fetchUser: jest.fn().mockResolvedValue(undefined),
 }
 let mockNative = true
-let mockPwaSunsetOn = false
 let mockSearchParams = new URLSearchParams()
 let mockStoredRedirect: {
     destination: string
@@ -94,7 +95,6 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: mockSupport }) }))
 jest.mock('next/navigation', () => ({ useSearchParams: () => mockSearchParams, useRouter: () => mockRouter }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockNative }))
-jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockPwaSunsetOn }))
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: jest.fn(),
     getStoredRedirect: () => mockStoredRedirect,
@@ -107,7 +107,6 @@ jest.mock('@/components/Setup/setup-entry', () => ({
     hasKnownDeviceCredentials: () => false,
     resolveSetupEntryStep: (...args: unknown[]) => mockResolve(...args),
 }))
-jest.mock('@/components/Setup/Setup.utils', () => ({ isLikelyWebview: () => false, isDeviceOsSupported: () => true }))
 jest.mock('@/components/Setup/components/SetupWrapper', () => ({
     SetupWrapper: ({
         children,
@@ -126,10 +125,6 @@ jest.mock('@/components/Setup/components/SetupWrapper', () => ({
     ),
 }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div role="status">Loading</div> }))
-jest.mock('@/components/Global/UnsupportedBrowserModal', () => ({
-    __esModule: true,
-    default: () => <div>Unsupported device</div>,
-}))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@sentry/nextjs', () => ({
     captureException: jest.fn(),
@@ -151,6 +146,7 @@ const advance = (ms: number) =>
 beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
+    jest.mocked(getFromCookie).mockReset()
     mockNoBackLock = null
     mockSignupCompleted = false
     mockSellScreensCountry = undefined
@@ -169,7 +165,6 @@ beforeEach(() => {
     })
     resetDeepLinkStateForTests()
     mockNative = true
-    mockPwaSunsetOn = false
     mockSearchParams = new URLSearchParams()
     mockStoredRedirect = null
 })
@@ -235,48 +230,8 @@ it('recovers from an initialization exception', async () => {
     expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
 })
 
-it('ignores an authenticator check that completes after initialization timed out', async () => {
+it('routes web guests to landing without browser capability checks', async () => {
     mockNative = false
-    let resolveSupport!: (supported: boolean) => void
-    Object.defineProperty(window, 'PublicKeyCredential', {
-        configurable: true,
-        value: {
-            isUserVerifyingPlatformAuthenticatorAvailable: () =>
-                new Promise<boolean>((resolve) => {
-                    resolveSupport = resolve
-                }),
-        },
-    })
-    renderWithIntl(<SetupPage />)
-    await advance(15000)
-    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
-    expect(Sentry.captureMessage).toHaveBeenCalledWith(
-        'Setup initialization failed',
-        expect.objectContaining({ level: 'error', tags: { reason: 'initialization_timeout' } })
-    )
-    expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
-    await act(async () => {
-        resolveSupport(true)
-    })
-    expect(mockFlow.setScreenId).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
-})
-
-it('preserves the unsupported-device recovery on web', async () => {
-    mockNative = false
-    Object.defineProperty(window, 'PublicKeyCredential', {
-        configurable: true,
-        value: { isUserVerifyingPlatformAuthenticatorAvailable: async () => false },
-    })
-    renderWithIntl(<SetupPage />)
-    await advance(100)
-    expect(screen.getByText('Unsupported device')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
-})
-
-it('routes sunset web guests to landing before unsupported-browser capability gates', async () => {
-    mockNative = false
-    mockPwaSunsetOn = true
     Object.defineProperty(window, 'PublicKeyCredential', {
         configurable: true,
         value: { isUserVerifyingPlatformAuthenticatorAvailable: jest.fn().mockResolvedValue(false) },
@@ -286,7 +241,6 @@ it('routes sunset web guests to landing before unsupported-browser capability ga
     await advance(100)
 
     expect(screen.getByText('Landing step')).toBeInTheDocument()
-    expect(screen.queryByText('Unsupported device')).not.toBeInTheDocument()
     expect(PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable).not.toHaveBeenCalled()
     expect(mockResolve).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -294,6 +248,18 @@ it('routes sunset web guests to landing before unsupported-browser capability ga
         })
     )
     expect(mockFlow.setScreenId).toHaveBeenCalledWith('landing', { history: 'replace' })
+})
+
+it('keeps the signup fast path in a keep-web browser', async () => {
+    mockNative = false
+    jest.mocked(getFromCookie).mockImplementation((key: string) =>
+        key === KEEP_WEB_COOKIE ? KEEP_WEB_TOKEN : undefined
+    )
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(mockResolve).toHaveBeenCalledWith(expect.objectContaining({ webSignupClosed: false }))
 })
 
 it('bounds waiting for session hydration', async () => {

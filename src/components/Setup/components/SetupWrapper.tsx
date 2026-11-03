@@ -10,7 +10,6 @@ import PeanutMascot from '@/components/Global/PeanutMascot'
 import { PeanutMascotScene } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 import { type LayoutType, type ScreenId, type SetupIllustration } from '@/components/Setup/Setup.types'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
@@ -434,12 +433,11 @@ export const SetupWrapper = memo(function SetupWrapper({
             cancelled = true
         }
     }, [fullScreen])
-    const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
-    // migration notice window's download-only landing: drop the fixed-height
-    // title block (it left a big gap above the QR) and center the copy on
-    // desktop to match the centered store content. legacy landing untouched.
-    const sunsetLanding = screenId === 'landing' && migrationOn && !nativePlatform.isCapacitor && !hasKeepWebBypass
+    // the web's download-only landing: drop the fixed-height title block (it
+    // left a big gap above the QR) and center the copy on desktop to match the
+    // centered store content. The native landing is untouched.
+    const sunsetLanding = screenId === 'landing' && !nativePlatform.isCapacitor && !hasKeepWebBypass
 
     // Match the server panel first, then start the mobile landing rise after hydration.
     const mountedOnLanding = useRef(screenId === 'landing').current

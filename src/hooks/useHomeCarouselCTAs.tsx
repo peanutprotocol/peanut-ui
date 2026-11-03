@@ -22,7 +22,6 @@ import { useTransactionHistory } from './useTransactionHistory'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { PEANUTMAN_MOBILE } from '@/assets/mascot'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { useMigrationFlag } from './useMigrationFlag'
 import { openStore, storeForDevice } from '@/utils/migration.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -65,12 +64,11 @@ export const useHomeCarouselCTAs = ({
     startQrIdentityCheckRef.current = onStartQrIdentityCheck
     const t = useAppTranslations('home.carousel')
     const tMigration = useTranslations('migration')
-    const migrationOn = useMigrationFlag()
     const flagEnabled = useFeatureFlags()
     // User-interview campaign gate. nonProdBypass: previews/local always show
     // the card for QA; on prod the PostHog `username` release condition decides.
-    // No mounted guard needed (cf. useMigrationFlag): the value is only read in
-    // generateCarouselCTAs, which runs after mount in an effect.
+    // No mounted guard needed: the value is only read in generateCarouselCTAs,
+    // which runs after mount in an effect.
     const interviewInviteOn = flagEnabled('user-interviews-invite', { nonProdBypass: true })
     const cardPromotionDisabled = flagEnabled(CARD_PROMOTION_DISABLED_FLAG)
     const [carouselCTAs, setCarouselCTAs] = useState<CarouselCTA[]>([])
@@ -146,9 +144,9 @@ export const useHomeCarouselCTAs = ({
             })
         }
 
-        // During the native-app cutover, mobile opens the visitor's store and
-        // desktop opens the scan-to-download QR.
-        if (migrationOn && !isCapacitor()) {
+        // On the web, mobile opens the visitor's store and desktop opens the
+        // scan-to-download QR.
+        if (!isCapacitor()) {
             _carouselCTAs.push({
                 id: 'app-install',
                 title: tMigration('banner.title'),
@@ -333,7 +331,6 @@ export const useHomeCarouselCTAs = ({
         toast,
         dismissCTA,
         openSupportWithMessage,
-        migrationOn,
         interviewInviteOn,
         tMigration,
         setIsGetAppModalOpen,

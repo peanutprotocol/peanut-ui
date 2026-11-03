@@ -76,7 +76,6 @@ let mockRestrictions = mockUnrestricted
 jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => mockRestrictions }))
 const mockHistory = { data: { entries: [] } }
 jest.mock('@/hooks/useTransactionHistory', () => ({ useTransactionHistory: () => mockHistory }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 const mockFlag = () => false
 jest.mock('@/hooks/useFeatureFlag', () => ({ useFeatureFlags: () => mockFlag }))
 jest.mock('@/utils/capacitor', () => ({

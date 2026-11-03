@@ -48,11 +48,9 @@ jest.mock('@/utils/capacitor', () => ({
     openExternalUrl: jest.fn(),
 }))
 
-let mockFlagOn = true
 jest.mock('@/utils/migration.utils', () => ({
     storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
     storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
-    isPwaSunsetOn: () => mockFlagOn,
     trackStoreClick: jest.fn(),
 }))
 
@@ -109,7 +107,6 @@ beforeEach(() => {
     }
     mockDeviceType = 'web'
     mockNative = false
-    mockFlagOn = true
     visit('')
 })
 
@@ -188,10 +185,10 @@ describe('/app smart store link', () => {
         expect(mockReplace).toHaveBeenCalledWith('/home')
     })
 
-    it('404s while the flag is off', () => {
-        mockFlagOn = false
+    it('serves the store page to every web visitor', () => {
         renderPage()
-        expect(mockNotFound).toHaveBeenCalled()
+        expect(mockNotFound).not.toHaveBeenCalled()
+        expect(storeButton(/app store/i)).toBeInTheDocument()
     })
 })
 
@@ -229,16 +226,6 @@ describe('registered marketing QR handoff', () => {
         expect(locationAssign).toHaveBeenCalledWith(STORE_URL.ios)
     })
 
-    it('keeps old marketing QR URLs usable where web signup is open', () => {
-        mockFlagOn = false
-        visit(MARKETING_QUERY)
-        renderPage()
-        expect(mockNotFound).not.toHaveBeenCalled()
-        expect(storeButton(/app store/i)).toBeInTheDocument()
-        expect(storeButton(/google play/i)).toBeInTheDocument()
-        expect(locationReplace).not.toHaveBeenCalled()
-    })
-
     it.each(['deny-marker', 'current-opt-out'] as const)(
         'does not create marketing attribution when denied by %s',
         (reason) => {
@@ -251,14 +238,6 @@ describe('registered marketing QR handoff', () => {
             expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
         }
     )
-
-    it('does not make an unknown registration bypass generic app behavior', () => {
-        mockFlagOn = false
-        visit(MARKETING_QUERY.replace('home-hero-en', 'payment-link'))
-        renderPage()
-        expect(mockNotFound).toHaveBeenCalled()
-        expect(locationReplace).not.toHaveBeenCalled()
-    })
 
     it.each(['user@example.com', 'a'.repeat(65)])(
         'does not capture malformed content on a direct app marker: %s',

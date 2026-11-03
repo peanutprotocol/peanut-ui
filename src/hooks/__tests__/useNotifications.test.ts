@@ -48,8 +48,6 @@ jest.mock('@/utils/general.utils', () => ({
         mockUpdateUserPreferences(userId, partial),
 }))
 
-const mockIsPwaSunsetOn = jest.fn(() => false)
-jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockIsPwaSunsetOn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 let mockUserId = 'user-1'
 jest.mock('@/context/authContext', () => ({
@@ -57,7 +55,6 @@ jest.mock('@/context/authContext', () => ({
     useOptionalAuth: () => ({ user: { user: { userId: mockUserId } } }),
 }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 // renders the copy keys, so a test can read which promise the prompt makes
 jest.mock('@/components/Global/ActionModal', () => ({
@@ -124,7 +121,6 @@ describe('useNotifications dismissal / snooze logic', () => {
         resetPushPromptForTests()
         mockPrefs = undefined
         mockUserId = 'user-1'
-        mockIsPwaSunsetOn.mockReturnValue(false)
         mockAdapter.getPermission.mockResolvedValue('default')
         mockAdapter.isOptedIn.mockResolvedValue(false)
         mockAdapter.requestPermission.mockResolvedValue('default')
@@ -152,17 +148,7 @@ describe('useNotifications dismissal / snooze logic', () => {
         expect(conversionWrites()).toHaveLength(1)
     })
 
-    it('flag off: an expired snooze stays closed forever', async () => {
-        const rendered = await renderWithShowingBaseline()
-
-        mockPrefs = { ...THIRD_SESSION, notifModalClosedAt: expiredSnooze() }
-        await offer(HOME_FALLBACK)
-
-        expect(rendered.result.current.showPermissionModal).toBe(false)
-    })
-
-    it('flag on: an expired snooze re-asks', async () => {
-        mockIsPwaSunsetOn.mockReturnValue(true)
+    it('an expired snooze re-asks', async () => {
         const rendered = await renderInitialized()
         mockPrefs = { ...THIRD_SESSION, notifModalClosedAt: expiredSnooze() }
         await offer(HOME_FALLBACK)
@@ -170,8 +156,7 @@ describe('useNotifications dismissal / snooze logic', () => {
         expect(rendered.result.current.showPermissionModal).toBe(true)
     })
 
-    it('flag on: a fresh snooze stays closed', async () => {
-        mockIsPwaSunsetOn.mockReturnValue(true)
+    it('a fresh snooze stays closed', async () => {
         const rendered = await renderWithShowingBaseline()
 
         mockPrefs = { ...THIRD_SESSION, notifModalClosedAt: freshSnooze() }
@@ -243,7 +228,6 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         resetPushPromptForTests()
         mockPrefs = undefined
         mockUserId = 'user-1'
-        mockIsPwaSunsetOn.mockReturnValue(true)
         mockAdapter.getPermission.mockResolvedValue('default')
         mockAdapter.isOptedIn.mockResolvedValue(false)
         mockAdapter.requestPermission.mockResolvedValue('default')

@@ -4,7 +4,7 @@
 
 import { useNativePlatform } from '@/utils/native-platform'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { notFound, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
@@ -22,7 +22,7 @@ import {
     playStoreUrlWithReferrer,
     trackDeferredHandoffCreated,
 } from '@/utils/deferred-link'
-import { isPwaSunsetOn, storeForDevice, storeIcon, trackStoreClick } from '@/utils/migration.utils'
+import { storeForDevice, storeIcon, trackStoreClick } from '@/utils/migration.utils'
 import { captureSignupAttribution } from '@/utils/signup-attribution'
 import { parseMarketingQrHandoff } from '@/features/marketing-qr/contract'
 import { marketingQrAnalyticsAllowed } from '@/features/marketing-qr/consent'
@@ -38,14 +38,12 @@ export default function SmartStoreRedirect() {
     const [mounted, setMounted] = useState(false)
     const [payload, setPayload] = useState<string | null>(null)
     const [iosPayload, setIosPayload] = useState<string | null>(null)
-    const [marketingEntry, setMarketingEntry] = useState(false)
     useEffect(() => {
         setMounted(true)
         const search = window.location.search
         const parsed = parseDeferredPayload(search)
         const marketing = parseMarketingQrHandoff(new URLSearchParams(search))
         if (marketing && !isNativeBridge()) {
-            setMarketingEntry(true)
             if (marketing.analyticsAllowed && marketingQrAnalyticsAllowed()) {
                 try {
                     captureSignupAttribution()
@@ -79,9 +77,6 @@ export default function SmartStoreRedirect() {
     }, [router])
     const inNativeApp = mounted && nativePlatform.isNativeBridge
 
-    const migrationOn = mounted && isPwaSunsetOn()
-    const storeReady = migrationOn || (mounted && marketingEntry)
-
     const targetStore: StoreKind | null = mounted ? storeForDevice(deviceType) : null
 
     const storeHref = useCallback(
@@ -113,7 +108,7 @@ export default function SmartStoreRedirect() {
 
     const [redirecting, setRedirecting] = useState(false)
     useEffect(() => {
-        if (inNativeApp || !migrationOn || !targetStore) return
+        if (inNativeApp || !targetStore) return
         // iOS payloads need a clipboard write on tap. Android carries its payload in the URL.
         if (payload && targetStore === 'ios') return
         if (payload && targetStore === 'android') countHandoff('android')
@@ -122,11 +117,9 @@ export default function SmartStoreRedirect() {
         // Restore clickable buttons if the store does not open.
         const fallback = setTimeout(() => setRedirecting(false), 4000)
         return () => clearTimeout(fallback)
-    }, [inNativeApp, migrationOn, targetStore, payload, storeHref, countHandoff])
+    }, [inNativeApp, targetStore, payload, storeHref, countHandoff])
 
     if (inNativeApp) return <Loading variant="mascot" coverFullScreen />
-
-    if (mounted && !migrationOn && !marketingEntry) notFound()
 
     const stores: StoreKind[] = targetStore
         ? [targetStore, targetStore === 'ios' ? 'android' : 'ios']
@@ -138,14 +131,14 @@ export default function SmartStoreRedirect() {
             <section className="flex flex-1 flex-col justify-between p-6 pb-[calc(1.5rem_+_var(--safe-bottom))] md:w-1/2 md:justify-center md:gap-10">
                 <div className="mx-auto flex w-full max-w-md flex-col gap-3 md:text-center">
                     <h1 className="text-heading-m text-foreground-primary">{t('qr.title')}</h1>
-                    {storeReady && (
+                    {mounted && (
                         <p className="text-body-m text-foreground-secondary">
                             {redirecting ? t('smartLink.redirecting') : t('smartLink.pickStore')}
                         </p>
                     )}
                 </div>
                 <div className="mx-auto flex w-full max-w-md flex-col gap-4 md:max-w-xs">
-                    {storeReady ? (
+                    {mounted ? (
                         stores.map((s, i) => (
                             <Button
                                 key={s}

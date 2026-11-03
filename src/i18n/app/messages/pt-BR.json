@@ -881,7 +881,9 @@
         "loginFailed": "Não conseguimos fazer seu login. Tente de novo.",
         "landing": {
             "signUp": "Criar conta",
-            "recoverWallet": "Precisa recuperar uma conta Peanut?"
+            "recoverWallet": "Precisa recuperar uma conta Peanut?",
+            "testBuild": "Versão de teste",
+            "testSignUp": "Cadastre-se na web"
         },
         "loginRecovery": {
             "title": "Sua passkey pode estar no celular onde você criou sua conta",
@@ -3039,8 +3041,6 @@
         }
     },
     "notifications": {
-        "setupTitle": "Ativar as notificações?",
-        "setupDescription": "Ative as notificações e receba alertas de toda a atividade da sua carteira.",
         "migrationSetupTitle": "Receba alertas de dinheiro",
         "migrationSetupDescription": "Avisamos na hora quando o dinheiro chegar ou alguém pedir um pagamento.",
         "enable": "Ativar notificações",

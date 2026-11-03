@@ -18,10 +18,10 @@ import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import { LINK_BUTTON_CLASSES, LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useTranslations } from 'next-intl'
 import StoreButtons from '@/components/Migration/StoreButtons'
-import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { MIGRATION_SURFACES, TEST_WEB_SIGNUP } from '@/constants/migration.consts'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import Badge from '@/components/Global/Badges/Badge'
 import { isCapacitor } from '@/utils/capacitor'
 
 // One cancel is often deliberate. On iOS and the web a phone with no Peanut
@@ -35,14 +35,13 @@ const LandingStep = () => {
 
     const t = useTranslations('setup')
     const tMigration = useTranslations('migration')
-    const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
     const { deviceType } = useDeviceType()
 
-    // pwa-sunset on web (any device): NEW signups are app-only, so the app
-    // download leads and Log In drops to a text link for existing accounts.
-    // Native app and keep-web bypass users see the normal card.
-    const blockSignup = migrationOn && !nativePlatform.isCapacitor && !hasKeepWebBypass
+    // On the web NEW signups are app-only, so the app download leads and Log In
+    // drops to a text link for existing accounts. Native app and keep-web
+    // bypass users see the normal card.
+    const blockSignup = !nativePlatform.isCapacitor && !hasKeepWebBypass
     const { handleNext } = useSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
@@ -173,6 +172,15 @@ const LandingStep = () => {
                     </div>
                     {/* pt-1: two stacked text links need ~28px between their hit areas */}
                     <div className="pt-1 text-center">{recoveryLink}</div>
+                    {/* Not a product element: staging, previews and local builds only, so
+                        the team can still create web accounts. The dashed frame and badge
+                        keep it from reading as a real option in screenshots. */}
+                    {TEST_WEB_SIGNUP && (
+                        <div className="flex items-center justify-center gap-3 rounded-sm border-[1.5px] border-dashed border-border-default p-3">
+                            <Badge status="neutral" customText={t('landing.testBuild')} />
+                            <LinkButton onClick={onSignUpClick}>{t('landing.testSignUp')}</LinkButton>
+                        </div>
+                    )}
                 </div>
                 {recoveryDrawer}
             </>

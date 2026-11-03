@@ -17,7 +17,6 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
 import { HOME_FALLBACK_MIN_SESSION, PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
-import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 import { notificationsApi, toPushPermission } from '@/services/notifications'
 
@@ -199,7 +198,7 @@ function isPromptSnoozed(trigger: PushPromptTrigger, userId: string): boolean {
         closedAt = new Date().toISOString()
         updateUserPreferences(userId, { notifModalClosedAt: closedAt })
     }
-    return !!closedAt && (!isPwaSunsetOn() || isWithinSnooze(closedAt))
+    return !!closedAt && isWithinSnooze(closedAt)
 }
 
 /**

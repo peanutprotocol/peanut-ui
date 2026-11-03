@@ -2,11 +2,8 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
 /**
- * migration.utils — the pwa-sunset primitives.
- *
- * isPwaSunsetOn closes web signup, so its environments and overrides are
- * pinned here. The non-production localStorage override is what local e2e QA
- * rides on — a silent break there blinds every future QA round.
+ * migration.utils — the app-download primitives, and the build gate for the
+ * test-build web sign-up.
  */
 
 let mockIsCapacitor = false
@@ -15,15 +12,10 @@ jest.mock('@/utils/capacitor', () => ({
     openExternalUrl: jest.fn(),
 }))
 
-// the flag override is off only on the production domain; force the dev branch for the suite's default. Getters, so
-// the two cases that re-require the module under test can move them.
-let mockIsDev = true
+// a getter, so the TEST_WEB_SIGNUP cases that re-require the constants can move it
 let mockBaseUrl = 'http://localhost:3000'
 jest.mock('@/constants/general.consts', () => ({
     ...jest.requireActual('@/constants/general.consts'),
-    get IS_DEV() {
-        return mockIsDev
-    },
     get BASE_URL() {
         return mockBaseUrl
     },
@@ -45,14 +37,7 @@ jest.mock('@/utils/deferred-link', () => ({
 
 import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
 import { openExternalUrl } from '@/utils/capacitor'
-import {
-    isPwaSunsetOn,
-    onStoreAnchorClick,
-    openStore,
-    storeAnchorHref,
-    storeForDevice,
-    storeIcon,
-} from '@/utils/migration.utils'
+import { onStoreAnchorClick, openStore, storeAnchorHref, storeForDevice, storeIcon } from '@/utils/migration.utils'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 
 const mockOpenExternalUrl = openExternalUrl as jest.MockedFunction<typeof openExternalUrl>
@@ -60,82 +45,30 @@ const mockOpenExternalUrl = openExternalUrl as jest.MockedFunction<typeof openEx
 beforeEach(() => {
     localStorage.clear()
     mockIsCapacitor = false
-    delete process.env.NEXT_PUBLIC_VERCEL_ENV
-    delete process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF
 })
 
-describe('isPwaSunsetOn', () => {
-    // IS_PROD_DOMAIN is computed at module load, so a production build re-requires the module
-    function onProductionBuild(
-        read: (fresh: typeof import('@/utils/migration.utils')) => void,
-        baseUrl = 'https://peanut.me'
-    ) {
-        mockIsDev = false
+describe('TEST_WEB_SIGNUP', () => {
+    // read at module load, so each build re-requires the constants
+    function onBuild(baseUrl: string): boolean {
         mockBaseUrl = baseUrl
-        try {
-            jest.isolateModules(() => read(require('@/utils/migration.utils')))
-        } finally {
-            mockIsDev = true
-            mockBaseUrl = 'http://localhost:3000'
-        }
+        let value = false
+        jest.isolateModules(() => {
+            value = require('@/constants/migration.consts').TEST_WEB_SIGNUP
+        })
+        mockBaseUrl = 'http://localhost:3000'
+        return value
     }
 
-    // posthog-js is mocked without isFeatureEnabled: any flag read here would throw
-    it('closes web signup on peanut.me without asking PostHog', () => {
-        onProductionBuild((fresh) => expect(fresh.isPwaSunsetOn()).toBe(true))
+    it('never shows the test sign-up on peanut.me', () => {
+        expect(onBuild('https://peanut.me')).toBe(false)
     })
 
-    it('keeps web signup open on ad-hoc Vercel PR previews', () => {
-        process.env.NEXT_PUBLIC_VERCEL_ENV = 'preview'
-        process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF = 'feat/review-this-change'
-        onProductionBuild((fresh) => expect(fresh.isPwaSunsetOn()).toBe(false))
-    })
-
-    it('keeps web signup open on the dev branch staging deployment', () => {
-        process.env.NEXT_PUBLIC_VERCEL_ENV = 'preview'
-        process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF = 'dev'
-        onProductionBuild((fresh) => expect(fresh.isPwaSunsetOn()).toBe(false))
-    })
-
-    it('does not mistake local preview-mode fixture builds for Vercel PR previews', () => {
-        process.env.NEXT_PUBLIC_VERCEL_ENV = 'preview'
-        onProductionBuild((fresh) => expect(fresh.isPwaSunsetOn()).toBe(true))
-    })
-
-    it('keeps web signup open on local and CI builds by default', () => {
-        expect(isPwaSunsetOn()).toBe(false)
-    })
-
-    it('localStorage override closes it on local and CI builds', () => {
-        localStorage.setItem('pwa-sunset', 'true')
-        expect(isPwaSunsetOn()).toBe(true)
-    })
-
-    it('localStorage override closes it on a Vercel preview deployment', () => {
-        process.env.NEXT_PUBLIC_VERCEL_ENV = 'preview'
-        process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF = 'dev'
-        localStorage.setItem('pwa-sunset', 'true')
-        expect(isPwaSunsetOn()).toBe(true)
-    })
-
-    /*
-     * The e2e layout gate runs against `next start`, where NODE_ENV is
-     * 'production', so the override is scoped to the domain: a CI build
-     * honours it and peanut.me cannot be opened with it.
-     */
-    it('a production build off peanut.me honours the override', () => {
-        localStorage.setItem('pwa-sunset', 'true')
-        onProductionBuild((fresh) => expect(fresh.isPwaSunsetOn()).toBe(true), 'http://127.0.0.1:3080')
-    })
-
-    it('no localStorage value reopens web signup on peanut.me', () => {
-        localStorage.setItem('pwa-sunset', 'false')
-        onProductionBuild((fresh) => expect(fresh.isPwaSunsetOn()).toBe(true))
-    })
-
-    it('ignores non-"true" override values', () => {
-        localStorage.setItem('pwa-sunset', 'false')
-        expect(isPwaSunsetOn()).toBe(false)
+    it.each([
+        'https://staging.peanut.me',
+        'https://peanut-wallet-git-x-squirrellabs.vercel.app',
+        'http://localhost:3000',
+    ])('shows it on %s', (baseUrl) => {
+        expect(onBuild(baseUrl)).toBe(true)
     })
 })
 

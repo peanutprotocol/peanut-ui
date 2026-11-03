@@ -31,8 +31,6 @@ export const FLAG_DEFAULTS = {
     'card-promotion-disabled': false,
     // The homepage card fold stays visible: the flag only mutes promotion.
     'landing-card-fold-disabled': false,
-    // KYC stays available: an unanswered PostHog must not tell every user verification is down.
-    'kyc-verification-down': false,
     // Add-to-wallet is a card rollout gate: hidden until PostHog answers "on". The API gates it too.
     'push-provisioning-apple': false,
     'push-provisioning-google': false,

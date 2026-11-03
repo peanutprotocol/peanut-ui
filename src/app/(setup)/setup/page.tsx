@@ -15,14 +15,10 @@ import { readInviteCode, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
-import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
-import { harnessPasskeyBypass } from '@/constants/harness.consts'
-import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
-import { isPwaSunsetOn } from '@/utils/migration.utils'
+import { hasKeepWebCookie } from '@/utils/migration.utils'
 import { getStoredRedirect, getValidRedirectUrl, toInviteCode } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
-import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
@@ -123,9 +119,6 @@ function SetupPageContent() {
     const [isLoading, setIsLoading] = useState(true)
     const [initializationError, setInitializationError] = useState<string | null>(null)
     const initializationExpired = useRef(false)
-    const [showDeviceNotSupportedModal, setShowDeviceNotSupportedModal] = useState(false)
-    const [showBrowserNotSupportedModal, setShowBrowserNotSupportedModal] = useState(false)
-    const { deviceType: detectedDeviceType } = useDeviceType()
     // Warm the geo cache at entry, not when the residence step mounts: the
     // lookup is a network round trip, and asking for it three steps early is
     // what lets that select render its suggestion already filled in.
@@ -181,10 +174,7 @@ function SetupPageContent() {
 
     const recoveryReason = isLeavingForHome
         ? null
-        : (initializationError ??
-          (!isLoading && sessionChecked && !step && !showDeviceNotSupportedModal && !showBrowserNotSupportedModal
-              ? 'missing_step'
-              : null))
+        : (initializationError ?? (!isLoading && sessionChecked && !step ? 'missing_step' : null))
 
     useEffect(() => {
         if (!recoveryReason) return
@@ -212,15 +202,8 @@ function SetupPageContent() {
         return () => clearTimeout(timeout)
     }, [isLoading, sessionChecked, initializationError, isLeavingForHome])
 
-    // Only count steps that actually render, not while the entry step is being
-    // determined or behind unsupported-device/browser modals.
-    const stepRendered =
-        !!step &&
-        !recoveryReason &&
-        !isLoading &&
-        sessionChecked &&
-        !showDeviceNotSupportedModal &&
-        !showBrowserNotSupportedModal
+    // Only count steps that actually render, not while the entry step is being determined.
+    const stepRendered = !!step && !recoveryReason && !isLoading && sessionChecked
 
     // Registration happens on the username step and is irreversible: every
     // later step locks the way back at the first step after it, while the steps
@@ -442,11 +425,12 @@ function SetupPageContent() {
                 stashInvite(toInviteCode(codeFromUrl), EInviteType.DIRECT)
             }
             const userInviteCode = readInviteCode()
-            // During the native-app cutover, web signups are closed (Landing hides
-            // Sign up), so the ?step=signup / invite-code jump must not skip
+            // Web signup is closed (Landing hides Sign up), so the
+            // ?step=signup / invite-code jump must not skip
             // past the landing gate — otherwise claim/invite links deep-link
-            // straight into the signup form. Native app keeps the fast path.
-            const webSignupClosed = isPwaSunsetOn() && !isCapacitor()
+            // straight into the signup form. Native app and support's keep-web
+            // browsers keep the fast path.
+            const webSignupClosed = !isCapacitor() && !hasKeepWebCookie()
             const entryInput = {
                 hasInviteCode: !!userInviteCode,
                 stepParam: legacyStepParam,
@@ -454,104 +438,15 @@ function SetupPageContent() {
                 knownDevice: hasKnownDeviceCredentials(),
             }
 
-            const localDeviceType = detectedDeviceType
-
-            // The web-signup sunset is a product-access decision, not a
-            // capability check. Resolve it before legacy passkey, OS, and
-            // webview gates so every browser can reach Landing's Log In and
-            // native-store actions, including devices that cannot onboard.
-            if (webSignupClosed) {
-                const targetStep = entryScreen(resolveSetupEntryStep(entryInput))
-                if (!steps.some((s) => s.screenId === targetStep)) throw new Error('Setup entry step is missing')
-                resolvedEntry.current = entryKey
-                setScreenIdRef.current(targetStep, { history: 'replace' })
-                setIsLoading(false)
-                return
-            }
-
-            // In Capacitor, passkeys are handled natively. Skip browser, webview, and OS checks.
-            if (isCapacitor()) {
-                const targetStep = entryScreen(resolveSetupEntryStep(entryInput))
-                // replace, not push: the entry step overwrites any stale
-                // ?screen= from a reload or shared link — the URL is only the
-                // source of truth for IN-FLOW navigation (TASK-21460)
-                if (!steps.some((s) => s.screenId === targetStep)) throw new Error('Setup entry step is missing')
-                resolvedEntry.current = entryKey
-                setScreenIdRef.current(targetStep, { history: 'replace' })
-                setIsLoading(false)
-                return
-            }
-
-            // check if device has a platform authenticator (biometric/pin).
-            // capacitor already returned above — this only runs on web.
-            // The harness browser has no authenticator and signs with its own
-            // key, so the probe there only walls the QA run off its first
-            // screen. Production has neither harness signal.
-            let passkeySupport = true
-            if (!harnessPasskeyBypass()) {
-                try {
-                    if (PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) {
-                        passkeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-                    }
-                } catch (e) {
-                    passkeySupport = false
-                    console.error('Error checking passkey support:', e)
-                }
-            }
-
-            if (isObsolete()) return
-
-            const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
-            const osSupportedByVersion = isDeviceOsSupported(ua)
-            const webviewByUASignature = isLikelyWebview() // initial webview check based on ua signatures
-
-            // webview detection: if it's an ios device, looks like safari, lacks passkey support,
-            // and wasn't caught by signatures, it's likely a restricted webview (e.g., telegram)
-            let effectiveCurrentlyInWebview = webviewByUASignature
-            if (localDeviceType === 'ios' && /Safari/.test(ua) && !passkeySupport && !webviewByUASignature) {
-                effectiveCurrentlyInWebview = true
-                console.warn(
-                    'INFO: Detected likely iOS webview (Safari-like UA, no passkey support, not caught by signatures).'
-                )
-            }
-
-            let determinedSetupInitialStepId: ScreenId | undefined = undefined
-
-            // main decision logic for showing modals or proceeding with setup
-            if (effectiveCurrentlyInWebview) {
-                // If a webview does not support passkeys, show the unsupported browser modal.
-                if (!passkeySupport) {
-                    setShowBrowserNotSupportedModal(true)
-                    setIsLoading(false)
-                    return
-                }
-            } else {
-                // not in an effective webview
-                if (!osSupportedByVersion) {
-                    // if os version is too old, show device not supported modal
-                    setShowDeviceNotSupportedModal(true)
-                    setIsLoading(false)
-                    return
-                } else if (!passkeySupport) {
-                    // if os is fine but passkeys are still not supported (e.g., old browser on supported os),
-                    // show device not supported modal
-                    setShowDeviceNotSupportedModal(true)
-                    setIsLoading(false)
-                    return
-                }
-            }
-
-            // if no modal was triggered, proceed to determine actual setup step
-            determinedSetupInitialStepId = entryScreen(resolveSetupEntryStep(entryInput))
-
-            // Entry always REPLACES — a stale ?screen= must never survive a
-            // fresh load into a step whose prerequisite state is gone.
-            if (!determinedSetupInitialStepId || !steps.some((s) => s.screenId === determinedSetupInitialStepId)) {
-                throw new Error('Setup entry step is missing')
-            }
+            // Web signup is a product-access decision, not a capability check:
+            // every browser reaches Landing's Log In and store actions, and native
+            // handles passkeys itself. replace, not push: the entry step overwrites
+            // any stale ?screen= from a reload or shared link — the URL is only the
+            // source of truth for IN-FLOW navigation (TASK-21460)
+            const targetStep = entryScreen(resolveSetupEntryStep(entryInput))
+            if (!steps.some((s) => s.screenId === targetStep)) throw new Error('Setup entry step is missing')
             resolvedEntry.current = entryKey
-            setScreenIdRef.current(determinedSetupInitialStepId, { history: 'replace' })
-
+            setScreenIdRef.current(targetStep, { history: 'replace' })
             setIsLoading(false)
         }
 
@@ -587,10 +482,6 @@ function SetupPageContent() {
                 <Loading variant="mascot" />
             </div>
         )
-
-    if (showBrowserNotSupportedModal || showDeviceNotSupportedModal) {
-        return <UnsupportedBrowserModal visible={true} allowClose={false} />
-    }
 
     if (!step) return null
 
