@@ -5,7 +5,7 @@ import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import type { ZoneSurfaceProps } from '../../types'
 
-/** One passkey backs the account: the backup page adds a second one. */
+/** One passkey backs the account: the backup page guides turning on passkey sync. */
 export default function BackupPasskeyCard({ onDismissed }: ZoneSurfaceProps) {
     const t = useAppTranslations('home.carousel')
     const router = useRouter()
