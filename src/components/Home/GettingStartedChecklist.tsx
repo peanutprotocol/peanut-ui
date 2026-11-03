@@ -39,6 +39,8 @@ interface ChecklistItem {
     needsAction?: boolean
     /** the row holds its place while its content is unknown (card eligibility loading) */
     pending?: boolean
+    /** done and still tappable: the ID check opens its status, which names any follow-up a feature asks for */
+    opensWhenDone?: boolean
     onTap?: () => void
 }
 
@@ -81,7 +83,9 @@ const SubtitleSkeleton = () => (
  *
  * Every open row stays tappable, in any order: money can arrive before the ID
  * check. Every row has the same ListItem border (Hugo, 2026-09-25): the next
- * step shows only by its order and its chevron.
+ * step shows only by its order and its chevron. The done ID check stays
+ * tappable too: its status (/verify) names any document a feature still asks
+ * for, such as the card's proof of address.
  */
 const GettingStartedChecklist = ({
     onboarding,
@@ -142,15 +146,17 @@ const GettingStartedChecklist = ({
                 done: verify === 'done',
                 inReview: verify === 'in_review',
                 needsAction: verify === 'action_required',
+                opensWhenDone: true,
                 // a final decision has no step for the user (Home shows the
                 // support card instead of this list)
                 onTap:
                     verify === 'failed'
                         ? undefined
                         : tap('verify-identity', () => {
-                              if (verify === 'action_required' || verify === 'in_review') {
+                              if (verify === 'action_required' || verify === 'in_review' || verify === 'done') {
                                   // the check's own status: its fix (resubmit, or
-                                  // the email collision's way out), or "in review"
+                                  // the email collision's way out), "in review", or
+                                  // verified with what a feature still asks for (/verify)
                                   setIsStatusDrawerOpen(true)
                               } else {
                                   // the start picks the flow, then the residence (ActivationCTAs)
@@ -268,7 +274,7 @@ const GettingStartedChecklist = ({
                     </div>
                 </Card>
                 {visibleItems.map((item) => {
-                    const tappable = !item.done && !!item.onTap
+                    const tappable = (!item.done || !!item.opensWhenDone) && !!item.onTap
                     return (
                         <ListItem
                             key={item.id}

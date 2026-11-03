@@ -3924,7 +3924,14 @@
                 "done": "Listo",
                 "backHome": "Volver al inicio",
                 "setUpPayments": "Configurar pagos",
-                "verifiedNote": "Ahora elige cómo quieres pagar y recibir pagos."
+                "verifiedNote": "Ahora elige cómo quieres pagar y recibir pagos.",
+                "followUp": {
+                    "cardAddress": "Agrega un comprobante de domicilio",
+                    "cardIdentity": "Envía tu documento otra vez",
+                    "bankDocument": "Agrega un documento más",
+                    "bankTerms": "Acepta los términos de transferencias bancarias",
+                    "bankCheck": "Completa la verificación de transferencias bancarias"
+                }
             },
             "saved": {
                 "title": "¡Respuestas guardadas!",

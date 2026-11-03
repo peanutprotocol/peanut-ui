@@ -116,6 +116,16 @@ export function selectHomeTasks(
     }
 }
 
+/** Every step Home lists, in one list: /verify's verified screen shows them all and dismisses none. */
+export function selectVerifyTasks(
+    nextActions: NextAction[],
+    report: FeatureReport | undefined,
+    now: Date = new Date()
+): NextAction[] {
+    const { largeTasks, documentSlide } = selectHomeTasks(nextActions, report, now)
+    return documentSlide ? [...largeTasks, documentSlide] : largeTasks
+}
+
 const BRIDGE_DOCUMENT_TASK_PREFIX = 'bridge-document:'
 
 export const isBridgeDocumentTask = (task: NextAction): boolean => task.key.startsWith(BRIDGE_DOCUMENT_TASK_PREFIX)

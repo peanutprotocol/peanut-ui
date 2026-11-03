@@ -163,10 +163,14 @@ describe('GettingStartedChecklist', () => {
             expect(screen.queryByText('identity-status-drawer')).not.toBeInTheDocument()
         })
 
-        it('done: "ID verified", not tappable', () => {
+        // Staging, 2026-11-03: the card asked for a proof of address after the ID check passed,
+        // and the done row was the way back to the check's status, which names it.
+        it('done: "ID verified", and tapping it opens the check status, never a new check', () => {
             render({ verify: 'done', step: 'add_money' })
             expect(screen.getByText('ID verified')).toBeInTheDocument()
+            expect(screen.getByTestId('checklist-verify-identity')).toHaveAttribute('role', 'button')
             fireEvent.click(screen.getByText('Verify identity'))
+            expect(screen.getByText('identity-status-drawer')).toBeInTheDocument()
             expect(mockStartIdentityCheck).not.toHaveBeenCalled()
         })
     })
