@@ -211,7 +211,7 @@ describe('ResidenceStep', () => {
         mockSetupState.residenceCountry = 'PT'
         render(<ResidenceStep />)
         expect(screen.getByRole('heading')).toHaveTextContent(
-            /I’m a resident of\s*Portugal\s*and a national of\s*the same country/
+            /I’m a resident of\s*Portugal\s*and hold the nationality of\s*the same country/
         )
         expect(screen.getByTestId('setup-nationality-country')).toHaveAccessibleName(
             'What’s your nationality?: the same country, Portugal'

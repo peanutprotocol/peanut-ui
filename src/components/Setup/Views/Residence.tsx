@@ -21,7 +21,7 @@ import { useLocale, useTranslations } from 'next-intl'
 type PartialRestriction = 'card' | 'banking'
 
 /**
- * "I'm a resident of [country] and a national of [the same country]."
+ * "I'm a resident of [country] and hold the nationality of [the same country]."
  * A different nationality opens a second view that compares the two countries
  * and sets Peanut up for the one picked (prototype 01, Slava 2026-10-27).
  */
