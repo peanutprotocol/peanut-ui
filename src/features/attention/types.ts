@@ -94,6 +94,8 @@ export interface AskPolicy {
     surfaceWhen?: Partial<Record<Surface, (state: JourneyState) => boolean>>
     /** the to-do list: while live it holds Home, and only a strictly higher tier may overlay it */
     anchorsHome?: boolean
+    /** the interrupt may open over the to-do list anyway (its card still may not) */
+    overAnchor?: boolean
 }
 
 export interface AttentionAsk {

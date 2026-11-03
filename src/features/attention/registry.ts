@@ -217,6 +217,8 @@ export const pushHomeFallback: AttentionAsk = {
     policy: {
         minSessions: HOME_FALLBACK_MIN_SESSION,
         snoozeDays: 14,
+        // as before the manager, users still on the to-do list are asked too (Slava, 2026-11-03)
+        overAnchor: true,
         // completion is the permission itself; a stored dismissal (older builds acted on any answer) never silences it
         expiryDays: 0,
         // the OS dialog is one-shot: the pre-prompt only while it is unanswered; the card only where settings can be opened

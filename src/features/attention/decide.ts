@@ -178,7 +178,11 @@ export function decide(state: JourneyState, asks: readonly AttentionAsk[], ledge
             continue
         }
         const heldByAnchor =
-            !!anchor && session.route === 'home' && ask.surfaces.includes('interrupt') && ask.tier >= anchor.tier
+            !!anchor &&
+            session.route === 'home' &&
+            ask.surfaces.includes('interrupt') &&
+            ask.tier >= anchor.tier &&
+            !ask.policy.overAnchor
         const refusal = heldByAnchor
             ? 'held by the to-do list'
             : interruptRefusal(ask, sorted, verdicts, ledger, session, state, zoneIdle)
