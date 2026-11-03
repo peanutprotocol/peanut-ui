@@ -43,6 +43,23 @@ async function finishTransition() {
     }
 }
 
+it('can reuse the benefit layout without the language switcher', () => {
+    renderWithIntl(
+        <SetupWrapper
+            layoutType="signup"
+            screenId="advantage-bank"
+            image={{ pose: 'thinking' }}
+            title="Bank accounts"
+            showLanguageSwitcher={false}
+        >
+            <button>Continue</button>
+        </SetupWrapper>
+    )
+    expect(screen.getByTestId('card-illustration')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Language' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument()
+})
+
 it('slides the panels with only the incoming one accessible; the hero is not part of the slide', async () => {
     const view = renderWithIntl(
         <SetupWrapper layoutType="signup" screenId="advantage-card" image={{ pose: 'thinking' }} title="Pink card">

@@ -66,6 +66,8 @@ interface SetupWrapperProps {
     direction?: number
     fullScreen?: boolean
     showProgress?: boolean
+    /** In-app screens that reuse this layout outside sign-up pass false. */
+    showLanguageSwitcher?: boolean
 }
 
 // One hero height per viewport, the same on every step (`.setup-hero-height` in
@@ -383,6 +385,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     direction = 0,
     fullScreen: fullScreenProp = false,
     showProgress = true,
+    showLanguageSwitcher,
 }: SetupWrapperProps) {
     const nativePlatform = useNativePlatform()
 
@@ -466,7 +469,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                 showBackButton={showBackButton}
                 showSkipButton={showSkipButton}
                 // Hidden on a full-page step without progress (the celebration).
-                showLanguageSwitcher={!fullScreen || showProgress}
+                showLanguageSwitcher={showLanguageSwitcher ?? (!fullScreen || showProgress)}
                 onBack={onBack}
                 onSkip={onSkip}
             />
