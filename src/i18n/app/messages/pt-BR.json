@@ -3973,7 +3973,10 @@
                 "cta": "Escolher outro documento"
             },
             "taxWarning": "Não conseguimos verificar este número fiscal. Tem certeza de que está correto?",
-            "taxConfirm": "Confirmo"
+            "taxConfirm": "Confirmo",
+            "documentMismatch": {
+                "description": "Parece que você enviou um documento de um país diferente do que declarou. Veja o que cada um libera."
+            }
         }
     },
     "identity": {

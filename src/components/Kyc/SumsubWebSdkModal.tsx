@@ -26,6 +26,7 @@ export const SumsubWebSdkModal = ({
     onSubmitted,
     onError,
     onRefreshToken,
+    onIdentityStepCompleted,
     isMultiLevel,
 }: SumsubSdkProps) => {
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
@@ -42,6 +43,7 @@ export const SumsubWebSdkModal = ({
         onSubmitted,
         onError,
         onRefreshToken,
+        onIdentityStepCompleted,
         isMultiLevel,
     })
 

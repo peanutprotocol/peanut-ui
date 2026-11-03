@@ -8,11 +8,13 @@ import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { PaperworkVerificationQuestions } from '@/app/actions/types/kyc-paperwork-verification.types'
 import {
+    getIdentityDocumentMismatch,
     getKycQuestions,
     saveKycAnswers,
     skipProofOfAddress,
     startPaperworkVerificationIdentity,
 } from '@/app/actions/kyc-paperwork-verification'
+import { updateUserById } from '@/app/actions/users'
 import { findKycDocumentPlan, getKycDocumentStatus, refreshKycIdentityStatus } from '@/app/actions/kyc-workflow'
 import { KycFlowHandedBackError } from '@/app/actions/kyc-flow-hand-back'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
@@ -39,7 +41,10 @@ jest.mock('@/app/actions/kyc-paperwork-verification', () => ({
     saveKycAnswers: jest.fn(),
     startPaperworkVerificationIdentity: jest.fn(),
     skipProofOfAddress: jest.fn(async () => true),
+    getIdentityDocumentMismatch: jest.fn(async () => null),
 }))
+jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn(async () => ({})) }))
+jest.mock('@/hooks/useKycIntents', () => ({ useKycIntents: () => ({ intents: null, settled: true }) }))
 jest.mock('@/app/actions/kyc-workflow', () => ({
     refreshKycIdentityStatus: jest.fn(async () => undefined),
     findKycDocumentPlan: jest.fn(),
@@ -62,8 +67,21 @@ jest.mock('@/features/paperwork-verification/components/VerifySetupPrelude', () 
     ),
 }))
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
-    SumsubKycWrapper: ({ visible, onComplete }: { visible: boolean; onComplete: () => void }) =>
-        visible ? <button onClick={onComplete}>sumsub-submit</button> : null,
+    SumsubKycWrapper: ({
+        visible,
+        onComplete,
+        onIdentityStepCompleted,
+    }: {
+        visible: boolean
+        onComplete: () => void
+        onIdentityStepCompleted?: () => void
+    }) =>
+        visible ? (
+            <>
+                <button onClick={onComplete}>sumsub-submit</button>
+                <button onClick={() => onIdentityStepCompleted?.()}>sumsub-id-step-done</button>
+            </>
+        ) : null,
 }))
 
 const mockQuestions = getKycQuestions as jest.MockedFunction<typeof getKycQuestions>
@@ -72,6 +90,8 @@ const mockToken = startPaperworkVerificationIdentity as jest.MockedFunction<type
 const mockPlan = findKycDocumentPlan as jest.MockedFunction<typeof findKycDocumentPlan>
 const mockStatus = getKycDocumentStatus as jest.MockedFunction<typeof getKycDocumentStatus>
 const mockRefresh = refreshKycIdentityStatus as jest.MockedFunction<typeof refreshKycIdentityStatus>
+const mockMismatch = getIdentityDocumentMismatch as jest.MockedFunction<typeof getIdentityDocumentMismatch>
+const mockUpdateUser = updateUserById as jest.MockedFunction<typeof updateUserById>
 
 const plan = {
     available: true,
@@ -516,6 +536,67 @@ describe('PaperworkVerificationFlow', () => {
         await waitFor(() => expect(mockRefresh).toHaveBeenCalled())
         fireEvent.click(screen.getByTestId('verify-review-home'))
         expect(mockPush).toHaveBeenCalledWith('/home')
+    })
+
+    describe("an ID Sumsub reads as another country's", () => {
+        const openSumsubOnPassport = async () => {
+            mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+            mockToken.mockResolvedValue({
+                kind: 'session',
+                session: {
+                    attemptId: 'attempt-1',
+                    token: 'tok',
+                    applicantId: 'app',
+                    levelName: 'base',
+                    sdkConfig: {
+                        documentDefinitions: { IDENTITY: { country: 'USA', idDocType: 'PASSPORT' } },
+                        autoSelectDocumentDefinitions: true,
+                    },
+                } as never,
+            })
+            await startFlow()
+            fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
+            fireEvent.click(await screen.findByText('sumsub-id-step-done'))
+        }
+        const mismatchCopy = /It seems like you submitted a document from a different country/
+
+        it('closes Sumsub before the selfie and asks which country the profile belongs to', async () => {
+            mockMismatch.mockResolvedValue({ picked: 'US', recognised: 'UA' })
+            await openSumsubOnPassport()
+            expect(await screen.findByText(mismatchCopy)).toBeInTheDocument()
+            expect(mockMismatch).toHaveBeenCalledWith('attempt-1')
+            expect(screen.queryByText('sumsub-submit')).not.toBeInTheDocument()
+            expect(screen.getByTestId('setup-residence-select-US')).toBeInTheDocument()
+            expect(screen.getByTestId('setup-residence-select-UA')).toBeInTheDocument()
+        })
+
+        it('keeping the declared country goes back to the document choice', async () => {
+            mockMismatch.mockResolvedValue({ picked: 'US', recognised: 'UA' })
+            await openSumsubOnPassport()
+            fireEvent.click(await screen.findByTestId('setup-residence-select-US'))
+            expect(await screen.findByTestId('verify-id-option-PASSPORT-US')).toBeInTheDocument()
+            expect(mockUpdateUser).not.toHaveBeenCalled()
+        })
+
+        it("choosing the document's country makes it the residence and reads the questions again", async () => {
+            mockMismatch.mockResolvedValue({ picked: 'US', recognised: 'UA' })
+            await openSumsubOnPassport()
+            const reads = mockQuestions.mock.calls.length
+            fireEvent.click(await screen.findByTestId('setup-residence-select-UA'))
+            await waitFor(() =>
+                expect(mockUpdateUser).toHaveBeenCalledWith({ userId: 'user-a', residenceCountry: 'UA' })
+            )
+            await waitFor(() => expect(mockQuestions.mock.calls.length).toBeGreaterThan(reads))
+            await waitFor(() => expect(screen.queryByText(mismatchCopy)).not.toBeInTheDocument())
+        })
+
+        it('an ID from the picked country leaves Sumsub open', async () => {
+            mockMismatch.mockResolvedValue(null)
+            await openSumsubOnPassport()
+            await waitFor(() => expect(mockMismatch).toHaveBeenCalledWith('attempt-1'))
+            expect(screen.getByText('sumsub-submit')).toBeInTheDocument()
+            expect(screen.queryByText(mismatchCopy)).not.toBeInTheDocument()
+        })
     })
 
     // Slava, 2026-10-27: back from Home after the selfie, Verify restarted the questions and the ID.

@@ -3973,7 +3973,10 @@
                 "cta": "Choose another document"
             },
             "taxWarning": "We couldn’t verify this tax number. Are you sure it’s correct?",
-            "taxConfirm": "I confirm"
+            "taxConfirm": "I confirm",
+            "documentMismatch": {
+                "description": "It seems like you submitted a document from a different country than the one you declared. Here’s what each country unlocks."
+            }
         }
     },
     "identity": {
