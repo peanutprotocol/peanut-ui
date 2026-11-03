@@ -5,6 +5,12 @@ import { act, renderHook } from '@testing-library/react'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rainApi } from '@/services/rain'
 import { useCardFlow } from '../useCardFlow'
+import { activateKycFeature } from '@/app/actions/kyc-feature-activation'
+import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import type { RailCapability } from '@/types/capabilities'
+
+jest.mock('@/app/actions/kyc-feature-activation', () => ({ activateKycFeature: jest.fn() }))
 
 const mockCapture = jest.fn()
 let mockFunded = true
@@ -12,8 +18,31 @@ let mockBalance: bigint | undefined = 10_000_000n
 let mockState = 'add-card'
 let mockOverview: Record<string, unknown> | undefined
 let mockOverviewLoading = false
-let mockUser: { user: { userId: string } } | null = { user: { userId: 'user-1' } }
+let mockUser: { user: { userId: string }; identityVerification?: { oneShot: boolean } } | null = {
+    user: { userId: 'user-1' },
+}
 let mockRainRails: Array<{ id: string; reason?: { code: string; userMessage: string } }> = []
+const mockFetchUser = jest.fn()
+let mockCardPlanReason: string | undefined
+const mockCapabilities = () =>
+    withFeatureReport(
+        {
+            rails: mockRainRails.map(
+                (rail) =>
+                    ({
+                        provider: 'rain',
+                        method: 'CARD_RAIN',
+                        channel: 'card',
+                        country: 'GLOBAL',
+                        currency: 'USD',
+                        status: 'requires-info',
+                        ...rail,
+                    }) as RailCapability
+            ),
+            nextActions: [],
+        },
+        { identity: { status: 'verified' }, planReasons: { rain: mockCardPlanReason } }
+    )
 const mockInvalidateQueries = jest.fn()
 let mockUserFetching = 0
 const mockQueryClient = {
@@ -22,8 +51,10 @@ const mockQueryClient = {
     setQueryData: jest.fn(),
 }
 
+const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({
     notFound: jest.fn(),
+    useRouter: () => ({ push: mockRouterPush }),
 }))
 jest.mock('@tanstack/react-query', () => ({
     useQuery: () => ({ data: undefined, isLoading: false, error: null, refetch: jest.fn() }),
@@ -53,7 +84,14 @@ jest.mock('@/services/consent', () => ({
     cardConsentDocuments: jest.fn(() => []),
 }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: mockUser, fetchUser: jest.fn() }),
+    useAuth: () => ({
+        user: mockUser && {
+            ...mockUser,
+            identityVerification: { status: 'verified', ...mockUser.identityVerification },
+            capabilities: mockCapabilities(),
+        },
+        fetchUser: mockFetchUser,
+    }),
 }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
@@ -83,6 +121,7 @@ jest.mock('@/hooks/useZeroDev', () => ({
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
+        capabilities: mockCapabilities(),
         railsForProvider: (provider: string) => (provider === 'rain' ? mockRainRails : []),
         nextActionsForRail: () => [],
         isLoading: false,
@@ -100,12 +139,17 @@ jest.mock('@/hooks/useSafeBack', () => ({
 jest.mock('@/hooks/useSumsubReloadResume', () => ({
     useSumsubReloadResume: jest.fn(),
 }))
+const mockStartAction = jest.fn()
+jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
+    useMultiPhaseKycFlow: () => ({ handleStartAction: mockStartAction }),
+}))
 
 const mockApplyForCard = rainApi.applyForCard as jest.Mock
 const mockGetFundingAccess = rainApi.getFundingAccess as jest.Mock
 
 beforeEach(() => {
     mockAddress = '0xA'
+    mockCardPlanReason = undefined
 })
 
 describe('useCardFlow', () => {
@@ -121,6 +165,46 @@ describe('useCardFlow', () => {
         mockUser = { user: { userId: 'user-1' } }
         mockRainRails = []
         window.localStorage.clear()
+    })
+
+    it.each(['document_country_unsupported', 'identity_document_insufficient'])(
+        'reads reported %s without applying and Back dismisses it only for this visit',
+        (reason) => {
+            mockCardPlanReason = reason
+            expect(mockCapabilities().features?.card).toMatchObject({ state: 'refused', reason })
+            const { result, rerender, unmount } = renderHook(() => useCardFlow())
+
+            expect(result.current.planRefusal).toBe(reason)
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+            act(() => result.current.setPlanRefusal(null))
+            expect(result.current.planRefusal).toBeNull()
+            rerender()
+            expect(result.current.planRefusal).toBeNull()
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+
+            unmount()
+            const nextVisit = renderHook(() => useCardFlow())
+            expect(nextVisit.result.current.planRefusal).toBe(reason)
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+        }
+    )
+
+    // the API refuses a legacy applicant to a Smart Paperwork Verification user
+    it('an application the API sends to /verify goes there, never to an error or the legacy check', async () => {
+        const { ApiError } = jest.requireActual('@/services/api-error')
+        mockOverview = { status: { hasApplication: false }, cards: [] }
+        mockApplyForCard.mockRejectedValue(
+            new ApiError('Answer a few questions to start your verification.', {
+                status: 409,
+                code: 'paperwork_verification_required',
+            })
+        )
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(mockRouterPush).toHaveBeenCalledWith('/verify')
+        expect(result.current.applyError).toBeNull()
     })
 
     it('does not contact Rain before a confirmed $10 balance for a new application', async () => {
@@ -180,6 +264,34 @@ describe('useCardFlow', () => {
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
     })
 
+    it('asks the Smart Paperwork Verification card questions on questions-required, then applies again once they are saved', async () => {
+        mockApplyForCard.mockResolvedValueOnce({ status: 'questions-required', step: 'purpose' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(result.current.pendingQuestions).toBe('purpose')
+        expect(result.current.pendingTerms).toBeNull()
+
+        mockApplyForCard.mockResolvedValueOnce({ status: 'terms-required', isUsResident: true })
+        await act(async () => {
+            result.current.handleQuestionsDone()
+        })
+        expect(mockApplyForCard).toHaveBeenCalledTimes(2)
+        expect(mockApplyForCard).toHaveBeenLastCalledWith(expect.objectContaining({ termsAccepted: false }))
+        expect(result.current.pendingQuestions).toBeNull()
+        expect(result.current.pendingTerms).toEqual({ isUsResident: true })
+    })
+
+    it('asks the job again when Rain refused the title (questions-required at the work step)', async () => {
+        mockApplyForCard.mockResolvedValueOnce({ status: 'questions-required', step: 'work' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(result.current.pendingQuestions).toBe('work')
+    })
+
     it('routes terms-required to the terms screen', async () => {
         mockApplyForCard.mockResolvedValue({ status: 'terms-required', isUsResident: true })
         const { result } = renderHook(() => useCardFlow())
@@ -210,6 +322,50 @@ describe('useCardFlow', () => {
 
         expect(result.current.pendingResidenceBlocked).toBe(true)
         expect(result.current.geoBlocked).toBe(false)
+    })
+
+    describe('a card the plan does not send to Rain', () => {
+        const refused = (reason?: string) => ({
+            status: 'provider-not-in-plan',
+            ...(reason ? { reason } : {}),
+            message: 'The card is not part of your current verification.',
+        })
+
+        it('opens the missing requirement through start-action', async () => {
+            mockApplyForCard.mockResolvedValue(refused('requirements_missing'))
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleApply()
+            })
+            expect(mockStartAction).toHaveBeenCalledWith('supplement:rain')
+            expect(result.current.planRefusal).toBeNull()
+            expect(result.current.applyError).toBeNull()
+        })
+
+        it.each(['identity_document_insufficient', 'requirements_uncollectable'])(
+            'holds %s for the status screen instead of an English error',
+            async (reason) => {
+                mockApplyForCard.mockResolvedValue(refused(reason))
+                const { result } = renderHook(() => useCardFlow())
+                await act(async () => {
+                    await result.current.handleApply()
+                })
+                expect(result.current.planRefusal).toBe(reason)
+                expect(mockFetchUser).toHaveBeenCalledTimes(1)
+                expect(result.current.applyError).toBeNull()
+                expect(mockStartAction).not.toHaveBeenCalled()
+            }
+        )
+
+        it('keeps the error line for a refusal the app has no copy for', async () => {
+            mockApplyForCard.mockResolvedValue(refused('not_requested'))
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleApply()
+            })
+            expect(result.current.planRefusal).toBeNull()
+            expect(result.current.applyError).toBe('The card is not part of your current verification.')
+        })
     })
 
     it('surfaces an apply failure as applyError', async () => {
@@ -884,5 +1040,87 @@ describe('useCardFlow — balance known', () => {
         mockOverview = { ...mockOverview, balance: { spendingPower: 2500 }, balanceUnavailable: false }
         rerender()
         expect(result.current.isBalanceKnown).toBe(true)
+    })
+})
+
+describe('card first-use activation', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockUser = { user: { userId: 'user-1' }, identityVerification: { oneShot: true } }
+        mockFunded = true
+        mockBalance = 10_000_000n
+        mockOverview = { status: { hasApplication: false }, cards: [] }
+        mockOverviewLoading = false
+        mockState = 'add-card'
+        mockApplyForCard.mockResolvedValue({ status: 'terms-required', isUsResident: false })
+        jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'report', report: { state: 'on' } })
+    })
+
+    it('waits for activation before asking Rain, with duplicate clicks serialized', async () => {
+        let resolve!: (value: Awaited<ReturnType<typeof activateKycFeature>>) => void
+        jest.mocked(activateKycFeature).mockReturnValue(
+            new Promise((done) => {
+                resolve = done
+            })
+        )
+        const { result } = renderHook(() => useCardFlow())
+        let first!: Promise<void>
+        let second!: Promise<void>
+        act(() => {
+            first = result.current.handleApply()
+            second = result.current.handleApply()
+        })
+        expect(activateKycFeature).toHaveBeenCalledWith('card')
+        expect(mockApplyForCard).not.toHaveBeenCalled()
+        await act(async () => {
+            resolve({ kind: 'report', report: { state: 'on' } })
+            await Promise.all([first, second])
+        })
+        expect(mockApplyForCard).toHaveBeenCalledTimes(1)
+    })
+
+    it('legacy users apply without activation', async () => {
+        mockUser = { user: { userId: 'user-1' }, identityVerification: { oneShot: false } }
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(activateKycFeature).not.toHaveBeenCalled()
+        expect(mockApplyForCard).toHaveBeenCalledTimes(1)
+    })
+
+    it.each(['setting_up', 'pending'] as const)(
+        '%s keeps Rain untouched and exposes setup to CardPage',
+        async (state) => {
+            jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'report', report: { state } })
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleApply()
+            })
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+            expect(result.current.activation.allowed).toBe(false)
+            expect(result.current.activation.result).toEqual({ kind: 'report', report: { state } })
+        }
+    )
+
+    it('questions_missing routes to feature questions without applying', async () => {
+        jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'questions_missing', step: 'tax' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(mockRouterPush).toHaveBeenCalledWith('/verify?feature=card')
+        expect(mockApplyForCard).not.toHaveBeenCalled()
+    })
+
+    it('a cold interrupted KYC resume activates before any Rain request', async () => {
+        jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'report', report: { state: 'pending' } })
+        renderHook(() => useCardFlow())
+        const resume = jest.mocked(useSumsubReloadResume).mock.calls.at(-1)![1]
+        await act(async () => {
+            await resume({})
+        })
+        expect(activateKycFeature).toHaveBeenCalledWith('card')
+        expect(mockApplyForCard).not.toHaveBeenCalled()
     })
 })

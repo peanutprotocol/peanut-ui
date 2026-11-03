@@ -1,3 +1,6 @@
+import { NextIntlClientProvider } from 'next-intl'
+import { APP_LOCALES } from '@/i18n/app/config'
+import { loadMessages } from '@/i18n/app/messages'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { ProfileEditView } from '../ProfileEdit.view'
@@ -91,16 +94,29 @@ test('shows the committed replacement when the old native support session cannot
     )
 })
 
-test('verified names explain the lock while an unverified name can be saved', async () => {
-    const view = renderWithIntl(<ProfileEditView />)
-    await change('Name', 'New')
-    save()
-    await waitFor(() => expect(updateUserById).toHaveBeenCalledWith({ userId: 'test-user', fullName: 'New User' }))
-    mockVerified = true
-    view.rerender(<ProfileEditView />)
+test.each([false, true])('all names are owned by identity verification with verified=%s', async (verified) => {
+    mockVerified = verified
+    renderWithIntl(<ProfileEditView />)
     expect(screen.getByLabelText('Name')).toBeDisabled()
     expect(screen.getByLabelText('Surname')).toBeDisabled()
     expect(screen.getByText(/Your name comes from your identity verification/)).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
+
+    // A synthetic change event must not sneak a typed name into an otherwise
+    // legitimate email save, even before the user has verified an identity.
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Typed' } })
+    fireEvent.change(screen.getByLabelText('Surname'), { target: { value: 'Replacement' } })
+    await change('Email for notifications', 'new@example.com')
+    save()
+    await verify()
+    await waitFor(() =>
+        expect(updateUserById).toHaveBeenCalledWith({
+            userId: 'test-user',
+            email: 'new@example.com',
+            emailVerificationCode: '123456',
+        })
+    )
+    expect(jest.mocked(updateUserById).mock.calls[0][0]).not.toHaveProperty('fullName')
 })
 
 test.each(['', 'invalid', 'a@'])('rejects invalid changed email %s inline', async (email) => {
@@ -111,12 +127,12 @@ test.each(['', 'invalid', 'a@'])('rejects invalid changed email %s inline', asyn
     expect(updateUserById).not.toHaveBeenCalled()
 })
 
-test('rejects an empty changed name', async () => {
+test('a user without a name still sees locked identity-owned name fields', () => {
+    mockUser!.user.fullName = ''
     renderWithIntl(<ProfileEditView />)
-    await change('Name', ' ')
-    save()
-    expect(await screen.findByText('Please provide your name.')).toBeVisible()
-    expect(updateUserById).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Name')).toBeDisabled()
+    expect(screen.getByLabelText('Surname')).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
 })
 
 test('email-only save does not require a missing name', async () => {
@@ -246,4 +262,35 @@ test('changing the pending mailbox requires a new code', async () => {
     save()
     await waitFor(() => expect(requestEmailChange).toHaveBeenLastCalledWith('second@example.com'))
     expect(updateUserById).not.toHaveBeenCalled()
+})
+
+test.each(APP_LOCALES)('PROFILE_NAME_READ_ONLY is localized in the resolved %s catalog', async (locale) => {
+    const messages = await loadMessages(locale)
+    const expected = (
+        messages as unknown as {
+            profile: { edit: { errors: { nameReadOnly: string } } }
+        }
+    ).profile.edit.errors.nameReadOnly
+    const serverCopy = 'Your name was not saved. Names are managed through identity verification.'
+    expect(typeof expected).toBe('string')
+    expect(expected.length).toBeGreaterThan(0)
+    if (locale !== 'en') expect(expected).not.toBe(serverCopy)
+    jest.mocked(updateUserById).mockResolvedValue({ error: serverCopy, code: 'PROFILE_NAME_READ_ONLY' })
+    // A first email needs no verification step and exercises the shared save error.
+    mockUser!.user.email = ''
+    renderWithIntl(
+        <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+            <ProfileEditView />
+        </NextIntlClientProvider>
+    )
+    await act(async () => {
+        fireEvent.change(screen.getByLabelText(messages.profile.edit.fields.email), {
+            target: { value: 'new@example.com' },
+        })
+    })
+    fireEvent.click(screen.getByRole('button', { name: messages.profile.edit.saveChanges }))
+    expect(await screen.findByText(expected)).toBeVisible()
+    expect(screen.queryByText('PROFILE_NAME_READ_ONLY')).not.toBeInTheDocument()
+    if (locale !== 'en') expect(screen.queryByText(serverCopy)).not.toBeInTheDocument()
+    expect(mockReplace).not.toHaveBeenCalled()
 })

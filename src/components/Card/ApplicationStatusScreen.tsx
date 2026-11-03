@@ -9,9 +9,11 @@ import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { DocumentRequestState } from '@/components/Kyc/DocumentRequestState'
 
 type Variant =
     | 'pending'
+    | 'pending-identity'
     | 'manual-review'
     | 'requires-info'
     | 'requires-support'
@@ -52,6 +54,7 @@ interface Props {
 // reassurance and no support CTA.
 const COPY_KEYS = {
     pending: { title: 'status.pendingTitle', body: 'status.pendingBody' },
+    'pending-identity': { title: 'status.pendingTitle', body: 'status.pendingIdentityBody' },
     'manual-review': { title: 'status.manualReviewTitle', body: 'status.manualReviewBody' },
     'requires-info': { title: 'status.requiresInfoTitle', body: 'status.requiresInfoBody' },
     'requires-support': { title: 'status.requiresSupportTitle', body: 'status.requiresSupportBody' },
@@ -62,6 +65,14 @@ const COPY_KEYS = {
         body: 'status.pendingResidenceBlockedBody',
     },
 } as const satisfies Record<Variant, { title: string; body: string }>
+
+/** A collected proof of address on its way to, or with, the card partner: nothing for the user to do. */
+const AWAITING_DOCUMENT_REVIEW: ReadonlySet<string> = new Set([
+    'proof_of_address_received',
+    'proof_of_address_review',
+    'identity_verification_received',
+    'identity_verification_review',
+])
 
 export type InformationKind = 'taxId' | 'birthDate'
 type SelfServeKind = 'proofOfAddress' | 'identity' | InformationKind
@@ -91,7 +102,7 @@ const SUPPORT_VARIANTS: ReadonlySet<Variant> = new Set(['requires-info', 'requir
  * the full list is published. Mirrors CardTermsScreen's absolute-URL pattern.
  */
 const PROHIBITED_ACTIVITIES_POLICY_URL = 'https://peanut.me/en/card-prohibited-activities'
-const RESIDENCE_CHANGE_URL = '/profile/payments?open=residence'
+const RESIDENCE_CHANGE_URL = '/profile?open=residence'
 
 const ApplicationStatusScreen: FC<Props> = ({
     variant,
@@ -125,13 +136,40 @@ const ApplicationStatusScreen: FC<Props> = ({
             selfServeAction = informationActions[0]
         }
     }
+    // requires-info's default body points at support; the step on screen, or a wait, is the way forward instead
     const bodyKey =
-        variant === 'requires-info' && selfServeAction ? REQUIRES_INFO_BODY_KEYS[selfServeAction.kind] : copyKeys.body
+        variant !== 'requires-info'
+            ? copyKeys.body
+            : selfServeAction
+              ? REQUIRES_INFO_BODY_KEYS[selfServeAction.kind]
+              : reasonCode && AWAITING_DOCUMENT_REVIEW.has(reasonCode)
+                ? 'status.requiresInfoWaitBody'
+                : copyKeys.body
+    // A document Rain asks for gets the one document-request look the Add money screens share.
+    if (
+        variant === 'requires-info' &&
+        (selfServeAction?.kind === 'proofOfAddress' || selfServeAction?.kind === 'identity')
+    )
+        return (
+            <PageStack>
+                <NavHeader title={t('navAddCard')} onPrev={onPrev} />
+                <PageStack.Center>
+                    <DocumentRequestState
+                        reason={reasonText}
+                        body={t(bodyKey)}
+                        ctaLabel={selfServeAction.label}
+                        onCta={selfServeAction.onClick}
+                        error={uploadError}
+                        onContactSupport={onContactSupport}
+                    />
+                </PageStack.Center>
+            </PageStack>
+        )
     return (
         <PageStack>
             <NavHeader title={t('navAddCard')} onPrev={onPrev} />
             <div className="my-auto flex flex-col items-center gap-6 text-center">
-                {variant === 'pending' && <Loading />}
+                {(variant === 'pending' || variant === 'pending-identity') && <Loading />}
                 {(variant === 'rejected' || variant === 'requires-support' || variant === 'geo-blocked') && (
                     <PeanutMascot
                         pose="worried"

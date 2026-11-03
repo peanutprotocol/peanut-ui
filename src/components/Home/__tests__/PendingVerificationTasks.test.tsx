@@ -4,9 +4,8 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * PendingVerificationTasks — the Home card mirroring Bridge's "additional
  * verification needed" dashboard state.
  *
- * Reads top-level capability nextActions (not rail gates) so it catches both
- * blocking tasks and advisory orphans (future-dated tasks on fully-enabled
- * users, which no rail references). accept-tos routes into the existing
+ * Reads the feature report's named nextActions, including blocking tasks and
+ * future-dated requests on fully enabled accounts. accept-tos routes into the existing
  * BridgeTosStep (its compliance.bridge.xyz link frames fine); bridge-hosted
  * routes to the additional-verification screen, which owns the prep copy and
  * the handoff to Persona (see AdditionalVerificationView). The ToS modal is
@@ -19,19 +18,59 @@ import { renderWithIntl as render } from '@/test-utils/intl'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 import PendingVerificationTasks from '../PendingVerificationTasks'
 import { formatEffectiveDate } from '@/utils/format.utils'
+import en from '@/i18n/app/messages/en.json'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 
 let mockNextActions: NextAction[] = []
 let mockRails: RailCapability[] = []
+// A task-only fixture states the API's account answers explicitly. Rail-based
+// fixtures use the report helper, with the resolver's named action attached.
+const mockCapabilities = () => {
+    const rails = mockRails.map((rail) => ({
+        ...rail,
+        ...(rail.status === 'requires-info' && !rail.resolved
+            ? {
+                  resolved: {
+                      status: 'fixable' as const,
+                      nextAction: mockNextActions.find((action) => rail.blockingActions?.includes(action.key)),
+                  },
+              }
+            : {}),
+    }))
+    const capabilities = withFeatureReport(
+        { rails, nextActions: mockNextActions },
+        { identity: { status: 'verified' } }
+    )
+    if (!mockRails.some((rail) => rail.provider === 'bridge')) {
+        const bankActions = mockNextActions.filter(
+            (action) => action.kind === 'accept-tos' || action.kind === 'bridge-hosted' || !!action.effectiveDate
+        )
+        capabilities.features!.bank.accounts = Object.fromEntries(
+            bankActions.map((action, index) => [
+                ['USD', 'EUR', 'GBP', 'MXN'][index],
+                { state: action.effectiveDate ? 'on' : 'action_required', action: action.key },
+            ])
+        )
+    }
+    return capabilities
+}
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
 let mockStoredDismissal: string[] | undefined
 const mockUpdatePreferences = jest.fn()
 
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ nextActions: mockNextActions, rails: mockRails }),
+    useCapabilities: () => ({ nextActions: mockNextActions, rails: mockRails, capabilities: mockCapabilities() }),
 }))
 let mockUserId = 'user-1'
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: mockUserId } }, fetchUser: mockFetchUser }),
+    useAuth: () => ({
+        user: {
+            user: { userId: mockUserId },
+            identityVerification: { status: 'verified' },
+            capabilities: mockCapabilities(),
+        },
+        fetchUser: mockFetchUser,
+    }),
 }))
 jest.mock('@/utils/general.utils', () => ({
     getUserPreferences: () => ({ pendingVerificationTasksDismissed: mockStoredDismissal }),
@@ -148,7 +187,7 @@ describe('PendingVerificationTasks', () => {
         mockNextActions = [hostedAction]
         render(<PendingVerificationTasks />)
 
-        fireEvent.click(screen.getByRole('button', { name: /complete verification/i }))
+        fireEvent.click(screen.getByRole('button', { name: /continue verification/i }))
         expect(mockRouterPush).toHaveBeenCalledWith('/profile/accounts/additional')
     })
 
@@ -442,5 +481,78 @@ describe('PendingVerificationTasks', () => {
             expect(screen.getByText('Accept updated bank transfer provider terms')).toBeInTheDocument()
             expect(screen.queryByRole('button', { name: /dismiss/i })).not.toBeInTheDocument()
         })
+    })
+})
+
+describe('PendingVerificationTasks — a card application waiting on a document', () => {
+    const cardRail = (blockingActions: string[]): RailCapability => ({
+        id: 'rain.card_rain',
+        provider: 'rain',
+        method: 'CARD_RAIN',
+        channel: 'card',
+        country: 'GLOBAL',
+        currency: 'USD',
+        status: 'requires-info',
+        blockingActions,
+    })
+    const rainPoa: NextAction = {
+        key: 'sumsub:proof_of_address',
+        kind: 'sumsub',
+        purpose: 'rain-card',
+        levelKey: 'proof_of_address',
+    }
+    const rainHosted: NextAction = { key: 'rain-hosted', kind: 'rain-hosted', purpose: 'rain-card' }
+
+    beforeEach(() => {
+        mockNextActions = []
+        mockRails = []
+        mockRouterPush.mockReset()
+        mockStoredDismissal = undefined
+        mockUserId = 'user-1'
+        mockHandleSelfHealResubmit.mockReset()
+        mockKycFlow = { isLoading: false, error: null, handleSelfHealResubmit: mockHandleSelfHealResubmit }
+    })
+
+    it('Home shows the proof-of-address ask in place of the carousel, and it opens the card screen', () => {
+        mockNextActions = [rainPoa]
+        mockRails = [cardRail([rainPoa.key])]
+        render(<PendingVerificationTasks placement="home" whenEmpty={carousel} />)
+
+        expect(screen.getByText(en.home.pendingTasks.cardDocumentTitle)).toBeInTheDocument()
+        expect(screen.getByText(en.home.pendingTasks.cardAddressDescription)).toBeInTheDocument()
+        expect(screen.queryByTestId('when-empty')).not.toBeInTheDocument()
+        // blocking: no dismiss X
+        expect(screen.queryByRole('button', { name: /dismiss/i })).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: en.home.pendingTasks.cardDocumentCta }))
+        expect(mockRouterPush).toHaveBeenCalledWith('/card')
+        // the card screen starts the upload, not Home
+        expect(mockHandleSelfHealResubmit).not.toHaveBeenCalled()
+    })
+
+    it('an identity re-upload reads as one and opens the card screen too', () => {
+        mockNextActions = [rainHosted]
+        mockRails = [cardRail([rainHosted.key])]
+        render(<PendingVerificationTasks placement="home" whenEmpty={carousel} />)
+
+        expect(screen.getByText(en.home.pendingTasks.cardIdentityDescription)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: en.home.pendingTasks.cardDocumentCta }))
+        expect(mockRouterPush).toHaveBeenCalledWith('/card')
+    })
+
+    it('a Bridge task and the card ask both stay reachable', () => {
+        mockNextActions = [sepaTosAction, rainPoa]
+        mockRails = [cardRail([rainPoa.key])]
+        render(<PendingVerificationTasks placement="home" whenEmpty={carousel} />)
+
+        expect(screen.getByText('Accept updated bank transfer provider terms')).toBeInTheDocument()
+        expect(screen.getByText(en.home.pendingTasks.cardDocumentTitle)).toBeInTheDocument()
+    })
+
+    it('Profile → Accounts lists bank tasks only', () => {
+        mockNextActions = [rainPoa]
+        mockRails = [cardRail([rainPoa.key])]
+        const { container } = render(<PendingVerificationTasks />)
+        expect(container).toBeEmptyDOMElement()
     })
 })

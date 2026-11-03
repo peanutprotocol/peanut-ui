@@ -121,6 +121,8 @@ const PASSKEY_LOGIN_MESSAGES = {
     PASSKEY_BIOMETRY_REQUIRED: 'Use Face ID or Touch ID to verify the passkey, then try again.',
     PASSKEY_INTERRUPTED: 'Something interrupted the passkey prompt. Please try again.',
     PASSKEY_UNSUPPORTED: 'Passkeys aren’t available on this device or browser yet. Please try again on another device.',
+    PASSKEY_PROVIDER_UNSUPPORTED:
+        'The password manager on this phone saved a passkey that Peanut can’t verify. Sign up on another device.',
     PASSKEY_STATE: 'There was a problem with the passkey on this device. Restart the app and try again.',
     PASSKEY_ORIGIN:
         'Passkeys aren’t available in this app right now. Update Peanut, or contact support if this continues.',
@@ -150,6 +152,7 @@ const PASSKEY_ERROR_SETUP_KEYS = {
     PASSKEY_INTERRUPTED: 'passkey.interrupted',
     NETWORK: 'passkey.serverUnreachable',
     PASSKEY_UNSUPPORTED: 'passkey.unsupported',
+    PASSKEY_PROVIDER_UNSUPPORTED: 'testTransaction.errors.passkeyProviderUnsupported',
     PASSKEY_ORIGIN: 'passkey.origin',
     LOGIN_ERROR: 'passkey.loginError',
 } as const satisfies Record<PasskeyErrorCode, string>
@@ -318,6 +321,9 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
             break
         case WebAuthnErrorName.NotSupported:
             code = 'PASSKEY_UNSUPPORTED'
+            break
+        case 'PasskeyProviderUnsupportedError':
+            code = 'PASSKEY_PROVIDER_UNSUPPORTED'
             break
         case WebAuthnErrorName.InvalidState:
             code = 'PASSKEY_STATE'

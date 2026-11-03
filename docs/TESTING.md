@@ -18,6 +18,16 @@ Browse the fixtures at `/dev/fixtures`, or open one with `<route>?__fixture=<nam
 Anything that needs a real backend, provider or chain goes to the Nutcracker
 harness in mono (`engineering/qa`), not to Playwright here.
 
+## Native test OTA channels
+
+`scripts/build-branch.cjs` names each test branch channel with a readable slug
+and an eight-character SHA-256 digest of the exact branch name, within Capgo's
+60-character limit. Case, punctuation and long shared prefixes therefore keep
+separate channels. Test builds still use the shared test signing configuration.
+Existing test binaries using the old slug-only channel must be rebuilt to
+subscribe to the new channel. There is no dual publishing to old channels.
+Release operations remain documented in `mono/ops/releases.md`.
+
 ## Manual visual checks for dev PRs
 
 `ds-shots` does not run automatically on pushes to `dev` or PRs targeting `dev`.

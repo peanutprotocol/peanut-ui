@@ -103,6 +103,8 @@ function IdentityGate({ children }: { children: ReactNode }) {
                     cooldownActive={!!flow.errorCooldown}
                     isLoading={flow.isLoading}
                     error={flow.error}
+                    // no destination yet: the identity check alone, as Home starts it
+                    verifyEntry={{}}
                 />
             )
         }

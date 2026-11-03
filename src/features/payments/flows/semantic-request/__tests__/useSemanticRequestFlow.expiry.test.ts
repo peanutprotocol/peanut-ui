@@ -557,18 +557,24 @@ describe('paying a USDC or USDT request needs no price', () => {
         )
     })
 
-    it('still refuses a token that is not USDC or USDT when its price is missing', async () => {
-        mockTokenSelection.selectedChainID = '8453'
-        mockTokenSelection.selectedTokenAddress = '0x0000000000000000000000000000000000000000'
-        const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
-        await act(async () => {
-            expect(await result.current.handlePayment(true, true)).toEqual({ success: false })
-        })
-
-        expect(mockRefetchTokenData).toHaveBeenCalledTimes(1)
-        expect(mockCreateCharge).not.toHaveBeenCalled()
-        expect(ctx.setError).toHaveBeenCalledWith(
-            expect.objectContaining({ showError: true, errorMessage: expect.stringContaining('price is unavailable') })
-        )
-    })
+    it.each([null, { symbol: 'ETH', decimals: 18, price: 2500 }])(
+        'rejects an unsupported token before any price lookup even with metadata %p',
+        async (metadata) => {
+            mockTokenSelection.selectedChainID = '8453'
+            mockTokenSelection.selectedTokenAddress = '0x0000000000000000000000000000000000000000'
+            mockTokenSelection.selectedTokenData = metadata as any
+            mockRefetchTokenData.mockResolvedValue({ symbol: 'ETH', decimals: 18, price: 2500 })
+            const { result } = renderHookWithIntl(() => useSemanticRequestFlow())
+            await act(async () => {
+                expect(await result.current.handlePayment(true, true)).toEqual({ success: false })
+            })
+            expect(mockRefetchTokenData).not.toHaveBeenCalled()
+            expect(mockCreateCharge).not.toHaveBeenCalled()
+            expect(mockCalculate).not.toHaveBeenCalled()
+            expect(mockSendMoney).not.toHaveBeenCalled()
+            expect(mockSendTransactions).not.toHaveBeenCalled()
+            expect(mockRecordPayment).not.toHaveBeenCalled()
+            expect(ctx.setError).toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        }
+    )
 })

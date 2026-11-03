@@ -60,7 +60,10 @@ export const setupSteps: ISetupStep[] = [
         image: { animation: 'residence' },
         component: ResidenceStep,
         showBackButton: true,
-        contentClassName: 'flex flex-col items-end gap-6 md:justify-center',
+        // The heading is the sentence that holds the two country pickers, so the step renders it.
+        titleInView: true,
+        descriptionInView: true,
+        contentClassName: 'flex flex-col gap-6 md:justify-center',
     },
     {
         screenId: 'payment-plan',
@@ -87,6 +90,9 @@ export const setupSteps: ISetupStep[] = [
         image: { animation: 'notifications' },
         component: NotificationsStep,
         showBackButton: true,
+        // Each notifications experiment variant renders its own heading.
+        titleInView: true,
+        descriptionInView: true,
         contentClassName: 'flex flex-col gap-6 md:justify-center',
     },
     {

@@ -7,6 +7,7 @@
  * the root layout (server component) renders this single client boundary.
  */
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
+import { TestBuildRibbon } from '@/components/Global/TestBuildRibbon'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
 import { UnsupportedWebViewScreen, hasUnsupportedWebViewBypass } from '@/components/Global/UnsupportedWebViewScreen'
@@ -139,6 +140,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                             <FooterVisibilityProvider>
                                 <TranslationSafeWrapper>
                                     <ConsoleGreeting />
+                                    <TestBuildRibbon />
                                     <ScreenOrientationLocker />
                                     {marketing ? (
                                         children

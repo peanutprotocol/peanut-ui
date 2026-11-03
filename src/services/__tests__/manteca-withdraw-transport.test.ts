@@ -89,6 +89,31 @@ it('preserves the corporate-unavailability code from the withdrawal response', a
     await expect(mantecaApi.initiateWithdraw(initBody)).resolves.toEqual({ error: body.error, code: body.code })
 })
 
+describe('Manteca account rejection wire code', () => {
+    const body = {
+        error: 'Manteca closed this account for deposits and withdrawals in this country',
+        code: 'MANTECA_ACCOUNT_REJECTED',
+    }
+
+    it.each([
+        ['withdrawal quote', () => mantecaApi.initiateWithdraw(initBody)],
+        [
+            'signed UserOp submission',
+            () => mantecaApi.withdrawWithSignedTx({ ...withdrawBody, kind: 'userOp' } as never),
+        ],
+        ['signed Rain withdrawal submission', () => mantecaApi.withdrawWithSignedTx(withdrawBody)],
+    ])('preserves the code on %s', async (_label, request) => {
+        mockServerFetch.mockResolvedValue({ ok: false, json: async () => body } as Response)
+        await expect(request()).resolves.toMatchObject(body)
+    })
+
+    it('preserves MANTECA_KYC_REQUIRED as a distinct legacy wire code', async () => {
+        const kyc = { error: 'Complete account setup', code: 'MANTECA_KYC_REQUIRED' }
+        mockServerFetch.mockResolvedValue({ ok: false, json: async () => kyc } as Response)
+        await expect(mantecaApi.initiateWithdraw(initBody)).resolves.toMatchObject(kyc)
+    })
+})
+
 describe('withdraw transport to sign-only retry guard', () => {
     it.each([
         ['USER_OP_REVERTED', true],

@@ -143,7 +143,7 @@ const groups: DevToolGroup[] = [
         tools: [
             {
                 name: 'User records',
-                description: 'Everything the production database stores about one user — read-only, team only',
+                description: 'Everything the database stores about one user — read-only, team only',
                 path: '/dev/users',
                 icon: 'user',
             },

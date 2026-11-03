@@ -1,5 +1,6 @@
 'use client'
 
+import { kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -9,7 +10,7 @@ import { useRouter } from 'next/navigation'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -17,13 +18,21 @@ import GettingStartedChecklist from '@/components/Home/GettingStartedChecklist'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { REGION_RESTRICTED_CTA_HREF } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useAuth } from '@/context/authContext'
-import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+import {
+    buildContactSupportMessage,
+    buildSupportCaseMessage,
+    SUPPORT_CASE_MESSAGE_KEYS,
+} from '@/utils/contact-support.utils'
+import { supportCaseOf } from '@/utils/capability-gate'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdentityCheck'
+import { usePaperworkVerificationStart } from '@/features/paperwork-verification/usePaperworkVerificationStart'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+import { paperworkVerificationFeaturePath } from '@/features/paperwork-verification/paperworkVerificationEntry'
 
 interface ActivationCTAsProps {
     onboarding: OnboardingState
@@ -51,6 +60,7 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
     const t = useTranslations('home.activation')
     const tGettingStarted = useTranslations('home.gettingStarted')
     const tIdentity = useTranslations('identity')
+    const tKyc = useTranslations('kyc')
     const tRegion = useTranslations('kyc.regionRestricted')
     const tProviderRejection = useTranslations('profile.regions.providerRejection')
     const router = useRouter()
@@ -65,6 +75,7 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
         hasFixableRejection,
         fixableProvider,
         fixableActionKey,
+        fixableAction,
         hasBlockedRejection,
         primaryRejectionMessage,
         primaryRejectionCode,
@@ -76,6 +87,9 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
     // Known reason codes render localized identity.reasons.* copy; unknown
     // codes keep the backend's display-ready prose as fallback.
     const primaryRejectionReasonKey = reasonCodeKey(primaryRejectionCode)
+    // an identity held on a block only support lifts names it, here and in the prefill
+    const identitySupportCase = supportCaseOf(identity.reason?.code)
+    const identitySupportCaseKey = identitySupportCase ? reasonCodeKey(identity.reason?.code) : undefined
     const localizedRejectionMessage = primaryRejectionReasonKey
         ? tIdentity(primaryRejectionReasonKey)
         : primaryRejectionMessage
@@ -92,6 +106,26 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
     // The checklist's Verify row opens the same start modal the bank and
     // deposit gates use: its outage, region and residence checks run here too.
     const [showInitiateKyc, setShowInitiateKyc] = useState(false)
+    // Smart Paperwork Verification users go straight to the question screens,
+    // wherever they live: its questions cover every feature the residence opens.
+    const opensPaperworkVerification = usePaperworkVerificationStart()
+    const restrictions = useResidenceRestrictions()
+    const startingRef = useRef(false)
+    const startIdentityCheck = async () => {
+        if (startingRef.current) return
+        startingRef.current = true
+        try {
+            if (await opensPaperworkVerification()) router.push('/verify')
+            // The legacy start is bank-shaped. Where bank rails are closed the
+            // card is the door, and where the card is closed too, QR pay is
+            // (Hugo, 2026-09-26: QR is open to every verified user).
+            else if (!restrictions.banking) setShowInitiateKyc(true)
+            else if (!restrictions.card) router.push('/card')
+            else qrIdentityCheck.start()
+        } finally {
+            startingRef.current = false
+        }
+    }
     // the SDK takes over the screen; the modal that opened it should not stay behind it
     useEffect(() => {
         if (kycFlow.showWrapper) setShowInitiateKyc(false)
@@ -132,7 +166,9 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
             return {
                 bubble: { icon: 'globe-lock', color: 'blue' },
                 title: t('verificationIssue.title'),
-                description: t('verificationIssue.description'),
+                description: identitySupportCaseKey
+                    ? tIdentity(identitySupportCaseKey)
+                    : t('verificationIssue.description'),
                 ctaLabel: t('verificationIssue.cta'),
                 href: '', // handled in onClick
             }
@@ -153,15 +189,6 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
                     href: '', // handled in onClick
                 }
             }
-            if (hasFixableRejection) {
-                return {
-                    bubble: { icon: 'globe-lock', color: 'blue' },
-                    title: t('completeSetup.title'),
-                    description: localizedRejectionMessage || t('completeSetup.description'),
-                    ctaLabel: t('completeSetup.cta'),
-                    href: '/profile/accounts',
-                }
-            }
             // Blocked, but self-fixable by verifying again with a document that
             // carries what the provider needs — a Brazilian whose ID has no CPF is
             // the case this exists for. Offering support here contradicts a restart
@@ -179,6 +206,15 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
                     href: '', // handled in onClick
                 }
             }
+            if (hasFixableRejection) {
+                return {
+                    bubble: { icon: 'globe-lock', color: 'blue' },
+                    title: t('completeSetup.title'),
+                    description: localizedRejectionMessage || t('completeSetup.description'),
+                    ctaLabel: tKyc(kycActionCtaKey(fixableAction, primaryRejectionCode)),
+                    href: '/profile/accounts',
+                }
+            }
             // blocked
             return {
                 bubble: { icon: 'globe-lock', color: 'blue' },
@@ -192,6 +228,8 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
         return null
     }, [
         t,
+        tIdentity,
+        identitySupportCaseKey,
         hasIdentityFailure,
         hasProviderRejection,
         hasFixableRejection,
@@ -201,6 +239,9 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
         isRegionRestricted,
         tRegion,
         tProviderRejection,
+        tKyc,
+        fixableAction,
+        primaryRejectionCode,
     ])
 
     if (onboarding.step === 'completed' && !step) return null
@@ -214,8 +255,7 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
                 <GettingStartedChecklist
                     onboarding={onboarding}
                     showWelcome={showWelcome}
-                    onStartIdentityCheck={() => setShowInitiateKyc(true)}
-                    onStartQrIdentityCheck={qrIdentityCheck.start}
+                    onStartIdentityCheck={() => void startIdentityCheck()}
                 />
                 <InitiateKycModal
                     cooldownActive={!!kycFlow.errorCooldown}
@@ -255,11 +295,20 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
                             router.push(REGION_RESTRICTED_CTA_HREF)
                         } else if (hasIdentityFailure) {
                             openSupportWithMessage(
-                                buildContactSupportMessage({ reason: identity.reason, userId: user?.user?.userId })
+                                identitySupportCase
+                                    ? buildSupportCaseMessage(
+                                          identitySupportCase,
+                                          tKyc(SUPPORT_CASE_MESSAGE_KEYS[identitySupportCase]),
+                                          identity.reason
+                                      )
+                                    : buildContactSupportMessage({
+                                          reason: identity.reason,
+                                          userId: user?.user?.userId,
+                                      })
                             )
                         } else if (isEmailBlocked) {
                             setShowProvideEmail(true)
-                        } else if (hasProviderRejection && isRestartBlocked && !hasFixableRejection) {
+                        } else if (hasProviderRejection && isRestartBlocked) {
                             // Self-fixable by a fresh ID check, so it must not open
                             // support — same rank as the terminal arm below, only a
                             // different destination.
@@ -275,6 +324,13 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
                                     userId: user?.user?.userId,
                                 })
                             )
+                        } else if (
+                            hasProviderRejection &&
+                            hasFixableRejection &&
+                            fixableAction?.kind === 'questions' &&
+                            fixableAction.feature
+                        ) {
+                            router.push(paperworkVerificationFeaturePath(fixableAction.feature))
                         } else if (hasProviderRejection && hasFixableRejection && fixableProvider) {
                             void kycFlow.handleFixableRejection({
                                 provider: fixableProvider,

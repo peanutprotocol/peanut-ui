@@ -262,6 +262,7 @@ flowchart TD
     Classify -->|isFixable=false| Terminal[CONTACT_SUPPORT<br/>non-fixable rejection]
     DB --> UI[FE: user sees Re-submit CTA<br/>entry: home activation, JIT gate, settings]
     UI -->|user clicks| Post[POST /users/identity/resubmit<br/>body: provider BRIDGE or MANTECA]
+    Post -->|ID expired or failed| Restart[409 RESTART_IDENTITY<br/>identity restart on /verify<br/>reviewed ID re-sent to the provider]
     Post --> Action[Creates applicant action on existing applicant<br/>level: self-heal-reupload-id<br/>externalActionId: reheal-provider-userId8hex-attempt]
     Action --> Token[Returns SDK token + actionId<br/>applicantId, requiredAction, attempt/maxAttempts]
     Token --> SDK[Sumsub SDK opens<br/>kycSelfHealingDocUpload questionnaire<br/>user uploads new ID/address docs]
@@ -275,7 +276,7 @@ flowchart TD
     StillFailed -->|no| Support[Contact support CTA<br/>max 3 attempts reached]
 \`\`\`
 
-**RequiredAction types:** \`REUPLOAD_ID\` | \`REUPLOAD_ADDRESS_PROOF\` | \`CONTACT_SUPPORT\`
+**RequiredAction types:** \`REUPLOAD_ADDRESS_PROOF\` | \`CONTACT_SUPPORT\` | \`RAIN_DOCUMENT\`. An ID request answers 409 \`RESTART_IDENTITY\` and the app opens the identity restart, never a raw ID upload.
 
 **action ID format:** \`reheal-{provider}-{userId first 8 hex}-{attempt}\` (parsed by \`parseSelfHealActionId()\`)
 

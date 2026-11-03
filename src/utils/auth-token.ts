@@ -23,6 +23,7 @@ import { isCapacitor } from './capacitor'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { OPEN_GATED } from '@/constants/app-lock.consts'
 import { getLockState, setLockState } from './app-lock-state'
+import { forgetAnswerDraft } from '@/features/paperwork-verification/answerDraft'
 import {
     GuardedStoreError,
     canWriteSilently,
@@ -394,6 +395,8 @@ export async function hasNativeSession(): Promise<boolean> {
  */
 export function clearAuthToken(): Promise<void> {
     clearEpoch++
+    // A session can end without a sign-out (a 401 or 404 on /users/me): its unsaved KYC answers go with it.
+    forgetAnswerDraft(tokenUserId(getAuthToken()))
     let nativeClear: Promise<void> = Promise.resolve()
     if (isCapacitor()) {
         nativeToken = null
@@ -422,6 +425,22 @@ export function clearAuthToken(): Promise<void> {
     Cookies.remove(JWT_COOKIE_KEY, { path: '/' })
     document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
     return nativeClear
+}
+
+/** The account a session token belongs to, read from its `userId` claim; null when it cannot be read. */
+export function tokenUserId(token: string | null): string | null {
+    const payload = token?.split('.')[1]
+    if (!payload) return null
+    try {
+        const base64 = payload
+            .replace(/-/g, '+')
+            .replace(/_/g, '/')
+            .padEnd(Math.ceil(payload.length / 4) * 4, '=')
+        const { userId } = JSON.parse(atob(base64)) as { userId?: unknown }
+        return typeof userId === 'string' && userId ? userId : null
+    } catch {
+        return null
+    }
 }
 
 /**

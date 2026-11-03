@@ -1,3 +1,4 @@
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 import { createElement } from 'react'
 import { act, render, renderHook, screen, waitFor } from '@testing-library/react'
 
@@ -51,7 +52,10 @@ const mockIsPwaSunsetOn = jest.fn(() => false)
 jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockIsPwaSunsetOn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 let mockUserId = 'user-1'
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: mockUserId } } }) }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { userId: mockUserId } } }),
+    useOptionalAuth: () => ({ user: { user: { userId: mockUserId } } }),
+}))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))

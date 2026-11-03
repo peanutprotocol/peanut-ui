@@ -20,6 +20,13 @@ const mockAdapter = {
     onNotificationReceived: jest.fn(() => () => {}),
 }
 jest.mock('@/services/onesignal', () => ({ getOneSignalAdapter: () => Promise.resolve(mockAdapter) }))
+jest.mock('@/services/notifications', () => ({
+    ...jest.requireActual('@/services/notifications'),
+    notificationsApi: {
+        getPreferences: jest.fn().mockResolvedValue({ pushPermission: 'dismissed' }),
+        savePreferences: jest.fn().mockResolvedValue({}),
+    },
+}))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockIsNative }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/utils/general.utils', () => ({ getUserPreferences: () => undefined, updateUserPreferences: jest.fn() }))

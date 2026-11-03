@@ -6,6 +6,20 @@ import { type SignupEntryFlow } from '@/features/setup/signup-analytics'
 
 import type { SetupFundingChannel, SetupPaymentChannel } from './paymentChannels'
 
+export type NotificationChoices = {
+    push: boolean
+    marketingPush: boolean
+    emailUpdates: boolean
+    /** Important alerts has been switched on once, so Email updates no longer follows it. */
+    cascaded: boolean
+}
+const DEFAULT_NOTIFICATION_CHOICES: NotificationChoices = {
+    push: false,
+    marketingPush: false,
+    emailUpdates: false,
+    cascaded: false,
+}
+
 /**
  * Setup flow memory that cannot live in the URL: the filtered step list (a
  * runtime decision), the typed username and
@@ -22,8 +36,8 @@ interface SetupFlowContextType {
     setPaymentChannel: (channel: SetupPaymentChannel | null) => void
     notificationEmail: string
     setNotificationEmail: (email: string) => void
-    notificationChoices: { push: boolean; email: boolean }
-    setNotificationChoices: (choices: { push: boolean; email: boolean }) => void
+    notificationChoices: NotificationChoices
+    setNotificationChoices: (choices: NotificationChoices) => void
     signupCompleted: boolean
     setSignupCompleted: (completed: boolean) => void
     /** Unfiltered setup order, injected by the registry owner. */
@@ -49,8 +63,9 @@ interface SetupFlowContextType {
     setSellScreensCountry: (country: string | null | undefined) => void
     residenceCountry: string
     setResidenceCountry: (country: string) => void
-    secondResidenceCountry: string
-    setSecondResidenceCountry: (country: string) => void
+    /** The nationality declared beside the residence; empty means the residence country itself. */
+    nationalityCountry: string
+    setNationalityCountry: (country: string) => void
     signupEntryFlow: SignupEntryFlow
     setSignupEntryFlow: (entryFlow: SignupEntryFlow) => void
     /**
@@ -64,18 +79,21 @@ interface SetupFlowContextType {
     noBackLockScreenId: ScreenId | null
     setNoBackLockScreenId: (screenId: ScreenId | null) => void
     resetSetupFlow: () => void
+    /** Continue on the last step, for a host that runs some of these screens outside /setup. */
+    onFinish?: () => Promise<void>
 }
 
 const SetupFlowContext = createContext<SetupFlowContextType | undefined>(undefined)
 
-export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds: readonly ScreenId[] }> = ({
-    children,
-    masterScreenIds,
-}) => {
+export const SetupFlowProvider: React.FC<{
+    children: ReactNode
+    masterScreenIds: readonly ScreenId[]
+    onFinish?: () => Promise<void>
+}> = ({ children, masterScreenIds, onFinish }) => {
     const [notificationEmail, setNotificationEmail] = useState('')
     const [fundingChannel, setFundingChannel] = useState<SetupFundingChannel | null>(null)
     const [paymentChannel, setPaymentChannel] = useState<SetupPaymentChannel | null>(null)
-    const [notificationChoices, setNotificationChoices] = useState({ push: false, email: true })
+    const [notificationChoices, setNotificationChoices] = useState(DEFAULT_NOTIFICATION_CHOICES)
     const [signupCompleted, setSignupCompleted] = useState(false)
     const [steps, setSteps] = useState<ISetupStep[]>([])
     const [isLoading, setIsLoading] = useState(false)
@@ -84,7 +102,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
     const [inviterAccepted, setInviterAccepted] = useState(false)
     const [sellScreensCountry, setSellScreensCountry] = useState<string | null | undefined>(undefined)
     const [residenceCountry, setResidenceCountry] = useState('')
-    const [secondResidenceCountry, setSecondResidenceCountry] = useState('')
+    const [nationalityCountry, setNationalityCountry] = useState('')
     const [signupEntryFlow, setSignupEntryFlow] = useState<SignupEntryFlow>('default')
     const [noBackLockScreenId, setNoBackLockScreenId] = useState<ScreenId | null>(null)
 
@@ -95,14 +113,14 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
         setFundingChannel(null)
         setPaymentChannel(null)
         setNotificationEmail('')
-        setNotificationChoices({ push: false, email: true })
+        setNotificationChoices(DEFAULT_NOTIFICATION_CHOICES)
         setSignupCompleted(false)
         setDirection(0)
         setUsername('')
         setInviterAccepted(false)
         setSellScreensCountry(undefined)
         setResidenceCountry('')
-        setSecondResidenceCountry('')
+        setNationalityCountry('')
         setNoBackLockScreenId(null)
     }, [])
 
@@ -133,13 +151,14 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             setSellScreensCountry,
             residenceCountry,
             setResidenceCountry,
-            secondResidenceCountry,
-            setSecondResidenceCountry,
+            nationalityCountry,
+            setNationalityCountry,
             signupEntryFlow,
             setSignupEntryFlow,
             noBackLockScreenId,
             setNoBackLockScreenId,
             resetSetupFlow,
+            onFinish,
         }),
         [
             fundingChannel,
@@ -155,10 +174,11 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             inviterAccepted,
             sellScreensCountry,
             residenceCountry,
-            secondResidenceCountry,
+            nationalityCountry,
             signupEntryFlow,
             noBackLockScreenId,
             resetSetupFlow,
+            onFinish,
         ]
     )
 

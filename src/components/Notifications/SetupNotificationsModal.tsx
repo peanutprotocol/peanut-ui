@@ -7,6 +7,9 @@ import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { PeanutMascotScene } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 import { PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
+import { notificationsApi, toPushPermission } from '@/services/notifications'
+import { useSessionFence } from '@/hooks/useSessionFence'
+import { useRef } from 'react'
 
 // each money moment promises what the push will be about (TASK-23251); the
 // Home fallback keeps the original ask
@@ -18,6 +21,8 @@ const MOMENT_COPY = {
 } as const
 
 export default function SetupNotificationsModal() {
+    const captureSession = useSessionFence()
+    const attempting = useRef(false)
     // migration-era copy ("Get money alerts") only ships when the pwa-sunset
     // flag is on — flag off keeps today's prompt byte-for-byte (TASK-20771)
     const migrationOn = useMigrationFlag()
@@ -34,20 +39,35 @@ export default function SetupNotificationsModal() {
         // prevent event bubbling to avoid double-triggering
         e?.preventDefault()
         e?.stopPropagation()
-
-        posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
-            modal_type: MODAL_TYPES.NOTIFICATIONS,
-            cta: 'enable',
-            trigger: promptTrigger,
-        })
-
+        if (attempting.current) return
+        attempting.current = true
+        const session = captureSession()
         try {
+            if (session.ready) await session.ready
+            if (!session.current()) return
+            posthog.capture(ANALYTICS_EVENTS.MODAL_CTA_CLICKED, {
+                modal_type: MODAL_TYPES.NOTIFICATIONS,
+                cta: 'enable',
+                trigger: promptTrigger,
+            })
             // request permission - this shows the native dialog
-            await requestPermission()
+            const permission = toPushPermission(await requestPermission())
+            if (!session.current()) return
             // after user interacts with native dialog, handle the result
             await afterPermissionAttempt()
+            if (!session.current()) return
+            // The prompt asks for money alerts, so a grant turns Important alerts on even
+            // for someone who skipped them at sign-up. A failed save leaves the old choice.
+            void notificationsApi
+                .savePreferences(
+                    { pushPermission: permission, ...(permission === 'granted' && { push: true }) },
+                    session.userId ?? undefined
+                )
+                .catch(() => {})
         } catch (error) {
             console.error('Error requesting permission:', error)
+        } finally {
+            attempting.current = false
         }
     }
 

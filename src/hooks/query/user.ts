@@ -1,14 +1,16 @@
 import { type IUserProfile } from '@/interfaces/interfaces'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useDeviceType } from '../useGetDeviceType'
 import { USER } from '@/constants/query.consts'
 import { apiFetch } from '@/utils/api-fetch'
 import { clearAuthToken, getAuthToken, getClearEpoch, setAuthToken } from '@/utils/auth-token'
 import { isDemoMode } from '@/utils/demo'
+import { normalizeUserProfile, type UserProfileWire } from '@/utils/residence-profile'
 import { DEMO_USER } from '@/constants/demo-data'
 import { useHydrationSnapshot } from '@/utils/native-platform'
+import { clearAccountQueries } from '@/utils/account-query-cache'
 
 // custom error class for backend errors (5xx) that should trigger retry
 export class BackendError extends Error {
@@ -21,6 +23,7 @@ export class BackendError extends Error {
 }
 
 export const useUserQuery = (dependsOn: boolean = true) => {
+    const queryClient = useQueryClient()
     const demoMode = useHydrationSnapshot(isDemoMode, () => false)
     const { deviceType } = useDeviceType()
 
@@ -33,12 +36,17 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         if (isDemoMode()) {
             const { demoRespond } = await import('@/utils/demo-api')
             const payload: IUserProfile = await (await demoRespond('/users/me')).json()
-            return payload
+            return payload ? normalizeUserProfile(payload) : null
         }
 
         const epochAtRequest = getClearEpoch()
         const tokenAtRequest = getAuthToken()
-        const userResponse = await apiFetch('/users/me', { method: 'GET', signal })
+        const previousUserId = queryClient.getQueryData<IUserProfile | null>([USER])?.user.userId
+        const userResponse = await apiFetch('/users/me', {
+            method: 'GET',
+            signal,
+            headers: { 'x-residence-format': 'compact' },
+        })
         const assertCurrentSession = () => {
             if (signal.aborted || getClearEpoch() !== epochAtRequest || getAuthToken() !== tokenAtRequest) {
                 throw new Error('Session changed while fetching user')
@@ -46,9 +54,12 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         }
         assertCurrentSession()
         if (userResponse.ok) {
-            const payload: (IUserProfile & { token?: string }) | null = await userResponse.json()
+            const payload: (UserProfileWire & { token?: string }) | null = await userResponse.json()
 
             assertCurrentSession()
+
+            if (previousUserId && payload?.user.userId && previousUserId !== payload.user.userId)
+                clearAccountQueries(queryClient)
 
             // Sliding refresh: backend re-mints once the JWT is a day old and
             // ships the new one alongside the user payload. Swap it in
@@ -70,7 +81,7 @@ export const useUserQuery = (dependsOn: boolean = true) => {
                     deviceType,
                 })
             }
-            return payload
+            return payload ? normalizeUserProfile(payload) : null
         }
 
         // Temporary failures must preserve the cached session.
@@ -94,6 +105,7 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             if (getAuthToken() !== tokenAtRequest) {
                 throw new Error('auth token rotated mid-request')
             }
+            clearAccountQueries(queryClient)
             await clearAuthToken()
         }
 

@@ -7,6 +7,8 @@
  * to force; the gallery prints the reason instead of a staged mock.
  */
 
+import { API_CONTRACT_STATES } from './api-contract-states'
+
 export type SurfaceMeta = {
     name: string
     path: string
@@ -27,7 +29,24 @@ export type SurfaceMeta = {
     shotClickTestId?: string
 }
 
+const apiRibbon = (id: string): SurfaceMeta => {
+    const state = API_CONTRACT_STATES[id]
+    return {
+        name: state.name,
+        path: 'Global/TestBuildRibbon.tsx',
+        captureState: [`API status: ${state.api.status}`, `route contract fault: ${state.api.contractError}`],
+        expectSelector: '[data-testid="test-build-ribbon"]',
+    }
+}
+
+// Ids stay literal: the Screen Library capture finds surfaces by searching this file's text.
 export const SURFACE_META: Record<string, SurfaceMeta> = {
+    'api-ribbon-loading': apiRibbon('api-ribbon-loading'),
+    'api-ribbon-compatible': apiRibbon('api-ribbon-compatible'),
+    'api-ribbon-too-old': apiRibbon('api-ribbon-too-old'),
+    'api-ribbon-missing-version': apiRibbon('api-ribbon-missing-version'),
+    'api-ribbon-unavailable': apiRibbon('api-ribbon-unavailable'),
+    'api-ribbon-contract-error': apiRibbon('api-ribbon-contract-error'),
     'numeric-request-amount-4000': {
         name: 'Request amount — 4,000 USDC',
         path: 'Global/AmountInput/index.tsx',
@@ -65,6 +84,10 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         shotFixture: 'setup-payment-plan',
     },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
+    '03-b-residence-compare': {
+        name: 'Residence — two countries compared',
+        path: 'Setup/components/ResidenceCompare.tsx',
+    },
     '05-a-signtesttransaction': {
         name: 'Final passkey confirmation',
         path: 'Setup/Views/SignTestTransaction.tsx',
@@ -131,7 +154,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Kyc/modals/KycRegionRestrictedModal.tsx',
     },
     '29-b-kycstatusdrawer': { name: 'KycStatusDrawer (action-needed)', path: 'Kyc/KycStatusDrawer.tsx' },
-    '30-b-unlockmethodmodal': { name: 'UnlockMethodModal', path: 'IdentityVerification/UnlockMethodModal.tsx' },
     '32-c-cancelcardmodal': { name: 'CancelCardModal (confirm phase)', path: 'Card/CancelCardModal.tsx' },
     '33-c-cardlimiteditmodal': { name: 'CardLimitEditDrawer', path: 'Card/CardLimitEditDrawer.tsx' },
     '34-c-lockcardmodal': { name: 'LockCardModal (lock)', path: 'Card/LockCardModal.tsx' },
@@ -208,8 +230,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '66-e-avatarpicker': { name: 'Avatar picker', path: 'Avatar/AvatarPicker.tsx' },
     '67-e-provideemailstep': { name: 'Provide email', path: 'Kyc/ProvideEmailStep.tsx' },
     '68-e-bridgetosstep': { name: 'Bridge terms', path: 'Kyc/BridgeTosStep.tsx' },
-    '69-e-kycprepchecklist-standard': { name: 'Verification checklist — standard', path: 'Kyc/KycPrepChecklist.tsx' },
-    '70-e-kycprepchecklist-extended': { name: 'Verification checklist — extended', path: 'Kyc/KycPrepChecklist.tsx' },
     '71-e-kycprepchecklist-hosted': { name: 'Verification checklist — hosted', path: 'Kyc/KycPrepChecklist.tsx' },
     '72-e-kycfailedcontent-terminal': { name: 'Verification — terminal failure', path: 'Kyc/KycFailedContent.tsx' },
     '73-e-rejectlabelslist': { name: 'Verification rejection reasons', path: 'Kyc/RejectLabelsList.tsx' },
@@ -323,6 +343,18 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'features/withdraw/views/ConfirmWithdrawView.tsx',
         captureState: ['insufficientBalance=true', 'processing=false', 'alreadySpent=true'],
         expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '92-f-deposit-account-closed': {
+        name: 'Manteca deposit — account closed',
+        path: 'Common/MantecaAccountUnavailable.tsx',
+        captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=deposit', 'kyc=false'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
+    },
+    '93-f-withdraw-account-closed': {
+        name: 'Manteca withdrawal — account closed',
+        path: 'Common/MantecaAccountUnavailable.tsx',
+        captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=withdraw', 'kyc=false'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
     },
     '70-d-activationctas-outbound': {
         name: 'First-payment chooser',

@@ -1,5 +1,7 @@
 'use client'
 
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useState, useCallback, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
@@ -62,7 +64,8 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
             setTosLink(response.data.tosLink)
             setShowIframe(true)
             posthog.capture(ANALYTICS_EVENTS.KYC_TOS_OPENED)
-        } catch {
+        } catch (error) {
+            Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'tos_open' } })
             setError(t('bridgeTos.genericError'))
         } finally {
             setIsLoading(false)
@@ -85,7 +88,8 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
                 // The page closed by itself without a signature, so the user
                 // lands back on the prompt instead of being told the step is done.
                 setError(t('bridgeTos.notAcceptedYet'))
-            } catch {
+            } catch (error) {
+                Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'tos_confirm' } })
                 setError(t('bridgeTos.confirmError'))
             } finally {
                 setIsConfirming(false)

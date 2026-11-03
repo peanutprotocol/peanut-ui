@@ -139,6 +139,7 @@
         "react-qr-code": "^2.0.15",
         "react-tooltip": "^5.28.0",
         "remark-gfm": "^4.0.1",
+        "stdnum": "1.12.6",
         "tailwind-merge": "^3.6.0",
         "use-haptic": "^1.1.11",
         "validator": "^13.12.0",
@@ -214,7 +215,7 @@
             ]
         },
         "transformIgnorePatterns": [
-            "node_modules/(?!(\\.pnpm/)?(next-intl|use-intl|@formatjs|intl-messageformat|nuqs|@react-pdf|yoga-layout|@swc\\+helpers|@swc/helpers|color-name|color-string|fontkit|jay-peg|linebreak|png-js|restructure|unicode-properties)([@+/]|$))"
+            "node_modules/(?!(\\.pnpm/)?(next-intl|use-intl|@formatjs|intl-messageformat|nuqs|@react-pdf|yoga-layout|@swc\\+helpers|@swc/helpers|color-name|color-string|fontkit|jay-peg|linebreak|png-js|restructure|stdnum|unicode-properties)([@+/]|$))"
         ],
         "moduleNameMapper": {
             "yoga-wasm-base64-esm\\.js$": "<rootDir>/src/utils/__mocks__/yoga-wasm-cjs.ts",

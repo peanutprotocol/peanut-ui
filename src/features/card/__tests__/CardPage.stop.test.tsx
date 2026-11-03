@@ -19,8 +19,16 @@ import { useCardFlow } from '../useCardFlow'
 const WALLET = '0xafbea1a6a6036d7d827e08072cd4315248b77352'
 let mockUserId = 'user-a'
 
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
+    usePathname: () => '/card',
+    useSearchParams: () => new URLSearchParams(),
+}))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: mockUserId } } }) }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { userId: mockUserId } } }),
+    useOptionalAuth: () => null,
+}))
 jest.mock('@/services/rain', () => ({ rainApi: { getCardFunding: jest.fn(), cancelCard: jest.fn() } }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
     useRainCardOverview: jest.fn(),
@@ -72,6 +80,9 @@ const flow = (state: string, overview: unknown) => ({
     overviewError: null,
     cardInfoError: null,
     railsForProvider: () => [],
+    kycFlow: { isTerminalError: false, error: null },
+    poaToken: null,
+    sumsubToken: null,
 })
 const withCard = flow('active', { status: { hasApplication: true }, cards: [CARD] })
 const noCardAtAll = flow('add-card', { status: { hasApplication: true }, cards: [] })

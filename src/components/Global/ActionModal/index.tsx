@@ -13,6 +13,7 @@ export interface ActionModalButtonProps extends ButtonProps {
     text: string
     iconPosition?: 'left' | 'right'
     children?: React.ReactNode
+    'data-testid'?: string
 }
 
 /** The tertiary action: an underlined LinkButton under the ctas. Every

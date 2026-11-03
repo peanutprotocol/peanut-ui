@@ -8,7 +8,13 @@ declare global {
     }
 
     interface SnsWebSdkBuilderChain {
-        withConf(conf: { lang?: string; theme?: string; email?: string }): SnsWebSdkBuilderChain
+        withConf(conf: {
+            lang?: string
+            theme?: string
+            email?: string
+            documentDefinitions?: { IDENTITY: { country: string; idDocType: string } }
+            autoSelectDocumentDefinitions?: boolean
+        }): SnsWebSdkBuilderChain
         withOptions(opts: { addViewportTag?: boolean; adaptIframeHeight?: boolean }): SnsWebSdkBuilderChain
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- sumsub sdk event handlers have varying untyped signatures
         on(event: string, handler: (...args: any[]) => void): SnsWebSdkBuilderChain

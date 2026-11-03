@@ -34,7 +34,6 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 import { chargesApi } from '@/services/charges'
 import { toApiAmount } from '@/components/Request/link/requestCurrency'
-import { isPriceFreshForConversion } from '@/utils/token-price.utils'
 import { isRequestToken, isUnpayableRequestCharge } from '@/utils/request-token.utils'
 import { requestPayTokenMeta } from './request-token-meta.utils'
 
@@ -101,17 +100,10 @@ export function useSemanticRequestFlow() {
     } = useWallet()
 
     // Not a price reader (useReadsSelectedTokenPrice): a request is paid in
-    // USDC or USDT at $1, so it never needs the context's price query. The one
-    // fallback below, for another token, asks for the price itself.
+    // USDC or USDT at $1, so it never needs the context's price query.
     // use token selector context for ui integration
-    const {
-        selectedChainID,
-        selectedTokenAddress,
-        selectedTokenData,
-        setSelectedChainID,
-        setSelectedTokenAddress,
-        refetchTokenData,
-    } = useContext(tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress, selectedTokenData, setSelectedChainID, setSelectedTokenAddress } =
+        useContext(tokenSelectorContext)
 
     const isLoggedIn = !!user?.user?.userId
 
@@ -271,26 +263,11 @@ export function useSemanticRequestFlow() {
                 if (!chargeResult) {
                     // USDC and USDT are $1 (TASK-23850): the charge needs only their
                     // symbol and decimals, which are known without the chain list or
-                    // a price. Any other token still needs a price. A retry must
-                    // refresh a missing/stale one even if the user never leaves this
-                    // screen. Existing charges already fix their token amount and
+                    // a price. Existing charges already fix their token amount and
                     // metadata, so they never depend on the price service here.
-                    let token = requestPayTokenMeta(selectedTokenAddress, selectedChainID)
+                    const token = requestPayTokenMeta(selectedTokenAddress, selectedChainID)
                     if (!token || !isRequestToken(token.symbol)) {
-                        let priceData = selectedTokenData
-                        if (!priceData || !isPriceFreshForConversion(priceData)) {
-                            priceData = await refetchTokenData()
-                        }
-                        if (
-                            !priceData ||
-                            priceData.address.toLowerCase() !== selectedTokenAddress.toLowerCase() ||
-                            priceData.chainId !== selectedChainID ||
-                            !Number.isFinite(priceData.price) ||
-                            priceData.price <= 0
-                        ) {
-                            throw new Error('Token price is unavailable. Please try again.')
-                        }
-                        token = priceData
+                        throw new Error('Only USDC and USDT are supported for requests.')
                     }
                     // USDC and USDT only (TASK-23850): the token amount is the USD amount
                     const paymentUsdAmount = Number(amount)
@@ -394,8 +371,6 @@ export function useSemanticRequestFlow() {
             walletAddress,
             selectedTokenAddress,
             selectedChainID,
-            selectedTokenData,
-            refetchTokenData,
             charge,
             isLoggedIn,
             isSameChainSameToken,

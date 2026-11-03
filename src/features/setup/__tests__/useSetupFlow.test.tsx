@@ -60,7 +60,13 @@ describe('useSetupFlow (URL stepper)', () => {
         ['RU', []],
     ])('walks the sell screens offered between the inviter and residence for %s', async (country, features) => {
         const { result } = renderFlow({ screen: 'invite' })
-        const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
+        const restrictions = {
+            full: new Set(['RU']),
+            bankingOnly: new Set(['JP']),
+            cardOnly: new Set(['IN']),
+            refusedIdIssuers: new Set<string>(),
+            bankingNewCustomersOnly: new Set<string>(),
+        }
         await seedSteps(result, filterSetupStepsForCountry(setupSteps, restrictions, country as string))
         for (const expected of features) {
             await act(async () => {
@@ -203,7 +209,13 @@ describe('useSetupFlow (URL stepper)', () => {
         ],
         ['residence when nothing else is offered', true, 'RU', 'residence'],
     ])('locks the way back at %s', (_label, hasInvite, country, expected) => {
-        const restrictions = { full: new Set(['RU']), bankingOnly: new Set(['JP']), cardOnly: new Set(['IN']) }
+        const restrictions = {
+            full: new Set(['RU']),
+            bankingOnly: new Set(['JP']),
+            cardOnly: new Set(['IN']),
+            refusedIdIssuers: new Set<string>(),
+            bankingNewCustomersOnly: new Set<string>(),
+        }
         const steps = filterSetupStepsForInvite(
             filterSetupStepsForCountry(setupSteps, restrictions, country),
             hasInvite
