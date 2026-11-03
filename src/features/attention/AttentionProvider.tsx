@@ -39,12 +39,13 @@ import { ASKS } from './registry'
 import { applyServerRanking, useServerAttention, type ServerAttention } from './serverAttention'
 import { countSession, resetSessionCountForTests, useSessionCount } from './sessionCount'
 import { useMountedSlots } from './slotStore'
+import { DEFAULT_SETTINGS } from './catalogue'
 import type { AskId, AttentionAsk, Decision, JourneyState, Ledger, Session, Surface } from './types'
 
 export { isAttentionInterruptOpen } from './interruptState'
 
 /** how long an `unknown` ask may hold lower-priority interrupts (same ceiling as useFlagsSettled) */
-export const SETTLE_DEADLINE_MS = 4_000
+export const SETTLE_DEADLINE_MS = DEFAULT_SETTINGS.settleMs
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -65,6 +66,9 @@ export interface AttentionContextValue {
     crashed: (id: AskId, surface?: Surface) => void
     /** the user did the thing; completion itself is derived from state */
     acted: (id: AskId, surface?: Surface) => void
+    recordLegalAcceptance: () => void
+    holdPushPrompt: (hold: boolean) => void
+    holdPushCard: (hold: boolean) => void
     /** a CTA on the surface was used without settling the ask (the store link): reported, nothing written */
     action: (id: AskId, properties?: { cta?: string }, surface?: Surface) => void
     dismissed: (id: AskId, surface?: Surface) => void
@@ -106,7 +110,12 @@ let surfacesShownThisSession: { userId: string | null; keys: string[] } = { user
  * when it turned `unknown` on the current route: a check that starts late
  * (the arrival check starts on Home) still gets its window.
  */
-function useSettleDeadline(userId: string | null, route: JourneyState['route'], unknown: readonly AskId[]): boolean {
+function useSettleDeadline(
+    userId: string | null,
+    route: JourneyState['route'],
+    unknown: readonly AskId[],
+    settleMs: number
+): boolean {
     const since = useRef<{ userId: string | null; route: string; at: Map<AskId, number> }>({
         userId,
         route,
@@ -120,7 +129,7 @@ function useSettleDeadline(userId: string | null, route: JourneyState['route'], 
     const at = since.current.at
     for (const id of [...at.keys()]) if (!unknown.includes(id)) at.delete(id)
     for (const id of unknown) if (!at.has(id)) at.set(id, now)
-    const remaining = Math.max(0, ...unknown.map((id) => (at.get(id) ?? now) + SETTLE_DEADLINE_MS - now))
+    const remaining = Math.max(0, ...unknown.map((id) => (at.get(id) ?? now) + settleMs - now))
     const passed = !userId || remaining === 0
     useEffect(() => {
         if (passed) return undefined
@@ -139,7 +148,13 @@ function useSession(
     const overlayOpen = useAnyOverlayOpen()
     const modals = useModalsContextOptional()
     // the scanner and the passkey interstitial are full-screen flows outside the drawer/modal registry
-    const busy = overlayOpen || !!modals?.isQRScannerOpen || !!modals?.isSecurityVerificationOpen
+    const busy =
+        overlayOpen ||
+        !!modals?.isQRScannerOpen ||
+        !!modals?.isSecurityVerificationOpen ||
+        !!modals?.isSupportModalOpen ||
+        !!modals?.isGetAppModalOpen ||
+        !!modals?.isSignInModalOpen
     const slots = useMountedSlots()
 
     // this load is counted before the first decision reads the count
@@ -272,6 +287,8 @@ function AttentionEngine({ publish }: { publish: (value: AttentionContextValue |
     const state = useJourneyState()
     const ledger = useLedger(state.userId, state.serverLedger)
     const [openInterrupt, setOpenInterrupt] = useState<AskId | null>(null)
+    const [heldPushUser, setHeldPushUser] = useState<string | null>(null)
+    const [heldPushCardUser, setHeldPushCardUser] = useState<string | null>(null)
 
     // an account switch or logout drops whatever was on screen and the session
     // counters. Not on mount: a child surface's effect runs before this one
@@ -294,6 +311,8 @@ function AttentionEngine({ publish }: { publish: (value: AttentionContextValue |
         if (previousUserId.current === state.userId) return
         previousUserId.current = state.userId
         setOpenInterrupt(null)
+        setHeldPushUser(null)
+        setHeldPushCardUser(null)
     }, [state.userId])
 
     const [, setCrashCount] = useState(0)
@@ -308,10 +327,41 @@ function AttentionEngine({ publish }: { publish: (value: AttentionContextValue |
         .map((ask) => ask.id)
         .join(',')
     const unknown = useMemo(() => (unknownKey ? (unknownKey.split(',') as AskId[]) : EMPTY_IDS), [unknownKey])
-    const settleDeadlinePassed = useSettleDeadline(state.userId, state.route, unknown)
+    const settings = state.attentionSettings ?? DEFAULT_SETTINGS
+    const settleDeadlinePassed = useSettleDeadline(state.userId, state.route, unknown, settings.settleMs)
     const session = useSession(state, openInterrupt, crashedFor(state.userId), settleDeadlinePassed)
     const askOf = useCallback((id: AskId) => asks.find((ask) => ask.id === id), [asks])
-    const decision = useMemo(() => decide(state, asks, ledger, session), [state, asks, ledger, session])
+    const decision = useMemo(() => {
+        const next = decide(state, asks, ledger, session)
+        const mayHoldPush =
+            !disabledAttentionAsks.includes('*') &&
+            !disabledAttentionAsks.includes('push-home-fallback') &&
+            !session.crashed?.includes('push-home-fallback')
+        const interrupt =
+            mayHoldPush &&
+            heldPushUser &&
+            heldPushUser === state.userId &&
+            session.route === 'home' &&
+            !session.gateUp &&
+            !session.busy &&
+            openInterrupt === 'push-home-fallback' &&
+            !next.interrupt
+                ? ('push-home-fallback' as const)
+                : next.interrupt
+        const selectedTier = asks.find((ask) => ask.id === next.zone?.id)?.tier
+        const zone =
+            mayHoldPush &&
+            heldPushCardUser &&
+            heldPushCardUser === state.userId &&
+            session.route === 'home' &&
+            !session.gateUp &&
+            !session.busy &&
+            !interrupt &&
+            (!next.zone || (selectedTier !== undefined && selectedTier > 1))
+                ? { id: 'push-home-fallback' as const, mode: 'ask' as const }
+                : next.zone
+        return { ...next, interrupt, zone }
+    }, [state, asks, ledger, session, heldPushUser, heldPushCardUser, openInterrupt, disabledAttentionAsks])
     useDecisionReport(decision, state, session, server)
     // a settle checks against the latest pick, not the closure it was created in
     const latestDecision = useRef(decision)
@@ -325,8 +375,13 @@ function AttentionEngine({ publish }: { publish: (value: AttentionContextValue |
     for (const surface of ['zone', 'inline', 'banner'] as const) {
         if (pickId(surface) !== settledSurfaces.current[surface]) delete settledSurfaces.current[surface]
     }
+    const acceptedLegalVersions = useRef(new Set<string>())
     const latestUserId = useRef(state.userId)
-    if (latestUserId.current !== state.userId) settledSurfaces.current = {}
+    const accountGeneration = useRef(0)
+    if (latestUserId.current !== state.userId) {
+        settledSurfaces.current = {}
+        accountGeneration.current += 1
+    }
     latestUserId.current = state.userId
     if (surfacesShownThisSession.userId !== state.userId) surfacesShownThisSession = { userId: state.userId, keys: [] }
 
@@ -400,15 +455,19 @@ function AttentionEngine({ publish }: { publish: (value: AttentionContextValue |
             const now = Date.now()
             const version = ask?.version?.(state)
             if (outcome === 'snoozed') {
-                const days = ask?.policy.snoozeDays ?? 7
+                const days = ask?.policy.snoozeDays ?? settings.defaultSnoozeDays
                 ledgerActions.snoozed(userId, id, until ?? now + days * DAY_MS, version)
             } else {
                 ledgerActions.dismissed(userId, id, now, version)
             }
-            posthog.capture(ATTENTION_EVENT[outcome], { ask: id, surface, tier: ask?.tier })
+            const legalReported =
+                id === 'legal-reconsent' &&
+                outcome === 'acted' &&
+                acceptedLegalVersions.current.has(`${userId}:${version}`)
+            if (!legalReported) posthog.capture(ATTENTION_EVENT[outcome], { ask: id, surface, tier: ask?.tier })
             if (surface === 'interrupt') {
                 // the legacy modal events, so the dashboards keep working; cards never had them
-                if (ask)
+                if (ask && !legalReported)
                     posthog.capture(LEGACY_EVENT[outcome], {
                         ...ask.legacyProps?.(state, outcome),
                         modal_type: ask.analyticsKey,
@@ -418,7 +477,7 @@ function AttentionEngine({ publish }: { publish: (value: AttentionContextValue |
             }
             bumpJourneyEpoch()
         },
-        [userId, state, askOf]
+        [userId, state, askOf, settings.defaultSnoozeDays]
     )
 
     const action = useCallback(
@@ -464,6 +523,21 @@ function AttentionEngine({ publish }: { publish: (value: AttentionContextValue |
         [userId, askOf]
     )
 
+    const holdPushPrompt = useCallback((hold: boolean) => setHeldPushUser(hold ? userId : null), [userId])
+    const holdPushCard = useCallback((hold: boolean) => setHeldPushCardUser(hold ? userId : null), [userId])
+    const legalVersion = askOf('legal-reconsent')?.version?.(state)
+    const legalGeneration = accountGeneration.current
+    const recordLegalAcceptance = useCallback(() => {
+        if (!userId || latestUserId.current !== userId || accountGeneration.current !== legalGeneration) return
+        const key = `${userId}:${legalVersion}`
+        if (acceptedLegalVersions.current.has(key)) return
+        acceptedLegalVersions.current.add(key)
+        const ask = askOf('legal-reconsent')
+        posthog.capture(ATTENTION_EVENT.acted, { ask: 'legal-reconsent', surface: 'interrupt', tier: ask?.tier })
+        if (ask)
+            posthog.capture(LEGACY_EVENT.acted, { ...ask.legacyProps?.(state, 'acted'), modal_type: ask.analyticsKey })
+    }, [userId, legalVersion, legalGeneration, askOf, state])
+
     const value = useMemo<AttentionContextValue>(
         () => ({
             decision,
@@ -475,12 +549,30 @@ function AttentionEngine({ publish }: { publish: (value: AttentionContextValue |
             openedZone,
             openedSurface,
             crashed,
+            recordLegalAcceptance,
+            holdPushPrompt,
+            holdPushCard,
             acted: (id, surface = 'interrupt') => settle(id, 'acted', undefined, surface),
             action,
             dismissed: (id, surface = 'interrupt') => settle(id, 'dismissed', undefined, surface),
             snoozed: (id, until, surface = 'interrupt') => settle(id, 'snoozed', until, surface),
         }),
-        [decision, state, ledger, session, asks, opened, openedZone, openedSurface, crashed, action, settle]
+        [
+            decision,
+            state,
+            ledger,
+            session,
+            asks,
+            opened,
+            openedZone,
+            openedSurface,
+            crashed,
+            action,
+            settle,
+            recordLegalAcceptance,
+            holdPushPrompt,
+            holdPushCard,
+        ]
     )
 
     // before paint: the hosts render this decision in the same frame

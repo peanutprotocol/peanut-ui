@@ -16215,183 +16215,292 @@ export interface paths {
                     content: {
                         /**
                          * @example {
-                         *       "nextAsk": "invite",
+                         *       "version": 1,
+                         *       "catalogueVersion": 1,
+                         *       "catalogue": [
+                         *         {
+                         *           "id": "install-app",
+                         *           "tier": 1,
+                         *           "rank": 0,
+                         *           "surfaces": [
+                         *             "interrupt",
+                         *             "zone"
+                         *           ],
+                         *           "policy": {
+                         *             "interrupt": "always",
+                         *             "snoozeDays": 3
+                         *           },
+                         *           "analyticsKey": "migration_download",
+                         *           "emailMappings": []
+                         *         }
+                         *       ],
+                         *       "settings": {
+                         *         "settleMs": 4000,
+                         *         "quietSessionMinCount": 3,
+                         *         "announcementCooldownDays": 7,
+                         *         "maxConsecutiveSessions": 3,
+                         *         "balanceThresholdUsd": 500,
+                         *         "nextPaymentAfterDays": 14,
+                         *         "defaultSnoozeDays": 7
+                         *       },
+                         *       "facts": {
+                         *         "onboarding": null,
+                         *         "canSpendViaCard": null,
+                         *         "canPayQr": null,
+                         *         "firstPeerPaymentAt": null,
+                         *         "lastSpendAt": null,
+                         *         "spendHistoryAvailable": true,
+                         *         "hasMadeQrPayment": false,
+                         *         "hasReceivedRequestPayment": false,
+                         *         "consent": {
+                         *           "status": "clear",
+                         *           "versions": []
+                         *         }
+                         *       },
+                         *       "explanations": {
+                         *         "invite": {
+                         *           "verdict": "show",
+                         *           "reason": "show",
+                         *           "unknownSources": []
+                         *         }
+                         *       },
                          *       "ranking": [
                          *         {
                          *           "id": "install-app",
-                         *           "rank": 0,
-                         *           "tier": 1
+                         *           "tier": 1,
+                         *           "rank": 0
                          *         },
                          *         {
                          *           "id": "maintenance",
-                         *           "rank": 0,
-                         *           "tier": 1
+                         *           "tier": 1,
+                         *           "rank": 0
                          *         },
                          *         {
                          *           "id": "legal-reconsent",
-                         *           "rank": 1,
-                         *           "tier": 1
+                         *           "tier": 1,
+                         *           "rank": 1
                          *         },
                          *         {
                          *           "id": "arrival",
-                         *           "rank": 2,
-                         *           "tier": 1
+                         *           "tier": 1,
+                         *           "rank": 2
                          *         },
                          *         {
                          *           "id": "balance-backup",
-                         *           "rank": 3,
-                         *           "tier": 1
+                         *           "tier": 1,
+                         *           "rank": 3
                          *         },
                          *         {
                          *           "id": "verification-due",
-                         *           "rank": 4,
-                         *           "tier": 1
-                         *         },
-                         *         {
-                         *           "id": "post-verification-action",
-                         *           "rank": 5,
-                         *           "tier": 1
-                         *         },
-                         *         {
-                         *           "id": "finish-card-setup",
-                         *           "rank": 6,
-                         *           "tier": 1
-                         *         },
-                         *         {
-                         *           "id": "finish-card-funding",
-                         *           "rank": 7,
-                         *           "tier": 1
-                         *         },
-                         *         {
-                         *           "id": "blocked-card",
-                         *           "rank": 2,
-                         *           "tier": 2
-                         *         },
-                         *         {
-                         *           "id": "checklist",
-                         *           "rank": 3,
-                         *           "tier": 2
+                         *           "tier": 1,
+                         *           "rank": 4
                          *         },
                          *         {
                          *           "id": "verification-advisory",
-                         *           "rank": 0,
-                         *           "tier": 3
+                         *           "tier": 1,
+                         *           "rank": 4.5
+                         *         },
+                         *         {
+                         *           "id": "post-verification-action",
+                         *           "tier": 1,
+                         *           "rank": 5
+                         *         },
+                         *         {
+                         *           "id": "finish-card-setup",
+                         *           "tier": 1,
+                         *           "rank": 6
+                         *         },
+                         *         {
+                         *           "id": "finish-card-funding",
+                         *           "tier": 1,
+                         *           "rank": 7
+                         *         },
+                         *         {
+                         *           "id": "blocked-card",
+                         *           "tier": 2,
+                         *           "rank": 2
+                         *         },
+                         *         {
+                         *           "id": "checklist",
+                         *           "tier": 2,
+                         *           "rank": 3
                          *         },
                          *         {
                          *           "id": "verification-deadline",
-                         *           "rank": 1,
-                         *           "tier": 3
+                         *           "tier": 3,
+                         *           "rank": 1
                          *         },
                          *         {
                          *           "id": "virtual-account",
-                         *           "rank": 1,
-                         *           "tier": 3
+                         *           "tier": 3,
+                         *           "rank": 1
                          *         },
                          *         {
                          *           "id": "qr-payment",
-                         *           "rank": 2,
-                         *           "tier": 3
+                         *           "tier": 3,
+                         *           "rank": 2
                          *         },
                          *         {
                          *           "id": "cap-nudge",
-                         *           "rank": 2,
-                         *           "tier": 3
+                         *           "tier": 3,
+                         *           "rank": 2
                          *         },
                          *         {
                          *           "id": "verify-for-qr",
-                         *           "rank": 3,
-                         *           "tier": 3
+                         *           "tier": 3,
+                         *           "rank": 3
                          *         },
                          *         {
                          *           "id": "card-offer",
-                         *           "rank": 4,
-                         *           "tier": 3
+                         *           "tier": 3,
+                         *           "rank": 4
                          *         },
                          *         {
                          *           "id": "next-payment",
-                         *           "rank": 5,
-                         *           "tier": 3
+                         *           "tier": 3,
+                         *           "rank": 5
                          *         },
                          *         {
                          *           "id": "share-bank-details",
-                         *           "rank": 6,
-                         *           "tier": 3
+                         *           "tier": 3,
+                         *           "rank": 6
                          *         },
                          *         {
                          *           "id": "request-money",
-                         *           "rank": 7,
-                         *           "tier": 3
+                         *           "tier": 3,
+                         *           "rank": 7
                          *         },
                          *         {
                          *           "id": "send-money",
-                         *           "rank": 8,
-                         *           "tier": 3
+                         *           "tier": 3,
+                         *           "rank": 8
                          *         },
                          *         {
                          *           "id": "backup-passkey",
-                         *           "rank": 1,
-                         *           "tier": 4
+                         *           "tier": 4,
+                         *           "rank": 1
                          *         },
                          *         {
                          *           "id": "push-home-fallback",
-                         *           "rank": 2,
-                         *           "tier": 4
+                         *           "tier": 4,
+                         *           "rank": 2
                          *         },
                          *         {
                          *           "id": "add-email",
-                         *           "rank": 3,
-                         *           "tier": 4
+                         *           "tier": 4,
+                         *           "rank": 3
                          *         },
                          *         {
                          *           "id": "user-interview",
-                         *           "rank": 0,
-                         *           "tier": 5
+                         *           "tier": 5,
+                         *           "rank": 0
                          *         },
                          *         {
                          *           "id": "invite",
-                         *           "rank": 1,
-                         *           "tier": 5
+                         *           "tier": 5,
+                         *           "rank": 1
                          *         },
                          *         {
                          *           "id": "rewards",
-                         *           "rank": 2,
-                         *           "tier": 5
+                         *           "tier": 5,
+                         *           "rank": 2
                          *         },
                          *         {
                          *           "id": "complete-profile",
-                         *           "rank": 4,
-                         *           "tier": 5
+                         *           "tier": 5,
+                         *           "rank": 4
                          *         },
                          *         {
                          *           "id": "bug-bounty",
-                         *           "rank": 5,
-                         *           "tier": 5
+                         *           "tier": 5,
+                         *           "rank": 5
                          *         },
                          *         {
                          *           "id": "early-user",
-                         *           "rank": 1,
-                         *           "tier": 6
+                         *           "tier": 6,
+                         *           "rank": 1
                          *         }
                          *       ],
                          *       "verdicts": {
                          *         "checklist": "done",
                          *         "invite": "show"
                          *       },
-                         *       "version": 1
+                         *       "nextAsk": "invite"
                          *     }
                          */
                         "application/json": {
-                            nextAsk: string | null;
+                            /** @enum {number} */
+                            version: 1;
+                            /** @enum {number} */
+                            catalogueVersion: 1;
+                            catalogue: {
+                                id: string;
+                                tier: number;
+                                rank: number;
+                                surfaces: ("interrupt" | "zone" | "inline" | "banner")[];
+                                slots?: ("bank-transfer" | "limits")[];
+                                policy: {
+                                    routes?: "home" | "any";
+                                    interrupt?: "always" | "session" | "quiet" | "never";
+                                    snoozeDays?: number;
+                                    expiryDays?: number;
+                                    minSessions?: number;
+                                    maxConsecutiveSessions?: number;
+                                    anchorsHome?: boolean;
+                                    overAnchor?: boolean;
+                                };
+                                analyticsKey: string;
+                                emailMappings: {
+                                    prefix: string;
+                                    when?: "activated" | "not-activated";
+                                }[];
+                            }[];
+                            settings: {
+                                settleMs: number;
+                                quietSessionMinCount: number;
+                                announcementCooldownDays: number;
+                                maxConsecutiveSessions: number;
+                                balanceThresholdUsd: number;
+                                nextPaymentAfterDays: number;
+                                defaultSnoozeDays: number;
+                            };
+                            facts: {
+                                onboarding: {
+                                    verify: "todo" | "in_review" | "action_required" | "failed" | "done";
+                                    addMoneyDone: boolean;
+                                    firstPaymentDone: boolean;
+                                    firstPaymentRoute: "card_qr" | "card" | "qr" | "none" | "pending";
+                                    cardHeld?: boolean;
+                                    step: "verify" | "add_money" | "first_payment" | "completed";
+                                } | null;
+                                canSpendViaCard: boolean | null;
+                                canPayQr: boolean | null;
+                                firstPeerPaymentAt: string | null;
+                                lastSpendAt: string | null;
+                                spendHistoryAvailable: boolean;
+                                hasMadeQrPayment: boolean | null;
+                                hasReceivedRequestPayment: boolean | null;
+                                consent: {
+                                    status: "unknown" | "clear" | "needed";
+                                    versions: string[];
+                                };
+                            };
+                            explanations: {
+                                [key: string]: {
+                                    verdict: "show" | "pending" | "done" | "ineligible" | "unknown";
+                                    reason: string;
+                                    unknownSources: string[];
+                                };
+                            };
                             ranking: {
                                 id: string;
-                                rank: number;
                                 tier: number;
+                                rank: number;
                             }[];
                             verdicts: {
                                 [key: string]: "show" | "pending" | "done" | "ineligible" | "unknown";
                             };
-                            /** @enum {number} */
-                            version: 1;
+                            nextAsk: string | null;
                         };
                     };
                 };

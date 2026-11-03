@@ -136,6 +136,10 @@
             "welcomeTitleSpoken": "Boas-vindas ao Peanut!"
         },
         "fundingSetup": {
+            "updateTitle": "Atualização dos pagamentos com cartão",
+            "updateIntro": "Estamos mudando como os pagamentos com cartão são processados. A partir de agora, seu cartão pagará diretamente com seu saldo Peanut.",
+            "updateReturn": "Depois que a atualização for confirmada, {amount} do seu cartão voltarão para sua carteira.",
+            "updateApprove": "Aprove a atualização com sua passkey.",
             "title": "Termine de configurar o cartão",
             "description": "Um toque com sua passkey para começar a usar seu cartão.",
             "descriptionMigration": "Primeiro é preciso atualizar a permissão do seu cartão. Confirme duas vezes com sua passkey: uma para atualizar e outra para a nova permissão.",

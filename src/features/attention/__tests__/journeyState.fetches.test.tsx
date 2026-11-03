@@ -23,6 +23,7 @@ jest.mock('@/hooks/useActivationStatus', () => ({
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
+        capabilities: { rails: [], nextActions: [], restrictions: [] },
         nextActions: [],
         rails: [],
         canDo: () => false,
@@ -112,4 +113,14 @@ test.each([
     expect(enabledFor(DEPOSIT_ACCOUNTS_QUERY_KEY[0])).toBe(onHome)
     // the terms prompt opens on any route, so its status is read everywhere
     expect(enabledFor(CONSENT_STATUS_QUERY_KEY)).toBe(true)
+})
+
+test('the diagnostics page loads Home facts without raising a travel arrival', () => {
+    mockPathname = '/dev/attention'
+    renderHook(() => useJourneyState())
+    expect(mockFundingAccess).toHaveBeenLastCalledWith({ enabled: true })
+    expect(mockHistory).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: true }))
+    expect(enabledFor(DEPOSIT_ACCOUNTS_QUERY_KEY[0])).toBe(true)
+    expect(mockGeo).toHaveBeenLastCalledWith({ enabled: false })
+    expect(mockArrival).toHaveBeenLastCalledWith(false)
 })

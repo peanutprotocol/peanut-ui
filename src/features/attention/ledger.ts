@@ -1,4 +1,5 @@
 import { getUserPreferences, updateUserPreferences, type UserPreferences } from '@/utils/general.utils'
+import { normalizeVersion } from './version'
 import { DOWNLOAD_PROMPT_SNOOZE_DAYS, NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { scheduleLedgerSync } from './ledgerSync'
@@ -154,7 +155,7 @@ export function sanitizeEntry(raw: unknown): LedgerEntry | undefined {
     if (Array.isArray(entry.shownAt)) out.shownAt = entry.shownAt.filter(isIso)
     if (isIso(entry.dismissedAt)) out.dismissedAt = entry.dismissedAt
     if (isIso(entry.snoozedUntil)) out.snoozedUntil = entry.snoozedUntil
-    if (typeof entry.version === 'string') out.version = entry.version
+    if (typeof entry.version === 'string') out.version = normalizeVersion(entry.version)
     if (typeof entry.lastSessionShown === 'number' && Number.isFinite(entry.lastSessionShown))
         out.lastSessionShown = entry.lastSessionShown
     if (typeof entry.consecutiveSessions === 'number' && Number.isFinite(entry.consecutiveSessions))

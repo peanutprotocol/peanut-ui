@@ -35,8 +35,11 @@ function DocumentRequestView({
     const t = useTranslations('home.pendingTasks')
     const format = useFormatter()
     const toast = useToast()
-    const { nextActions, rails } = useCapabilities()
-    const documentRequest = useMemo(() => selectHomeTasks(nextActions, rails ?? []).documentSlide, [nextActions, rails])
+    const { nextActions, capabilities } = useCapabilities()
+    const documentRequest = useMemo(
+        () => selectHomeTasks(nextActions, capabilities.features).documentSlide,
+        [nextActions, capabilities.features]
+    )
 
     // the card has no room for an inline error, so a failed start is a toast: never a tap that does nothing
     const startError = documentFlow.error

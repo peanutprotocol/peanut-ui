@@ -1,245 +1,221 @@
-jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
-
-/**
- * legal re-consent outranks the migration download prompt (TASK-22452 item
- * 12). both modals render together under one real ModalsProvider, like the
- * app: ReConsentModal in the layout, MigrationDownloadModal in HomeModals.
- * the properties under test: the download prompt never flashes while the
- * consent CHECK is still in flight, defers for the rest of the visit once a
- * legal prompt was actually shown to this account, releases on a failed
- * check (fail-open) and on consent-surface unmount, and an account switch
- * re-arms the gate so one account's 'clear' can never release another.
- */
 import React from 'react'
-import { act, fireEvent, render, screen } from '@testing-library/react'
-import { ModalsProvider } from '@/context/ModalsContext'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
+import {
+    AttentionProvider,
+    resetAttentionSessionForTests,
+    useAttentionOptional,
+} from '@/features/attention/AttentionProvider'
+import { run, state } from '@/features/attention/__tests__/legacy-manager.fixture'
 
-const mockGetStatus = jest.fn<Promise<unknown>, []>()
-jest.mock('@/services/consent', () => ({
-    consentApi: {
-        getStatus: () => mockGetStatus(),
-        accept: jest.fn().mockResolvedValue(undefined),
-    },
-    acceptedLegalDocument: (slug: string) => ({ slug, version: '2026-07-15', hash: 'a'.repeat(64) }),
+const mockGetStatus = jest.fn<Promise<{ needsReConsent: boolean }>, []>()
+let mockUser: { user: { userId: string } } | null
+let mockJourney: ReturnType<typeof state>
+let mockMigrationOn = true
+jest.mock('@/features/attention/journeyState', () => ({ useJourneyState: () => mockJourney }))
+jest.mock('@/features/attention/serverAttention', () => ({
+    ...jest.requireActual('@/features/attention/serverAttention'),
+    useServerAttention: () => undefined,
 }))
-
-let mockUser: { user: { userId: string } } | null = null
-jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: mockUser }),
-}))
-
-// one stub serves both modals; the title tells them apart. every COMMITTED
-// visible state is recorded with the account it committed under — rtl's act
-// flushes intermediate renders before a queryBy assertion runs, so only this
-// record can prove no modal flashed under the wrong account mid-switch.
-const committedVisible: { userId: string; title?: string }[] = []
-jest.mock('@/components/Global/ActionModal', () => ({
-    __esModule: true,
-    default: (props: { visible: boolean; title?: string; onClose: () => void }) => {
-        const userId = mockUser?.user.userId ?? ''
-        jest.requireActual<typeof React>('react').useLayoutEffect(() => {
-            if (props.visible) committedVisible.push({ userId, title: props.title })
-        }, [props.visible, props.title, userId])
-        if (!props.visible) return null
-        return (
-            <div data-testid={`modal-${props.title}`}>
-                <button onClick={props.onClose}>{`dismiss-${props.title}`}</button>
-            </div>
-        )
-    },
-}))
-
-const migrationCommitsFor = (userId: string) =>
-    committedVisible.filter((entry) => entry.userId === userId && entry.title === 'downloadPrompt.earlyTitle')
-jest.mock('@/components/Global/DocsLink', () => ({
-    __esModule: true,
-    default: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
-}))
-jest.mock('@/components/Migration/DownloadQR', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/context/ModalsContext', () => ({ useModalsContextOptional: () => undefined }))
+jest.mock('@/utils/overlay-visibility', () => ({ useAnyOverlayOpen: () => false }))
+jest.mock('next/navigation', () => ({ usePathname: () => '/home' }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
-jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
-jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key, useLocale: () => 'en' }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => true }))
-jest.mock('@/utils/capacitor', () => ({
-    isCapacitor: () => false,
-    isIOSNative: () => false,
-    isAndroidNative: () => false,
-    isLegacyWebKit: () => false,
-    openExternalUrl: jest.fn(),
-}))
-jest.mock('@/utils/migration.utils', () => ({
-    storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
-    storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
-    openStore: jest.fn(),
-}))
-jest.mock('@/utils/general.utils', () => ({
-    ...jest.requireActual('@/utils/general.utils'),
-    getUserPreferences: () => undefined,
-    updateUserPreferences: jest.fn(),
-}))
-
-import ReConsentModal from '@/components/Global/ReConsentModal'
-import MigrationDownloadModal from '../MigrationDownloadModal'
-
-const statusDoc = () => ({
-    slug: 'terms',
-    currentVersion: '2026-07-15',
-    acceptedVersion: null,
-    acceptedAt: null,
-    needsAcceptance: true,
-})
-
-const flush = () => act(async () => {})
-
-// the migration stub's title key and the re-consent stub's title key
-const MIGRATION_MODAL = 'modal-downloadPrompt.earlyTitle'
-const RECONSENT_MODAL = 'modal-reConsent.title'
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
 
 const deferred = () => {
-    let resolve!: (value: unknown) => void
+    let resolve!: (value: { needsReConsent: boolean }) => void
     let reject!: (reason?: unknown) => void
-    const promise = new Promise((res, rej) => {
+    const promise = new Promise<{ needsReConsent: boolean }>((res, rej) => {
         resolve = res
         reject = rej
     })
     return { promise, resolve, reject }
 }
-
-// one stable provider across rerenders — the gate state must survive a
-// consent-surface unmount, exactly like the app's root provider does
-function Tree({ withConsent = true }: { withConsent?: boolean }) {
+function Probe() {
+    const attention = useAttentionOptional()
     return (
-        <ModalsProvider>
-            {withConsent && <ReConsentModal />}
-            <MigrationDownloadModal />
-        </ModalsProvider>
+        <>
+            <span data-testid="pick">{attention?.decision.interrupt ?? 'none'}</span>
+            <span data-testid="consent">{attention?.state.consent.status ?? 'unavailable'}</span>
+            <button
+                onClick={() => {
+                    attention?.opened('legal-reconsent')
+                    attention?.snoozed('legal-reconsent')
+                }}
+            >
+                Defer legal
+            </button>
+        </>
     )
 }
-const Both = Tree
-
+function Source({ withConsent = true }: { withConsent?: boolean }) {
+    const userId = mockUser?.user.userId ?? null
+    // Consent belongs to the account query, not to the presentation component.
+    const query = useQuery({
+        queryKey: ['legacy-consent-test', userId],
+        queryFn: () => mockGetStatus(),
+        enabled: !!userId,
+        retry: false,
+    })
+    const status = query.data ? (query.data.needsReConsent ? 'needed' : 'clear') : 'unknown'
+    mockJourney = state({
+        userId,
+        userLoaded: !!userId,
+        isNative: false,
+        migration: { on: mockMigrationOn },
+        consent: {
+            status,
+            versions: status === 'needed' ? ['2026-07-15'] : [],
+            documents: status === 'needed' ? [{ slug: 'terms', currentVersion: '2026-07-15' }] : [],
+        },
+    })
+    return (
+        <AttentionProvider>
+            <Probe />
+            {withConsent && <span data-testid="presentation" />}
+        </AttentionProvider>
+    )
+}
+let client: QueryClient
+function Tree({ withConsent = true }: { withConsent?: boolean }) {
+    return (
+        <QueryClientProvider client={client}>
+            <Source withConsent={withConsent} />
+        </QueryClientProvider>
+    )
+}
+const flush = () => act(async () => {})
 beforeEach(() => {
     jest.clearAllMocks()
     window.localStorage.clear()
-    committedVisible.length = 0
+    resetAttentionSessionForTests()
     mockUser = { user: { userId: 'user-a' } }
+    mockMigrationOn = true
+    client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 })
 
-describe('legal re-consent vs download prompt priority', () => {
-    test('download prompt never renders while the consent check is in flight, and legal wins when both are eligible', async () => {
+// PR #3667 makes install-app rank ahead of legal. Unknown consent remains
+// unknown, and the four-second deadline only releases lower-priority ordering.
+describe('legal re-consent and download under the attention manager', () => {
+    test('higher-priority unknown holds a lower announcement until the settle deadline without becoming consent', () => {
+        const facts = {
+            consent: { status: 'unknown', versions: [], documents: [] },
+            showEarlyUserModal: true,
+            onboarding: {
+                verify: 'done',
+                addMoneyDone: true,
+                firstPaymentDone: true,
+                firstPaymentRoute: 'card_qr',
+                step: 'completed',
+            },
+        } as const
+        expect(run(facts, { settleDeadlinePassed: false }).interrupt).toBeNull()
+        const after = run(facts, { settleDeadlinePassed: true })
+        expect(after.interrupt).toBe('early-user')
+        expect(after.trace.verdicts['legal-reconsent']).toBe('unknown')
+    })
+    test('a pending consent check is unknown while higher-ranked install is selected; legal remains needed after its response', async () => {
         const pending = deferred()
-        mockGetStatus.mockReturnValue(pending.promise as Promise<unknown>)
-        render(<Both />)
-
-        // synchronous first render AND settled effects: still gated — and no
-        // intermediate commit ever flashed the prompt on this cold login
-        expect(screen.queryByTestId(MIGRATION_MODAL)).not.toBeInTheDocument()
+        mockGetStatus.mockReturnValue(pending.promise)
+        render(<Tree />)
         await flush()
-        expect(screen.queryByTestId(MIGRATION_MODAL)).not.toBeInTheDocument()
-        expect(migrationCommitsFor('user-a')).toEqual([])
-
+        expect(screen.getByTestId('consent')).toHaveTextContent('unknown')
+        expect(screen.getByTestId('pick')).toHaveTextContent('install-app')
         await act(async () => {
-            pending.resolve({ needsReConsent: true, documents: [statusDoc()] })
+            pending.resolve({ needsReConsent: true })
         })
-        expect(screen.getByTestId(RECONSENT_MODAL)).toBeInTheDocument()
-        expect(screen.queryByTestId(MIGRATION_MODAL)).not.toBeInTheDocument()
-
-        // dismissing legal must not pop the download prompt in the same visit
-        fireEvent.click(screen.getByText('dismiss-reConsent.title'))
-        await flush()
-        expect(screen.queryByTestId(RECONSENT_MODAL)).not.toBeInTheDocument()
-        expect(screen.queryByTestId(MIGRATION_MODAL)).not.toBeInTheDocument()
-        expect(migrationCommitsFor('user-a')).toEqual([])
+        await act(async () => {})
+        await waitFor(() => expect(screen.getByTestId('consent')).toHaveTextContent('needed'))
+        expect(screen.getByTestId('pick')).toHaveTextContent('install-app')
     })
-
-    test('a no-change consent check releases the download prompt', async () => {
-        mockGetStatus.mockResolvedValue({ needsReConsent: false, documents: [] })
-        render(<Both />)
+    test('a no-change consent check leaves the download prompt eligible', async () => {
+        mockGetStatus.mockResolvedValue({ needsReConsent: false })
+        render(<Tree />)
         await flush()
-        expect(screen.getByTestId(MIGRATION_MODAL)).toBeInTheDocument()
+        expect(screen.getByTestId('pick')).toHaveTextContent('install-app')
     })
-
-    test('a failed consent check fails open — the download prompt is not blocked', async () => {
+    test('a failed consent check never fabricates acceptance and does not block higher-ranked install', async () => {
         mockGetStatus.mockRejectedValue(new Error('api down'))
-        render(<Both />)
+        render(<Tree />)
         await flush()
-        expect(screen.getByTestId(MIGRATION_MODAL)).toBeInTheDocument()
+        expect(screen.getByTestId('consent')).toHaveTextContent('unknown')
+        expect(screen.getByTestId('pick')).toHaveTextContent('install-app')
     })
-
-    test('the consent surface unmounting releases the gate mid-check', async () => {
+    test('unmounting presentation mid-check does not resolve the account consent query', async () => {
         const pending = deferred()
-        mockGetStatus.mockReturnValue(pending.promise as Promise<unknown>)
-        const view = render(<Both />)
+        mockGetStatus.mockReturnValue(pending.promise)
+        const view = render(<Tree />)
         await flush()
-        expect(screen.queryByTestId(MIGRATION_MODAL)).not.toBeInTheDocument()
-
         view.rerender(<Tree withConsent={false} />)
         await flush()
-        expect(screen.getByTestId(MIGRATION_MODAL)).toBeInTheDocument()
+        expect(screen.queryByTestId('presentation')).not.toBeInTheDocument()
+        expect(screen.getByTestId('consent')).toHaveTextContent('unknown')
+        expect(screen.getByTestId('pick')).toHaveTextContent('install-app')
     })
-
-    test("an account switch re-arms the gate: A's clear never releases B before B's own check", async () => {
-        mockGetStatus.mockResolvedValueOnce({ needsReConsent: false, documents: [] })
-        const view = render(<Both />)
+    test('an account switch does not reuse the previous account consent result', async () => {
+        mockGetStatus.mockResolvedValueOnce({ needsReConsent: false })
+        const view = render(<Tree />)
         await flush()
-        expect(screen.getByTestId(MIGRATION_MODAL)).toBeInTheDocument()
-
-        // switch to account B with its check still pending — a is VISIBLE at
-        // the moment of the switch, the hardest case
-        const pendingB = deferred()
-        mockGetStatus.mockReturnValue(pendingB.promise as Promise<unknown>)
+        const pending = deferred()
+        mockGetStatus.mockReturnValue(pending.promise)
         mockUser = { user: { userId: 'user-b' } }
-        view.rerender(<Both />)
-        // no COMMIT under b, not merely no final dom: rtl flushes the
-        // intermediate effect passes, so only the commit record catches a's
-        // stale visible/clear leaking into b's first frames
-        expect(migrationCommitsFor('user-b')).toEqual([])
-        expect(screen.queryByTestId(MIGRATION_MODAL)).not.toBeInTheDocument()
+        view.rerender(<Tree />)
         await flush()
-        expect(migrationCommitsFor('user-b')).toEqual([])
-        expect(screen.queryByTestId(MIGRATION_MODAL)).not.toBeInTheDocument()
-
+        expect(screen.getByTestId('consent')).toHaveTextContent('unknown')
         await act(async () => {
-            pendingB.resolve({ needsReConsent: false, documents: [] })
+            pending.resolve({ needsReConsent: true })
         })
-        expect(screen.getByTestId(MIGRATION_MODAL)).toBeInTheDocument()
-        expect(migrationCommitsFor('user-b').length).toBeGreaterThan(0)
+        await flush()
+        await waitFor(() => expect(screen.getByTestId('consent')).toHaveTextContent('needed'))
     })
-
-    test("A->B while A's prompt is visible and B's check fails: release only on the fail-open", async () => {
-        mockGetStatus.mockResolvedValueOnce({ needsReConsent: false, documents: [] })
-        const view = render(<Both />)
+    test('a new account check failure remains unknown, not the previous clear', async () => {
+        mockGetStatus.mockResolvedValueOnce({ needsReConsent: false })
+        const view = render(<Tree />)
         await flush()
-        expect(screen.getByTestId(MIGRATION_MODAL)).toBeInTheDocument()
-
-        const pendingB = deferred()
-        mockGetStatus.mockReturnValue(pendingB.promise as Promise<unknown>)
+        const pending = deferred()
+        mockGetStatus.mockReturnValue(pending.promise)
         mockUser = { user: { userId: 'user-b' } }
-        view.rerender(<Both />)
+        view.rerender(<Tree />)
         await flush()
-        expect(migrationCommitsFor('user-b')).toEqual([])
-        expect(screen.queryByTestId(MIGRATION_MODAL)).not.toBeInTheDocument()
-
         await act(async () => {
-            pendingB.reject(new Error('api down'))
+            pending.reject(new Error('api down'))
         })
-        // fail-open: b is released once ITS check settles, never before
-        expect(screen.getByTestId(MIGRATION_MODAL)).toBeInTheDocument()
+        await flush()
+        expect(screen.getByTestId('consent')).toHaveTextContent('unknown')
+        expect(screen.getByTestId('pick')).toHaveTextContent('install-app')
     })
-
-    test('the shown-prompt deferral is per account: B is not latched by the prompt A saw', async () => {
-        mockGetStatus.mockResolvedValueOnce({ needsReConsent: true, documents: [statusDoc()] })
-        const view = render(<Both />)
+    test('a late result for account A cannot set the consent state for account B', async () => {
+        const first = deferred()
+        const second = deferred()
+        mockGetStatus.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+        const view = render(<Tree />)
         await flush()
-        expect(screen.getByTestId(RECONSENT_MODAL)).toBeInTheDocument()
-        fireEvent.click(screen.getByText('dismiss-reConsent.title'))
-        await flush()
-        // A stays deferred for the visit
-        expect(screen.queryByTestId(MIGRATION_MODAL)).not.toBeInTheDocument()
-
-        mockGetStatus.mockResolvedValueOnce({ needsReConsent: false, documents: [] })
         mockUser = { user: { userId: 'user-b' } }
-        view.rerender(<Both />)
+        view.rerender(<Tree />)
         await flush()
-        expect(screen.getByTestId(MIGRATION_MODAL)).toBeInTheDocument()
+        await act(async () => {
+            first.resolve({ needsReConsent: true })
+        })
+        await flush()
+        expect(screen.getByTestId('consent')).toHaveTextContent('unknown')
+        await act(async () => {
+            second.resolve({ needsReConsent: false })
+        })
+        await flush()
+        await waitFor(() => expect(screen.getByTestId('consent')).toHaveTextContent('clear'))
+    })
+    test('a legal prompt deferred by account A does not latch account B', async () => {
+        mockMigrationOn = false
+        mockGetStatus.mockResolvedValueOnce({ needsReConsent: true })
+        const view = render(<Tree />)
+        await waitFor(() => expect(screen.getByTestId('pick')).toHaveTextContent('legal-reconsent'))
+        fireEvent.click(screen.getByText('Defer legal'))
+        await waitFor(() => expect(screen.getByTestId('pick')).not.toHaveTextContent('legal-reconsent'))
+        mockUser = { user: { userId: 'user-b' } }
+        mockMigrationOn = true
+        mockGetStatus.mockResolvedValueOnce({ needsReConsent: false })
+        view.rerender(<Tree />)
+        await waitFor(() => expect(screen.getByTestId('pick')).toHaveTextContent('install-app'))
     })
 })

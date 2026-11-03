@@ -28,7 +28,15 @@ jest.mock('../serverAttention', () => ({
     useServerAttention: () => mockServer,
 }))
 jest.mock('@/utils/overlay-visibility', () => ({ useAnyOverlayOpen: () => mockOverlayOpen }))
-let mockModals: { isQRScannerOpen: boolean; isSecurityVerificationOpen: boolean } | undefined
+let mockModals:
+    | {
+          isQRScannerOpen?: boolean
+          isSecurityVerificationOpen?: boolean
+          isSupportModalOpen?: boolean
+          isGetAppModalOpen?: boolean
+          isSignInModalOpen?: boolean
+      }
+    | undefined
 jest.mock('@/context/ModalsContext', () => ({ useModalsContextOptional: () => mockModals }))
 let mockPathname = '/home'
 jest.mock('next/navigation', () => ({ usePathname: () => mockPathname }))
@@ -129,7 +137,111 @@ const state = (overrides: Partial<JourneyState> = {}): JourneyState => ({
     hasFullName: true,
     rewardsPendingUsd: 0,
     serverLedger: undefined,
+    arrival: 'none',
     ...overrides,
+})
+
+test('a successful legal write reports once after refetch closes the prompt without dismissing newer terms', async () => {
+    let accept: (() => void) | undefined
+    function LegalProbe() {
+        const attention = useAttentionOptional()
+        if (attention?.state.consent.versions[0] === '2026-10-01') accept = attention.recordLegalAcceptance
+        return null
+    }
+    const view = render(
+        <AttentionProvider>
+            <LegalProbe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    expect(accept).toBeDefined()
+    mockState = state({ consent: { status: 'needed', versions: ['2026-11-01'], documents: [] } })
+    view.rerender(
+        <AttentionProvider>
+            <LegalProbe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    act(() => {
+        accept?.()
+        accept?.()
+    })
+    const events = mockCapture.mock.calls.filter(
+        ([event, properties]) => event === 'attention_acted' && properties.ask === 'legal-reconsent'
+    )
+    expect(events).toHaveLength(1)
+    expect(getUserPreferences('user-a')?.attention?.['legal-reconsent']?.dismissedAt).toBeUndefined()
+})
+
+test('a legal callback from an old session stays stale after switching away and back', async () => {
+    let accept: (() => void) | undefined
+    function LegalProbe() {
+        const attention = useAttentionOptional()
+        if (!accept && attention) accept = attention.recordLegalAcceptance
+        return null
+    }
+    const view = render(
+        <AttentionProvider>
+            <LegalProbe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    mockState = state({ userId: 'user-b' })
+    view.rerender(
+        <AttentionProvider>
+            <LegalProbe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    mockState = state()
+    view.rerender(
+        <AttentionProvider>
+            <LegalProbe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    act(() => accept?.())
+    expect(
+        mockCapture.mock.calls.filter(
+            ([event, properties]) => event === 'attention_acted' && properties.ask === 'legal-reconsent'
+        )
+    ).toHaveLength(0)
+})
+
+test('a held push save yields to a user-opened overlay', async () => {
+    function PushProbe() {
+        const attention = useAttentionOptional()
+        if (!attention) return null
+        return (
+            <>
+                <span data-testid="held-pick">{attention.decision.interrupt ?? 'none'}</span>
+                <button
+                    onClick={() => {
+                        attention.opened('push-home-fallback')
+                        attention.holdPushPrompt(true)
+                    }}
+                >
+                    Hold
+                </button>
+            </>
+        )
+    }
+    mockState = state({ consent: { status: 'clear', versions: [], documents: [] } })
+    const view = render(
+        <AttentionProvider>
+            <PushProbe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    fireEvent.click(screen.getByText('Hold'))
+    mockOverlayOpen = true
+    view.rerender(
+        <AttentionProvider>
+            <PushProbe />
+        </AttentionProvider>
+    )
+    await act(async () => {})
+    expect(screen.getByTestId('held-pick')).toHaveTextContent('none')
 })
 
 let renders = 0
@@ -171,6 +283,7 @@ beforeEach(() => {
     mockCapture.mockClear()
     resetAttentionSessionForTests()
     mockOverlayOpen = false
+    mockModals = undefined
     mockServer = undefined
     mockThrow = null
     mockSentry.mockClear()
@@ -180,6 +293,20 @@ beforeEach(() => {
     mockBroken.clear()
     renders = 0
 })
+
+test.each(['isSupportModalOpen', 'isGetAppModalOpen', 'isSignInModalOpen'] as const)(
+    'the requested %s holds manager interrupts before its lazy overlay mounts',
+    async (flag) => {
+        mockModals = { [flag]: true }
+        render(
+            <AttentionProvider>
+                <Probe />
+            </AttentionProvider>
+        )
+        await act(async () => {})
+        expect(screen.getByTestId('interrupt')).toHaveTextContent('none')
+    }
+)
 
 test('decides, reports once, and does not re-render in a loop', async () => {
     updateUserPreferences('user-a', { sessionCount: 3 })

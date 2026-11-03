@@ -103,7 +103,8 @@ jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
     default: (props: {
         visible: boolean
-        description?: string
+        title?: React.ReactNode
+        description?: React.ReactNode
         content?: React.ReactNode
         preventClose?: boolean
         hideModalCloseButton?: boolean
@@ -112,7 +113,8 @@ jest.mock('@/components/Global/ActionModal', () => ({
     }) =>
         props.visible ? (
             <div data-testid="modal" data-prevent-close={String(!!props.preventClose)}>
-                <p data-testid="description">{props.description}</p>
+                <h3>{props.title}</h3>
+                <div data-testid="description">{props.description}</div>
                 {props.content}
                 {props.ctas?.map((c) => (
                     <button key={c.text} onClick={c.onClick} disabled={c.disabled}>
@@ -345,11 +347,29 @@ describe('FundingSetupPrompt — consent gates Continue', () => {
 })
 
 describe('FundingSetupPrompt — one confirmation or two', () => {
-    it('does not promise one tap to a legacy user: it says there are two confirmations', () => {
+    it('shows the approved update copy for enrollment without a return paragraph at zero balance', () => {
+        mockAccess = { fundingMode: 'legacy', enrollmentAllowed: true }
+        mockStatus = 'temporarily_unavailable'
+        mockSpendingPower = 0
+        render(<FundingSetupPrompt {...surfaceProps} />)
+        expect(screen.getByTestId('description')).toHaveTextContent('Approve the update with your passkey.')
+        expect(screen.getByTestId('description')).not.toHaveTextContent('will return to your wallet')
+    })
+    it('explains the update and asks for a passkey without promising a number of confirmations', () => {
         mockStatus = 'migration_required'
         render(<FundingSetupPrompt {...surfaceProps} />)
-        expect(screen.getByTestId('description')).toHaveTextContent(/confirm twice with your passkey/i)
+        expect(screen.getByText('Card payments update')).toBeInTheDocument()
+        expect(screen.getByTestId('description')).toHaveTextContent(
+            'We’re changing how the card payments are processed. From now on, your card will pay directly from your Peanut balance.'
+        )
+        expect(screen.getByTestId('description')).toHaveTextContent('Approve the update with your passkey.')
         expect(screen.getByTestId('description')).not.toHaveTextContent('One passkey tap')
+    })
+
+    it('keeps the initial setup title for a new managed permission', () => {
+        mockStatus = 'required'
+        render(<FundingSetupPrompt {...surfaceProps} />)
+        expect(screen.getByText('Finish setting up the card')).toBeInTheDocument()
     })
 
     it('names the first confirmation while the old permission is being updated', () => {
@@ -379,7 +399,9 @@ describe('FundingSetupPrompt — card balance moves back after setup is confirme
             mockStatus = status
             render(<FundingSetupPrompt {...surfaceProps} />)
             expect(description()).toHaveTextContent(
-                'When setup is confirmed, $12.34 of card balance moves back to your wallet. This may take more than one passkey confirmation.'
+                status === 'migration_required'
+                    ? 'Once the update is confirmed, $12.34 on your card will return to your wallet.'
+                    : 'When setup is confirmed, $12.34 of card balance moves back to your wallet. This may take more than one passkey confirmation.'
             )
             expect(description()).not.toHaveTextContent(/One passkey tap|twice|\d+ times/)
             expect(boxes()).toHaveLength(1)
@@ -447,7 +469,7 @@ describe('FundingSetupPrompt — card balance moves back after setup is confirme
             mockStatus = 'migration_required'
             mockLastError = { kind: 'withdrawal-in-flight' }
             render(<FundingSetupPrompt {...surfaceProps} />)
-            expect(description()).toHaveTextContent(/confirm twice with your passkey/i)
+            expect(description()).toHaveTextContent('Approve the update with your passkey.')
             expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument()
             expect(screen.getByText('Skip for now')).toBeInTheDocument()
         })

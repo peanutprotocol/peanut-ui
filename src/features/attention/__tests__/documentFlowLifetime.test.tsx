@@ -4,8 +4,14 @@ import DocumentRequestCard from '../surfaces/zone/DocumentRequestCard'
 let mockRequest: object | null = { key: 'document-1' }
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key, useFormatter: () => ({}) }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
-jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ nextActions: [], rails: [] }) }))
-jest.mock('@/utils/bridge-tasks.utils', () => ({ selectHomeTasks: () => ({ documentSlide: mockRequest }) }))
+const mockFeatures = { document: { status: 'requires-info' } }
+const mockSelectHomeTasks = jest.fn((_actions: unknown, _features: unknown) => ({ documentSlide: mockRequest }))
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => ({ nextActions: [], capabilities: { features: mockFeatures } }),
+}))
+jest.mock('@/utils/bridge-tasks.utils', () => ({
+    selectHomeTasks: (actions: unknown, features: unknown) => mockSelectHomeTasks(actions, features),
+}))
 jest.mock('@/components/Home/HomeCarouselCTA/CarouselCTA', () => ({
     __esModule: true,
     default: ({ onClick }: { onClick: () => void }) => <button onClick={onClick}>Start</button>,
@@ -29,6 +35,7 @@ test('flow modals survive removal of the submitted document request', () => {
         onSnoozed: jest.fn(),
     } as any
     const view = render(<DocumentRequestCard {...props} />)
+    expect(mockSelectHomeTasks).toHaveBeenCalledWith([], mockFeatures)
     fireEvent.click(screen.getByText('Start'))
     expect(screen.getByText('Flow still completing')).toBeTruthy()
     mockRequest = null

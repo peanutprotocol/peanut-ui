@@ -209,6 +209,34 @@ import { isSilenced } from '../decide'
 import { acceptedLegalDocument } from '@/services/consent'
 import type { JourneyState } from '../types'
 jest.mock('../ledgerSync', () => ({ scheduleLedgerSync: jest.fn() }))
+test('reports the successful write before refresh can unmount the surface', async () => {
+    const onAccepted = jest.fn()
+    const p = props('legal-reconsent')
+    jest.spyOn(queryClient, 'invalidateQueries').mockImplementation(async () => {
+        expect(onAccepted).toHaveBeenCalledTimes(1)
+    })
+    renderSurface(ReConsentModal, { ...p, onAccepted, documents: [{ slug: 'terms', currentVersion: '2026-07-15' }] })
+    fireEvent.click(screen.getByTestId('consent-checkbox'))
+    await act(async () => {
+        fireEvent.click(screen.getByText(en.global.reConsent.acceptCta))
+    })
+    expect(onAccepted).toHaveBeenCalledTimes(1)
+})
+
+test('does not report acceptance when the write fails', async () => {
+    const onAccepted = jest.fn()
+    mockAccept.mockRejectedValue(new Error('offline'))
+    renderSurface(ReConsentModal, {
+        ...props('legal-reconsent'),
+        onAccepted,
+        documents: [{ slug: 'terms', currentVersion: '2026-07-15' }],
+    })
+    fireEvent.click(screen.getByTestId('consent-checkbox'))
+    await act(async () => {
+        fireEvent.click(screen.getByText(en.global.reConsent.acceptCta))
+    })
+    expect(onAccepted).not.toHaveBeenCalled()
+})
 test('accepting an older bundled version keeps outstanding current terms live', async () => {
     const documents = [{ slug: 'terms', currentVersion: '2099-01-01' }]
     const state = {

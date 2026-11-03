@@ -184,6 +184,8 @@ beforeAll(() => {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockSavePreferences.mockReset().mockResolvedValue({ push: true })
+    mockSessionCurrent = true
     window.localStorage.clear()
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     mockUser = { user: { userId: 'alice', username: 'alice' }, showEarlyUserModal: true }
@@ -202,8 +204,24 @@ beforeEach(() => {
 
 import HomePushPrompt from '../surfaces/HomePushPrompt'
 import PushCard from '../surfaces/zone/PushCard'
+const mockSavePreferences = jest.fn()
+let mockSessionCurrent = true
+jest.mock('@/hooks/useSessionFence', () => ({
+    useSessionFence: () => () => ({ userId: 'alice', current: () => mockSessionCurrent }),
+}))
+jest.mock('../AttentionProvider', () => ({
+    useAttention: () => ({ state: { userId: 'alice' }, holdPushPrompt: jest.fn(), holdPushCard: jest.fn() }),
+}))
+jest.mock('@/services/notifications', () => ({
+    notificationsApi: { savePreferences: (...args: unknown[]) => mockSavePreferences(...args) },
+}))
 jest.mock('@/components/Notifications/SetupNotificationsModal', () => ({
-    SetupNotificationsPrompt: ({ onAllow }: { onAllow: () => void }) => <button onClick={onAllow}>Allow push</button>,
+    SetupNotificationsPrompt: ({ onAllow, error }: { onAllow: () => void; error?: string }) => (
+        <>
+            <button onClick={onAllow}>Allow push</button>
+            {error && <p role="alert">{error}</p>}
+        </>
+    ),
 }))
 jest.mock('@/components/Home/HomeCarouselCTA/CarouselCTA', () => ({
     __esModule: true,
@@ -218,6 +236,7 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ attention:
 test.each(['denied', 'default', 'error', 'granted'])(
     'Home permission result %s settles accurately',
     async (outcome) => {
+        mockSessionCurrent = true
         if (outcome === 'error') mockRequestPermission.mockRejectedValueOnce(new Error('synthetic failure'))
         else mockRequestPermission.mockResolvedValueOnce(outcome)
         const p = props('push-home-fallback')
@@ -226,12 +245,126 @@ test.each(['denied', 'default', 'error', 'granted'])(
             screen.getByText('Allow push').click()
         })
         expect(p.onActed).toHaveBeenCalledTimes(outcome === 'granted' ? 1 : 0)
-        expect(p.onSnoozed).toHaveBeenCalledTimes(outcome === 'granted' ? 0 : 1)
+        expect(p.onSnoozed).toHaveBeenCalledTimes(outcome === 'denied' || outcome === 'default' ? 1 : 0)
     }
 )
+test('Home grant waits for the account preference save before reporting success', async () => {
+    mockSessionCurrent = true
+    mockRequestPermission.mockResolvedValueOnce('granted')
+    let resolveSave!: (value: { push: boolean }) => void
+    mockSavePreferences.mockImplementationOnce(
+        () =>
+            new Promise((resolve) => {
+                resolveSave = resolve
+            })
+    )
+    const p = props('push-home-fallback')
+    renderSurface(HomePushPrompt, p)
+    await act(async () => {
+        screen.getByText('Allow push').click()
+        await Promise.resolve()
+    })
+    expect(mockSavePreferences).toHaveBeenCalledWith({ pushPermission: 'granted', push: true }, 'alice')
+    expect(p.onActed).not.toHaveBeenCalled()
+    await act(async () => {
+        resolveSave({ push: true })
+        await Promise.resolve()
+    })
+    expect(p.onActed).toHaveBeenCalledTimes(1)
+})
+
+test('Home grant does not report success when saving fails or the account changes', async () => {
+    mockSessionCurrent = true
+    mockRequestPermission.mockResolvedValueOnce('granted')
+    let rejectSave!: (error: Error) => void
+    mockSavePreferences.mockImplementationOnce(
+        () =>
+            new Promise((_, reject) => {
+                rejectSave = reject
+            })
+    )
+    const p = props('push-home-fallback')
+    renderSurface(HomePushPrompt, p)
+    await act(async () => {
+        screen.getByText('Allow push').click()
+        await Promise.resolve()
+    })
+    mockSessionCurrent = false
+    await act(async () => {
+        rejectSave(new Error('offline'))
+        await Promise.resolve()
+    })
+    expect(p.onActed).not.toHaveBeenCalled()
+})
+
+test('an account change before OS grant prevents a preference save', async () => {
+    let resolvePermission!: (value: string) => void
+    mockRequestPermission.mockImplementationOnce(
+        () =>
+            new Promise((resolve) => {
+                resolvePermission = resolve
+            })
+    )
+    const p = props('push-home-fallback')
+    renderSurface(HomePushPrompt, p)
+    await act(async () => {
+        screen.getByText('Allow push').click()
+        await Promise.resolve()
+    })
+    mockSessionCurrent = false
+    await act(async () => {
+        resolvePermission('granted')
+        await Promise.resolve()
+    })
+    expect(mockSavePreferences).not.toHaveBeenCalled()
+    expect(p.onActed).not.toHaveBeenCalled()
+})
+
+test('a save completing after an account change cannot report success', async () => {
+    mockRequestPermission.mockResolvedValueOnce('granted')
+    let resolveSave!: (value: { push: boolean }) => void
+    mockSavePreferences.mockImplementationOnce(
+        () =>
+            new Promise((resolve) => {
+                resolveSave = resolve
+            })
+    )
+    const p = props('push-home-fallback')
+    renderSurface(HomePushPrompt, p)
+    await act(async () => {
+        screen.getByText('Allow push').click()
+        await Promise.resolve()
+    })
+    mockSessionCurrent = false
+    await act(async () => {
+        resolveSave({ push: true })
+        await Promise.resolve()
+    })
+    expect(mockSavePreferences).toHaveBeenCalledWith({ pushPermission: 'granted', push: true }, 'alice')
+    expect(p.onActed).not.toHaveBeenCalled()
+})
+
+test('a failed preference save stays visible and can be retried', async () => {
+    mockRequestPermission.mockResolvedValue('granted')
+    mockSavePreferences.mockRejectedValueOnce(new Error('offline'))
+    const p = props('push-home-fallback')
+    renderSurface(HomePushPrompt, p)
+    await act(async () => {
+        screen.getByText('Allow push').click()
+        await Promise.resolve()
+    })
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    expect(p.onActed).not.toHaveBeenCalled()
+    await act(async () => {
+        screen.getByText('Allow push').click()
+        await Promise.resolve()
+    })
+    expect(p.onActed).toHaveBeenCalledTimes(1)
+})
 test.each(['denied', 'default', 'error', 'granted'])(
     'native card permission result %s settles accurately',
     async (outcome) => {
+        mockSessionCurrent = true
         if (outcome === 'error') mockRequestPermission.mockRejectedValueOnce(new Error('synthetic failure'))
         else mockRequestPermission.mockResolvedValueOnce(outcome)
         const p = props('push-home-fallback')
@@ -240,7 +373,7 @@ test.each(['denied', 'default', 'error', 'granted'])(
             screen.getByText('Allow push').click()
         })
         expect(p.onActed).toHaveBeenCalledTimes(outcome === 'granted' ? 1 : 0)
-        expect(p.onSnoozed).toHaveBeenCalledTimes(outcome === 'granted' ? 0 : 1)
+        expect(p.onSnoozed).toHaveBeenCalledTimes(outcome === 'denied' || outcome === 'default' ? 1 : 0)
         expect(p.onDismissed).not.toHaveBeenCalled()
     }
 )

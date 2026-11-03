@@ -42,6 +42,12 @@ const groups: DevToolGroup[] = [
         title: 'Harnesses',
         tools: [
             {
+                name: 'Attention',
+                description: 'Inspect attention policy and the current account decision',
+                path: '/dev/attention',
+                icon: 'info',
+            },
+            {
                 name: 'Devices',
                 description: 'Any page in 6 phone widths at once (320–430), one mirrored session',
                 path: '/dev/devices',

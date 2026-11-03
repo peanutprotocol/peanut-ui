@@ -16,6 +16,7 @@ export type Screen = {
     entryRoute?: string
     actions?: PageCapture['actions']
     expectSelector?: string
+    waitFor?: string
     routePattern?: string
     fixture: string
     clicks: string[]
@@ -114,6 +115,7 @@ const definitions: Screen[] = [
         route: f.landsOn ?? f.route,
         entryRoute: f.landsOn ? f.route : undefined,
         fixture: id,
+        waitFor: f.waitFor,
         clicks: [],
         actions:
             // ready shows the consent screen and on passes through; the other states answer the tap

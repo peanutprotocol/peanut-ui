@@ -274,24 +274,31 @@ export default function FundingSetupPrompt({ onActed, onSnoozed }: AskSurfacePro
                 ? t('descriptionBalanceUnavailable')
                 : fallback
 
-    const description = finishingReturn
-        ? returnRetryable
-            ? failureDescription(returnError, t('descriptionReturnRetry'))
-            : t('descriptionReadyReturn', { amount })
-        : isWithdrawalInFlight
-          ? t('descriptionWithdrawalInFlight')
-          : stalled
-            ? t('descriptionPending')
-            : termsChanged
-              ? tFunding('termsChanged')
-              : hardError
-                ? failureDescription(lastError, t('descriptionError'))
-                : returnCents > 0
-                  ? t('descriptionReturn', { amount })
-                  : // before acceptance the old permission still on the card has to be replaced too
-                    isMigration || (offersEnrollment && !!card?.hasStoredWithdrawApproval)
-                    ? t('descriptionMigration')
-                    : t('description')
+    const description = finishingReturn ? (
+        returnRetryable ? (
+            failureDescription(returnError, t('descriptionReturnRetry'))
+        ) : (
+            t('descriptionReadyReturn', { amount })
+        )
+    ) : isWithdrawalInFlight ? (
+        t('descriptionWithdrawalInFlight')
+    ) : stalled ? (
+        t('descriptionPending')
+    ) : termsChanged ? (
+        tFunding('termsChanged')
+    ) : hardError ? (
+        failureDescription(lastError, t('descriptionError'))
+    ) : isMigration || offersEnrollment ? (
+        <div className="flex flex-col gap-3">
+            <p>{t('updateIntro')}</p>
+            {returnCents > 0 && <p>{t('updateReturn', { amount })}</p>}
+            <p>{t('updateApprove')}</p>
+        </div>
+    ) : returnCents > 0 ? (
+        t('descriptionReturn', { amount })
+    ) : (
+        t('description')
+    )
 
     return (
         <ActionModal
@@ -300,7 +307,7 @@ export default function FundingSetupPrompt({ onActed, onSnoozed }: AskSurfacePro
             preventClose
             hideModalCloseButton
             concept="card"
-            title={t('title')}
+            title={t(isMigration || offersEnrollment ? 'updateTitle' : 'title')}
             description={description}
             content={
                 // The move after setup needs no new consent: nothing is granted.

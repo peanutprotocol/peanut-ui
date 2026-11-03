@@ -66,10 +66,10 @@ describe('buildJourneyState', () => {
         expect(buildJourneyState({ ...base, pathname: '/profile' }).route).toBe('other')
     })
 
-    test('consent: loading is unknown, a failed check fails open, documents mean needed', () => {
+    test('consent: loading and failed checks stay unknown; documents mean needed', () => {
         expect(buildJourneyState({ ...base, consentDocuments: undefined }).consent.status).toBe('unknown')
         expect(buildJourneyState({ ...base, consentDocuments: undefined, consentFailed: true }).consent.status).toBe(
-            'clear'
+            'unknown'
         )
         expect(
             buildJourneyState({ ...base, consentDocuments: [{ slug: 'terms', currentVersion: '2026-10-01' }] }).consent

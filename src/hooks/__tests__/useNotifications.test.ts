@@ -135,6 +135,29 @@ describe('useNotifications dismissal / snooze logic', () => {
         mockAdapter.requestPermission.mockResolvedValue('default')
     })
 
+    const moneyTriggers = [
+        PUSH_PROMPT_TRIGGERS.DEPOSIT_INTENT,
+        PUSH_PROMPT_TRIGGERS.REQUEST_CREATED,
+        PUSH_PROMPT_TRIGGERS.CARD_READY,
+        PUSH_PROMPT_TRIGGERS.QR_FIRST_SCAN,
+    ]
+    it.each(
+        moneyTriggers.flatMap((first) =>
+            moneyTriggers.filter((second) => first !== second).map((second) => [first, second])
+        )
+    )('dismissing %s does not snooze %s in the next session', async (first, second) => {
+        const rendered = await renderInitialized()
+        await offer(first)
+        expect(rendered.result.current.showPermissionModal).toBe(true)
+        act(() => rendered.result.current.closePermissionModal())
+        newSession()
+        await offer(first)
+        expect(rendered.result.current.showPermissionModal).toBe(false)
+        await offer(second)
+        expect(rendered.result.current.promptTrigger).toBe(second)
+        expect(rendered.result.current.showPermissionModal).toBe(true)
+    })
+
     it('granted permission hides an open prompt and no trigger asks again', async () => {
         const rendered = await renderWithShowingBaseline()
         await offer(DEPOSIT_INTENT)
@@ -275,7 +298,7 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         expect(rendered.result.current.showPermissionModal).toBe(false)
     })
 
-    it('an active shared ledger snooze holds every contextual trigger for 14 days', async () => {
+    it('a contextual dismissal snoozes only that trigger while Home remains snoozed', async () => {
         const rendered = await renderInitialized()
         await offer(DEPOSIT_INTENT)
         act(() => rendered.result.current.closePermissionModal())
@@ -288,8 +311,8 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         expect(rendered.result.current.showPermissionModal).toBe(false)
 
         await offer(CARD_READY)
-        expect(rendered.result.current.promptTrigger).toBeNull()
-        expect(rendered.result.current.showPermissionModal).toBe(false)
+        expect(rendered.result.current.promptTrigger).toBe(CARD_READY)
+        expect(rendered.result.current.showPermissionModal).toBe(true)
         newSession()
         await offer(DEPOSIT_INTENT)
         expect(rendered.result.current.showPermissionModal).toBe(false)

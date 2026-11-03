@@ -20,7 +20,7 @@ import { PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-p
 import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 import { notificationsApi, toPushPermission } from '@/services/notifications'
 import { isAttentionInterruptOpen } from '@/features/attention/interruptState'
-import { ledgerActions, readLedger } from '@/features/attention/ledger'
+import { ledgerActions } from '@/features/attention/ledger'
 import { countSession } from '@/features/attention/sessionCount'
 
 const NOTIF_PROMPT_SNOOZE_MS = NOTIF_PROMPT_SNOOZE_DAYS * 24 * 60 * 60 * 1000
@@ -90,6 +90,11 @@ export const getNotificationPermissionSnapshot = (): NotificationPermissionState
 const getServerSnapshot = () => INITIAL_STATE
 
 let currentExternalId: string | null | undefined
+let heldContextualPromptUser: string | null = null
+
+export function holdContextualPrompt(hold: boolean) {
+    heldContextualPromptUser = hold ? (currentExternalId ?? null) : null
+}
 let disableExternalIdLogin = false
 // A session is one app load. One pre-prompt per session at most, and the
 // session count gates the Home fallback.
@@ -182,10 +187,12 @@ function isPushUnanswered({ permission, optedIn }: PushStatus): boolean {
 // hide the pre-prompt once push is answered
 async function evaluateVisibility() {
     if (!state.sdkReady || !state.oneSignalInitialized) return
+    const userId = currentExternalId
     const status = await readPushStatus()
-    if (!status) return
+    if (!status || currentExternalId !== userId) return
     setState({ isPushOptedIn: status.optedIn })
-    if (!isPushUnanswered(status)) setState({ showPermissionModal: false })
+    if (!isPushUnanswered(status) && (!heldContextualPromptUser || heldContextualPromptUser !== currentExternalId))
+        setState({ showPermissionModal: false })
 }
 
 const isWithinSnooze = (closedAt: string) => Date.now() - new Date(closedAt).getTime() < NOTIF_PROMPT_SNOOZE_MS
@@ -193,8 +200,6 @@ const isWithinSnooze = (closedAt: string) => Date.now() - new Date(closedAt).get
 // The context-free Home ask is the attention manager's (features/attention,
 // the `push-home-fallback` ask); this store only knows the money moments.
 function isPromptSnoozed(trigger: PushPromptTrigger, userId: string): boolean {
-    const until = readLedger(userId)['push-home-fallback']?.snoozedUntil
-    if (until && Date.parse(until) > Date.now()) return true
     const closedAt = getUserPreferences(userId)?.notifPromptClosedAt?.[trigger]
     return !!closedAt && isWithinSnooze(closedAt)
 }
@@ -216,7 +221,14 @@ export async function offerPushPrompt(trigger: PushPromptTrigger): Promise<void>
     }
     const status = await readPushStatus()
     // re-checked after the await: two moments can land in the same tick
-    if (!status || promptShownThisSession || !isPushUnanswered(status) || isAttentionInterruptOpen()) return
+    if (
+        !status ||
+        currentExternalId !== userId ||
+        promptShownThisSession ||
+        !isPushUnanswered(status) ||
+        isAttentionInterruptOpen()
+    )
+        return
     if (isPromptSnoozed(trigger, userId)) return
     markPushPromptShownThisSession()
     setState({ showPermissionModal: true, promptTrigger: trigger, promptShownThisSession: true })
@@ -322,7 +334,8 @@ async function initializeNotifications() {
             // notification once per record (TASK-22209).
             void syncExternalIdLink()
             posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_SUBSCRIBED)
-            setState({ showPermissionModal: false })
+            if (!heldContextualPromptUser || heldContextualPromptUser !== currentExternalId)
+                setState({ showPermissionModal: false })
         })
 
         // Notification tap → PostHog. OneSignal delivers push clicks to its own
@@ -383,6 +396,8 @@ function isOriginBoundRefusalOffProduction(e: unknown): boolean {
 
 function setExternalId(externalId: string | null) {
     if (currentExternalId === externalId) return
+    heldContextualPromptUser = null
+    setState({ showPermissionModal: false, promptTrigger: null })
     currentExternalId = externalId
     if (externalId) countSession(externalId)
     syncExternalIdLink()
@@ -527,6 +542,7 @@ async function afterPermissionAttempt() {
 
 export function resetPushPromptForTests() {
     promptShownThisSession = false
+    heldContextualPromptUser = null
     pendingPromptTriggers = []
     permissionRequestTrigger = null
     setState({ showPermissionModal: false, promptTrigger: null, promptShownThisSession: false })

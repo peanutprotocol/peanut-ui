@@ -16,6 +16,7 @@ import { useCardFundingAccess } from '@/hooks/useCardFundingAccess'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
+import { useArrivalPrompt } from '@/features/home/useArrivalPrompt'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useNotifications } from '@/hooks/useNotifications'
@@ -24,8 +25,15 @@ import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useTransactionHistory } from '@/hooks/useTransactionHistory'
 import { DEPOSIT_ACCOUNTS_QUERY_KEY } from '@/features/deposit-accounts/useDepositAccounts'
 import { fetchDepositAccounts, type DepositAccountsSnapshot } from '@/services/deposit-accounts'
-import type { DepositAccount } from '@/features/deposit-accounts/types'
-import { corridorFromRailId } from '@/features/deposit-accounts/rails'
+import type {
+    ClaimableCorridor,
+    DepositAccount,
+    DepositAccountView,
+    UnavailableCorridor,
+} from '@/features/deposit-accounts/types'
+import { corridorFromRailId, emptyCorridorRecord } from '@/features/deposit-accounts/rails'
+import { closeRefusedCorridors } from '@/features/deposit-accounts/reportClosures'
+import type { FeatureReport, RailCapability } from '@/types/capabilities'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { pointsApi } from '@/services/points'
 import type { HistoryEntry } from '@/utils/history.utils'
@@ -54,6 +62,7 @@ import { cardFundingState, cardSetupPath, useFundingPromptHold } from './cardFun
 import { fact } from './faults'
 import { useJourneyEpoch } from './journeyEpoch'
 import type { JourneyState } from './types'
+import { applyServerFacts, useServerAttention } from './serverAttention'
 
 export const CONSENT_STATUS_QUERY_KEY = 'consent-status'
 
@@ -66,7 +75,11 @@ export function useAttentionDepositAccounts(userId: string | null, enabled: bool
     })
 }
 
-export function depositAccountCounts(data: DepositAccountsSnapshot | undefined): { claimable: number; active: number } {
+export function depositAccountCounts(
+    data: DepositAccountsSnapshot | undefined,
+    report?: FeatureReport,
+    rails: readonly RailCapability[] = []
+): { claimable: number; active: number } {
     const accounts = new Map<string, DepositAccount>()
     for (const account of data?.accounts ?? []) {
         const corridor = corridorFromRailId(account.railId)
@@ -80,8 +93,21 @@ export function depositAccountCounts(data: DepositAccountsSnapshot | undefined):
         )
             accounts.set(corridor, account)
     }
+    const held = emptyCorridorRecord<DepositAccountView>()
+    for (const [corridor, account] of accounts) held[corridor as keyof typeof held] = account
+    const offered = emptyCorridorRecord<ClaimableCorridor>()
+    for (const entry of data?.claimable ?? []) {
+        const corridor = corridorFromRailId(entry.railId)
+        if (corridor) offered[corridor] = entry
+    }
+    const unavailable = emptyCorridorRecord<UnavailableCorridor>()
+    for (const entry of data?.unavailable ?? []) {
+        const corridor = corridorFromRailId(entry.railId)
+        if (corridor) unavailable[corridor] = entry
+    }
+    const closed = closeRefusedCorridors(report, rails, { accounts: held, claimable: offered, unavailable })
     return {
-        claimable: new Set((data?.claimable ?? []).map((c) => corridorFromRailId(c.railId)).filter(Boolean)).size,
+        claimable: Object.values(closed.claimable).filter(Boolean).length,
         active: [...accounts.values()].filter((a) => a.status === 'active').length,
     }
 }
@@ -201,6 +227,7 @@ export interface JourneyInputs {
     hasFullName: boolean
     rewardsPendingUsd: number | undefined
     serverLedger: unknown
+    arrival: JourneyState['arrival']
 }
 
 /** Pure, so a test (and later the API) can build the state without React. */
@@ -209,8 +236,8 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
     const units = input.balanceUnits
     const consent: JourneyState['consent'] =
         documents === undefined
-            ? // a failed status check must never hold the app: fail open, retry next session
-              { status: input.consentFailed ? 'clear' : 'unknown', versions: [], documents: [] }
+            ? // The settle deadline releases lower prompts; a failed read never proves consent is clear.
+              { status: 'unknown', versions: [], documents: [] }
             : {
                   status: documents.length ? 'needed' : 'clear',
                   versions: documents.map((d) => d.currentVersion),
@@ -275,6 +302,7 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
         hasFullName: input.hasFullName,
         rewardsPendingUsd: input.rewardsPendingUsd,
         serverLedger: input.serverLedger,
+        arrival: input.arrival,
     }
 }
 
@@ -290,11 +318,21 @@ export function useJourneyState(): JourneyState {
     const { user, isFetchingUser } = useAuth()
     const userId = user?.user.userId ?? null
     const pathname = usePathname()
-    const onHome = isSameRoute(pathname, '/home')
+    const isHomeRoute = isSameRoute(pathname, '/home')
+    const onHome = isHomeRoute || isSameRoute(pathname, '/dev/attention')
     const { status, isVerified, needsAction, isTerminalFailure, isRegionRestricted } = useIdentityVerification()
     const { onboarding, isActivated, isLoading: onboardingLoading } = useActivationStatus()
     const { blockedCard } = useProviderRejection(onboarding)
-    const { nextActions, rails, canDo, railsForProvider, channelOf, isLoading: capabilitiesLoading } = useCapabilities()
+    const {
+        capabilities,
+        nextActions,
+        rails,
+        canDo,
+        railsForProvider,
+        channelOf,
+        isLoading: capabilitiesLoading,
+    } = useCapabilities()
+    const serverAttention = useServerAttention()
     const { overview, isLoading: overviewLoading } = useRainCardOverview()
     const activeCard = fact('activeCard', () => findActiveCard(overview), null)
     const hasActiveCard = activeCard?.status === 'ACTIVE'
@@ -335,7 +373,8 @@ export function useJourneyState(): JourneyState {
         isPushOptedIn,
         contextualPromptShownThisSession: promptShownThisSession,
     } = useNotifications()
-    const { countryCode: geoCountry } = useGeoLocation({ enabled: onHome })
+    const { countryCode: geoCountry } = useGeoLocation({ enabled: isHomeRoute })
+    const { arrival, checked: arrivalChecked } = useArrivalPrompt(isHomeRoute)
     const killSwitches = useKillSwitches()
     const flagEnabled = useFeatureFlags()
     const cardPromotionDisabled = flagEnabled(CARD_PROMOTION_DISABLED_FLAG)
@@ -357,9 +396,12 @@ export function useJourneyState(): JourneyState {
             enabled: depositAccountsEnabled,
             // a failed query settles as nothing to claim rather than a card that never resolves
             loaded: !deposit.isLoading,
-            ...fact('depositAccounts', () => depositAccountCounts(deposit.data), { claimable: 0, active: 0 }),
+            ...fact('depositAccounts', () => depositAccountCounts(deposit.data, capabilities.features, rails), {
+                claimable: 0,
+                active: 0,
+            }),
         }),
-        [depositAccountsEnabled, deposit.isLoading, deposit.data]
+        [depositAccountsEnabled, deposit.isLoading, deposit.data, capabilities.features, rails]
     )
 
     const consent = useQuery({
@@ -372,11 +414,15 @@ export function useJourneyState(): JourneyState {
 
     const homeTasks = useMemo(
         () =>
-            fact<ReturnType<typeof selectHomeTasks>>('homeTasks', () => selectHomeTasks(nextActions, rails ?? []), {
-                largeTasks: [],
-                documentSlide: undefined,
-            }),
-        [nextActions, rails]
+            fact<ReturnType<typeof selectHomeTasks>>(
+                'homeTasks',
+                () => selectHomeTasks(nextActions, capabilities.features),
+                {
+                    largeTasks: [],
+                    documentSlide: undefined,
+                }
+            ),
+        [nextActions, capabilities.features]
     )
     const dueTasks = fact(
         'dueTasks',
@@ -408,7 +454,9 @@ export function useJourneyState(): JourneyState {
                     )
                     return {
                         canPayNow: gate.kycGateState === QrKycState.PROCEED_TO_PAY,
-                        hasMadeQrPayment: latestHistory?.entries.some((entry) => entry.extraData?.kind === 'QR_PAY'),
+                        hasMadeQrPayment: latestHistory?.entries.some((entry) => entry.extraData?.kind === 'QR_PAY')
+                            ? true
+                            : undefined,
                         verifyOpensQr: showVerifyCTA({
                             qrGateState: gate.kycGateState,
                             isIdentityVerified: verifyRowStatus({ status: user ? status : undefined }) === 'done',
@@ -487,65 +535,70 @@ export function useJourneyState(): JourneyState {
 
     return useMemo(
         () =>
-            buildJourneyState({
-                capNudge,
-                maintenance,
-                // the epoch stands for the localStorage reads below (stored redirect)
-                now: Date.now() + epoch * 0,
-                userId,
-                userLoaded: !!user && !isFetchingUser,
-                isNative: isCapacitor(),
-                deviceType,
-                pathname,
-                consentDocuments: fact('consent', () => outdatedConsentDocuments(consent.data), []),
-                consentFailed: consent.isError,
-                identity: {
-                    status: user ? status : undefined,
-                    isVerified,
-                    needsAction,
-                    isTerminalFailure,
-                    isRegionRestricted,
-                },
-                onboarding: onboardingLoading ? null : onboarding,
-                blockedCardId: blockedCard?.ctaId ?? null,
-                dueTasks,
-                cardLoaded: !overviewLoading,
-                cardNeedsSetup: fact('cardNeedsSetup', () => cardNeedsSetup(overview), false),
-                activeCardId: fact('activeCard', () => findActiveCard(overview)?.id ?? null, null),
-                cardSetupPath: setupPath,
-                cardNeedsFunding: needsFunding,
-                redirectDestination: fact('storedRedirect', () => getStoredRedirect()?.destination, undefined),
-                balanceUnits: balance,
-                migrationOn,
-                pushReady: oneSignalInitialized,
-                pushUnanswered: !isPermissionGranted && !isPermissionDenied && !isPushOptedIn,
-                pushPromptedThisSession: promptShownThisSession,
-                pushNotEnabled: !isPermissionGranted && !isPushOptedIn,
-                showEarlyUserModal: user?.showEarlyUserModal,
-                activated: isActivated,
-                geoCountry,
-                invitesSent: user?.invitesSent?.length ?? 0,
-                hasSupportSurvivorBadge: fact(
-                    'badges',
-                    () => user?.user?.badges?.some((badge) => badge.code === 'SUPPORT_SURVIVOR') ?? false,
-                    false
-                ),
-                cardOffer,
-                qr,
-                documentSlideKey,
-                // nonProdBypass: previews and local always show the card for QA; on prod the PostHog cohort decides
-                userInterviewFlag: flagEnabled('user-interviews-invite', { nonProdBypass: true }),
-                depositAccounts,
-                history: latestHistory?.entries,
-                firstPeerPaymentAt: user?.user?.firstPaymentAt ?? null,
-                passkeyCount: user?.passkeyCount ?? null,
-                hasEmail: !!user?.user?.email,
-                hasFullName: !!user?.user?.fullName,
-                // a failed request is no card, not a card held forever
-                rewardsPendingUsd: cashStatus.isError ? 0 : cashStatus.data?.data?.rewards?.pendingUsd,
-                serverLedger: user?.attention,
-            }),
+            applyServerFacts(
+                buildJourneyState({
+                    capNudge,
+                    maintenance,
+                    // the epoch stands for the localStorage reads below (stored redirect)
+                    now: Date.now() + epoch * 0,
+                    userId,
+                    userLoaded: !!user && !isFetchingUser,
+                    isNative: isCapacitor(),
+                    deviceType,
+                    pathname,
+                    consentDocuments: fact('consent', () => outdatedConsentDocuments(consent.data), undefined),
+                    consentFailed: consent.isError,
+                    identity: {
+                        status: user ? status : undefined,
+                        isVerified,
+                        needsAction,
+                        isTerminalFailure,
+                        isRegionRestricted,
+                    },
+                    onboarding: onboardingLoading ? null : onboarding,
+                    blockedCardId: blockedCard?.ctaId ?? null,
+                    dueTasks,
+                    cardLoaded: !overviewLoading,
+                    cardNeedsSetup: fact('cardNeedsSetup', () => cardNeedsSetup(overview), false),
+                    activeCardId: fact('activeCard', () => findActiveCard(overview)?.id ?? null, null),
+                    cardSetupPath: setupPath,
+                    cardNeedsFunding: needsFunding,
+                    redirectDestination: fact('storedRedirect', () => getStoredRedirect()?.destination, undefined),
+                    balanceUnits: balance,
+                    migrationOn,
+                    pushReady: oneSignalInitialized,
+                    pushUnanswered: !isPermissionGranted && !isPermissionDenied && !isPushOptedIn,
+                    pushPromptedThisSession: promptShownThisSession,
+                    pushNotEnabled: !isPermissionGranted && !isPushOptedIn,
+                    showEarlyUserModal: user?.showEarlyUserModal,
+                    activated: isActivated,
+                    geoCountry,
+                    invitesSent: user?.invitesSent?.length ?? 0,
+                    hasSupportSurvivorBadge: fact(
+                        'badges',
+                        () => user?.user?.badges?.some((badge) => badge.code === 'SUPPORT_SURVIVOR') ?? false,
+                        false
+                    ),
+                    cardOffer,
+                    qr,
+                    documentSlideKey,
+                    // nonProdBypass: previews and local always show the card for QA; on prod the PostHog cohort decides
+                    userInterviewFlag: flagEnabled('user-interviews-invite', { nonProdBypass: true }),
+                    depositAccounts,
+                    history: latestHistory?.entries,
+                    firstPeerPaymentAt: user?.user?.firstPaymentAt ?? null,
+                    passkeyCount: user?.passkeyCount ?? null,
+                    hasEmail: !!user?.user?.email,
+                    hasFullName: !!user?.user?.fullName,
+                    // a failed request is no card, not a card held forever
+                    rewardsPendingUsd: cashStatus.isError ? 0 : cashStatus.data?.data?.rewards?.pendingUsd,
+                    serverLedger: user?.attention,
+                    arrival: !arrivalChecked ? 'unknown' : arrival ? 'raised' : 'none',
+                }),
+                serverAttention
+            ),
         [
+            serverAttention,
             capNudge,
             maintenance,
             userId,
@@ -584,6 +637,8 @@ export function useJourneyState(): JourneyState {
             latestHistory,
             cashStatus.isError,
             cashStatus.data,
+            arrival,
+            arrivalChecked,
             epoch,
         ]
     )

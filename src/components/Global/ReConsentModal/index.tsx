@@ -41,7 +41,8 @@ const ReConsentModal = ({
     onActed,
     onSnoozed,
     presentation,
-}: AskSurfaceProps & { documents: ReConsentDocument[] }) => {
+    onAccepted,
+}: AskSurfaceProps & { documents: ReConsentDocument[]; onAccepted?: () => void }) => {
     const t = useTranslations('global')
     const tPolicies = useTranslations('profile.about.policies')
     const queryClient = useQueryClient()
@@ -55,6 +56,7 @@ const ReConsentModal = ({
         setError(null)
         try {
             await consentApi.accept(documents.map((d) => acceptedLegalDocument(d.slug as LegalDocumentSlug)))
+            onAccepted?.()
             await queryClient.invalidateQueries({ queryKey: [CONSENT_STATUS_QUERY_KEY] })
             const status = await consentApi.getStatus()
             if (

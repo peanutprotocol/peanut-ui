@@ -2,6 +2,9 @@
 import { decide } from '../decide'
 import { ASKS, BALANCE_WARNING_THRESHOLD_USD } from '../registry'
 import type { AskId, AttentionAsk, JourneyState, Ledger, Session, Tier } from '../types'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import { selectHomeTasks } from '@/utils/bridge-tasks.utils'
+import type { NextAction } from '@/types/capabilities'
 
 const NOW = Date.parse('2026-10-12T12:00:00Z')
 const onboarding = (completed = false) => ({
@@ -56,6 +59,7 @@ const state = (patch: Partial<JourneyState> = {}): JourneyState => ({
     hasFullName: true,
     rewardsPendingUsd: 0,
     serverLedger: undefined,
+    arrival: 'none',
     ...patch,
 })
 
@@ -77,6 +81,25 @@ const WEB_INSTALL: Partial<JourneyState> = { isNative: false, migration: { on: t
 const BLOCKED = 'blocked-card:verification-issue:provider_rejected'
 
 describe('Phase 8: Home anchor selection', () => {
+    test.each([8, 30])('a document advisory %i days before due is visible over the checklist', (days) => {
+        const action: NextAction = {
+            key: 'document',
+            kind: 'sumsub',
+            purpose: 'unlock-bridge',
+            effectiveDate: new Date(NOW + days * 86400000).toISOString(),
+        }
+        const capabilities = withFeatureReport({ rails: [], nextActions: [action] })
+        capabilities.features!.bank.accounts = { USD: { state: 'on', action: action.key } }
+        const tasks = selectHomeTasks([action], capabilities.features, new Date(NOW))
+        expect(tasks.documentSlide?.key).toBe(action.key)
+        const decision = run({ documentSlideKey: tasks.documentSlide?.key ?? null })
+        expect(decision.zone).toEqual({ id: 'verification-advisory', mode: 'ask', underlay: 'checklist' })
+        expect(run({ documentSlideKey: action.key, dueTasks: 1 }).zone).toEqual({
+            id: 'verification-due',
+            mode: 'ask',
+            underlay: 'checklist',
+        })
+    })
     test.each<AskId>(['checklist', 'blocked-card'])('%s is registered as a Home anchor', (id) => {
         expect(ASKS.find((ask) => ask.id === id)?.policy.anchorsHome).toBe(true)
     })

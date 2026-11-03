@@ -17,15 +17,26 @@ import React from 'react'
 import { screen, fireEvent } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 import type { NextAction, RailCapability } from '@/types/capabilities'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 
 let mockNextActions: NextAction[] = []
 let mockRails: RailCapability[] = []
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
 let mockStoredDismissal: string[] | undefined
 const mockUpdatePreferences = jest.fn()
+const mockCapabilities = () => {
+    const capabilities = withFeatureReport({ rails: mockRails, nextActions: mockNextActions })
+    capabilities.features!.bank.accounts = Object.fromEntries(
+        mockNextActions.map((action, index) => [
+            ['USD', 'EUR', 'GBP', 'MXN'][index],
+            { state: action.effectiveDate ? 'on' : 'action_required', action: action.key },
+        ])
+    )
+    return capabilities
+}
 
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ nextActions: mockNextActions, rails: mockRails }),
+    useCapabilities: () => ({ nextActions: mockNextActions, rails: mockRails, capabilities: mockCapabilities() }),
 }))
 let mockUserId = 'user-1'
 jest.mock('@/context/authContext', () => ({
@@ -93,7 +104,10 @@ test('closing the last advisory task releases its manager slot without dismissin
     const state = {
         userId: 'user-1',
         userLoaded: true,
-        dueTasks: visibleHomeTasks(selectHomeTasks(mockNextActions, mockRails).largeTasks, mockStoredDismissal).length,
+        dueTasks: visibleHomeTasks(
+            selectHomeTasks(mockNextActions, mockCapabilities().features).largeTasks,
+            mockStoredDismissal
+        ).length,
     } as JourneyState
     expect(verificationDue.eligible(state)).toBe('ineligible')
     expect(mockBumpEpoch).toHaveBeenCalled()

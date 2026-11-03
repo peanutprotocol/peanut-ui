@@ -136,6 +136,10 @@
             "welcomeTitleSpoken": "Welcome to Peanut!"
         },
         "fundingSetup": {
+            "updateTitle": "Card payments update",
+            "updateIntro": "We’re changing how the card payments are processed. From now on, your card will pay directly from your Peanut balance.",
+            "updateReturn": "Once the update is confirmed, {amount} on your card will return to your wallet.",
+            "updateApprove": "Approve the update with your passkey.",
             "title": "Finish setting up the card",
             "description": "One passkey tap to start using your card.",
             "descriptionMigration": "Your card permission needs an update first. Confirm twice with your passkey: once to update, once for the new permission.",

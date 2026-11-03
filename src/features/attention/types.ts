@@ -38,6 +38,7 @@ export type AskId =
     | 'cap-nudge'
     | 'maintenance'
     | 'legal-reconsent'
+    | 'arrival'
     | 'balance-backup'
     | 'verification-due'
     | 'post-verification-action'
@@ -152,6 +153,7 @@ export interface ZoneSurfaceProps extends Omit<AskSurfaceProps, 'presentation'> 
 }
 
 export interface JourneyState {
+    attentionSettings?: import('./catalogue').AttentionSettings
     capNudge: ReturnType<typeof selectMantecaCapNudge> | null
     maintenance: 'none' | 'scoped' | 'full'
     now: number
@@ -229,8 +231,10 @@ export interface JourneyState {
     documentSlideKey: string | null
     flags: { userInterview: boolean }
     depositAccounts: { enabled: boolean; loaded: boolean; claimable: number; active: number }
-    /** newest QR pay or card spend in the latest history page; null = none seen */
+    /** authoritative newest QR pay or card spend when history is available */
     lastSpendAt: string | null
+    /** false when the server could not establish the latest spend; absent on legacy fixtures */
+    spendHistoryAvailable?: boolean
     /** a request of the user's was paid; undefined while history loads */
     hasReceivedRequestPayment: boolean | undefined
     firstPeerPaymentAt: string | null
@@ -242,6 +246,7 @@ export interface JourneyState {
     rewardsPendingUsd: number | undefined
     /** the profile's copy of the ledger (unknown shape until sanitised); undefined on an older API */
     serverLedger: unknown
+    arrival: 'unknown' | 'none' | 'raised'
 }
 
 /** `unknown` while the decision loads; `none` without an active card or after a failed read */

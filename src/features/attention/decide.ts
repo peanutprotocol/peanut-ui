@@ -1,3 +1,5 @@
+import { normalizeVersion } from './version'
+import { DEFAULT_CATALOGUE, DEFAULT_SETTINGS } from './catalogue'
 import type {
     AskId,
     AttentionAsk,
@@ -16,20 +18,16 @@ import type {
 const DAY_MS = 24 * 60 * 60 * 1000
 
 /** the Home push ask and announcements never fire on a user's first visits */
-export const QUIET_SESSION_MIN_COUNT = 3
+export const QUIET_SESSION_MIN_COUNT = DEFAULT_SETTINGS.quietSessionMinCount
 /** days between two announcement interrupts */
-export const ANNOUNCEMENT_COOLDOWN_DAYS = 7
+export const ANNOUNCEMENT_COOLDOWN_DAYS = DEFAULT_SETTINGS.announcementCooldownDays
 /** a card may hold the zone this many sessions in a row before yielding one (T3+) */
-export const DEFAULT_MAX_CONSECUTIVE_SESSIONS = 3
+export const DEFAULT_MAX_CONSECUTIVE_SESSIONS = DEFAULT_SETTINGS.maxConsecutiveSessions
 
-const DEFAULT_BUDGET: Record<Tier, InterruptBudget> = {
-    1: 'always',
-    2: 'never',
-    3: 'session',
-    4: 'session',
-    5: 'never',
-    6: 'quiet',
-}
+const DEFAULT_BUDGET = Object.fromEntries(DEFAULT_CATALOGUE.map((ask) => [ask.tier, ask.policy.interrupt])) as Record<
+    Tier,
+    InterruptBudget
+>
 
 export const budgetOf = (ask: AttentionAsk): InterruptBudget => ask.policy.interrupt ?? DEFAULT_BUDGET[ask.tier]
 
@@ -44,7 +42,12 @@ const byPriority = (a: AttentionAsk, b: AttentionAsk) => a.tier - b.tier || a.ra
 export function isSilenced(ask: AttentionAsk, entry: LedgerEntry | undefined, state: JourneyState): boolean {
     if (!entry) return false
     const version = ask.version?.(state)
-    if (version !== undefined && entry.version !== undefined && entry.version !== version) return false
+    if (
+        version !== undefined &&
+        entry.version !== undefined &&
+        normalizeVersion(entry.version) !== normalizeVersion(version)
+    )
+        return false
     if (entry.snoozedUntil && Date.parse(entry.snoozedUntil) > state.now) return true
     if (entry.dismissedAt) {
         const expiry = ask.policy.expiryDays
@@ -108,10 +111,16 @@ function interruptRefusal(
             return null
         case 'quiet': {
             if (session.interruptsThisSession.length) return 'budget: one interrupt per session'
-            if (session.count < QUIET_SESSION_MIN_COUNT) return 'budget: first sessions'
+            if (session.count < (state.attentionSettings?.quietSessionMinCount ?? QUIET_SESSION_MIN_COUNT))
+                return 'budget: first sessions'
             if (!zoneIdle) return 'budget: zone not idle'
             const last = lastInterruptOfTier(ask.tier, asks, ledger)
-            if (last !== null && state.now - last < ANNOUNCEMENT_COOLDOWN_DAYS * DAY_MS) return 'budget: cooldown'
+            if (
+                last !== null &&
+                state.now - last <
+                    (state.attentionSettings?.announcementCooldownDays ?? ANNOUNCEMENT_COOLDOWN_DAYS) * DAY_MS
+            )
+                return 'budget: cooldown'
             return null
         }
     }
@@ -132,9 +141,12 @@ function leastRecentlyShown(asks: readonly AttentionAsk[], ledger: Ledger): Atte
 }
 
 /** A T3+ card that held the zone for its allowed run yields for one session. */
-function isFatigued(ask: AttentionAsk, entry: LedgerEntry | undefined, session: Session): boolean {
+function isFatigued(ask: AttentionAsk, entry: LedgerEntry | undefined, session: Session, state: JourneyState): boolean {
     if (ask.tier < 3 || !entry?.lastSessionShown) return false
-    const max = ask.policy.maxConsecutiveSessions ?? DEFAULT_MAX_CONSECUTIVE_SESSIONS
+    const max =
+        ask.policy.maxConsecutiveSessions ??
+        state.attentionSettings?.maxConsecutiveSessions ??
+        DEFAULT_MAX_CONSECUTIVE_SESSIONS
     return entry.lastSessionShown === session.count - 1 && (entry.consecutiveSessions ?? 0) >= max
 }
 
@@ -226,7 +238,7 @@ function pickZone(
             canTakeZone(ask, state) &&
             (!anchor || ask.id === anchor.id || ask.tier < anchor.tier)
     )
-    const fresh = candidates.filter((ask) => !isFatigued(ask, ledger[ask.id], session))
+    const fresh = candidates.filter((ask) => !isFatigued(ask, ledger[ask.id], session, state))
     // the top card keeps Home unless it is resting; then the yield goes to the card shown least
     // recently, so a third live card cannot starve behind the top two. Every card resting: the top one again.
     // A yield card already booked this session keeps the zone, or booking it would re-decide.

@@ -1,6 +1,6 @@
 import type { AttentionAsk, JourneyState } from './types'
-import { MODAL_TYPES } from '@/constants/analytics.consts'
-import { HOME_FALLBACK_MIN_SESSION, PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
+import { defineAsk, DEFAULT_SETTINGS } from './catalogue'
+import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 
 /*
  * The tier is the display urgency; `rank` is the order inside the tier and
@@ -11,19 +11,12 @@ import { HOME_FALLBACK_MIN_SESSION, PUSH_PROMPT_TRIGGERS } from '@/constants/pus
  * outrank a step of the journey.
  */
 
-const parsedThreshold = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_THRESHOLD ?? '500')
-export const BALANCE_WARNING_THRESHOLD_USD = Number.isNaN(parsedThreshold) ? 500 : parsedThreshold
-const parsedExpiry = parseInt(process.env.NEXT_PUBLIC_BALANCE_WARNING_EXPIRY ?? '1814400')
-const BALANCE_WARNING_EXPIRY_DAYS = (Number.isNaN(parsedExpiry) ? 1814400 : parsedExpiry) / 86400
+export const BALANCE_WARNING_THRESHOLD_USD = DEFAULT_SETTINGS.balanceThresholdUsd
 
 const loggedIn = (s: JourneyState) => (s.userId ? (s.userLoaded ? 'ready' : 'unknown') : 'ineligible')
 
-export const legalReconsent: AttentionAsk = {
-    id: 'legal-reconsent',
-    tier: 1,
-    rank: 1, // N15
+export const legalReconsent: AttentionAsk = defineAsk('legal-reconsent', {
     presentation: 'modal',
-    surfaces: ['interrupt'],
     eligible: (s) => {
         if (!s.userId) return 'ineligible'
         if (s.consent.status === 'unknown') return 'unknown'
@@ -32,72 +25,57 @@ export const legalReconsent: AttentionAsk = {
     // the modal lists the documents from the app's own status check, so a failed check has nothing to accept
     renderable: (s) => s.consent.documents.length > 0,
     version: (s) => (s.consent.versions.length ? s.consent.versions.join(',') : undefined),
-    // ToS §17.3: a prompt, never a lock, so "Not now" exists; the modal
-    // computes its own snooze date from the documents' effective dates
-    // completion is the consent status; a dismissal only covers the status refetch, so a stray one re-arms
-    policy: { routes: 'any', snoozeDays: 7, expiryDays: 1 },
-    analyticsKey: MODAL_TYPES.RE_CONSENT,
     legacyProps: (s) => ({ documents: s.consent.documents.map((d) => d.slug) }),
-}
+})
 
-export const balanceBackup: AttentionAsk = {
-    id: 'balance-backup',
-    tier: 1,
-    rank: 2, // N14, urgent variant
+export const arrival: AttentionAsk = defineAsk('arrival', {
     presentation: 'drawer',
-    surfaces: ['interrupt'],
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        if (s.arrival === 'unknown') return 'unknown'
+        return s.arrival === 'raised' ? 'show' : 'ineligible'
+    },
+})
+
+export const balanceBackup: AttentionAsk = defineAsk('balance-backup', {
+    presentation: 'drawer',
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         if (!s.balance.loaded) return 'unknown'
         // two credentials already back the balance up; null is an API without the field
         if ((s.passkeyCount ?? 1) >= 2) return 'done'
-        return s.balance.usd > BALANCE_WARNING_THRESHOLD_USD ? 'show' : 'ineligible'
+        return s.balance.usd > (s.attentionSettings?.balanceThresholdUsd ?? BALANCE_WARNING_THRESHOLD_USD)
+            ? 'show'
+            : 'ineligible'
     },
-    policy: { expiryDays: BALANCE_WARNING_EXPIRY_DAYS },
-    analyticsKey: MODAL_TYPES.BALANCE_WARNING,
     legacyProps: (_s, event) => (event === 'acted' ? { cta: 'slide_to_continue' } : {}),
-}
+})
 
 const DAY_MS = 24 * 60 * 60 * 1000
-export const NEXT_PAYMENT_AFTER_DAYS = 14
+export const NEXT_PAYMENT_AFTER_DAYS = DEFAULT_SETTINGS.nextPaymentAfterDays
 
-export const verificationDue: AttentionAsk = {
-    id: 'verification-due',
-    tier: 1,
-    rank: 3, // N4, a check already started
-    surfaces: ['zone'],
+export const verificationDue: AttentionAsk = defineAsk('verification-due', {
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         return s.dueTasks > 0 ? 'show' : 'ineligible'
     },
-    policy: {},
-    analyticsKey: 'verification_task',
-}
+})
 
-export const postVerificationAction: AttentionAsk = {
-    id: 'post-verification-action',
-    tier: 1,
-    rank: 4, // not on the page
+export const postVerificationAction: AttentionAsk = defineAsk('post-verification-action', {
     presentation: 'modal',
-    surfaces: ['interrupt'],
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         return s.identity.isVerified && s.postAuthRedirect ? 'show' : 'ineligible'
     },
     version: (s) => s.postAuthRedirectDestination?.split(/[?#]/, 1)[0] || undefined,
-    policy: {},
-    analyticsKey: MODAL_TYPES.POST_VERIFICATION_ACTION,
-}
+})
 
-export const finishCardSetup: AttentionAsk = {
-    id: 'finish-card-setup',
-    tier: 1,
-    rank: 5, // not on the page; needs an active card, so never live before verify
+export const finishCardSetup: AttentionAsk = defineAsk('finish-card-setup', {
     presentation: 'modal',
-    surfaces: ['interrupt'],
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
@@ -108,16 +86,10 @@ export const finishCardSetup: AttentionAsk = {
         return s.card.setupPath === 'legacy' ? 'show' : 'ineligible'
     },
     version: (s) => s.card.activeCardId ?? undefined,
-    policy: {},
-    analyticsKey: 'finish_card_setup',
-}
+})
 
-export const finishCardFunding: AttentionAsk = {
-    id: 'finish-card-funding',
-    tier: 1,
-    rank: 7, // right after finish-card-setup: the same step on the managed funding path
+export const finishCardFunding: AttentionAsk = defineAsk('finish-card-funding', {
     presentation: 'modal',
-    surfaces: ['interrupt'],
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
@@ -127,47 +99,27 @@ export const finishCardFunding: AttentionAsk = {
         return s.card.needsFunding ? 'show' : 'ineligible'
     },
     version: (s) => s.card.activeCardId ?? undefined,
-    // the card cannot spend until funding is set up: a finished setup never silences a later need
-    policy: { expiryDays: 0 },
-    analyticsKey: 'finish_card_funding',
-}
+})
 
-export const installApp: AttentionAsk = {
-    id: 'install-app',
-    tier: 1,
-    // N1, and the most critical ask (Slava, 2026-10-12): the web app is being retired
-    rank: 0,
+export const installApp: AttentionAsk = defineAsk('install-app', {
     presentation: 'modal',
-    surfaces: ['interrupt', 'zone'],
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         return !s.isNative && s.migration.on ? 'show' : 'ineligible'
     },
-    policy: { snoozeDays: 3 },
-    analyticsKey: MODAL_TYPES.MIGRATION_DOWNLOAD,
-}
+})
 
-export const blockedCard: AttentionAsk = {
-    id: 'blocked-card',
-    tier: 2,
-    rank: 2, // replaces the checklist
-    surfaces: ['zone'],
+export const blockedCard: AttentionAsk = defineAsk('blocked-card', {
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         return s.blockedCardId ? 'show' : 'ineligible'
     },
     version: (s) => s.blockedCardId ?? undefined,
-    policy: { anchorsHome: true },
-    analyticsKey: 'blocked_card',
-}
+})
 
-export const checklist: AttentionAsk = {
-    id: 'checklist',
-    tier: 2,
-    rank: 3, // N2–N7, one card
-    surfaces: ['zone'],
+export const checklist: AttentionAsk = defineAsk('checklist', {
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
@@ -175,17 +127,10 @@ export const checklist: AttentionAsk = {
         if (!s.onboarding) return 'unknown'
         return s.onboarding.step === 'completed' ? 'done' : 'show'
     },
-    // nothing dismisses the to-do list; an old stored dismissal never silences it
-    policy: { anchorsHome: true, expiryDays: 0 },
-    analyticsKey: 'checklist',
-}
+})
 
-export const pushHomeFallback: AttentionAsk = {
-    id: 'push-home-fallback',
-    tier: 4,
-    rank: 2, // N16, after the backup passkey (N14)
+export const pushHomeFallback: AttentionAsk = defineAsk('push-home-fallback', {
     presentation: 'modal',
-    surfaces: ['interrupt', 'zone'],
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
@@ -197,42 +142,25 @@ export const pushHomeFallback: AttentionAsk = {
     },
     version: (s) => `${s.isNative ? 'native' : 'web'}:${s.push.unanswered ? 'prompt' : 'settings'}`,
     policy: {
-        minSessions: HOME_FALLBACK_MIN_SESSION,
-        snoozeDays: 14,
-        // as before the manager, users still on the to-do list are asked too (Slava, 2026-11-03)
-        overAnchor: true,
-        // completion is the permission itself; a stored dismissal (older builds acted on any answer) never silences it
-        expiryDays: 0,
         // the OS dialog is one-shot: the pre-prompt only while it is unanswered; the card only where settings can be opened
         surfaceWhen: { interrupt: (s) => s.push.unanswered, zone: (s) => s.isNative },
     },
-    analyticsKey: MODAL_TYPES.NOTIFICATIONS,
     legacyProps: (_s, event) => ({
         trigger: PUSH_PROMPT_TRIGGERS.HOME_FALLBACK,
         ...(event === 'acted' && { cta: 'enable' }),
     }),
-}
+})
 
-export const verificationAdvisory: AttentionAsk = {
-    id: 'verification-advisory',
-    tier: 3,
-    rank: 0, // a document a partner asked for, due later; not dismissible
-    surfaces: ['zone'],
+export const verificationAdvisory: AttentionAsk = defineAsk('verification-advisory', {
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         return s.documentSlideKey ? 'show' : 'ineligible'
     },
     version: (s) => s.documentSlideKey ?? undefined,
-    policy: {},
-    analyticsKey: 'document_request',
-}
+})
 
-export const qrPayment: AttentionAsk = {
-    id: 'qr-payment',
-    tier: 3,
-    rank: 2, // N9
-    surfaces: ['zone'],
+export const qrPayment: AttentionAsk = defineAsk('qr-payment', {
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
@@ -240,29 +168,17 @@ export const qrPayment: AttentionAsk = {
         if (s.qr.hasMadeQrPayment === undefined) return 'unknown'
         return s.qr.hasMadeQrPayment ? 'done' : 'show'
     },
-    policy: {},
-    analyticsKey: 'qr_payment',
-}
+})
 
-export const verifyForQr: AttentionAsk = {
-    id: 'verify-for-qr',
-    tier: 3,
-    rank: 3, // N9, the ID check that opens it
-    surfaces: ['zone'],
+export const verifyForQr: AttentionAsk = defineAsk('verify-for-qr', {
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         return s.qr.verifyOpensQr ? 'show' : 'ineligible'
     },
-    policy: {},
-    analyticsKey: 'kyc_prompt',
-}
+})
 
-export const cardOffer: AttentionAsk = {
-    id: 'card-offer',
-    tier: 3,
-    rank: 4, // N6 for an activated user
-    surfaces: ['zone'],
+export const cardOffer: AttentionAsk = defineAsk('card-offer', {
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
@@ -270,134 +186,102 @@ export const cardOffer: AttentionAsk = {
         if (!s.cardOffer.loaded) return 'unknown'
         return s.cardOffer.geoProhibited || s.cardOffer.hasCardRelationship ? 'ineligible' : 'show'
     },
-    policy: {},
-    analyticsKey: 'card_offer',
-}
+})
 
-export const invite: AttentionAsk = {
-    id: 'invite',
-    tier: 5,
-    rank: 1, // N19
-    surfaces: ['zone'],
+export const invite: AttentionAsk = defineAsk('invite', {
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         return s.activated && s.invitesSent === 0 ? 'show' : 'ineligible'
     },
-    policy: {},
-    analyticsKey: MODAL_TYPES.INVITE,
-}
+})
 
-export const bugBounty: AttentionAsk = {
-    id: 'bug-bounty',
-    tier: 5,
-    rank: 5, // campaign
-    surfaces: ['zone'],
+export const bugBounty: AttentionAsk = defineAsk('bug-bounty', {
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         return s.activated && !s.hasSupportSurvivorBadge ? 'show' : 'ineligible'
     },
-    policy: {},
-    analyticsKey: 'bug_bounty',
-}
+})
 
-export const userInterview: AttentionAsk = {
-    id: 'user-interview',
-    tier: 5,
-    rank: 0, // campaign: hand-picked users, leads the growth tier while it runs
-    surfaces: ['zone'],
+export const userInterview: AttentionAsk = defineAsk('user-interview', {
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         return s.flags.userInterview ? 'show' : 'ineligible'
     },
-    policy: {},
-    analyticsKey: 'user_interview',
-}
+})
 
-export const earlyUser: AttentionAsk = {
-    id: 'early-user',
-    tier: 6,
-    rank: 1, // not on the page
+export const earlyUser: AttentionAsk = defineAsk('early-user', {
     presentation: 'drawer',
-    surfaces: ['interrupt'],
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         if (s.showEarlyUserModal === undefined) return 'unknown'
         return s.showEarlyUserModal ? 'show' : 'done'
     },
-    policy: {},
-    analyticsKey: MODAL_TYPES.EARLY_USER,
-}
+})
 
-const zoneAsk = (
-    id: AttentionAsk['id'],
-    tier: AttentionAsk['tier'],
-    rank: number,
-    analyticsKey: string,
-    eligible: AttentionAsk['eligible'],
-    extra: Partial<Pick<AttentionAsk, 'version' | 'policy' | 'deviceGate'>> = {}
-): AttentionAsk => ({ id, tier, rank, surfaces: ['zone'], eligible, policy: {}, analyticsKey, ...extra })
-
-export const virtualAccount = zoneAsk('virtual-account', 3, 1, 'virtual_account', (s) => {
-    const gate = loggedIn(s)
-    if (gate !== 'ready') return gate
-    if (!s.depositAccounts.enabled) return 'ineligible'
-    if (!s.depositAccounts.loaded) return 'unknown'
-    if (s.depositAccounts.active > 0) return 'done'
-    return s.depositAccounts.claimable > 0 ? 'show' : 'ineligible'
+export const virtualAccount = defineAsk('virtual-account', {
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        if (!s.depositAccounts.enabled) return 'ineligible'
+        if (!s.depositAccounts.loaded) return 'unknown'
+        if (s.depositAccounts.active > 0) return 'done'
+        return s.depositAccounts.claimable > 0 ? 'show' : 'ineligible'
+    },
 }) // N8
 
-export const nextPayment = zoneAsk('next-payment', 3, 5, 'next_payment', (s) => {
-    const gate = loggedIn(s)
-    if (gate !== 'ready') return gate
-    if (!s.activated || !s.balance.loaded || s.balance.usd <= 0) return 'ineligible'
-    if (!s.qr.canPayNow && s.cardOffer.canSpendViaCard !== true) return 'ineligible'
-    if (s.qr.hasMadeQrPayment === undefined) return 'unknown'
-    const last = s.lastSpendAt ? Date.parse(s.lastSpendAt) : NaN
-    return !Number.isFinite(last) || s.now - last > NEXT_PAYMENT_AFTER_DAYS * DAY_MS ? 'show' : 'ineligible'
+export const nextPayment = defineAsk('next-payment', {
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        if (!s.activated || !s.balance.loaded || s.balance.usd <= 0) return 'ineligible'
+        if (!s.qr.canPayNow && s.cardOffer.canSpendViaCard !== true) return 'ineligible'
+        if (s.spendHistoryAvailable === false) return 'unknown'
+        if (s.qr.hasMadeQrPayment === undefined) return 'unknown'
+        const last = s.lastSpendAt ? Date.parse(s.lastSpendAt) : NaN
+        return !Number.isFinite(last) ||
+            s.now - last > (s.attentionSettings?.nextPaymentAfterDays ?? NEXT_PAYMENT_AFTER_DAYS) * DAY_MS
+            ? 'show'
+            : 'ineligible'
+    },
 }) // N10
 
-export const shareBankDetails = zoneAsk(
-    'share-bank-details',
-    3,
-    6,
-    'share_bank_details',
-    (s) => {
+export const shareBankDetails = defineAsk('share-bank-details', {
+    eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         return s.depositAccounts.active > 0 ? 'show' : 'ineligible'
     },
-    { policy: { snoozeDays: 7 } }
-) // N11
+}) // N11
 
-export const requestMoney = zoneAsk('request-money', 3, 7, 'request_money', (s) => {
-    const gate = loggedIn(s)
-    if (gate !== 'ready') return gate
-    if (!s.activated) return 'ineligible'
-    if (s.hasReceivedRequestPayment === undefined) return 'unknown'
-    return s.hasReceivedRequestPayment ? 'done' : 'show'
+export const requestMoney = defineAsk('request-money', {
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        if (!s.activated) return 'ineligible'
+        if (s.hasReceivedRequestPayment === undefined) return 'unknown'
+        return s.hasReceivedRequestPayment ? 'done' : 'show'
+    },
 }) // N12
 
-export const sendMoney = zoneAsk('send-money', 3, 8, 'send_money', (s) => {
-    const gate = loggedIn(s)
-    if (gate !== 'ready') return gate
-    if (!s.activated) return 'ineligible'
-    return s.firstPeerPaymentAt ? 'done' : 'show'
+export const sendMoney = defineAsk('send-money', {
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        if (!s.activated) return 'ineligible'
+        return s.firstPeerPaymentAt ? 'done' : 'show'
+    },
 }) // N13
 
 // the backup guide has iPhone and Android steps only
 const backupGuideFits = (s: JourneyState) =>
     s.deviceType === null ? 'unknown' : s.deviceType === 'web' ? 'ineligible' : 'ready'
 
-export const backupPasskey = zoneAsk(
-    'backup-passkey',
-    4,
-    1,
-    'backup_passkey',
-    (s) => {
+export const backupPasskey = defineAsk('backup-passkey', {
+    eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         const device = backupGuideFits(s)
@@ -406,51 +290,38 @@ export const backupPasskey = zoneAsk(
         if (s.passkeyCount === null || s.passkeyCount < 1) return 'ineligible'
         return s.passkeyCount === 1 ? 'show' : 'done'
     },
-    { deviceGate: backupGuideFits }
-) // N14
+    deviceGate: backupGuideFits,
+}) // N14
 
-export const addEmail = zoneAsk(
-    'add-email',
-    4,
-    3,
-    'add_email',
-    (s) => {
+export const addEmail = defineAsk('add-email', {
+    eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         return s.hasEmail ? 'done' : 'show'
     },
-    { policy: { snoozeDays: 7 } }
-) // N17
+}) // N17
 
-export const rewards = zoneAsk(
-    'rewards',
-    5,
-    2,
-    'rewards',
-    (s) => {
+export const rewards = defineAsk('rewards', {
+    eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         if (!s.activated) return 'ineligible'
         if (s.rewardsPendingUsd === undefined) return 'unknown'
         return s.rewardsPendingUsd > 0 ? 'show' : 'ineligible'
     },
-    // a new pending balance re-arms a card the user already acted on
-    { version: (s) => (s.rewardsPendingUsd === undefined ? undefined : String(s.rewardsPendingUsd)) }
-) // N20
+    version: (s) => (s.rewardsPendingUsd === undefined ? undefined : String(s.rewardsPendingUsd)),
+}) // N20
 
-export const completeProfile = zoneAsk('complete-profile', 5, 4, 'complete_profile', (s) => {
-    const gate = loggedIn(s)
-    if (gate !== 'ready') return gate
-    if (!s.activated) return 'ineligible'
-    return s.hasFullName ? 'done' : 'show'
+export const completeProfile = defineAsk('complete-profile', {
+    eligible: (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        if (!s.activated) return 'ineligible'
+        return s.hasFullName ? 'done' : 'show'
+    },
 }) // N22
 
-export const verificationDeadline: AttentionAsk = {
-    id: 'verification-deadline',
-    tier: 3,
-    rank: 1,
-    surfaces: ['inline'],
-    slots: ['bank-transfer'],
+export const verificationDeadline: AttentionAsk = defineAsk('verification-deadline', {
     eligible: (s) => {
         const gate = loggedIn(s)
         return gate === 'ready' ? 'show' : gate
@@ -459,39 +330,26 @@ export const verificationDeadline: AttentionAsk = {
         slotWhen: (_, context) =>
             typeof context?.advisoryDeadline === 'string' && !Number.isNaN(Date.parse(context.advisoryDeadline)),
     },
-    analyticsKey: 'verification-deadline',
-}
+})
 
-export const capNudge: AttentionAsk = {
-    id: 'cap-nudge',
-    tier: 3,
-    rank: 2,
-    surfaces: ['inline'],
-    slots: ['limits'],
+export const capNudge: AttentionAsk = defineAsk('cap-nudge', {
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         return s.capNudge === undefined ? 'unknown' : s.capNudge !== null ? 'show' : 'ineligible'
     },
-    policy: {},
-    analyticsKey: 'cap-nudge',
-}
+})
 
-export const maintenance: AttentionAsk = {
-    id: 'maintenance',
-    tier: 1,
-    rank: 0,
-    surfaces: ['banner'],
+export const maintenance: AttentionAsk = defineAsk('maintenance', {
     eligible: (s) => (s.maintenance === 'none' ? 'ineligible' : 'show'),
-    policy: {},
-    analyticsKey: 'maintenance',
-}
+})
 
 export const ASKS: readonly AttentionAsk[] = [
     maintenance,
     verificationDeadline,
     capNudge,
     legalReconsent,
+    arrival,
     balanceBackup,
     verificationDue,
     postVerificationAction,
