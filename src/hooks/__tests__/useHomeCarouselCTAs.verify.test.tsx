@@ -82,12 +82,30 @@ describe('Home manager verify ask follows the QR-pay gate', () => {
     })
     it('a blocked QR provider has no verification ask', () => {
         mockRails = [
-            { id: 'manteca.pix_br', provider: 'manteca', channel: 'bank', status: 'blocked' } as RailCapability,
+            {
+                id: 'manteca.pix_br',
+                provider: 'manteca',
+                method: 'PIX_BR',
+                channel: 'bank',
+                country: 'BR',
+                currency: 'BRL',
+                status: 'blocked',
+            },
         ]
         expect(verifyOffered('not_started')).toBe(false)
     })
     it('a verified user who dismissed a provider rejection has no verification ask', () => {
-        mockRails = [{ id: 'bridge.ach_us', provider: 'bridge', channel: 'bank', status: 'blocked' } as RailCapability]
+        mockRails = [
+            {
+                id: 'bridge.ach_us',
+                provider: 'bridge',
+                method: 'ACH_US',
+                channel: 'bank',
+                country: 'US',
+                currency: 'USD',
+                status: 'blocked',
+            },
+        ]
         const id = blockedCardCtaId('verification-issue', 'provider_rejected')
         expect(managerAfterDismissal(verifyOffered('verified'), id)).toBe('ineligible')
     })
