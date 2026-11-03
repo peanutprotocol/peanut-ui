@@ -10,8 +10,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { selectVerifyTasks } from '@/utils/bridge-tasks.utils'
-import { followUpStep } from './followUps'
+import { verifiedFollowUps } from './followUps'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSessionFence } from '@/hooks/useSessionFence'
@@ -282,11 +281,11 @@ function PaperworkVerificationSteps({
     const locale = useLocale()
     const router = useRouter()
     const { user, fetchUser } = useAuth()
-    // What a feature still asks for once the identity is verified, as the verified screen lists it.
+    // What a feature still waits on once the identity is verified: steps of the verified timeline.
     const tRoot = useTranslations()
     const { nextActions, capabilities } = useCapabilities()
     const followUps = useMemo(
-        () => selectVerifyTasks(nextActions, capabilities.features).map(followUpStep),
+        () => verifiedFollowUps(nextActions, capabilities.features),
         [nextActions, capabilities.features]
     )
     // The picked document's name for Sumsub's ID step; a retry without a pick keeps the last one.

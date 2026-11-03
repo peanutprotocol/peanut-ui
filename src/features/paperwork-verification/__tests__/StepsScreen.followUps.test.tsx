@@ -1,10 +1,10 @@
 import { screen, within } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
-import type { NextAction } from '@/types/capabilities'
+import type { FeatureReport, NextAction } from '@/types/capabilities'
 import { selectCardDocumentTask } from '@/utils/bridge-tasks.utils'
 import en from '@/i18n/app/messages/en.json'
 import { StepsScreen } from '../components/StepsScreen'
-import { followUpStep } from '../followUps'
+import { followUpStep, verifiedFollowUps } from '../followUps'
 
 const steps = en.kyc.paperworkVerification.steps
 
@@ -87,5 +87,55 @@ describe('followUpStep', () => {
         expect(
             followUpStep({ key: 'bridge-hosted', kind: 'bridge-hosted', purpose: 'unlock-bridge', currency: 'EUR' })
         ).toMatchObject({ label: 'bankCheck', href: '/home' })
+    })
+})
+
+// Chip, ui#3913: a dated request on a working bank feature made "Unlock eligible payments" look locked.
+describe('verifiedFollowUps', () => {
+    const dated = '2099-01-01T00:00:00Z'
+    const terms: NextAction = {
+        key: 'accept-tos:sepa',
+        kind: 'accept-tos',
+        purpose: 'unlock-bridge',
+        effectiveDate: dated,
+    }
+    const hosted: NextAction = {
+        key: 'bridge-hosted',
+        kind: 'bridge-hosted',
+        purpose: 'unlock-bridge',
+        currency: 'EUR',
+        effectiveDate: dated,
+    }
+    const report = (bank: FeatureReport['bank']): FeatureReport => ({
+        qr: { state: 'on' },
+        bank,
+        local: { state: 'on', accounts: {} },
+        card: { state: 'on' },
+    })
+
+    it("a dated request on a bank feature that is on is Home's, not a step: Unlock stays done", () => {
+        expect(verifiedFollowUps([terms], report({ state: 'on', action: terms.key, accounts: {} }))).toEqual([])
+        expect(verifiedFollowUps([hosted], report({ state: 'on', action: hosted.key, accounts: {} }))).toEqual([])
+    })
+
+    it('the same request once its feature waits on it is a step', () => {
+        expect(
+            verifiedFollowUps([terms], report({ state: 'action_required', action: terms.key, accounts: {} }))
+        ).toEqual([{ label: 'bankTerms', note: 'home.pendingTasks.tosDescription', href: '/home' }])
+    })
+
+    it("the card's proof of address is a step", () => {
+        const rainPoa: NextAction = {
+            key: 'sumsub:proof_of_address',
+            kind: 'sumsub',
+            purpose: 'rain-card',
+            levelKey: 'proof_of_address',
+        }
+        expect(
+            verifiedFollowUps([rainPoa], {
+                ...report({ state: 'on', accounts: {} }),
+                card: { state: 'action_required', action: rainPoa.key },
+            }).map((step) => step.label)
+        ).toEqual(['cardAddress'])
     })
 })
