@@ -273,6 +273,18 @@ export function useWithdrawRootFlow() {
         }
         write.then(settle, settle)
     }, [])
+    // A Continue still waiting on that write is dropped once the user moves on:
+    // Back, another step, another Continue, or leaving the page.
+    const continueTicketRef = useRef(0)
+    useEffect(() => {
+        continueTicketRef.current += 1
+    }, [stepper.step])
+    useEffect(
+        () => () => {
+            continueTicketRef.current += 1
+        },
+        []
+    )
 
     const handleBalanceFilled = useCallback(
         (value: string) => {
@@ -389,9 +401,12 @@ export function useWithdrawRootFlow() {
             from_send_flow: isFromSendFlow,
         })
 
+        const ticket = ++continueTicketRef.current
         const push = (url: string) => {
             const pending = pendingUrlWriteRef.current
-            const go = () => router.push(url)
+            const go = () => {
+                if (continueTicketRef.current === ticket) router.push(url)
+            }
             if (pending) void pending.then(go, go)
             else go()
         }
@@ -455,6 +470,7 @@ export function useWithdrawRootFlow() {
     ])
 
     const handleAmountBack = useCallback(() => {
+        continueTicketRef.current += 1
         if (isCryptoFromSend) {
             // crypto from send: back leaves for /send (the method was implied)
             setSelectedMethod(null)
