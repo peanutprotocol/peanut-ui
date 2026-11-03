@@ -15,6 +15,7 @@ const base: JourneyInputs = {
     userId: 'user-a',
     userLoaded: true,
     isNative: true,
+    deviceType: 'ios',
     pathname: '/home/',
     consentDocuments: [],
     consentFailed: false,

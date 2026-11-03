@@ -43,6 +43,7 @@ const state = (overrides: Partial<JourneyState> = {}): JourneyState => ({
     userId: 'user-a',
     userLoaded: true,
     isNative: true,
+    deviceType: 'ios',
     route: 'home',
     consent: { status: 'needed', versions: ['2026-10-01'], documents: [] },
     identity: {

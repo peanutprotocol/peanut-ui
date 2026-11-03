@@ -108,6 +108,8 @@ export interface AttentionAsk {
     eligible: (state: JourneyState) => Verdict
     /** whether the app holds what its surface shows; a server `show` waits as `pending` until it does */
     renderable?: (state: JourneyState) => boolean
+    /** facts only this device holds (its OS); applied over a server verdict too */
+    deviceGate?: (state: JourneyState) => 'ready' | 'unknown' | 'ineligible'
     /** a changed version re-arms a dismissed or snoozed ask (a new legal document, a new reason code) */
     version?: (state: JourneyState) => string | undefined
     policy: AskPolicy
@@ -156,6 +158,8 @@ export interface JourneyState {
     userId: string | null
     userLoaded: boolean
     isNative: boolean
+    /** the OS from the user agent, native or browser; null until hydration */
+    deviceType: 'ios' | 'android' | 'web' | null
     route: 'home' | 'other'
     consent: {
         status: 'unknown' | 'clear' | 'needed'

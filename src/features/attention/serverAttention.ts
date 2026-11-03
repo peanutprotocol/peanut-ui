@@ -74,6 +74,8 @@ export function applyServerRanking(
             ...(verdict
                 ? {
                       eligible: (state: JourneyState): Verdict => {
+                          const device = ask.deviceGate?.(state)
+                          if (device && device !== 'ready') return device
                           if (verdict !== 'show' || ask.renderable?.(state) !== false) return verdict
                           // the app's own input is still loading: hold lower asks as the local verdict would
                           return ask.eligible(state) === 'unknown' ? 'unknown' : 'pending'

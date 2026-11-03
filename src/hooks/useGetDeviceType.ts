@@ -7,7 +7,7 @@ export enum DeviceType {
     WEB = 'web',
 }
 
-function detectDeviceType(): DeviceType {
+export function detectDeviceType(): DeviceType {
     if (typeof window === 'undefined') {
         return DeviceType.WEB // SSR fallback
     }

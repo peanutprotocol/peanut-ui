@@ -45,6 +45,7 @@ import { visibleHomeTasks } from './taskVisibility'
 import { selectMantecaCapNudge } from '@/utils/capability-gate'
 import { isDemoMode } from '@/utils/demo'
 import { useHydrationSnapshot } from '@/utils/native-platform'
+import { detectDeviceType } from '@/hooks/useGetDeviceType'
 import { selectMaintenance } from './maintenance'
 import { isCapacitor } from '@/utils/capacitor'
 import { rainApi, type RainCardFunding, type RainCardOverview } from '@/services/rain'
@@ -162,6 +163,7 @@ export interface JourneyInputs {
     userId: string | null
     userLoaded: boolean
     isNative: boolean
+    deviceType: JourneyState['deviceType']
     pathname: string | null
     consentDocuments: OutdatedDocument[] | undefined
     consentFailed: boolean
@@ -220,6 +222,7 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
         userId: input.userId,
         userLoaded: input.userLoaded,
         isNative: input.isNative,
+        deviceType: input.deviceType,
         route: isSameRoute(input.pathname, '/home') ? 'home' : 'other',
         consent,
         identity: input.identity,
@@ -426,6 +429,7 @@ export function useJourneyState(): JourneyState {
         [capabilitiesLoading, rails, nextActions]
     )
     const demoMode = useHydrationSnapshot(isDemoMode, () => false)
+    const deviceType = useHydrationSnapshot<JourneyState['deviceType']>(detectDeviceType, () => null)
     const maintenance = selectMaintenance({ pathname, config: killSwitches, demo: demoMode })
 
     return useMemo(
@@ -438,6 +442,7 @@ export function useJourneyState(): JourneyState {
                 userId,
                 userLoaded: !!user && !isFetchingUser,
                 isNative: isCapacitor(),
+                deviceType,
                 pathname,
                 consentDocuments: outdatedConsentDocuments(consent.data),
                 consentFailed: consent.isError,

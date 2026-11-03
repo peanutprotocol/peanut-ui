@@ -354,7 +354,7 @@ const zoneAsk = (
     rank: number,
     analyticsKey: string,
     eligible: AttentionAsk['eligible'],
-    extra: Partial<Pick<AttentionAsk, 'version' | 'policy'>> = {}
+    extra: Partial<Pick<AttentionAsk, 'version' | 'policy' | 'deviceGate'>> = {}
 ): AttentionAsk => ({ id, tier, rank, surfaces: ['zone'], eligible, policy: {}, analyticsKey, ...extra })
 
 export const virtualAccount = zoneAsk('virtual-account', 3, 1, 'virtual_account', (s) => {
@@ -404,13 +404,26 @@ export const sendMoney = zoneAsk('send-money', 3, 8, 'send_money', (s) => {
     return s.firstPeerPaymentAt ? 'done' : 'show'
 }) // N13
 
-export const backupPasskey = zoneAsk('backup-passkey', 4, 1, 'backup_passkey', (s) => {
-    const gate = loggedIn(s)
-    if (gate !== 'ready') return gate
-    // null: an API without the field; 0: a bad row. Neither is a reason to ask.
-    if (s.passkeyCount === null || s.passkeyCount < 1) return 'ineligible'
-    return s.passkeyCount === 1 ? 'show' : 'done'
-}) // N14
+// the backup guide has iPhone and Android steps only
+const backupGuideFits = (s: JourneyState) =>
+    s.deviceType === null ? 'unknown' : s.deviceType === 'web' ? 'ineligible' : 'ready'
+
+export const backupPasskey = zoneAsk(
+    'backup-passkey',
+    4,
+    1,
+    'backup_passkey',
+    (s) => {
+        const gate = loggedIn(s)
+        if (gate !== 'ready') return gate
+        const device = backupGuideFits(s)
+        if (device !== 'ready') return device
+        // null: an API without the field; 0: a bad row. Neither is a reason to ask.
+        if (s.passkeyCount === null || s.passkeyCount < 1) return 'ineligible'
+        return s.passkeyCount === 1 ? 'show' : 'done'
+    },
+    { deviceGate: backupGuideFits }
+) // N14
 
 export const addEmail = zoneAsk(
     'add-email',
