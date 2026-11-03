@@ -606,12 +606,15 @@ function PaperworkVerificationSteps({
         void goToStep('id')
     }, [identity.documentRequired, goToStep])
 
+    // A check that answers after the selfie was sent finds the review: it must not reopen the choice.
+    const sumsubOpenRef = useRef(false)
+    sumsubOpenRef.current = !!identity.session && !submitted
     const checkIdentityDocument = async () => {
         const attemptId = identity.attemptIdRef.current
         const declared = questions.residence
         if (!attemptId || !declared) return
         const mismatch = await getIdentityDocumentMismatch(attemptId)
-        if (!mismatch || mismatch.recognised === declared) return
+        if (!mismatch || mismatch.recognised === declared || !sumsubOpenRef.current) return
         track(ANALYTICS_EVENTS.KYC_PV_DOCUMENT_COUNTRY_MISMATCH, {
             picked: mismatch.picked,
             recognised: mismatch.recognised,

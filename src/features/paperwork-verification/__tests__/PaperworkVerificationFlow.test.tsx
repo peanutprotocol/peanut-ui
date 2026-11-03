@@ -590,6 +590,17 @@ describe('PaperworkVerificationFlow', () => {
             await waitFor(() => expect(screen.queryByText(mismatchCopy)).not.toBeInTheDocument())
         })
 
+        it('a check that answers after the selfie was sent leaves the review in place', async () => {
+            let answer: (value: { picked: string; recognised: string }) => void = () => {}
+            mockMismatch.mockReturnValue(new Promise((resolve) => (answer = resolve)))
+            await openSumsubOnPassport()
+            fireEvent.click(screen.getByText('sumsub-submit'))
+            expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
+            await act(async () => answer({ picked: 'US', recognised: 'UA' }))
+            expect(screen.queryByText(mismatchCopy)).not.toBeInTheDocument()
+            expect(screen.getByTestId('verify-review-home')).toBeInTheDocument()
+        })
+
         it('an ID from the picked country leaves Sumsub open', async () => {
             mockMismatch.mockResolvedValue(null)
             await openSumsubOnPassport()
