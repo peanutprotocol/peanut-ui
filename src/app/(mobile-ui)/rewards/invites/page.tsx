@@ -31,6 +31,7 @@ import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 import { profileUrl } from '@/utils/native-routes'
 import { inviteeDisplayName } from '@/features/rewards/utils'
+import { personFrom } from '@/lib/person/person'
 
 const InvitesPage = () => {
     const nativePlatform = useNativePlatform()
@@ -184,7 +185,7 @@ const InvitesPage = () => {
                                             // the display name — an empty name reads as "not a
                                             // user" and drops to a wallet icon.
                                             userName={username || displayName || undefined}
-                                            avatarKey={invite.avatarKey}
+                                            person={personFrom(invite)}
                                             isLinkTransaction={false}
                                             transactionType={'send'}
                                             size="m"

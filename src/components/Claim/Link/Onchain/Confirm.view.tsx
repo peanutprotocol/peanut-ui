@@ -33,6 +33,7 @@ import { CROSS_CHAIN_DISABLED_MESSAGE } from '@/features/kill-switches/kill-swit
 import { useTranslations, useLocale } from 'next-intl'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 import { isQuoteNearExpiry } from '@/services/rhino-bridge'
+import { personFrom } from '@/lib/person/person'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -225,7 +226,7 @@ export const ConfirmClaimLinkView = ({
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
                     recipientName={senderDisplay.displayName}
-                    avatarKey={claimLinkData.sender?.avatarKey}
+                    person={personFrom(claimLinkData.sender)}
                     amount={
                         isReward
                             ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!
