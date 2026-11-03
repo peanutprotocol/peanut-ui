@@ -278,6 +278,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-download-prompt",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
         "id": "fixture-early-user",
         "flow": "Home and shared states",
         "route": "/home"
