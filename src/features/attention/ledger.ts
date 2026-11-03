@@ -214,6 +214,14 @@ function sanitizeStore(raw: unknown): Ledger {
     return out
 }
 
+// older APIs dropped a destination over 200 characters, leaving a dismissal that would silence every destination
+function withoutVersionlessContinuationDismissal(ledger: Ledger): Ledger {
+    const entry = ledger['post-verification-action']
+    if (!entry?.dismissedAt || entry.version !== undefined) return ledger
+    const { dismissedAt: _dismissedAt, ...rest } = entry
+    return { ...ledger, 'post-verification-action': rest }
+}
+
 /**
  * The device's store, the pre-manager closes and `server` (the profile's
  * copy, passed by the provider), merged field by field (`mergeEntry`).
@@ -224,7 +232,9 @@ export function readLedger(userId: string | null, server?: unknown): Ledger {
     const fingerprint = fingerprintOf(userId, raw, server)
     if (cached && cached.userId === userId && cached.fingerprint === fingerprint) return cached.ledger
     const local = mergeLedgers(sanitizeStore(localStore(userId, raw)), legacyEntries(userId, raw))
-    const ledger = mergeLedgers(local, withoutDeviceState(sanitizeStore(server)))
+    const ledger = withoutVersionlessContinuationDismissal(
+        mergeLedgers(local, withoutDeviceState(sanitizeStore(server)))
+    )
     cached = { userId, fingerprint, ledger }
     return ledger
 }

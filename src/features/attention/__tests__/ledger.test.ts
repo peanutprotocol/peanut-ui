@@ -10,7 +10,7 @@ jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockSunsetOn 
 import { ledgerActions, legacyEntries, persistLegacyLedger, readLedger } from '../ledger'
 import { scheduleLedgerSync } from '../ledgerSync'
 import { isSilenced } from '../decide'
-import { finishCardSetup, legalReconsent } from '../registry'
+import { finishCardSetup, legalReconsent, postVerificationAction } from '../registry'
 import type { JourneyState } from '../types'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 
@@ -141,6 +141,64 @@ describe('hostile storage', () => {
         expect(entries['install-app']).toBeUndefined()
         expect(entries['push-home-fallback']).toBeUndefined()
         expect(entries['blocked-card']?.dismissedAt).toBe(new Date(0).toISOString())
+    })
+})
+
+describe('versionless entries for a versioned ask', () => {
+    test.each(['local', 'server'] as const)(
+        '%s: a dismissal without a version is removed while shown history and counters survive',
+        (source) => {
+            const shown = {
+                shownAt: ['2026-11-01T00:00:00.000Z', '2026-11-02T00:00:00.000Z'],
+                lastSessionShown: 8,
+                consecutiveSessions: 3,
+            }
+            const entries = {
+                'post-verification-action': {
+                    ...(source === 'local' ? shown : { shownAt: shown.shownAt.slice(1) }),
+                    dismissedAt: '2026-11-02T01:00:00.000Z',
+                },
+            }
+            if (source === 'local') {
+                updateUserPreferences(USER, { attention: entries })
+            } else {
+                updateUserPreferences(USER, {
+                    attention: {
+                        'post-verification-action': { ...shown, shownAt: shown.shownAt.slice(0, 1) },
+                    },
+                })
+            }
+
+            const entry = readLedger(USER, source === 'server' ? entries : undefined)['post-verification-action']
+            const state = {
+                now: Date.parse('2026-11-02T00:00:00Z'),
+                postAuthRedirectDestination: '/next',
+                postAuthRedirect: true,
+            } as JourneyState
+
+            expect(entry).toMatchObject(shown)
+            expect(entry?.dismissedAt).toBeUndefined()
+            expect(isSilenced(postVerificationAction, entry, state)).toBe(false)
+        }
+    )
+
+    test.each(['local', 'server'] as const)('%s: versionless show-only data is preserved', (source) => {
+        const shown = {
+            shownAt: ['2026-11-01T00:00:00.000Z', '2026-11-02T00:00:00.000Z'],
+            ...(source === 'local' ? { lastSessionShown: 8, consecutiveSessions: 3 } : {}),
+        }
+        const entries = { 'post-verification-action': shown }
+        if (source === 'local') updateUserPreferences(USER, { attention: entries })
+
+        expect(readLedger(USER, source === 'server' ? entries : undefined)['post-verification-action']).toEqual(shown)
+    })
+
+    // finish-card-setup is answered before a card id exists, so its dismissal carries no version
+    test.each(['early-user', 'finish-card-setup'] as const)('%s: a versionless dismissal is preserved', (id) => {
+        const dismissedAt = '2026-11-02T01:00:00.000Z'
+        updateUserPreferences(USER, { attention: { [id]: { dismissedAt } } })
+
+        expect(readLedger(USER)[id]?.dismissedAt).toBe(dismissedAt)
     })
 })
 
