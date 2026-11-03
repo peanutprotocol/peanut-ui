@@ -42,16 +42,6 @@ interface ChecklistItem {
     onTap?: () => void
 }
 
-/**
- * The Verify row starts the ID check itself, by what the residence allows
- * (Slava via Hugo, 2026-09-26: never the Accounts list): the shared start
- * modal for most people (`onStartIdentityCheck`), the card for a residence
- * where bank rails are closed but the card is not, and the QR ID check where
- * both are closed, since QR pay is open to every verified user
- * (`onStartQrIdentityCheck`).
- */
-const CARD_HREF = '/card'
-
 const FIRST_PAYMENT_BUBBLE = {
     card_qr: CONCEPT_ICONS.qrPay,
     card: CONCEPT_ICONS.card,
@@ -97,14 +87,15 @@ const GettingStartedChecklist = ({
     onboarding,
     showWelcome = true,
     onStartIdentityCheck,
-    onStartQrIdentityCheck,
 }: {
     onboarding: OnboardingState
     showWelcome?: boolean
-    /** opens the shared ID-check start (ActivationCTAs owns the flow and its modals) */
+    /**
+     * Starts the ID check. ActivationCTAs picks the start, by flow and then by
+     * residence, so the row itself never routes (Slava via Hugo, 2026-09-26:
+     * never the Accounts list).
+     */
     onStartIdentityCheck?: () => void
-    /** starts the QR ID check (ActivationCTAs owns the flow and its modals) */
-    onStartQrIdentityCheck?: () => void
 }) => {
     const t = useTranslations('home.gettingStarted')
     const tKyc = useTranslations('kyc')
@@ -161,13 +152,9 @@ const GettingStartedChecklist = ({
                                   // the check's own status: its fix (resubmit, or
                                   // the email collision's way out), or "in review"
                                   setIsStatusDrawerOpen(true)
-                              } else if (!restrictions.banking) {
-                                  onStartIdentityCheck?.()
-                              } else if (!restrictions.card) {
-                                  // bank rails are closed here; the card is the door
-                                  router.push(CARD_HREF)
                               } else {
-                                  onStartQrIdentityCheck?.()
+                                  // the start picks the flow, then the residence (ActivationCTAs)
+                                  onStartIdentityCheck?.()
                               }
                           }),
             },
@@ -220,9 +207,7 @@ const GettingStartedChecklist = ({
         firstPaymentDone,
         firstPaymentRoute,
         restrictions.banking,
-        restrictions.card,
         onStartIdentityCheck,
-        onStartQrIdentityCheck,
         router,
         setHomeDrawer,
         setIsQRScannerOpen,

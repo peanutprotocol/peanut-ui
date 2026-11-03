@@ -88,18 +88,11 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
 // interrupt cards, so the checklist itself is a marker (own suite covers it).
 jest.mock('@/components/Home/GettingStartedChecklist', () => ({
     __esModule: true,
-    default: ({
-        onStartIdentityCheck,
-        onStartQrIdentityCheck,
-    }: {
-        onStartIdentityCheck?: () => void
-        onStartQrIdentityCheck?: () => void
-    }) => (
+    default: ({ onStartIdentityCheck }: { onStartIdentityCheck?: () => void }) => (
         <div>
             getting-started-checklist
             {/* not buttons: the slot suites assert the checklist brings no big-card button */}
             <span onClick={onStartIdentityCheck}>start-identity-check</span>
-            <span onClick={onStartQrIdentityCheck}>start-qr-identity-check</span>
         </div>
     ),
 }))
@@ -234,12 +227,38 @@ describe('ActivationCTAs — the Verify row starts the ID check in place', () =>
         expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
     })
 
-    it('the QR ID check is the shared one (useQrIdentityCheck)', () => {
+    it('a Smart Paperwork Verification user goes to the questions even where bank rails are closed', async () => {
+        mockPaperworkVerification = () => Promise.resolve(true)
+        for (const restrictions of [
+            { banking: true, card: false },
+            { banking: true, card: true },
+        ]) {
+            mockPush.mockClear()
+            mockResidenceRestrictions = restrictions
+            const { unmount } = render(<ActivationCTAs onboarding={NEW_USER} />)
+            fireEvent.click(screen.getByText('start-identity-check'))
+            await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
+            expect(mockPush).not.toHaveBeenCalledWith('/card')
+            expect(mockStartQrCheck).not.toHaveBeenCalled()
+            unmount()
+        }
+    })
+
+    it('a legacy user where bank rails are closed but the card is open starts at the card', async () => {
+        mockResidenceRestrictions = { banking: true, card: false }
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        fireEvent.click(screen.getByText('start-identity-check'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/card'))
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
+    })
+
+    it('a legacy user where bank rails and the card are closed starts the QR ID check', async () => {
         mockResidenceRestrictions = { banking: true, card: true }
         render(<ActivationCTAs onboarding={NEW_USER} />)
-        fireEvent.click(screen.getByText('start-qr-identity-check'))
-        expect(mockStartQrCheck).toHaveBeenCalled()
-        expect(mockInitiateKyc).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByText('start-identity-check'))
+        await waitFor(() => expect(mockStartQrCheck).toHaveBeenCalled())
+        expect(mockPush).not.toHaveBeenCalled()
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
     })
 })
 

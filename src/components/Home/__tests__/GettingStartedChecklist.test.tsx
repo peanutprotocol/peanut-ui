@@ -24,7 +24,6 @@ const NEW_USER: OnboardingState = {
 }
 
 const mockStartIdentityCheck = jest.fn()
-const mockStartQrIdentityCheck = jest.fn()
 const render = (onboarding: Partial<OnboardingState> = {}, showWelcome = true) =>
     rtlRender(
         <NuqsTestingAdapter searchParams="?returnTo=%2Fprofile">
@@ -32,7 +31,6 @@ const render = (onboarding: Partial<OnboardingState> = {}, showWelcome = true) =
                 onboarding={{ ...NEW_USER, ...onboarding }}
                 showWelcome={showWelcome}
                 onStartIdentityCheck={mockStartIdentityCheck}
-                onStartQrIdentityCheck={mockStartQrIdentityCheck}
             />
         </NuqsTestingAdapter>,
         { wrapper: IntlWrapper }
@@ -124,20 +122,19 @@ describe('GettingStartedChecklist', () => {
             expect(mockPush).not.toHaveBeenCalled()
         })
 
-        it('not started, bank rails closed but the card open: the card', () => {
-            mockRestrictions = { banking: true, card: false }
-            render()
-            fireEvent.click(screen.getByText('Verify identity'))
-            expect(mockPush).toHaveBeenCalledWith('/card')
-            expect(mockStartIdentityCheck).not.toHaveBeenCalled()
-        })
-
-        it('not started, bank rails and the card closed: the QR ID check', () => {
-            mockRestrictions = { banking: true, card: true }
-            render()
-            fireEvent.click(screen.getByText('Verify identity'))
-            expect(mockStartQrIdentityCheck).toHaveBeenCalled()
-            expect(mockPush).not.toHaveBeenCalled()
+        it('not started, wherever bank rails or the card are closed: the same start, never a route of its own', () => {
+            for (const restrictions of [
+                { banking: true, card: false },
+                { banking: true, card: true },
+            ]) {
+                mockStartIdentityCheck.mockClear()
+                mockRestrictions = restrictions
+                const { unmount } = render()
+                fireEvent.click(screen.getByText('Verify identity'))
+                expect(mockStartIdentityCheck).toHaveBeenCalledTimes(1)
+                expect(mockPush).not.toHaveBeenCalled()
+                unmount()
+            }
         })
 
         it('in review: "In review", the tap shows the status and starts nothing', () => {
