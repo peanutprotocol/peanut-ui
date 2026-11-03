@@ -23,9 +23,10 @@ jest.mock('@/hooks/useResidenceRestrictionSets', () => {
     const actual = jest.requireActual('@/hooks/useResidenceRestrictionSets')
     return {
         ...actual,
-        useResidenceRestrictionSets: () => actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
+        useResidenceRestrictionSets: () =>
+            jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS,
         useResidenceRestrictionSetsWithStatus: () => ({
-            sets: actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
+            sets: jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS,
             settled: true,
         }),
     }

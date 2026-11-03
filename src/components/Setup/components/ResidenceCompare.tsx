@@ -22,16 +22,13 @@ export function ResidenceCompare({
     nationality,
     labelOf,
     restrictionSets,
-    restrictionsSettled,
     busy,
     onChoose,
 }: {
     residence: string
     nationality: string
     labelOf: (country: string) => string
-    restrictionSets: ResidenceRestrictionSets
-    /** false while the server's tier lists load: the bundled mirror is not enough to name an offer */
-    restrictionsSettled: boolean
+    restrictionSets: ResidenceRestrictionSets | null
     busy: boolean
     onChoose: (country: string) => void
 }) {
@@ -50,7 +47,7 @@ export function ResidenceCompare({
                 {[residence, nationality].map((iso2) => {
                     const { intents, settled } = intentsOf[iso2]
                     const summary =
-                        settled && (intents || restrictionsSettled)
+                        settled && (intents || restrictionSets !== null)
                             ? residenceAvailability(restrictionSets, iso2, intents)
                             : { available: [], unavailable: [], multiCurrency: false }
                     return (

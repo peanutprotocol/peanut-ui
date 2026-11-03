@@ -4,7 +4,7 @@ import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { type RailCapability, type RailOperation } from '@/types/capabilities'
 import { BRIDGE_ALPHA3_TO_ALPHA2, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
-import { getResidenceRestrictionSets, type ResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
+import { type ResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
 import { deriveResidenceRestrictionsFrom } from '@/utils/residence-restrictions'
 import type { StaticImageData } from 'next/image'
 
@@ -118,12 +118,14 @@ export const getRegionIntent = (regionPath: string): KYCRegionIntent => {
  * The verification intent a residence country maps to — used when a residence
  * change re-opens identity verification, so the fresh Sumsub token targets the
  * level that serves the new country (Manteca for LATAM, Bridge for EU/NA).
+ * Null while the restriction lists are unknown: a level is never guessed.
  */
 export const regionIntentForResidence = (
     iso2: string,
-    sets: ResidenceRestrictionSets = getResidenceRestrictionSets(),
+    sets: ResidenceRestrictionSets | null,
     bankCustomer = false
-): KYCRegionIntent => {
+): KYCRegionIntent | null => {
+    if (!sets) return null
     const code = iso2.trim().toUpperCase()
     // A residence no bank provider onboards — sanctioned, the UK block, or a
     // Bridge banking exclusion like Japan — gets the provider-less level,

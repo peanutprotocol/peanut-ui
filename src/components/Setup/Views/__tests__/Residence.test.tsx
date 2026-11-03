@@ -73,27 +73,34 @@ jest.mock('@/features/setup/useSetupCountrySignals', () => ({
 jest.mock('posthog-js', () => ({ capture: jest.fn(), setPersonProperties: jest.fn() }))
 const mockedCapture = posthog.capture as jest.Mock
 
-// Hermetic: the real hook fires a fetch for the server tier lists on first
-// mount; return the bundled mirror so no request leaves the test and no
-// async state update lands outside act().
+// Use parsed server-shaped fixtures without fetching.
 jest.mock('@/hooks/useResidenceRestrictionSets', () => {
     const actual = jest.requireActual('@/hooks/useResidenceRestrictionSets')
     return {
         ...actual,
-        // Overridable so tests can simulate the server lists replacing the
-        // bundled mirror after mount, and an unsettled in-flight lookup.
         useResidenceRestrictionSetsWithStatus: () => ({
-            sets: mockRestrictionSets ?? actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
+            sets: mockRestrictionSetsSettled
+                ? (mockRestrictionSets ??
+                  jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS)
+                : null,
             settled: mockRestrictionSetsSettled,
         }),
-        useResidenceRestrictionSets: () => mockRestrictionSets ?? actual.LOCAL_RESIDENCE_RESTRICTION_SETS,
+        useResidenceRestrictionSets: () =>
+            mockRestrictionSetsSettled
+                ? (mockRestrictionSets ??
+                  jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS)
+                : null,
     }
 })
 
+let mockIntentsMissing = false
+let mockIntentsSettled = true
 jest.mock('@/hooks/useKycIntents', () => ({
     useKycIntents: (country: string) => ({
-        intents: jest.requireActual('@/test-utils/kycIntents.fixture').KYC_INTENTS_BY_COUNTRY[country],
-        settled: true,
+        intents: mockIntentsMissing
+            ? undefined
+            : jest.requireActual('@/test-utils/kycIntents.fixture').KYC_INTENTS_BY_COUNTRY[country],
+        settled: mockIntentsSettled,
     }),
 }))
 
@@ -109,6 +116,8 @@ describe('ResidenceStep', () => {
         mockEdgeSettled = true
         mockRestrictionSets = undefined
         mockRestrictionSetsSettled = true
+        mockIntentsMissing = false
+        mockIntentsSettled = true
         mockUserId = 'user-1'
         mockOnFinish = undefined
     })
@@ -242,6 +251,34 @@ describe('ResidenceStep', () => {
         expect(screen.getByTestId('setup-nationality-country')).toBeInTheDocument()
     })
 
+    it.each([false, true])(
+        'shows only universal availability when lists and intents are missing (intents settled: %s)',
+        (settled) => {
+            mockRestrictionSetsSettled = false
+            mockIntentsMissing = true
+            mockIntentsSettled = settled
+            mockSetupState = { residenceCountry: 'PT', nationalityCountry: 'BR' }
+            render(<ResidenceStep />)
+            fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+            for (const country of ['Portugal', 'Brazil']) {
+                const section = within(screen.getByRole('heading', { level: 2, name: country }).closest('section')!)
+                expect(section.getAllByRole('listitem')).toHaveLength(1)
+                expect(section.getByText(en.setup.residenceStep.compare.items.p2p)).toBeInTheDocument()
+            }
+        }
+    )
+
+    it('shows served offers on the comparison while restriction lists are unknown', () => {
+        mockRestrictionSetsSettled = false
+        mockSetupState = { residenceCountry: 'PT', nationalityCountry: 'BR' }
+        render(<ResidenceStep />)
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        const brazil = within(screen.getByRole('heading', { level: 2, name: 'Brazil' }).closest('section')!)
+        expect(brazil.getByText('PIX payments & transfers')).toBeInTheDocument()
+        expect(brazil.getByText('US dollar bank transfers')).toBeInTheDocument()
+        expect(brazil.getByText('Peanut card')).toBeInTheDocument()
+    })
+
     it('sets Peanut up for the residence when it is picked on the comparison', () => {
         mockSetupState = { residenceCountry: 'PT', nationalityCountry: 'BR' }
         render(<ResidenceStep />)
@@ -371,7 +408,7 @@ describe('ResidenceStep', () => {
 
     it('uses updated server tiers when classifying the outcome', () => {
         mockRestrictionSets = {
-            ...jest.requireActual('@/hooks/useResidenceRestrictionSets').LOCAL_RESIDENCE_RESTRICTION_SETS,
+            ...jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS,
             full: new Set(['PT']),
             cardOnly: new Set(),
             bankingOnly: new Set(),
@@ -415,7 +452,7 @@ describe('ResidenceStep', () => {
 
     it('uses served refused issuers for the nationality guidance', () => {
         mockRestrictionSets = {
-            ...jest.requireActual('@/hooks/useResidenceRestrictionSets').LOCAL_RESIDENCE_RESTRICTION_SETS,
+            ...jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS,
             refusedIdIssuers: new Set(['PT']),
         }
         mockSetupState = { residenceCountry: 'DE', nationalityCountry: 'PT' }
@@ -423,13 +460,33 @@ describe('ResidenceStep', () => {
         expect(screen.getByText(/We can’t verify passports or ID cards from Portugal/)).toBeInTheDocument()
     })
 
-    it('does not retain a bundled issuer refusal after the server removes it', () => {
+    it('does not retain an issuer refusal after the server removes it', () => {
         mockRestrictionSets = {
-            ...jest.requireActual('@/hooks/useResidenceRestrictionSets').LOCAL_RESIDENCE_RESTRICTION_SETS,
+            ...jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS,
             refusedIdIssuers: new Set(),
         }
         mockSetupState = { residenceCountry: 'DE', nationalityCountry: 'IR' }
         render(<ResidenceStep />)
         expect(screen.queryByText(/We can’t verify passports or ID cards from/)).not.toBeInTheDocument()
+    })
+    it('makes no passport or outcome claim while restriction lists are unknown', () => {
+        mockRestrictionSetsSettled = false
+        mockSetupState = { residenceCountry: 'DE', nationalityCountry: 'IR' }
+        render(<ResidenceStep />)
+        expect(screen.queryByText(/We can’t verify passports or ID cards from/)).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        fireEvent.click(screen.getByTestId('setup-residence-select-DE'))
+        expect(mockedCapture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_SELECTED,
+            expect.objectContaining({ residence_country: 'DE' })
+        )
+        for (const event of [
+            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN,
+            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN,
+            ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN,
+        ]) {
+            expect(mockedCapture).not.toHaveBeenCalledWith(event, expect.anything())
+        }
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
     })
 })

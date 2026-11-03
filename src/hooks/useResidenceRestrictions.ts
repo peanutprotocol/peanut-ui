@@ -1,8 +1,5 @@
 import { useAuth } from '@/context/authContext'
-import {
-    LOCAL_RESIDENCE_RESTRICTION_SETS,
-    useResidenceRestrictionSetsWithStatus,
-} from '@/hooks/useResidenceRestrictionSets'
+import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
 import { deriveResidenceRestrictionsFrom } from '@/utils/residence-restrictions'
 export { deriveResidenceRestrictionsFrom } from '@/utils/residence-restrictions'
 import { readDeclaredResidence } from '@/utils/declared-residence.storage'
@@ -21,10 +18,6 @@ const NONE: ResidenceRestrictions = { banking: false, card: false }
 /** A residence whose tiers are not known yet: nothing is offered until they are. */
 const UNKNOWN: ResidenceRestrictions = { banking: true, card: true }
 
-/** Local-mirror derivation, kept for callers and tests that need a sync answer. */
-export const deriveResidenceRestrictions = (iso2: string | null | undefined): ResidenceRestrictions =>
-    deriveResidenceRestrictionsFrom(LOCAL_RESIDENCE_RESTRICTION_SETS, iso2)
-
 /**
  * Residence-based availability for the current user.
  *
@@ -35,8 +28,7 @@ export const deriveResidenceRestrictions = (iso2: string | null | undefined): Re
  * Only without it (pre-account, or an API that predates the field) is the
  * answer derived here, from the residence in the setup flow or the device
  * mirror, over the server-fetched tier lists. Before those lists load the
- * restrictions are unknown, and an unknown answer withholds every offer: the
- * bundled mirror is not complete enough to open one.
+ * restrictions are unknown, and an unknown answer withholds every offer.
  * Advisory offer-shaping, not a compliance gate.
  */
 export const useResidenceRestrictions = (): ResidenceRestrictions => {

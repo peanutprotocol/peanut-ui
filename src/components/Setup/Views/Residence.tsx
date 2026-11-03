@@ -33,8 +33,7 @@ const ResidenceStep = () => {
     const { handleNext, isLoading } = useSetupFlow()
     const { user } = useAuth()
     const countrySignals = useSetupCountrySignals()
-    // server-authoritative tier lists with the bundled mirror as fallback
-    const { sets: restrictionSets, settled: restrictionsSettled } = useResidenceRestrictionSetsWithStatus()
+    const { sets: restrictionSets } = useResidenceRestrictionSetsWithStatus()
     const [view, setView] = useState<'question' | 'compare'>('question')
 
     /*
@@ -74,6 +73,7 @@ const ResidenceStep = () => {
     const nationality = nationalityCountry && nationalityCountry !== residence ? nationalityCountry : ''
     const refusedPassport =
         !!nationality &&
+        !!restrictionSets &&
         restrictionSets.refusedIdIssuers.has(nationality) &&
         !restrictionSets.refusedIdIssuers.has(residence)
 
@@ -93,20 +93,22 @@ const ResidenceStep = () => {
             ...setupCountrySignalProperties(countrySignals),
         })
         // The outcome events name what the payment plan will offer for this residence.
-        const partial: PartialRestriction | null = restrictionSets.cardOnly.has(primary)
-            ? 'card'
-            : restrictionSets.bankingOnly.has(primary)
-              ? 'banking'
-              : null
-        if (restrictionSets.full.has(primary)) {
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN, { residence_country: primary })
-        } else if (partial) {
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN, {
-                residence_country: primary,
-                restriction_type: partial,
-            })
-        } else {
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN, { residence_country: primary })
+        if (restrictionSets) {
+            const partial: PartialRestriction | null = restrictionSets.cardOnly.has(primary)
+                ? 'card'
+                : restrictionSets.bankingOnly.has(primary)
+                  ? 'banking'
+                  : null
+            if (restrictionSets.full.has(primary)) {
+                posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN, { residence_country: primary })
+            } else if (partial) {
+                posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN, {
+                    residence_country: primary,
+                    restriction_type: partial,
+                })
+            } else {
+                posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN, { residence_country: primary })
+            }
         }
         // The account exists by now: save on Next, so an abandoned sign-up keeps the answers.
         // A host with onFinish (the verify prelude) saves them itself and waits for the result.
@@ -143,7 +145,6 @@ const ResidenceStep = () => {
                 nationality={nationality}
                 labelOf={labelOf}
                 restrictionSets={restrictionSets}
-                restrictionsSettled={restrictionsSettled}
                 busy={advancing}
                 onChoose={onChoose}
             />

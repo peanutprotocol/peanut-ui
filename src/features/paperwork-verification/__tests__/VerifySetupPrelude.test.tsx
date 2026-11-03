@@ -12,7 +12,7 @@ import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import { updateUserById } from '@/app/actions/users'
 import { savePaperworkVerificationFeatures } from '@/app/actions/kyc-paperwork-verification'
-import { LOCAL_RESIDENCE_RESTRICTION_SETS } from '@/hooks/useResidenceRestrictionSets'
+import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.fixture'
 import { VerifySetupPrelude } from '../components/VerifySetupPrelude'
 
 jest.mock('@/components/Setup/components/SetupWrapper', () => ({
@@ -41,7 +41,7 @@ jest.mock('@/hooks/useKycIntents', () => ({
 }))
 jest.mock('@/hooks/useResidenceRestrictionSets', () => ({
     ...jest.requireActual('@/hooks/useResidenceRestrictionSets'),
-    useResidenceRestrictionSetsWithStatus: () => ({ sets: LOCAL_RESIDENCE_RESTRICTION_SETS, settled: true }),
+    useResidenceRestrictionSetsWithStatus: () => ({ sets: RESIDENCE_RESTRICTION_SETS, settled: true }),
 }))
 jest.mock('@/features/setup/useSetupCountrySignals', () => ({
     useSetupCountrySignals: () => ({ ipCountry: 'PT', edgeSettled: true }),

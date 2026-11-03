@@ -11,13 +11,7 @@
 
 import type { Fixture } from './types'
 import type { RainCardFunding, RainFundingAccess, RainFundingManagementStatus } from '@/services/rain'
-import {
-    RESTRICTED_RESIDENCE_ISO2,
-    CARD_RESTRICTED_RESIDENCE_ISO2,
-    BANKING_RESTRICTED_RESIDENCE_ISO2,
-    BANKING_NEW_CUSTOMERS_ONLY_RESIDENCE_ISO2,
-    REFUSED_ID_ISSUER_ISO2,
-} from '@/constants/residence.consts'
+import { DEMO_RESIDENCE_RESTRICTIONS } from '@/utils/demo-kyc'
 import {
     CLAIMABLE_COP,
     CLAIMABLE_EUR,
@@ -1278,13 +1272,7 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/dev/surfaces?s=03-c-residence-congrats',
         about: 'Signup funding and payment choices with settled residence eligibility.',
         responses: {
-            'GET /config/residence-restrictions': {
-                full: [...RESTRICTED_RESIDENCE_ISO2],
-                cardOnly: [...CARD_RESTRICTED_RESIDENCE_ISO2],
-                bankingOnly: [...BANKING_RESTRICTED_RESIDENCE_ISO2],
-                refusedIdIssuers: [...REFUSED_ID_ISSUER_ISO2],
-                bankingNewCustomersOnly: [...BANKING_NEW_CUSTOMERS_ONLY_RESIDENCE_ISO2],
-            },
+            'GET /config/residence-restrictions': DEMO_RESIDENCE_RESTRICTIONS,
         },
     },
     // ---------------------------------------------------------------------

@@ -1,30 +1,54 @@
 import { apiFetch } from '@/utils/api-fetch'
 import {
-    LOCAL_RESIDENCE_RESTRICTION_SETS,
+    getResidenceRestrictionSets,
     parseResidenceRestrictionSets,
-    serverResidenceRestrictionSets,
     setServerResidenceRestrictionSets,
     type ResidenceRestrictionSets,
 } from '@/utils/residence-restriction-sets'
+import { readStoredValue, writeStoredValue, removeStoredValue } from '@/utils/safe-storage'
+import { isDemoMode } from '@/utils/demo'
 import { useEffect, useState } from 'react'
 
-export {
-    getResidenceRestrictionSets,
-    LOCAL_RESIDENCE_RESTRICTION_SETS,
-    type ResidenceRestrictionSets,
-} from '@/utils/residence-restriction-sets'
+export { getResidenceRestrictionSets, type ResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
 
+const STORAGE_KEY = 'peanut:residenceRestrictions'
 let inflight: Promise<ResidenceRestrictionSets | null> | null = null
+let cacheRestored = false
+let freshAnswer = false
+
+function restoreDeviceCache() {
+    if (cacheRestored) return
+    cacheRestored = true
+    const stored = readStoredValue(STORAGE_KEY)
+    if (stored === null) return
+    try {
+        const parsed = parseResidenceRestrictionSets(JSON.parse(stored))
+        if (parsed) {
+            setServerResidenceRestrictionSets(parsed)
+            return
+        }
+    } catch {}
+    removeStoredValue(STORAGE_KEY)
+}
 
 async function loadServerSets(): Promise<ResidenceRestrictionSets | null> {
-    const cached = serverResidenceRestrictionSets()
-    if (cached) return cached
+    if (freshAnswer) return getResidenceRestrictionSets()
     // public config: no auth, so it must not queue behind token hydration
     inflight ??= apiFetch('/config/residence-restrictions', { includeAuth: false })
         .then(async (res) => {
             if (!res.ok) return null
             const parsed = parseResidenceRestrictionSets(await res.json())
-            if (parsed) setServerResidenceRestrictionSets(parsed)
+            // Demo mode answers from its synthetic backend, which must not outlive the demo session.
+            if (parsed && !isDemoMode()) {
+                setServerResidenceRestrictionSets(parsed)
+                freshAnswer = true
+                writeStoredValue(
+                    STORAGE_KEY,
+                    JSON.stringify(
+                        Object.fromEntries(Object.entries(parsed).map(([key, values]) => [key, [...values]]))
+                    )
+                )
+            }
             return parsed
         })
         .catch(() => null)
@@ -34,42 +58,41 @@ async function loadServerSets(): Promise<ResidenceRestrictionSets | null> {
     return inflight
 }
 
-/** Test-only: clears the module cache so suites can exercise the fetch again. */
+/** Test-only: clears session state; tests own device storage cleanup. */
 export const __resetResidenceRestrictionSetsForTests = () => {
     setServerResidenceRestrictionSets(null)
     inflight = null
+    cacheRestored = false
+    freshAnswer = false
 }
 
+type ResidenceRestrictionStatus = { sets: ResidenceRestrictionSets; settled: true } | { sets: null; settled: false }
+
 /**
- * The residence-restriction tiers, server-authoritative with a bundled
- * fallback: renders immediately from the local mirror and swaps to
- * GET /config/residence-restrictions once it arrives, so compliance can tune
- * the lists with an API deploy and the signup step follows without an app
- * release. `settled` flips only when a server list was actually parsed:
- * a failed or malformed lookup leaves it false, so callers that must not
- * make definitive claims from the mirror alone keep treating the data as
- * non-authoritative.
+ * The served restriction lists, or `null` while they are unknown. The last
+ * answer this device parsed is restored after mount (never at render, so the
+ * static export hydrates) and counts as settled; a fresh fetch replaces it once
+ * per session. With neither, the lists stay unknown and callers offer nothing
+ * that depends on them.
  */
-export const useResidenceRestrictionSetsWithStatus = (): { sets: ResidenceRestrictionSets; settled: boolean } => {
-    const [sets, setSets] = useState<ResidenceRestrictionSets>(
-        serverResidenceRestrictionSets() ?? LOCAL_RESIDENCE_RESTRICTION_SETS
-    )
-    const [settled, setSettled] = useState<boolean>(serverResidenceRestrictionSets() !== null)
+export const useResidenceRestrictionSetsWithStatus = (): ResidenceRestrictionStatus => {
+    const [sets, setSets] = useState<ResidenceRestrictionSets | null>(getResidenceRestrictionSets)
 
     useEffect(() => {
-        if (serverResidenceRestrictionSets()) return
+        if (!freshAnswer) restoreDeviceCache()
+        setSets(getResidenceRestrictionSets())
         let cancelled = false
         void loadServerSets().then((loaded) => {
             if (cancelled || !loaded) return
             setSets(loaded)
-            setSettled(true)
         })
         return () => {
             cancelled = true
         }
     }, [])
 
-    return { sets, settled }
+    return sets ? { sets, settled: true } : { sets: null, settled: false }
 }
 
-export const useResidenceRestrictionSets = (): ResidenceRestrictionSets => useResidenceRestrictionSetsWithStatus().sets
+export const useResidenceRestrictionSets = (): ResidenceRestrictionSets | null =>
+    useResidenceRestrictionSetsWithStatus().sets

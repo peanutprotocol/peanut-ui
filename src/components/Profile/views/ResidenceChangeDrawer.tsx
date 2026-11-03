@@ -82,7 +82,9 @@ const ResidenceChangeDrawer = ({
 
     const countryOptions = useMemo(() => buildResidenceCountryOptions(locale), [locale])
 
-    const selectedRestrictions = deriveResidenceRestrictionsFrom(restrictionSets, selected || null)
+    const selectedRestrictions = restrictionSets
+        ? deriveResidenceRestrictionsFrom(restrictionSets, selected || null)
+        : null
     const differsFromVerified = !!verified && !!selected && selected !== verified
     // Slava, 2026-10-27: an approved move into a country that restricts a service closes it,
     // so a verified user is told what they lose before confirming.
@@ -183,6 +185,7 @@ const ResidenceChangeDrawer = ({
                                 })}
                             </Callout>
                         ) : (
+                            selectedRestrictions &&
                             (selectedRestrictions.banking || selectedRestrictions.card) && (
                                 <p className="text-body-xs text-foreground-secondary">
                                     {selectedRestrictions.banking && selectedRestrictions.card

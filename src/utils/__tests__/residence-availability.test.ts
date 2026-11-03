@@ -1,7 +1,7 @@
 import { featureReport } from '@/test-utils/featureReport.fixture'
 import { accountEntry, entryChip } from '@/features/kyc-features/report'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
-import { LOCAL_RESIDENCE_RESTRICTION_SETS } from '@/hooks/useResidenceRestrictionSets'
+import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.fixture'
 import {
     bankRailsFor,
     residenceAvailability,
@@ -13,14 +13,14 @@ import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { buildBankRows, type UnlockRowLabelKey } from '@/utils/unlock-payments.utils'
 import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
 
-const sets = LOCAL_RESIDENCE_RESTRICTION_SETS
+const sets = RESIDENCE_RESTRICTION_SETS
 
 describe('residenceAvailability', () => {
     it('a Bridge residence names no currencies without served intents', () => {
-        expect(regionIntentForResidence('PT')).toBe('EU')
+        expect(regionIntentForResidence('PT', RESIDENCE_RESTRICTION_SETS)).toBe('EU')
         expect(residenceAvailability(sets, 'PT').available).toEqual(['bank', 'card', 'p2p'])
         expect(residenceAvailability(sets, 'DE').available).toEqual(['bank', 'card', 'p2p'])
-        expect(regionIntentForResidence('US')).toBe('NA')
+        expect(regionIntentForResidence('US', RESIDENCE_RESTRICTION_SETS)).toBe('NA')
         expect(residenceAvailability(sets, 'US').available).toEqual(['bank', 'card', 'p2p'])
     })
 
@@ -29,8 +29,8 @@ describe('residenceAvailability', () => {
     })
 
     it('a LATAM residence names no rails without served intents', () => {
-        expect(regionIntentForResidence('BR')).toBe('LATAM')
-        expect(regionIntentForResidence('AR')).toBe('LATAM')
+        expect(regionIntentForResidence('BR', RESIDENCE_RESTRICTION_SETS)).toBe('LATAM')
+        expect(regionIntentForResidence('AR', RESIDENCE_RESTRICTION_SETS)).toBe('LATAM')
         expect(residenceAvailability(sets, 'BR').available).toEqual(['bank', 'card', 'p2p'])
         expect(residenceAvailability(sets, 'AR').available).toEqual(['bank', 'card', 'p2p'])
     })
@@ -40,7 +40,7 @@ describe('residenceAvailability', () => {
     // when Bridge's document map happens to list its country.
     it('a ROW-intent residence never names a rail, whatever the Bridge map says', () => {
         for (const iso2 of ['GB', 'JP', 'NG']) {
-            expect(regionIntentForResidence(iso2)).toBe('ROW')
+            expect(regionIntentForResidence(iso2, RESIDENCE_RESTRICTION_SETS)).toBe('ROW')
             expect(bankRailsFor(iso2)).toEqual(['bank'])
         }
         expect(isBridgeSupportedCountry('GB')).toBe(true)
@@ -184,8 +184,7 @@ describe('residenceAvailability vs buildBankRows', () => {
 // Slava, 2026-10-27: the comparison listed the wrong things for 178 of 250
 // countries. With the server's answer it lists what the verification will open.
 describe('residenceAvailability from the server intents', () => {
-    const of = (iso2: string) =>
-        residenceAvailability(LOCAL_RESIDENCE_RESTRICTION_SETS, iso2, KYC_INTENTS_BY_COUNTRY[iso2])
+    const of = (iso2: string) => residenceAvailability(RESIDENCE_RESTRICTION_SETS, iso2, KYC_INTENTS_BY_COUNTRY[iso2])
 
     it('names the bank currencies wherever the bank feature is open, not "where supported"', () => {
         expect(of('MK').available).toEqual(['usdAch', 'eurSepa', 'gbpFps', 'spei', 'card', 'p2p'])
