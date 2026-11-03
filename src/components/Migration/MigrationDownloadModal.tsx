@@ -12,6 +12,7 @@ import { useAuth } from '@/context/authContext'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { isCapacitor } from '@/utils/capacitor'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
+import { DOWNLOAD_PROMPT_FIXTURE, peekActiveFixture } from '@/dev/fixtures/active'
 
 const SNOOZE_MS = DOWNLOAD_PROMPT_SNOOZE_DAYS * 24 * 60 * 60 * 1000
 
@@ -76,7 +77,8 @@ export default function MigrationDownloadModal({
         }
         // every ineligible path clears state so an already-shown modal
         // disappears when the account logs out mid-session
-        if (!userId || isCapacitor()) {
+        const fixture = peekActiveFixture()
+        if (!userId || isCapacitor() || (fixture && fixture !== DOWNLOAD_PROMPT_FIXTURE)) {
             setVisible(false)
             return
         }

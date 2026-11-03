@@ -40,12 +40,19 @@ jest.mock('@/utils/general.utils', () => ({
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
+let mockFixture: string | null = null
+jest.mock('@/dev/fixtures/active', () => ({
+    ...jest.requireActual('@/dev/fixtures/active'),
+    peekActiveFixture: () => mockFixture,
+}))
+
 import MigrationDownloadModal from '../MigrationDownloadModal'
 
 let nowSpy: jest.SpyInstance<number, []>
 beforeEach(() => {
     jest.clearAllMocks()
     mockIsCapacitor = false
+    mockFixture = null
     mockGetPrefs.mockReturnValue(undefined)
     nowSpy = jest.spyOn(Date, 'now').mockReturnValue(FROZEN_NOW)
 })
@@ -55,6 +62,18 @@ afterEach(() => {
 
 describe('MigrationDownloadModal', () => {
     it('shows for a logged-in web user', () => {
+        render(<MigrationDownloadModal />)
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
+    it('stays hidden under a fixture, so it does not cover the drawer the fixture shows', () => {
+        mockFixture = 'early-user'
+        render(<MigrationDownloadModal />)
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('shows under its own capture fixture', () => {
+        mockFixture = 'download-prompt'
         render(<MigrationDownloadModal />)
         expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
