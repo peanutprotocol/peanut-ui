@@ -5,8 +5,8 @@ import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import type { ZoneSurfaceProps } from '../../types'
 
-/** One passkey backs the account: the backup page guides turning on passkey sync. */
-export default function BackupPasskeyCard({ onDismissed }: ZoneSurfaceProps) {
+/** One passkey backs the account: the backup page guides turning on passkey sync. Sync is invisible to us, so opening the guide is the completion. */
+export default function BackupPasskeyCard({ onActed, onDismissed }: ZoneSurfaceProps) {
     const t = useAppTranslations('home.carousel')
     const router = useRouter()
     return (
@@ -15,7 +15,10 @@ export default function BackupPasskeyCard({ onDismissed }: ZoneSurfaceProps) {
             description={t('backupPasskey.description')}
             icon="lock"
             onClose={onDismissed}
-            onClick={() => router.push('/profile/backup')}
+            onClick={() => {
+                onActed()
+                router.push('/profile/backup')
+            }}
         />
     )
 }
