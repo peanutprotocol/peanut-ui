@@ -24,6 +24,7 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import { IdentityCheckIntroScreen } from '@/features/paperwork-verification/components/IdentityCheckIntroScreen'
+import { usePaperworkVerificationRedirect } from '@/features/paperwork-verification/usePaperworkVerificationRedirect'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
@@ -296,6 +297,19 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         (isSumsubApproved || isDocumentRestart) &&
         providerRejectionForRegion.state !== 'happy'
     const modalVariant = hasProviderRejectionForRegion ? ('provider_rejection' as const) : baseModalVariant
+    // A Smart Paperwork Verification user goes straight to /verify (or the add-later screen), as from
+    // every other entry point: this intro would be a shorter copy of the one /verify opens with, and
+    // its Continue only lands there (the start answers paperwork_verification_required).
+    const redirectingToVerify = usePaperworkVerificationRedirect(
+        modalVariant === 'start' && !isRegionRestricted,
+        clickedRegionIntent
+            ? {
+                  intent: clickedRegionIntent,
+                  targetCountry:
+                      clickedRegionProvider === 'manteca' && clickedRowCountry ? clickedRowCountry : undefined,
+              }
+            : undefined
+    )
 
     const handleFinalKycSuccess = useCallback(() => {
         setSelectedRegion(null)
@@ -514,7 +528,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                 <KycRegionRestrictedModal visible={modalVariant === 'start'} onClose={handleModalClose} />
             ) : (
                 <IdentityCheckIntroScreen
-                    visible={modalVariant === 'start'}
+                    visible={modalVariant === 'start' && !redirectingToVerify}
                     hasQuestions={selectedRegion?.path === 'latam'}
                     providerId={clickedProviderId}
                     busy={flow.isLoading}

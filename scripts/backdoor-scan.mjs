@@ -56,6 +56,8 @@ const EXEC_CONFIG = [
 	/(^|\/)(instrumentation|instrumentation-client|middleware|proxy)\.(t|j)s$/, // Next.js loads these on its own
 	// decides what git shows as a diff: `-diff` turned a file into "Binary files differ"
 	/(^|\/)\.gitattributes$/,
+	// deploy configs whose command fields the host runs as shell: buildCommand, installCommand, predeploy
+	/(^|\/)(vercel|now|firebase)\.json$/,
 ]
 // Also run by hooks or CI, but they legitimately start processes and fetch
 // things, so a suspicious pattern here is a warning, not a block.
@@ -193,6 +195,54 @@ export function lineHash(text) {
 	return createHash('sha256').update(text.trim()).digest('hex')
 }
 
+// A column-aligned `# note` cannot run: it paged Squirrel-Core on animation scripts on 2026-10-23.
+// Only `#` languages, and only when the comment holds no quote or backslash, because a `#` inside a
+// string (s = "x   #"; os.system(...)) would otherwise hide the code after the string closes.
+const HASH_COMMENT_FILE = /\.(py|sh|bash|zsh|ya?ml)$|(^|\/)(Dockerfile|Makefile)$/i
+
+export function offScreenIsComment(path, text) {
+	if (!HASH_COMMENT_FILE.test(path)) return false
+	const gap = text.match(/[ \t]{60,}/)
+	const offScreen = text.slice(gap.index + gap[0].length)
+	// A Python comment line can end an open string only with a triple quote; shell strings span lines.
+	// Inside an open string a `#` is text and expansions still run: `$(...)` and `${...}` in shell, Make and
+	// Actions, `{...}` in a Python f-string. So a `{` in Python, or a `$` elsewhere, keeps the line code (Chip on ui#3823/api#1954).
+	const python = /\.py$/i.test(path)
+	const stringEnd = python ? /"""|'''|\\|\{/ : /["'`\\$]/
+	const wholeLine = text.trimStart().startsWith('#') && !stringEnd.test(text)
+	const trailing = offScreen.startsWith('#') && !(python ? /["'`\\{]/ : /["'`\\$]/).test(offScreen)
+	return wholeLine || trailing
+}
+
+// A browser never runs `<script type="application/json">`: its body is data. Saved web pages carry
+// one inline, with long space runs inside its strings; App Store snapshots paged Konrad on
+// 2026-10-25. A body counts only when it parses as JSON, and `[^<]*` keeps it from closing its tag.
+const INERT_JSON_BLOCK = /<script type="application\/json"(?: id="[A-Za-z0-9_-]+")?>([^<]*)<\/script>/g
+
+// After an inert block, anything a browser runs (a script, an event handler, a javascript: URL) may be what
+// the space run inside the block pushed off-screen, so the line then stays code.
+// Elements that load or run other content (an iframe srcdoc holds a whole page) count as runnable too.
+const RUNS_IN_PAGE = /<script(?![^>]*type="application\/json")|\son[a-z]+\s*=|javascript:|srcdoc\s*=|<(i?frame|object|embed|link|style|svg|math|meta|base|portal|template)\b/i
+
+/** A saved web page line whose only off-screen gap is inside inert JSON, with nothing runnable after it. */
+export function hidesOnlyInertJson(text) {
+	if (HIDDEN_RUN.test(withoutInertJson(text))) return false
+	// Everything after the first gap is off-screen, including markup between two inert blocks.
+	const first = [...text.matchAll(INERT_JSON_BLOCK)].find((m) => HIDDEN_RUN.test(m[0]))
+	return Boolean(first) && !RUNS_IN_PAGE.test(text.slice(first.index + first[0].length))
+}
+
+export function withoutInertJson(text) {
+	return text.replace(INERT_JSON_BLOCK, (block, body) => {
+		try {
+			JSON.parse(body)
+			return ''
+		} catch {
+			return block
+		}
+	})
+}
+
 /** Deterministic findings for the added lines. */
 export function scanLines(lines, { allow = new Set() } = {}) {
 	const findings = []
@@ -210,7 +260,15 @@ export function scanLines(lines, { allow = new Set() } = {}) {
 		if (BIDI.test(entry.text)) add('block', 'bidi-control', entry, 'right-to-left/isolate control character (Trojan Source)')
 		if (HIDDEN_RUN.test(entry.text)) {
 			const run = entry.text.match(/[ \t]{60,}/)[0].length
-			add('block', 'hidden-code', entry, `${run} spaces, then more code off-screen`)
+			// A .json file nothing runs is data: off-screen text there is a string, not code. It paged
+			// Squirrel-Core on an archived PostHog query export on 2026-10-20. JSON that runs
+			// (package.json, .vscode, .devcontainer, rc files) is on the exec surface and still blocks.
+			// The inert-JSON exception is for saved web pages only: in a .ts or .js file the same string is
+			// just a string, and code after it is code (bypass found 2026-11-03).
+			const page = /\.html?$/i.test(entry.path)
+			const data = !tier && (/\.json$/i.test(entry.path) || (page && hidesOnlyInertJson(entry.text)))
+			const comment = offScreenIsComment(entry.path, entry.text)
+			add(data || comment ? 'warn' : 'block', 'hidden-code', entry, `${run} spaces, then more ${data ? 'text' : comment ? 'comment' : 'code'} off-screen`)
 		}
 		if (entry.text.length > LONG_LINE) {
 			add(tier ? 'block' : 'warn', 'very-long-line', entry, `${entry.text.length} characters on one line`)
