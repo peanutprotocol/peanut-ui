@@ -61,7 +61,7 @@ describe('ResidenceChangeDrawer', () => {
         mockIntents = true
         const { onClose } = render({ declared: 'PT', verified: 'PT', pending: 'VE' })
         expect(screen.getByTestId('residence-change-lost')).toHaveTextContent(
-            "Venezuela doesn't allow the Peanut card and bank accounts. They stop once we approve your move."
+            "Venezuela doesn't allow the Peanut card and bank accounts. They pause when you submit your move."
         )
         fireEvent.click(screen.getByText('Move anyway'))
         await waitFor(() => expect(onClose).toHaveBeenCalled())

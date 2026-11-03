@@ -425,7 +425,7 @@
                 "save": "Save",
                 "saveAndReverify": "Submit documents",
                 "lostTitle": "You'll lose some services",
-                "lostBody": "{country} doesn't allow {services}. They stop once we approve your move.",
+                "lostBody": "{country} doesn't allow {services}. They pause when you submit your move.",
                 "saveAnyway": "Move anyway",
                 "lost": {
                     "card": "the Peanut card",

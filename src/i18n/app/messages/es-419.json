@@ -425,7 +425,7 @@
                 "save": "Guardar",
                 "saveAndReverify": "Enviar documentos",
                 "lostTitle": "Perderás algunos servicios",
-                "lostBody": "{country} no permite {services}. Se desactivan cuando aprobemos tu cambio.",
+                "lostBody": "{country} no permite {services}. Se pausan cuando envías tu cambio.",
                 "saveAnyway": "Cambiar de todos modos",
                 "lost": {
                     "card": "la Peanut Card",
