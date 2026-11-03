@@ -27,7 +27,6 @@ import {
     getGateReasonCode,
     isDepositStepReady,
 } from '@/utils/capability-gate'
-import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { useBridgeBankFlow } from '../useBridgeBankFlow'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { getBankRegionIntent, providerForRegionIntent } from '@/utils/regions.utils'
@@ -41,7 +40,6 @@ export function BridgeBankOnrampView() {
         user,
         selectedCountry,
         onBack,
-        locale,
         t,
         tCommon,
         gate,
@@ -148,7 +146,6 @@ export function BridgeBankOnrampView() {
                     reasonCode={getGateReasonCode(gate)}
                     nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
                     pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
-                    regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                     providerId={kycProviderId}
                     verifyEntry={verifyEntry}
                 />
@@ -267,7 +264,6 @@ export function BridgeBankOnrampView() {
                     reasonCode={getGateReasonCode(gate)}
                     nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
                     pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
-                    regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                     providerId={kycProviderId}
                     verifyEntry={verifyEntry}
                 />

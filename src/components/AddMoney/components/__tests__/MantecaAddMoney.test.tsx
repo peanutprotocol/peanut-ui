@@ -170,7 +170,7 @@ type KycModalProps = {
     visible: boolean
     variant?: string
     reasonCode?: string
-    regionName?: string
+    taxIdCountry?: string
     onClose: () => void
     onVerify: () => Promise<void>
 }
@@ -397,7 +397,7 @@ describe('KYC modal — Manteca asks for a new ID', () => {
  * amount, so the amount screen has to stay first among the coordinates — but a
  * user who cannot deposit should learn it on arrival, not after typing a number.
  * The amount step stays mounted underneath so a dismissed drawer leaves a screen
- * that explains itself. Title copy is covered in InitiateKycModal.countryPayments.
+ * that explains itself. The intro it opens is covered in InitiateKycModal.intro.
  */
 describe('identity gate on arrival', () => {
     test('an unverified user lands on the amount step with the gate already open', () => {
@@ -408,7 +408,7 @@ describe('identity gate on arrival', () => {
 
         expect(lastKycModalProps!.visible).toBe(true)
         expect(lastKycModalProps!.variant).toBe('country_payments')
-        expect(lastKycModalProps!.regionName).toBe('Argentina')
+        expect(lastKycModalProps!.taxIdCountry).toBe('AR')
         // the amount input is underneath, not replaced
         expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
         expect(mockDeposit).not.toHaveBeenCalled()

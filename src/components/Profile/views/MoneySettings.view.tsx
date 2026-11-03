@@ -23,7 +23,8 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
-import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
+import { IdentityCheckIntroScreen } from '@/features/paperwork-verification/components/IdentityCheckIntroScreen'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
 import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
@@ -202,7 +203,6 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
 
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
-    const [selectedMethodLabel, setSelectedMethodLabel] = useState<string | null>(null)
     // The tapped row, so the modal reads the rails of THAT row's country. A
     // region intent covers two countries (Brazil and Argentina share LATAM),
     // and a provider-wide read let a Brazilian row narrate an Argentine rail —
@@ -222,6 +222,16 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     // of its own (the pool rails span both), so it keeps the provider-wide read.
     const clickedRowCountry =
         selectedRowKey && selectedRowKey in BANK_ROW_COUNTRIES ? BANK_ROW_COUNTRIES[selectedRowKey as BankRowKey] : null
+    // the account provider the unlock opens, named on the intro (TASK-23295)
+    const bridgeProviderId = useBridgeProviderId()
+    const clickedProviderId =
+        clickedRegionProvider === 'bridge'
+            ? bridgeProviderId
+            : clickedRegionProvider === 'manteca' && clickedRowCountry === 'AR'
+              ? 'manteca-ar'
+              : clickedRegionProvider === 'manteca' && clickedRowCountry === 'BR'
+                ? 'manteca-br'
+                : null
     const clickedRegionRails = useMemo(() => {
         if (!selectedRegion || !clickedRegionProvider) return []
         return rails.filter(
@@ -351,9 +361,8 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
             if (!row.regionPath) return
             // During a verification outage the unlock modal renders its degraded
             // variant (choke point in InitiateKycModal covers the other gates);
-            // here the shared UnlockMethodModal is ours, so gate the tap itself.
+            // here the intro is ours, so gate the tap itself.
             if (isKycDegraded) return
-            setSelectedMethodLabel(t(`rows.${row.labelKey}`))
             setSelectedRowKey(row.labelKey)
             // Synthetic Region: the modal machinery only reads path (intent) and
             // name (display); icons are not shown in the modal itself.
@@ -504,15 +513,13 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
             {isRegionRestricted ? (
                 <KycRegionRestrictedModal visible={modalVariant === 'start'} onClose={handleModalClose} />
             ) : (
-                <UnlockMethodModal
+                <IdentityCheckIntroScreen
                     visible={modalVariant === 'start'}
-                    onClose={handleModalClose}
-                    onUnlock={handleStartKyc}
-                    methodLabel={selectedMethodLabel}
-                    path={selectedRegion?.path === 'latam' ? 'extended' : 'standard'}
-                    isLoading={flow.isLoading}
-                    regionIntent={clickedRegionIntent}
-                    country={clickedRowCountry}
+                    hasQuestions={selectedRegion?.path === 'latam'}
+                    providerId={clickedProviderId}
+                    busy={flow.isLoading}
+                    onBack={handleModalClose}
+                    onContinue={handleStartKyc}
                 />
             )}
 

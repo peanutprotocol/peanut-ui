@@ -53,15 +53,15 @@ it('sends a verify-once user to /verify without painting the unlock offer', asyn
     jest.mocked(findKycDocumentPlan).mockResolvedValue(plan('verify-once') as never)
     renderModal()
 
-    expect(screen.queryByRole('button', { name: 'Verify identity' })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('kyc-initiate-cta')).not.toBeInTheDocument()
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
-    expect(screen.queryByRole('button', { name: 'Verify identity' })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('kyc-initiate-cta')).not.toBeInTheDocument()
 
     // a user the plan keeps on today's flow gets the offer
     jest.mocked(findKycDocumentPlan).mockResolvedValue(plan(null) as never)
     mockPush.mockClear()
     renderModal()
-    expect(await screen.findByRole('button', { name: 'Verify identity' })).toBeInTheDocument()
+    expect(await screen.findByTestId('kyc-initiate-cta')).toBeInTheDocument()
     expect(mockPush).not.toHaveBeenCalled()
 
     // the region ending outranks the redirect

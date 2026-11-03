@@ -414,11 +414,6 @@
             "bankNotAvailableNote": "Transferências bancárias e emissão de cartão não estão disponíveis para residentes do seu país.",
             "bankOnlyNotAvailableNote": "Transferências bancárias não estão disponíveis para residentes do seu país.",
             "cardNotAvailableNote": "O Peanut Card não está disponível para residentes do seu país.",
-            "unlockModal": {
-                "title": "Desbloquear {method}",
-                "titleGeneric": "Desbloqueie este método de pagamento",
-                "notNow": "Agora não"
-            },
             "changeModal": {
                 "title": "Alterar residência",
                 "description": "Escolha o país onde você mora legalmente: o que aparece nos seus documentos.",
@@ -3110,21 +3105,14 @@
             "titleBlocked": "Não conseguimos desbloquear",
             "titleRestartIdentity": "Verifique com outro documento",
             "titleIdentityDocumentMissing": "Conclua sua verificação",
-            "titleCrossRegion": "Desbloquear {region}",
-            "titleCrossRegionGeneric": "Desbloquear esta região",
             "titleRegionUnavailable": "Indisponível para residentes do Reino Unido",
-            "titleDefault": "Desbloqueie a conta",
             "descriptionError": "{error} Fale com o suporte para receber ajuda.",
             "descriptionBlocked": "Não conseguimos confirmar seu documento. Fale com o suporte para receber ajuda.",
             "descriptionRestartIdentity": "Este método exige um documento de um país compatível. Você pode verificar com outro documento.",
             "descriptionProviderRejection": "Envie uma foto mais nítida do seu documento para continuar.",
-            "descriptionCrossRegion": "Sua identidade já está verificada. Para ativar os pagamentos em {region}, precisamos confirmar mais alguns dados.",
-            "descriptionCrossRegionGeneric": "Sua identidade já está verificada. Para ativar os pagamentos aqui, precisamos confirmar mais alguns dados.",
-            "descriptionCountryPayments": "Confirme seu documento para ativar as transferências bancárias e os pagamentos em {region}.",
             "descriptionRegionUnavailable": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "titleBankUnavailable": "Indisponível neste país",
             "descriptionBankUnavailable": "Transferências bancárias não estão disponíveis no seu país, então verificar seu documento não vai desbloqueá-las. Seu dinheiro está seguro e você ainda pode enviar e receber dinheiro de outras pessoas.",
-            "descriptionDefault": "Confirme seu documento para desbloquear os pagamentos.",
             "ctaUploadDocument": "Enviar documento",
             "ctaUnlockNow": "Verificar identidade",
             "ctaWithdrawFunds": "Sacar fundos",
@@ -3488,10 +3476,6 @@
             "notifyMe": "Me avise quando voltar"
         },
         "prep": {
-            "intro": {
-                "standard": "Deixe tudo pronto agora, para não precisar procurar no meio do processo.",
-                "extended": "Esta verificação tem mais etapas que a maioria. Reserve alguns minutos a mais."
-            },
             "items": {
                 "id": {
                     "label": "Documento",
@@ -3503,31 +3487,15 @@
                     "title": "Foto no app",
                     "body": "Tire uma selfie no app. Boa iluminação ajuda."
                 },
-                "taxId": {
-                    "label": "ID fiscal",
-                    "title": "ID fiscal",
-                    "body": "CPF no Brasil, CUIT ou CUIL na Argentina. Necessário para transferências bancárias locais.",
-                    "bodyAR": "CUIT ou CUIL, do seu DNI. Necessário para transferências bancárias locais.",
-                    "bodyBR": "CPF. Necessário para transferências bancárias locais."
-                },
-                "questions": {
-                    "label": "Perguntas",
-                    "title": "Algumas perguntas rápidas",
-                    "body": "Declarações regulatórias que somos obrigados a pedir."
-                },
                 "proofOfAddress": {
                     "label": "Endereço",
                     "title": "Comprovante recente",
                     "body": "Uma conta de consumo, um extrato bancário ou uma carta oficial dos últimos 3 meses com seu nome e seu endereço. Nem todo mundo precisa enviar, e depois não dá para adicionar."
                 }
             },
-            "howLongLabel": "Quanto tempo leva",
             "howLong": {
-                "standard": "Alguns minutos para a maioria das pessoas. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
-                "extended": "Mais do que a verificação comum. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
                 "hosted": "O processo de verificação costuma levar alguns minutos se você tiver todos os documentos em mãos. Se um revisor precisar analisar, de 1 a 3 dias úteis."
             },
-            "extraDocNote": "Algumas pessoas precisam enviar mais um documento, como um comprovante de residência. Se for o seu caso, avisaremos antes de abrir a câmera.",
             "startCta": "Tenho tudo, começar",
             "singleSession": {
                 "title": "Faça tudo de uma vez só",

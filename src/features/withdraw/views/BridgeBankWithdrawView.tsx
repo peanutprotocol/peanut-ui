@@ -13,8 +13,7 @@ import { resolveKycModalVariant, getGateUserMessage, getGateReasonCode } from '@
 import { getCountryFromPath } from '@/utils/bridge.utils'
 import { useBankRegionIntent } from '@/hooks/useBankRegionIntent'
 import { shortenStringLong } from '@/utils/general.utils'
-import { useLocale, useTranslations } from 'next-intl'
-import { localizedCountryTitle } from '@/utils/country-name.utils'
+import { useTranslations } from 'next-intl'
 import { useBridgeOfframpFlow } from '@/features/withdraw/useBridgeOfframpFlow'
 import { WithdrawBankReviewView } from '@/features/withdraw/views/WithdrawBankReviewView'
 import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
@@ -31,7 +30,6 @@ import { providerForRegionIntent } from '@/utils/regions.utils'
  * to `(mobile-ui)/withdraw/_withdraw-bank.tsx` — keep every import `@/`-based.
  */
 export default function BridgeBankWithdrawView() {
-    const locale = useLocale()
     const tNav = useTranslations('navigation')
     // rewinds to home past every entry the flow pushed; a replace kept the
     // earlier entries, so back from home re-entered the flow
@@ -169,7 +167,6 @@ export default function BridgeBankWithdrawView() {
                 reasonCode={getGateReasonCode(gate)}
                 nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
                 pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
-                regionName={countryFromPath && localizedCountryTitle(locale, countryFromPath)}
             />
             <ProvideEmailStep
                 visible={flow.showProvideEmail}

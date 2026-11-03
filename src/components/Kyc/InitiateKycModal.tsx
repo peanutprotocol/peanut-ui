@@ -10,7 +10,6 @@ import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { IDENTITY_DOCUMENT_MISSING_CODE } from '@/constants/kyc.consts'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
-import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -28,6 +27,7 @@ import type { ProviderId } from '@/types/provider.types'
 import Loading from '@/components/Global/Loading'
 import type { PaperworkVerificationEntry } from '@/features/paperwork-verification/paperworkVerificationEntry'
 import { usePaperworkVerificationRedirect } from '@/features/paperwork-verification/usePaperworkVerificationRedirect'
+import { IdentityCheckIntroScreen } from '@/features/paperwork-verification/components/IdentityCheckIntroScreen'
 
 type InitiateKycVariant =
     | 'default'
@@ -56,22 +56,16 @@ interface InitiateKycModalProps {
     reasonCode?: string
     nextAction?: NextAction
     pendingSince?: string
-    /** country name shown in cross_region variant (e.g. "Brazil", "Argentina") */
-    regionName?: string
-    /** Which prep checklist the SDK-bound variants show: extended for the
-     *  Manteca (BR/AR) flows, standard elsewhere. */
+    /** extended for the Manteca (BR/AR) flows, whose check asks questions of its own; standard elsewhere */
     prepPath?: 'standard' | 'extended'
-    /** ISO code of the single country the extended prep is for, so the tax-ID
-     *  row names that country's document (CUIT/CUIL for AR, CPF for BR) rather
-     *  than the both-countries string. Pass the ISO code, not `regionName`. */
+    /** the Manteca country the extended check is for, which names its account provider */
     taxIdCountry?: 'AR' | 'BR'
     /**
      * 'modal' overlays the caller; 'page' renders the same decision as a flow
-     * step. The prep content is a screen's worth — two requirement cards, a
-     * duration card, a caveat and a CTA — which overflowed the dialog on a
-     * short viewport. Both forms share every branch below on purpose: the
-     * degraded-outage and region-restricted short-circuits are the invariant
-     * this component exists to centralize.
+     * step. The unlock offer is /verify's full-screen intro in both forms. Both
+     * share every branch below on purpose: the degraded-outage and
+     * region-restricted short-circuits are the invariant this component exists
+     * to centralize.
      */
     presentation?: 'modal' | 'page'
     /** page form only — the step's back affordance and header title */
@@ -79,7 +73,7 @@ interface InitiateKycModalProps {
     navTitle?: string
     /** Bridge callers name the entity here; the Manteca flows get theirs from `taxIdCountry` */
     providerId?: ProviderId
-    /** test id of the start-verification CTA (default and cross-region variants) */
+    /** test id of the intro's Continue (the unlock offers) */
     ctaTestId?: string
     /**
      * The entry point's start, for Smart Paperwork Verification: such a user
@@ -90,16 +84,15 @@ interface InitiateKycModalProps {
 }
 
 // confirmation modal shown before starting identity check or document resubmission.
-// default            → "Unlock your account" — verb is "unlock", ID check is the means
+// default            → /verify's intro: the steps of the ID check, then Continue
 // provider_rejection → "One more document needed"
 // blocked            → "We couldn't unlock this — contact support"
 // restart_identity   → "Verify with a different document" (self-fix for country mismatch);
 //                      with the identity_document_missing reason code it is
 //                      "Complete your verification" (the approval has no document)
-// cross_region       → "Unlock {region}" (identity already cleared)
-// country_payments   → "Unlock {region}" for a user who has not verified yet and
-//                      arrived from one country's flow: what they unlock is that
-//                      country's bank transfers and payments, not an account
+// cross_region       → the same intro (identity already cleared)
+// country_payments   → the same intro, for a user who has not verified yet and
+//                      arrived from one country's flow
 // Three states are decided HERE and outrank whatever variant the caller asked
 // for: the verification outage, a region-restricted rejection, and a residence
 // no bank provider onboards.
@@ -116,7 +109,6 @@ export const InitiateKycModal = ({
     reasonCode,
     nextAction,
     pendingSince,
-    regionName,
     prepPath = 'standard',
     taxIdCountry,
     presentation = 'modal',
@@ -199,12 +191,7 @@ export const InitiateKycModal = ({
         if (isRestartIdentity) return t('initiate.titleRestartIdentity')
         if (isHostedCheck) return tHome('pendingTasks.verifyTitle')
         if (isProviderRejection) return t('documentRequest.title')
-        if (isCrossRegion)
-            return regionName
-                ? t('initiate.titleCrossRegion', { region: regionName })
-                : t('initiate.titleCrossRegionGeneric')
-        if (isCountryPayments && regionName) return t('initiate.titleCrossRegion', { region: regionName })
-        return t('initiate.titleDefault')
+        return t('processingTitle')
     }
 
     const getDescription = () => {
@@ -216,13 +203,7 @@ export const InitiateKycModal = ({
         if (isBlocked) return resolvedProviderMessage || t('initiate.descriptionBlocked')
         if (isRestartIdentity) return resolvedProviderMessage || t('initiate.descriptionRestartIdentity')
         if (isProviderRejection) return resolvedProviderMessage || t('initiate.descriptionProviderRejection')
-        if (isCrossRegion) {
-            return regionName
-                ? t('initiate.descriptionCrossRegion', { region: regionName })
-                : t('initiate.descriptionCrossRegionGeneric')
-        }
-        if (isCountryPayments && regionName) return t('initiate.descriptionCountryPayments', { region: regionName })
-        return t('initiate.descriptionDefault')
+        return resolvedProviderMessage
     }
 
     const getCta = (): { text: string; onClick: () => void; icon?: IconName; testId?: string } => {
@@ -270,19 +251,7 @@ export const InitiateKycModal = ({
                 testId: reasonCode === 'requirements_missing' ? 'kyc-supplement-cta' : undefined,
             }
         }
-        if (isCrossRegion) {
-            return {
-                text: tCommon(isLoading ? 'loading' : 'continue'),
-                onClick: onVerify,
-                testId: ctaTestId,
-            }
-        }
-        return {
-            text: isLoading ? tCommon('loading') : t('initiate.ctaUnlockNow'),
-            onClick: onVerify,
-            icon: 'check-circle',
-            testId: ctaTestId,
-        }
+        return { text: tCommon('gotIt'), onClick: onClose }
     }
 
     const cta = getCta()
@@ -339,33 +308,26 @@ export const InitiateKycModal = ({
         return <KycRegionRestrictedModal visible={visible} onClose={onClose} />
     }
 
-    // The variants that lead into a fresh SDK run (the plain unlock offer and
-    // the cross-region unlock) carry the prep checklist, so no path reaches the
-    // vendor without it. Every other variant is an error/action state where the
-    // list would be noise.
-    const showPrepChecklist =
-        (resolvedVariant === 'default' || resolvedVariant === 'cross_region' || isCountryPayments) &&
-        !error &&
-        !isSupplementInReview
-    // The checklist is left-aligned, so the paragraph introducing it is too:
-    // centered prose stacked on a left-aligned list reads as two columns.
-    // the account provider heads the checklist: bridge from the caller, manteca from the tax-id country
-    const prepProviderId =
-        prepPath === 'extended' ? taxIdCountry && (taxIdCountry === 'AR' ? 'manteca-ar' : 'manteca-br') : providerId
-    const description = (nested: boolean) =>
-        showPrepChecklist ? (
-            <div className="flex flex-col gap-3 text-left">
-                <p>{getDescription()}</p>
-                <KycPrepChecklist
-                    path={prepPath}
-                    taxIdCountry={taxIdCountry}
-                    providerId={prepProviderId}
-                    nested={nested}
-                />
-            </div>
-        ) : (
-            getDescription()
+    // The unlock offers lead into a fresh SDK run: /verify's intro, the steps
+    // the check takes, the same screen a Smart Paperwork Verification user sees
+    // (Slava, 2026-11-03). Every other variant is an error/action state of its own.
+    if (isUnlockOffer && !error && !isSupplementInReview && !slow) {
+        // the account provider: bridge from the caller, manteca from the tax-id country
+        const introProviderId =
+            prepPath === 'extended' ? taxIdCountry && (taxIdCountry === 'AR' ? 'manteca-ar' : 'manteca-br') : providerId
+        return (
+            <IdentityCheckIntroScreen
+                visible={visible}
+                hasQuestions={prepPath === 'extended'}
+                providerId={introProviderId}
+                busy={isLoading}
+                continueTestId={ctaTestId}
+                onBack={presentation === 'page' ? (onBack ?? onClose) : onClose}
+                onContinue={onVerify}
+            />
         )
+    }
+
     // Red for anything the user has to recover from (a rejection, a block, an
     // unavailable region), blue for the plain "start verification" offer — never
     // green, which the app reserves for a finished state.
@@ -404,7 +366,7 @@ export const InitiateKycModal = ({
                         <DocumentRequestState
                             title={getTitle()}
                             ctaIcon={cta.icon ?? null}
-                            reason={description(false)}
+                            reason={getDescription()}
                             reasonTestId={descriptionTestId}
                             ctaLabel={cta.text}
                             onCta={cta.onClick}
@@ -425,7 +387,7 @@ export const InitiateKycModal = ({
                     <IconBubble icon={iconName} size="l" color={iconColor} />
                     {!titleIsGeneric && <h1 className="text-heading-xs text-foreground-primary">{getTitle()}</h1>}
                     <div className="w-full text-body-s text-foreground-secondary" data-testid={descriptionTestId}>
-                        {description(false)}
+                        {getDescription()}
                     </div>
                 </div>
                 <Button
@@ -473,7 +435,7 @@ export const InitiateKycModal = ({
                     <div className="flex w-full flex-col items-center gap-4">
                         {/* body div, not DrawerDescription: the prep-checklist form nests block elements */}
                         <div className="w-full text-body-s text-foreground-secondary" data-testid={descriptionTestId}>
-                            {description(true)}
+                            {getDescription()}
                         </div>
                         <Button
                             variant="primary"

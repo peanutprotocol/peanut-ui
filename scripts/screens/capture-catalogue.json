@@ -842,12 +842,6 @@
         "source": "Kyc/KycStatusDrawer.tsx"
     },
     {
-        "id": "30-b-unlockmethodmodal",
-        "flow": "Verification",
-        "route": "/dev/surfaces?s=30-b-unlockmethodmodal",
-        "source": "IdentityVerification/UnlockMethodModal.tsx"
-    },
-    {
         "id": "67-e-provideemailstep",
         "flow": "Verification",
         "route": "/dev/surfaces?s=67-e-provideemailstep",
@@ -858,18 +852,6 @@
         "flow": "Verification",
         "route": "/dev/surfaces?s=68-e-bridgetosstep",
         "source": "Kyc/BridgeTosStep.tsx"
-    },
-    {
-        "id": "69-e-kycprepchecklist-standard",
-        "flow": "Verification",
-        "route": "/dev/surfaces?s=69-e-kycprepchecklist-standard",
-        "source": "Kyc/KycPrepChecklist.tsx"
-    },
-    {
-        "id": "70-e-kycprepchecklist-extended",
-        "flow": "Verification",
-        "route": "/dev/surfaces?s=70-e-kycprepchecklist-extended",
-        "source": "Kyc/KycPrepChecklist.tsx"
     },
     {
         "id": "71-e-kycprepchecklist-hosted",

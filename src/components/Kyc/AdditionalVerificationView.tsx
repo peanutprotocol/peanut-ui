@@ -117,7 +117,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                     <p className="text-body-s text-foreground-secondary">
                         {isAdvisory ? t('descriptionAdvisory') : t('description')}
                     </p>
-                    <KycPrepChecklist path="hosted" />
+                    <KycPrepChecklist />
                     {/* Callout, not a bare <p>: it carries role="alert", so a
                         screen reader hears the failure instead of leaving focus on
                         a CTA that silently did nothing. */}
